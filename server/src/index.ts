@@ -1,0 +1,210 @@
+import express from 'express';
+import { createServer } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { networkInterfaces } from 'os';
+import { DeviceRegistry } from './registry.js';
+import { createStoreFromEnv, type MessageStore } from './storage/index.js';
+import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage } from './types.js';
+
+function getNetworkAddresses(): string[] {
+  const nets = networkInterfaces();
+  const addresses: string[] = [];
+  
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name] || []) {
+      // Skip internal (loopback) and non-IPv4 addresses
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  return addresses;
+}
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+const server = createServer(app);
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+const registry = new DeviceRegistry();
+const store: MessageStore = createStoreFromEnv();
+
+// Serve static files from client build (production)
+const clientDist = join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', devices: registry.getAllDevices().length });
+});
+
+// Server info endpoint (for QR code generation)
+app.get('/api/server-info', (req, res) => {
+  const addresses = getNetworkAddresses();
+  const port = PORT;
+  const protocol = req.secure ? 'https' : 'http';
+  
+  // Build URLs for each network interface
+  const urls = addresses.map(addr => `${protocol}://${addr}:${port}`);
+  
+  // Also include hostname if available
+  const hostname = req.hostname;
+  if (hostname && hostname !== 'localhost' && !addresses.includes(hostname)) {
+    urls.unshift(`${protocol}://${hostname}:${port}`);
+  }
+  
+  res.json({
+    urls,
+    addresses,
+    port,
+    hostname,
+  });
+});
+
+// SPA fallback
+app.get('*', (_req, res) => {
+  res.sendFile(join(clientDist, 'index.html'));
+});
+
+// WebSocket connection handling
+wss.on('connection', (ws: WebSocket) => {
+  console.log('[WS] New connection');
+  let deviceId: string | null = null;
+
+  ws.on('message', async (data) => {
+    try {
+      const message: ClientMessage = JSON.parse(data.toString());
+      
+      switch (message.type) {
+        case 'register': {
+          deviceId = message.deviceId;
+          registry.register(message.deviceId, ws, message.displayName, message.mode);
+          
+          const response: RegisteredMessage = {
+            type: 'registered',
+            deviceId: message.deviceId,
+          };
+          ws.send(JSON.stringify(response));
+          
+          // Broadcast updated device list to all clients
+          registry.broadcastDeviceList();
+
+          // Send message history to output devices
+          if (message.mode === 'output') {
+            const history = await store.getRecent(50);
+            const historyMessage: HistoryMessage = {
+              type: 'history',
+              messages: history,
+            };
+            ws.send(JSON.stringify(historyMessage));
+          }
+          break;
+        }
+
+        case 'update-device': {
+          if (deviceId) {
+            const previousMode = registry.getDevice(deviceId)?.mode;
+            registry.updateDevice(deviceId, message);
+            registry.broadcastDeviceList();
+
+            // Send history if switching to output mode
+            if (message.mode === 'output' && previousMode !== 'output') {
+              const history = await store.getRecent(50);
+              const historyMessage: HistoryMessage = {
+                type: 'history',
+                messages: history,
+              };
+              ws.send(JSON.stringify(historyMessage));
+            }
+          }
+          break;
+        }
+
+        case 'text': {
+          if (!deviceId) {
+            console.warn('[WS] Received text from unregistered device');
+            return;
+          }
+
+          const device = registry.getDevice(deviceId);
+          if (!device || device.mode !== 'input') {
+            console.warn('[WS] Text received from non-input device');
+            return;
+          }
+
+          const relayMessage: RelayedTextMessage = {
+            type: 'text',
+            utteranceId: message.utteranceId,
+            senderId: deviceId,
+            senderName: device.displayName,
+            text: message.text,
+            partial: message.partial,
+          };
+
+          // Store final messages only
+          if (!message.partial) {
+            await store.append(relayMessage);
+          }
+
+          registry.broadcastToOutputs(relayMessage);
+          break;
+        }
+      }
+    } catch (err) {
+      console.error('[WS] Error processing message:', err);
+    }
+  });
+
+  ws.on('close', () => {
+    if (deviceId) {
+      registry.disconnect(deviceId);
+      registry.broadcastDeviceList();
+    }
+    console.log('[WS] Connection closed');
+  });
+
+  ws.on('error', (err) => {
+    console.error('[WS] Error:', err);
+  });
+});
+
+const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || '0.0.0.0';
+
+async function start() {
+  await store.connect();
+
+  server.listen(Number(PORT), HOST, () => {
+    console.log(`[Server] Running on http://${HOST}:${PORT}`);
+    console.log(`[Server] WebSocket endpoint: ws://${HOST}:${PORT}/ws`);
+    
+    // Show network addresses for easy access
+    const addresses = getNetworkAddresses();
+    if (addresses.length > 0) {
+      console.log('[Server] Network URLs:');
+      for (const addr of addresses) {
+        console.log(`         http://${addr}:${PORT}`);
+      }
+    }
+  });
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    console.log('[Server] Shutting down...');
+    await store.disconnect();
+    server.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
+
+start().catch((err) => {
+  console.error('[Server] Failed to start:', err);
+  process.exit(1);
+});

@@ -1,0 +1,23 @@
+{
+  "name": "voice-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real-time text/speech relay between browser devices",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client && npm run build -w server",
+    "start": "npm run start -w server",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "clean": "rm -rf node_modules server/node_modules server/dist client/node_modules client/dist"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "concurrently": "^8.2.2"
+  }
+}
