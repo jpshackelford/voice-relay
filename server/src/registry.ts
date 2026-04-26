@@ -69,6 +69,22 @@ export class DeviceRegistry {
     return [...this.devices.values()].filter(d => d.mode === 'input');
   }
 
+  getChatDevices(): Device[] {
+    return [...this.devices.values()].filter(d => d.mode === 'chat');
+  }
+
+  getReceivingDevices(): Device[] {
+    return [...this.devices.values()].filter(d => d.mode === 'output' || d.mode === 'chat');
+  }
+
+  canSend(device: Device): boolean {
+    return device.mode === 'input' || device.mode === 'chat';
+  }
+
+  canReceive(device: Device): boolean {
+    return device.mode === 'output' || device.mode === 'chat';
+  }
+
   getAllDevices(): Device[] {
     return [...this.devices.values()];
   }
@@ -82,10 +98,10 @@ export class DeviceRegistry {
   }
 
   broadcastToOutputs(message: RelayedTextMessage, excludeId?: string): void {
-    const outputs = this.getOutputDevices();
+    const receivers = this.getReceivingDevices();
     const payload = JSON.stringify(message);
 
-    for (const device of outputs) {
+    for (const device of receivers) {
       if (device.id !== excludeId && device.ws.readyState === device.ws.OPEN) {
         device.ws.send(payload);
       }

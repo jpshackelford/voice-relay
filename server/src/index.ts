@@ -93,8 +93,8 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast updated device list to all clients
           registry.broadcastDeviceList();
 
-          // Send message history to output devices
-          if (message.mode === 'output') {
+          // Send message history to devices that can receive (output and chat)
+          if (message.mode === 'output' || message.mode === 'chat') {
             const history = await store.getRecent(50);
             const historyMessage: HistoryMessage = {
               type: 'history',
@@ -111,8 +111,10 @@ wss.on('connection', (ws: WebSocket) => {
             registry.updateDevice(deviceId, message);
             registry.broadcastDeviceList();
 
-            // Send history if switching to output mode
-            if (message.mode === 'output' && previousMode !== 'output') {
+            // Send history if switching to a receiving mode (output or chat)
+            const newModeCanReceive = message.mode === 'output' || message.mode === 'chat';
+            const previousModeCouldReceive = previousMode === 'output' || previousMode === 'chat';
+            if (newModeCanReceive && !previousModeCouldReceive) {
               const history = await store.getRecent(50);
               const historyMessage: HistoryMessage = {
                 type: 'history',
@@ -131,8 +133,8 @@ wss.on('connection', (ws: WebSocket) => {
           }
 
           const device = registry.getDevice(deviceId);
-          if (!device || device.mode !== 'input') {
-            console.warn('[WS] Text received from non-input device');
+          if (!device || !registry.canSend(device)) {
+            console.warn('[WS] Text received from device that cannot send');
             return;
           }
 

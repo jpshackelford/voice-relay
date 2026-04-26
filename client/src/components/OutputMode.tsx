@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
-import type { DeviceInfo, Utterance } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance } from '../types';
 
 interface OutputModeProps {
   displayName: string;
   connected: boolean;
   devices: DeviceInfo[];
   utterances: Map<string, Utterance>;
-  onModeChange: () => void;
+  onModeChange: (mode: DeviceMode) => void;
 }
 
 export function OutputMode({ displayName, connected, devices, utterances, onModeChange }: OutputModeProps) {
@@ -49,9 +49,14 @@ export function OutputMode({ displayName, connected, devices, utterances, onMode
             {connected ? '● Connected' : '○ Disconnected'}
           </span>
         </div>
-        <button className="mode-switch" onClick={onModeChange}>
-          Switch to Input
-        </button>
+        <div className="mode-buttons">
+          <button className="mode-switch" onClick={() => onModeChange('input')}>
+            📤 Input
+          </button>
+          <button className="mode-switch" onClick={() => onModeChange('chat')}>
+            💬 Chat
+          </button>
+        </div>
       </header>
 
       <div className="input-devices">

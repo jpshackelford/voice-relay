@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { DeviceSetup } from './components/DeviceSetup';
 import { InputMode } from './components/InputMode';
 import { OutputMode } from './components/OutputMode';
+import { ChatMode } from './components/ChatMode';
 import { useWebSocket } from './hooks/useWebSocket';
 import { generateUUID } from './utils/uuid';
 import type { DeviceMode, Utterance, ServerMessage } from './types';
@@ -81,8 +82,7 @@ export default function App() {
     setMode(selectedMode);
   };
 
-  const handleModeChange = () => {
-    const newMode = mode === 'input' ? 'output' : 'input';
+  const handleModeChange = (newMode: DeviceMode) => {
     setMode(newMode);
     updateDevice({ mode: newMode });
   };
@@ -98,6 +98,20 @@ export default function App() {
         displayName={displayName}
         connected={connected}
         devices={devices}
+        sendText={sendText}
+        onModeChange={handleModeChange}
+      />
+    );
+  }
+
+  if (mode === 'chat') {
+    return (
+      <ChatMode
+        deviceId={deviceId}
+        displayName={displayName}
+        connected={connected}
+        devices={devices}
+        utterances={utterances}
         sendText={sendText}
         onModeChange={handleModeChange}
       />

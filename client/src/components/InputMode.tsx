@@ -1,14 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateUUID } from '../utils/uuid';
-import type { DeviceInfo } from '../types';
+import type { DeviceInfo, DeviceMode } from '../types';
 
 interface InputModeProps {
   displayName: string;
   connected: boolean;
   devices: DeviceInfo[];
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
-  onModeChange: () => void;
+  onModeChange: (mode: DeviceMode) => void;
 }
 
 export function InputMode({ displayName, connected, devices, sendText, onModeChange }: InputModeProps) {
@@ -113,9 +113,14 @@ export function InputMode({ displayName, connected, devices, sendText, onModeCha
             {connected ? '● Connected' : '○ Disconnected'}
           </span>
         </div>
-        <button className="mode-switch" onClick={onModeChange}>
-          Switch to Output
-        </button>
+        <div className="mode-buttons">
+          <button className="mode-switch" onClick={() => onModeChange('output')}>
+            📥 Output
+          </button>
+          <button className="mode-switch" onClick={() => onModeChange('chat')}>
+            💬 Chat
+          </button>
+        </div>
       </header>
 
       <div className="output-devices">

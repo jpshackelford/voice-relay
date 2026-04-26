@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws';
 
-export type DeviceMode = 'input' | 'output';
+export type DeviceMode = 'input' | 'output' | 'chat';
 
 export interface Device {
   id: string;

@@ -443,6 +443,130 @@ header {
   51%, 100% { opacity: 0; }
 }
 
+/* Mode buttons in header */
+.mode-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Chat Mode */
+.chat-mode {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.chat-participants {
+  padding: 0.75rem 1rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #888;
+}
+
+.participant-group {
+  padding: 0.25rem 0.75rem;
+  background: #0f4c75;
+  border-radius: 16px;
+  color: #bbe1fa;
+}
+
+.chat-messages {
+  flex: 1;
+  min-height: 0;
+}
+
+.message.own-message {
+  border-left-color: #27ae60;
+  background: #1e3a2f;
+}
+
+.message.own-message .sender {
+  color: #27ae60;
+}
+
+.message.own-message.partial .sender {
+  color: #888;
+}
+
+.chat-input-area {
+  background: #16213e;
+  border-top: 1px solid #333;
+  padding: 0.75rem 1rem;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chat-input-row input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #fff;
+  outline: none;
+  font-family: inherit;
+}
+
+.chat-input-row input:focus {
+  border-color: #3282b8;
+}
+
+.stt-btn-small,
+.send-btn-small {
+  width: 48px;
+  height: 48px;
+  font-size: 1.25rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stt-btn-small {
+  background: #333;
+  color: #fff;
+}
+
+.stt-btn-small:hover:not(:disabled) {
+  background: #444;
+}
+
+.stt-btn-small.listening {
+  background: #c0392b;
+  animation: pulse 1.5s infinite;
+}
+
+.stt-btn-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send-btn-small {
+  background: #3282b8;
+  color: #fff;
+}
+
+.send-btn-small:hover:not(:disabled) {
+  background: #0f4c75;
+}
+
+.send-btn-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .device-setup {
@@ -461,5 +585,10 @@ header {
   
   .mode-switch {
     width: 100%;
+  }
+  
+  .mode-buttons {
+    width: 100%;
+    flex-direction: column;
   }
 }
