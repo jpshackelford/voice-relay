@@ -1,9 +1,15 @@
-export type DeviceMode = 'input' | 'output' | 'chat';
+export type DeviceMode = 'input' | 'output' | 'chat' | 'kiosk';
 
 export interface DeviceInfo {
   id: string;
   displayName: string;
   mode: DeviceMode;
+}
+
+export interface DisplayContent {
+  type: 'markdown' | 'image' | 'clear';
+  content?: string;  // Markdown text or image URL
+  title?: string;    // Optional title
 }
 
 // Messages from client to server
@@ -55,7 +61,12 @@ export interface HistoryMessage {
   messages: RelayedTextMessage[];
 }
 
-export type ServerMessage = RegisteredMessage | DeviceListMessage | RelayedTextMessage | HistoryMessage;
+export interface DisplayMessage {
+  type: 'display';
+  display: DisplayContent;
+}
+
+export type ServerMessage = RegisteredMessage | DeviceListMessage | RelayedTextMessage | HistoryMessage | DisplayMessage;
 
 export interface Utterance {
   id: string;

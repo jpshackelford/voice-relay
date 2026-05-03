@@ -6,7 +6,7 @@ import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore } from './storage/index.js';
-import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage } from './types.js';
+import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
 
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
@@ -65,6 +65,29 @@ app.get('/api/server-info', (req, res) => {
   });
 });
 
+// Display API for AI agents to send content to kiosk displays
+app.use(express.json());
+
+app.post('/api/display', (req, res) => {
+  const { type, content, title } = req.body as DisplayContent;
+  
+  if (!type || !['markdown', 'image', 'clear'].includes(type)) {
+    res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
+    return;
+  }
+  
+  if (type !== 'clear' && !content) {
+    res.status(400).json({ error: 'Content required for markdown and image types.' });
+    return;
+  }
+  
+  const displayContent: DisplayContent = { type, content, title };
+  registry.broadcastToKiosks(displayContent);
+  
+  const kioskCount = registry.getKioskDevices().length;
+  res.json({ success: true, kioskCount });
+});
+
 // SPA fallback
 app.get('*', (_req, res) => {
   res.sendFile(join(clientDist, 'index.html'));
@@ -93,8 +116,8 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast updated device list to all clients
           registry.broadcastDeviceList();
 
-          // Send message history to devices that can receive (output and chat)
-          if (message.mode === 'output' || message.mode === 'chat') {
+          // Send message history to devices that can receive (output, chat, kiosk)
+          if (message.mode === 'output' || message.mode === 'chat' || message.mode === 'kiosk') {
             const history = await store.getRecent(50);
             const historyMessage: HistoryMessage = {
               type: 'history',
@@ -111,9 +134,9 @@ wss.on('connection', (ws: WebSocket) => {
             registry.updateDevice(deviceId, message);
             registry.broadcastDeviceList();
 
-            // Send history if switching to a receiving mode (output or chat)
-            const newModeCanReceive = message.mode === 'output' || message.mode === 'chat';
-            const previousModeCouldReceive = previousMode === 'output' || previousMode === 'chat';
+            // Send history if switching to a receiving mode (output, chat, kiosk)
+            const newModeCanReceive = message.mode === 'output' || message.mode === 'chat' || message.mode === 'kiosk';
+            const previousModeCouldReceive = previousMode === 'output' || previousMode === 'chat' || previousMode === 'kiosk';
             if (newModeCanReceive && !previousModeCouldReceive) {
               const history = await store.getRecent(50);
               const historyMessage: HistoryMessage = {

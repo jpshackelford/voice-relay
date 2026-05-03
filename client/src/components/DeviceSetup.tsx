@@ -64,6 +64,14 @@ export function DeviceSetup({ initialName, onSubmit }: DeviceSetupProps) {
               💬 Chat
               <span className="mode-desc">Send & receive</span>
             </button>
+            <button
+              type="button"
+              className={`mode-btn ${mode === 'kiosk' ? 'active' : ''}`}
+              onClick={() => setMode('kiosk')}
+            >
+              🖥️ Kiosk
+              <span className="mode-desc">Large display + chat</span>
+            </button>
           </div>
         </div>
 

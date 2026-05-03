@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { Device, DeviceInfo, DeviceMode, RelayedTextMessage, DeviceListMessage } from './types.js';
+import type { Device, DeviceInfo, DeviceMode, RelayedTextMessage, DeviceListMessage, DisplayMessage, DisplayContent } from './types.js';
 
 export class DeviceRegistry {
   private devices = new Map<string, Device>();
@@ -74,15 +74,19 @@ export class DeviceRegistry {
   }
 
   getReceivingDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'output' || d.mode === 'chat');
+    return [...this.devices.values()].filter(d => d.mode === 'output' || d.mode === 'chat' || d.mode === 'kiosk');
+  }
+
+  getKioskDevices(): Device[] {
+    return [...this.devices.values()].filter(d => d.mode === 'kiosk');
   }
 
   canSend(device: Device): boolean {
-    return device.mode === 'input' || device.mode === 'chat';
+    return device.mode === 'input' || device.mode === 'chat' || device.mode === 'kiosk';
   }
 
   canReceive(device: Device): boolean {
-    return device.mode === 'output' || device.mode === 'chat';
+    return device.mode === 'output' || device.mode === 'chat' || device.mode === 'kiosk';
   }
 
   getAllDevices(): Device[] {
@@ -116,6 +120,20 @@ export class DeviceRegistry {
     const payload = JSON.stringify(message);
 
     for (const device of this.getAllDevices()) {
+      if (device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
+  }
+
+  broadcastToKiosks(displayContent: DisplayContent): void {
+    const message: DisplayMessage = {
+      type: 'display',
+      display: displayContent,
+    };
+    const payload = JSON.stringify(message);
+
+    for (const device of this.getKioskDevices()) {
       if (device.ws.readyState === device.ws.OPEN) {
         device.ws.send(payload);
       }

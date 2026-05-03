@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws';
 
-export type DeviceMode = 'input' | 'output' | 'chat';
+export type DeviceMode = 'input' | 'output' | 'chat' | 'kiosk';
 
 export interface Device {
   id: string;
@@ -9,6 +9,12 @@ export interface Device {
   ws: WebSocket;
   connectedAt: Date;
   ttsEnabled?: boolean;
+}
+
+export interface DisplayContent {
+  type: 'markdown' | 'image' | 'clear';
+  content?: string;
+  title?: string;
 }
 
 // Messages from client to server
@@ -43,7 +49,13 @@ export type ServerMessage =
   | RegisteredMessage
   | DeviceListMessage
   | RelayedTextMessage
-  | HistoryMessage;
+  | HistoryMessage
+  | DisplayMessage;
+
+export interface DisplayMessage {
+  type: 'display';
+  display: DisplayContent;
+}
 
 export interface RegisteredMessage {
   type: 'registered';

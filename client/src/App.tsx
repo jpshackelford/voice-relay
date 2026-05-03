@@ -3,10 +3,11 @@ import { DeviceSetup } from './components/DeviceSetup';
 import { InputMode } from './components/InputMode';
 import { OutputMode } from './components/OutputMode';
 import { ChatMode } from './components/ChatMode';
+import { KioskMode } from './components/KioskMode';
 import { useWebSocket } from './hooks/useWebSocket';
 import { generateUUID } from './utils/uuid';
 import { generateDefaultDeviceName } from './utils/deviceName';
-import type { DeviceMode, Utterance, ServerMessage } from './types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from './types';
 import './App.css';
 
 function getOrCreateDeviceId(): string {
@@ -32,6 +33,7 @@ export default function App() {
   const [displayName, setDisplayName] = useState(getOrCreateDisplayName);
   const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
+  const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
 
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {
@@ -68,12 +70,21 @@ export default function App() {
     });
   }, []);
 
+  const handleDisplayMessage = useCallback((message: ServerMessage & { type: 'display' }) => {
+    if (message.display.type === 'clear') {
+      setDisplayContent(null);
+    } else {
+      setDisplayContent(message.display);
+    }
+  }, []);
+
   const { connected, devices, sendText, updateDevice } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
     mode: mode || 'output',
     onTextMessage: handleTextMessage,
     onHistoryMessage: handleHistoryMessage,
+    onDisplayMessage: handleDisplayMessage,
   });
 
   // Store display name in session
@@ -118,6 +129,21 @@ export default function App() {
         connected={connected}
         devices={devices}
         utterances={utterances}
+        sendText={sendText}
+        onModeChange={handleModeChange}
+      />
+    );
+  }
+
+  if (mode === 'kiosk') {
+    return (
+      <KioskMode
+        deviceId={deviceId}
+        displayName={displayName}
+        connected={connected}
+        devices={devices}
+        utterances={utterances}
+        displayContent={displayContent}
         sendText={sendText}
         onModeChange={handleModeChange}
       />
