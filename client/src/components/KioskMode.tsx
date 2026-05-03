@@ -89,6 +89,10 @@ export function KioskMode({
   const handleSend = () => {
     if (text.trim()) {
       sendText(utteranceIdRef.current, text, false);
+      // Forward to AI if connected
+      if (ai.connected) {
+        ai.sendMessage(text);
+      }
       setText('');
       generateNewUtteranceId();
     }
