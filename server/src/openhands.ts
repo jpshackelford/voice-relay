@@ -183,12 +183,17 @@ export class OpenHandsClient {
 
   /**
    * Send a message to an existing conversation via pending messages endpoint
+   * Uses SendMessageRequest format: { role, content: [{type, text}], run }
    */
-  async sendMessage(conversationId: string, message: string): Promise<{ message_id: string; position: number }> {
-    return this.request<{ message_id: string; position: number }>(
+  async sendMessage(conversationId: string, message: string): Promise<{ id: string; queued: boolean; position: number }> {
+    return this.request<{ id: string; queued: boolean; position: number }>(
       'POST',
       `/conversations/${conversationId}/pending-messages`,
-      { content: message }
+      {
+        role: 'user',
+        content: [{ type: 'text', text: message }],
+        run: true  // Auto-run the agent loop to process the message
+      }
     );
   }
 
@@ -276,6 +281,8 @@ export class AISessionManager {
       throw new Error('OpenHands API not configured');
     }
 
+    console.log(`[AI] Starting ${mode} session for device ${deviceId}`);
+
     // End existing session if any
     if (this.sessions.has(deviceId)) {
       await this.endSession(deviceId);
@@ -283,21 +290,27 @@ export class AISessionManager {
 
     // Load appropriate system prompt
     const systemPrompt = loadPrompt(mode === 'kiosk' ? 'kiosk-system' : 'chat-system');
+    console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
     // Start conversation
+    console.log(`[AI] Creating OpenHands conversation...`);
     const startResponse = await this.client.startConversation(
       systemPrompt,
       `Voice Relay ${mode} session`
     );
+    console.log(`[AI] Conversation started, task id: ${startResponse.id}`);
 
     // Wait for conversation to be ready
+    console.log(`[AI] Waiting for conversation to be ready...`);
     const readyTask = await this.client.pollUntilReady(
       startResponse.id,
       60000, // 1 minute timeout for initial start
       2000
     );
+    console.log(`[AI] Conversation ready:`, readyTask);
 
     const conversationId = readyTask.app_conversation_id || startResponse.id;
+    console.log(`[AI] Using conversation ID: ${conversationId}`);
 
     const session: AISession = {
       conversationId,
@@ -311,11 +324,12 @@ export class AISessionManager {
       try {
         await this.pollForResponses(session, onMessage);
       } catch (e) {
-        console.error('Error polling for responses:', e);
+        console.error('[AI] Error polling for responses:', e);
       }
     }, 3000);
 
     this.sessions.set(deviceId, session);
+    console.log(`[AI] Session started successfully`);
     return session;
   }
 
@@ -332,7 +346,9 @@ export class AISessionManager {
       throw new Error('No active AI session for this device');
     }
 
-    await this.client.sendMessage(session.conversationId, message);
+    console.log(`[AI] Sending message to conversation ${session.conversationId}: "${message.substring(0, 50)}..."`);
+    const result = await this.client.sendMessage(session.conversationId, message);
+    console.log(`[AI] Message queued:`, result);
   }
 
   /**
