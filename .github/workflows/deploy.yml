@@ -1,0 +1,34 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd /var/www/vr.chorecraft.net/app
+            
+            # Pull latest code
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Install dependencies and build
+            export PATH=$HOME/bin/node/bin:$PATH
+            npm ci
+            npm run build
+            
+            # Restart service
+            sudo systemctl restart voice-relay
+            
+            echo "Deployed successfully at $(date)"
