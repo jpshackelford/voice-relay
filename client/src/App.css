@@ -567,6 +567,29 @@ header {
   cursor: not-allowed;
 }
 
+.auto-submit-toggle {
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: #1a1a2e;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auto-submit-toggle:hover {
+  border-color: #555;
+}
+
+.auto-submit-toggle.active {
+  border-color: #f0a500;
+  background: #3d2e00;
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .device-setup {

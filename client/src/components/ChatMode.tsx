@@ -26,6 +26,7 @@ export function ChatMode({
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   
   const utteranceIdRef = useRef(generateUUID());
@@ -84,11 +85,20 @@ export function ChatMode({
   }, [text, sendText]);
 
   const handleFinalResult = useCallback((transcript: string) => {
-    const newText = text + transcript + ' ';
-    setText(newText);
+    const newText = text + transcript;
     setInterimText('');
-    sendText(utteranceIdRef.current, newText, true);
-  }, [text, sendText]);
+    
+    if (autoSubmit) {
+      // Auto-submit: send as final and reset
+      sendText(utteranceIdRef.current, newText.trim(), false);
+      setText('');
+      utteranceIdRef.current = generateUUID();
+    } else {
+      // Manual mode: append to text with space, send as partial
+      setText(newText + ' ');
+      sendText(utteranceIdRef.current, newText + ' ', true);
+    }
+  }, [text, sendText, autoSubmit]);
 
   const handleSttError = useCallback((err: string) => {
     console.error('[STT]', err);
@@ -225,6 +235,13 @@ export function ChatMode({
             title={sttSupported ? (isListening ? 'Stop listening' : 'Start speech-to-text') : 'Speech recognition not supported'}
           >
             {isListening ? '🔴' : '🎤'}
+          </button>
+          <button
+            className={`auto-submit-toggle ${autoSubmit ? 'active' : ''}`}
+            onClick={() => setAutoSubmit(!autoSubmit)}
+            title={autoSubmit ? 'Auto-send on: speech sends immediately' : 'Auto-send off: edit before sending'}
+          >
+            {autoSubmit ? '⚡' : '✏️'}
           </button>
           <input
             ref={inputRef}
