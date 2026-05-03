@@ -27,7 +27,15 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
   }, []);
 
   const connect = useCallback(async () => {
-    if (connecting || connected) return;
+    console.log('[AI] connect() called', { connecting, connected, deviceId, mode });
+    if (connecting) {
+      console.log('[AI] Already connecting, skipping');
+      return;
+    }
+    if (connected) {
+      console.log('[AI] Already connected, skipping');
+      return;
+    }
     
     console.log('[AI] Connecting...', { deviceId, mode });
     setConnecting(true);
@@ -60,19 +68,26 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
   }, [deviceId, mode, connecting, connected]);
 
   const disconnect = useCallback(async () => {
-    if (!connected) return;
+    console.log('[AI] disconnect() called', { connected });
+    if (!connected) {
+      console.log('[AI] Not connected, skipping disconnect');
+      return;
+    }
 
     try {
+      console.log('[AI] Disconnecting...');
       await fetch('/api/ai/disconnect', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deviceId }),
       });
+      console.log('[AI] Disconnected');
     } catch (err) {
-      console.error('Failed to disconnect AI:', err);
+      console.error('[AI] Failed to disconnect:', err);
     } finally {
       setConnected(false);
       setConversationId(null);
+      setError(null);
     }
   }, [deviceId, connected]);
 
@@ -96,12 +111,13 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
   }, [deviceId, connected]);
 
   const toggle = useCallback(async () => {
+    console.log('[AI] toggle() called', { connected, connecting });
     if (connected) {
       await disconnect();
-    } else {
+    } else if (!connecting) {
       await connect();
     }
-  }, [connected, connect, disconnect]);
+  }, [connected, connecting, connect, disconnect]);
 
   // Handle AI status updates from WebSocket
   const handleAIStatus = useCallback((status: { connected: boolean; conversationId?: string }) => {
