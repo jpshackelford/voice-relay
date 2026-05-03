@@ -348,7 +348,8 @@ header {
   50% { opacity: 0.7; }
 }
 
-.stt-error {
+.stt-error,
+.ai-error {
   padding: 0.75rem 1rem;
   margin: 0.5rem 1rem 1rem;
   background: #4a1515;
@@ -356,6 +357,48 @@ header {
   border-radius: 8px;
   color: #ff6b6b;
   font-size: 0.875rem;
+}
+
+.ai-error {
+  background: #2a1540;
+  border-color: #a855f7;
+  color: #d8b4fe;
+}
+
+/* AI Status Indicator */
+.ai-status-indicator {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  background: rgba(168, 85, 247, 0.2);
+  border: 2px solid #a855f7;
+  border-radius: 50%;
+  z-index: 1000;
+}
+
+.ai-status-indicator.thinking {
+  animation: ai-thinking 1s ease-in-out infinite;
+}
+
+.ai-status-indicator.connected {
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+}
+
+@keyframes ai-thinking {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.1); 
+    opacity: 0.7;
+  }
 }
 
 /* Output Mode */

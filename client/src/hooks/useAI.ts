@@ -29,6 +29,7 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
   const connect = useCallback(async () => {
     if (connecting || connected) return;
     
+    console.log('[AI] Connecting...', { deviceId, mode });
     setConnecting(true);
     setError(null);
 
@@ -40,6 +41,7 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
       });
 
       const data = await response.json();
+      console.log('[AI] Connect response:', response.status, data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to connect AI');
@@ -47,7 +49,9 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
 
       setConversationId(data.conversationId);
       setConnected(true);
+      console.log('[AI] Connected, conversationId:', data.conversationId);
     } catch (err) {
+      console.error('[AI] Connect error:', err);
       setError((err as Error).message);
       setConnected(false);
     } finally {

@@ -278,6 +278,16 @@ export function KioskMode({
         {sttError && (
           <div className="stt-error">⚠️ {sttError}</div>
         )}
+
+        {ai.error && (
+          <div className="ai-error">⚠️ AI: {ai.error}</div>
+        )}
+
+        {(ai.connecting || ai.connected) && (
+          <div className={`ai-status-indicator ${ai.connecting ? 'thinking' : 'connected'}`}>
+            {ai.connecting ? '🤔' : '✨'}
+          </div>
+        )}
       </aside>
 
       {/* Right side - Display area */}
