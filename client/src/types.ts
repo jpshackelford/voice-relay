@@ -66,7 +66,13 @@ export interface DisplayMessage {
   display: DisplayContent;
 }
 
-export type ServerMessage = RegisteredMessage | DeviceListMessage | RelayedTextMessage | HistoryMessage | DisplayMessage;
+export interface AIStatusMessage {
+  type: 'ai-status';
+  connected: boolean;
+  conversationId?: string;
+}
+
+export type ServerMessage = RegisteredMessage | DeviceListMessage | RelayedTextMessage | HistoryMessage | DisplayMessage | AIStatusMessage;
 
 export interface Utterance {
   id: string;

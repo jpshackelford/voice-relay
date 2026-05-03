@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
+import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
 
@@ -13,6 +14,7 @@ interface KioskModeProps {
   displayContent: DisplayContent | null;
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
+  onAIStatusChange?: (connected: boolean) => void;
 }
 
 export function KioskMode({ 
@@ -23,13 +25,15 @@ export function KioskMode({
   utterances,
   displayContent,
   sendText, 
-  onModeChange 
+  onModeChange,
+  onAIStatusChange
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,6 +42,17 @@ export function KioskMode({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const ai = useAI({ deviceId, mode: 'kiosk' });
+
+  // Check AI availability on mount
+  useEffect(() => {
+    ai.checkAvailability().then(status => setAiAvailable(status.available));
+  }, [ai.checkAvailability]);
+
+  // Notify parent of AI status changes
+  useEffect(() => {
+    onAIStatusChange?.(ai.connected);
+  }, [ai.connected, onAIStatusChange]);
 
   const generateNewUtteranceId = useCallback(() => {
     utteranceIdRef.current = generateUUID();
@@ -217,6 +232,16 @@ export function KioskMode({
             </div>
           )}
           <div className="kiosk-input-row">
+            {aiAvailable && (
+              <button
+                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''}`}
+                onClick={ai.toggle}
+                disabled={ai.connecting}
+                title={ai.connected ? 'Disconnect AI' : ai.connecting ? 'Connecting...' : 'Connect AI assistant'}
+              >
+                {ai.connecting ? '⏳' : '✨'}
+              </button>
+            )}
             <button 
               className={`stt-btn-small ${isListening ? 'listening' : ''}`}
               onClick={isListening ? stopListening : startListening}
@@ -238,7 +263,7 @@ export function KioskMode({
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type..."
+              placeholder={ai.connected ? "Ask AI..." : "Type..."}
             />
             <button 
               className="send-btn-small"

@@ -590,6 +590,52 @@ header {
   background: #3d2e00;
 }
 
+/* AI Toggle Button */
+.ai-toggle {
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  border: 2px solid #333;
+  border-radius: 6px;
+  background: #1a1a2e;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-toggle:hover {
+  border-color: #555;
+  background: #252538;
+}
+
+.ai-toggle.active {
+  border-color: #9b59b6;
+  background: #2d1f3d;
+  animation: sparkle-glow 2s ease-in-out infinite;
+}
+
+.ai-toggle.connecting {
+  border-color: #f39c12;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.ai-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes sparkle-glow {
+  0%, 100% { box-shadow: 0 0 5px #9b59b6; }
+  50% { box-shadow: 0 0 15px #9b59b6, 0 0 25px #8e44ad; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
 /* Kiosk Mode */
 .kiosk-mode {
   display: flex;

@@ -8,9 +8,10 @@ interface UseWebSocketOptions {
   onTextMessage?: (message: ServerMessage & { type: 'text' }) => void;
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
+  onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHistoryMessage, onDisplayMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -19,11 +20,13 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
   const onTextMessageRef = useRef(onTextMessage);
   const onHistoryMessageRef = useRef(onHistoryMessage);
   const onDisplayMessageRef = useRef(onDisplayMessage);
+  const onAIStatusMessageRef = useRef(onAIStatusMessage);
 
   // Keep refs up to date
   onTextMessageRef.current = onTextMessage;
   onHistoryMessageRef.current = onHistoryMessage;
   onDisplayMessageRef.current = onDisplayMessage;
+  onAIStatusMessageRef.current = onAIStatusMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -69,6 +72,9 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
             break;
           case 'display':
             onDisplayMessageRef.current?.(message);
+            break;
+          case 'ai-status':
+            onAIStatusMessageRef.current?.(message);
             break;
         }
       } catch (err) {

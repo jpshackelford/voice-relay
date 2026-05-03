@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore } from './storage/index.js';
+import { aiSessionManager } from './openhands.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -86,6 +87,118 @@ app.post('/api/display', (req, res) => {
   
   const kioskCount = registry.getKioskDevices().length;
   res.json({ success: true, kioskCount });
+});
+
+// AI conversation management endpoints
+app.get('/api/ai/status', (_req, res) => {
+  res.json({ 
+    available: aiSessionManager.isAvailable(),
+    message: aiSessionManager.isAvailable() 
+      ? 'OpenHands AI is available' 
+      : 'OpenHands API key not configured'
+  });
+});
+
+app.post('/api/ai/connect', async (req, res) => {
+  const { deviceId, mode } = req.body as { deviceId: string; mode: 'chat' | 'kiosk' };
+  
+  if (!deviceId) {
+    res.status(400).json({ error: 'deviceId required' });
+    return;
+  }
+  
+  if (!aiSessionManager.isAvailable()) {
+    res.status(503).json({ error: 'OpenHands API not configured' });
+    return;
+  }
+  
+  try {
+    const device = registry.getDevice(deviceId);
+    if (!device) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+
+    // Callback to send AI responses as chat messages
+    const onMessage = (text: string) => {
+      const aiMessage: RelayedTextMessage = {
+        type: 'text',
+        utteranceId: `ai-${Date.now()}`,
+        senderId: 'openhands-ai',
+        senderName: '✨ AI',
+        text,
+        partial: false,
+      };
+      
+      // Store and broadcast the AI response
+      store.append(aiMessage).catch(err => console.error('Failed to store AI message:', err));
+      registry.broadcastToOutputs(aiMessage);
+    };
+
+    const session = await aiSessionManager.startSession(deviceId, mode || 'chat', onMessage);
+    
+    // Notify the device that AI is connected
+    registry.sendToDevice(deviceId, {
+      type: 'ai-status',
+      connected: true,
+      conversationId: session.conversationId,
+    });
+    
+    res.json({ 
+      success: true, 
+      conversationId: session.conversationId,
+      message: 'AI connected'
+    });
+  } catch (err) {
+    console.error('Failed to connect AI:', err);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post('/api/ai/message', async (req, res) => {
+  const { deviceId, message } = req.body as { deviceId: string; message: string };
+  
+  if (!deviceId || !message) {
+    res.status(400).json({ error: 'deviceId and message required' });
+    return;
+  }
+  
+  if (!aiSessionManager.hasSession(deviceId)) {
+    res.status(404).json({ error: 'No active AI session for this device' });
+    return;
+  }
+  
+  try {
+    await aiSessionManager.sendMessage(deviceId, message);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to send AI message:', err);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.delete('/api/ai/disconnect', async (req, res) => {
+  const { deviceId } = req.body as { deviceId: string };
+  
+  if (!deviceId) {
+    res.status(400).json({ error: 'deviceId required' });
+    return;
+  }
+  
+  try {
+    await aiSessionManager.endSession(deviceId);
+    
+    // Notify the device that AI is disconnected
+    registry.sendToDevice(deviceId, {
+      type: 'ai-status',
+      connected: false,
+    });
+    
+    res.json({ success: true, message: 'AI disconnected' });
+  } catch (err) {
+    console.error('Failed to disconnect AI:', err);
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 // SPA fallback
@@ -220,6 +333,7 @@ async function start() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Server] Shutting down...');
+    await aiSessionManager.shutdown();
     await store.disconnect();
     server.close();
     process.exit(0);

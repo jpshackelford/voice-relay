@@ -107,6 +107,65 @@ FIRESTORE_PROJECT_ID=your-project
 FIRESTORE_COLLECTION=voice-relay-messages
 ```
 
+## AI Assistant Integration
+
+Voice Relay can connect to OpenHands AI for interactive conversations. When enabled, a sparkle button (✨) appears in chat and kiosk modes.
+
+### Setup
+
+1. Get an API key from [OpenHands Cloud](https://app.all-hands.dev)
+
+2. Set the environment variable:
+
+```bash
+# Local development
+export OPENHANDS_CLOUD_API_KEY=your-api-key-here
+
+# Or in .env file (not committed)
+OPENHANDS_CLOUD_API_KEY=your-api-key-here
+```
+
+3. For systemd deployments, add to your service file:
+
+```ini
+[Service]
+Environment="OPENHANDS_CLOUD_API_KEY=your-api-key-here"
+```
+
+Or use an environment file:
+
+```ini
+[Service]
+EnvironmentFile=/etc/voice-relay/env
+```
+
+### Usage
+
+1. Click the ✨ button to connect to AI
+2. The button glows purple when connected
+3. Speak or type messages - AI responses appear in chat
+4. In kiosk mode, AI can display content on the main display area
+5. Click ✨ again to disconnect
+
+### API Endpoints
+
+```bash
+# Check AI availability
+GET /api/ai/status
+
+# Connect AI to a device
+POST /api/ai/connect
+{ "deviceId": "...", "mode": "chat" | "kiosk" }
+
+# Send message to AI
+POST /api/ai/message
+{ "deviceId": "...", "message": "..." }
+
+# Disconnect AI
+DELETE /api/ai/disconnect
+{ "deviceId": "..." }
+```
+
 ## Deploy to Cloud Run
 
 ### Prerequisites

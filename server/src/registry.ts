@@ -139,4 +139,13 @@ export class DeviceRegistry {
       }
     }
   }
+
+  sendToDevice(deviceId: string, message: object): boolean {
+    const device = this.devices.get(deviceId);
+    if (!device || device.ws.readyState !== device.ws.OPEN) {
+      return false;
+    }
+    device.ws.send(JSON.stringify(message));
+    return true;
+  }
 }
