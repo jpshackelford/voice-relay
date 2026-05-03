@@ -2,12 +2,13 @@
  * OpenHands Cloud API client for Voice Relay
  * 
  * Handles creating conversations and sending/receiving messages
- * via the OpenHands V1 API.
+ * via the OpenHands V1 API and WebSocket.
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import WebSocket from 'ws';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,7 @@ interface ConversationInfo {
   status: string;
   execution_status?: string;
   sandbox_status?: string;
+  sandbox_id?: string;
   session_api_key?: string;
   conversation_url?: string;
 }
@@ -232,19 +234,24 @@ export function loadPrompt(promptName: string): string {
 }
 
 /**
- * Active AI session for a device
+ * Active AI session for a device using WebSocket
  */
 export interface AISession {
   conversationId: string;
   taskId: string;
   deviceId: string;
   mode: 'chat' | 'kiosk';
+  ws?: WebSocket;
+  agentServerUrl?: string;
+  sessionApiKey?: string;
   lastEventId?: string;
-  pollingInterval?: NodeJS.Timeout;
+  onMessage?: (message: string) => void;
+  reconnectAttempts: number;
+  maxReconnectAttempts: number;
 }
 
 /**
- * Manager for AI sessions
+ * Manager for AI sessions using WebSocket
  */
 export class AISessionManager {
   private sessions: Map<string, AISession> = new Map();
@@ -268,6 +275,79 @@ export class AISessionManager {
 
   hasSession(deviceId: string): boolean {
     return this.sessions.has(deviceId);
+  }
+
+  /**
+   * Connect WebSocket to agent server
+   */
+  private connectWebSocket(session: AISession): void {
+    if (!session.agentServerUrl || !session.sessionApiKey) {
+      console.error('[AI] Missing agent server URL or session API key');
+      return;
+    }
+
+    const wsUrl = session.agentServerUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+    const fullUrl = `${wsUrl}/sockets/events/${session.conversationId}`;
+    console.log(`[AI] Connecting WebSocket to ${fullUrl}`);
+
+    const ws = new WebSocket(fullUrl);
+    session.ws = ws;
+
+    ws.on('open', () => {
+      console.log('[AI] WebSocket connected, sending auth...');
+      ws.send(JSON.stringify({
+        type: 'auth',
+        session_api_key: session.sessionApiKey
+      }));
+      session.reconnectAttempts = 0;
+    });
+
+    ws.on('message', (data: WebSocket.Data) => {
+      try {
+        const event = JSON.parse(data.toString());
+        
+        if (event.kind === 'MessageEvent' && event.source === 'agent') {
+          const text = event.llm_message?.content
+            ?.filter((p: ContentPart) => p.type === 'text')
+            ?.map((p: ContentPart) => p.text)
+            ?.join('\n');
+
+          if (text && session.onMessage) {
+            console.log(`[AI] Got agent response: "${text.substring(0, 100)}..."`);
+            session.onMessage(text);
+          }
+        } else if (event.kind === 'ConversationStateUpdateEvent') {
+          // Status update, can log if needed
+          if (event.execution_status) {
+            console.log(`[AI] Execution status: ${event.execution_status}`);
+          }
+        }
+      } catch (e) {
+        console.error('[AI] Error parsing WebSocket message:', e);
+      }
+    });
+
+    ws.on('error', (err: Error) => {
+      console.error('[AI] WebSocket error:', err.message);
+    });
+
+    ws.on('close', (code: number, reason: Buffer) => {
+      console.log(`[AI] WebSocket closed: ${code} - ${reason.toString()}`);
+      session.ws = undefined;
+
+      // Attempt reconnect if session still exists and not max attempts
+      if (this.sessions.has(session.deviceId) && 
+          session.reconnectAttempts < session.maxReconnectAttempts) {
+        session.reconnectAttempts++;
+        const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 30000);
+        console.log(`[AI] Reconnecting in ${delay}ms (attempt ${session.reconnectAttempts}/${session.maxReconnectAttempts})`);
+        setTimeout(() => {
+          if (this.sessions.has(session.deviceId)) {
+            this.connectWebSocket(session);
+          }
+        }, delay);
+      }
+    });
   }
 
   /**
@@ -313,79 +393,60 @@ export class AISessionManager {
     const conversationId = readyTask.app_conversation_id || startResponse.id;
     console.log(`[AI] Using conversation ID: ${conversationId}`);
 
+    // Get conversation details for WebSocket connection
+    const convInfo = await this.client.getConversation(conversationId);
+    if (!convInfo) {
+      throw new Error('Failed to get conversation info');
+    }
+
+    // Extract agent server URL from conversation_url
+    const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
+    if (!agentServerUrl || !convInfo.session_api_key) {
+      throw new Error('Missing agent server URL or session API key');
+    }
+
+    console.log(`[AI] Agent server: ${agentServerUrl}`);
+
     const session: AISession = {
       conversationId,
       taskId: startResponse.id,
       deviceId,
       mode,
+      agentServerUrl,
+      sessionApiKey: convInfo.session_api_key,
+      onMessage,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
     };
 
-    // Start polling for responses
-    session.pollingInterval = setInterval(async () => {
-      try {
-        await this.pollForResponses(session, onMessage);
-      } catch (e) {
-        console.error('[AI] Error polling for responses:', e);
-      }
-    }, 3000);
-
     this.sessions.set(deviceId, session);
-    console.log(`[AI] Session started successfully`);
+
+    // Connect WebSocket
+    this.connectWebSocket(session);
+
+    console.log(`[AI] Session started successfully with WebSocket`);
     return session;
   }
 
   /**
-   * Send a message from the user to the AI
+   * Send a message from the user to the AI via WebSocket
    */
   async sendMessage(deviceId: string, message: string): Promise<void> {
-    if (!this.client) {
-      throw new Error('OpenHands API not configured');
-    }
-
     const session = this.sessions.get(deviceId);
     if (!session) {
       throw new Error('No active AI session for this device');
     }
 
-    console.log(`[AI] Sending message to conversation ${session.conversationId}: "${message.substring(0, 50)}..."`);
-    const result = await this.client.sendMessage(session.conversationId, message);
-    console.log(`[AI] Message queued:`, result);
-  }
-
-  /**
-   * Poll for new responses from the AI
-   */
-  private async pollForResponses(
-    session: AISession,
-    onMessage: (message: string) => void
-  ): Promise<void> {
-    if (!this.client) return;
-
-    const events = await this.client.getMessageEvents(session.conversationId, 20);
-    
-    // Find new assistant messages
-    for (const event of events) {
-      // Skip if we've already processed this event
-      if (session.lastEventId && event.id <= session.lastEventId) {
-        continue;
-      }
-
-      // Process assistant messages (API uses llm_message, not message)
-      if (event.llm_message?.role === 'assistant') {
-        const content = event.llm_message.content;
-        const text = content
-          .filter(p => p.type === 'text')
-          .map(p => p.text)
-          .join('\n');
-
-        if (text) {
-          console.log(`[AI] Got assistant response: "${text.substring(0, 100)}..."`);
-          onMessage(text);
-        }
-      }
-
-      session.lastEventId = event.id;
+    if (!session.ws || session.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected');
     }
+
+    console.log(`[AI] Sending message via WebSocket: "${message.substring(0, 50)}..."`);
+    
+    session.ws.send(JSON.stringify({
+      role: 'user',
+      content: [{ type: 'text', text: message }]
+    }));
   }
 
   /**
@@ -395,8 +456,12 @@ export class AISessionManager {
     const session = this.sessions.get(deviceId);
     if (!session) return;
 
-    if (session.pollingInterval) {
-      clearInterval(session.pollingInterval);
+    console.log(`[AI] Ending session for device ${deviceId}`);
+
+    // Close WebSocket
+    if (session.ws) {
+      session.ws.close();
+      session.ws = undefined;
     }
 
     this.sessions.delete(deviceId);
