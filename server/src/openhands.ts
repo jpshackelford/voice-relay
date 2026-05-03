@@ -52,9 +52,10 @@ interface MessageEvent {
   kind: string;
   source: string;
   timestamp: string;
-  message?: {
+  // API returns llm_message, not message
+  llm_message?: {
     role: string;
-    content: string | ContentPart[];
+    content: ContentPart[];
   };
 }
 
@@ -369,23 +370,16 @@ export class AISessionManager {
         continue;
       }
 
-      // Process assistant messages
-      if (event.message?.role === 'assistant') {
-        const content = event.message.content;
-        let text: string;
-        
-        if (typeof content === 'string') {
-          text = content;
-        } else if (Array.isArray(content)) {
-          text = content
-            .filter(p => p.type === 'text')
-            .map(p => p.text)
-            .join('\n');
-        } else {
-          continue;
-        }
+      // Process assistant messages (API uses llm_message, not message)
+      if (event.llm_message?.role === 'assistant') {
+        const content = event.llm_message.content;
+        const text = content
+          .filter(p => p.type === 'text')
+          .map(p => p.text)
+          .join('\n');
 
         if (text) {
+          console.log(`[AI] Got assistant response: "${text.substring(0, 100)}..."`);
           onMessage(text);
         }
       }
