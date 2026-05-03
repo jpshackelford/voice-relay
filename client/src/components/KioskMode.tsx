@@ -271,9 +271,8 @@ export function KioskMode({
           ) : null
         ) : (
           <div className="display-empty">
-            <div className="display-empty-icon">🤖</div>
-            <div className="display-empty-text">Waiting for content...</div>
-            <div className="display-empty-hint">An AI agent can display content here via the API</div>
+            <div className="display-empty-icon">✨</div>
+            <div className="display-empty-text">Ready</div>
           </div>
         )}
       </main>
