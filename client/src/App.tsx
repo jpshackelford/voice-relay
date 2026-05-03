@@ -5,6 +5,7 @@ import { OutputMode } from './components/OutputMode';
 import { ChatMode } from './components/ChatMode';
 import { useWebSocket } from './hooks/useWebSocket';
 import { generateUUID } from './utils/uuid';
+import { generateDefaultDeviceName } from './utils/deviceName';
 import type { DeviceMode, Utterance, ServerMessage } from './types';
 import './App.css';
 
@@ -17,13 +18,18 @@ function getOrCreateDeviceId(): string {
   return id;
 }
 
-function getStoredDisplayName(): string {
-  return sessionStorage.getItem('displayName') || '';
+function getOrCreateDisplayName(): string {
+  let name = sessionStorage.getItem('displayName');
+  if (!name) {
+    name = generateDefaultDeviceName();
+    sessionStorage.setItem('displayName', name);
+  }
+  return name;
 }
 
 export default function App() {
   const [deviceId] = useState(getOrCreateDeviceId);
-  const [displayName, setDisplayName] = useState(getStoredDisplayName);
+  const [displayName, setDisplayName] = useState(getOrCreateDisplayName);
   const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
 
