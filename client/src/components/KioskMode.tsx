@@ -3,6 +3,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
+import { QRCodeDisplay } from './QRCode';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
 
 interface KioskModeProps {
@@ -15,6 +16,22 @@ interface KioskModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
+}
+
+// Hook to detect mobile devices
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
 }
 
 export function KioskMode({ 
@@ -34,6 +51,10 @@ export function KioskMode({
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  
+  const isMobile = useIsMobile();
   
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,10 +186,10 @@ export function KioskMode({
   const inputDevices = devices.filter(d => d.mode === 'input');
   const outputDevices = devices.filter(d => d.mode === 'output');
 
-  return (
-    <div className="kiosk-mode">
-      {/* Left sidebar - Chat */}
-      <aside className="kiosk-sidebar">
+  // On mobile, render a simplified conversation-only view
+  if (isMobile) {
+    return (
+      <div className="kiosk-mode mobile">
         <header className="kiosk-header">
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
@@ -179,6 +200,98 @@ export function KioskMode({
           <button className="exit-kiosk" onClick={() => onModeChange('chat')} title="Exit kiosk mode">
             ✕
           </button>
+        </header>
+
+        <div className="kiosk-messages">
+          {sortedUtterances.length === 0 ? (
+            <div className="no-messages">No messages yet</div>
+          ) : (
+            sortedUtterances.map((utterance) => {
+              const isOwnMessage = utterance.senderId === deviceId;
+              return (
+                <div 
+                  key={utterance.id} 
+                  className={`kiosk-message ${utterance.partial ? 'partial' : 'final'} ${isOwnMessage ? 'own-message' : ''}`}
+                >
+                  <span className="sender">{isOwnMessage ? 'You' : utterance.senderName}:</span>
+                  <span className="text">{utterance.text}</span>
+                  {utterance.partial && <span className="typing-indicator">...</span>}
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="kiosk-input-area">
+          {interimText && (
+            <div className="interim-text">
+              <em>{interimText}</em>
+            </div>
+          )}
+          <div className="kiosk-input-row">
+            {aiAvailable && (
+              <button
+                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''}`}
+                onClick={ai.toggle}
+                disabled={ai.connecting}
+                title={ai.connected ? 'Disconnect AI' : ai.connecting ? 'Connecting...' : 'Connect AI assistant'}
+              >
+                {ai.connecting ? '⏳' : '✨'}
+              </button>
+            )}
+            <button 
+              className={`stt-btn-small ${isListening ? 'listening' : ''}`}
+              onClick={isListening ? stopListening : startListening}
+              disabled={!sttSupported}
+              title={sttSupported ? (isListening ? 'Stop listening' : 'Start speech-to-text') : 'Speech recognition not supported'}
+            >
+              {isListening ? '🔴' : '🎤'}
+            </button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={text}
+              onChange={handleTextChange}
+              onKeyDown={handleKeyDown}
+              placeholder={ai.connected ? "Ask AI..." : "Type..."}
+            />
+            <button 
+              className="send-btn-small"
+              onClick={handleSend}
+              disabled={!text.trim()}
+            >
+              ➤
+            </button>
+          </div>
+        </div>
+
+        {sttError && <div className="stt-error">⚠️ {sttError}</div>}
+        {ai.error && <div className="ai-error">⚠️ AI: {ai.error}</div>}
+      </div>
+    );
+  }
+
+  // Desktop kiosk view with drawer
+  return (
+    <div className="kiosk-mode">
+      {/* Left sidebar - Chat (now a drawer) */}
+      <aside className={`kiosk-sidebar ${drawerOpen ? 'open' : 'closed'}`}>
+        <header className="kiosk-header">
+          <div className="device-info">
+            <span className="device-name">🖥️ {displayName}</span>
+            <span className={`connection-status ${connected ? 'connected' : ''}`}>
+              {connected ? '● Connected' : '○ Disconnected'}
+            </span>
+          </div>
+          <div className="header-buttons">
+            <button className="drawer-toggle" onClick={() => setDrawerOpen(false)} title="Close drawer">
+              ◀
+            </button>
+            <button className="exit-kiosk" onClick={() => onModeChange('chat')} title="Exit kiosk mode">
+              ✕
+            </button>
+          </div>
         </header>
 
         <div className="kiosk-participants">
@@ -294,8 +407,15 @@ export function KioskMode({
         )}
       </aside>
 
+      {/* Drawer open button (visible when closed) */}
+      {!drawerOpen && (
+        <button className="drawer-open-btn" onClick={() => setDrawerOpen(true)} title="Open conversation">
+          ▶
+        </button>
+      )}
+
       {/* Right side - Display area */}
-      <main className="kiosk-display">
+      <main className={`kiosk-display ${drawerOpen ? '' : 'full-width'}`}>
         {displayContent ? (
           displayContent.type === 'image' ? (
             <div className="display-image">
@@ -315,6 +435,22 @@ export function KioskMode({
           </div>
         )}
       </main>
+
+      {/* QR Code button (bottom-left) */}
+      <button className="qr-code-btn" onClick={() => setQrModalOpen(true)} title="Show QR code to connect mobile">
+        📱
+      </button>
+
+      {/* QR Code Modal */}
+      {qrModalOpen && (
+        <div className="qr-modal-overlay" onClick={() => setQrModalOpen(false)}>
+          <div className="qr-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="qr-modal-close" onClick={() => setQrModalOpen(false)}>✕</button>
+            <h2>Scan to connect</h2>
+            <QRCodeDisplay size={250} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
