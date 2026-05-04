@@ -17,17 +17,17 @@ To display content on the kiosk, make HTTP POST requests to the voice relay serv
 
 ```bash
 # Display markdown
-curl -X POST http://localhost:3001/api/display \
+curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
   -d '{"type": "markdown", "title": "Title", "content": "# Header\n\nContent here..."}'
 
 # Display an image
-curl -X POST http://localhost:3001/api/display \
+curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
   -d '{"type": "image", "title": "Photo", "content": "https://example.com/image.jpg"}'
 
 # Clear the display
-curl -X POST http://localhost:3001/api/display \
+curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
   -d '{"type": "clear"}'
 ```
