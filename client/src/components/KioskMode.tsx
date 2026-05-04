@@ -59,6 +59,7 @@ export function KioskMode({
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenUtterancesRef = useRef(new Set<string>());
+  const aiForwardedRef = useRef(new Set<string>());  // Track utterances sent to AI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -161,6 +162,39 @@ export function KioskMode({
       }
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
+
+  // Forward new messages from other devices to AI (if connected)
+  useEffect(() => {
+    if (!ai.connected) {
+      console.log('[AI Forward] Not connected, skipping');
+      return;
+    }
+
+    for (const [id, utterance] of utterances) {
+      // Forward final messages from other devices (not from AI itself, not from this device)
+      const shouldForward = 
+        utterance.senderId !== deviceId && 
+        utterance.senderId !== 'openhands-ai' &&
+        !utterance.partial && 
+        !aiForwardedRef.current.has(id);
+      
+      console.log('[AI Forward] Checking utterance:', {
+        id,
+        senderId: utterance.senderId,
+        deviceId,
+        partial: utterance.partial,
+        alreadyForwarded: aiForwardedRef.current.has(id),
+        shouldForward,
+        text: utterance.text.substring(0, 50)
+      });
+      
+      if (shouldForward) {
+        console.log('[AI Forward] Forwarding to AI:', utterance.text);
+        aiForwardedRef.current.add(id);
+        ai.sendMessage(utterance.text);
+      }
+    }
+  }, [utterances, ai.connected, ai.sendMessage, deviceId]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {

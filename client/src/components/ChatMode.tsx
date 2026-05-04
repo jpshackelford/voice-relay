@@ -36,6 +36,7 @@ export function ChatMode({
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenUtterancesRef = useRef(new Set<string>());
+  const aiForwardedRef = useRef(new Set<string>());  // Track utterances sent to AI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -143,6 +144,24 @@ export function ChatMode({
       }
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
+
+  // Forward new messages from other devices to AI (if connected)
+  useEffect(() => {
+    if (!ai.connected) return;
+
+    for (const [id, utterance] of utterances) {
+      // Forward final messages from other devices (not from AI itself, not from this device)
+      if (
+        utterance.senderId !== deviceId && 
+        utterance.senderId !== 'openhands-ai' &&
+        !utterance.partial && 
+        !aiForwardedRef.current.has(id)
+      ) {
+        aiForwardedRef.current.add(id);
+        ai.sendMessage(utterance.text);
+      }
+    }
+  }, [utterances, ai.connected, ai.sendMessage, deviceId]);
 
   // Auto-scroll to bottom
   useEffect(() => {
