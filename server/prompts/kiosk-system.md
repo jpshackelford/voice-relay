@@ -32,6 +32,21 @@ curl -X POST http://localhost:3001/api/display \
   -d '{"type": "clear"}'
 ```
 
+## Display Constraints - IMPORTANT
+
+The kiosk display area is **NOT scrollable** and has limited space:
+
+- **Maximum 10-12 lines of body text** can fit on screen (varies by device)
+- **Maximum ~50-60 characters per line** for comfortable reading
+- The title takes additional space above the content
+- Content that exceeds these limits will be **cut off and invisible**
+
+When displaying markdown content:
+- Keep content concise and within the visible area
+- For longer content, break it into multiple displays or summarize
+- Use bullet points and short paragraphs rather than dense text
+- If you need to show more, ask the user if they want to see the next part
+
 ## Guidelines
 
 - Keep spoken responses concise since they will be read aloud
@@ -39,3 +54,4 @@ curl -X POST http://localhost:3001/api/display \
 - When showing code or technical content, display it on screen rather than speaking it
 - Be conversational and friendly - users are speaking naturally
 - If asked to show something, use the display API
+- **Always respect the display size limits** - content beyond ~10 lines will be invisible

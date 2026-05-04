@@ -9,6 +9,9 @@ export interface Device {
   ws: WebSocket;
   connectedAt: Date;
   ttsEnabled?: boolean;
+  screenWidth?: number;
+  screenHeight?: number;
+  displayLines?: number;  // Calculated max lines for kiosk display
 }
 
 export interface DisplayContent {
@@ -28,6 +31,8 @@ export interface RegisterMessage {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
+  screenWidth?: number;
+  screenHeight?: number;
 }
 
 export interface UpdateDeviceMessage {

@@ -135,7 +135,15 @@ app.post('/api/ai/connect', async (req, res) => {
       registry.broadcastToOutputs(aiMessage);
     };
 
-    const session = await aiSessionManager.startSession(deviceId, mode || 'chat', onMessage);
+    // Get the minimum display lines across all kiosk devices for safe content sizing
+    const displayLines = registry.getMinKioskDisplayLines();
+    
+    const session = await aiSessionManager.startSession(
+      deviceId, 
+      mode || 'chat', 
+      onMessage,
+      displayLines
+    );
     
     // Notify the device that AI is connected
     registry.sendToDevice(deviceId, {
@@ -147,6 +155,7 @@ app.post('/api/ai/connect', async (req, res) => {
     res.json({ 
       success: true, 
       conversationId: session.conversationId,
+      displayLines,
       message: 'AI connected'
     });
   } catch (err) {
@@ -218,7 +227,14 @@ wss.on('connection', (ws: WebSocket) => {
       switch (message.type) {
         case 'register': {
           deviceId = message.deviceId;
-          registry.register(message.deviceId, ws, message.displayName, message.mode);
+          registry.register(
+            message.deviceId, 
+            ws, 
+            message.displayName, 
+            message.mode,
+            message.screenWidth,
+            message.screenHeight
+          );
           
           const response: RegisteredMessage = {
             type: 'registered',

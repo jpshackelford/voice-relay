@@ -42,12 +42,14 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
       console.log('[WS] Connected');
       setConnected(true);
       
-      // Register this device with current mode
+      // Register this device with current mode and screen dimensions
       const registerMsg: ClientMessage = {
         type: 'register',
         deviceId,
         displayName,
         mode: currentModeRef.current,
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
       };
       ws.send(JSON.stringify(registerMsg));
       registeredRef.current = true;

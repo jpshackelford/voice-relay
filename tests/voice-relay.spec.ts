@@ -51,11 +51,13 @@ test.describe('Voice Relay', () => {
     
     await expect(page.getByText('📤 Switchable Device')).toBeVisible();
     
-    await page.getByRole('button', { name: 'Switch to Output' }).click();
+    // Button text is "📥 Output" not "Switch to Output"
+    await page.getByRole('button', { name: '📥 Output' }).click();
     
     await expect(page.getByText('📥 Switchable Device')).toBeVisible();
     
-    await page.getByRole('button', { name: 'Switch to Input' }).click();
+    // Button text is "📤 Input" not "Switch to Input"
+    await page.getByRole('button', { name: '📤 Input' }).click();
     
     await expect(page.getByText('📤 Switchable Device')).toBeVisible();
   });

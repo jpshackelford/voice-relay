@@ -221,8 +221,10 @@ export class OpenHandsClient {
 
 /**
  * Load a prompt from the prompts directory
+ * @param promptName - Name of the prompt file (without .md extension)
+ * @param displayLines - Optional number of display lines to inject into the prompt
  */
-export function loadPrompt(promptName: string): string {
+export function loadPrompt(promptName: string, displayLines?: number): string {
   const promptsDir = path.join(__dirname, '..', 'prompts');
   const promptPath = path.join(promptsDir, `${promptName}.md`);
   
@@ -230,7 +232,22 @@ export function loadPrompt(promptName: string): string {
     throw new Error(`Prompt not found: ${promptName}`);
   }
   
-  return fs.readFileSync(promptPath, 'utf-8');
+  let prompt = fs.readFileSync(promptPath, 'utf-8');
+  
+  // Replace placeholder with actual display lines if provided
+  if (displayLines !== undefined) {
+    // Replace generic "10-12 lines" guidance with actual calculated value
+    prompt = prompt.replace(
+      /Maximum 10-12 lines of body text/g,
+      `Maximum ${displayLines} lines of body text`
+    );
+    prompt = prompt.replace(
+      /content beyond ~10 lines will be invisible/g,
+      `content beyond ${displayLines} lines will be invisible`
+    );
+  }
+  
+  return prompt;
 }
 
 /**
@@ -248,6 +265,23 @@ export interface AISession {
   onMessage?: (message: string) => void;
   reconnectAttempts: number;
   maxReconnectAttempts: number;
+}
+
+// V1 Event type interfaces
+interface V1MessageEvent {
+  id: string;
+  timestamp: string;
+  source: 'agent' | 'user' | 'environment' | 'hook';
+  llm_message: {
+    role: string;
+    content: ContentPart[];
+  };
+}
+
+interface V1ConversationStateUpdateEvent {
+  kind: 'ConversationStateUpdateEvent';
+  key: string;
+  value: Record<string, unknown>;
 }
 
 /**
@@ -278,7 +312,35 @@ export class AISessionManager {
   }
 
   /**
-   * Connect WebSocket to agent server
+   * V1 type guard for MessageEvent
+   */
+  private isV1MessageEvent(event: unknown): event is V1MessageEvent {
+    return (
+      typeof event === 'object' &&
+      event !== null &&
+      'llm_message' in event &&
+      typeof (event as V1MessageEvent).llm_message === 'object' &&
+      (event as V1MessageEvent).llm_message !== null &&
+      'role' in (event as V1MessageEvent).llm_message &&
+      'content' in (event as V1MessageEvent).llm_message
+    );
+  }
+
+  /**
+   * V1 type guard for ConversationStateUpdateEvent
+   */
+  private isV1ConversationStateUpdateEvent(event: unknown): event is V1ConversationStateUpdateEvent {
+    return (
+      typeof event === 'object' &&
+      event !== null &&
+      'kind' in event &&
+      (event as V1ConversationStateUpdateEvent).kind === 'ConversationStateUpdateEvent'
+    );
+  }
+
+  /**
+   * Connect WebSocket to agent server (V1 API)
+   * Authentication is done via query parameters, not a separate auth message
    */
   private connectWebSocket(session: AISession): void {
     if (!session.agentServerUrl || !session.sessionApiKey) {
@@ -287,18 +349,20 @@ export class AISessionManager {
     }
 
     const wsUrl = session.agentServerUrl.replace('https://', 'wss://').replace('http://', 'ws://');
-    const fullUrl = `${wsUrl}/sockets/events/${session.conversationId}`;
-    console.log(`[AI] Connecting WebSocket to ${fullUrl}`);
+    
+    // V1 WebSocket authentication via query parameters
+    const queryParams = new URLSearchParams({
+      session_api_key: session.sessionApiKey,
+      resend_all: 'true',  // Request all events on connect
+    });
+    const fullUrl = `${wsUrl}/sockets/events/${session.conversationId}?${queryParams.toString()}`;
+    console.log(`[AI] Connecting V1 WebSocket to ${fullUrl.replace(session.sessionApiKey, '***')}`);
 
     const ws = new WebSocket(fullUrl);
     session.ws = ws;
 
     ws.on('open', () => {
-      console.log('[AI] WebSocket connected, sending auth...');
-      ws.send(JSON.stringify({
-        type: 'auth',
-        session_api_key: session.sessionApiKey
-      }));
+      console.log('[AI] V1 WebSocket connected (auth via query params)');
       session.reconnectAttempts = 0;
     });
 
@@ -306,7 +370,8 @@ export class AISessionManager {
       try {
         const event = JSON.parse(data.toString());
         
-        if (event.kind === 'MessageEvent' && event.source === 'agent') {
+        // V1 MessageEvent - agent messages have llm_message with role/content
+        if (this.isV1MessageEvent(event) && event.source === 'agent') {
           const text = event.llm_message?.content
             ?.filter((p: ContentPart) => p.type === 'text')
             ?.map((p: ContentPart) => p.text)
@@ -316,11 +381,22 @@ export class AISessionManager {
             console.log(`[AI] Got agent response: "${text.substring(0, 100)}..."`);
             session.onMessage(text);
           }
-        } else if (event.kind === 'ConversationStateUpdateEvent') {
-          // Status update, can log if needed
-          if (event.execution_status) {
-            console.log(`[AI] Execution status: ${event.execution_status}`);
+        } 
+        // V1 ConversationStateUpdateEvent - status updates
+        else if (this.isV1ConversationStateUpdateEvent(event)) {
+          if (event.key === 'execution_status' && event.value?.execution_status) {
+            console.log(`[AI] Execution status: ${event.value.execution_status}`);
+          } else if (event.key === 'full_state') {
+            console.log(`[AI] Full state update received`);
           }
+        }
+        // V1 ConversationErrorEvent or ServerErrorEvent
+        else if (event.kind === 'ConversationErrorEvent' || event.kind === 'ServerErrorEvent') {
+          console.error(`[AI] Error event: ${event.message || event.error || 'Unknown error'}`);
+        }
+        // Log unknown event kinds for debugging
+        else if (event.kind) {
+          console.log(`[AI] Event: ${event.kind} (source: ${event.source || 'unknown'})`);
         }
       } catch (e) {
         console.error('[AI] Error parsing WebSocket message:', e);
@@ -352,25 +428,33 @@ export class AISessionManager {
 
   /**
    * Start a new AI session for a device
+   * @param deviceId - Unique device identifier
+   * @param mode - 'chat' or 'kiosk' mode
+   * @param onMessage - Callback for agent responses
+   * @param displayLines - Optional max display lines for kiosk (from device screen size)
    */
   async startSession(
     deviceId: string,
     mode: 'chat' | 'kiosk',
-    onMessage: (message: string) => void
+    onMessage: (message: string) => void,
+    displayLines?: number
   ): Promise<AISession> {
     if (!this.client) {
       throw new Error('OpenHands API not configured');
     }
 
-    console.log(`[AI] Starting ${mode} session for device ${deviceId}`);
+    console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}`);
 
     // End existing session if any
     if (this.sessions.has(deviceId)) {
       await this.endSession(deviceId);
     }
 
-    // Load appropriate system prompt
-    const systemPrompt = loadPrompt(mode === 'kiosk' ? 'kiosk-system' : 'chat-system');
+    // Load appropriate system prompt with display line info
+    const systemPrompt = loadPrompt(
+      mode === 'kiosk' ? 'kiosk-system' : 'chat-system',
+      mode === 'kiosk' ? displayLines : undefined
+    );
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
     // Start conversation
@@ -445,7 +529,8 @@ export class AISessionManager {
     
     session.ws.send(JSON.stringify({
       role: 'user',
-      content: [{ type: 'text', text: message }]
+      content: [{ type: 'text', text: message }],
+      run: true  // Auto-run agent loop to process and respond
     }));
   }
 

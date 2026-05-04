@@ -18,6 +18,8 @@ export interface RegisterMessage {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
+  screenWidth?: number;
+  screenHeight?: number;
 }
 
 export interface UpdateDeviceMessage {
