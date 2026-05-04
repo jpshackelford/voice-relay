@@ -30,7 +30,7 @@ export function KioskMode({
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
-  const [ttsEnabled, setTtsEnabled] = useState(true);
+  const [ttsEnabled, setTtsEnabled] = useState(false);  // TTS off by default
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);

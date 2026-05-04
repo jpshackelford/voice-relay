@@ -682,7 +682,9 @@ header {
 /* Kiosk Mode */
 .kiosk-mode {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background: #000;
 }
 
@@ -690,10 +692,12 @@ header {
   width: 38.2%; /* Golden ratio: 1 / (1 + 1.618) ≈ 0.382 */
   min-width: 320px;
   max-width: 500px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: #0a0a0f;
   border-right: 1px solid #222;
+  overflow: hidden;
 }
 
 .kiosk-header {
@@ -772,6 +776,7 @@ header {
 
 .kiosk-messages {
   flex: 1;
+  min-height: 0; /* Required for flex child to shrink and scroll */
   overflow-y: auto;
   padding: 0.75rem;
   display: flex;

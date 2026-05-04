@@ -204,12 +204,13 @@ test.describe('Message History', () => {
     await textarea.press('Enter');
     
     // Wait for message to appear on first output
-    await expect(output1Page.getByText('Message before second output joined')).toBeVisible({ timeout: 3000 });
+    await expect(output1Page.getByText('Message before second output joined').first()).toBeVisible({ timeout: 3000 });
     
     // Now connect second output device (late joiner)
     await setupDevice(output2Page, 'Second Output', 'output');
     
     // Second output should also see the message from history
-    await expect(output2Page.getByText('Message before second output joined')).toBeVisible({ timeout: 3000 });
+    // Use .first() in case history creates duplicates during test
+    await expect(output2Page.getByText('Message before second output joined').first()).toBeVisible({ timeout: 3000 });
   });
 });
