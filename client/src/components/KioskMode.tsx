@@ -399,12 +399,6 @@ export function KioskMode({
         {ai.error && (
           <div className="ai-error">⚠️ AI: {ai.error}</div>
         )}
-
-        {(ai.connecting || ai.connected) && (
-          <div className={`ai-status-indicator ${ai.connecting ? 'thinking' : 'connected'}`}>
-            {ai.connecting ? '🤔' : '✨'}
-          </div>
-        )}
       </aside>
 
       {/* Drawer open button (visible when closed) */}
@@ -434,12 +428,19 @@ export function KioskMode({
             <div className="display-empty-text">Ready</div>
           </div>
         )}
-      </main>
 
-      {/* QR Code button (bottom-left) */}
-      <button className="qr-code-btn" onClick={() => setQrModalOpen(true)} title="Show QR code to connect mobile">
-        📱
-      </button>
+        {/* QR Code button (bottom-left of display area) */}
+        <button className="qr-code-btn" onClick={() => setQrModalOpen(true)} title="Show QR code to connect mobile">
+          📱
+        </button>
+
+        {/* AI status indicator (bottom-right of display area) */}
+        {(ai.connecting || ai.connected) && (
+          <div className={`kiosk-ai-status ${ai.connecting ? 'thinking' : 'connected'}`}>
+            {ai.connecting ? '🤔' : '✨'}
+          </div>
+        )}
+      </main>
 
       {/* QR Code Modal */}
       {qrModalOpen && (
