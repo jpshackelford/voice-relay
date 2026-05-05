@@ -380,12 +380,61 @@ Subsequent Visits:
 
 | Action | Who Can Do It |
 |--------|---------------|
-| Create workspace | Authenticated user |
-| View workspace | Owner + anyone with join code |
+| Create workspace | Any authenticated user |
 | Edit workspace settings | Owner only |
 | Delete workspace | Owner only |
-| Register device | Anyone with workspace access |
-| Send/receive messages | Any device in workspace |
+| Approve/deny join requests | Owner only |
+| End session | Owner only |
+
+**Joining a workspace (via QR code or direct link):**
+
+```
+User scans QR / opens join link
+         │
+         ▼
+    ┌─────────────────┐
+    │  Authenticated? │──── No ────► Redirect to GitHub login
+    └─────────────────┘              (then return to join flow)
+         │ Yes
+         ▼
+    ┌─────────────────┐
+    │ Already member  │──── Yes ───► Join session immediately
+    │ of workspace?   │              (can see & interact)
+    └─────────────────┘
+         │ No
+         ▼
+    ┌─────────────────┐
+    │ Is workspace    │──── Yes ───► Join session immediately
+    │ owner?          │              (can see & interact)
+    └─────────────────┘
+         │ No
+         ▼
+    Create pending join request
+    Show "Waiting for approval..." screen
+    (cannot see conversation or display)
+         │
+         ▼
+    Owner sees request on kiosk
+    [Approve] or [Deny]
+         │
+    ┌────┴────┐
+    │         │
+ Approved   Denied
+    │         │
+    ▼         ▼
+ Add to    Show "Request
+ members,  denied" message
+ join session
+```
+
+**Authorization by state:**
+
+| User State | Join Session | See Content | Send Messages |
+|------------|--------------|-------------|---------------|
+| Workspace owner | ✅ | ✅ | ✅ |
+| Workspace member | ✅ | ✅ | ✅ |
+| Pending approval | ❌ | ❌ | ❌ |
+| Not authenticated | ❌ | ❌ | ❌ |
 
 ---
 
