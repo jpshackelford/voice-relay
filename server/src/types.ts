@@ -4,6 +4,7 @@ export type DeviceMode = 'mobile' | 'kiosk';
 
 export interface Device {
   id: string;
+  workspaceId: string;
   displayName: string;
   mode: DeviceMode;
   ws: WebSocket;
@@ -29,6 +30,7 @@ export type ClientMessage =
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
+  workspaceId: string;
   displayName: string;
   mode: DeviceMode;
   screenWidth?: number;
@@ -79,6 +81,7 @@ export interface DeviceListMessage {
 
 export interface DeviceInfo {
   id: string;
+  workspaceId: string;
   displayName: string;
   mode: DeviceMode;
 }

@@ -94,7 +94,7 @@ app.get('/api/server-info', (req, res) => {
 app.use(express.json());
 
 app.post('/api/display', (req, res) => {
-  const { type, content, title } = req.body as DisplayContent;
+  const { type, content, title, workspaceId } = req.body as DisplayContent & { workspaceId?: string };
   
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
@@ -107,9 +107,9 @@ app.post('/api/display', (req, res) => {
   }
   
   const displayContent: DisplayContent = { type, content, title };
-  registry.broadcastToKiosks(displayContent);
+  registry.broadcastToKiosks(displayContent, workspaceId);
   
-  const kioskCount = registry.getKioskDevices().length;
+  const kioskCount = registry.getKioskDevices(workspaceId).length;
   res.json({ success: true, kioskCount });
 });
 
@@ -143,6 +143,8 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
+    const workspaceId = device.workspaceId;
+
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
       const aiMessage: RelayedTextMessage = {
@@ -154,13 +156,13 @@ app.post('/api/ai/connect', async (req, res) => {
         partial: false,
       };
       
-      // Store and broadcast the AI response
+      // Store and broadcast the AI response (scoped to workspace)
       store.append(aiMessage).catch(err => console.error('Failed to store AI message:', err));
-      registry.broadcastToOutputs(aiMessage);
+      registry.broadcastToOutputs(aiMessage, workspaceId);
     };
 
-    // Get the minimum display lines across all kiosk devices for safe content sizing
-    const displayLines = registry.getMinKioskDisplayLines();
+    // Get the minimum display lines across kiosk devices in the workspace
+    const displayLines = registry.getMinKioskDisplayLines(workspaceId);
     
     const session = await aiSessionManager.startSession(
       deviceId, 
@@ -243,6 +245,7 @@ app.get('*', (_req, res) => {
 wss.on('connection', (ws: WebSocket) => {
   console.log('[WS] New connection');
   let deviceId: string | null = null;
+  let workspaceId: string | null = null;
 
   ws.on('message', async (data) => {
     try {
@@ -250,9 +253,24 @@ wss.on('connection', (ws: WebSocket) => {
       
       switch (message.type) {
         case 'register': {
+          // Workspace ID is required for device registration
+          if (!message.workspaceId) {
+            const errorResponse = {
+              type: 'error',
+              code: 'WORKSPACE_REQUIRED',
+              message: 'workspaceId is required for device registration',
+            };
+            ws.send(JSON.stringify(errorResponse));
+            ws.close();
+            return;
+          }
+
           deviceId = message.deviceId;
+          workspaceId = message.workspaceId;
+          
           registry.register(
-            message.deviceId, 
+            message.deviceId,
+            message.workspaceId,
             ws, 
             message.displayName, 
             message.mode,
@@ -266,10 +284,11 @@ wss.on('connection', (ws: WebSocket) => {
           };
           ws.send(JSON.stringify(response));
           
-          // Broadcast updated device list to all clients
-          registry.broadcastDeviceList();
+          // Broadcast updated device list to devices in the same workspace
+          registry.broadcastDeviceList(workspaceId);
 
-          // Send message history to all devices (both mobile and kiosk can receive)
+          // Send message history to this device
+          // TODO: In future, scope message history per workspace
           const history = await store.getRecent(50);
           const historyMessage: HistoryMessage = {
             type: 'history',
@@ -280,15 +299,15 @@ wss.on('connection', (ws: WebSocket) => {
         }
 
         case 'update-device': {
-          if (deviceId) {
+          if (deviceId && workspaceId) {
             registry.updateDevice(deviceId, message);
-            registry.broadcastDeviceList();
+            registry.broadcastDeviceList(workspaceId);
           }
           break;
         }
 
         case 'text': {
-          if (!deviceId) {
+          if (!deviceId || !workspaceId) {
             console.warn('[WS] Received text from unregistered device');
             return;
           }
@@ -313,7 +332,8 @@ wss.on('connection', (ws: WebSocket) => {
             await store.append(relayMessage);
           }
 
-          registry.broadcastToOutputs(relayMessage);
+          // Broadcast only to devices in the same workspace
+          registry.broadcastToOutputs(relayMessage, workspaceId);
           break;
         }
       }
@@ -324,8 +344,13 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     if (deviceId) {
+      const device = registry.getDevice(deviceId);
+      const wsId = device?.workspaceId;
       registry.disconnect(deviceId);
-      registry.broadcastDeviceList();
+      // Broadcast updated device list to remaining devices in the workspace
+      if (wsId) {
+        registry.broadcastDeviceList(wsId);
+      }
     }
     console.log('[WS] Connection closed');
   });
