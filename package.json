@@ -14,6 +14,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
+    "smoke": "playwright test tests/smoke/smoke.spec.ts",
+    "smoke:auth": "playwright test tests/smoke/auth.setup.ts --headed",
     "clean": "rm -rf node_modules server/node_modules server/dist client/node_modules client/dist"
   },
   "devDependencies": {
