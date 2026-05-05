@@ -1,34 +1,72 @@
-name: Deploy to Production
+name: Server Operations
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'deploy'
+        type: choice
+        options:
+          - deploy
+          - restart
+          - nuke-db
+          - status
+          - logs
 
 jobs:
-  deploy:
+  operate:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Deploy to server
+      - name: Perform action
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            export PATH=$HOME/bin/node/bin:$PATH
             cd /var/www/vr.chorecraft.net/app
             
-            # Pull latest code
-            git fetch origin
-            git reset --hard origin/main
+            ACTION="${{ github.event.inputs.action || 'deploy' }}"
+            echo "Performing action: $ACTION"
             
-            # Install dependencies and build
-            export PATH=$HOME/bin/node/bin:$PATH
-            npm ci
-            npm run build
-            
-            # Restart service
-            sudo systemctl restart voice-relay
-            
-            echo "Deployed successfully at $(date)"
+            case "$ACTION" in
+              deploy)
+                echo "=== Deploying latest code ==="
+                git fetch origin
+                git reset --hard origin/main
+                npm ci
+                npm run build
+                sudo systemctl restart voice-relay
+                echo "Deployed successfully at $(date)"
+                ;;
+              restart)
+                echo "=== Restarting service ==="
+                sudo systemctl restart voice-relay
+                echo "Restarted at $(date)"
+                ;;
+              nuke-db)
+                echo "=== Nuking database ==="
+                sudo systemctl stop voice-relay
+                rm -rf /var/www/vr.chorecraft.net/app/data/*
+                sudo systemctl start voice-relay
+                echo "Database nuked and service restarted at $(date)"
+                ;;
+              status)
+                echo "=== Service status ==="
+                sudo systemctl status voice-relay || true
+                ;;
+              logs)
+                echo "=== Recent logs ==="
+                journalctl -u voice-relay -n 100 --no-pager
+                ;;
+              *)
+                echo "Unknown action: $ACTION"
+                exit 1
+                ;;
+            esac
