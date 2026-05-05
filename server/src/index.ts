@@ -11,6 +11,13 @@ import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from '.
 import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
 
+// Error message for WebSocket connection errors
+interface ErrorMessage {
+  type: 'error';
+  code: string;
+  message: string;
+}
+
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
   const addresses: string[] = [];
@@ -38,6 +45,8 @@ const store: MessageStore = createStoreFromEnv();
 
 // Workspace repository for validation (set up later if SQLite is used)
 let workspaceRepository: WorkspaceRepository | null = null;
+let jwtService: JWTService | null = null;
+let userRepository: UserRepository | null = null;
 
 // Auth configuration from environment variables
 function getAuthConfig(): AuthConfig | null {
@@ -255,6 +264,13 @@ app.get('*', (_req, res) => {
   res.sendFile(join(clientDist, 'index.html'));
 });
 
+// Helper to send error and close connection
+function sendErrorAndClose(ws: WebSocket, code: string, message: string) {
+  const errorMsg: ErrorMessage = { type: 'error', code, message };
+  ws.send(JSON.stringify(errorMsg));
+  ws.close(4000, code);
+}
+
 // WebSocket connection handling
 wss.on('connection', (ws: WebSocket) => {
   console.log('[WS] New connection');
@@ -270,11 +286,40 @@ wss.on('connection', (ws: WebSocket) => {
           // Use provided workspaceId or default to 'default' for backward compatibility
           const requestedWorkspaceId = message.workspaceId || 'default';
           
-          // NOTE: Workspace validation deferred to Phase 4 when proper user authentication
-          // is implemented. At that point, we'll validate:
-          // 1. The workspace exists in the database
-          // 2. The authenticated user has access to the workspace
-          // See: https://github.com/jpshackelford/voice-relay/issues/6
+          // Validate workspace and user access when auth is configured
+          if (workspaceRepository && jwtService && userRepository && requestedWorkspaceId !== 'default') {
+            // Verify workspace exists
+            const workspace = workspaceRepository.findById(requestedWorkspaceId);
+            if (!workspace) {
+              console.warn('[WS] Workspace not found:', requestedWorkspaceId);
+              sendErrorAndClose(ws, 'WORKSPACE_NOT_FOUND', 'Workspace not found');
+              return;
+            }
+
+            // Verify user authentication
+            if (!message.token) {
+              console.warn('[WS] Missing auth token for workspace:', requestedWorkspaceId);
+              sendErrorAndClose(ws, 'AUTH_REQUIRED', 'Authentication required');
+              return;
+            }
+
+            // Verify token and user access
+            const payload = jwtService.verify(message.token);
+            if (!payload) {
+              console.warn('[WS] Invalid token');
+              sendErrorAndClose(ws, 'INVALID_TOKEN', 'Invalid or expired token');
+              return;
+            }
+
+            // Check if user has access to workspace
+            if (!workspaceRepository.canAccess(requestedWorkspaceId, payload.sub)) {
+              console.warn('[WS] User does not have access to workspace:', payload.sub, requestedWorkspaceId);
+              sendErrorAndClose(ws, 'ACCESS_DENIED', 'You do not have access to this workspace');
+              return;
+            }
+
+            console.log(`[WS] User ${payload.sub} authenticated for workspace ${requestedWorkspaceId}`);
+          }
 
           deviceId = message.deviceId;
           workspaceId = requestedWorkspaceId;
@@ -394,8 +439,9 @@ async function start() {
   if (authConfig && store instanceof SQLiteStore && workspaceRepository) {
     const db = store.getDatabase();
     if (db) {
-      const userRepository = new UserRepository(db);
-      const jwtService = new JWTService({
+      // Store in module-level variables for WebSocket validation
+      userRepository = new UserRepository(db);
+      jwtService = new JWTService({
         secret: authConfig.jwtSecret,
         expiresIn: authConfig.jwtExpiresIn || '7d',
       });
@@ -417,6 +463,7 @@ async function start() {
       });
       app.use('/api/workspaces', workspaceRouter);
       console.log('[Workspaces] API enabled');
+      console.log('[WS] Workspace validation enabled for WebSocket connections');
     }
   }
 

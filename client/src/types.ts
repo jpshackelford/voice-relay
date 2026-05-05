@@ -18,6 +18,8 @@ export interface RegisterMessage {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
+  workspaceId?: string;
+  token?: string;
   screenWidth?: number;
   screenHeight?: number;
 }

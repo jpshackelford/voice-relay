@@ -1274,3 +1274,595 @@ header {
   font-size: 0.75rem;
   margin: 0.25rem 0.5rem;
 }
+
+/* ============================================
+   Login Page
+   ============================================ */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login-card {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-card h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-card > p {
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.login-error {
+  background: #4a1515;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #ff6b6b;
+  margin-bottom: 1.5rem;
+}
+
+.github-login-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #24292e;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.github-login-btn:hover {
+  background: #2f363d;
+}
+
+.github-icon {
+  flex-shrink: 0;
+}
+
+.login-info {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #333;
+}
+
+.login-info p {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+/* ============================================
+   Dashboard
+   ============================================ */
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+.dashboard-title h1 {
+  font-size: 1.5rem;
+}
+
+.dashboard-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #333;
+}
+
+.user-name {
+  color: #aaa;
+  font-size: 0.875rem;
+}
+
+.logout-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-section {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.create-workspace-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #3282b8;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.create-workspace-btn:hover {
+  background: #0f4c75;
+}
+
+.dashboard-error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #4a1515;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #ff6b6b;
+  margin-bottom: 1rem;
+}
+
+.dashboard-error button {
+  background: none;
+  border: none;
+  color: #ff6b6b;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.create-workspace-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #16213e;
+  border-radius: 8px;
+}
+
+.create-workspace-form input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #0a0a15;
+  color: #fff;
+  outline: none;
+}
+
+.create-workspace-form input:focus {
+  border-color: #3282b8;
+}
+
+.create-workspace-form button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #27ae60;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.create-workspace-form button:hover:not(:disabled) {
+  background: #219a52;
+}
+
+.create-workspace-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}
+
+.no-workspaces {
+  text-align: center;
+  color: #666;
+  padding: 3rem 1rem;
+  background: #16213e;
+  border-radius: 8px;
+}
+
+.workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.workspace-card {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.workspace-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.workspace-info h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.workspace-slug {
+  color: #888;
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.owner-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  background: #27ae60;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.workspace-join-code {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.join-code-label {
+  font-size: 0.875rem;
+  color: #888;
+}
+
+.join-code {
+  font-family: monospace;
+  font-size: 1rem;
+  padding: 0.375rem 0.75rem;
+  background: #0a0a15;
+  border-radius: 4px;
+  letter-spacing: 0.1em;
+}
+
+.regenerate-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.regenerate-btn:hover {
+  background: #333;
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.join-btn {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #3282b8;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.join-btn:hover {
+  background: #0f4c75;
+}
+
+.delete-btn {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+/* ============================================
+   Workspace Page
+   ============================================ */
+.workspace-loading,
+.workspace-error {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.workspace-loading h1,
+.workspace-error h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.workspace-loading p,
+.workspace-error p {
+  color: #888;
+  margin-bottom: 1.5rem;
+}
+
+.workspace-error button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: #3282b8;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.workspace-error button:hover {
+  background: #0f4c75;
+}
+
+.workspace-setup {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+.back-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.workspace-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.workspace-indicator {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem 0.375rem 0.375rem;
+  background: rgba(22, 33, 62, 0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  z-index: 1000;
+}
+
+.back-btn-small {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #888;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn-small:hover {
+  background: #333;
+  color: #fff;
+}
+
+.workspace-name-small {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ccc;
+}
+
+/* ============================================
+   Join Page
+   ============================================ */
+.join-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.join-card {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.join-card h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.join-card > p {
+  color: #888;
+  margin-bottom: 1rem;
+}
+
+.join-error {
+  color: #ff6b6b;
+  margin-bottom: 1.5rem;
+}
+
+.workspace-preview {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1.5rem;
+}
+
+.join-btn.primary {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #3282b8;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.join-btn.primary:hover:not(:disabled) {
+  background: #0f4c75;
+}
+
+.join-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.join-info {
+  margin-top: 1.5rem;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.secondary-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+/* ============================================
+   Loading Page
+   ============================================ */
+.loading-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.loading-page h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.loading-page p {
+  color: #888;
+}

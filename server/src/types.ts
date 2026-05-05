@@ -31,6 +31,7 @@ export interface RegisterMessage {
   type: 'register';
   deviceId: string;
   workspaceId?: string;  // Optional for backward compatibility; defaults to 'default'
+  token?: string;  // JWT token for authentication (optional)
   displayName: string;
   mode: DeviceMode;
   screenWidth?: number;

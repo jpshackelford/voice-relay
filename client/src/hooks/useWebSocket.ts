@@ -5,13 +5,25 @@ interface UseWebSocketOptions {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
+  workspaceId?: string;
+  token?: string;
   onTextMessage?: (message: ServerMessage & { type: 'text' }) => void;
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
+export function useWebSocket({ 
+  deviceId, 
+  displayName, 
+  mode, 
+  workspaceId,
+  token,
+  onTextMessage, 
+  onHistoryMessage, 
+  onDisplayMessage, 
+  onAIStatusMessage 
+}: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -28,12 +40,18 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
   onDisplayMessageRef.current = onDisplayMessage;
   onAIStatusMessageRef.current = onAIStatusMessage;
 
-  // Connect WebSocket (only depends on deviceId)
+  // Connect WebSocket (depends on deviceId, workspaceId, and token)
   useEffect(() => {
+    // Don't connect without workspaceId (wait for workspace to load)
+    if (!workspaceId) {
+      console.log('[WS] Waiting for workspaceId before connecting');
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    console.log('[WS] Connecting to', wsUrl);
+    console.log('[WS] Connecting to', wsUrl, 'for workspace', workspaceId);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
     registeredRef.current = false;
@@ -42,12 +60,14 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
       console.log('[WS] Connected');
       setConnected(true);
       
-      // Register this device with current mode and screen dimensions
+      // Register this device with workspace context and auth token
       const registerMsg: ClientMessage = {
         type: 'register',
         deviceId,
         displayName,
         mode: currentModeRef.current,
+        workspaceId,
+        token,
         screenWidth: window.innerWidth,
         screenHeight: window.innerHeight,
       };
@@ -97,7 +117,7 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
     return () => {
       ws.close();
     };
-  }, [deviceId, displayName]);
+  }, [deviceId, displayName, workspaceId, token]);
 
   // Update mode on server when it changes (without reconnecting)
   useEffect(() => {
