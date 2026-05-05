@@ -18,8 +18,12 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Token refresh interval (5 minutes before typical 7-day expiry isn't critical,
-// but we refresh periodically to keep session active)
+// Token refresh interval
+// - We use httpOnly cookies, so JS cannot read the token to check expiry
+// - Server returns 401 if token is expired, triggering logout
+// - 30-minute refresh interval keeps session alive for long-running usage
+// - For short JWT_EXPIRES_IN values (< 30min), server will reject refresh
+//   attempts on expired tokens, and user will be redirected to login
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 export function AuthProvider({ children }: { children: ReactNode }) {
