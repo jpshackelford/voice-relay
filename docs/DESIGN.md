@@ -682,17 +682,21 @@ function decrypt(encrypted: string, iv: string, tag: string): string {
 
 ---
 
-## 11. Open Questions
+## 11. Scope & Deferred Features
 
-1. **Guest access**: Should anonymous users be able to join a workspace with just a code, or require GitHub auth?
-   
-2. **Workspace sharing**: Should multiple GitHub users be able to co-own a workspace?
+### V1 Scope
+- GitHub OAuth required for all users
+- Single owner per workspace (no sharing)
+- Owner manages their own devices
+- Message history: per-session (cleared when session ends)
+- No hard limits on devices/workspaces initially
 
-3. **Message retention**: How long to keep message history? Per-session only or persistent?
-
-4. **Device limits**: Any limits on devices per workspace?
-
-5. **Rate limiting**: Needed for public-facing auth endpoints?
+### Deferred (V2+)
+- **Invite system**: Workspace owners invite users via code → requires email/SMS infrastructure
+- **Workspace sharing**: Multiple users co-own a workspace
+- **Guest access**: Anonymous users join with code only
+- **Persistent message history**: Configurable retention policies
+- **Rate limiting**: For public-facing auth endpoints
 
 ---
 

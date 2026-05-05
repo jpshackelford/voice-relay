@@ -5,7 +5,7 @@ import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
 import type { DeviceInfo, DeviceMode, Utterance } from '../types';
 
-interface ChatModeProps {
+interface MobileModeProps {
   deviceId: string;
   displayName: string;
   connected: boolean;
@@ -16,7 +16,7 @@ interface ChatModeProps {
   onAIStatusChange?: (connected: boolean) => void;
 }
 
-export function ChatMode({ 
+export function MobileMode({ 
   deviceId,
   displayName, 
   connected, 
@@ -25,7 +25,7 @@ export function ChatMode({
   sendText, 
   onModeChange,
   onAIStatusChange 
-}: ChatModeProps) {
+}: MobileModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
   const [ttsEnabled, setTtsEnabled] = useState(false);
@@ -41,7 +41,7 @@ export function ChatMode({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const ai = useAI({ deviceId, mode: 'chat' });
+  const ai = useAI({ deviceId, mode: 'mobile' });
 
   // Check AI availability on mount
   useEffect(() => {
@@ -187,7 +187,7 @@ export function ChatMode({
   const outputDevices = devices.filter(d => d.mode === 'output');
 
   return (
-    <div className="chat-mode">
+    <div className="mobile-mode">
       <header>
         <div className="device-info">
           <span className="device-name">💬 {displayName}</span>
@@ -205,7 +205,7 @@ export function ChatMode({
         </div>
       </header>
 
-      <div className="chat-participants">
+      <div className="mobile-participants">
         {chatDevices.length > 0 && (
           <span className="participant-group">
             💬 {chatDevices.length} chatter{chatDevices.length !== 1 ? 's' : ''}
@@ -236,7 +236,7 @@ export function ChatMode({
         {!ttsSupported && <span className="not-supported">(not supported)</span>}
       </div>
 
-      <div className="messages chat-messages">
+      <div className="messages mobile-messages">
         {sortedUtterances.length === 0 ? (
           <div className="no-messages">
             No messages yet. Start the conversation!
@@ -259,13 +259,13 @@ export function ChatMode({
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-input-area">
+      <div className="mobile-input-area">
         {interimText && (
           <div className="interim-text">
             <em>{interimText}</em>
           </div>
         )}
-        <div className="chat-input-row">
+        <div className="mobile-input-row">
           {aiAvailable && (
             <button
               className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''}`}

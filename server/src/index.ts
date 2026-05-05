@@ -245,35 +245,20 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast updated device list to all clients
           registry.broadcastDeviceList();
 
-          // Send message history to devices that can receive (output, chat, kiosk)
-          if (message.mode === 'output' || message.mode === 'chat' || message.mode === 'kiosk') {
-            const history = await store.getRecent(50);
-            const historyMessage: HistoryMessage = {
-              type: 'history',
-              messages: history,
-            };
-            ws.send(JSON.stringify(historyMessage));
-          }
+          // Send message history to all devices (both mobile and kiosk can receive)
+          const history = await store.getRecent(50);
+          const historyMessage: HistoryMessage = {
+            type: 'history',
+            messages: history,
+          };
+          ws.send(JSON.stringify(historyMessage));
           break;
         }
 
         case 'update-device': {
           if (deviceId) {
-            const previousMode = registry.getDevice(deviceId)?.mode;
             registry.updateDevice(deviceId, message);
             registry.broadcastDeviceList();
-
-            // Send history if switching to a receiving mode (output, chat, kiosk)
-            const newModeCanReceive = message.mode === 'output' || message.mode === 'chat' || message.mode === 'kiosk';
-            const previousModeCouldReceive = previousMode === 'output' || previousMode === 'chat' || previousMode === 'kiosk';
-            if (newModeCanReceive && !previousModeCouldReceive) {
-              const history = await store.getRecent(50);
-              const historyMessage: HistoryMessage = {
-                type: 'history',
-                messages: history,
-              };
-              ws.send(JSON.stringify(historyMessage));
-            }
           }
           break;
         }

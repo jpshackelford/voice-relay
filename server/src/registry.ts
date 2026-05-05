@@ -109,24 +109,17 @@ export class DeviceRegistry {
     return this.devices.get(id);
   }
 
-  getOutputDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'output');
-  }
-
-  getInputDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'input');
-  }
-
-  getChatDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'chat');
-  }
-
-  getReceivingDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'output' || d.mode === 'chat' || d.mode === 'kiosk');
+  getMobileDevices(): Device[] {
+    return [...this.devices.values()].filter(d => d.mode === 'mobile');
   }
 
   getKioskDevices(): Device[] {
     return [...this.devices.values()].filter(d => d.mode === 'kiosk');
+  }
+
+  getReceivingDevices(): Device[] {
+    // All devices can receive messages (both mobile and kiosk)
+    return [...this.devices.values()];
   }
 
   /**
@@ -145,11 +138,13 @@ export class DeviceRegistry {
   }
 
   canSend(device: Device): boolean {
-    return device.mode === 'input' || device.mode === 'chat' || device.mode === 'kiosk';
+    // All devices can send (both mobile and kiosk)
+    return true;
   }
 
   canReceive(device: Device): boolean {
-    return device.mode === 'output' || device.mode === 'chat' || device.mode === 'kiosk';
+    // All devices can receive (both mobile and kiosk)
+    return true;
   }
 
   getAllDevices(): Device[] {

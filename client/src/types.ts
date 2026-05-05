@@ -1,4 +1,4 @@
-export type DeviceMode = 'input' | 'output' | 'chat' | 'kiosk';
+export type DeviceMode = 'mobile' | 'kiosk';
 
 export interface DeviceInfo {
   id: string;
