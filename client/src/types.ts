@@ -1,4 +1,6 @@
-export type DeviceMode = 'mobile' | 'kiosk';
+// Legacy modes kept for backward compatibility during transition
+// Target: only 'mobile' | 'kiosk' per design doc
+export type DeviceMode = 'input' | 'output' | 'chat' | 'mobile' | 'kiosk';
 
 export interface DeviceInfo {
   id: string;

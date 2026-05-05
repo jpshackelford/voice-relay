@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DeviceSetup } from './components/DeviceSetup';
-import { InputMode } from './components/InputMode';
-import { OutputMode } from './components/OutputMode';
-import { ChatMode } from './components/ChatMode';
+import { MobileMode } from './components/MobileMode';
 import { KioskMode } from './components/KioskMode';
 import { useWebSocket } from './hooks/useWebSocket';
 import { generateUUID } from './utils/uuid';
@@ -81,7 +79,7 @@ export default function App() {
   const { connected, devices, sendText, updateDevice } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
-    mode: mode || 'output',
+    mode: mode || 'mobile',
     onTextMessage: handleTextMessage,
     onHistoryMessage: handleHistoryMessage,
     onDisplayMessage: handleDisplayMessage,
@@ -109,32 +107,7 @@ export default function App() {
     return <DeviceSetup initialName={displayName} onSubmit={handleSetup} />;
   }
 
-  if (mode === 'input') {
-    return (
-      <InputMode
-        displayName={displayName}
-        connected={connected}
-        devices={devices}
-        sendText={sendText}
-        onModeChange={handleModeChange}
-      />
-    );
-  }
-
-  if (mode === 'chat') {
-    return (
-      <ChatMode
-        deviceId={deviceId}
-        displayName={displayName}
-        connected={connected}
-        devices={devices}
-        utterances={utterances}
-        sendText={sendText}
-        onModeChange={handleModeChange}
-      />
-    );
-  }
-
+  // Kiosk mode - large display with sidebar
   if (mode === 'kiosk') {
     return (
       <KioskMode
@@ -150,12 +123,15 @@ export default function App() {
     );
   }
 
+  // Mobile mode (default) - conversation focused
   return (
-    <OutputMode
+    <MobileMode
+      deviceId={deviceId}
       displayName={displayName}
       connected={connected}
       devices={devices}
       utterances={utterances}
+      sendText={sendText}
       onModeChange={handleModeChange}
     />
   );
