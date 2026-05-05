@@ -5,6 +5,10 @@ import { RedisStore } from './redis.js';
 import { FirestoreStore } from './firestore.js';
 
 export type { MessageStore, StoreConfig } from './types.js';
+export { Migrator, type Migration, type AppliedMigration } from './migrator.js';
+export { getMigrations } from './migrations/index.js';
+export { SQLiteStore } from './sqlite.js';
+export { MemoryStore } from './memory.js';
 
 export function createStore(config: StoreConfig): MessageStore {
   switch (config.driver) {
