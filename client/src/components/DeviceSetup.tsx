@@ -9,7 +9,7 @@ interface DeviceSetupProps {
 
 export function DeviceSetup({ initialName, onSubmit }: DeviceSetupProps) {
   const [displayName, setDisplayName] = useState(initialName);
-  const [mode, setMode] = useState<DeviceMode>('output');
+  const [mode, setMode] = useState<DeviceMode>('mobile');
   const [showQR, setShowQR] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,27 +42,11 @@ export function DeviceSetup({ initialName, onSubmit }: DeviceSetupProps) {
           <div className="mode-toggle">
             <button
               type="button"
-              className={`mode-btn ${mode === 'input' ? 'active' : ''}`}
-              onClick={() => setMode('input')}
+              className={`mode-btn ${mode === 'mobile' ? 'active' : ''}`}
+              onClick={() => setMode('mobile')}
             >
-              📤 Input
-              <span className="mode-desc">Send text & speech</span>
-            </button>
-            <button
-              type="button"
-              className={`mode-btn ${mode === 'output' ? 'active' : ''}`}
-              onClick={() => setMode('output')}
-            >
-              📥 Output
-              <span className="mode-desc">Receive & display</span>
-            </button>
-            <button
-              type="button"
-              className={`mode-btn ${mode === 'chat' ? 'active' : ''}`}
-              onClick={() => setMode('chat')}
-            >
-              💬 Chat
-              <span className="mode-desc">Send & receive</span>
+              📱 Mobile
+              <span className="mode-desc">Conversation view</span>
             </button>
             <button
               type="button"
@@ -70,7 +54,7 @@ export function DeviceSetup({ initialName, onSubmit }: DeviceSetupProps) {
               onClick={() => setMode('kiosk')}
             >
               🖥️ Kiosk
-              <span className="mode-desc">Large display + chat</span>
+              <span className="mode-desc">Large display + sidebar</span>
             </button>
           </div>
         </div>

@@ -1,14 +1,14 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 
-// Helper to set up a device
-async function setupDevice(page: Page, name: string, mode: 'input' | 'output') {
+// Helper to set up a device with the new mobile/kiosk modes
+async function setupDevice(page: Page, name: string, mode: 'mobile' | 'kiosk') {
   await page.goto('/');
   await page.getByPlaceholder('e.g., Kitchen iPad').fill(name);
   
   // Click the mode button and wait for it to be selected
-  const modeButton = mode === 'input' 
-    ? page.getByRole('button', { name: /📤 Input/i })
-    : page.getByRole('button', { name: /📥 Output/i });
+  const modeButton = mode === 'mobile' 
+    ? page.getByRole('button', { name: /📱 Mobile/i })
+    : page.getByRole('button', { name: /🖥️ Kiosk/i });
   
   await modeButton.click();
   await expect(modeButton).toHaveClass(/active/);
@@ -21,196 +21,163 @@ async function setupDevice(page: Page, name: string, mode: 'input' | 'output') {
 }
 
 test.describe('Voice Relay', () => {
-  test('device setup shows input and output mode options', async ({ page }) => {
+  test('device setup shows mobile and kiosk mode options', async ({ page }) => {
     await page.goto('/');
     
     await expect(page.getByText('Voice Relay')).toBeVisible();
     await expect(page.getByPlaceholder('e.g., Kitchen iPad')).toBeVisible();
-    await expect(page.getByRole('button', { name: /Input/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Output/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Mobile/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Kiosk/i })).toBeVisible();
   });
 
-  test('can connect as input device', async ({ page }) => {
-    await setupDevice(page, 'Test Input', 'input');
+  test('can connect as mobile device', async ({ page }) => {
+    await setupDevice(page, 'Test Mobile', 'mobile');
     
-    await expect(page.getByText('📤 Test Input')).toBeVisible();
-    await expect(page.getByPlaceholder(/Type a message/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /Speak/i })).toBeVisible();
+    await expect(page.getByText('📱 Test Mobile')).toBeVisible();
+    // Mobile mode has input field and can send/receive
+    await expect(page.locator('input[type="text"]')).toBeVisible();
   });
 
-  test('can connect as output device', async ({ page }) => {
-    await setupDevice(page, 'Test Output', 'output');
+  test('can connect as kiosk device', async ({ page }) => {
+    await setupDevice(page, 'Test Kiosk', 'kiosk');
     
-    await expect(page.getByText('📥 Test Output')).toBeVisible();
-    await expect(page.getByText(/Waiting for messages/i)).toBeVisible();
-    await expect(page.getByText('Text-to-Speech')).toBeVisible();
+    await expect(page.getByText('🖥️ Test Kiosk')).toBeVisible();
+    // Kiosk has input area and display area
+    await expect(page.locator('input[type="text"]')).toBeVisible();
   });
 
-  test('can switch between input and output modes', async ({ page }) => {
-    await setupDevice(page, 'Switchable Device', 'input');
+  test('can switch from mobile to kiosk mode', async ({ page }) => {
+    await setupDevice(page, 'Switchable Device', 'mobile');
     
-    await expect(page.getByText('📤 Switchable Device')).toBeVisible();
+    await expect(page.getByText('📱 Switchable Device')).toBeVisible();
     
-    // Button text is "📥 Output" not "Switch to Output"
-    await page.getByRole('button', { name: '📥 Output' }).click();
+    // Switch to kiosk mode
+    await page.getByRole('button', { name: /🖥️ Kiosk/i }).click();
     
-    await expect(page.getByText('📥 Switchable Device')).toBeVisible();
-    
-    // Button text is "📤 Input" not "Switch to Input"
-    await page.getByRole('button', { name: '📤 Input' }).click();
-    
-    await expect(page.getByText('📤 Switchable Device')).toBeVisible();
+    await expect(page.getByText('🖥️ Switchable Device')).toBeVisible();
   });
 });
 
 test.describe('Two Browser Text Relay', () => {
-  let inputContext: BrowserContext;
-  let outputContext: BrowserContext;
-  let inputPage: Page;
-  let outputPage: Page;
+  let device1Context: BrowserContext;
+  let device2Context: BrowserContext;
+  let device1Page: Page;
+  let device2Page: Page;
 
   test.beforeEach(async ({ browser }) => {
     // Create two separate browser contexts (like two different users)
-    inputContext = await browser.newContext();
-    outputContext = await browser.newContext();
+    device1Context = await browser.newContext();
+    device2Context = await browser.newContext();
     
-    inputPage = await inputContext.newPage();
-    outputPage = await outputContext.newPage();
+    device1Page = await device1Context.newPage();
+    device2Page = await device2Context.newPage();
   });
 
   test.afterEach(async () => {
-    await inputContext.close();
-    await outputContext.close();
+    await device1Context.close();
+    await device2Context.close();
   });
 
-  test('text typed in input device appears in output device', async () => {
-    // Set up both devices
-    await setupDevice(outputPage, 'Living Room Display', 'output');
-    await setupDevice(inputPage, 'Johns Laptop', 'input');
+  test('text typed on one mobile device appears on another', async () => {
+    // Set up both devices as mobile
+    await setupDevice(device1Page, 'Living Room Phone', 'mobile');
+    await setupDevice(device2Page, 'Kitchen Phone', 'mobile');
     
-    // Verify they see each other in device list
-    await expect(outputPage.getByText('Johns Laptop')).toBeVisible({ timeout: 3000 });
-    await expect(inputPage.getByText('Living Room Display')).toBeVisible({ timeout: 3000 });
+    // Type a message on device 1
+    const input = device1Page.locator('input[type="text"]');
+    await input.fill('Hello from device 1!');
+    await input.press('Enter');
     
-    // Type a message
-    const textarea = inputPage.getByPlaceholder(/Type a message/i);
-    await textarea.fill('Hello from the input device!');
-    
-    // Send it (press Enter)
-    await textarea.press('Enter');
-    
-    // Verify it appears on output
-    await expect(outputPage.getByText('Hello from the input device!')).toBeVisible({ timeout: 5000 });
-    await expect(outputPage.getByText('Johns Laptop:')).toBeVisible();
+    // Verify it appears on device 2
+    await expect(device2Page.getByText('Hello from device 1!')).toBeVisible({ timeout: 5000 });
   });
 
-  test('partial text (typing) appears with visual indicator', async () => {
-    await setupDevice(outputPage, 'Output Device', 'output');
-    await setupDevice(inputPage, 'Input Device', 'input');
+  test('messages relay between mobile and kiosk', async () => {
+    // Set up one mobile and one kiosk
+    await setupDevice(device1Page, 'Wall Display', 'kiosk');
+    await setupDevice(device2Page, 'Mobile Phone', 'mobile');
     
-    // Type without sending
-    const textarea = inputPage.getByPlaceholder(/Type a message/i);
-    await textarea.fill('Still typing...');
+    // Send from mobile
+    const mobileInput = device2Page.locator('input[type="text"]');
+    await mobileInput.fill('Message from mobile');
+    await mobileInput.press('Enter');
     
-    // Wait for debounced partial to be sent
-    await expect(outputPage.getByText('Still typing...')).toBeVisible({ timeout: 2000 });
+    // Verify it appears on kiosk
+    await expect(device1Page.getByText('Message from mobile')).toBeVisible({ timeout: 5000 });
     
-    // Should show typing indicator (the message should have partial styling)
-    const message = outputPage.locator('.message.partial');
-    await expect(message).toBeVisible();
+    // Send from kiosk
+    const kioskInput = device1Page.locator('input[type="text"]');
+    await kioskInput.fill('Reply from kiosk');
+    await kioskInput.press('Enter');
+    
+    // Verify it appears on mobile
+    await expect(device2Page.getByText('Reply from kiosk')).toBeVisible({ timeout: 5000 });
   });
 
   test('multiple messages relay correctly', async () => {
-    await setupDevice(outputPage, 'Display', 'output');
-    await setupDevice(inputPage, 'Sender', 'input');
+    await setupDevice(device1Page, 'Sender', 'mobile');
+    await setupDevice(device2Page, 'Receiver', 'mobile');
     
-    const textarea = inputPage.getByPlaceholder(/Type a message/i);
+    const input = device1Page.locator('input[type="text"]');
     
     // Send multiple messages
-    await textarea.fill('First message');
-    await textarea.press('Enter');
+    await input.fill('First message');
+    await input.press('Enter');
     
-    await textarea.fill('Second message');
-    await textarea.press('Enter');
+    await input.fill('Second message');
+    await input.press('Enter');
     
-    await textarea.fill('Third message');
-    await textarea.press('Enter');
+    await input.fill('Third message');
+    await input.press('Enter');
     
-    // Verify all appear on output in order
-    await expect(outputPage.getByText('First message')).toBeVisible({ timeout: 3000 });
-    await expect(outputPage.getByText('Second message')).toBeVisible();
-    await expect(outputPage.getByText('Third message')).toBeVisible();
-  });
-
-  test('output device shows device count', async () => {
-    await setupDevice(outputPage, 'Output', 'output');
-    
-    // Initially no input devices
-    await expect(outputPage.getByText('Receiving from 0 devices')).toBeVisible();
-    
-    // Connect input device
-    await setupDevice(inputPage, 'Input', 'input');
-    
-    // Should now show 1 input device
-    await expect(outputPage.getByText('Receiving from 1 device')).toBeVisible({ timeout: 3000 });
-  });
-
-  test('input device shows broadcasting count', async () => {
-    await setupDevice(inputPage, 'Input', 'input');
-    
-    // Initially no output devices
-    await expect(inputPage.getByText('Broadcasting to 0 devices')).toBeVisible();
-    
-    // Connect output device
-    await setupDevice(outputPage, 'Output', 'output');
-    
-    // Should now show 1 output device
-    await expect(inputPage.getByText('Broadcasting to 1 device')).toBeVisible({ timeout: 3000 });
+    // Verify all appear on the other device
+    await expect(device2Page.getByText('First message')).toBeVisible({ timeout: 3000 });
+    await expect(device2Page.getByText('Second message')).toBeVisible();
+    await expect(device2Page.getByText('Third message')).toBeVisible();
   });
 });
 
 test.describe('Message History', () => {
-  let inputContext: BrowserContext;
-  let output1Context: BrowserContext;
-  let output2Context: BrowserContext;
-  let inputPage: Page;
-  let output1Page: Page;
-  let output2Page: Page;
+  let device1Context: BrowserContext;
+  let device2Context: BrowserContext;
+  let device3Context: BrowserContext;
+  let device1Page: Page;
+  let device2Page: Page;
+  let device3Page: Page;
 
   test.beforeEach(async ({ browser }) => {
-    inputContext = await browser.newContext();
-    output1Context = await browser.newContext();
-    output2Context = await browser.newContext();
+    device1Context = await browser.newContext();
+    device2Context = await browser.newContext();
+    device3Context = await browser.newContext();
     
-    inputPage = await inputContext.newPage();
-    output1Page = await output1Context.newPage();
-    output2Page = await output2Context.newPage();
+    device1Page = await device1Context.newPage();
+    device2Page = await device2Context.newPage();
+    device3Page = await device3Context.newPage();
   });
 
   test.afterEach(async () => {
-    await inputContext.close();
-    await output1Context.close();
-    await output2Context.close();
+    await device1Context.close();
+    await device2Context.close();
+    await device3Context.close();
   });
 
-  test('late-joining output device receives message history', async () => {
-    // Set up input and first output
-    await setupDevice(output1Page, 'First Output', 'output');
-    await setupDevice(inputPage, 'Input', 'input');
+  test('late-joining device receives message history', async () => {
+    // Set up first two devices
+    await setupDevice(device1Page, 'First Device', 'mobile');
+    await setupDevice(device2Page, 'Second Device', 'mobile');
     
     // Send some messages
-    const textarea = inputPage.getByPlaceholder(/Type a message/i);
-    await textarea.fill('Message before second output joined');
-    await textarea.press('Enter');
+    const input = device1Page.locator('input[type="text"]');
+    await input.fill('Message before third device joined');
+    await input.press('Enter');
     
-    // Wait for message to appear on first output
-    await expect(output1Page.getByText('Message before second output joined').first()).toBeVisible({ timeout: 3000 });
+    // Wait for message to appear on second device
+    await expect(device2Page.getByText('Message before third device joined').first()).toBeVisible({ timeout: 3000 });
     
-    // Now connect second output device (late joiner)
-    await setupDevice(output2Page, 'Second Output', 'output');
+    // Now connect third device (late joiner)
+    await setupDevice(device3Page, 'Third Device', 'mobile');
     
-    // Second output should also see the message from history
-    // Use .first() in case history creates duplicates during test
-    await expect(output2Page.getByText('Message before second output joined').first()).toBeVisible({ timeout: 3000 });
+    // Third device should also see the message from history
+    await expect(device3Page.getByText('Message before third device joined').first()).toBeVisible({ timeout: 3000 });
   });
 });
