@@ -266,40 +266,37 @@ wss.on('connection', (ws: WebSocket) => {
       
       switch (message.type) {
         case 'register': {
-          // Workspace ID is required for device registration
-          if (!message.workspaceId) {
-            const errorResponse = {
-              type: 'error',
-              code: 'WORKSPACE_REQUIRED',
-              message: 'workspaceId is required for device registration',
-            };
-            ws.send(JSON.stringify(errorResponse));
-            ws.close();
-            return;
-          }
+          // Use provided workspaceId or default to 'default' for backward compatibility
+          // When workspace repository is available, validate the workspace exists
+          const requestedWorkspaceId = message.workspaceId || 'default';
 
-          // Validate workspace exists if workspace repository is available
           if (workspaceRepository) {
-            const workspace = workspaceRepository.findById(message.workspaceId);
+            // Workspace validation is enabled - verify workspace exists
+            const workspace = workspaceRepository.findById(requestedWorkspaceId);
             if (!workspace) {
-              const errorResponse = {
-                type: 'error',
-                code: 'WORKSPACE_NOT_FOUND',
-                message: 'Workspace does not exist',
-              };
-              ws.send(JSON.stringify(errorResponse));
-              ws.close();
-              return;
+              // For the 'default' workspace, be more lenient since it may not exist yet
+              if (requestedWorkspaceId !== 'default') {
+                const errorResponse = {
+                  type: 'error',
+                  code: 'WORKSPACE_NOT_FOUND',
+                  message: 'Workspace does not exist',
+                };
+                ws.send(JSON.stringify(errorResponse));
+                ws.close();
+                return;
+              }
+              // Allow 'default' workspace even if not in DB - for backward compatibility
+              console.log('[WS] Using default workspace (not validated)');
             }
             // TODO Phase 4: Add user authentication and verify workspace membership
           }
 
           deviceId = message.deviceId;
-          workspaceId = message.workspaceId;
+          workspaceId = requestedWorkspaceId;
           
           registry.register(
             message.deviceId,
-            message.workspaceId,
+            requestedWorkspaceId,
             ws, 
             message.displayName, 
             message.mode,
