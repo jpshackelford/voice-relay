@@ -89,6 +89,7 @@ export interface DeviceInfo {
 export interface RelayedTextMessage {
   type: 'text';
   utteranceId: string;
+  workspaceId: string;
   senderId: string;
   senderName: string;
   text: string;

@@ -36,6 +36,9 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
 
+// Workspace repository for validation (set up later if SQLite is used)
+let workspaceRepository: WorkspaceRepository | null = null;
+
 // Auth configuration from environment variables
 function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
@@ -105,6 +108,15 @@ app.post('/api/display', (req, res) => {
     res.status(400).json({ error: 'Content required for markdown and image types.' });
     return;
   }
+
+  // Validate workspace exists if workspaceId is provided
+  if (workspaceId && workspaceRepository) {
+    const workspace = workspaceRepository.findById(workspaceId);
+    if (!workspace) {
+      res.status(404).json({ error: 'Workspace not found' });
+      return;
+    }
+  }
   
   const displayContent: DisplayContent = { type, content, title };
   registry.broadcastToKiosks(displayContent, workspaceId);
@@ -143,13 +155,14 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
-    const workspaceId = device.workspaceId;
+    const deviceWorkspaceId = device.workspaceId;
 
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
       const aiMessage: RelayedTextMessage = {
         type: 'text',
         utteranceId: `ai-${Date.now()}`,
+        workspaceId: deviceWorkspaceId,
         senderId: 'openhands-ai',
         senderName: '✨ AI',
         text,
@@ -158,11 +171,11 @@ app.post('/api/ai/connect', async (req, res) => {
       
       // Store and broadcast the AI response (scoped to workspace)
       store.append(aiMessage).catch(err => console.error('Failed to store AI message:', err));
-      registry.broadcastToOutputs(aiMessage, workspaceId);
+      registry.broadcastToOutputs(aiMessage, deviceWorkspaceId);
     };
 
     // Get the minimum display lines across kiosk devices in the workspace
-    const displayLines = registry.getMinKioskDisplayLines(workspaceId);
+    const displayLines = registry.getMinKioskDisplayLines(deviceWorkspaceId);
     
     const session = await aiSessionManager.startSession(
       deviceId, 
@@ -265,6 +278,22 @@ wss.on('connection', (ws: WebSocket) => {
             return;
           }
 
+          // Validate workspace exists if workspace repository is available
+          if (workspaceRepository) {
+            const workspace = workspaceRepository.findById(message.workspaceId);
+            if (!workspace) {
+              const errorResponse = {
+                type: 'error',
+                code: 'WORKSPACE_NOT_FOUND',
+                message: 'Workspace does not exist',
+              };
+              ws.send(JSON.stringify(errorResponse));
+              ws.close();
+              return;
+            }
+            // TODO Phase 4: Add user authentication and verify workspace membership
+          }
+
           deviceId = message.deviceId;
           workspaceId = message.workspaceId;
           
@@ -287,9 +316,8 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast updated device list to devices in the same workspace
           registry.broadcastDeviceList(workspaceId);
 
-          // Send message history to this device
-          // TODO: In future, scope message history per workspace
-          const history = await store.getRecent(50);
+          // Send workspace-scoped message history to this device
+          const history = await store.getRecent(50, workspaceId);
           const historyMessage: HistoryMessage = {
             type: 'history',
             messages: history,
@@ -321,6 +349,7 @@ wss.on('connection', (ws: WebSocket) => {
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
+            workspaceId: workspaceId,
             senderId: deviceId,
             senderName: device.displayName,
             text: message.text,
@@ -345,11 +374,11 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('close', () => {
     if (deviceId) {
       const device = registry.getDevice(deviceId);
-      const wsId = device?.workspaceId;
+      const deviceWorkspaceId = device?.workspaceId;
       registry.disconnect(deviceId);
       // Broadcast updated device list to remaining devices in the workspace
-      if (wsId) {
-        registry.broadcastDeviceList(wsId);
+      if (deviceWorkspaceId) {
+        registry.broadcastDeviceList(deviceWorkspaceId);
       }
     }
     console.log('[WS] Connection closed');
@@ -366,9 +395,18 @@ const HOST = process.env.HOST || '0.0.0.0';
 async function start() {
   await store.connect();
 
+  // Set up workspace repository for validation (always, if using SQLite)
+  if (store instanceof SQLiteStore) {
+    const db = store.getDatabase();
+    if (db) {
+      workspaceRepository = new WorkspaceRepository(db);
+      console.log('[Workspaces] Validation enabled');
+    }
+  }
+
   // Set up auth and workspace routes if configured and using SQLite
   const authConfig = getAuthConfig();
-  if (authConfig && store instanceof SQLiteStore) {
+  if (authConfig && store instanceof SQLiteStore && workspaceRepository) {
     const db = store.getDatabase();
     if (db) {
       const userRepository = new UserRepository(db);
@@ -385,7 +423,6 @@ async function start() {
       console.log('[Auth] GitHub OAuth enabled');
       
       // Set up workspace routes
-      const workspaceRepository = new WorkspaceRepository(db);
       const workspaceRouter = createWorkspaceRouter({
         workspaceRepository,
         authConfig: {

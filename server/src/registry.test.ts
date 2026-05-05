@@ -240,6 +240,7 @@ describe('DeviceRegistry', () => {
         senderName: 'Test',
         text: 'Hello',
         partial: false,
+        workspaceId: 'workspace-1',
       };
 
       registry.broadcastToOutputs(message, 'workspace-1', 'device-1');

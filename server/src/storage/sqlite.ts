@@ -63,12 +63,13 @@ export class SQLiteStore implements MessageStore {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      INSERT INTO messages (utterance_id, sender_id, sender_name, text, partial)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       message.utteranceId,
+      message.workspaceId,
       message.senderId,
       message.senderName,
       message.text,
@@ -76,18 +77,25 @@ export class SQLiteStore implements MessageStore {
     );
   }
 
-  async getRecent(limit: number = 100): Promise<RelayedTextMessage[]> {
+  async getRecent(limit: number = 100, workspaceId?: string): Promise<RelayedTextMessage[]> {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
-    const stmt = this.db.prepare(`
-      SELECT utterance_id, sender_id, sender_name, text, partial
-      FROM messages
-      ORDER BY id DESC
-      LIMIT ?
-    `);
+    // Filter by workspace if provided
+    const sql = workspaceId
+      ? `SELECT utterance_id, workspace_id, sender_id, sender_name, text, partial
+         FROM messages
+         WHERE workspace_id = ?
+         ORDER BY id DESC
+         LIMIT ?`
+      : `SELECT utterance_id, workspace_id, sender_id, sender_name, text, partial
+         FROM messages
+         ORDER BY id DESC
+         LIMIT ?`;
 
-    const rows = stmt.all(limit) as Array<{
+    const stmt = this.db.prepare(sql);
+    const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as Array<{
       utterance_id: string;
+      workspace_id: string | null;
       sender_id: string;
       sender_name: string;
       text: string;
@@ -98,6 +106,7 @@ export class SQLiteStore implements MessageStore {
     return rows.reverse().map(row => ({
       type: 'text' as const,
       utteranceId: row.utterance_id,
+      workspaceId: row.workspace_id || '',
       senderId: row.sender_id,
       senderName: row.sender_name,
       text: row.text,

@@ -28,6 +28,7 @@ describe('SQLiteStore', () => {
   const createMessage = (overrides: Partial<RelayedTextMessage> = {}): RelayedTextMessage => ({
     type: 'text',
     utteranceId: `utt-${Date.now()}`,
+    workspaceId: 'test-workspace',
     senderId: 'device-1',
     senderName: 'Test Device',
     text: 'Hello, world!',
@@ -118,6 +119,7 @@ describe('SQLiteStore', () => {
     it('stores all message fields correctly', async () => {
       const message = createMessage({
         utteranceId: 'utt-123',
+        workspaceId: 'workspace-123',
         senderId: 'device-xyz',
         senderName: 'My Device',
         text: 'Hello!',
@@ -129,6 +131,7 @@ describe('SQLiteStore', () => {
       expect(messages[0]).toEqual({
         type: 'text',
         utteranceId: 'utt-123',
+        workspaceId: 'workspace-123',
         senderId: 'device-xyz',
         senderName: 'My Device',
         text: 'Hello!',
@@ -192,6 +195,28 @@ describe('SQLiteStore', () => {
     it('throws if not connected', async () => {
       await store.disconnect();
       await expect(store.getRecent()).rejects.toThrow('not connected');
+    });
+
+    it('filters by workspaceId when provided', async () => {
+      await store.append(createMessage({ text: 'WS1 Message 1', workspaceId: 'workspace-1' }));
+      await store.append(createMessage({ text: 'WS2 Message 1', workspaceId: 'workspace-2' }));
+      await store.append(createMessage({ text: 'WS1 Message 2', workspaceId: 'workspace-1' }));
+      
+      const ws1Messages = await store.getRecent(10, 'workspace-1');
+      expect(ws1Messages).toHaveLength(2);
+      expect(ws1Messages.map(m => m.text)).toEqual(['WS1 Message 1', 'WS1 Message 2']);
+
+      const ws2Messages = await store.getRecent(10, 'workspace-2');
+      expect(ws2Messages).toHaveLength(1);
+      expect(ws2Messages[0].text).toBe('WS2 Message 1');
+    });
+
+    it('returns all messages when workspaceId is not provided', async () => {
+      await store.append(createMessage({ text: 'WS1 Message', workspaceId: 'workspace-1' }));
+      await store.append(createMessage({ text: 'WS2 Message', workspaceId: 'workspace-2' }));
+      
+      const allMessages = await store.getRecent();
+      expect(allMessages).toHaveLength(2);
     });
   });
 

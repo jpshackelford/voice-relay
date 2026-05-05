@@ -4,8 +4,8 @@ export interface MessageStore {
   /** Append a final message to history */
   append(message: RelayedTextMessage): Promise<void>;
 
-  /** Get recent messages, newest last */
-  getRecent(limit?: number): Promise<RelayedTextMessage[]>;
+  /** Get recent messages, newest last. Optionally filter by workspaceId. */
+  getRecent(limit?: number, workspaceId?: string): Promise<RelayedTextMessage[]>;
 
   /** Clear all messages */
   clear(): Promise<void>;
