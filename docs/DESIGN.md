@@ -1006,9 +1006,10 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 **Implementation Details:**
 
 1. **Authentication Context** (`client/src/contexts/AuthContext.tsx`)
-   - Token storage in localStorage
+   - Server-side httpOnly cookies for secure token storage (not accessible to JS)
    - Auto-redirect to login when unauthenticated
-   - User profile from JWT payload
+   - User profile fetched from `/auth/me` endpoint
+   - Automatic token refresh every 30 minutes to keep session alive
 
 2. **Workspace Hook** (`client/src/hooks/useWorkspaces.ts`)
    - List, create, join, delete workspace operations
