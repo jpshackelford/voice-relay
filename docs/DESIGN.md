@@ -1076,6 +1076,13 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - localStorage is sufficient for device token persistence; IndexedDB adds complexity without benefit
 - Proactive token refresh threshold (5 min) balances UX vs. network overhead
 
+**Security Hardening (PR #8 Review):**
+- **Never store plaintext tokens**: Only store hashes; return token once at creation, never persist in plaintext
+- **Public endpoints need rate limiting**: Token validation endpoint exposed to brute-force; added 10 req/min/IP limit
+- **Tokens need expiration**: 30-day TTL with automatic renewal on use; prevents indefinite access from lost devices
+- **SQLite compatibility**: Document backup/recreate pattern for migrations on pre-3.35.0 SQLite (no DROP COLUMN support)
+- **Extract complex hooks**: `useDeviceRestoration` improves testability over inline useEffect with multiple concerns
+
 **Remaining work:**
 - E2E tests for device persistence across page refresh
 - Client-side session switching UI
