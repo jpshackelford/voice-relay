@@ -1,20 +1,28 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Smoke tests for Voice Relay production deployment.
  * 
  * These tests verify core functionality is working after deployment.
- * Requires authenticated session - run auth.setup.ts first if needed.
+ * 
+ * Authentication options:
+ * 1. Automated (CI): Set TEST_AUTH_SECRET env var - uses /auth/test-session endpoint
+ * 2. Interactive: Run smoke:auth first to save session state
  * 
  * Usage:
- *   # First time / refresh auth (interactive):
- *   SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/auth.setup.ts --headed
+ *   # Automated (requires TEST_AUTH_SECRET on server and in env):
+ *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
  *   
- *   # Run smoke tests (uses saved auth):
- *   SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.spec.ts
+ *   # Interactive (manual OAuth):
+ *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke:auth
+ *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
  */
 
 const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
+const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
+const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('Production Smoke Tests', () => {
   
@@ -57,9 +65,64 @@ test.describe('Production Smoke Tests', () => {
   });
 
   test.describe('Authenticated Features', () => {
-    // These tests use the saved auth state
+    // Authenticate before running these tests
+    test.beforeAll(async ({ request }) => {
+      // Option 1: Use test auth endpoint (for CI)
+      if (TEST_AUTH_SECRET) {
+        console.log('Using TEST_AUTH_SECRET for automated authentication');
+        const response = await request.post(`${BASE_URL}/auth/test-session`, {
+          headers: {
+            'X-Test-Auth-Secret': TEST_AUTH_SECRET,
+          },
+        });
+        
+        if (!response.ok()) {
+          throw new Error(`Test auth failed: ${response.status()} - Is TEST_AUTH_SECRET set on the server?`);
+        }
+        
+        // Save the cookies to auth state file for subsequent tests
+        const cookies = await response.headersArray();
+        const setCookies = cookies.filter(h => h.name.toLowerCase() === 'set-cookie');
+        
+        // Create a minimal storage state with the cookies
+        const cookieObjects = setCookies.map(h => {
+          const parts = h.value.split(';')[0].split('=');
+          return {
+            name: parts[0],
+            value: parts.slice(1).join('='),
+            domain: new URL(BASE_URL).hostname,
+            path: '/',
+            httpOnly: true,
+            secure: BASE_URL.startsWith('https'),
+            sameSite: 'Lax' as const,
+          };
+        });
+        
+        fs.writeFileSync(AUTH_FILE, JSON.stringify({
+          cookies: cookieObjects,
+          origins: [],
+        }));
+        
+        console.log('Auth state saved from test-session endpoint');
+        return;
+      }
+      
+      // Option 2: Use existing auth state file (from interactive login)
+      if (fs.existsSync(AUTH_FILE)) {
+        console.log('Using existing auth state file');
+        return;
+      }
+      
+      throw new Error(
+        'No authentication available. Either:\n' +
+        '1. Set TEST_AUTH_SECRET env var (must also be set on server), or\n' +
+        '2. Run "npm run smoke:auth" first to authenticate interactively'
+      );
+    });
+
+    // Use the saved auth state
     test.use({ 
-      storageState: 'tests/smoke/.auth-state.json',
+      storageState: AUTH_FILE,
     });
 
     test('dashboard loads when authenticated', async ({ page }) => {

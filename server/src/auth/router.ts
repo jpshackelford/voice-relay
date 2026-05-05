@@ -247,6 +247,58 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
     res.json({ success: true });
   });
 
+  /**
+   * POST /auth/test-session
+   * Creates an authenticated session for automated testing.
+   * 
+   * SECURITY: Only available when TEST_AUTH_SECRET env var is set.
+   * Requires the secret in the X-Test-Auth-Secret header.
+   * 
+   * This allows CI/CD pipelines to run authenticated smoke tests
+   * without needing to go through GitHub OAuth interactively.
+   */
+  const testAuthSecret = process.env.TEST_AUTH_SECRET;
+  if (testAuthSecret) {
+    console.log('[Auth] Test auth endpoint enabled (TEST_AUTH_SECRET is set)');
+    
+    router.post('/test-session', (req: Request, res: Response) => {
+      const providedSecret = req.headers['x-test-auth-secret'];
+      
+      if (providedSecret !== testAuthSecret) {
+        res.status(403).json({ error: 'Invalid test auth secret' });
+        return;
+      }
+      
+      // Create or get test user
+      const testUser = userRepository.upsertFromGitHub({
+        githubId: 0, // Special ID for test user
+        username: 'smoke-test-user',
+        displayName: 'Smoke Test User',
+        avatarUrl: null,
+        email: 'smoke-test@example.com',
+      });
+      
+      console.log(`[Auth] Test session created for user: ${testUser.username}`);
+      
+      // Generate tokens
+      const token = jwtService.sign(testUser);
+      const refreshToken = jwtService.signRefresh(testUser);
+      
+      // Set cookies (same as normal OAuth flow)
+      res.cookie(AUTH_COOKIE_NAME, token, getCookieOptions(isProduction, tokenMaxAge));
+      res.cookie(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(isProduction, refreshMaxAge));
+      
+      res.json({ 
+        success: true,
+        user: {
+          id: testUser.id,
+          username: testUser.username,
+          displayName: testUser.displayName,
+        }
+      });
+    });
+  }
+
   return router;
 }
 
