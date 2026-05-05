@@ -692,15 +692,132 @@ function decrypt(encrypted: string, iv: string, tag: string): string {
 - No hard limits on devices/workspaces initially
 
 ### Deferred (V2+)
-- **Invite system**: Workspace owners invite users via code → requires email/SMS infrastructure
-- **Workspace sharing**: Multiple users co-own a workspace
-- **Guest access**: Anonymous users join with code only
 - **Persistent message history**: Configurable retention policies
 - **Rate limiting**: For public-facing auth endpoints
 
 ---
 
-## 12. Security Considerations
+## 12. QR Code Join Flow (Multi-User)
+
+The kiosk acts as the approval interface for new users joining a workspace. No email/SMS needed.
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌────────┐
+│    Kiosk    │     │   Phone     │     │   Server    │     │ GitHub │
+│  (Owner)    │     │ (New User)  │     │             │     │        │
+└──────┬──────┘     └──────┬──────┘     └──────┬──────┘     └───┬────┘
+       │                   │                   │                │
+       │ Display QR code   │                   │                │
+       │ (join URL)        │                   │                │
+       │◄──────────────────│                   │                │
+       │                   │                   │                │
+       │                   │ Scan QR           │                │
+       │                   │──────────────────►│                │
+       │                   │                   │                │
+       │                   │ Redirect to GitHub│                │
+       │                   │◄──────────────────│                │
+       │                   │                   │                │
+       │                   │ Authenticate      │                │
+       │                   │───────────────────────────────────►│
+       │                   │                   │                │
+       │                   │ Auth complete     │                │
+       │                   │◄───────────────────────────────────│
+       │                   │                   │                │
+       │                   │ Request to join   │                │
+       │                   │──────────────────►│                │
+       │                   │                   │                │
+       │ "Alice wants to   │                   │                │
+       │  join" [Approve]  │                   │                │
+       │◄──────────────────────────────────────│                │
+       │                   │                   │                │
+       │ Owner clicks      │                   │                │
+       │ [Approve]         │                   │                │
+       │──────────────────────────────────────►│                │
+       │                   │                   │                │
+       │                   │ "Approved!"       │                │
+       │                   │◄──────────────────│                │
+       │                   │                   │                │
+       │                   │ Auto-connect to   │                │
+       │                   │ workspace         │                │
+       └───────────────────┴───────────────────┘                │
+```
+
+### Data Model Addition
+
+```sql
+-- Pending join requests
+CREATE TABLE workspace_join_requests (
+  id VARCHAR(36) PRIMARY KEY,
+  workspace_id VARCHAR(36) NOT NULL REFERENCES workspaces(id),
+  user_id VARCHAR(36) NOT NULL REFERENCES users(id),
+  status VARCHAR(20) DEFAULT 'pending',  -- pending, approved, denied
+  created_at TIMESTAMP DEFAULT NOW(),
+  resolved_at TIMESTAMP,
+  resolved_by VARCHAR(36) REFERENCES users(id)
+);
+
+-- Workspace members (approved users)
+CREATE TABLE workspace_members (
+  workspace_id VARCHAR(36) REFERENCES workspaces(id),
+  user_id VARCHAR(36) REFERENCES users(id),
+  role VARCHAR(20) DEFAULT 'member',  -- owner, member
+  joined_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (workspace_id, user_id)
+);
+```
+
+### WebSocket Messages
+
+```typescript
+// Server → Kiosk: New join request
+{
+  type: 'join-request',
+  request: {
+    id: string,
+    user: { id, username, displayName, avatarUrl },
+    createdAt: string
+  }
+}
+
+// Kiosk → Server: Approve/deny request
+{
+  type: 'join-response',
+  requestId: string,
+  approved: boolean
+}
+
+// Server → Phone: Request resolved
+{
+  type: 'join-resolved',
+  approved: boolean,
+  workspace?: { id, name, slug }  // Only if approved
+}
+```
+
+### API Endpoints
+
+```
+GET  /api/workspaces/:id/requests      # List pending requests (owner only)
+POST /api/workspaces/:id/join          # Request to join (after GitHub auth)
+POST /api/workspaces/:id/requests/:id/approve  # Approve request
+POST /api/workspaces/:id/requests/:id/deny     # Deny request
+GET  /api/workspaces/:id/members       # List workspace members
+DELETE /api/workspaces/:id/members/:userId  # Remove member
+```
+
+### UX Details
+
+- QR code contains: `https://app.example.com/join/{workspace_slug}`
+- Join page shows workspace name, owner avatar
+- After GitHub auth, phone shows "Waiting for approval..." spinner
+- Kiosk shows toast/modal: "Alice (alice@github) wants to join" [Approve] [Deny]
+- On approve: phone instantly connects, shows workspace
+- On deny: phone shows "Request denied" message
+- Pending requests expire after 5 minutes
+
+---
+
+## 13. Security Considerations
 
 - All auth tokens over HTTPS only
 - JWT secrets rotated periodically  
