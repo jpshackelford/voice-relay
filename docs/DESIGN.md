@@ -1,0 +1,655 @@
+# Voice Relay - Multi-User Architecture Design
+
+## Overview
+
+Voice Relay is a real-time voice/text communication platform that connects devices (kiosks and mobile phones) for speech-to-text and text-to-speech relay, with optional AI assistant integration.
+
+**Current State**: Single-user prototype with 4 device modes (input, output, chat, kiosk), in-memory device registry, no authentication.
+
+**Target State**: Multi-user platform with workspaces, GitHub OAuth authentication, persistent storage, and simplified device views (kiosk, mobile).
+
+---
+
+## 1. Core Concepts
+
+### 1.1 User
+A person who authenticates via GitHub OAuth. Users own workspaces.
+
+### 1.2 Workspace
+An isolated environment owned by a user. Contains devices and sessions. Think of it as a "room" or "channel" where devices communicate.
+
+- Each workspace has a unique join code/URL
+- Devices connect to a specific workspace
+- Messages are relayed only within a workspace
+- Owner provides their own OpenHands API key (encrypted in DB)
+
+### 1.3 Device
+A browser tab/app instance connected to a workspace. Two view types:
+
+| View | Description | Use Case |
+|------|-------------|----------|
+| **Kiosk** | Stationary display with large content area + chat sidebar | Wall-mounted screen, tablet on stand, presentation display |
+| **Mobile** | Compact chat-focused interface | Phone, handheld device, quick input |
+
+Both views can send AND receive messages. The difference is UI layout, not capability.
+
+### 1.4 Session
+An active voice interaction period within a workspace. Sessions track:
+- Which devices participated
+- Message history
+- AI conversation state (if connected)
+- Start/end timestamps
+
+---
+
+## 2. Architecture
+
+### 2.1 System Components
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Clients                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Kiosk     │  │   Mobile    │  │   Mobile    │              │
+│  │  (Browser)  │  │  (Browser)  │  │  (Browser)  │              │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
+│         │                │                │                      │
+└─────────┼────────────────┼────────────────┼──────────────────────┘
+          │                │                │
+          │         WebSocket + REST        │
+          │                │                │
+┌─────────┴────────────────┴────────────────┴──────────────────────┐
+│                         Server (Node.js)                          │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Express + WebSocket Server                                 │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │  │
+│  │  │   Auth   │ │ Workspace│ │  Device  │ │    Session    │  │  │
+│  │  │  GitHub  │ │  Manager │ │ Registry │ │    Manager    │  │  │
+│  │  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                              │                                    │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │  Storage Layer                                              │  │
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐            │  │
+│  │  │   SQLite   │  │  MariaDB   │  │   Redis    │            │  │
+│  │  │   (dev)    │  │  (prod)    │  │ (optional) │            │  │
+│  │  └────────────┘  └────────────┘  └────────────┘            │  │
+│  └────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+                              │
+                    ┌─────────┴─────────┐
+                    │  OpenHands Cloud  │
+                    │   (AI Assistant)  │
+                    └───────────────────┘
+```
+
+### 2.2 Technology Stack
+
+| Layer | Technology | Notes |
+|-------|------------|-------|
+| Frontend | React + TypeScript + Vite | Existing client |
+| Backend | Node.js + Express + TypeScript | Existing server |
+| WebSocket | ws library | Real-time messaging |
+| Database | SQLite (dev) / MariaDB (prod) | User accounts, workspaces |
+| Auth | GitHub OAuth | Most users have GitHub |
+| Session | JWT | Stateless auth tokens |
+
+**No Docker** - Simple systemd deployment.
+
+---
+
+## 3. Data Model
+
+### 3.1 Database Schema
+
+```sql
+-- Users (from GitHub OAuth)
+CREATE TABLE users (
+  id VARCHAR(36) PRIMARY KEY,           -- UUID
+  github_id INTEGER UNIQUE NOT NULL,    -- GitHub user ID
+  username VARCHAR(255) NOT NULL,       -- GitHub username
+  display_name VARCHAR(255),            -- Full name
+  avatar_url VARCHAR(500),              -- GitHub avatar
+  email VARCHAR(255),                   -- GitHub email (optional)
+  created_at TIMESTAMP DEFAULT NOW(),
+  last_login_at TIMESTAMP
+);
+
+-- Workspaces
+CREATE TABLE workspaces (
+  id VARCHAR(36) PRIMARY KEY,           -- UUID
+  owner_id VARCHAR(36) NOT NULL REFERENCES users(id),
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,    -- URL-friendly identifier
+  join_code VARCHAR(20) UNIQUE,         -- Short code for easy joining
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+
+-- Workspace Settings (separate table for sensitive data)
+CREATE TABLE workspace_settings (
+  workspace_id VARCHAR(36) PRIMARY KEY REFERENCES workspaces(id),
+  openhands_api_key_encrypted TEXT,     -- AES-256-GCM encrypted
+  openhands_api_key_iv VARCHAR(32),     -- Initialization vector (hex)
+  openhands_api_key_tag VARCHAR(32),    -- Auth tag (hex)
+  tts_voice VARCHAR(100),               -- Preferred TTS voice
+  stt_language VARCHAR(10),             -- STT language code
+  updated_at TIMESTAMP
+);
+
+-- Devices (registered devices, persisted)
+CREATE TABLE devices (
+  id VARCHAR(36) PRIMARY KEY,           -- UUID
+  workspace_id VARCHAR(36) NOT NULL REFERENCES workspaces(id),
+  name VARCHAR(255) NOT NULL,           -- User-friendly name
+  view VARCHAR(20) NOT NULL,            -- 'kiosk' or 'mobile'
+  device_token VARCHAR(255) UNIQUE,     -- For device re-auth without user
+  last_seen_at TIMESTAMP,
+  config JSON,                          -- Device-specific settings
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Sessions (voice interaction periods)
+CREATE TABLE sessions (
+  id VARCHAR(36) PRIMARY KEY,           -- UUID
+  workspace_id VARCHAR(36) NOT NULL REFERENCES workspaces(id),
+  started_at TIMESTAMP DEFAULT NOW(),
+  ended_at TIMESTAMP,
+  metadata JSON                         -- AI conversation ID, stats, etc.
+);
+
+-- Messages (within sessions)
+CREATE TABLE messages (
+  id VARCHAR(36) PRIMARY KEY,           -- UUID
+  session_id VARCHAR(36) NOT NULL REFERENCES sessions(id),
+  device_id VARCHAR(36) REFERENCES devices(id),
+  sender_name VARCHAR(255) NOT NULL,
+  text TEXT NOT NULL,
+  is_ai BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX idx_workspaces_owner ON workspaces(owner_id);
+CREATE INDEX idx_workspaces_slug ON workspaces(slug);
+CREATE INDEX idx_devices_workspace ON devices(workspace_id);
+CREATE INDEX idx_sessions_workspace ON sessions(workspace_id);
+CREATE INDEX idx_messages_session ON messages(session_id);
+```
+
+### 3.2 Relationships
+
+```
+User (1) ─────< (N) Workspace
+                    │
+                    ├───< (N) Device
+                    │
+                    └───< (N) Session ───< (N) Message
+```
+
+---
+
+## 4. Authentication & Authorization
+
+**GitHub OAuth only** - No email/SMS self-service (requires infra we don't have).
+
+All users must have a GitHub account to create workspaces or join as authenticated users.
+
+### 4.1 GitHub OAuth Flow
+
+```
+┌────────┐     ┌────────┐     ┌────────┐     ┌────────┐
+│ Client │     │ Server │     │ GitHub │     │   DB   │
+└───┬────┘     └───┬────┘     └───┬────┘     └───┬────┘
+    │              │              │              │
+    │ GET /auth/github            │              │
+    │─────────────>│              │              │
+    │              │              │              │
+    │ Redirect to GitHub          │              │
+    │<─────────────│              │              │
+    │              │              │              │
+    │ User authorizes on GitHub   │              │
+    │──────────────────────────────>              │
+    │              │              │              │
+    │ Callback with code          │              │
+    │─────────────>│              │              │
+    │              │              │              │
+    │              │ Exchange code for token     │
+    │              │─────────────>│              │
+    │              │              │              │
+    │              │ Access token │              │
+    │              │<─────────────│              │
+    │              │              │              │
+    │              │ Fetch user info             │
+    │              │─────────────>│              │
+    │              │              │              │
+    │              │ User data    │              │
+    │              │<─────────────│              │
+    │              │              │              │
+    │              │ Create/update user          │
+    │              │─────────────────────────────>│
+    │              │              │              │
+    │ JWT token    │              │              │
+    │<─────────────│              │              │
+```
+
+### 4.2 Token Types
+
+| Token | Purpose | Lifetime | Storage |
+|-------|---------|----------|---------|
+| User JWT | Authenticate user for API/WebSocket | 7 days | localStorage |
+| Device Token | Allow device reconnect without full auth | 30 days | localStorage |
+| Workspace Join Code | Allow guests to join workspace | Permanent | DB |
+
+### 4.3 Authorization Rules
+
+| Action | Who Can Do It |
+|--------|---------------|
+| Create workspace | Authenticated user |
+| View workspace | Owner + anyone with join code |
+| Edit workspace settings | Owner only |
+| Delete workspace | Owner only |
+| Register device | Anyone with workspace access |
+| Send/receive messages | Any device in workspace |
+
+---
+
+## 5. API Design
+
+### 5.1 REST Endpoints
+
+#### Auth
+```
+GET  /auth/github                    # Redirect to GitHub OAuth
+GET  /auth/github/callback           # OAuth callback, returns JWT
+GET  /auth/me                        # Get current user (requires JWT)
+POST /auth/logout                    # Invalidate session
+```
+
+#### Users
+```
+GET  /api/users/me                   # Get current user profile
+PATCH /api/users/me                  # Update profile
+```
+
+#### Workspaces
+```
+GET    /api/workspaces               # List user's workspaces
+POST   /api/workspaces               # Create workspace
+GET    /api/workspaces/:id           # Get workspace details
+PATCH  /api/workspaces/:id           # Update workspace
+DELETE /api/workspaces/:id           # Delete workspace
+POST   /api/workspaces/:id/join      # Join via code (returns device token)
+```
+
+#### Workspace Settings (owner only)
+```
+GET    /api/workspaces/:id/settings  # Get settings (API key masked)
+PATCH  /api/workspaces/:id/settings  # Update settings (incl. API key)
+DELETE /api/workspaces/:id/settings/api-key  # Remove API key
+```
+
+Settings response example:
+```json
+{
+  "openhands_api_key_set": true,      // Boolean, never expose actual key
+  "tts_voice": "en-US-Wavenet-D",
+  "stt_language": "en-US"
+}
+```
+
+#### Devices
+```
+GET    /api/workspaces/:id/devices   # List devices in workspace
+POST   /api/workspaces/:id/devices   # Register new device
+GET    /api/devices/:id              # Get device details
+PATCH  /api/devices/:id              # Update device
+DELETE /api/devices/:id              # Remove device
+POST   /api/devices/:id/token        # Generate new device token
+```
+
+#### Sessions
+```
+GET    /api/workspaces/:id/sessions  # List sessions
+POST   /api/workspaces/:id/sessions  # Start new session
+GET    /api/sessions/:id             # Get session with messages
+PATCH  /api/sessions/:id             # End session
+```
+
+#### AI
+```
+GET    /api/ai/status                # Check AI availability
+POST   /api/ai/connect               # Connect AI to device
+POST   /api/ai/message               # Send message to AI
+DELETE /api/ai/disconnect            # Disconnect AI
+```
+
+#### Display (for AI to send content to kiosks)
+```
+POST   /api/display                  # Send content to kiosk displays
+```
+
+### 5.2 WebSocket Protocol
+
+#### Connection
+```
+ws://host/ws?token=<jwt_or_device_token>&workspace=<workspace_id>
+```
+
+#### Client → Server Messages
+```typescript
+// Register device in workspace
+{ 
+  type: 'register',
+  deviceId: string,
+  displayName: string,
+  view: 'mobile' | 'kiosk',
+  screenWidth?: number,   // Kiosk only
+  screenHeight?: number   // Kiosk only
+}
+
+// Update device settings
+{
+  type: 'update-device',
+  displayName?: string,
+  view?: 'mobile' | 'kiosk',
+  ttsEnabled?: boolean
+}
+
+// Send text message
+{
+  type: 'text',
+  utteranceId: string,    // Client-generated UUID
+  text: string,
+  partial: boolean        // true = still typing
+}
+```
+
+#### Server → Client Messages
+```typescript
+// Registration confirmed
+{ type: 'registered', deviceId: string }
+
+// Device list update
+{ 
+  type: 'device-list',
+  devices: [{ id, displayName, view }]
+}
+
+// Message history (on connect)
+{
+  type: 'history',
+  messages: [{ utteranceId, senderId, senderName, text, partial }]
+}
+
+// Relayed text message
+{
+  type: 'text',
+  utteranceId: string,
+  senderId: string,
+  senderName: string,
+  text: string,
+  partial: boolean
+}
+
+// Display content (kiosk only)
+{
+  type: 'display',
+  display: { type: 'markdown' | 'image' | 'clear', content?, title? }
+}
+
+// AI status update
+{
+  type: 'ai-status',
+  connected: boolean,
+  conversationId?: string
+}
+```
+
+---
+
+## 6. User Flows
+
+### 6.1 New User Setup
+
+```
+1. User visits app → sees "Sign in with GitHub" button
+2. User clicks → redirects to GitHub OAuth
+3. GitHub authenticates → redirects back with code
+4. Server exchanges code → creates user account
+5. Server issues JWT → redirects to dashboard
+6. User creates first workspace → gets join code
+7. User opens kiosk view on big screen
+8. User scans QR code with phone → mobile view connects
+9. Both devices ready for voice relay
+```
+
+### 6.2 Joining Existing Workspace
+
+```
+1. User receives workspace link/code from owner
+2. User visits /join/:code or enters code manually
+3. If authenticated: adds workspace to their account
+4. If not authenticated: redirected to GitHub login first
+5. Device registered in workspace
+6. User can now participate
+```
+
+### 6.3 Device Reconnection
+
+```
+1. Device has stored device token in localStorage
+2. On page load, attempts WebSocket connect with token
+3. If valid: device auto-registers, receives history
+4. If expired: prompts for re-authentication
+```
+
+---
+
+## 7. Frontend Structure
+
+### 7.1 Routes
+
+```
+/                           # Landing page (unauthenticated)
+/auth/github                # Start OAuth flow
+/auth/callback              # OAuth callback handler
+/dashboard                  # User's workspace list
+/workspace/:slug            # Workspace detail/management
+/workspace/:slug/kiosk      # Kiosk view (full screen)
+/workspace/:slug/mobile     # Mobile view
+/join/:code                 # Join workspace by code
+```
+
+### 7.2 Components
+
+```
+src/
+├── components/
+│   ├── KioskMode.tsx       # Full-screen kiosk display
+│   ├── MobileMode.tsx      # Compact mobile chat
+│   ├── DeviceSetup.tsx     # Device name/mode selection
+│   ├── QRCode.tsx          # QR code for mobile join
+│   ├── Dashboard.tsx       # Workspace list
+│   └── WorkspaceSettings.tsx
+├── hooks/
+│   ├── useAuth.ts          # Authentication state
+│   ├── useWebSocket.ts     # WebSocket connection
+│   ├── useSpeechRecognition.ts
+│   ├── useSpeechSynthesis.ts
+│   └── useAI.ts
+└── types.ts
+```
+
+---
+
+## 8. Deployment
+
+### 8.1 Development
+
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+cp .env.example .env
+# Edit .env with GitHub OAuth credentials
+
+# Start dev server (SQLite auto-created)
+npm run dev
+
+# Access at http://localhost:5173
+```
+
+### 8.2 Production (systemd)
+
+```ini
+# /etc/systemd/system/voice-relay.service
+[Unit]
+Description=Voice Relay Server
+After=network.target
+
+[Service]
+Type=simple
+User=voice-relay
+WorkingDirectory=/opt/voice-relay
+ExecStart=/usr/bin/node dist/server/index.js
+Restart=always
+Environment=NODE_ENV=production
+Environment=PORT=3001
+EnvironmentFile=/etc/voice-relay/env
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# /etc/voice-relay/env
+DATABASE_URL=mysql://user:pass@localhost:3306/voice_relay
+GITHUB_CLIENT_ID=xxx
+GITHUB_CLIENT_SECRET=xxx
+OPENHANDS_CLOUD_API_KEY=xxx
+JWT_SECRET=xxx
+```
+
+### 8.3 Database Setup (MariaDB)
+
+```sql
+CREATE DATABASE voice_relay CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'voice_relay'@'localhost' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
+```
+
+---
+
+## 9. Migration Path
+
+### Phase 1: Add Database Layer (keep existing functionality)
+- [ ] Add SQLite/MariaDB storage abstraction
+- [ ] Create schema and migrations
+- [ ] Store messages in DB instead of in-memory
+
+### Phase 2: Authentication
+- [ ] Add GitHub OAuth endpoints
+- [ ] Create user accounts on first login
+- [ ] JWT token generation and validation
+- [ ] Protect API endpoints
+
+### Phase 3: Workspaces
+- [ ] Add workspace CRUD operations
+- [ ] Scope device registry per workspace
+- [ ] Add join codes
+- [ ] Update WebSocket to require workspace context
+
+### Phase 4: UI Simplification
+- [ ] Remove input/output modes (keep kiosk + mobile only)
+- [ ] Add dashboard for workspace management
+- [ ] Add auth UI (login, logout)
+- [ ] Update routing
+
+### Phase 5: Polish
+- [ ] Device tokens for reconnection
+- [ ] Session tracking
+- [ ] QR code improvements
+- [ ] Error handling and validation
+
+---
+
+## 10. Encryption
+
+### 10.1 API Key Encryption
+
+Workspace owners provide their OpenHands API key, which is sensitive and must be encrypted at rest.
+
+**Approach**: AES-256-GCM (authenticated encryption)
+
+```typescript
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY; // 32 bytes, hex-encoded
+
+function encrypt(plaintext: string): { encrypted: string; iv: string; tag: string } {
+  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+  const iv = randomBytes(12); // 96-bit IV for GCM
+  const cipher = createCipheriv('aes-256-gcm', key, iv);
+  
+  let encrypted = cipher.update(plaintext, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+  
+  return { encrypted, iv: iv.toString('hex'), tag };
+}
+
+function decrypt(encrypted: string, iv: string, tag: string): string {
+  const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'hex'));
+  decipher.setAuthTag(Buffer.from(tag, 'hex'));
+  
+  let plaintext = decipher.update(encrypted, 'hex', 'utf8');
+  plaintext += decipher.final('utf8');
+  
+  return plaintext;
+}
+```
+
+**Key Management**:
+- `ENCRYPTION_KEY` stored in environment variable (not in DB)
+- Generate with: `openssl rand -hex 32`
+- Same key used across all workspaces
+- Key rotation: re-encrypt all API keys with new key, then swap
+
+### 10.2 What Gets Encrypted
+
+| Data | Storage | Encrypted? |
+|------|---------|------------|
+| User passwords | N/A (OAuth only) | N/A |
+| OpenHands API keys | DB | Yes (AES-256-GCM) |
+| JWT tokens | Client localStorage | Signed, not encrypted |
+| Device tokens | DB + client | Hashed in DB |
+| Join codes | DB | No (not sensitive) |
+
+---
+
+## 11. Open Questions
+
+1. **Guest access**: Should anonymous users be able to join a workspace with just a code, or require GitHub auth?
+   
+2. **Workspace sharing**: Should multiple GitHub users be able to co-own a workspace?
+
+3. **Message retention**: How long to keep message history? Per-session only or persistent?
+
+4. **Device limits**: Any limits on devices per workspace?
+
+5. **Rate limiting**: Needed for public-facing auth endpoints?
+
+---
+
+## 12. Security Considerations
+
+- All auth tokens over HTTPS only
+- JWT secrets rotated periodically  
+- GitHub OAuth state parameter to prevent CSRF
+- WebSocket connections validate token on connect
+- Workspace join codes should be unguessable (UUID or random string)
+- Input sanitization for display names and messages
+- Rate limiting on auth endpoints
