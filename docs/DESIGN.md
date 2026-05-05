@@ -905,7 +905,7 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - Client TypeScript has pre-existing type errors (DeviceMode mismatch) - separate issue from Phase 1
 - Production auto-deploys on merge to main via GitHub Actions
 
-### Phase 2: Authentication 🔄 [PR #2](https://github.com/jpshackelford/voice-relay/pull/2)
+### Phase 2: Authentication ✅ [PR #2](https://github.com/jpshackelford/voice-relay/pull/2)
 - [x] Add GitHub OAuth endpoints (`/auth/github`, `/auth/github/callback`)
 - [x] Create user accounts on first login (upsert pattern)
 - [x] JWT token generation and validation (7-day expiry)
@@ -915,11 +915,23 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - Auth conditionally enabled when `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SECRET` env vars are set
 - User profile synced with GitHub on each login
 - CSRF protection via OAuth state parameter stored in memory (will need Redis for multi-server)
-- Tests cover >97% of auth module
+- Migration uses `CREATE TABLE IF NOT EXISTS` - safe additive change for production
+- Tests cover >97% of auth module (87 tests total)
 
-**Next Steps:**
-- Add client-side auth UI (login button, token storage, logout)
-- Add CI workflow for PR checks (tests, linting)
+**Learnings:**
+- Conditional feature enablement (via env vars) allows zero-risk deployment
+- Real SQLite tests with in-memory databases catch edge cases mocking would miss
+- CSRF state cleanup with timeout prevents memory leaks
+- Upsert pattern keeps user profiles synced with GitHub automatically
+
+**Post-Deploy Setup:**
+1. Create GitHub OAuth App: `https://github.com/settings/applications/new`
+2. Set callback URL: `https://vr.chorecraft.net/auth/github/callback`
+3. Configure env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SECRET`, `BASE_URL`
+
+**Future Work (deferred to Phase 4):**
+- Client-side auth UI (login button, token storage, logout)
+- CI workflow for PR checks
 
 ### Phase 3: Workspaces ← **NEXT**
 - [ ] Add workspace CRUD operations
