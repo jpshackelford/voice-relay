@@ -35,68 +35,105 @@ A browser tab/app instance connected to a workspace. Three views:
 Kiosk and Mobile can send AND receive messages. Settings is for management only.
 
 ### 1.4 Session
-An active voice interaction period within a workspace. A workspace has **one active session** at a time.
+A conversation with its own messages and display content. **Multiple sessions can be active** in a workspace simultaneously. Each device displays **one session at a time**.
 
 **Session contains:**
-- Participating devices
 - Conversation (messages)
-- Display content (what's shown on kiosk)
+- Display content (what kiosks show)
 - AI conversation state (if connected)
+- List of devices currently viewing this session
 - Start/end timestamps
 
-**Session lifecycle:**
+**Key concepts:**
+- Workspace has 0-N active sessions
+- Device is "tuned into" one session at a time
+- Device can switch between sessions
+- Sessions are explicitly created (not auto-created)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      WORKSPACE                                   │
+│                         WORKSPACE                                │
 │                                                                  │
-│   No active session                                              │
-│   ┌─────────────┐                                               │
-│   │             │  First device connects                        │
-│   │   (empty)   │ ─────────────────────────┐                    │
-│   │             │                          │                    │
-│   └─────────────┘                          ▼                    │
-│                                   ┌─────────────────┐           │
-│                                   │  ACTIVE SESSION │           │
-│                                   │                 │           │
-│   Device connects ───────────────►│  - Device A     │           │
-│   (auto-joins active session)     │  - Device B     │           │
-│                                   │  - Messages...  │           │
-│   Device disconnects ◄────────────│  - Display      │           │
-│   (stays in session until end)    │                 │           │
-│                                   └────────┬────────┘           │
-│                                            │                    │
-│                           Owner clicks     │                    │
-│                           "End Session"    │                    │
-│                                            ▼                    │
-│                                   ┌─────────────────┐           │
-│                                   │ ARCHIVED SESSION│           │
-│                                   │ (read-only)     │           │
-│                                   └─────────────────┘           │
-│                                            │                    │
-│                                            │ Next device        │
-│                                            │ connects           │
-│                                            ▼                    │
-│                                   ┌─────────────────┐           │
-│                                   │  NEW SESSION    │           │
-│                                   │  (fresh start)  │           │
-│                                   └─────────────────┘           │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│   │  Session A  │  │  Session B  │  │  Session C  │            │
+│   │             │  │             │  │  (archived) │            │
+│   │ 🖥️ Kiosk 1  │  │ 📱 Phone 2  │  │             │            │
+│   │ 📱 Phone 1  │  │             │  │             │            │
+│   │             │  │             │  │             │            │
+│   │ [messages]  │  │ [messages]  │  │ [messages]  │            │
+│   │ [display]   │  │ [display]   │  │ [read-only] │            │
+│   └─────────────┘  └─────────────┘  └─────────────┘            │
+│                                                                  │
+│   Devices:                                                       │
+│   🖥️ Kiosk 1 ──────► Session A                                  │
+│   📱 Phone 1 ──────► Session A                                  │
+│   📱 Phone 2 ──────► Session B                                  │
+│   📱 Phone 3 ──────► (no session - in lobby)                    │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**Rules:**
-1. **Auto-create**: First device to connect creates a session (if none active)
-2. **Auto-join**: Subsequent devices auto-join the active session
-3. **Owner ends**: Only owner can end session (from kiosk or settings)
-4. **One at a time**: Only one active session per workspace
-5. **Persist on disconnect**: Device disconnect doesn't end session
-6. **Fresh start**: Ending session clears conversation/display, starts new session when next device connects
+**Session lifecycle:**
 
-**Why this design:**
-- Low friction: just connect, no "join session" button
-- Clear boundaries: owner controls when to start fresh
-- History preserved: ended sessions are archived, viewable in settings
+| Action | Result |
+|--------|--------|
+| User clicks [+ New Session] | New session created, user joins it |
+| Device scans session QR | Device joins that session |
+| User selects session from list | Device switches to that session |
+| User "casts" session to kiosk | Kiosk switches to show that session |
+| Owner ends session | Session archived (read-only in history) |
+| All devices leave session | Session stays active (can rejoin) |
+
+**Creating a session:**
+
+```
+From Mobile:
+┌─────────────────────────┐
+│ My Workspace            │
+│                         │
+│ Active Sessions:        │
+│ ┌─────────────────────┐ │
+│ │ Session 1 (2 users) │ │  ← tap to join
+│ │ Session 2 (1 user)  │ │
+│ └─────────────────────┘ │
+│                         │
+│ [+ New Session]         │  ← creates new, joins it
+│                         │
+│ ─────────────────────── │
+│ Or scan QR from kiosk   │
+└─────────────────────────┘
+
+From Kiosk:
+┌─────────────────────────────────────────┐
+│ [+ New Session]  [Join Existing ▼]  ⚙️  │
+├─────────────────────────────────────────┤
+│                                         │
+│  Scan QR to join this session:          │
+│  ┌─────────┐                            │
+│  │ QR CODE │                            │
+│  └─────────┘                            │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**Casting to a kiosk:**
+
+Mobile user can "push" their current session to a kiosk:
+
+```
+Mobile:
+┌─────────────────────────┐
+│ Session: Project Alpha  │
+│                         │
+│ [Cast to Display ▼]     │
+│ ┌─────────────────────┐ │
+│ │ 🖥️ Living Room      │ │  ← tap to cast
+│ │ 🖥️ Conference Room  │ │
+│ └─────────────────────┘ │
+└─────────────────────────┘
+
+Result: Selected kiosk switches to show this session
+```
 
 ---
 
@@ -655,50 +692,89 @@ Accessible via gear icon on kiosk/mobile, or directly at `/workspace/:slug/setti
 
 ### 7.4 Session Controls
 
-**Kiosk sidebar header** (owner only):
+**Device states:**
+1. **In lobby** - Connected to workspace but not in any session
+2. **In session** - Viewing/participating in a specific session
+
+**Kiosk header:**
 ```
-┌─────────────────────────────────┐
-│ Session: 2h 15m    [End ⏹]  ⚙️ │
-│ 3 devices connected             │
-└─────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│ [+ New] [Switch ▼]  Session: Project Alpha  [End ⏹]  ⚙️ │
+│ 3 devices in session                                     │
+└──────────────────────────────────────────────────────────┘
 ```
 
-**End Session flow:**
-1. Owner clicks [End ⏹] button
-2. Confirmation: "End this session? Conversation will be archived."
-3. On confirm:
-   - Session marked as ended (archived)
-   - All devices receive `session-ended` message
-   - Kiosk/mobile show "Session ended" state
-   - Next message or device connect creates new session
-
-**Mobile header** (owner only sees End button):
+**Mobile header:**
 ```
+┌─────────────────────────────────────────────┐
+│ Project Alpha          [Cast 📺] [End ⏹] ⚙️ │
+│ ● 3 in session                              │
+└─────────────────────────────────────────────┘
+```
+
+**Lobby view** (no session selected):
+```
+Mobile Lobby:
 ┌─────────────────────────────────┐
-│ My Workspace        [End ⏹] ⚙️ │
-│ ● Connected (3 devices)         │
+│ My Workspace                 ⚙️ │
+├─────────────────────────────────┤
+│                                 │
+│  Active Sessions:               │
+│  ┌───────────────────────────┐  │
+│  │ 📍 Project Alpha (3)      │  │
+│  │ 📍 Quick Chat (1)         │  │
+│  └───────────────────────────┘  │
+│                                 │
+│  [+ New Session]                │
+│                                 │
+│  ─────── or ───────             │
+│                                 │
+│  [📷 Scan QR to join]           │
+│                                 │
 └─────────────────────────────────┘
 ```
 
 **WebSocket messages:**
 ```typescript
-// Owner → Server: End session
-{ type: 'end-session' }
+// Create new session
+{ type: 'create-session', name?: string }
 
-// Server → All devices: Session ended
-{ 
-  type: 'session-ended',
-  sessionId: string,
-  endedAt: string,
-  endedBy: string  // username of owner who ended it
-}
+// Server confirms, device auto-joins
+{ type: 'session-created', session: { id, name, createdAt } }
 
-// Server → Device: New session started (on next connect/message)
-{
-  type: 'session-started',
-  sessionId: string,
-  startedAt: string
-}
+// Join existing session
+{ type: 'join-session', sessionId: string }
+
+// Leave session (back to lobby)
+{ type: 'leave-session' }
+
+// Switch session (leave current + join new)
+{ type: 'switch-session', sessionId: string }
+
+// Cast session to a kiosk
+{ type: 'cast-session', targetDeviceId: string }
+
+// Server notifies kiosk it's been cast to
+{ type: 'session-cast', session: { id, name }, byUser: string }
+
+// End session (owner only, archives it)
+{ type: 'end-session', sessionId: string }
+
+// Server notifies all devices in session
+{ type: 'session-ended', sessionId: string, endedBy: string }
+
+// Session list update (broadcast to lobby devices)
+{ type: 'session-list', sessions: [{ id, name, deviceCount, createdAt }] }
+```
+
+**API endpoints:**
+```
+POST   /api/workspaces/:id/sessions              # Create session
+GET    /api/workspaces/:id/sessions              # List active sessions
+GET    /api/workspaces/:id/sessions/:sid         # Get session details
+DELETE /api/workspaces/:id/sessions/:sid         # End/archive session
+POST   /api/workspaces/:id/sessions/:sid/join    # Join session (returns session data)
+POST   /api/workspaces/:id/sessions/:sid/cast    # Cast to device
 ```
 
 ---
