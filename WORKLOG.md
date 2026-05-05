@@ -565,3 +565,46 @@ None - waiting for active conversations to complete (7dd1332 is 1m idle, below 1
 **Next check:** ~30 minutes (next cron trigger)
 
 ---
+### 2026-05-05 15:04 UTC - Orchestrator
+
+📋 **Human Instruction Update**
+
+Previous instruction "PR #4 before PR #5" is now **OBSOLETE**:
+- PR #4 was merged at 06:36 UTC
+- PR #5 was merged at 13:35 UTC
+- Both are complete
+
+[ACKNOWLEDGED: ## INSTRUCTION: PR #4 before PR #5]
+
+---
+
+**Current State:**
+- [PR #6](https://github.com/jpshackelford/voice-relay/pull/6): `oRC green ready 💬6` - Phase 4 UI & Auth (🟡 Acceptable)
+- [PR #7](https://github.com/jpshackelford/voice-relay/pull/7): `oR green ready 💬7` - Phase 4 UI & Auth (🔴 Needs improvement)
+- Two competing PRs for Phase 4 exist - PR #6 is in better shape
+- Phase 1-3.5 complete ✅
+- Work items remaining: 2 of 5 phases (Phase 4, Phase 5)
+
+**All Previous Conversations Quiet:**
+- `2c8d4f8`: 42m idle (worked on PR #6)
+- `7dd1332`: 27m idle (worked on PR #7)
+
+**PR #6 Review Issues to Address:**
+1. 🔴 CRITICAL: Remove `@types/react-router-dom` (v7 has built-in types)
+2. 🟠 Token leakage via URL parameters - use httpOnly cookies or POST
+3. 🟡 localStorage XSS risk - consider httpOnly cookies  
+4. 🟠 No token refresh mechanism
+5. 🟠 Missing E2E tests for authenticated flows
+6. 🟠 Missing migration documentation
+
+**Action Taken:**
+🚀 Spawned review worker for PR #6
+- Worker will: address 6 review threads, close PR #7 as superseded
+- Conversation: https://app.all-hands.dev/conversations/f3c43a63164640c99b5ae46ec13fb372
+
+**Decision:**
+Proceeding with PR #6 (🟡 Acceptable) over PR #7 (🔴 Needs improvement). Worker will close PR #7 after fixing PR #6.
+
+**Next check:** ~30 minutes (next cron trigger)
+
+---
