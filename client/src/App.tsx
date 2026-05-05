@@ -107,6 +107,12 @@ export default function App() {
     return <DeviceSetup initialName={displayName} onSubmit={handleSetup} />;
   }
 
+  // Validate mode (TypeScript ensures this at compile time, but this catches
+  // any runtime issues from WebSocket messages or corrupted session storage)
+  if (mode !== 'mobile' && mode !== 'kiosk') {
+    throw new Error(`Invalid device mode: "${mode}". Valid modes are 'mobile' or 'kiosk'.`);
+  }
+
   // Kiosk mode - large display with sidebar
   if (mode === 'kiosk') {
     return (
