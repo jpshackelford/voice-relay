@@ -63,8 +63,9 @@ export const migration: Migration = {
   
   down: `
     DROP INDEX IF EXISTS idx_messages_session;
-    -- SQLite doesn't support DROP COLUMN directly in older versions
-    -- We recreate the table without session_id
+    -- SQLite compatibility: versions before 3.35.0 (2021-03-12) do not support
+    -- ALTER TABLE DROP COLUMN. Production SQLite may be older, so we use the
+    -- backup/recreate pattern to ensure compatibility across all SQLite versions.
     CREATE TABLE messages_backup AS SELECT 
       id, utterance_id, workspace_id, sender_id, sender_name, text, partial, created_at
     FROM messages;

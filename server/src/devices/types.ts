@@ -4,15 +4,17 @@
 export type DeviceMode = 'mobile' | 'kiosk';
 
 /**
- * Persisted device record in database
+ * Persisted device record in database.
+ * NOTE: Device tokens are ONLY stored as hashes for security.
+ * The plaintext token is returned once on creation and never stored.
  */
 export interface PersistedDevice {
   id: string;
   workspaceId: string;
   name: string;
   mode: DeviceMode;
-  deviceToken: string | null;
   deviceTokenHash: string | null;
+  tokenExpiresAt: string | null;
   lastSeenAt: string | null;
   config: Record<string, unknown> | null;
   createdAt: string;

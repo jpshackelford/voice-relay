@@ -3,7 +3,6 @@ import Database from 'better-sqlite3';
 import { DeviceRepository } from './device-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
-import { migration as devicesSessionsMigration } from '../storage/migrations/005_devices_sessions.js';
 
 describe('DeviceRepository', () => {
   let db: Database.Database;
@@ -15,15 +14,15 @@ describe('DeviceRepository', () => {
     // Apply migrations
     db.exec(usersMigration.up);
     db.exec(workspacesMigration.up);
-    // Only apply the devices/sessions tables, not the messages column alteration
+    // Create devices table with new secure schema (no plaintext token)
     db.exec(`
       CREATE TABLE IF NOT EXISTS devices (
         id TEXT PRIMARY KEY,
         workspace_id TEXT NOT NULL,
         name TEXT NOT NULL,
         mode TEXT NOT NULL,
-        device_token TEXT UNIQUE,
-        device_token_hash TEXT,
+        device_token_hash TEXT UNIQUE,
+        token_expires_at TEXT,
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -31,6 +30,7 @@ describe('DeviceRepository', () => {
       );
       CREATE INDEX IF NOT EXISTS idx_devices_workspace ON devices(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_devices_token_hash ON devices(device_token_hash);
+      CREATE INDEX IF NOT EXISTS idx_devices_expires ON devices(token_expires_at);
     `);
     
     repo = new DeviceRepository(db);
@@ -55,8 +55,8 @@ describe('DeviceRepository', () => {
   });
 
   describe('create', () => {
-    it('creates a device with generated token', () => {
-      const { device, token } = repo.create({
+    it('creates a device with generated token and expiration', () => {
+      const { device, token, expiresAt } = repo.create({
         workspaceId: testWorkspaceId,
         name: 'Test Phone',
         mode: 'mobile',
@@ -66,11 +66,20 @@ describe('DeviceRepository', () => {
       expect(device.workspaceId).toBe(testWorkspaceId);
       expect(device.name).toBe('Test Phone');
       expect(device.mode).toBe('mobile');
-      expect(device.deviceToken).toBe(token);
+      // SECURITY: Token is NOT stored in device - only hash
       expect(device.deviceTokenHash).toBeDefined();
+      expect(device.tokenExpiresAt).toBeDefined();
       expect(device.createdAt).toBeDefined();
+      // Token is returned for client storage
       expect(token).toBeDefined();
       expect(token.length).toBeGreaterThan(20);
+      // Expiration should be ~90 days in the future
+      expect(expiresAt).toBeDefined();
+      const expiryDate = new Date(expiresAt);
+      const now = new Date();
+      const daysDiff = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      expect(daysDiff).toBeGreaterThan(85);
+      expect(daysDiff).toBeLessThan(95);
     });
 
     it('creates kiosk mode device', () => {
@@ -211,7 +220,7 @@ describe('DeviceRepository', () => {
   });
 
   describe('regenerateToken', () => {
-    it('generates a new token', () => {
+    it('generates a new token with fresh expiration', () => {
       const { device, token: oldToken } = repo.create({
         workspaceId: testWorkspaceId,
         name: 'Device',
@@ -221,6 +230,7 @@ describe('DeviceRepository', () => {
       const result = repo.regenerateToken(device.id);
       expect(result).not.toBeNull();
       expect(result!.token).not.toBe(oldToken);
+      expect(result!.expiresAt).toBeDefined();
       
       // Old token should no longer work
       expect(repo.validateToken(oldToken)).toBeNull();
@@ -233,6 +243,70 @@ describe('DeviceRepository', () => {
     it('returns null for non-existent device', () => {
       const result = repo.regenerateToken('non-existent');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('token expiration', () => {
+    it('rejects expired tokens', () => {
+      const { device, token } = repo.create({
+        workspaceId: testWorkspaceId,
+        name: 'Device',
+        mode: 'mobile',
+      });
+
+      // Manually set token as expired
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+      db.prepare('UPDATE devices SET token_expires_at = ? WHERE id = ?')
+        .run(pastDate.toISOString(), device.id);
+
+      // Token should now be invalid
+      expect(repo.validateToken(token)).toBeNull();
+    });
+
+    it('detects tokens expiring soon', () => {
+      const { device, token } = repo.create({
+        workspaceId: testWorkspaceId,
+        name: 'Device',
+        mode: 'mobile',
+      });
+
+      // Token with 90 days should not be expiring soon
+      const validated = repo.validateToken(token);
+      expect(validated).not.toBeNull();
+      expect(repo.isTokenExpiringSoon(validated!)).toBe(false);
+
+      // Set expiration to 3 days from now (within 7 day threshold)
+      const soonDate = new Date();
+      soonDate.setDate(soonDate.getDate() + 3);
+      db.prepare('UPDATE devices SET token_expires_at = ? WHERE id = ?')
+        .run(soonDate.toISOString(), device.id);
+
+      const updatedDevice = repo.findById(device.id);
+      expect(repo.isTokenExpiringSoon(updatedDevice!)).toBe(true);
+    });
+
+    it('renews token expiration', () => {
+      const { device } = repo.create({
+        workspaceId: testWorkspaceId,
+        name: 'Device',
+        mode: 'mobile',
+      });
+
+      // Set expiration to 3 days from now
+      const soonDate = new Date();
+      soonDate.setDate(soonDate.getDate() + 3);
+      db.prepare('UPDATE devices SET token_expires_at = ? WHERE id = ?')
+        .run(soonDate.toISOString(), device.id);
+
+      // Renew should extend to ~90 days
+      const renewed = repo.renewTokenExpiry(device.id);
+      expect(renewed).not.toBeNull();
+      
+      const expiryDate = new Date(renewed!.tokenExpiresAt!);
+      const now = new Date();
+      const daysDiff = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      expect(daysDiff).toBeGreaterThan(85);
     });
   });
 
@@ -249,10 +323,11 @@ describe('DeviceRepository', () => {
       // Token should no longer validate
       expect(repo.validateToken(token)).toBeNull();
       
-      // Device should still exist
+      // Device should still exist but with null hash
       const found = repo.findById(device.id);
       expect(found).not.toBeNull();
-      expect(found!.deviceToken).toBeNull();
+      expect(found!.deviceTokenHash).toBeNull();
+      expect(found!.tokenExpiresAt).toBeNull();
     });
   });
 
@@ -294,6 +369,7 @@ describe('DeviceRepository', () => {
 
       expect(result.isNew).toBe(true);
       expect(result.token).not.toBeNull();
+      expect(result.expiresAt).not.toBeNull();
       expect(result.device.name).toBe('New Device');
     });
 
@@ -313,6 +389,7 @@ describe('DeviceRepository', () => {
 
       expect(result.isNew).toBe(false);
       expect(result.token).toBeNull(); // No new token for existing device
+      expect(result.expiresAt).toBeNull(); // No new expiry for existing device
       expect(result.device.name).toBe('Updated Name');
       expect(result.device.mode).toBe('kiosk');
     });
