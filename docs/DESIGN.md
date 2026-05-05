@@ -238,10 +238,62 @@ All users must have a GitHub account to create workspaces or join as authenticat
 | Token | Purpose | Lifetime | Storage |
 |-------|---------|----------|---------|
 | User JWT | Authenticate user for API/WebSocket | 7 days | localStorage |
-| Device Token | Allow device reconnect without full auth | 30 days | localStorage |
+| Device Token | Allow device reconnect without full auth | 90 days | IndexedDB |
 | Workspace Join Code | Allow guests to join workspace | Permanent | DB |
 
-### 4.3 Authorization Rules
+### 4.3 Mobile Device Persistence
+
+iOS Safari aggressively clears localStorage, so we can't rely on true device fingerprinting. Instead:
+
+```
+First Visit (phone):
+┌────────────┐     ┌────────────┐     ┌────────────┐
+│   Phone    │     │   Server   │     │   GitHub   │
+└─────┬──────┘     └─────┬──────┘     └─────┬──────┘
+      │                  │                  │
+      │ Scan QR / enter join code          │
+      │─────────────────>│                  │
+      │                  │                  │
+      │ Redirect to GitHub OAuth           │
+      │<─────────────────│                  │
+      │                  │                  │
+      │ Authenticate ────────────────────────>
+      │                  │                  │
+      │ User JWT + Device Token            │
+      │<─────────────────│                  │
+      │                  │                  │
+      │ Store in IndexedDB (more durable)  │
+      └────────────────────────────────────┘
+
+Subsequent Visits:
+┌────────────┐     ┌────────────┐
+│   Phone    │     │   Server   │
+└─────┬──────┘     └─────┬──────┘
+      │                  │
+      │ Check IndexedDB for device token
+      │                  │
+      │ Connect with device token
+      │─────────────────>│
+      │                  │
+      │ Token valid → auto-join workspace
+      │<─────────────────│
+      │                  │
+      │ (No GitHub login needed)
+      └──────────────────┘
+```
+
+**Why IndexedDB over localStorage:**
+- More persistent on iOS Safari
+- Survives "Clear History" in some cases
+- Larger storage quota
+- Async API (doesn't block)
+
+**If token is lost/expired:**
+- User must re-authenticate via GitHub
+- New device token issued
+- Old token invalidated
+
+### 4.4 Authorization Rules
 
 | Action | Who Can Do It |
 |--------|---------------|
