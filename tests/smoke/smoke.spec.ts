@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import * as fs from 'fs';
 import * as path from 'path';
 
 /**
@@ -18,10 +17,11 @@ import * as path from 'path';
  *   # Interactive (manual OAuth):
  *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke:auth
  *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+ * 
+ * Note: Auth state is created by global-setup.ts before tests run.
  */
 
 const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
-const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
 const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('Production Smoke Tests', () => {
@@ -65,62 +65,7 @@ test.describe('Production Smoke Tests', () => {
   });
 
   test.describe('Authenticated Features', () => {
-    // Authenticate before running these tests
-    test.beforeAll(async ({ request }) => {
-      // Option 1: Use test auth endpoint (for CI)
-      if (TEST_AUTH_SECRET) {
-        console.log('Using TEST_AUTH_SECRET for automated authentication');
-        const response = await request.post(`${BASE_URL}/auth/test-session`, {
-          headers: {
-            'X-Test-Auth-Secret': TEST_AUTH_SECRET,
-          },
-        });
-        
-        if (!response.ok()) {
-          throw new Error(`Test auth failed: ${response.status()} - Is TEST_AUTH_SECRET set on the server?`);
-        }
-        
-        // Save the cookies to auth state file for subsequent tests
-        const cookies = await response.headersArray();
-        const setCookies = cookies.filter(h => h.name.toLowerCase() === 'set-cookie');
-        
-        // Create a minimal storage state with the cookies
-        const cookieObjects = setCookies.map(h => {
-          const parts = h.value.split(';')[0].split('=');
-          return {
-            name: parts[0],
-            value: parts.slice(1).join('='),
-            domain: new URL(BASE_URL).hostname,
-            path: '/',
-            httpOnly: true,
-            secure: BASE_URL.startsWith('https'),
-            sameSite: 'Lax' as const,
-          };
-        });
-        
-        fs.writeFileSync(AUTH_FILE, JSON.stringify({
-          cookies: cookieObjects,
-          origins: [],
-        }));
-        
-        console.log('Auth state saved from test-session endpoint');
-        return;
-      }
-      
-      // Option 2: Use existing auth state file (from interactive login)
-      if (fs.existsSync(AUTH_FILE)) {
-        console.log('Using existing auth state file');
-        return;
-      }
-      
-      throw new Error(
-        'No authentication available. Either:\n' +
-        '1. Set TEST_AUTH_SECRET env var (must also be set on server), or\n' +
-        '2. Run "npm run smoke:auth" first to authenticate interactively'
-      );
-    });
-
-    // Use the saved auth state
+    // Use the saved auth state (created by beforeAll in parent scope)
     test.use({ 
       storageState: AUTH_FILE,
     });
@@ -131,8 +76,8 @@ test.describe('Production Smoke Tests', () => {
       // Should not redirect to login
       await expect(page).not.toHaveURL(/\/login/);
       
-      // Dashboard should show workspaces or create workspace option
-      await expect(page.getByText(/workspace/i)).toBeVisible({ timeout: 10000 });
+      // Dashboard should show workspaces heading or create button
+      await expect(page.getByRole('heading', { name: /workspaces/i })).toBeVisible({ timeout: 10000 });
     });
 
     test('can access auth/me endpoint', async ({ request }) => {
