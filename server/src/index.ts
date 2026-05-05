@@ -5,8 +5,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
 import { DeviceRegistry } from './registry.js';
-import { createStoreFromEnv, type MessageStore } from './storage/index.js';
+import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager } from './openhands.js';
+import { createAuthRouter, UserRepository, type AuthConfig } from './auth/index.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -33,6 +34,28 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
+
+// Auth configuration from environment variables
+function getAuthConfig(): AuthConfig | null {
+  const githubClientId = process.env.GITHUB_CLIENT_ID;
+  const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
+  
+  if (!githubClientId || !githubClientSecret || !jwtSecret) {
+    console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or JWT_SECRET - auth disabled');
+    return null;
+  }
+  
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+  
+  return {
+    githubClientId,
+    githubClientSecret,
+    jwtSecret,
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    callbackUrl: `${baseUrl}/auth/github/callback`,
+  };
+}
 
 // Serve static files from client build (production)
 const clientDist = join(__dirname, '../../client/dist');
@@ -316,6 +339,21 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 async function start() {
   await store.connect();
+
+  // Set up auth routes if configured and using SQLite
+  const authConfig = getAuthConfig();
+  if (authConfig && store instanceof SQLiteStore) {
+    const db = store.getDatabase();
+    if (db) {
+      const userRepository = new UserRepository(db);
+      const authRouter = createAuthRouter({
+        config: authConfig,
+        userRepository,
+      });
+      app.use('/auth', authRouter);
+      console.log('[Auth] GitHub OAuth enabled');
+    }
+  }
 
   server.listen(Number(PORT), HOST, () => {
     console.log(`[Server] Running on http://${HOST}:${PORT}`);
