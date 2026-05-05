@@ -160,13 +160,17 @@ export function Workspace() {
     setDisplayName(name);
     setMode(selectedMode);
     
-    // Store device token for reconnection
-    // The device token is issued by the server when registering
-    // For now, store the local device info - token will be obtained when connected
-    if (workspace?.id) {
+    // Only store device info if we have a validated token from the server.
+    // New devices don't get tokens from the current WebSocket registration flow.
+    // Token persistence is only useful for devices that have previously connected
+    // and had their tokens validated via /api/devices/validate.
+    // TODO: Implement device token issuance on first connection once the
+    // backend device registration endpoint is integrated with WebSocket registration.
+    // See: https://github.com/jpshackelford/voice-relay/issues/6 (Phase 4 integration)
+    if (workspace?.id && deviceToken) {
       storeDeviceToken({
         deviceId,
-        deviceToken: deviceToken || '', // Will be updated when server sends token
+        deviceToken,
         workspaceId: workspace.id,
         name,
         mode: selectedMode,

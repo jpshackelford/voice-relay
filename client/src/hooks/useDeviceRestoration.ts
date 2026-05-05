@@ -10,14 +10,6 @@ import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
 import type { DeviceMode } from '../types';
 
-interface StoredDeviceInfo {
-  deviceId: string;
-  deviceToken: string;
-  workspaceId: string;
-  name: string;
-  mode: DeviceMode;
-}
-
 interface DeviceRestorationResult {
   /** Unique device ID (from storage or newly generated) */
   deviceId: string;
