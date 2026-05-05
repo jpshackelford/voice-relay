@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 
 export interface User {
   id: string;
@@ -10,7 +10,6 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   loading: boolean;
   login: () => void;
   logout: () => void;
@@ -19,62 +18,100 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const TOKEN_KEY = 'voice_relay_token';
+// Token refresh interval (5 minutes before typical 7-day expiry isn't critical,
+// but we refresh periodically to keep session active)
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [loading, setLoading] = useState(true);
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Extract token from URL after OAuth callback
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const urlToken = url.searchParams.get('token');
-    
-    if (urlToken) {
-      // Save token and clean URL
-      localStorage.setItem(TOKEN_KEY, urlToken);
-      setToken(urlToken);
-      
-      // Remove token from URL without page reload
-      url.searchParams.delete('token');
-      window.history.replaceState({}, document.title, url.pathname + url.search);
+  // Fetch current user using httpOnly cookie auth
+  const fetchUser = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/auth/me', {
+        credentials: 'include', // Include httpOnly cookies
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        return true;
+      } else {
+        setUser(null);
+        return false;
+      }
+    } catch (err) {
+      console.error('Failed to fetch user:', err);
+      setUser(null);
+      return false;
     }
   }, []);
 
-  // Fetch current user when token changes
-  useEffect(() => {
-    async function fetchUser() {
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+  // Refresh tokens to keep session alive
+  const refreshTokens = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await fetch('/auth/refresh', {
+        method: 'POST',
+        credentials: 'include', // Include httpOnly cookies
+      });
 
-      try {
-        const res = await fetch('/auth/me', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
           setUser(data.user);
-        } else {
-          // Token invalid, clear it
-          localStorage.removeItem(TOKEN_KEY);
-          setToken(null);
-          setUser(null);
         }
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
+        return true;
+      } else {
+        // Refresh failed, user needs to re-authenticate
         setUser(null);
-      } finally {
-        setLoading(false);
+        return false;
+      }
+    } catch (err) {
+      console.error('Token refresh failed:', err);
+      return false;
+    }
+  }, []);
+
+  // Set up periodic token refresh
+  const startRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+    }
+    
+    refreshTimerRef.current = setInterval(async () => {
+      const success = await refreshTokens();
+      if (!success) {
+        // Stop refreshing if it fails
+        if (refreshTimerRef.current) {
+          clearInterval(refreshTimerRef.current);
+          refreshTimerRef.current = null;
+        }
+      }
+    }, REFRESH_INTERVAL_MS);
+  }, [refreshTokens]);
+
+  // Initial auth check on mount
+  useEffect(() => {
+    async function initAuth() {
+      const authenticated = await fetchUser();
+      setLoading(false);
+      
+      if (authenticated) {
+        startRefreshTimer();
       }
     }
 
-    fetchUser();
-  }, [token]);
+    initAuth();
+
+    // Cleanup on unmount
+    return () => {
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
+    };
+  }, [fetchUser, startRefreshTimer]);
 
   const login = useCallback(() => {
     // Redirect to GitHub OAuth
@@ -83,23 +120,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Stop refresh timer
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    
     try {
       await fetch('/auth/logout', {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include', // Include httpOnly cookies
       });
     } catch (err) {
       console.error('Logout request failed:', err);
     }
     
-    localStorage.removeItem(TOKEN_KEY);
-    setToken(null);
     setUser(null);
-  }, [token]);
+  }, []);
 
   const value: AuthContextType = {
     user,
-    token,
     loading,
     login,
     logout,

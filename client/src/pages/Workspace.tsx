@@ -38,7 +38,7 @@ function getOrCreateDisplayName(): string {
 export function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
-  const { token, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
@@ -53,14 +53,14 @@ export function Workspace() {
   // Fetch workspace info to validate access
   useEffect(() => {
     async function fetchWorkspace() {
-      if (!workspaceId || !token) {
+      if (!workspaceId || !isAuthenticated) {
         setWorkspaceLoading(false);
         return;
       }
 
       try {
         const res = await fetch(`/api/workspaces/${workspaceId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include', // Use httpOnly cookie auth
         });
 
         if (res.ok) {
@@ -83,7 +83,7 @@ export function Workspace() {
     }
 
     fetchWorkspace();
-  }, [workspaceId, token]);
+  }, [workspaceId, isAuthenticated]);
 
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {

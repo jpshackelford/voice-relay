@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { fileURLToPath } from 'url';
@@ -60,6 +61,9 @@ function getAuthConfig(): AuthConfig | null {
     callbackUrl: `${baseUrl}/auth/github/callback`,
   };
 }
+
+// Parse cookies for httpOnly auth tokens
+app.use(cookieParser());
 
 // Serve static files from client build (production)
 const clientDist = join(__dirname, '../../client/dist');

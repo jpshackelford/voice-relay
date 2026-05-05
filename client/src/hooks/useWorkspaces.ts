@@ -23,18 +23,13 @@ interface UseWorkspacesReturn {
 }
 
 export function useWorkspaces(): UseWorkspacesReturn {
-  const { token } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const headers = useCallback(() => ({
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }), [token]);
-
   const refresh = useCallback(async () => {
-    if (!token) {
+    if (!isAuthenticated) {
       setWorkspaces([]);
       setLoading(false);
       return;
@@ -44,7 +39,10 @@ export function useWorkspaces(): UseWorkspacesReturn {
     setError(null);
 
     try {
-      const res = await fetch('/api/workspaces', { headers: headers() });
+      const res = await fetch('/api/workspaces', {
+        credentials: 'include', // Include httpOnly cookies
+        headers: { 'Content-Type': 'application/json' },
+      });
       
       if (!res.ok) {
         throw new Error('Failed to fetch workspaces');
@@ -57,7 +55,7 @@ export function useWorkspaces(): UseWorkspacesReturn {
     } finally {
       setLoading(false);
     }
-  }, [token, headers]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     refresh();
@@ -66,7 +64,8 @@ export function useWorkspaces(): UseWorkspacesReturn {
   const createWorkspace = useCallback(async (name: string): Promise<Workspace> => {
     const res = await fetch('/api/workspaces', {
       method: 'POST',
-      headers: headers(),
+      credentials: 'include', // Include httpOnly cookies
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     });
 
@@ -78,12 +77,13 @@ export function useWorkspaces(): UseWorkspacesReturn {
     const workspace = await res.json();
     setWorkspaces(prev => [workspace, ...prev]);
     return workspace;
-  }, [headers]);
+  }, []);
 
   const deleteWorkspace = useCallback(async (id: string): Promise<void> => {
     const res = await fetch(`/api/workspaces/${id}`, {
       method: 'DELETE',
-      headers: headers(),
+      credentials: 'include', // Include httpOnly cookies
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!res.ok) {
@@ -92,12 +92,13 @@ export function useWorkspaces(): UseWorkspacesReturn {
     }
 
     setWorkspaces(prev => prev.filter(w => w.id !== id));
-  }, [headers]);
+  }, []);
 
   const joinWorkspace = useCallback(async (code: string): Promise<Workspace> => {
     const res = await fetch('/api/workspaces/join', {
       method: 'POST',
-      headers: headers(),
+      credentials: 'include', // Include httpOnly cookies
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     });
 
@@ -115,7 +116,7 @@ export function useWorkspaces(): UseWorkspacesReturn {
       return [workspace, ...prev];
     });
     return workspace;
-  }, [headers]);
+  }, []);
 
   return {
     workspaces,

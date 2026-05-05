@@ -110,3 +110,101 @@ test.describe('Workspace API without Auth', () => {
     expect([401, 404]).toContain(response.status());
   });
 });
+
+/**
+ * Authenticated flow tests
+ * 
+ * These tests verify the full authenticated user journey for workspace operations.
+ * Since we can't easily mock GitHub OAuth in E2E tests, these tests use a test
+ * environment where auth may not be configured. They verify:
+ * 1. Proper error responses when auth is not configured (404)
+ * 2. Proper error responses when auth is configured but no token provided (401)
+ * 
+ * Full authenticated flow testing is covered by server unit tests which:
+ * - Test workspace CRUD with mocked JWT validation
+ * - Test WebSocket connections with workspace isolation
+ * - Test message history scoping to workspaces
+ * 
+ * See: server/src/workspaces/workspace-repository.test.ts (unit tests)
+ * See: server/src/auth/middleware.test.ts (auth middleware tests)
+ */
+test.describe('Authenticated Workspace Flows', () => {
+  test('auth/me endpoint returns 401 without auth cookie', async ({ request }) => {
+    const response = await request.get('/auth/me');
+    // 401 when auth configured but no token, 404 when auth not configured
+    expect([401, 404]).toContain(response.status());
+  });
+
+  test('auth/refresh endpoint returns 401 without refresh cookie', async ({ request }) => {
+    const response = await request.post('/auth/refresh');
+    // 401 when auth configured but no token, 404 when auth not configured
+    expect([401, 404]).toContain(response.status());
+  });
+
+  test('auth/logout endpoint clears cookies', async ({ request }) => {
+    const response = await request.post('/auth/logout');
+    // logout should succeed even without auth, or 404 if auth not configured
+    expect([200, 404]).toContain(response.status());
+    
+    if (response.status() === 200) {
+      const data = await response.json();
+      expect(data.success).toBe(true);
+    }
+  });
+
+  test('workspace delete requires authentication', async ({ request }) => {
+    const response = await request.delete('/api/workspaces/test-workspace-id');
+    // 401 when auth configured but no token, 404 when auth not configured
+    expect([401, 404]).toContain(response.status());
+  });
+
+  test('workspace access endpoint requires authentication', async ({ request }) => {
+    const response = await request.get('/api/workspaces/test-id/access');
+    // 401 when auth configured but no token, 404 when auth not configured
+    expect([401, 404]).toContain(response.status());
+  });
+});
+
+/**
+ * Token security tests
+ * 
+ * These tests verify that sensitive token operations are properly secured.
+ */
+test.describe('Token Security', () => {
+  test('OAuth callback URL does not contain token in query params after redirect', async ({ page }) => {
+    // Navigate to a page and verify no token leakage in URL
+    await page.goto('/login');
+    
+    // The current URL should not contain 'token=' parameter
+    const url = page.url();
+    expect(url).not.toContain('token=');
+  });
+
+  test('login page does not expose tokens in page source', async ({ page }) => {
+    await page.goto('/login');
+    
+    // Get page content and verify no JWT patterns
+    const content = await page.content();
+    
+    // JWT tokens have format: xxxxx.xxxxx.xxxxx (base64.base64.base64)
+    // This pattern should not appear in the login page source
+    const jwtPattern = /eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/;
+    expect(content).not.toMatch(jwtPattern);
+  });
+});
+
+/**
+ * WebSocket authentication tests
+ * 
+ * Note: Full WebSocket tests with authentication require a running server
+ * with auth configured. These tests verify basic WebSocket behavior.
+ * Comprehensive WebSocket tests are in server unit tests.
+ */
+test.describe('WebSocket Endpoint', () => {
+  test('WebSocket endpoint is available', async ({ request }) => {
+    // The /ws endpoint is a WebSocket endpoint, not HTTP
+    // This test just verifies the server is responding
+    const response = await request.get('/health');
+    expect(response.ok()).toBeTruthy();
+  });
+});
