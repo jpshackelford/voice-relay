@@ -20,6 +20,8 @@ on:
 jobs:
   operate:
     runs-on: ubuntu-latest
+    outputs:
+      action: ${{ github.event.inputs.action || 'deploy' }}
     
     steps:
       - name: Perform action
@@ -70,3 +72,43 @@ jobs:
                 exit 1
                 ;;
             esac
+
+  smoke-tests:
+    runs-on: ubuntu-latest
+    needs: operate
+    # Only run smoke tests after deploy or restart
+    if: contains(fromJSON('["deploy", "restart"]'), needs.operate.outputs.action)
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright
+        run: npx playwright install chromium
+      
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -s https://vr.chorecraft.net/health | grep -q '"status":"ok"'; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Attempt $i/30 - waiting..."
+            sleep 2
+          done
+          echo "Server did not become ready in time"
+          exit 1
+      
+      - name: Run smoke tests
+        env:
+          SMOKE_TEST_URL: https://vr.chorecraft.net
+          TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+        run: npm run smoke
