@@ -285,14 +285,14 @@ describe('DeviceRegistry', () => {
       expect(ws4.send).not.toHaveBeenCalled(); // kiosk in ws-2
     });
 
-    it('should broadcast to all kiosks when no workspace specified', () => {
+    it('should broadcast to all kiosks across all workspaces with broadcastToAllKiosks', () => {
       const displayContent = {
         type: 'clear' as const,
       };
 
-      registry.broadcastToKiosks(displayContent);
+      registry.broadcastToAllKiosks(displayContent);
 
-      // Both kiosks should receive
+      // Both kiosks should receive (intentional global broadcast)
       expect(ws1.send).not.toHaveBeenCalled(); // mobile
       expect(ws2.send).toHaveBeenCalledTimes(1); // kiosk
       expect(ws3.send).not.toHaveBeenCalled(); // mobile

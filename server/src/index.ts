@@ -109,6 +109,11 @@ app.post('/api/display', (req, res) => {
     return;
   }
 
+  if (!workspaceId) {
+    res.status(400).json({ error: 'workspaceId is required.' });
+    return;
+  }
+
   // NOTE: Workspace validation deferred to Phase 4 with user authentication
   // See: https://github.com/jpshackelford/voice-relay/issues/6
   

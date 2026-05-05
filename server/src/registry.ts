@@ -224,9 +224,10 @@ export class DeviceRegistry {
   }
 
   /**
-   * Broadcast display content to all kiosk devices in a workspace.
+   * Broadcast display content to all kiosk devices in a specific workspace.
+   * Use broadcastToAllKiosks() for intentional global broadcasts.
    */
-  broadcastToKiosks(displayContent: DisplayContent, workspaceId?: string): void {
+  broadcastToKiosks(displayContent: DisplayContent, workspaceId: string): void {
     const message: DisplayMessage = {
       type: 'display',
       display: displayContent,
@@ -234,6 +235,25 @@ export class DeviceRegistry {
     const payload = JSON.stringify(message);
 
     for (const device of this.getKioskDevices(workspaceId)) {
+      if (device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
+  }
+
+  /**
+   * Broadcast display content to ALL kiosk devices across all workspaces.
+   * Use with caution - this intentionally bypasses workspace isolation.
+   * For workspace-scoped broadcasts, use broadcastToKiosks() instead.
+   */
+  broadcastToAllKiosks(displayContent: DisplayContent): void {
+    const message: DisplayMessage = {
+      type: 'display',
+      display: displayContent,
+    };
+    const payload = JSON.stringify(message);
+
+    for (const device of this.getKioskDevices()) {
       if (device.ws.readyState === device.ws.OPEN) {
         device.ws.send(payload);
       }
