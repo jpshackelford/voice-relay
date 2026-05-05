@@ -3,12 +3,52 @@ import { test, expect } from '@playwright/test';
 /**
  * E2E tests for Voice Relay
  * 
- * Note: Full relay functionality tests require authenticated users and workspaces.
- * These tests require GitHub OAuth configured. The tests below verify the auth
- * flow UI and landing pages work correctly.
+ * ## Testing Strategy
  * 
- * For full relay testing, see server unit tests (97%+ coverage) which test
- * the WebSocket relay, workspace isolation, and message history functionality.
+ * This test suite covers unauthenticated flows and auth boundary behavior.
+ * Full authenticated flow testing is implemented in server unit tests which
+ * achieve 97%+ coverage of workspace operations, WebSocket relay, and message history.
+ * 
+ * ## Running Tests
+ * 
+ * Basic E2E tests (no auth required):
+ * ```bash
+ * npm run test:e2e
+ * ```
+ * 
+ * ## Authenticated E2E Testing
+ * 
+ * To run authenticated E2E tests (requires GitHub OAuth setup):
+ * 
+ * 1. Create a test GitHub OAuth app:
+ *    - Go to https://github.com/settings/developers
+ *    - Create new OAuth app with callback: http://localhost:3001/auth/github/callback
+ * 
+ * 2. Set environment variables:
+ *    ```bash
+ *    export GITHUB_CLIENT_ID=your-test-client-id
+ *    export GITHUB_CLIENT_SECRET=your-test-client-secret
+ *    export JWT_SECRET=test-secret-for-e2e
+ *    ```
+ * 
+ * 3. Start the server with auth enabled:
+ *    ```bash
+ *    npm run dev
+ *    ```
+ * 
+ * 4. For automated auth testing, consider:
+ *    - Using Playwright's storageState to persist auth across tests
+ *    - Creating a test user flow that authenticates once and reuses session
+ *    - Mock auth server for CI environments (see playwright.config.ts)
+ * 
+ * ## Server Unit Tests (Authenticated Coverage)
+ * 
+ * Server unit tests provide comprehensive auth coverage:
+ * - server/src/workspaces/workspace-repository.test.ts - Workspace CRUD with JWT
+ * - server/src/auth/middleware.test.ts - Auth middleware and token validation
+ * - server/src/index.test.ts - Full API integration with mocked JWT
+ * 
+ * Run server tests: `cd server && npm test`
  */
 
 test.describe('Voice Relay Authentication', () => {
