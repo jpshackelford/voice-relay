@@ -109,14 +109,8 @@ app.post('/api/display', (req, res) => {
     return;
   }
 
-  // Validate workspace exists if workspaceId is provided
-  if (workspaceId && workspaceRepository) {
-    const workspace = workspaceRepository.findById(workspaceId);
-    if (!workspace) {
-      res.status(404).json({ error: 'Workspace not found' });
-      return;
-    }
-  }
+  // NOTE: Workspace validation deferred to Phase 4 with user authentication
+  // See: https://github.com/jpshackelford/voice-relay/issues/6
   
   const displayContent: DisplayContent = { type, content, title };
   registry.broadcastToKiosks(displayContent, workspaceId);
@@ -155,6 +149,8 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
+    // Device's workspaceId is the one it registered with.
+    // Validation deferred to Phase 4 with user authentication.
     const deviceWorkspaceId = device.workspaceId;
 
     // Callback to send AI responses as chat messages
@@ -267,29 +263,13 @@ wss.on('connection', (ws: WebSocket) => {
       switch (message.type) {
         case 'register': {
           // Use provided workspaceId or default to 'default' for backward compatibility
-          // When workspace repository is available, validate the workspace exists
           const requestedWorkspaceId = message.workspaceId || 'default';
-
-          if (workspaceRepository) {
-            // Workspace validation is enabled - verify workspace exists
-            const workspace = workspaceRepository.findById(requestedWorkspaceId);
-            if (!workspace) {
-              // For the 'default' workspace, be more lenient since it may not exist yet
-              if (requestedWorkspaceId !== 'default') {
-                const errorResponse = {
-                  type: 'error',
-                  code: 'WORKSPACE_NOT_FOUND',
-                  message: 'Workspace does not exist',
-                };
-                ws.send(JSON.stringify(errorResponse));
-                ws.close();
-                return;
-              }
-              // Allow 'default' workspace even if not in DB - for backward compatibility
-              console.log('[WS] Using default workspace (not validated)');
-            }
-            // TODO Phase 4: Add user authentication and verify workspace membership
-          }
+          
+          // NOTE: Workspace validation deferred to Phase 4 when proper user authentication
+          // is implemented. At that point, we'll validate:
+          // 1. The workspace exists in the database
+          // 2. The authenticated user has access to the workspace
+          // See: https://github.com/jpshackelford/voice-relay/issues/6
 
           deviceId = message.deviceId;
           workspaceId = requestedWorkspaceId;
@@ -392,12 +372,12 @@ const HOST = process.env.HOST || '0.0.0.0';
 async function start() {
   await store.connect();
 
-  // Set up workspace repository for validation (always, if using SQLite)
+  // Set up workspace repository for workspace API routes (requires SQLite)
   if (store instanceof SQLiteStore) {
     const db = store.getDatabase();
     if (db) {
       workspaceRepository = new WorkspaceRepository(db);
-      console.log('[Workspaces] Validation enabled');
+      console.log('[Workspaces] Repository initialized');
     }
   }
 
