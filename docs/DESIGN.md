@@ -936,8 +936,8 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 ### Phase 3: Workspaces — **COMPLETE** (PR #3)
 - [x] Add workspace CRUD operations
 - [x] Add join codes
-- [ ] Scope device registry per workspace (deferred to Phase 3.5)
-- [ ] Update WebSocket to require workspace context (deferred to Phase 3.5)
+- [x] Scope device registry per workspace (completed in Phase 3.5)
+- [x] Update WebSocket to require workspace context (completed in Phase 3.5)
 
 **Completed in PR #3:**
 - Database migration (003_workspaces.ts) with tables: workspaces, workspace_settings, workspace_members
@@ -951,16 +951,29 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - API key storage with encrypted/iv/tag pattern for AES-GCM encryption
 - Simplified role model: owner/member (not admin) for initial implementation
 
-**Deferred to Phase 3.5 (follow-up):**
-- Device registry scoping (requires coordinated WebSocket handler changes)
-- WebSocket workspace context (requires client-side changes)
+### Phase 3.5: Device Registry & WebSocket Integration — **COMPLETE** (PR #5)
+- [x] Scope device registry per workspace
+- [x] Update WebSocket to require workspace context
+- [x] Connect devices to workspaces on registration
 
-### Phase 3.5: Device Registry & WebSocket Integration ← **NEXT**
-- [ ] Scope device registry per workspace
-- [ ] Update WebSocket to require workspace context
-- [ ] Connect devices to workspaces on registration
+**Completed in PR #5:**
+- Add workspaceId to Device, RegisterMessage, and DeviceInfo types
+- DeviceRegistry now supports workspace-scoped queries (getDevicesByWorkspace, etc.)
+- All broadcast methods (broadcastToOutputs, broadcastDeviceList) scope to workspace
+- WebSocket handler requires workspaceId in register message
+- REST API endpoints updated to support workspace context
+- 28 new tests for DeviceRegistry (161 total tests passing)
+- 96.9% statement coverage for registry.ts
 
-### Phase 4: UI Simplification
+**Breaking Changes:**
+- WebSocket register message now requires workspaceId field
+- Client must be updated to provide workspace context on connection
+
+**Next Steps:**
+- Phase 4 requires client updates to provide workspaceId on connect
+- Consider adding workspace validation (check workspace exists, user has access)
+
+### Phase 4: UI Simplification ← **NEXT**
 - [ ] Remove input/output modes (keep kiosk + mobile only)
 - [ ] Add dashboard for workspace management
 - [ ] Add auth UI (login, logout)
