@@ -30,11 +30,19 @@ export type ClientMessage =
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
-  workspaceId: string;
+  workspaceId?: string;  // Optional for backward compatibility; defaults to 'default'
   displayName: string;
   mode: DeviceMode;
   screenWidth?: number;
   screenHeight?: number;
+}
+
+/**
+ * Request payload for POST /api/display endpoint.
+ * Extends DisplayContent with optional workspace targeting.
+ */
+export interface DisplayRequest extends DisplayContent {
+  workspaceId?: string;
 }
 
 export interface UpdateDeviceMessage {

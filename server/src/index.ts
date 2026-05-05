@@ -9,7 +9,7 @@ import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/in
 import { aiSessionManager } from './openhands.js';
 import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
-import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
+import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
 
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
@@ -97,7 +97,7 @@ app.get('/api/server-info', (req, res) => {
 app.use(express.json());
 
 app.post('/api/display', (req, res) => {
-  const { type, content, title, workspaceId } = req.body as DisplayContent & { workspaceId?: string };
+  const { type, content, title, workspaceId } = req.body as DisplayRequest;
   
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
