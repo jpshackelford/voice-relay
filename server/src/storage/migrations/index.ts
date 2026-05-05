@@ -2,6 +2,7 @@ import { migration as migration001 } from './001_messages.js';
 import { migration as migration002 } from './002_users.js';
 import { migration as migration003 } from './003_workspaces.js';
 import { migration as migration004 } from './004_messages_workspace.js';
+import { migration as migration005 } from './005_devices_sessions.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -9,6 +10,7 @@ export const migrations: Migration[] = [
   migration002,
   migration003,
   migration004,
+  migration005,
 ];
 
 export function getMigrations(): Migration[] {

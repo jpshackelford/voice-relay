@@ -14,6 +14,8 @@ interface AuthContextType {
   login: () => void;
   logout: () => void;
   isAuthenticated: boolean;
+  /** Proactively refresh token before making an API request */
+  ensureValidToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,10 +28,15 @@ const AuthContext = createContext<AuthContextType | null>(null);
 //   attempts on expired tokens, and user will be redirected to login
 const REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
+// Time before token expiry to trigger proactive refresh (5 minutes)
+const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRefreshRef = useRef<number>(0);
+  const refreshInProgressRef = useRef<Promise<boolean> | null>(null);
 
   // Fetch current user using httpOnly cookie auth
   const fetchUser = useCallback(async (): Promise<boolean> => {
@@ -41,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        lastRefreshRef.current = Date.now();
         return true;
       } else {
         setUser(null);
@@ -66,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.user) {
           setUser(data.user);
         }
+        lastRefreshRef.current = Date.now();
         return true;
       } else {
         // Refresh failed, user needs to re-authenticate
@@ -77,6 +86,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
   }, []);
+
+  // Proactive token refresh - ensures token is valid before API calls
+  // Prevents 401 errors by refreshing if token is close to expiry
+  const ensureValidToken = useCallback(async (): Promise<boolean> => {
+    // Not authenticated - can't refresh
+    if (!user) return false;
+
+    const timeSinceRefresh = Date.now() - lastRefreshRef.current;
+    
+    // If recently refreshed, token is still valid
+    if (timeSinceRefresh < REFRESH_INTERVAL_MS - REFRESH_THRESHOLD_MS) {
+      return true;
+    }
+
+    // If refresh already in progress, wait for it
+    if (refreshInProgressRef.current) {
+      return refreshInProgressRef.current;
+    }
+
+    // Start refresh
+    console.log('[Auth] Proactively refreshing token before API call');
+    refreshInProgressRef.current = refreshTokens().finally(() => {
+      refreshInProgressRef.current = null;
+    });
+
+    return refreshInProgressRef.current;
+  }, [user, refreshTokens]);
 
   // Set up periodic token refresh
   const startRefreshTimer = useCallback(() => {
@@ -148,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     isAuthenticated: !!user,
+    ensureValidToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
