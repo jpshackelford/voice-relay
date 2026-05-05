@@ -984,22 +984,46 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
   created inconsistent security model, so validation removed until proper
   user auth is implemented
 
-**Next Steps:**
-- Phase 4: Add workspace validation alongside user authentication
-- Phase 4: Client updates to provide workspaceId on connect
+**Next Steps (completed in Phase 4):**
+- ✅ Phase 4: Add workspace validation alongside user authentication
+- ✅ Phase 4: Client updates to provide workspaceId on connect
 
 **Learnings for Future Work:**
 - Half-validation (checking some but not all security properties) creates inconsistent security models; defer validation entirely until full auth is in place
 - Adding workspace scoping as a data structure change (adding workspaceId to models) is more maintainable than complex conditional logic
 - Session support will build on top of workspace isolation in Phase 5; workspaces contain multiple sessions with their own conversation history and device participation
 
-### Phase 4: UI & Auth Integration ← **NEXT**
-- [ ] Remove input/output modes (keep kiosk + mobile only)
-- [ ] Add dashboard for workspace management
-- [ ] Add auth UI (login, logout)
-- [ ] Update routing
-- [ ] Add workspace validation (verify workspace exists + user has access)
-- [ ] Client: provide workspaceId on WebSocket connect
+### Phase 4: UI & Auth Integration — **COMPLETE** (PR #7)
+
+**Completed:**
+- [x] Remove input/output modes (completed in PR #4 - kept kiosk + mobile only)
+- [x] Add dashboard for workspace management (Dashboard.tsx)
+- [x] Add auth UI (LoginPage.tsx with GitHub login, logout button, token storage)
+- [x] Update routing (react-router-dom with ProtectedRoute wrapper)
+- [x] Add workspace validation (verify workspace exists + user has access on WebSocket connect)
+- [x] Client: provide workspaceId and token on WebSocket connect
+- [x] Add JoinPage for QR code join flow with join codes
+- [x] Add WorkspacePage with device setup within workspace context
+
+**Implementation Details:**
+- **Auth module**: `client/src/auth/` with AuthContext, storage, API helpers, and types
+- **Pages**: LoginPage, Dashboard, WorkspacePage, JoinPage in `client/src/pages/`
+- **Routing**: Uses react-router-dom with ProtectedRoute for authenticated routes
+- **WebSocket integration**: Client sends workspaceId and token on register; server validates both
+
+**E2E Testing:**
+- Added `VITE_E2E_MODE` environment variable for E2E testing
+- In E2E mode, client bypasses authentication with mock user/workspace
+- Tests use `/workspace/test` route which returns mock workspace data
+
+**Breaking Changes:**
+- App now requires authentication to access workspaces
+- WebSocket register message includes `workspaceId` and `token` fields
+- Root route `/` redirects to `/dashboard` which requires auth
+
+**Known Limitations:**
+- Dashboard currently shows only user's own workspaces (no shared workspace list yet)
+- No workspace member management UI (API exists but no frontend)
 
 ### Phase 5: Polish
 - [ ] Device tokens for reconnection
