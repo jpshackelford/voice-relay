@@ -229,3 +229,21 @@ Spawned implementation worker to begin Phase 3.5
 **Next check:** ~30 minutes (next cron trigger)
 
 ---
+
+## INSTRUCTION: PR #4 before PR #5
+
+**Priority:** Address review feedback on [PR #4](https://github.com/jpshackelford/voice-relay/pull/4) and get it merged before continuing with PR #5.
+
+PR #4 fixes the client build (broken TypeScript) and enables CI for client builds. This is a prerequisite for PR #5 which depends on a working client.
+
+**Suggested approach:**
+1. Review PR #5's changes first to understand the context of what's coming (Phase 3.5: Device/Workspace integration)
+2. Then address any review comments on PR #4
+3. Merge PR #4 once approved
+4. Then proceed with PR #5 review and merge
+
+**Context:**
+- PR #4: `fix(client): simplify device modes to mobile and kiosk` - Fixes broken client build
+- PR #5: `feat(server): scope device registry and WebSocket per workspace` - Phase 3.5 implementation
+
+---
