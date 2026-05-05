@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Proactive token refresh - ensures token is valid before API calls
   // Prevents 401 errors by refreshing if token is close to expiry
+  // Uses promise cache pattern: concurrent calls share a single in-flight request
   const ensureValidToken = useCallback(async (): Promise<boolean> => {
     // Not authenticated - can't refresh
     if (!user) return false;
@@ -100,12 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     }
 
-    // If refresh already in progress, wait for it
+    // Concurrent request deduplication: share in-flight promise
     if (refreshInProgressRef.current) {
       return refreshInProgressRef.current;
     }
 
-    // Start refresh
+    // Start refresh, caching the promise until it settles
     console.log('[Auth] Proactively refreshing token before API call');
     refreshInProgressRef.current = refreshTokens().finally(() => {
       refreshInProgressRef.current = null;
