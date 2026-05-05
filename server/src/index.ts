@@ -250,6 +250,17 @@ app.delete('/api/ai/disconnect', async (req, res) => {
   }
 });
 
+// API 404 fallback - must come before SPA fallback
+// Returns proper 404 for any unregistered API routes
+app.all('/api/*', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Auth 404 fallback
+app.all('/auth/*', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
 // SPA fallback
 app.get('*', (_req, res) => {
   res.sendFile(join(clientDist, 'index.html'));
