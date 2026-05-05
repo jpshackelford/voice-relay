@@ -886,10 +886,22 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 
 ## 9. Migration Path
 
-### Phase 1: Add Database Layer (keep existing functionality)
-- [ ] Add SQLite/MariaDB storage abstraction
-- [ ] Create schema and migrations
-- [ ] Store messages in DB instead of in-memory
+### Phase 1: Add Database Layer (keep existing functionality) ✅
+- [x] Add SQLite/MariaDB storage abstraction (SQLite implemented, MariaDB deferred)
+- [x] Create schema and migrations (Migrator class + initial messages migration)
+- [x] Store messages in DB instead of in-memory (existing behavior preserved)
+
+**Implementation Notes (2026-05-05):**
+- Added `Migrator` class with up/down migrations, version tracking, transaction safety
+- Migrations stored in `server/src/storage/migrations/` as TypeScript modules
+- SQLiteStore now auto-runs migrations on connect()
+- Added vitest for unit testing with >95% coverage on new code
+- Backward compatible with existing sqlite.db in production
+
+**Learnings:**
+- The migration uses `CREATE TABLE IF NOT EXISTS` which works well for existing databases
+- Client TypeScript has pre-existing type errors (DeviceMode mismatch) - separate issue from Phase 1
+- Production deploys on merge to main via GitHub Actions
 
 ### Phase 2: Authentication
 - [ ] Add GitHub OAuth endpoints
