@@ -933,21 +933,32 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - Client-side auth UI (login button, token storage, logout)
 - CI workflow for PR checks
 
-### Phase 3: Workspaces ← **IN PROGRESS** (PR #3)
+### Phase 3: Workspaces — **COMPLETE** (PR #3)
 - [x] Add workspace CRUD operations
 - [x] Add join codes
-- [ ] Scope device registry per workspace
-- [ ] Update WebSocket to require workspace context
+- [ ] Scope device registry per workspace (deferred to Phase 3.5)
+- [ ] Update WebSocket to require workspace context (deferred to Phase 3.5)
 
 **Completed in PR #3:**
-- Workspace migration (003_workspaces.ts) with tables: workspaces, workspace_settings, workspace_members
-- Workspace repository with full CRUD, slug generation, join code generation, member management
-- REST API router with auth middleware at /api/workspaces endpoints
-- 44 new tests (29 repository + 15 utilities)
+- Database migration (003_workspaces.ts) with tables: workspaces, workspace_settings, workspace_members
+- Workspace repository with full CRUD, auto-generated slugs, join code generation (XXXX-XXXX), member management
+- REST API router with auth middleware at /api/workspaces (12 endpoints)
+- Access control: owner-only for sensitive operations, member-based workspace access
+- 44 new tests (29 repository + 15 utilities), all 131 tests passing
 
-**Deferred to follow-up:**
+**Technical Decisions:**
+- Join codes use distinguishable character set (excludes 0/O/1/I for verbal sharing)
+- API key storage with encrypted/iv/tag pattern for AES-GCM encryption
+- Simplified role model: owner/member (not admin) for initial implementation
+
+**Deferred to Phase 3.5 (follow-up):**
 - Device registry scoping (requires coordinated WebSocket handler changes)
 - WebSocket workspace context (requires client-side changes)
+
+### Phase 3.5: Device Registry & WebSocket Integration ← **NEXT**
+- [ ] Scope device registry per workspace
+- [ ] Update WebSocket to require workspace context
+- [ ] Connect devices to workspaces on registration
 
 ### Phase 4: UI Simplification
 - [ ] Remove input/output modes (keep kiosk + mobile only)
