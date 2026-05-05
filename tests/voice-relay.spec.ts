@@ -1,8 +1,16 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 
+// In E2E mode, the app uses a mock workspace at /workspace/test
+// The client bypasses authentication and returns a mock workspace
+const WORKSPACE_URL = '/workspace/test';
+
 // Helper to set up a device with the new mobile/kiosk modes
 async function setupDevice(page: Page, name: string, mode: 'mobile' | 'kiosk') {
-  await page.goto('/');
+  await page.goto(WORKSPACE_URL);
+  
+  // Wait for workspace to load (should show device setup form)
+  await expect(page.getByPlaceholder('e.g., Kitchen iPad')).toBeVisible({ timeout: 10000 });
+  
   await page.getByPlaceholder('e.g., Kitchen iPad').fill(name);
   
   // Click the mode button and wait for it to be selected
@@ -22,9 +30,10 @@ async function setupDevice(page: Page, name: string, mode: 'mobile' | 'kiosk') {
 
 test.describe('Voice Relay', () => {
   test('device setup shows mobile and kiosk mode options', async ({ page }) => {
-    await page.goto('/');
+    await page.goto(WORKSPACE_URL);
     
-    await expect(page.getByText('Voice Relay')).toBeVisible();
+    // Wait for workspace to load
+    await expect(page.getByText('Voice Relay')).toBeVisible({ timeout: 10000 });
     await expect(page.getByPlaceholder('e.g., Kitchen iPad')).toBeVisible();
     await expect(page.getByRole('button', { name: /Mobile/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Kiosk/i })).toBeVisible();

@@ -14,7 +14,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: `PORT=${TEST_SERVER_PORT} npm run dev -w server & VITE_WS_PORT=${TEST_SERVER_PORT} npm run dev -w client -- --port ${TEST_CLIENT_PORT}`,
+    // Enable E2E test mode on both server and client
+    // - Server uses 'default' workspace without auth validation
+    // - Client bypasses auth with mock user and workspace
+    command: `PORT=${TEST_SERVER_PORT} npm run dev -w server & VITE_WS_PORT=${TEST_SERVER_PORT} VITE_E2E_MODE=true npm run dev -w client -- --port ${TEST_CLIENT_PORT}`,
     url: `http://localhost:${TEST_CLIENT_PORT}`,
     reuseExistingServer: false,
     timeout: 30000,

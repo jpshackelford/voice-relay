@@ -3,6 +3,20 @@ import { getStoredToken } from './storage';
 
 const API_BASE = '';
 
+// E2E test mode - mock API responses
+const isE2EMode = import.meta.env.VITE_E2E_MODE === 'true';
+
+// Mock data for E2E tests
+const E2E_MOCK_WORKSPACE: Workspace = {
+  id: 'e2e-test-workspace',
+  name: 'Test Workspace',
+  slug: 'test',
+  ownerId: 'e2e-test-user',
+  joinCode: 'test-join-code',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 async function fetchWithAuth<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers = new Headers(options.headers);
@@ -35,16 +49,28 @@ export async function logout(): Promise<void> {
 }
 
 export async function getWorkspaces(): Promise<Workspace[]> {
+  // In E2E mode, return mock workspace
+  if (isE2EMode) {
+    return [E2E_MOCK_WORKSPACE];
+  }
   const data = await fetchWithAuth<{ workspaces: Workspace[] }>('/api/workspaces');
   return data.workspaces;
 }
 
 export async function getWorkspace(id: string): Promise<Workspace> {
+  // In E2E mode, return mock workspace if ID matches
+  if (isE2EMode && (id === E2E_MOCK_WORKSPACE.id || id === 'default')) {
+    return E2E_MOCK_WORKSPACE;
+  }
   const data = await fetchWithAuth<{ workspace: Workspace }>(`/api/workspaces/${id}`);
   return data.workspace;
 }
 
 export async function getWorkspaceBySlug(slug: string): Promise<Workspace> {
+  // In E2E mode, return mock workspace if slug matches
+  if (isE2EMode && (slug === E2E_MOCK_WORKSPACE.slug || slug === 'test')) {
+    return E2E_MOCK_WORKSPACE;
+  }
   const data = await fetchWithAuth<{ workspace: Workspace }>(`/api/workspaces/by-slug/${slug}`);
   return data.workspace;
 }
