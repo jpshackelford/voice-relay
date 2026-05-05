@@ -298,3 +298,34 @@ Received instruction:
 **Next check:** ~30 minutes (next cron trigger)
 
 ---
+### 2026-05-05 06:35 UTC - Merge Worker
+
+✅ **PR #4 Merged**
+
+**Summary:**
+- [PR #4](https://github.com/jpshackelford/voice-relay/pull/4) squash-merged to main
+- Commit: `fix(client): simplify device modes to mobile and kiosk`
+
+**What Was Fixed:**
+- Consolidated 5 device modes (`input`, `output`, `chat`, `mobile`, `kiosk`) down to 2 (`mobile`, `kiosk`)
+- Fixed client TypeScript build (was failing with 23 errors)
+- Removed references to non-existent components (`InputMode`, `OutputMode`, `ChatMode`)
+- DeviceMode type now truthfully only allows modes the app handles
+- Added runtime validation for invalid modes from WebSocket/storage
+- Enabled client build and E2E tests in CI
+
+**Review Feedback Addressed:**
+1. Type system cleaned up - DeviceMode restricted to `'mobile' | 'kiosk'` (clean break)
+2. Runtime validation added - explicit error for invalid modes
+3. Default mode consistency - `'mobile'` as default aligns with type
+
+**Impact:**
+- Production at vr.chorecraft.net now has simplified device modes
+- App auto-deploys on merge - changes are live
+- **Unblocks PR #5** (Phase 3.5: Device/Workspace integration)
+
+**Next Steps:**
+- Address review feedback on PR #5 (6 unresolved security threads)
+- Then merge PR #5 to complete Phase 3.5
+
+---
