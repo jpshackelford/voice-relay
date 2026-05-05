@@ -1035,12 +1035,24 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - SPA fallback was catching unregistered API routes - need explicit 404 handlers
 - E2E tests need flexible assertions when auth config may vary (401 vs 404)
 - Vite proxy config must include all backend endpoints used by tests
+- Security review caught token exposure in URL params - httpOnly cookies are the right pattern
+- React Router v7 has built-in TypeScript types - don't install `@types/react-router-dom`
+- Token refresh is essential for good UX - implement proactive refresh before expiry
+- Migration documentation is critical for breaking changes affecting production
+
+**Security Improvements Applied:**
+- httpOnly cookies prevent XSS token theft (tokens not accessible to JavaScript)
+- Automatic token refresh keeps sessions alive without re-authentication
+- CSRF protection via OAuth state parameter validation
+- SameSite cookie attribute for additional CSRF protection
 
 ### Phase 5: Polish ← **NEXT**
-- [ ] Device tokens for reconnection
-- [ ] Session tracking
-- [ ] QR code improvements
-- [ ] Error handling and validation
+- [ ] Device tokens for reconnection (persist device identity across page refreshes)
+- [ ] Session tracking (multiple sessions per workspace)
+- [ ] QR code improvements (join codes, deep linking)
+- [ ] Error handling and validation (user-friendly error messages)
+- [ ] Proactive token refresh (check expiry before making requests)
+- [ ] Loading states and optimistic UI updates
 
 ---
 
