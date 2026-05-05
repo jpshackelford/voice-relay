@@ -35,11 +35,68 @@ A browser tab/app instance connected to a workspace. Three views:
 Kiosk and Mobile can send AND receive messages. Settings is for management only.
 
 ### 1.4 Session
-An active voice interaction period within a workspace. Sessions track:
-- Which devices participated
-- Message history
+An active voice interaction period within a workspace. A workspace has **one active session** at a time.
+
+**Session contains:**
+- Participating devices
+- Conversation (messages)
+- Display content (what's shown on kiosk)
 - AI conversation state (if connected)
 - Start/end timestamps
+
+**Session lifecycle:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      WORKSPACE                                   │
+│                                                                  │
+│   No active session                                              │
+│   ┌─────────────┐                                               │
+│   │             │  First device connects                        │
+│   │   (empty)   │ ─────────────────────────┐                    │
+│   │             │                          │                    │
+│   └─────────────┘                          ▼                    │
+│                                   ┌─────────────────┐           │
+│                                   │  ACTIVE SESSION │           │
+│                                   │                 │           │
+│   Device connects ───────────────►│  - Device A     │           │
+│   (auto-joins active session)     │  - Device B     │           │
+│                                   │  - Messages...  │           │
+│   Device disconnects ◄────────────│  - Display      │           │
+│   (stays in session until end)    │                 │           │
+│                                   └────────┬────────┘           │
+│                                            │                    │
+│                           Owner clicks     │                    │
+│                           "End Session"    │                    │
+│                                            ▼                    │
+│                                   ┌─────────────────┐           │
+│                                   │ ARCHIVED SESSION│           │
+│                                   │ (read-only)     │           │
+│                                   └─────────────────┘           │
+│                                            │                    │
+│                                            │ Next device        │
+│                                            │ connects           │
+│                                            ▼                    │
+│                                   ┌─────────────────┐           │
+│                                   │  NEW SESSION    │           │
+│                                   │  (fresh start)  │           │
+│                                   └─────────────────┘           │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Rules:**
+1. **Auto-create**: First device to connect creates a session (if none active)
+2. **Auto-join**: Subsequent devices auto-join the active session
+3. **Owner ends**: Only owner can end session (from kiosk or settings)
+4. **One at a time**: Only one active session per workspace
+5. **Persist on disconnect**: Device disconnect doesn't end session
+6. **Fresh start**: Ending session clears conversation/display, starts new session when next device connects
+
+**Why this design:**
+- Low friction: just connect, no "join session" button
+- Clear boundaries: owner controls when to start fresh
+- History preserved: ended sessions are archived, viewable in settings
 
 ---
 
@@ -595,6 +652,54 @@ Accessible via gear icon on kiosk/mobile, or directly at `/workspace/:slug/setti
 4. **Members** - List workspace members, remove (owner can't remove self)
 5. **Sessions** - Historical session list with timestamps
 6. **Danger Zone** - Delete workspace (requires confirmation)
+
+### 7.4 Session Controls
+
+**Kiosk sidebar header** (owner only):
+```
+┌─────────────────────────────────┐
+│ Session: 2h 15m    [End ⏹]  ⚙️ │
+│ 3 devices connected             │
+└─────────────────────────────────┘
+```
+
+**End Session flow:**
+1. Owner clicks [End ⏹] button
+2. Confirmation: "End this session? Conversation will be archived."
+3. On confirm:
+   - Session marked as ended (archived)
+   - All devices receive `session-ended` message
+   - Kiosk/mobile show "Session ended" state
+   - Next message or device connect creates new session
+
+**Mobile header** (owner only sees End button):
+```
+┌─────────────────────────────────┐
+│ My Workspace        [End ⏹] ⚙️ │
+│ ● Connected (3 devices)         │
+└─────────────────────────────────┘
+```
+
+**WebSocket messages:**
+```typescript
+// Owner → Server: End session
+{ type: 'end-session' }
+
+// Server → All devices: Session ended
+{ 
+  type: 'session-ended',
+  sessionId: string,
+  endedAt: string,
+  endedBy: string  // username of owner who ended it
+}
+
+// Server → Device: New session started (on next connect/message)
+{
+  type: 'session-started',
+  sessionId: string,
+  startedAt: string
+}
+```
 
 ---
 
