@@ -965,9 +965,16 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - 28 new tests for DeviceRegistry (161 total tests passing)
 - 96.9% statement coverage for registry.ts
 
-**Breaking Changes:**
-- WebSocket register message now requires workspaceId field
-- Client must be updated to provide workspace context on connection
+**Breaking Changes & Backward Compatibility:**
+- WebSocket `register` message now supports optional `workspaceId` field (defaults to 'default')
+- Clients that don't provide workspaceId will use 'default' workspace (backward compatible)
+- Clients should be updated to provide workspace context for proper isolation
+- REST `/api/display` endpoint now requires `workspaceId` parameter
+
+**Migration Notes:**
+- Migration 004 is additive and safe for existing data
+- Existing messages assigned to 'default' workspace
+- No manual steps required post-deploy
 
 **Review Feedback Applied:**
 - RegisterMessage.workspaceId made optional (defaults to 'default' for backward compat)
@@ -980,6 +987,11 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 **Next Steps:**
 - Phase 4: Add workspace validation alongside user authentication
 - Phase 4: Client updates to provide workspaceId on connect
+
+**Learnings for Future Work:**
+- Half-validation (checking some but not all security properties) creates inconsistent security models; defer validation entirely until full auth is in place
+- Adding workspace scoping as a data structure change (adding workspaceId to models) is more maintainable than complex conditional logic
+- Session support will build on top of workspace isolation in Phase 5; workspaces contain multiple sessions with their own conversation history and device participation
 
 ### Phase 4: UI & Auth Integration ← **NEXT**
 - [ ] Remove input/output modes (keep kiosk + mobile only)
