@@ -969,15 +969,25 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - WebSocket register message now requires workspaceId field
 - Client must be updated to provide workspace context on connection
 
-**Next Steps:**
-- Phase 4 requires client updates to provide workspaceId on connect
-- Consider adding workspace validation (check workspace exists, user has access)
+**Review Feedback Applied:**
+- RegisterMessage.workspaceId made optional (defaults to 'default' for backward compat)
+- Created DisplayRequest interface for proper type safety
+- Migration 004 now sets existing messages' workspace_id to 'default'
+- Deferred workspace validation to Phase 4 (see issue #6) - half-validation
+  created inconsistent security model, so validation removed until proper
+  user auth is implemented
 
-### Phase 4: UI Simplification ← **NEXT**
+**Next Steps:**
+- Phase 4: Add workspace validation alongside user authentication
+- Phase 4: Client updates to provide workspaceId on connect
+
+### Phase 4: UI & Auth Integration ← **NEXT**
 - [ ] Remove input/output modes (keep kiosk + mobile only)
 - [ ] Add dashboard for workspace management
 - [ ] Add auth UI (login, logout)
 - [ ] Update routing
+- [ ] Add workspace validation (verify workspace exists + user has access)
+- [ ] Client: provide workspaceId on WebSocket connect
 
 ### Phase 5: Polish
 - [ ] Device tokens for reconnection
