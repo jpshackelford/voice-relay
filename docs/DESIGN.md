@@ -1046,9 +1046,13 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - CSRF protection via OAuth state parameter validation
 - SameSite cookie attribute for additional CSRF protection
 
-### Phase 5: Polish ← **IN PROGRESS** (PR #8)
+### Phase 5: Polish ✅ **COMPLETE** — [PR #8](https://github.com/jpshackelford/voice-relay/pull/8) 🎉 FINAL PHASE
+
+**This completes the Voice Relay platform implementation.**
+
 - [x] Device tokens for reconnection (persist device identity across page refreshes)
   - Migration 005 adds `devices` table with SHA-256 hashed tokens
+  - Migration 006 removes plaintext storage, adds 30-day token expiration
   - DeviceRepository for token validation and device management
   - Client-side localStorage persistence with deviceToken.ts
 - [x] Session tracking (multiple sessions per workspace)
@@ -1069,6 +1073,14 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
   - CSS spinner animations and skeleton loading
   - Toast notification styles
   - Reconnect banner for device session restoration
+- [x] Security hardening (from code review feedback)
+  - Hash-only token storage (plaintext removed)
+  - Rate limiting on validation endpoint (10 req/min/IP)
+  - Token expiration with 30-day TTL and auto-renewal
+- [x] Comprehensive test coverage
+  - 300 tests (261 server + 39 client)
+  - Router integration tests for devices/sessions
+  - Client utility tests for deviceToken/errors
 
 **Learnings from Phase 5:**
 - SQLite ALTER TABLE is limited; migration handles column addition with proper fallback
@@ -1083,10 +1095,32 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - **SQLite compatibility**: Document backup/recreate pattern for migrations on pre-3.35.0 SQLite (no DROP COLUMN support)
 - **Extract complex hooks**: `useDeviceRestoration` improves testability over inline useEffect with multiple concerns
 
-**Remaining work:**
+**Future Enhancements (if needed):**
 - E2E tests for device persistence across page refresh
 - Client-side session switching UI
 - Full integration of session history per session
+
+---
+
+## Project Completion Summary
+
+All 5 phases are now complete:
+
+| Phase | Description | PR |
+|-------|-------------|------|
+| Phase 1 | Database Layer | [PR #1](https://github.com/jpshackelford/voice-relay/pull/1) |
+| Phase 2 | Authentication (GitHub OAuth) | [PR #2](https://github.com/jpshackelford/voice-relay/pull/2) |
+| Phase 3 | Workspaces | [PR #3](https://github.com/jpshackelford/voice-relay/pull/3) |
+| Phase 3.5 | Device Registry & WebSocket | [PR #5](https://github.com/jpshackelford/voice-relay/pull/5) |
+| Phase 4 | UI & Auth Integration | [PR #6](https://github.com/jpshackelford/voice-relay/pull/6) |
+| Phase 5 | Polish (Device Persistence, Sessions, Security) | [PR #8](https://github.com/jpshackelford/voice-relay/pull/8) |
+
+**Key Learnings Across All Phases:**
+1. **Incremental migrations**: Building schema progressively allows for safer production deployments
+2. **Security review is essential**: Code review caught critical security issues (plaintext tokens, missing rate limiting)
+3. **SQLite compatibility matters**: Production may use older versions; use backup/recreate patterns for DDL changes
+4. **Test coverage pays off**: 300+ tests provide confidence in refactoring and deployment
+5. **Hook extraction improves testability**: Complex React effects should be extracted to custom hooks
 
 ---
 
