@@ -7,7 +7,8 @@ import { networkInterfaces } from 'os';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager } from './openhands.js';
-import { createAuthRouter, UserRepository, type AuthConfig } from './auth/index.js';
+import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
+import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -340,18 +341,35 @@ const HOST = process.env.HOST || '0.0.0.0';
 async function start() {
   await store.connect();
 
-  // Set up auth routes if configured and using SQLite
+  // Set up auth and workspace routes if configured and using SQLite
   const authConfig = getAuthConfig();
   if (authConfig && store instanceof SQLiteStore) {
     const db = store.getDatabase();
     if (db) {
       const userRepository = new UserRepository(db);
+      const jwtService = new JWTService({
+        secret: authConfig.jwtSecret,
+        expiresIn: authConfig.jwtExpiresIn || '7d',
+      });
+      
       const authRouter = createAuthRouter({
         config: authConfig,
         userRepository,
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');
+      
+      // Set up workspace routes
+      const workspaceRepository = new WorkspaceRepository(db);
+      const workspaceRouter = createWorkspaceRouter({
+        workspaceRepository,
+        authConfig: {
+          jwtService,
+          userRepository,
+        },
+      });
+      app.use('/api/workspaces', workspaceRouter);
+      console.log('[Workspaces] API enabled');
     }
   }
 
