@@ -33,7 +33,10 @@ function getCookieOptions(isProduction: boolean, maxAge: number) {
 // Parse duration string (e.g., '7d', '1h', '30m') to milliseconds
 function parseDurationToMs(duration: string): number {
   const match = duration.match(/^(\d+)([dhms])$/);
-  if (!match) return 7 * 24 * 60 * 60 * 1000; // Default 7 days
+  if (!match) {
+    console.warn(`[Auth] Invalid JWT_EXPIRES_IN format: "${duration}", using default 7d`);
+    return 7 * 24 * 60 * 60 * 1000; // Default 7 days
+  }
   
   const value = parseInt(match[1], 10);
   const unit = match[2];
