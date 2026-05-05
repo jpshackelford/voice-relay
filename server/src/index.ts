@@ -304,9 +304,12 @@ wss.on('connection', (ws: WebSocket) => {
         }
 
         case 'update-device': {
-          if (deviceId && workspaceId) {
-            registry.updateDevice(deviceId, message);
-            registry.broadcastDeviceList(workspaceId);
+          if (deviceId) {
+            const device = registry.getDevice(deviceId);
+            if (device) {
+              registry.updateDevice(deviceId, message);
+              registry.broadcastDeviceList(device.workspaceId);
+            }
           }
           break;
         }
@@ -326,7 +329,7 @@ wss.on('connection', (ws: WebSocket) => {
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
-            workspaceId: workspaceId,
+            workspaceId: device.workspaceId,
             senderId: deviceId,
             senderName: device.displayName,
             text: message.text,
@@ -339,7 +342,7 @@ wss.on('connection', (ws: WebSocket) => {
           }
 
           // Broadcast only to devices in the same workspace
-          registry.broadcastToOutputs(relayMessage, workspaceId);
+          registry.broadcastToOutputs(relayMessage, device.workspaceId);
           break;
         }
       }

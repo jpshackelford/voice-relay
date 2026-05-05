@@ -106,7 +106,7 @@ export class SQLiteStore implements MessageStore {
     return rows.reverse().map(row => ({
       type: 'text' as const,
       utteranceId: row.utterance_id,
-      workspaceId: row.workspace_id || '',
+      workspaceId: row.workspace_id || 'default',
       senderId: row.sender_id,
       senderName: row.sender_name,
       text: row.text,
