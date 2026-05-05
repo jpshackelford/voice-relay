@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/storage/**/*.ts', 'src/auth/**/*.ts'],
+      include: ['src/storage/**/*.ts', 'src/auth/**/*.ts', 'src/registry.ts'],
       exclude: [
         'src/**/*.test.ts',
         'src/storage/redis.ts',      // Not part of Phase 1

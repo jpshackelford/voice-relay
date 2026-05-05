@@ -8,6 +8,7 @@ describe('MemoryStore', () => {
   const createMessage = (overrides: Partial<RelayedTextMessage> = {}): RelayedTextMessage => ({
     type: 'text',
     utteranceId: `utt-${Date.now()}`,
+    workspaceId: 'test-workspace',
     senderId: 'device-1',
     senderName: 'Test Device',
     text: 'Hello, world!',
@@ -84,6 +85,28 @@ describe('MemoryStore', () => {
       expect(messages).toHaveLength(3);
       // Should return the 3 most recent
       expect(messages.map(m => m.text)).toEqual(['Message 7', 'Message 8', 'Message 9']);
+    });
+
+    it('filters by workspaceId when provided', async () => {
+      await store.append(createMessage({ text: 'WS1 Message 1', workspaceId: 'workspace-1' }));
+      await store.append(createMessage({ text: 'WS2 Message 1', workspaceId: 'workspace-2' }));
+      await store.append(createMessage({ text: 'WS1 Message 2', workspaceId: 'workspace-1' }));
+      
+      const ws1Messages = await store.getRecent(10, 'workspace-1');
+      expect(ws1Messages).toHaveLength(2);
+      expect(ws1Messages.map(m => m.text)).toEqual(['WS1 Message 1', 'WS1 Message 2']);
+
+      const ws2Messages = await store.getRecent(10, 'workspace-2');
+      expect(ws2Messages).toHaveLength(1);
+      expect(ws2Messages[0].text).toBe('WS2 Message 1');
+    });
+
+    it('returns all messages when workspaceId is not provided', async () => {
+      await store.append(createMessage({ text: 'WS1 Message', workspaceId: 'workspace-1' }));
+      await store.append(createMessage({ text: 'WS2 Message', workspaceId: 'workspace-2' }));
+      
+      const allMessages = await store.getRecent();
+      expect(allMessages).toHaveLength(2);
     });
   });
 

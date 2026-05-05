@@ -30,9 +30,12 @@ export class MemoryStore implements MessageStore {
     }
   }
 
-  async getRecent(limit?: number): Promise<RelayedTextMessage[]> {
+  async getRecent(limit?: number, workspaceId?: string): Promise<RelayedTextMessage[]> {
     const count = limit ?? this.maxMessages;
-    return this.messages.slice(-count);
+    const filtered = workspaceId 
+      ? this.messages.filter(m => m.workspaceId === workspaceId)
+      : this.messages;
+    return filtered.slice(-count);
   }
 
   async clear(): Promise<void> {

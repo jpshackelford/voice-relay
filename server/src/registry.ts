@@ -24,6 +24,7 @@ export class DeviceRegistry {
 
   register(
     id: string, 
+    workspaceId: string,
     ws: WebSocket, 
     displayName: string, 
     mode: DeviceMode,
@@ -32,8 +33,9 @@ export class DeviceRegistry {
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
-      // Reconnection: update WebSocket reference and screen info
+      // Reconnection: update WebSocket reference, workspace, and screen info
       existing.ws = ws;
+      existing.workspaceId = workspaceId;
       existing.displayName = displayName;
       existing.mode = mode;
       // Only track screen dimensions for kiosk devices (they have the display)
@@ -43,9 +45,9 @@ export class DeviceRegistry {
         if (screenWidth && screenHeight) {
           existing.displayLines = calculateDisplayLines(screenWidth, screenHeight);
         }
-        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id}), ${existing.displayLines || '?'} display lines`);
+        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id}) in workspace ${workspaceId}, ${existing.displayLines || '?'} display lines`);
       } else {
-        console.log(`[Registry] Device reconnected: ${displayName} (${id}) as ${mode}`);
+        console.log(`[Registry] Device reconnected: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}`);
       }
       return existing;
     }
@@ -57,6 +59,7 @@ export class DeviceRegistry {
 
     const device: Device = {
       id,
+      workspaceId,
       displayName,
       mode,
       ws,
@@ -68,9 +71,9 @@ export class DeviceRegistry {
     this.devices.set(id, device);
     
     if (mode === 'kiosk') {
-      console.log(`[Registry] Kiosk registered: ${displayName} (${id}), ${displayLines || '?'} display lines`);
+      console.log(`[Registry] Kiosk registered: ${displayName} (${id}) in workspace ${workspaceId}, ${displayLines || '?'} display lines`);
     } else {
-      console.log(`[Registry] Device registered: ${displayName} (${id}) as ${mode}`);
+      console.log(`[Registry] Device registered: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}`);
     }
     return device;
   }
@@ -109,26 +112,43 @@ export class DeviceRegistry {
     return this.devices.get(id);
   }
 
-  getMobileDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'mobile');
+  // --- Workspace-scoped queries ---
+
+  /**
+   * Get all devices in a specific workspace.
+   */
+  getDevicesByWorkspace(workspaceId: string): Device[] {
+    return [...this.devices.values()].filter(d => d.workspaceId === workspaceId);
   }
 
-  getKioskDevices(): Device[] {
-    return [...this.devices.values()].filter(d => d.mode === 'kiosk');
+  getMobileDevices(workspaceId?: string): Device[] {
+    const devices = workspaceId 
+      ? this.getDevicesByWorkspace(workspaceId) 
+      : [...this.devices.values()];
+    return devices.filter(d => d.mode === 'mobile');
   }
 
-  getReceivingDevices(): Device[] {
+  getKioskDevices(workspaceId?: string): Device[] {
+    const devices = workspaceId 
+      ? this.getDevicesByWorkspace(workspaceId) 
+      : [...this.devices.values()];
+    return devices.filter(d => d.mode === 'kiosk');
+  }
+
+  getReceivingDevices(workspaceId?: string): Device[] {
     // All devices can receive messages (both mobile and kiosk)
-    return [...this.devices.values()];
+    return workspaceId 
+      ? this.getDevicesByWorkspace(workspaceId) 
+      : [...this.devices.values()];
   }
 
   /**
-   * Get the minimum display lines across all connected kiosk devices.
+   * Get the minimum display lines across kiosk devices in a workspace.
    * Returns undefined if no kiosk devices have screen info.
    * This is the safe maximum to use for content that must fit all screens.
    */
-  getMinKioskDisplayLines(): number | undefined {
-    const kioskDevices = this.getKioskDevices();
+  getMinKioskDisplayLines(workspaceId?: string): number | undefined {
+    const kioskDevices = this.getKioskDevices(workspaceId);
     const linesArray = kioskDevices
       .map(d => d.displayLines)
       .filter((lines): lines is number => lines !== undefined);
@@ -151,16 +171,23 @@ export class DeviceRegistry {
     return [...this.devices.values()];
   }
 
-  getDeviceList(): DeviceInfo[] {
-    return this.getAllDevices().map(d => ({
+  getDeviceList(workspaceId?: string): DeviceInfo[] {
+    const devices = workspaceId 
+      ? this.getDevicesByWorkspace(workspaceId) 
+      : this.getAllDevices();
+    return devices.map(d => ({
       id: d.id,
+      workspaceId: d.workspaceId,
       displayName: d.displayName,
       mode: d.mode,
     }));
   }
 
-  broadcastToOutputs(message: RelayedTextMessage, excludeId?: string): void {
-    const receivers = this.getReceivingDevices();
+  /**
+   * Broadcast a text message to all devices in a workspace.
+   */
+  broadcastToOutputs(message: RelayedTextMessage, workspaceId: string, excludeId?: string): void {
+    const receivers = this.getReceivingDevices(workspaceId);
     const payload = JSON.stringify(message);
 
     for (const device of receivers) {
@@ -170,21 +197,56 @@ export class DeviceRegistry {
     }
   }
 
-  broadcastDeviceList(): void {
+  /**
+   * Broadcast the device list to all devices in a workspace.
+   * Each device only sees devices in their own workspace.
+   */
+  broadcastDeviceList(workspaceId: string): void {
+    const devicesInWorkspace = this.getDevicesByWorkspace(workspaceId);
+    const deviceList = devicesInWorkspace.map(d => ({
+      id: d.id,
+      workspaceId: d.workspaceId,
+      displayName: d.displayName,
+      mode: d.mode,
+    }));
+    
     const message: DeviceListMessage = {
       type: 'device-list',
-      devices: this.getDeviceList(),
+      devices: deviceList,
     };
     const payload = JSON.stringify(message);
 
-    for (const device of this.getAllDevices()) {
+    for (const device of devicesInWorkspace) {
       if (device.ws.readyState === device.ws.OPEN) {
         device.ws.send(payload);
       }
     }
   }
 
-  broadcastToKiosks(displayContent: DisplayContent): void {
+  /**
+   * Broadcast display content to all kiosk devices in a specific workspace.
+   * Use broadcastToAllKiosks() for intentional global broadcasts.
+   */
+  broadcastToKiosks(displayContent: DisplayContent, workspaceId: string): void {
+    const message: DisplayMessage = {
+      type: 'display',
+      display: displayContent,
+    };
+    const payload = JSON.stringify(message);
+
+    for (const device of this.getKioskDevices(workspaceId)) {
+      if (device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
+  }
+
+  /**
+   * Broadcast display content to ALL kiosk devices across all workspaces.
+   * Use with caution - this intentionally bypasses workspace isolation.
+   * For workspace-scoped broadcasts, use broadcastToKiosks() instead.
+   */
+  broadcastToAllKiosks(displayContent: DisplayContent): void {
     const message: DisplayMessage = {
       type: 'display',
       display: displayContent,

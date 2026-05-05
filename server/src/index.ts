@@ -9,7 +9,7 @@ import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/in
 import { aiSessionManager } from './openhands.js';
 import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
-import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent } from './types.js';
+import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
 
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
@@ -35,6 +35,9 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
+
+// Workspace repository for validation (set up later if SQLite is used)
+let workspaceRepository: WorkspaceRepository | null = null;
 
 // Auth configuration from environment variables
 function getAuthConfig(): AuthConfig | null {
@@ -94,7 +97,7 @@ app.get('/api/server-info', (req, res) => {
 app.use(express.json());
 
 app.post('/api/display', (req, res) => {
-  const { type, content, title } = req.body as DisplayContent;
+  const { type, content, title, workspaceId } = req.body as DisplayRequest;
   
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
@@ -105,11 +108,19 @@ app.post('/api/display', (req, res) => {
     res.status(400).json({ error: 'Content required for markdown and image types.' });
     return;
   }
+
+  if (!workspaceId) {
+    res.status(400).json({ error: 'workspaceId is required.' });
+    return;
+  }
+
+  // NOTE: Workspace validation deferred to Phase 4 with user authentication
+  // See: https://github.com/jpshackelford/voice-relay/issues/6
   
   const displayContent: DisplayContent = { type, content, title };
-  registry.broadcastToKiosks(displayContent);
+  registry.broadcastToKiosks(displayContent, workspaceId);
   
-  const kioskCount = registry.getKioskDevices().length;
+  const kioskCount = registry.getKioskDevices(workspaceId).length;
   res.json({ success: true, kioskCount });
 });
 
@@ -143,24 +154,29 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
+    // Device's workspaceId is the one it registered with.
+    // Validation deferred to Phase 4 with user authentication.
+    const deviceWorkspaceId = device.workspaceId;
+
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
       const aiMessage: RelayedTextMessage = {
         type: 'text',
         utteranceId: `ai-${Date.now()}`,
+        workspaceId: deviceWorkspaceId,
         senderId: 'openhands-ai',
         senderName: '✨ AI',
         text,
         partial: false,
       };
       
-      // Store and broadcast the AI response
+      // Store and broadcast the AI response (scoped to workspace)
       store.append(aiMessage).catch(err => console.error('Failed to store AI message:', err));
-      registry.broadcastToOutputs(aiMessage);
+      registry.broadcastToOutputs(aiMessage, deviceWorkspaceId);
     };
 
-    // Get the minimum display lines across all kiosk devices for safe content sizing
-    const displayLines = registry.getMinKioskDisplayLines();
+    // Get the minimum display lines across kiosk devices in the workspace
+    const displayLines = registry.getMinKioskDisplayLines(deviceWorkspaceId);
     
     const session = await aiSessionManager.startSession(
       deviceId, 
@@ -243,6 +259,7 @@ app.get('*', (_req, res) => {
 wss.on('connection', (ws: WebSocket) => {
   console.log('[WS] New connection');
   let deviceId: string | null = null;
+  let workspaceId: string | null = null;
 
   ws.on('message', async (data) => {
     try {
@@ -250,9 +267,21 @@ wss.on('connection', (ws: WebSocket) => {
       
       switch (message.type) {
         case 'register': {
+          // Use provided workspaceId or default to 'default' for backward compatibility
+          const requestedWorkspaceId = message.workspaceId || 'default';
+          
+          // NOTE: Workspace validation deferred to Phase 4 when proper user authentication
+          // is implemented. At that point, we'll validate:
+          // 1. The workspace exists in the database
+          // 2. The authenticated user has access to the workspace
+          // See: https://github.com/jpshackelford/voice-relay/issues/6
+
           deviceId = message.deviceId;
+          workspaceId = requestedWorkspaceId;
+          
           registry.register(
-            message.deviceId, 
+            message.deviceId,
+            requestedWorkspaceId,
             ws, 
             message.displayName, 
             message.mode,
@@ -266,11 +295,11 @@ wss.on('connection', (ws: WebSocket) => {
           };
           ws.send(JSON.stringify(response));
           
-          // Broadcast updated device list to all clients
-          registry.broadcastDeviceList();
+          // Broadcast updated device list to devices in the same workspace
+          registry.broadcastDeviceList(workspaceId);
 
-          // Send message history to all devices (both mobile and kiosk can receive)
-          const history = await store.getRecent(50);
+          // Send workspace-scoped message history to this device
+          const history = await store.getRecent(50, workspaceId);
           const historyMessage: HistoryMessage = {
             type: 'history',
             messages: history,
@@ -281,14 +310,17 @@ wss.on('connection', (ws: WebSocket) => {
 
         case 'update-device': {
           if (deviceId) {
-            registry.updateDevice(deviceId, message);
-            registry.broadcastDeviceList();
+            const device = registry.getDevice(deviceId);
+            if (device) {
+              registry.updateDevice(deviceId, message);
+              registry.broadcastDeviceList(device.workspaceId);
+            }
           }
           break;
         }
 
         case 'text': {
-          if (!deviceId) {
+          if (!deviceId || !workspaceId) {
             console.warn('[WS] Received text from unregistered device');
             return;
           }
@@ -302,6 +334,7 @@ wss.on('connection', (ws: WebSocket) => {
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
+            workspaceId: device.workspaceId,
             senderId: deviceId,
             senderName: device.displayName,
             text: message.text,
@@ -313,7 +346,8 @@ wss.on('connection', (ws: WebSocket) => {
             await store.append(relayMessage);
           }
 
-          registry.broadcastToOutputs(relayMessage);
+          // Broadcast only to devices in the same workspace
+          registry.broadcastToOutputs(relayMessage, device.workspaceId);
           break;
         }
       }
@@ -324,8 +358,13 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('close', () => {
     if (deviceId) {
+      const device = registry.getDevice(deviceId);
+      const deviceWorkspaceId = device?.workspaceId;
       registry.disconnect(deviceId);
-      registry.broadcastDeviceList();
+      // Broadcast updated device list to remaining devices in the workspace
+      if (deviceWorkspaceId) {
+        registry.broadcastDeviceList(deviceWorkspaceId);
+      }
     }
     console.log('[WS] Connection closed');
   });
@@ -341,9 +380,18 @@ const HOST = process.env.HOST || '0.0.0.0';
 async function start() {
   await store.connect();
 
+  // Set up workspace repository for workspace API routes (requires SQLite)
+  if (store instanceof SQLiteStore) {
+    const db = store.getDatabase();
+    if (db) {
+      workspaceRepository = new WorkspaceRepository(db);
+      console.log('[Workspaces] Repository initialized');
+    }
+  }
+
   // Set up auth and workspace routes if configured and using SQLite
   const authConfig = getAuthConfig();
-  if (authConfig && store instanceof SQLiteStore) {
+  if (authConfig && store instanceof SQLiteStore && workspaceRepository) {
     const db = store.getDatabase();
     if (db) {
       const userRepository = new UserRepository(db);
@@ -360,7 +408,6 @@ async function start() {
       console.log('[Auth] GitHub OAuth enabled');
       
       // Set up workspace routes
-      const workspaceRepository = new WorkspaceRepository(db);
       const workspaceRouter = createWorkspaceRouter({
         workspaceRepository,
         authConfig: {
