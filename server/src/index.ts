@@ -292,21 +292,9 @@ app.delete('/api/ai/disconnect', async (req, res) => {
   }
 });
 
-// API 404 fallback - must come before SPA fallback
-// Returns proper 404 for any unregistered API routes
-app.all('/api/*', (_req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
-
-// Auth 404 fallback
-app.all('/auth/*', (_req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
-
-// SPA fallback
-app.get('*', (_req, res) => {
-  res.sendFile(join(clientDist, 'index.html'));
-});
+// NOTE: 404 fallback handlers are registered at the end of start() 
+// AFTER all dynamic routes (auth, workspaces, etc.) are mounted.
+// This ensures the fallbacks don't shadow conditionally-loaded routes.
 
 // WebSocket connection handling
 wss.on('connection', (ws: WebSocket) => {
@@ -497,6 +485,22 @@ async function start() {
       console.log('[Sessions] API enabled');
     }
   }
+
+  // Register 404 fallback handlers AFTER all dynamic routes are mounted
+  // API 404 fallback - must come before SPA fallback
+  app.all('/api/*', (_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
+  // Auth 404 fallback (only if auth routes weren't mounted)
+  app.all('/auth/*', (_req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+
+  // SPA fallback - serves index.html for client-side routing
+  app.get('*', (_req, res) => {
+    res.sendFile(join(clientDist, 'index.html'));
+  });
 
   server.listen(Number(PORT), HOST, () => {
     console.log(`[Server] Running on http://${HOST}:${PORT}`);
