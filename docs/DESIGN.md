@@ -933,11 +933,21 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - Client-side auth UI (login button, token storage, logout)
 - CI workflow for PR checks
 
-### Phase 3: Workspaces ← **NEXT**
-- [ ] Add workspace CRUD operations
+### Phase 3: Workspaces ← **IN PROGRESS** (PR #3)
+- [x] Add workspace CRUD operations
+- [x] Add join codes
 - [ ] Scope device registry per workspace
-- [ ] Add join codes
 - [ ] Update WebSocket to require workspace context
+
+**Completed in PR #3:**
+- Workspace migration (003_workspaces.ts) with tables: workspaces, workspace_settings, workspace_members
+- Workspace repository with full CRUD, slug generation, join code generation, member management
+- REST API router with auth middleware at /api/workspaces endpoints
+- 44 new tests (29 repository + 15 utilities)
+
+**Deferred to follow-up:**
+- Device registry scoping (requires coordinated WebSocket handler changes)
+- WebSocket workspace context (requires client-side changes)
 
 ### Phase 4: UI Simplification
 - [ ] Remove input/output modes (keep kiosk + mobile only)
