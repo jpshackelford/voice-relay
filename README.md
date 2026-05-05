@@ -107,6 +107,34 @@ FIRESTORE_PROJECT_ID=your-project
 FIRESTORE_COLLECTION=voice-relay-messages
 ```
 
+## Authentication (Phase 4)
+
+Voice Relay uses GitHub OAuth for authentication. Users must sign in to access the application.
+
+### Configuration
+
+```bash
+# Required for authentication
+GITHUB_CLIENT_ID=your-github-client-id
+GITHUB_CLIENT_SECRET=your-github-client-secret
+JWT_SECRET=your-secure-random-secret
+
+# Optional
+JWT_EXPIRES_IN=7d    # Token expiration (default: 7d)
+BASE_URL=https://your-domain.com  # For OAuth callback URL
+```
+
+### Setup GitHub OAuth App
+
+1. Go to https://github.com/settings/developers
+2. Click "New OAuth App"
+3. Set Authorization callback URL to: `https://your-domain.com/auth/github/callback`
+4. Note the Client ID and generate a Client Secret
+
+### Migration Guide
+
+If upgrading from a previous version, see [docs/MIGRATION.md](docs/MIGRATION.md) for breaking changes and migration steps.
+
 ## AI Assistant Integration
 
 Voice Relay can connect to OpenHands AI for interactive conversations. When enabled, a sparkle button (✨) appears in chat and kiosk modes.

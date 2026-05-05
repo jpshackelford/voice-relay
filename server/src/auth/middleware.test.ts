@@ -80,7 +80,7 @@ describe('Auth Middleware', () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(getStatusCode()).toBe(401);
-      expect(getJsonBody()).toEqual({ error: 'Authorization header required' });
+      expect(getJsonBody()).toEqual({ error: 'Authentication required' });
     });
 
     it('rejects with invalid token', async () => {
@@ -123,7 +123,7 @@ describe('Auth Middleware', () => {
 
       expect(next).not.toHaveBeenCalled();
       expect(getStatusCode()).toBe(401);
-      expect(getJsonBody()).toEqual({ error: 'Authorization header required' });
+      expect(getJsonBody()).toEqual({ error: 'Authentication required' });
     });
   });
 

@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { fileURLToPath } from 'url';
@@ -40,26 +41,63 @@ const store: MessageStore = createStoreFromEnv();
 let workspaceRepository: WorkspaceRepository | null = null;
 
 // Auth configuration from environment variables
+
+// Parse duration string (e.g., '7d', '1h', '30m') to milliseconds
+// Returns null for invalid formats
+function parseDurationToMs(duration: string): number | null {
+  const match = duration.match(/^(\d+)([dhms])$/);
+  if (!match) return null;
+
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+
+  switch (unit) {
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'm': return value * 60 * 1000;
+    case 's': return value * 1000;
+    default: return null;
+  }
+}
+
+// Client-side token refresh interval (30 minutes)
+const CLIENT_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+
 function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
   const jwtSecret = process.env.JWT_SECRET;
-  
+
   if (!githubClientId || !githubClientSecret || !jwtSecret) {
     console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or JWT_SECRET - auth disabled');
     return null;
   }
-  
+
+  const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
+
+  // Validate JWT_EXPIRES_IN is >= client refresh interval (30 min)
+  const expiryMs = parseDurationToMs(jwtExpiresIn);
+  if (expiryMs !== null && expiryMs < CLIENT_REFRESH_INTERVAL_MS) {
+    console.warn(
+      `[Auth] WARNING: JWT_EXPIRES_IN (${jwtExpiresIn}) is shorter than client refresh interval (30m). ` +
+      `Users may be logged out unexpectedly before their session can refresh. ` +
+      `Recommended: Set JWT_EXPIRES_IN to at least 30m.`
+    );
+  }
+
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
-  
+
   return {
     githubClientId,
     githubClientSecret,
     jwtSecret,
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    jwtExpiresIn,
     callbackUrl: `${baseUrl}/auth/github/callback`,
   };
 }
+
+// Parse cookies for httpOnly auth tokens
+app.use(cookieParser());
 
 // Serve static files from client build (production)
 const clientDist = join(__dirname, '../../client/dist');
@@ -248,6 +286,17 @@ app.delete('/api/ai/disconnect', async (req, res) => {
     console.error('Failed to disconnect AI:', err);
     res.status(500).json({ error: (err as Error).message });
   }
+});
+
+// API 404 fallback - must come before SPA fallback
+// Returns proper 404 for any unregistered API routes
+app.all('/api/*', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Auth 404 fallback
+app.all('/auth/*', (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
 
 // SPA fallback

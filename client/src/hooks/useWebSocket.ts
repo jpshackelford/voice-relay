@@ -5,13 +5,14 @@ interface UseWebSocketOptions {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
+  workspaceId?: string;
   onTextMessage?: (message: ServerMessage & { type: 'text' }) => void;
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -42,12 +43,13 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
       console.log('[WS] Connected');
       setConnected(true);
       
-      // Register this device with current mode and screen dimensions
+      // Register this device with current mode, workspace, and screen dimensions
       const registerMsg: ClientMessage = {
         type: 'register',
         deviceId,
         displayName,
         mode: currentModeRef.current,
+        workspaceId,
         screenWidth: window.innerWidth,
         screenHeight: window.innerHeight,
       };
@@ -97,7 +99,7 @@ export function useWebSocket({ deviceId, displayName, mode, onTextMessage, onHis
     return () => {
       ws.close();
     };
-  }, [deviceId, displayName]);
+  }, [deviceId, displayName, workspaceId]);
 
   // Update mode on server when it changes (without reconnecting)
   useEffect(() => {

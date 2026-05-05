@@ -17,6 +17,12 @@ export default defineConfig({
       '/api': {
         target: `http://localhost:${wsPort}`,
       },
+      '/auth': {
+        target: `http://localhost:${wsPort}`,
+      },
+      '/health': {
+        target: `http://localhost:${wsPort}`,
+      },
     },
   },
 });

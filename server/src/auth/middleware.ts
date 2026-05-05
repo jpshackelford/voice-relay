@@ -3,6 +3,9 @@ import type { JWTPayload, User } from './types.js';
 import type { JWTService } from './jwt.js';
 import type { UserRepository } from './user-repository.js';
 
+// Cookie name for httpOnly auth token
+const AUTH_COOKIE_NAME = 'voice_relay_auth';
+
 // Extend Express Request to include auth info
 declare global {
   namespace Express {
@@ -19,22 +22,45 @@ export interface AuthMiddlewareConfig {
 }
 
 /**
+ * Extract JWT token from request.
+ * Checks both httpOnly cookie (preferred) and Authorization header (for API/WebSocket compatibility).
+ */
+function extractToken(req: Request): string | null {
+  // First check httpOnly cookie (more secure, preferred method)
+  const cookieToken = req.cookies?.[AUTH_COOKIE_NAME];
+  if (cookieToken) {
+    return cookieToken;
+  }
+  
+  // Fall back to Authorization header (for backward compatibility and WebSocket)
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7); // Remove 'Bearer '
+  }
+  
+  return null;
+}
+
+/**
  * Middleware that requires valid JWT authentication.
  * If valid, sets req.user and req.jwtPayload.
  * If invalid, returns 401 Unauthorized.
+ * 
+ * Reads token from:
+ * 1. httpOnly cookie (preferred, secure)
+ * 2. Authorization header (for API/WebSocket compatibility)
  */
 export function requireAuth(config: AuthMiddlewareConfig) {
   const { jwtService, userRepository } = config;
   
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req);
     
-    if (!authHeader?.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Authorization header required' });
+    if (!token) {
+      res.status(401).json({ error: 'Authentication required' });
       return;
     }
 
-    const token = authHeader.slice(7); // Remove 'Bearer '
     const payload = jwtService.verify(token);
     
     if (!payload) {
@@ -64,10 +90,9 @@ export function optionalAuth(config: AuthMiddlewareConfig) {
   const { jwtService, userRepository } = config;
   
   return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
-    const authHeader = req.headers.authorization;
+    const token = extractToken(req);
     
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
+    if (token) {
       const payload = jwtService.verify(token);
       
       if (payload) {
