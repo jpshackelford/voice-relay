@@ -1745,3 +1745,447 @@ header {
   color: #888;
   font-size: 1.1rem;
 }
+
+/* ========================================
+   Loading States & Spinners
+   ======================================== */
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-card {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 2rem 3rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: #3282b8;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Skeleton loading for content */
+.skeleton {
+  background: linear-gradient(90deg, #16213e 25%, #1f2b4d 50%, #16213e 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.skeleton-text.short {
+  width: 60%;
+}
+
+.skeleton-card {
+  height: 80px;
+  border-radius: 12px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ========================================
+   QR Code Improvements
+   ======================================== */
+
+.qr-label {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.join-code-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #16213e;
+  border-radius: 8px;
+}
+
+.join-code-label {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.join-code {
+  font-family: monospace;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #3282b8;
+  letter-spacing: 0.1em;
+}
+
+.qr-url-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-url {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.qr-url:hover {
+  color: #3282b8;
+}
+
+.copied-indicator {
+  position: absolute;
+  top: -1.5rem;
+  font-size: 0.75rem;
+  color: #4f4;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Join Code Input */
+.join-code-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 300px;
+  margin: 1rem auto;
+}
+
+.join-code-input .join-code-field {
+  padding: 0.75rem 1rem;
+  font-size: 1.25rem;
+  font-family: monospace;
+  text-align: center;
+  letter-spacing: 0.15em;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #16213e;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.join-code-input .join-code-field:focus {
+  border-color: #3282b8;
+  outline: none;
+}
+
+.join-code-input .join-code-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #3282b8;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.join-code-input .join-code-button:hover:not(:disabled) {
+  background: #0f4c75;
+}
+
+.join-code-input .join-code-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.join-code-input .join-code-error {
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* ========================================
+   Error Messages & Toasts
+   ======================================== */
+
+.error-message {
+  background: #4a1515;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.error-message.warning {
+  background: #4a3c15;
+  border-color: #f0a500;
+  color: #f0a500;
+}
+
+.error-message.info {
+  background: #153a4a;
+  border-color: #3282b8;
+  color: #bbe1fa;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  padding: 0.25rem;
+  opacity: 0.7;
+}
+
+.error-dismiss:hover {
+  opacity: 1;
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 1001;
+  max-width: 90vw;
+}
+
+.toast {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: slideInRight 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toast.success {
+  border-left: 3px solid #4f4;
+}
+
+.toast.error {
+  border-left: 3px solid #ff6b6b;
+}
+
+.toast.warning {
+  border-left: 3px solid #f0a500;
+}
+
+.toast.info {
+  border-left: 3px solid #3282b8;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ========================================
+   Optimistic UI States
+   ======================================== */
+
+.optimistic {
+  opacity: 0.7;
+}
+
+.optimistic::after {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 0.5rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.workspace-card.creating {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.workspace-card.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ========================================
+   Session List
+   ======================================== */
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.session-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-card:hover {
+  border-color: #3282b8;
+}
+
+.session-card.active {
+  border-color: #4f4;
+  background: rgba(0, 255, 0, 0.05);
+}
+
+.session-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.session-name {
+  font-weight: 500;
+}
+
+.session-meta {
+  font-size: 0.8rem;
+  color: #888;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.session-devices {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.session-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.session-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.session-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.session-btn.primary {
+  background: #3282b8;
+  border-color: #3282b8;
+  color: #fff;
+}
+
+.session-btn.primary:hover {
+  background: #0f4c75;
+}
+
+/* ========================================
+   Device Token UI
+   ======================================== */
+
+.device-reconnect-banner {
+  background: #153a4a;
+  border: 1px solid #3282b8;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.9rem;
+}
+
+.device-reconnect-banner .banner-text {
+  color: #bbe1fa;
+}
+
+.device-reconnect-banner .reconnect-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+  background: #3282b8;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.device-reconnect-banner .reconnect-btn:hover {
+  background: #0f4c75;
+}

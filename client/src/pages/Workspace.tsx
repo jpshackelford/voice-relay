@@ -5,8 +5,9 @@ import { DeviceSetup } from '../components/DeviceSetup';
 import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { generateUUID } from '../utils/uuid';
-import { generateDefaultDeviceName } from '../utils/deviceName';
+import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
+import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
+import { getUserFriendlyMessage } from '../utils/errors';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
 
 interface WorkspaceInfo {
@@ -17,38 +18,48 @@ interface WorkspaceInfo {
   joinCode?: string;
 }
 
-function getOrCreateDeviceId(): string {
-  let id = sessionStorage.getItem('deviceId');
-  if (!id) {
-    id = generateUUID();
-    sessionStorage.setItem('deviceId', id);
-  }
-  return id;
-}
-
-function getOrCreateDisplayName(): string {
-  let name = sessionStorage.getItem('displayName');
-  if (!name) {
-    name = generateDefaultDeviceName();
-    sessionStorage.setItem('displayName', name);
-  }
-  return name;
-}
-
 export function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
+
+  // Device restoration hook handles token validation and session restoration
+  const {
+    deviceId,
+    displayName,
+    restoredMode,
+    deviceToken,
+    wasRestored,
+    isValidating: deviceTokenValidating,
+    setDisplayName,
+  } = useDeviceRestoration(workspaceId);
 
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [showReconnectBanner, setShowReconnectBanner] = useState(false);
 
-  const [deviceId] = useState(getOrCreateDeviceId);
-  const [displayName, setDisplayName] = useState(getOrCreateDisplayName);
+  // Mode state - use restored mode if available, otherwise null until setup
   const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+
+  // Apply restored mode when available
+  useEffect(() => {
+    if (restoredMode && !mode) {
+      setMode(restoredMode);
+    }
+  }, [restoredMode, mode]);
+
+  // Show reconnect banner when device was restored
+  useEffect(() => {
+    if (wasRestored) {
+      setShowReconnectBanner(true);
+    }
+  }, [wasRestored]);
+
+  // TODO: Implement session-specific history loading using URL params
+  // e.g., const sessionIdFromUrl = new URLSearchParams(window.location.search).get('session');
 
   // Fetch workspace info to validate access
   useEffect(() => {
@@ -59,6 +70,9 @@ export function Workspace() {
       }
 
       try {
+        // Proactively refresh token if close to expiry
+        await ensureValidToken();
+
         const res = await fetch(`/api/workspaces/${workspaceId}`, {
           credentials: 'include', // Use httpOnly cookie auth
         });
@@ -71,19 +85,23 @@ export function Workspace() {
           setWorkspaceError('Workspace not found');
         } else if (res.status === 403) {
           setWorkspaceError('You do not have access to this workspace');
+        } else if (res.status === 401) {
+          // Token expired, redirect to login
+          setWorkspaceError('Session expired. Please log in again.');
         } else {
-          setWorkspaceError('Failed to load workspace');
+          const errorData = await res.json().catch(() => null);
+          setWorkspaceError(getUserFriendlyMessage(errorData || 'Failed to load workspace'));
         }
       } catch (err) {
         console.error('Failed to fetch workspace:', err);
-        setWorkspaceError('Failed to connect to server');
+        setWorkspaceError(getUserFriendlyMessage(err as Error));
       } finally {
         setWorkspaceLoading(false);
       }
     }
 
     fetchWorkspace();
-  }, [workspaceId, isAuthenticated]);
+  }, [workspaceId, isAuthenticated, ensureValidToken]);
 
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {
@@ -138,32 +156,60 @@ export function Workspace() {
     onDisplayMessage: handleDisplayMessage,
   });
 
-  // Store display name in session
-  useEffect(() => {
-    if (displayName) {
-      sessionStorage.setItem('displayName', displayName);
-    }
-  }, [displayName]);
-
-  const handleSetup = (name: string, selectedMode: DeviceMode) => {
+  const handleSetup = async (name: string, selectedMode: DeviceMode) => {
     setDisplayName(name);
     setMode(selectedMode);
+    
+    // Only store device info if we have a validated token from the server.
+    // New devices don't get tokens from the current WebSocket registration flow.
+    // Token persistence is only useful for devices that have previously connected
+    // and had their tokens validated via /api/devices/validate.
+    // TODO: Implement device token issuance on first connection once the
+    // backend device registration endpoint is integrated with WebSocket registration.
+    // See: https://github.com/jpshackelford/voice-relay/issues/6 (Phase 4 integration)
+    if (workspace?.id && deviceToken) {
+      storeDeviceToken({
+        deviceId,
+        deviceToken,
+        workspaceId: workspace.id,
+        name,
+        mode: selectedMode,
+      });
+    }
   };
 
   const handleModeChange = (newMode: DeviceMode) => {
     setMode(newMode);
     updateDevice({ mode: newMode });
+    
+    // Update stored token with new mode
+    const storedDevice = getStoredDeviceToken();
+    if (storedDevice && workspace?.id) {
+      storeDeviceToken({
+        ...storedDevice,
+        mode: newMode,
+      });
+    }
   };
 
   const handleBackToDashboard = () => {
     navigate('/dashboard');
   };
 
+  const handleDismissReconnectBanner = () => {
+    setShowReconnectBanner(false);
+  };
+
   // Loading states
-  if (authLoading || workspaceLoading) {
+  if (authLoading || workspaceLoading || deviceTokenValidating) {
     return (
-      <div className="workspace-loading">
-        <div className="loading-spinner">Loading...</div>
+      <div className="loading-overlay">
+        <div className="loading-card">
+          <div className="spinner"></div>
+          <p className="loading-text">
+            {deviceTokenValidating ? 'Validating device...' : 'Loading workspace...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -209,32 +255,48 @@ export function Workspace() {
     throw new Error(`Invalid device mode: "${mode}". Valid modes are 'mobile' or 'kiosk'.`);
   }
 
+  // Reconnect banner (shown when device was restored from token)
+  const reconnectBanner = showReconnectBanner ? (
+    <div className="device-reconnect-banner">
+      <span className="banner-text">✓ Device session restored</span>
+      <button className="reconnect-btn" onClick={handleDismissReconnectBanner}>
+        Dismiss
+      </button>
+    </div>
+  ) : null;
+
   // Kiosk mode
   if (mode === 'kiosk') {
     return (
-      <KioskMode
-        deviceId={deviceId}
-        displayName={displayName}
-        connected={connected}
-        devices={devices}
-        utterances={utterances}
-        displayContent={displayContent}
-        sendText={sendText}
-        onModeChange={handleModeChange}
-      />
+      <>
+        {reconnectBanner}
+        <KioskMode
+          deviceId={deviceId}
+          displayName={displayName}
+          connected={connected}
+          devices={devices}
+          utterances={utterances}
+          displayContent={displayContent}
+          sendText={sendText}
+          onModeChange={handleModeChange}
+        />
+      </>
     );
   }
 
   // Mobile mode (default)
   return (
-    <MobileMode
-      deviceId={deviceId}
-      displayName={displayName}
-      connected={connected}
-      devices={devices}
-      utterances={utterances}
-      sendText={sendText}
-      onModeChange={handleModeChange}
-    />
+    <>
+      {reconnectBanner}
+      <MobileMode
+        deviceId={deviceId}
+        displayName={displayName}
+        connected={connected}
+        devices={devices}
+        utterances={utterances}
+        sendText={sendText}
+        onModeChange={handleModeChange}
+      />
+    </>
   );
 }

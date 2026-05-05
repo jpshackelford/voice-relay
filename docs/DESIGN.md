@@ -1046,13 +1046,47 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 - CSRF protection via OAuth state parameter validation
 - SameSite cookie attribute for additional CSRF protection
 
-### Phase 5: Polish ← **NEXT**
-- [ ] Device tokens for reconnection (persist device identity across page refreshes)
-- [ ] Session tracking (multiple sessions per workspace)
-- [ ] QR code improvements (join codes, deep linking)
-- [ ] Error handling and validation (user-friendly error messages)
-- [ ] Proactive token refresh (check expiry before making requests)
-- [ ] Loading states and optimistic UI updates
+### Phase 5: Polish ← **IN PROGRESS** (PR #8)
+- [x] Device tokens for reconnection (persist device identity across page refreshes)
+  - Migration 005 adds `devices` table with SHA-256 hashed tokens
+  - DeviceRepository for token validation and device management
+  - Client-side localStorage persistence with deviceToken.ts
+- [x] Session tracking (multiple sessions per workspace)
+  - Migration 005 adds `sessions` and `session_devices` tables
+  - SessionRepository with lifecycle management (active/ended/archived)
+  - Session summaries with device counts
+- [x] QR code improvements (join codes, deep linking)
+  - QRCode component enhanced with joinCode and workspaceId props
+  - JoinCodeInput component for manual code entry
+  - Deep linking support (/workspace/{id}?session={sessionId})
+- [x] Error handling and validation (user-friendly error messages)
+  - errors.ts utility with getUserFriendlyMessage()
+  - Network error mapping and API error parsing
+- [x] Proactive token refresh (check expiry before making requests)
+  - AuthContext.ensureValidToken() checks 5-min threshold
+  - Prevents 401 errors by refreshing before API calls
+- [x] Loading states and optimistic UI updates
+  - CSS spinner animations and skeleton loading
+  - Toast notification styles
+  - Reconnect banner for device session restoration
+
+**Learnings from Phase 5:**
+- SQLite ALTER TABLE is limited; migration handles column addition with proper fallback
+- Device tokens use SHA-256 hashing (one-way) vs. encryption for better security
+- localStorage is sufficient for device token persistence; IndexedDB adds complexity without benefit
+- Proactive token refresh threshold (5 min) balances UX vs. network overhead
+
+**Security Hardening (PR #8 Review):**
+- **Never store plaintext tokens**: Only store hashes; return token once at creation, never persist in plaintext
+- **Public endpoints need rate limiting**: Token validation endpoint exposed to brute-force; added 10 req/min/IP limit
+- **Tokens need expiration**: 30-day TTL with automatic renewal on use; prevents indefinite access from lost devices
+- **SQLite compatibility**: Document backup/recreate pattern for migrations on pre-3.35.0 SQLite (no DROP COLUMN support)
+- **Extract complex hooks**: `useDeviceRestoration` improves testability over inline useEffect with multiple concerns
+
+**Remaining work:**
+- E2E tests for device persistence across page refresh
+- Client-side session switching UI
+- Full integration of session history per session
 
 ---
 

@@ -10,6 +10,8 @@ import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/in
 import { aiSessionManager } from './openhands.js';
 import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
+import { DeviceRepository, createDeviceRouter } from './devices/index.js';
+import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -37,8 +39,10 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
 
-// Workspace repository for validation (set up later if SQLite is used)
+// Repositories for database access (set up later if SQLite is used)
 let workspaceRepository: WorkspaceRepository | null = null;
+let deviceRepository: DeviceRepository | null = null;
+let sessionRepository: SessionRepository | null = null;
 
 // Auth configuration from environment variables
 
@@ -429,18 +433,20 @@ const HOST = process.env.HOST || '0.0.0.0';
 async function start() {
   await store.connect();
 
-  // Set up workspace repository for workspace API routes (requires SQLite)
+  // Set up repositories for API routes (requires SQLite)
   if (store instanceof SQLiteStore) {
     const db = store.getDatabase();
     if (db) {
       workspaceRepository = new WorkspaceRepository(db);
-      console.log('[Workspaces] Repository initialized');
+      deviceRepository = new DeviceRepository(db);
+      sessionRepository = new SessionRepository(db);
+      console.log('[Repositories] Workspace, Device, Session repositories initialized');
     }
   }
 
-  // Set up auth and workspace routes if configured and using SQLite
+  // Set up auth and API routes if configured and using SQLite
   const authConfig = getAuthConfig();
-  if (authConfig && store instanceof SQLiteStore && workspaceRepository) {
+  if (authConfig && store instanceof SQLiteStore && workspaceRepository && deviceRepository && sessionRepository) {
     const db = store.getDatabase();
     if (db) {
       const userRepository = new UserRepository(db);
@@ -466,6 +472,29 @@ async function start() {
       });
       app.use('/api/workspaces', workspaceRouter);
       console.log('[Workspaces] API enabled');
+
+      // Set up device routes
+      const deviceRouter = createDeviceRouter({
+        deviceRepository,
+        authConfig: {
+          jwtService,
+          userRepository,
+        },
+      });
+      app.use('/api/devices', deviceRouter);
+      console.log('[Devices] API enabled');
+
+      // Set up session routes (nested under workspaces)
+      const sessionRouter = createSessionRouter({
+        sessionRepository,
+        workspaceRepository,
+        authConfig: {
+          jwtService,
+          userRepository,
+        },
+      });
+      app.use('/api/workspaces/:workspaceId/sessions', sessionRouter);
+      console.log('[Sessions] API enabled');
     }
   }
 
