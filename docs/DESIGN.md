@@ -24,15 +24,19 @@ An isolated environment owned by a user. Contains devices and sessions. Think of
 - Owner provides their own OpenHands API key (encrypted in DB)
 
 ### 1.3 Device
-A browser tab/app instance connected to a workspace. Three views:
+A browser tab/app instance connected to a workspace. Two views:
 
 | View | Description | Use Case |
 |------|-------------|----------|
-| **Kiosk** | Large display area + collapsible conversation sidebar | Wall-mounted screen, tablet on stand |
-| **Mobile** | Conversation view + voice recording buttons, no display area | Phone, handheld device |
-| **Settings** | Workspace management (devices, sessions, API key) | Owner configuration |
+| **Kiosk** | Large display area + collapsible sidebar with conversation & settings | Wall-mounted screen, tablet on stand |
+| **Mobile** | Conversation view + voice recording buttons, settings in menu | Phone, handheld device |
 
-Kiosk and Mobile can send AND receive messages. Settings is for management only.
+Both views can send AND receive messages. Settings are accessible from sidebar (kiosk) or menu (mobile) - not a separate view.
+
+**Default behavior:**
+- Large screen → Kiosk view (auto-detected by screen size)
+- Small screen → Mobile view
+- Device auto-creates session if none exists (so QR code is immediately available)
 
 ### 1.4 Session
 A conversation with its own messages and display content. **Multiple sessions can be active** in a workspace simultaneously. Each device displays **one session at a time**.
@@ -46,9 +50,9 @@ A conversation with its own messages and display content. **Multiple sessions ca
 
 **Key concepts:**
 - Workspace has 0-N active sessions
-- Device is "tuned into" one session at a time
+- Device is always in a session (no "lobby" state)
 - Device can switch between sessions
-- Sessions are explicitly created (not auto-created)
+- First device auto-creates a session
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -64,75 +68,59 @@ A conversation with its own messages and display content. **Multiple sessions ca
 │   │ [display]   │  │ [display]   │  │ [read-only] │            │
 │   └─────────────┘  └─────────────┘  └─────────────┘            │
 │                                                                  │
-│   Devices:                                                       │
-│   🖥️ Kiosk 1 ──────► Session A                                  │
-│   📱 Phone 1 ──────► Session A                                  │
-│   📱 Phone 2 ──────► Session B                                  │
-│   📱 Phone 3 ──────► (no session - in lobby)                    │
-│                                                                  │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+**Device connection flow:**
+
+```
+Device connects to workspace
+         │
+         ▼
+    ┌─────────────────┐
+    │ Active session  │──── Yes ────► Join most recent session
+    │    exists?      │              (or session from QR code)
+    └─────────────────┘
+         │ No
+         ▼
+    Auto-create new session
+    Display QR code for others to join
 ```
 
 **Session lifecycle:**
 
 | Action | Result |
 |--------|--------|
-| User clicks [+ New Session] | New session created, user joins it |
-| Device scans session QR | Device joins that session |
-| User selects session from list | Device switches to that session |
-| User "casts" session to kiosk | Kiosk switches to show that session |
-| Owner ends session | Session archived (read-only in history) |
-| All devices leave session | Session stays active (can rejoin) |
+| First device connects | Auto-creates session, shows QR |
+| Device scans QR | Joins that specific session |
+| User clicks [+ New] | Creates new session, switches to it |
+| User clicks [Switch] | Picks from session list |
+| Mobile casts to kiosk | Kiosk switches to that session |
+| Owner ends session | Session archived, devices switch to another or create new |
 
-**Creating a session:**
-
-```
-From Mobile:
-┌─────────────────────────┐
-│ My Workspace            │
-│                         │
-│ Active Sessions:        │
-│ ┌─────────────────────┐ │
-│ │ Session 1 (2 users) │ │  ← tap to join
-│ │ Session 2 (1 user)  │ │
-│ └─────────────────────┘ │
-│                         │
-│ [+ New Session]         │  ← creates new, joins it
-│                         │
-│ ─────────────────────── │
-│ Or scan QR from kiosk   │
-└─────────────────────────┘
-
-From Kiosk:
-┌─────────────────────────────────────────┐
-│ [+ New Session]  [Join Existing ▼]  ⚙️  │
-├─────────────────────────────────────────┤
-│                                         │
-│  Scan QR to join this session:          │
-│  ┌─────────┐                            │
-│  │ QR CODE │                            │
-│  └─────────┘                            │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Casting to a kiosk:**
-
-Mobile user can "push" their current session to a kiosk:
+**Typical flow:**
 
 ```
-Mobile:
-┌─────────────────────────┐
-│ Session: Project Alpha  │
-│                         │
-│ [Cast to Display ▼]     │
-│ ┌─────────────────────┐ │
-│ │ 🖥️ Living Room      │ │  ← tap to cast
-│ │ 🖥️ Conference Room  │ │
-│ └─────────────────────┘ │
-└─────────────────────────┘
+1. Owner opens kiosk on big screen
+   └─► Auto-creates "Session 1", displays QR code
 
-Result: Selected kiosk switches to show this session
+2. Coworker scans QR with phone
+   └─► Joins "Session 1", can speak/type
+
+3. Owner wants fresh start
+   └─► Clicks [+ New], creates "Session 2"
+   └─► Kiosk now shows "Session 2" with new QR
+
+4. Another coworker joins via new QR
+   └─► Joins "Session 2"
+```
+
+**Casting to kiosk:**
+
+Mobile user can push their session to any kiosk in the workspace:
+
+```
+Mobile → [Cast 📺] → Select kiosk → Kiosk switches to this session
 ```
 
 ---
@@ -690,90 +678,99 @@ Accessible via gear icon on kiosk/mobile, or directly at `/workspace/:slug/setti
 5. **Sessions** - Historical session list with timestamps
 6. **Danger Zone** - Delete workspace (requires confirmation)
 
-### 7.4 Session Controls
+### 7.4 Session & Settings Controls
 
-**Device states:**
-1. **In lobby** - Connected to workspace but not in any session
-2. **In session** - Viewing/participating in a specific session
+**Kiosk layout:**
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ Collapsible Sidebar                    │      Display Area        │
+│ ┌────────────────────────────────────┐ │                          │
+│ │ Session: Project Alpha    [+ New]  │ │                          │
+│ │ 3 devices         [Switch ▼] [End] │ │    (AI content or        │
+│ ├────────────────────────────────────┤ │     "Ready" state)       │
+│ │                                    │ │                          │
+│ │  [conversation messages]           │ │                          │
+│ │                                    │ │                          │
+│ │                                    │ │ ┌──────────┐             │
+│ │                                    │ │ │ QR CODE  │             │
+│ │                                    │ │ │ to join  │             │
+│ ├────────────────────────────────────┤ │ └──────────┘             │
+│ │ [text input] [🎤] [⚙️ Settings]    │ │                          │
+│ └────────────────────────────────────┘ │                          │
+└────────────────────────────────────────────────────────────────────┘
+```
 
-**Kiosk header:**
+**Mobile layout:**
 ```
-┌──────────────────────────────────────────────────────────┐
-│ [+ New] [Switch ▼]  Session: Project Alpha  [End ⏹]  ⚙️ │
-│ 3 devices in session                                     │
-└──────────────────────────────────────────────────────────┘
-```
-
-**Mobile header:**
-```
-┌─────────────────────────────────────────────┐
-│ Project Alpha          [Cast 📺] [End ⏹] ⚙️ │
-│ ● 3 in session                              │
-└─────────────────────────────────────────────┘
-```
-
-**Lobby view** (no session selected):
-```
-Mobile Lobby:
 ┌─────────────────────────────────┐
-│ My Workspace                 ⚙️ │
+│ Project Alpha     [Cast] [☰]   │  ← menu has: Switch, New, End, Settings
+│ 3 devices                       │
 ├─────────────────────────────────┤
 │                                 │
-│  Active Sessions:               │
-│  ┌───────────────────────────┐  │
-│  │ 📍 Project Alpha (3)      │  │
-│  │ 📍 Quick Chat (1)         │  │
-│  └───────────────────────────┘  │
+│  [conversation messages]        │
 │                                 │
-│  [+ New Session]                │
+├─────────────────────────────────┤
+│ [text input]        [🎤] [Send] │
+└─────────────────────────────────┘
+```
+
+**Settings panel** (slides in from sidebar or menu):
+```
+┌─────────────────────────────────┐
+│ ⚙️ Settings              [Close]│
+├─────────────────────────────────┤
+│ WORKSPACE                       │
+│ Name: [My Workspace        ]    │
+│ Join URL: [Show QR]             │
 │                                 │
-│  ─────── or ───────             │
+│ AI ASSISTANT                    │
+│ API Key: [••••••••] [Save]      │
+│ Status: ✓ Connected             │
 │                                 │
-│  [📷 Scan QR to join]           │
+│ DEVICES (3)                     │
+│ 🖥️ Kiosk 1 (this)    online    │
+│ 📱 Phone 1           online    │
+│ 📱 Phone 2           offline   │
 │                                 │
+│ MEMBERS (2)                     │
+│ 👤 jpshackelford (owner)        │
+│ 👤 alice            [Remove]    │
+│                                 │
+│ [Delete Workspace]              │
 └─────────────────────────────────┘
 ```
 
 **WebSocket messages:**
 ```typescript
-// Create new session
+// Device registers, server auto-assigns to session
+{ type: 'register', deviceId, displayName, view, workspaceId }
+
+// Server responds with session info
+{ type: 'registered', deviceId, session: { id, name } }
+
+// Create new session (switch to it)
 { type: 'create-session', name?: string }
 
-// Server confirms, device auto-joins
-{ type: 'session-created', session: { id, name, createdAt } }
-
-// Join existing session
-{ type: 'join-session', sessionId: string }
-
-// Leave session (back to lobby)
-{ type: 'leave-session' }
-
-// Switch session (leave current + join new)
+// Switch to different session
 { type: 'switch-session', sessionId: string }
 
-// Cast session to a kiosk
+// Cast current session to a kiosk
 { type: 'cast-session', targetDeviceId: string }
 
-// Server notifies kiosk it's been cast to
-{ type: 'session-cast', session: { id, name }, byUser: string }
-
-// End session (owner only, archives it)
+// End session (owner only)
 { type: 'end-session', sessionId: string }
 
-// Server notifies all devices in session
-{ type: 'session-ended', sessionId: string, endedBy: string }
-
-// Session list update (broadcast to lobby devices)
-{ type: 'session-list', sessions: [{ id, name, deviceCount, createdAt }] }
+// Server broadcasts session changes
+{ type: 'session-update', session: { id, name, deviceCount } }
+{ type: 'session-ended', sessionId, endedBy }
+{ type: 'session-cast', session: { id, name }, byUser }
 ```
 
 **API endpoints:**
 ```
 POST   /api/workspaces/:id/sessions              # Create session
-GET    /api/workspaces/:id/sessions              # List active sessions
-GET    /api/workspaces/:id/sessions/:sid         # Get session details
+GET    /api/workspaces/:id/sessions              # List active sessions  
 DELETE /api/workspaces/:id/sessions/:sid         # End/archive session
-POST   /api/workspaces/:id/sessions/:sid/join    # Join session (returns session data)
 POST   /api/workspaces/:id/sessions/:sid/cast    # Cast to device
 ```
 
