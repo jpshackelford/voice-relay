@@ -5,16 +5,8 @@ import { DeviceSetup } from '../components/DeviceSetup';
 import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { generateUUID } from '../utils/uuid';
-import { generateDefaultDeviceName } from '../utils/deviceName';
-import { 
-  getStoredDeviceToken, 
-  storeDeviceToken, 
-  validateDeviceToken,
-  clearDeviceToken,
-  storeSessionDeviceId,
-  getSessionDeviceId,
-} from '../utils/deviceToken';
+import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
+import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { getUserFriendlyMessage } from '../utils/errors';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
 
@@ -26,106 +18,48 @@ interface WorkspaceInfo {
   joinCode?: string;
 }
 
-/**
- * Get device ID, preferring session storage but falling back to stored token.
- */
-function getOrCreateDeviceId(): string {
-  // First check session storage (for current tab)
-  let id = getSessionDeviceId();
-  if (id) return id;
-  
-  // Check if we have a stored device token
-  const storedDevice = getStoredDeviceToken();
-  if (storedDevice?.deviceId) {
-    storeSessionDeviceId(storedDevice.deviceId);
-    return storedDevice.deviceId;
-  }
-  
-  // Generate new ID
-  id = generateUUID();
-  storeSessionDeviceId(id);
-  return id;
-}
-
-function getOrCreateDisplayName(): string {
-  let name = sessionStorage.getItem('displayName');
-  if (!name) {
-    // Check stored device
-    const storedDevice = getStoredDeviceToken();
-    if (storedDevice?.name) {
-      name = storedDevice.name;
-    } else {
-      name = generateDefaultDeviceName();
-    }
-    sessionStorage.setItem('displayName', name);
-  }
-  return name;
-}
-
-function getStoredMode(): DeviceMode | null {
-  // Check stored device for mode
-  const storedDevice = getStoredDeviceToken();
-  if (storedDevice?.mode) {
-    return storedDevice.mode;
-  }
-  return null;
-}
-
 export function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
+  // Device restoration hook handles token validation and session restoration
+  const {
+    deviceId,
+    displayName,
+    restoredMode,
+    deviceToken,
+    wasRestored,
+    isValidating: deviceTokenValidating,
+    setDisplayName,
+  } = useDeviceRestoration(workspaceId);
+
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  const [deviceTokenValidating, setDeviceTokenValidating] = useState(false);
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
 
-  const [deviceId] = useState(getOrCreateDeviceId);
-  const [deviceToken, setDeviceToken] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState(getOrCreateDisplayName);
-  const [mode, setMode] = useState<DeviceMode | null>(getStoredMode);
+  // Mode state - use restored mode if available, otherwise null until setup
+  const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
 
+  // Apply restored mode when available
+  useEffect(() => {
+    if (restoredMode && !mode) {
+      setMode(restoredMode);
+    }
+  }, [restoredMode, mode]);
+
+  // Show reconnect banner when device was restored
+  useEffect(() => {
+    if (wasRestored) {
+      setShowReconnectBanner(true);
+    }
+  }, [wasRestored]);
+
   // TODO: Implement session-specific history loading using URL params
   // e.g., const sessionIdFromUrl = new URLSearchParams(window.location.search).get('session');
-
-  // Validate stored device token on mount
-  useEffect(() => {
-    async function checkDeviceToken() {
-      const storedDevice = getStoredDeviceToken();
-      if (!storedDevice?.deviceToken || storedDevice.workspaceId !== workspaceId) {
-        return;
-      }
-
-      setDeviceTokenValidating(true);
-      try {
-        const validatedDevice = await validateDeviceToken();
-        if (validatedDevice && validatedDevice.workspaceId === workspaceId) {
-          console.log('[Workspace] Device token validated, restoring session');
-          setDeviceToken(storedDevice.deviceToken);
-          // Restore mode from validated device if available
-          if (validatedDevice.mode && !mode) {
-            setMode(validatedDevice.mode);
-          }
-          setShowReconnectBanner(true);
-        } else {
-          // Token invalid for this workspace
-          clearDeviceToken();
-        }
-      } catch (err) {
-        console.error('[Workspace] Device token validation failed:', err);
-      } finally {
-        setDeviceTokenValidating(false);
-      }
-    }
-
-    if (workspaceId) {
-      checkDeviceToken();
-    }
-  }, [workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch workspace info to validate access
   useEffect(() => {
@@ -221,13 +155,6 @@ export function Workspace() {
     onHistoryMessage: handleHistoryMessage,
     onDisplayMessage: handleDisplayMessage,
   });
-
-  // Store display name in session
-  useEffect(() => {
-    if (displayName) {
-      sessionStorage.setItem('displayName', displayName);
-    }
-  }, [displayName]);
 
   const handleSetup = async (name: string, selectedMode: DeviceMode) => {
     setDisplayName(name);
