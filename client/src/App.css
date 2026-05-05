@@ -1274,3 +1274,474 @@ header {
   font-size: 0.75rem;
   margin: 0.25rem 0.5rem;
 }
+
+/* ========================================
+   Login Page
+   ======================================== */
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.login-card {
+  max-width: 400px;
+  width: 100%;
+  background: #16213e;
+  border-radius: 16px;
+  padding: 2.5rem;
+  text-align: center;
+  border: 1px solid #333;
+}
+
+.login-card h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.login-subtitle {
+  color: #888;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.login-error {
+  background: #4a1515;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  color: #ff6b6b;
+  font-size: 0.875rem;
+}
+
+.github-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: #24292e;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.github-login-btn:hover {
+  background: #2f363d;
+  transform: translateY(-1px);
+}
+
+.github-login-btn svg {
+  flex-shrink: 0;
+}
+
+.login-note {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+/* ========================================
+   Dashboard
+   ======================================== */
+
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+.dashboard-title h1 {
+  font-size: 1.5rem;
+}
+
+.dashboard-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #333;
+}
+
+.user-name {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.logout-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn.primary {
+  background: #3282b8;
+  color: #fff;
+}
+
+.action-btn.primary:hover {
+  background: #0f4c75;
+}
+
+.action-btn.secondary {
+  background: #333;
+  color: #fff;
+}
+
+.action-btn.secondary:hover {
+  background: #444;
+}
+
+.action-btn.tertiary {
+  background: transparent;
+  color: #888;
+  border: 1px solid #333;
+}
+
+.action-btn.tertiary:hover {
+  background: #222;
+  color: #fff;
+}
+
+.form-card {
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.form-card input[type="text"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #0a0a15;
+  color: #fff;
+  outline: none;
+  margin-bottom: 0.75rem;
+}
+
+.form-card input[type="text"]:focus {
+  border-color: #3282b8;
+}
+
+.form-error {
+  color: #ff6b6b;
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.form-buttons button {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-buttons button[type="submit"] {
+  background: #3282b8;
+  color: #fff;
+}
+
+.form-buttons button[type="submit"]:hover:not(:disabled) {
+  background: #0f4c75;
+}
+
+.form-buttons button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-buttons button[type="button"] {
+  background: #333;
+  color: #aaa;
+}
+
+.form-buttons button[type="button"]:hover:not(:disabled) {
+  background: #444;
+  color: #fff;
+}
+
+.dashboard-error {
+  background: #4a1515;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  color: #ff6b6b;
+}
+
+.workspaces-list h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #888;
+  font-weight: 400;
+}
+
+.no-workspaces {
+  background: #16213e;
+  border: 2px dashed #333;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  color: #666;
+}
+
+.no-workspaces p {
+  margin-bottom: 0.5rem;
+}
+
+.workspace-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.workspace-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  transition: all 0.2s;
+}
+
+.workspace-card:hover {
+  border-color: #3282b8;
+}
+
+.workspace-info h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.workspace-meta {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.owner-badge {
+  color: #3282b8;
+  background: rgba(50, 130, 184, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.member-badge {
+  color: #888;
+  background: rgba(136, 136, 136, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.join-code {
+  color: #666;
+  font-family: monospace;
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.enter-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: #3282b8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.enter-btn:hover {
+  background: #0f4c75;
+}
+
+.delete-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background: transparent;
+  color: #666;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  background: #4a1515;
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+.dashboard-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  color: #888;
+}
+
+/* ========================================
+   Workspace Page
+   ======================================== */
+
+.workspace-loading,
+.workspace-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  color: #888;
+}
+
+.workspace-error h2 {
+  color: #ff6b6b;
+  font-weight: 400;
+}
+
+.workspace-error button {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.workspace-error button:hover {
+  background: #444;
+}
+
+.workspace-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+.back-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  background: transparent;
+  color: #888;
+  border: 1px solid #333;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+.workspace-name {
+  font-size: 1.1rem;
+  color: #ccc;
+}
+
+/* ========================================
+   Loading Page
+   ======================================== */
+
+.loading-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.loading-spinner {
+  color: #888;
+  font-size: 1.1rem;
+}
