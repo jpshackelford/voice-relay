@@ -216,9 +216,7 @@ export function KioskMode({
   );
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
-  const chatDevices = devices.filter(d => d.mode === 'chat');
-  const inputDevices = devices.filter(d => d.mode === 'input');
-  const outputDevices = devices.filter(d => d.mode === 'output');
+  const mobileDevices = devices.filter(d => d.mode === 'mobile');
 
   // On mobile, render a simplified conversation-only view
   if (isMobile) {
@@ -231,7 +229,7 @@ export function KioskMode({
               {connected ? '● Connected' : '○ Disconnected'}
             </span>
           </div>
-          <button className="exit-kiosk" onClick={() => onModeChange('chat')} title="Exit kiosk mode">
+          <button className="exit-kiosk" onClick={() => onModeChange('mobile')} title="Exit kiosk mode">
             ✕
           </button>
         </header>
@@ -322,7 +320,7 @@ export function KioskMode({
             <button className="drawer-toggle" onClick={() => setDrawerOpen(false)} title="Close drawer">
               ◀
             </button>
-            <button className="exit-kiosk" onClick={() => onModeChange('chat')} title="Exit kiosk mode">
+            <button className="exit-kiosk" onClick={() => onModeChange('mobile')} title="Exit kiosk mode">
               ✕
             </button>
           </div>
@@ -332,14 +330,8 @@ export function KioskMode({
           {kioskDevices.length > 0 && (
             <span className="participant-group">🖥️ {kioskDevices.length}</span>
           )}
-          {chatDevices.length > 0 && (
-            <span className="participant-group">💬 {chatDevices.length}</span>
-          )}
-          {inputDevices.length > 0 && (
-            <span className="participant-group">📤 {inputDevices.length}</span>
-          )}
-          {outputDevices.length > 0 && (
-            <span className="participant-group">📥 {outputDevices.length}</span>
+          {mobileDevices.length > 0 && (
+            <span className="participant-group">📱 {mobileDevices.length}</span>
           )}
         </div>
 

@@ -182,43 +182,34 @@ export function MobileMode({
     (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
   );
 
-  const chatDevices = devices.filter(d => d.mode === 'chat');
-  const inputDevices = devices.filter(d => d.mode === 'input');
-  const outputDevices = devices.filter(d => d.mode === 'output');
+  const mobileDevices = devices.filter(d => d.mode === 'mobile');
+  const kioskDevices = devices.filter(d => d.mode === 'kiosk');
 
   return (
     <div className="mobile-mode">
       <header>
         <div className="device-info">
-          <span className="device-name">💬 {displayName}</span>
+          <span className="device-name">📱 {displayName}</span>
           <span className={`connection-status ${connected ? 'connected' : ''}`}>
             {connected ? '● Connected' : '○ Disconnected'}
           </span>
         </div>
         <div className="mode-buttons">
-          <button className="mode-switch" onClick={() => onModeChange('input')}>
-            📤 Input
-          </button>
-          <button className="mode-switch" onClick={() => onModeChange('output')}>
-            📥 Output
+          <button className="mode-switch" onClick={() => onModeChange('kiosk')}>
+            🖥️ Kiosk
           </button>
         </div>
       </header>
 
       <div className="mobile-participants">
-        {chatDevices.length > 0 && (
+        {mobileDevices.length > 0 && (
           <span className="participant-group">
-            💬 {chatDevices.length} chatter{chatDevices.length !== 1 ? 's' : ''}
+            📱 {mobileDevices.length} mobile{mobileDevices.length !== 1 ? 's' : ''}
           </span>
         )}
-        {inputDevices.length > 0 && (
+        {kioskDevices.length > 0 && (
           <span className="participant-group">
-            📤 {inputDevices.length} sender{inputDevices.length !== 1 ? 's' : ''}
-          </span>
-        )}
-        {outputDevices.length > 0 && (
-          <span className="participant-group">
-            📥 {outputDevices.length} receiver{outputDevices.length !== 1 ? 's' : ''}
+            🖥️ {kioskDevices.length} kiosk{kioskDevices.length !== 1 ? 's' : ''}
           </span>
         )}
       </div>
