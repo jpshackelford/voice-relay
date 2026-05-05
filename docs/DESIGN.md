@@ -24,14 +24,15 @@ An isolated environment owned by a user. Contains devices and sessions. Think of
 - Owner provides their own OpenHands API key (encrypted in DB)
 
 ### 1.3 Device
-A browser tab/app instance connected to a workspace. Two view types:
+A browser tab/app instance connected to a workspace. Three views:
 
 | View | Description | Use Case |
 |------|-------------|----------|
-| **Kiosk** | Stationary display with large content area + chat sidebar | Wall-mounted screen, tablet on stand, presentation display |
-| **Mobile** | Compact chat-focused interface | Phone, handheld device, quick input |
+| **Kiosk** | Large display area + collapsible conversation sidebar | Wall-mounted screen, tablet on stand |
+| **Mobile** | Conversation view + voice recording buttons, no display area | Phone, handheld device |
+| **Settings** | Workspace management (devices, sessions, API key) | Owner configuration |
 
-Both views can send AND receive messages. The difference is UI layout, not capability.
+Kiosk and Mobile can send AND receive messages. Settings is for management only.
 
 ### 1.4 Session
 An active voice interaction period within a workspace. Sessions track:
@@ -518,12 +519,12 @@ ws://host/ws?token=<jwt_or_device_token>&workspace=<workspace_id>
 ```
 src/
 ├── components/
-│   ├── KioskMode.tsx       # Full-screen kiosk display
-│   ├── MobileMode.tsx      # Compact mobile chat
-│   ├── DeviceSetup.tsx     # Device name/mode selection
+│   ├── KioskMode.tsx       # Full-screen kiosk display + sidebar
+│   ├── MobileMode.tsx      # Compact conversation + voice buttons
+│   ├── SettingsView.tsx    # Workspace management
+│   ├── DeviceSetup.tsx     # Device name/view selection
 │   ├── QRCode.tsx          # QR code for mobile join
-│   ├── Dashboard.tsx       # Workspace list
-│   └── WorkspaceSettings.tsx
+│   └── JoinRequest.tsx     # Approval modal for kiosk
 ├── hooks/
 │   ├── useAuth.ts          # Authentication state
 │   ├── useWebSocket.ts     # WebSocket connection
@@ -532,6 +533,68 @@ src/
 │   └── useAI.ts
 └── types.ts
 ```
+
+### 7.3 Settings View
+
+Accessible via gear icon on kiosk/mobile, or directly at `/workspace/:slug/settings`.
+
+**Owner only** - workspace members cannot access settings.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ⚙️ Workspace Settings                          [Back] │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  WORKSPACE                                              │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Name: [My Workspace          ]                  │   │
+│  │ Slug: my-workspace (read-only)                  │   │
+│  │ Join URL: https://app.example.com/join/abc123   │   │
+│  │           [Show QR Code]                        │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  AI ASSISTANT                                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ OpenHands API Key:                              │   │
+│  │ [••••••••••••••••••••••] [Save] [Clear]        │   │
+│  │ Status: ✓ Connected / ✗ Not configured         │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  DEVICES (3 connected)                                  │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ 🖥️ Living Room Kiosk    online   [Rename] [×]  │   │
+│  │ 📱 John's iPhone        online   [Rename] [×]  │   │
+│  │ 📱 Kitchen Tablet       offline  [Rename] [×]  │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  MEMBERS (2)                                            │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ 👤 jpshackelford (owner)                        │   │
+│  │ 👤 alice         member since May 1   [Remove] │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  SESSIONS                                               │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ May 5, 2025 10:30am - 11:45am  (3 devices)     │   │
+│  │ May 4, 2025 2:00pm - 2:30pm    (2 devices)     │   │
+│  │ [Load more...]                                  │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  DANGER ZONE                                            │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ [Delete Workspace]                              │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Sections:**
+1. **Workspace** - Name, slug, join URL/QR
+2. **AI Assistant** - OpenHands API key (masked input), connection status
+3. **Devices** - List connected/offline devices, rename/remove
+4. **Members** - List workspace members, remove (owner can't remove self)
+5. **Sessions** - Historical session list with timestamps
+6. **Danger Zone** - Delete workspace (requires confirmation)
 
 ---
 
