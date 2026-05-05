@@ -6,6 +6,8 @@ export const migration: Migration = {
   
   up: `
     ALTER TABLE messages ADD COLUMN workspace_id TEXT;
+    -- Migrate existing messages to 'default' workspace for backward compatibility
+    UPDATE messages SET workspace_id = 'default' WHERE workspace_id IS NULL;
     CREATE INDEX IF NOT EXISTS idx_messages_workspace_id ON messages(workspace_id);
   `,
   
