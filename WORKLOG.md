@@ -1421,3 +1421,24 @@ page.getByRole('heading', { name: /devices/i })
 **Thread Status:** Both review threads replied to and resolved ✅
 
 ---
+
+### 2026-05-06 19:10 UTC - Merge Worker
+
+✅ **Merged: PR #32 - Fix Playwright strict mode violation**
+
+- PR: [#32 - fix(e2e): resolve Playwright strict mode violation in dashboard test](https://github.com/jpshackelford/voice-relay/pull/32)
+- Issue: [#30 - fix(smoke): dashboard test fails due to Playwright strict mode violation](https://github.com/jpshackelford/voice-relay/issues/30) → **CLOSED** ✅
+- Merge: Squash merged to main
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**What Was Fixed:**
+The smoke test was using `.or()` to match either Devices or Sessions heading, but both headings exist on the workspace home page, causing Playwright strict mode error. Simplified to check only the Devices heading which is always present.
+
+**Changes Merged:**
+- `tests/smoke/smoke.spec.ts` - Removed `.or()` matcher
+
+**Verification:**
+- CI: All checks passing ✅
+- Issue #30 auto-closed via "Fixes #30" in commit message
+
+---
