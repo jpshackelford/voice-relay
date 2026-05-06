@@ -979,3 +979,25 @@ Move `deviceRepository.registerOrUpdate()` to **before** `sessionRepository.addD
 **Note:** Issue #23 (critical messaging bug) is marked `ready` but has no priority label yet. Should be prioritized as `priority:high` after PR #25 merge since it affects core functionality.
 
 ---
+### 2026-05-06 16:10 UTC - Merge Worker (`dbca042`)
+
+✅ **Merged: PR #25 - feat: exit kiosk mode navigates to workspace home**
+
+- PR: [#25](https://github.com/jpshackelford/voice-relay/pull/25)
+- Issue: [#21](https://github.com/jpshackelford/voice-relay/issues/21) - Closed automatically via "Fixes #21"
+- Commit: Squash merged to main
+
+**Summary:**
+When in kiosk mode, clicking the exit button (✕) now navigates to the workspace home (`/workspace/:workspaceId`) instead of toggling to mobile mode. This provides a more intuitive UX where "exit" means leaving the session.
+
+**Changes Merged:**
+- Added `onExit` optional prop to `KioskMode` component
+- Updated desktop sidebar and mobile header exit buttons to use `onExit?.()`
+- Added `handleExit` callback in `SessionView` to navigate to workspace
+- Comprehensive unit tests for exit functionality (7 new tests)
+
+**Migration Status:** No database changes - safe for production
+
+**Deployment:** Auto-deploying to vr.chorecraft.net
+
+---
