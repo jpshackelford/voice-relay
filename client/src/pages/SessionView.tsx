@@ -5,11 +5,9 @@ import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
+import { useResourceFetch } from '../hooks/useResourceFetch';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
-import { getUserFriendlyMessage } from '../utils/errors';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
-
-// Note: getStoredDeviceToken and storeDeviceToken are used for mode persistence
 
 interface WorkspaceInfo {
   id: string;
@@ -64,12 +62,6 @@ export function SessionView() {
     isValidating: deviceTokenValidating,
   } = useDeviceRestoration(workspaceId);
 
-  const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
-  const [session, setSession] = useState<SessionInfo | null>(null);
-  const [workspaceLoading, setWorkspaceLoading] = useState(true);
-  const [sessionLoading, setSessionLoading] = useState(true);
-  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
 
   // Auto-detect mode based on screen size
@@ -77,6 +69,40 @@ export function SessionView() {
   const [mode, setMode] = useState<DeviceMode>(autoMode);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+
+  // Memoize extractors to avoid unnecessary re-fetches
+  const extractWorkspace = useCallback((data: unknown) => data as WorkspaceInfo, []);
+  const extractSession = useCallback((data: unknown) => (data as { session: SessionInfo }).session, []);
+
+  // Fetch workspace using shared hook
+  const {
+    data: workspace,
+    loading: workspaceLoading,
+    error: workspaceError,
+  } = useResourceFetch<WorkspaceInfo>({
+    url: workspaceId && isAuthenticated ? `/api/workspaces/${workspaceId}` : null,
+    extractData: extractWorkspace,
+    notFoundMessage: 'Workspace not found',
+    forbiddenMessage: 'You do not have access to this workspace',
+    failurePrefix: 'Failed to load workspace',
+    ensureAuth: ensureValidToken,
+    enabled: !!workspaceId && isAuthenticated,
+  });
+
+  // Fetch session using shared hook - only after workspace loads
+  const {
+    data: session,
+    loading: sessionLoading,
+    error: sessionError,
+  } = useResourceFetch<SessionInfo>({
+    url: workspaceId && sessionId && workspace ? `/api/workspaces/${workspaceId}/sessions/${sessionId}` : null,
+    extractData: extractSession,
+    notFoundMessage: 'Session not found',
+    forbiddenMessage: 'You do not have access to this session',
+    failurePrefix: 'Failed to load session',
+    ensureAuth: ensureValidToken,
+    enabled: !!workspaceId && !!sessionId && isAuthenticated && !!workspace,
+  });
 
   // Sync mode with auto-detected mode
   useEffect(() => {
@@ -89,86 +115,6 @@ export function SessionView() {
       setShowReconnectBanner(true);
     }
   }, [wasRestored]);
-
-  // Fetch workspace info to validate access
-  useEffect(() => {
-    async function fetchWorkspace() {
-      if (!workspaceId || !isAuthenticated) {
-        setWorkspaceLoading(false);
-        return;
-      }
-
-      try {
-        await ensureValidToken();
-
-        const res = await fetch(`/api/workspaces/${workspaceId}`, {
-          credentials: 'include',
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setWorkspace(data);
-          setWorkspaceError(null);
-        } else if (res.status === 404) {
-          setWorkspaceError('Workspace not found');
-        } else if (res.status === 403) {
-          setWorkspaceError('You do not have access to this workspace');
-        } else if (res.status === 401) {
-          setWorkspaceError('Session expired. Please log in again.');
-        } else {
-          const errorData = await res.json().catch(() => null);
-          setWorkspaceError(getUserFriendlyMessage(errorData || 'Failed to load workspace'));
-        }
-      } catch (err) {
-        console.error('Failed to fetch workspace:', err);
-        setWorkspaceError(getUserFriendlyMessage(err as Error));
-      } finally {
-        setWorkspaceLoading(false);
-      }
-    }
-
-    fetchWorkspace();
-  }, [workspaceId, isAuthenticated, ensureValidToken]);
-
-  // Fetch session info
-  useEffect(() => {
-    async function fetchSession() {
-      if (!workspaceId || !sessionId || !isAuthenticated || !workspace) {
-        setSessionLoading(false);
-        return;
-      }
-
-      try {
-        await ensureValidToken();
-
-        const res = await fetch(`/api/workspaces/${workspaceId}/sessions/${sessionId}`, {
-          credentials: 'include',
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setSession(data.session);
-          setSessionError(null);
-        } else if (res.status === 404) {
-          setSessionError('Session not found');
-        } else if (res.status === 403) {
-          setSessionError('You do not have access to this session');
-        } else {
-          const errorData = await res.json().catch(() => null);
-          setSessionError(getUserFriendlyMessage(errorData || 'Failed to load session'));
-        }
-      } catch (err) {
-        console.error('Failed to fetch session:', err);
-        setSessionError(getUserFriendlyMessage(err as Error));
-      } finally {
-        setSessionLoading(false);
-      }
-    }
-
-    if (workspace) {
-      fetchSession();
-    }
-  }, [workspaceId, sessionId, isAuthenticated, workspace, ensureValidToken]);
 
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {
