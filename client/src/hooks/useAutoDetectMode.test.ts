@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { useState, useEffect } from 'react';
+
+const KIOSK_BREAKPOINT = 768;
 
 /**
  * Auto-detect mode based on screen width.
  * Extracted from SessionView for testing.
  */
 function useAutoDetectMode(): 'mobile' | 'kiosk' {
-  const KIOSK_BREAKPOINT = 768;
-  const { useState, useEffect } = require('react');
-  
   const [mode, setMode] = useState<'mobile' | 'kiosk'>(() =>
     window.innerWidth >= KIOSK_BREAKPOINT ? 'kiosk' : 'mobile'
   );
