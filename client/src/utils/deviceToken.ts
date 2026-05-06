@@ -107,7 +107,10 @@ export function getStoredDeviceToken(): StoredDeviceInfo | null {
       if (migrationSucceeded) {
         // Only delete the cookie if localStorage migration succeeded
         // This ensures the cookie remains as a safety net if localStorage is disabled/full
-        document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        // Include secure flag on HTTPS to ensure proper cookie deletion
+        const isSecure = window.location.protocol === 'https:';
+        const secureFlag = isSecure ? ' secure;' : '';
+        document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secureFlag}`;
       } else {
         console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
       }
