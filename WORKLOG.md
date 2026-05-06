@@ -1226,3 +1226,67 @@ When a new user authenticates and a default workspace is created, their authenti
 
 ---
 
+
+### 2026-05-06 18:04 UTC - Expansion Worker
+
+✅ **Expanded Issue #28**
+
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`
+
+**Summary:**
+Added technical detail for improving kiosk display UX when mobile devices join a session. Currently the large QR code remains displayed even after devices have connected.
+
+**Enhancement Details:**
+1. When no mobile devices are connected → Show large centered QR code (current behavior)
+2. When 1+ mobile devices join → Transition QR to small (~90px) thumbnail in lower-right corner
+3. Display greeting message in main canvas area
+4. If all mobile devices disconnect → Return to large QR state
+
+**Technical Approach:**
+- Uses existing `devices` prop from WebSocket device-list messages
+- Derives `hasMobileConnected` from `devices.filter(d => d.mode === 'mobile').length > 0`
+- Client-side only - no server changes needed
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add conditional display logic
+- `client/src/components/QRCode.tsx` - Potentially add compact variant
+- `client/src/App.css` - Add `.display-greeting`, `.mini-qr-overlay` styles
+
+**Complexity:** Low
+
+---
+
+### 2026-05-06 18:04 UTC - Expansion Worker
+
+✅ **Expanded Issue #28**
+
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`
+
+**Summary:**
+Added technical detail for improving kiosk display UX when mobile devices join a session. Currently the large QR code remains displayed even after devices have connected.
+
+**Enhancement Details:**
+1. When no mobile devices are connected → Show large centered QR code (current behavior)
+2. When 1+ mobile devices join → Transition QR to small (~90px) thumbnail in lower-right corner
+3. Display greeting message in main canvas area
+4. If all mobile devices disconnect → Return to large QR state
+
+**Technical Approach:**
+- Uses existing `devices` prop from WebSocket device-list messages
+- Derives `hasMobileConnected` from `devices.filter(d => d.mode === 'mobile').length > 0`
+- Client-side only - no server changes needed
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add conditional display logic
+- `client/src/components/QRCode.tsx` - Potentially add compact variant
+- `client/src/App.css` - Add `.display-greeting`, `.mini-qr-overlay` styles
+
+**Complexity:** Low
+
+---
