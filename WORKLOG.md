@@ -1052,3 +1052,27 @@ Critical bug where all message sending fails due to FK constraint violation. The
 - Spawned implementation worker to fix the ordering bug in `server/src/index.ts`
 
 ---
+
+### 2026-05-06 16:40 UTC - Implementation Worker (`11b6dcd`)
+
+✅ **Completed: PR #26 - Fix Session Device FK Constraint**
+
+- Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23)
+- PR: [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+- Status: Ready for review
+
+**Work Done:**
+1. Fixed ordering bug: moved `deviceRepository.registerOrUpdate()` to execute **before** `sessionRepository.addDevice()` to satisfy the FK constraint
+2. Added regression test documenting the FK constraint requirement
+3. All unit tests pass (334 tests including new one)
+4. TypeScript compiles without errors
+5. CI green ✅
+
+**Files Changed:**
+- `server/src/index.ts` - Reordered device registration before session membership
+- `server/src/sessions/session-repository.test.ts` - Added FK constraint test
+
+**Root Cause Summary:**
+The `session_devices` table has `FOREIGN KEY (device_id) REFERENCES devices(id)`. When `addDevice()` was called before the device existed in the `devices` table, SQLite threw `SQLITE_CONSTRAINT_FOREIGNKEY`, silently breaking device registration and all message relay.
+
+---
