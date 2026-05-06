@@ -900,3 +900,25 @@ The exit button (✕) in KioskMode sidebar currently calls `onModeChange('mobile
 - Created priority labels: `priority:high`, `priority:medium`, `priority:low`
 
 ---
+### 2026-05-06 15:13 UTC - Implementation Worker (`0d030f0`)
+
+✅ **Completed: PR #25 - Exit Kiosk Mode Navigation**
+
+- Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+- PR: [#25 - feat: exit kiosk mode navigates to workspace home](https://github.com/jpshackelford/voice-relay/pull/25)
+- Status: Ready for review
+
+**Work Done:**
+1. Added `onExit` optional prop to KioskMode component
+2. Updated both desktop sidebar and mobile header exit buttons to use `onExit?.()` instead of mode toggle
+3. Added `handleExit` callback in SessionView that navigates to `/workspace/:workspaceId`
+4. Added comprehensive tests for KioskMode exit functionality (7 new tests)
+5. All unit tests pass (85 client tests, 333 server tests)
+6. CI green ✅
+
+**Files Changed:**
+- `client/src/components/KioskMode.tsx` - Add onExit prop, update exit buttons
+- `client/src/pages/SessionView.tsx` - Add handleExit callback
+- `client/src/components/KioskMode.test.tsx` - New test file
+
+---
