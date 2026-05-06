@@ -1,8 +1,23 @@
 import { Router, type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import type { WorkspaceRepository } from './workspace-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+
+// Rate limiter for auto-join endpoint to prevent enumeration/abuse
+const autoJoinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // limit each user to 10 auto-joins per window
+  message: { error: 'Too many join attempts, please try again later' },
+  // Use authenticated user ID for rate limiting (primary key)
+  // IP-based fallback disabled since this endpoint requires auth
+  keyGenerator: (req: Request) => req.user?.id || 'unauthenticated',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test', // Skip in tests
+  validate: { xForwardedForHeader: false }, // Disable IP-related validation since we use user ID
+});
 
 export interface WorkspaceRouterConfig {
   workspaceRepository: WorkspaceRepository;
@@ -192,7 +207,8 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   // Auto-join workspace by ID (for QR code session links)
   // Automatically adds the authenticated user as a member if they're not already
   // Security: Checks workspace's allowAutoJoin setting before allowing join
-  router.post('/:id/auto-join', auth, async (req: Request, res: Response) => {
+  // Rate limited to prevent workspace ID enumeration and bulk joining
+  router.post('/:id/auto-join', auth, autoJoinLimiter, async (req: Request, res: Response) => {
     try {
       const workspace = workspaceRepository.findById(req.params.id);
       
