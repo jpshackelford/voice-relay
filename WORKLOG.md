@@ -950,54 +950,79 @@ Move `deviceRepository.registerOrUpdate()` to **before** `sessionRepository.addD
 **Complexity:** Low (15 minutes)
 
 ---
-### 2026-05-06 16:04 UTC - Orchestrator
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `dbca042` | merge | PR #25 - Exit kiosk mode | **NEW** |
-| `6606a4a` | expansion | Issue #22 - Scan QR code | **NEW** |
+### 2026-05-06 16:05 UTC - Expansion Worker
 
-**Spawned: 2 Workers (parallel)**
+⚠️ **Issue #22 Needs Split** 
 
-1. **Merge Worker**
-   - PR: [#25 - feat: exit kiosk mode navigates to workspace home](https://github.com/jpshackelford/voice-relay/pull/25)
-   - Status: `oC green ready --` (all review feedback addressed, CI green, no unresolved threads)
-   - Conversation: [`dbca042`](https://app.all-hands.dev/conversations/dbca0421506a4b18b86bf3769fc6a7b6)
-   - Will close Issue #21 on merge
+- Issue: [Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
+- Type: Enhancement (mixed bug + feature)
+- Status: Labeled `needs-split` - recommend breaking into two issues
+- Labels: `needs-split`, `enhancement`
 
-2. **Expansion Worker**
-   - Issue: [#22 - Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
-   - Status: Needs technical analysis and acceptance criteria
-   - Conversation: [`6606a4a`](https://app.all-hands.dev/conversations/6606a4a89ab949ed907b3ac9223cab86)
+**Analysis:**
+Issue #22 describes two distinct problems that should be tracked separately:
 
-**Current State:**
-- [PR #25](https://github.com/jpshackelford/voice-relay/pull/25): Ready for merge
-- Issues needing expansion: #22 (now being expanded)
-- Ready issues: #20 (priority:medium), #21 (has PR #25), #23 (bug, needs priority)
+1. **Bug (Phase A)**: Owner's new device not registering after QR scan
+   - Investigation needed to find root cause
+   - May be OAuth redirect issue or WebSocket connection issue after auth
+   - Est: 2-4 hours
 
-**Note:** Issue #23 (critical messaging bug) is marked `ready` but has no priority label yet. Should be prioritized as `priority:high` after PR #25 merge since it affects core functionality.
+2. **Feature (Phase B)**: Pending join request approval flow for non-owners
+   - Requires new `workspace_join_requests` table
+   - New API endpoints for approve/deny
+   - New WebSocket messages for real-time approval
+   - New UI components for kiosk notification and mobile waiting state
+   - Documented in DESIGN.md Section 12
+   - Est: 2-3 days
+
+**Recommendation:**
+Split into:
+- Issue #22A: Bug - Owner's new device not registering after QR scan
+- Issue #22B: Feature - Pending join request approval flow
+
+**Files Documented:**
+- `server/src/workspaces/router.ts` - Auto-join endpoint
+- `server/src/index.ts` - Device registration via WebSocket
+- `client/src/hooks/useWorkspaceAutoJoin.ts` - Client-side auto-join
+- `docs/DESIGN.md` Section 12 - Spec for join request flow
 
 ---
-### 2026-05-06 16:10 UTC - Merge Worker (`dbca042`)
 
-✅ **Merged: PR #25 - feat: exit kiosk mode navigates to workspace home**
+### 2026-05-06 16:05 UTC - Expansion Worker
 
-- PR: [#25](https://github.com/jpshackelford/voice-relay/pull/25)
-- Issue: [#21](https://github.com/jpshackelford/voice-relay/issues/21) - Closed automatically via "Fixes #21"
-- Commit: Squash merged to main
+⚠️ **Issue #22 Needs Split**
 
-**Summary:**
-When in kiosk mode, clicking the exit button (✕) now navigates to the workspace home (`/workspace/:workspaceId`) instead of toggling to mobile mode. This provides a more intuitive UX where "exit" means leaving the session.
+- Issue: [Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
+- Type: Enhancement (mixed bug + feature)
+- Status: Labeled `needs-split` - recommend breaking into two issues
+- Labels: `needs-split`, `enhancement`
 
-**Changes Merged:**
-- Added `onExit` optional prop to `KioskMode` component
-- Updated desktop sidebar and mobile header exit buttons to use `onExit?.()`
-- Added `handleExit` callback in `SessionView` to navigate to workspace
-- Comprehensive unit tests for exit functionality (7 new tests)
+**Analysis:**
+Issue #22 describes two distinct problems that should be tracked separately:
 
-**Migration Status:** No database changes - safe for production
+1. **Bug (Phase A)**: Owner's new device not registering after QR scan
+   - Investigation needed to find root cause
+   - May be OAuth redirect issue or WebSocket connection issue after auth
+   - Est: 2-4 hours
 
-**Deployment:** Auto-deploying to vr.chorecraft.net
+2. **Feature (Phase B)**: Pending join request approval flow for non-owners
+   - Requires new `workspace_join_requests` table
+   - New API endpoints for approve/deny
+   - New WebSocket messages for real-time approval
+   - New UI components for kiosk notification and mobile waiting state
+   - Documented in DESIGN.md Section 12
+   - Est: 2-3 days
+
+**Recommendation:**
+Split into:
+- Issue #22A: Bug - Owner's new device not registering after QR scan
+- Issue #22B: Feature - Pending join request approval flow
+
+**Files Documented:**
+- `server/src/workspaces/router.ts` - Auto-join endpoint
+- `server/src/index.ts` - Device registration via WebSocket
+- `client/src/hooks/useWorkspaceAutoJoin.ts` - Client-side auto-join
+- `docs/DESIGN.md` Section 12 - Spec for join request flow
 
 ---
