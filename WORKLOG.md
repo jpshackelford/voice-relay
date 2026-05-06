@@ -794,3 +794,23 @@ When a new user authenticates and a default workspace is created, the device use
 **Note:** Smoke tests are important quality apparatus - PR #24 prioritized for immediate attention.
 
 ---
+### 2026-05-06 14:06 UTC - Fix Worker (81888ff)
+
+✅ **Fixed: PR #24 - Smoke Tests**
+
+**Problem:**
+- Conventional Commits check was failing
+- Error: "Unknown scope 'smoke' found in pull request title"
+- Allowed scopes: client, server, websocket, auth, db, tests, e2e, deps
+
+**Resolution:**
+- Changed PR title from `fix(smoke):...` to `fix(e2e):...`
+- Amended commit message to match
+- Force pushed to trigger new CI run
+- All checks now green ✅
+
+**PR Status:**
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): CI green, moved from draft to ready for review
+- Should be merged immediately after PR #19 to restore smoke test coverage
+
+---
