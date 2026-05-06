@@ -27,6 +27,7 @@ interface WorkspaceSettingsRow {
   tts_voice: string | null;
   stt_language: string | null;
   allow_auto_join: number;
+  require_qr_token: number;
   updated_at: string | null;
 }
 
@@ -58,6 +59,7 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     ttsVoice: row.tts_voice,
     sttLanguage: row.stt_language,
     allowAutoJoin: row.allow_auto_join === 1,
+    requireQrToken: row.require_qr_token === 1,
     updatedAt: row.updated_at,
   };
 }
@@ -252,7 +254,8 @@ export class WorkspaceRepository {
   getSettings(workspaceId: string): WorkspaceSettings | null {
     const stmt = this.db.prepare<[string], WorkspaceSettingsRow>(`
       SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
-             openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, updated_at
+             openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
+             require_qr_token, updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -268,6 +271,7 @@ export class WorkspaceRepository {
       ttsVoice?: string | null;
       sttLanguage?: string | null;
       allowAutoJoin?: boolean;
+      requireQrToken?: boolean;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
@@ -283,6 +287,7 @@ export class WorkspaceRepository {
             tts_voice = COALESCE(?, tts_voice),
             stt_language = COALESCE(?, stt_language),
             allow_auto_join = COALESCE(?, allow_auto_join),
+            require_qr_token = COALESCE(?, require_qr_token),
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -293,17 +298,19 @@ export class WorkspaceRepository {
         settings.ttsVoice ?? null,
         settings.sttLanguage ?? null,
         settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : null,
+        settings.requireQrToken !== undefined ? (settings.requireQrToken ? 1 : 0) : null,
         now,
         workspaceId
       );
     } else {
       // Insert with default allowAutoJoin = false for new workspaces (security-first)
       // Existing workspaces keep allowAutoJoin=true via migration default for backward compat
+      // requireQrToken defaults to false for backward compatibility
       const stmt = this.db.prepare(`
         INSERT INTO workspace_settings 
         (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
-         openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -313,6 +320,7 @@ export class WorkspaceRepository {
         settings.ttsVoice ?? null,
         settings.sttLanguage ?? null,
         settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : 0,
+        settings.requireQrToken !== undefined ? (settings.requireQrToken ? 1 : 0) : 0,
         now
       );
     }

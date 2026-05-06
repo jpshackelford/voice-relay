@@ -1,11 +1,13 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import type { SessionRepository } from './session-repository.js';
 import type { WorkspaceRepository } from '../workspaces/index.js';
+import type { QrTokenRepository } from '../qr-tokens/index.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
 export interface SessionRouterOptions {
   sessionRepository: SessionRepository;
   workspaceRepository: WorkspaceRepository;
+  qrTokenRepository?: QrTokenRepository;
   authConfig: AuthMiddlewareConfig;
 }
 
@@ -15,7 +17,8 @@ export interface SessionRouterOptions {
  */
 export function createSessionRouter({ 
   sessionRepository, 
-  workspaceRepository, 
+  workspaceRepository,
+  qrTokenRepository,
   authConfig 
 }: SessionRouterOptions): Router {
   const router = Router({ mergeParams: true });
@@ -175,6 +178,46 @@ export function createSessionRouter({
 
     sessionRepository.removeDevice(sessionId, deviceId);
     res.json({ success: true, message: 'Device removed from session' });
+  });
+
+  // Generate a signed, time-limited QR token for this session
+  // Used when workspace has requireQrToken=true for enhanced security
+  // The token is included in the QR code URL and validated on auto-join
+  router.post('/:sessionId/qr-token', auth, checkWorkspaceAccess, (req: Request, res: Response) => {
+    const { workspaceId, sessionId } = req.params;
+
+    if (!qrTokenRepository) {
+      res.status(503).json({ error: 'QR token generation not available' });
+      return;
+    }
+
+    const session = sessionRepository.findById(sessionId);
+    if (!session) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
+    // Generate a new QR token
+    const token = qrTokenRepository.create({
+      workspaceId,
+      sessionId,
+    });
+
+    // Build the full URL with the QR token
+    const { protocol, hostname, port } = req.headers;
+    // Use the origin from request headers or construct from host
+    const host = req.get('host') || 'localhost:3000';
+    const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
+    const baseUrl = `${proto}://${host}`;
+    const sessionUrl = `${baseUrl}/workspace/${workspaceId}/session/${sessionId}?qr=${token.token}`;
+
+    res.json({
+      token: token.token,
+      expiresAt: token.expiresAt,
+      url: sessionUrl,
+      workspaceId,
+      sessionId,
+    });
   });
 
   return router;

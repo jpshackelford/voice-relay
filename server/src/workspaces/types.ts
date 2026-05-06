@@ -27,6 +27,8 @@ export interface WorkspaceSettings {
   sttLanguage: string | null;
   /** Whether to allow auto-join via QR code links (default: true for backward compat) */
   allowAutoJoin: boolean;
+  /** Whether to require signed QR tokens for auto-join (default: false for backward compat) */
+  requireQrToken: boolean;
   updatedAt: string | null;
 }
 
@@ -35,6 +37,7 @@ export interface WorkspaceSettingsInput {
   ttsVoice?: string;
   sttLanguage?: string;
   allowAutoJoin?: boolean;
+  requireQrToken?: boolean;
 }
 
 export interface WorkspaceMember {

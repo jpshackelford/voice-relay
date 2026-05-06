@@ -4,6 +4,7 @@ import { WorkspaceRepository } from './workspace-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
+import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
 
 describe('WorkspaceRepository', () => {
   let db: Database.Database;
@@ -16,6 +17,21 @@ describe('WorkspaceRepository', () => {
     db.exec(usersMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
+    // Create sessions table (minimal version for QR tokens FK constraint)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        metadata TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+    `);
+    db.exec(qrTokensMigration.up);
     repo = new WorkspaceRepository(db);
 
     // Create a test user

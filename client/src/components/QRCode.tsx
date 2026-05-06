@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import QRCode from 'qrcode';
+import { useQrToken } from '../hooks/useQrToken';
 
 interface QRCodeDisplayProps {
   /** Size of the QR code in pixels */
@@ -14,10 +15,17 @@ interface QRCodeDisplayProps {
   showUrl?: boolean;
   /** Custom label above the QR code */
   label?: string;
+  /** 
+   * Enable signed, time-limited QR tokens for enhanced security.
+   * When true, the QR code URL will include a token that expires.
+   * Default: true for session URLs, to always include token if available.
+   */
+  useSignedToken?: boolean;
 }
 
 /**
  * Build a URL for QR code based on type of link.
+ * Note: For session URLs with requireQrToken, use the getQrUrl from useQrToken instead.
  */
 function buildQrUrl(options: {
   joinCode?: string;
@@ -59,17 +67,35 @@ export function QRCodeDisplay({
   sessionId,
   showUrl = true,
   label,
+  useSignedToken = true, // Default to true - always try to include tokens for sessions
 }: QRCodeDisplayProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [currentUrl, setCurrentUrl] = useState<string>('');
   const [isLocalhost, setIsLocalhost] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Use signed QR tokens for session URLs when enabled
+  // Tokens are generated server-side and auto-refresh before expiration
+  const { token, loading: tokenLoading, error: tokenError, getQrUrl, supported } = useQrToken({
+    workspaceId,
+    sessionId,
+    enabled: useSignedToken && !!sessionId && !!workspaceId, // Only for session URLs
+  });
+
+  // Determine the URL to encode
+  const currentUrl = useCallback((): string => {
+    // For session URLs, use the hook's URL builder (includes token if available)
+    if (sessionId && workspaceId) {
+      return getQrUrl();
+    }
+    // For non-session URLs (join codes, workspace-only), use standard builder
+    return buildQrUrl({ joinCode, workspaceId, sessionId });
+  }, [sessionId, workspaceId, joinCode, getQrUrl]);
+
+  // Generate QR code whenever URL changes
   useEffect(() => {
-    const url = buildQrUrl({ joinCode, workspaceId, sessionId });
-    setCurrentUrl(url);
     setIsLocalhost(isLocalNetwork());
     
+    const url = currentUrl();
     QRCode.toDataURL(url, {
       width: size,
       margin: 2,
@@ -80,11 +106,11 @@ export function QRCodeDisplay({
     })
       .then(setQrDataUrl)
       .catch(console.error);
-  }, [size, joinCode, workspaceId, sessionId]);
+  }, [size, currentUrl, token]); // Re-generate when token changes
 
   const copyToClipboard = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(currentUrl);
+      await navigator.clipboard.writeText(currentUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -92,12 +118,40 @@ export function QRCodeDisplay({
     }
   }, [currentUrl]);
 
+  // Show loading state while fetching initial token
+  // Only show if we're expecting a token and haven't loaded yet
+  if (useSignedToken && sessionId && tokenLoading && !token && !tokenError) {
+    return (
+      <div className="qr-code-container">
+        {label && <p className="qr-label">{label}</p>}
+        <div className="qr-loading" style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span>Generating secure QR...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // If token generation failed, we still show the QR code (graceful degradation)
+  // The server will validate/reject if requireQrToken is enabled
+
   if (!qrDataUrl) return null;
 
   return (
     <div className="qr-code-container">
       {label && <p className="qr-label">{label}</p>}
       <img src={qrDataUrl} alt="QR Code to connect" width={size} height={size} />
+      
+      {/* Show token expiration indicator when we have a signed token */}
+      {token && supported && (
+        <QrTokenExpiry expiresAt={token.expiresAt} />
+      )}
+      
+      {/* Show warning if token was expected but failed */}
+      {useSignedToken && sessionId && tokenError && (
+        <div className="qr-token-warning" style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+          ⚠️ Token unavailable
+        </div>
+      )}
       
       {joinCode && (
         <div className="join-code-display">
@@ -109,7 +163,7 @@ export function QRCodeDisplay({
       {showUrl && (
         <div className="qr-url-container">
           <p className="qr-url" onClick={copyToClipboard} title="Click to copy">
-            {currentUrl}
+            {currentUrl()}
           </p>
           {copied && <span className="copied-indicator">✓ Copied!</span>}
         </div>
@@ -120,6 +174,38 @@ export function QRCodeDisplay({
           💡 For mobile access, open this page using your computer's network IP
         </p>
       )}
+    </div>
+  );
+}
+
+/** Shows countdown until QR token expires */
+function QrTokenExpiry({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    const updateTimeLeft = () => {
+      const now = Date.now();
+      const expiry = new Date(expiresAt).getTime();
+      const diff = expiry - now;
+      
+      if (diff <= 0) {
+        setTimeLeft('Refreshing...');
+        return;
+      }
+      
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimeLeft();
+    const interval = setInterval(updateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  return (
+    <div className="qr-token-expiry" style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+      🔒 Valid for {timeLeft}
     </div>
   );
 }
