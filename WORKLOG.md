@@ -1361,3 +1361,34 @@ Added technical detail for improving kiosk display UX when mobile devices join a
 
 ---
 
+
+### 2026-05-06 18:40 UTC - Implementation Worker (`d20ea4c`)
+
+✅ **Completed: PR #32 - Fix Playwright strict mode violation**
+
+- Issue: [#30 - fix(smoke): dashboard test fails due to Playwright strict mode violation](https://github.com/jpshackelford/voice-relay/issues/30)
+- PR: [#32 - fix(e2e): resolve Playwright strict mode violation in dashboard test](https://github.com/jpshackelford/voice-relay/pull/32)
+- Status: Ready for review, CI green ✅
+
+**Work Done:**
+Fixed the Playwright strict mode violation in the smoke test that was blocking CI.
+
+**Problem:**
+The smoke test used `.or()` to match either 'Devices' or 'Sessions' heading:
+```typescript
+page.getByRole('heading', { name: /devices/i }).or(page.getByRole('heading', { name: /sessions/i }))
+```
+But **both** headings exist on the workspace home page, causing Playwright strict mode error.
+
+**Solution:**
+Simplified to check only the 'Devices' heading which is always present:
+```typescript
+page.getByRole('heading', { name: /devices/i })
+```
+
+**Files Changed:**
+- `tests/smoke/smoke.spec.ts` - Removed `.or()` matcher that caused strict mode violation
+
+**CI Status:** All checks passing ✅
+
+---
