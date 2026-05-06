@@ -814,3 +814,34 @@ When a new user authenticates and a default workspace is created, the device use
 - Should be merged immediately after PR #19 to restore smoke test coverage
 
 ---
+### 2026-05-06 14:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9d53325` | merge | PR #24 - fix(e2e): smoke test | **NEW** |
+| `3e48245` | expansion | Issue #21 - Exit kiosk mode | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#24 - fix(e2e): update dashboard test for WorkspaceHome redirect](https://github.com/jpshackelford/voice-relay/pull/24)
+   - CI green, no unresolved threads, ready to merge
+   - Conversation: [`9d53325`](https://app.all-hands.dev/conversations/9d53325bfd3b42adae3fbff7091a551e)
+
+2. **Expansion Worker**
+   - Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+   - Needs technical analysis and acceptance criteria
+   - Conversation: [`3e48245`](https://app.all-hands.dev/conversations/3e482459bdec455197c1e72972e04471)
+
+**Current State:**
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `oC green ready --` (merge in progress)
+- PR #19 (Issue #18) was merged at 14:06 UTC ✅
+- Issues needing expansion: #21 (now being expanded), #22, #23
+- Ready issues: #20 (Auto add first device)
+
+**What Changed Since Last Run:**
+- f8a7589 (merge worker for PR #19) completed → PR #19 merged, Issue #18 closed
+- 81888ff (review worker for PR #24) completed → PR #24 ready for merge
+
+---
