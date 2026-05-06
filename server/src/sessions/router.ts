@@ -1,8 +1,21 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
 import type { SessionRepository } from './session-repository.js';
 import type { WorkspaceRepository } from '../workspaces/index.js';
 import type { QrTokenRepository } from '../qr-tokens/index.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+
+// Rate limiter for QR token generation to prevent abuse/DoS.
+// Normal usage: tokens expire in 5 min, auto-refresh starts 30 sec before expiry → ~6 requests/5min
+// Limit of 10/min provides headroom for manual refreshes while preventing abuse.
+const qrTokenLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  limit: 10, // 10 tokens per minute per IP
+  message: { error: 'Too many token generation requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test', // Skip in tests
+});
 
 export interface SessionRouterOptions {
   sessionRepository: SessionRepository;
@@ -180,10 +193,18 @@ export function createSessionRouter({
     res.json({ success: true, message: 'Device removed from session' });
   });
 
-  // Generate a signed, time-limited QR token for this session
-  // Used when workspace has requireQrToken=true for enhanced security
-  // The token is included in the QR code URL and validated on auto-join
-  router.post('/:sessionId/qr-token', auth, checkWorkspaceAccess, (req: Request, res: Response) => {
+  // Generate a signed, time-limited QR token for this session.
+  // Used when workspace has requireQrToken=true for enhanced security.
+  // The token is included in the QR code URL and validated on auto-join.
+  //
+  // ACCESS: Any workspace member (not just owner) can generate tokens.
+  // THREAT MODEL: The primary goal is preventing *URL bookmarking/sharing* for unauthorized
+  // access (e.g., someone screenshots a QR code and uses it days later). The 5-minute TTL
+  // addresses this. Real-time token sharing by a malicious member is out of scope - if a
+  // member actively shares tokens with non-members, they could also just add them to the
+  // workspace. Owner-only restriction would limit legitimate use cases (e.g., any member
+  // projecting a QR code during a meeting).
+  router.post('/:sessionId/qr-token', auth, checkWorkspaceAccess, qrTokenLimiter, (req: Request, res: Response) => {
     const { workspaceId, sessionId } = req.params;
 
     if (!qrTokenRepository) {
