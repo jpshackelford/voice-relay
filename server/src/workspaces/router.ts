@@ -223,7 +223,12 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       if (!wasAlreadyMember) {
         // Check if auto-join is allowed for this workspace
         const settings = workspaceRepository.getSettings(workspace.id);
-        // Default to true if settings don't exist (backward compatibility)
+        // Security fallback behavior:
+        // - Old workspaces with settings: respect explicit setting (migration sets 1)
+        // - Old workspaces without settings: allow (backward compatibility, ?? true)
+        // - New workspaces: code sets allowAutoJoin=0 on creation (must opt-in)
+        // This means workspaces created before migration 007 default to allowing
+        // auto-join, while new workspaces require explicit enablement.
         const allowAutoJoin = settings?.allowAutoJoin ?? true;
         
         if (!allowAutoJoin) {
@@ -239,7 +244,13 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         }
 
         // Add user as member
-        workspaceRepository.addMember(workspace.id, req.user!.id);
+        try {
+          workspaceRepository.addMember(workspace.id, req.user!.id);
+        } catch (err) {
+          console.error('[Workspaces] Failed to add member:', err);
+          res.status(500).json({ error: 'Failed to join workspace. Please try again.' });
+          return;
+        }
         
         // Audit log for successful auto-join
         console.log('[Workspaces] Auto-join successful:', {
