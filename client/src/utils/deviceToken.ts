@@ -72,12 +72,17 @@ export function getServerSetDeviceToken(): StoredDeviceInfo | null {
 
 /**
  * Store device token after successful registration/login.
+ * Returns true if storage succeeded, false otherwise.
  */
-export function storeDeviceToken(info: StoredDeviceInfo): void {
+export function storeDeviceToken(info: StoredDeviceInfo): boolean {
   try {
     localStorage.setItem(DEVICE_TOKEN_KEY, JSON.stringify(info));
+    // Verify the write succeeded by reading back
+    const stored = localStorage.getItem(DEVICE_TOKEN_KEY);
+    return stored !== null;
   } catch (e) {
     console.error('[DeviceToken] Failed to store device token:', e);
+    return false;
   }
 }
 
@@ -98,9 +103,14 @@ export function getStoredDeviceToken(): StoredDeviceInfo | null {
     if (serverSetDevice) {
       // Migrate to localStorage for consistency
       console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
-      storeDeviceToken(serverSetDevice);
-      // Delete the cookie to minimize XSS exposure window
-      document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      const migrationSucceeded = storeDeviceToken(serverSetDevice);
+      if (migrationSucceeded) {
+        // Only delete the cookie if localStorage migration succeeded
+        // This ensures the cookie remains as a safety net if localStorage is disabled/full
+        document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      } else {
+        console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
+      }
       return serverSetDevice;
     }
     
