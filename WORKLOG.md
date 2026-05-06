@@ -961,3 +961,32 @@ Implemented per-workspace OpenHands API key configuration through the UI:
 - Ready issues: #31 (priority:high), #28, #33
 
 ---
+### 2026-05-06 22:37 UTC - Review Worker (`89f7f8b`)
+
+✅ **Addressed Review Feedback on PR #34**
+
+- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
+- Status: **Ready for review** ✅
+
+**Review Threads Addressed:**
+
+1. **🟠 Fixed salt in PBKDF2** → **Documented in 51466e6**
+   - Decision: Keep fixed salt, add comprehensive documentation
+   - Rationale: ENCRYPTION_SECRET is high-entropy (not a user password), IV provides unique ciphertext, per-key random salts would require schema changes
+   - Added clear comment explaining the security trade-off
+
+2. **🟡 Code duplication in index.ts** → **Fixed in f178ce5**
+   - Refactored to use `getWorkspaceApiKey` helper instead of inline decryption logic
+   - Eliminates duplicate try/catch and centralizes decryption
+
+3. **🟡 Dead code (getWorkspaceApiKey never used)** → **Fixed in f178ce5**
+   - Same commit - helper is now actively used in index.ts
+
+**Commits:**
+- `51466e6` - docs: document fixed salt security trade-off in encryption.ts
+- `f178ce5` - refactor: use getWorkspaceApiKey helper in AI connect endpoint
+
+**Tests:** All 376 tests passing ✅
+**All 3 review threads resolved.**
+
+---
