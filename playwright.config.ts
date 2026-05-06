@@ -6,6 +6,8 @@ const TEST_SERVER_PORT = 3002;
 
 export default defineConfig({
   testDir: './tests',
+  // Exclude smoke tests (they need auth state from production)
+  testIgnore: ['**/smoke/**'],
   timeout: 30000,
   retries: 0,
   use: {
