@@ -914,3 +914,55 @@ Implemented per-workspace OpenHands API key configuration through the UI:
   - #33 - Join code → join link
 - Blocked issues: #22 (needs-split)
 - No issues need expansion 🎉
+
+---
+### 2026-05-06 23:45 UTC - Implementation Worker (`80cc4b3`)
+
+✅ **Created: PR #35 - Automatic Rollback and Issue Filing on Smoke Test Failure**
+
+- Issue: [#31 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/issues/31)
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: **Ready for review** ✅
+
+**Work Done:**
+Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
+
+**New Jobs Added:**
+1. **`tag-success`** - Creates `deploy-success-{sha}` tag after successful smoke tests
+2. **`handle-failure`** - Runs when smoke tests fail on deploy:
+   - Finds last known good commit via git tags
+   - Ensures `ci-failure` and `critical` labels exist
+   - Creates a GitHub issue with failure details (commit SHA, workflow link, actor)
+   - Rolls back to last known good deployment via SSH
+   - Verifies rollback with health check
+   - Updates issue with critical label if rollback fails
+
+**Modified Jobs:**
+- **`smoke-tests`** - Added artifact upload for `test-results/` and `playwright-report/`
+
+**Also Fixed:**
+- Added `ci` to allowed scopes in `commit-lint.yml` for CI-related changes
+
+**Loop Prevention:**
+- Rollback verification uses health check only, not full smoke tests
+- If health check fails, issue is updated but no further retry occurs
+
+**Tests:** All CI checks passing ✅
+- Server Tests: 376 tests ✅
+- Build Client ✅
+- E2E Tests ✅
+- Conventional Commits ✅
+
+**Acceptance Criteria Met:**
+- [x] Smoke test failure creates GitHub issue with workflow link, commit SHA, actor
+- [x] Issue labeled with `bug`, `ci-failure`
+- [x] Last known good commit identified via git tags
+- [x] Automatic rollback to last known good version
+- [x] Rollback verified by health check
+- [x] No infinite loops on rollback failure (critical label added, no retry)
+- [x] Successful deployments tagged for future rollback reference
+
+**Learnings:**
+- Health check instead of full smoke tests for rollback verification prevents infinite loops
+- Labels must be created before use or issue creation will fail
+- `needs` array must include jobs whose outputs you want to access
