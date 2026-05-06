@@ -112,10 +112,10 @@ export function WorkspaceHome() {
   const { sessions, loading: sessionsLoading, createSession } = useSessions(workspaceId);
   const { devices, loading: devicesLoading, renameDevice } = useDevices(workspaceId);
 
-  // Redirect legacy bookmarks: /workspace/:id?session=X -> /workspace/:id/session?session=X
+  // Redirect legacy bookmarks: /workspace/:id?session=X -> /workspace/:id/session/X
   const sessionParam = searchParams.get('session');
   if (sessionParam) {
-    return <Navigate to={`/workspace/${workspaceId}/session?session=${sessionParam}`} replace />;
+    return <Navigate to={`/workspace/${workspaceId}/session/${sessionParam}`} replace />;
   }
   
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -167,8 +167,8 @@ export function WorkspaceHome() {
   }, [sessionsLoading, sessions.length, workspaceId, createSession]);
 
   const handleViewSession = (session: SessionSummary) => {
-    // Navigate to the session view
-    navigate(`/workspace/${workspaceId}/session?session=${session.id}`);
+    // Navigate to the direct session view URL
+    navigate(`/workspace/${workspaceId}/session/${session.id}`);
   };
 
   const handleNewSession = async () => {
