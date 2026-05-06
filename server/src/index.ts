@@ -330,6 +330,8 @@ wss.on('connection', (ws: WebSocket) => {
               const requestedSession = sessionRepository.findById(message.sessionId);
               if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
                 session = { id: requestedSession.id, name: requestedSession.name };
+              } else {
+                console.warn(`[WS] Invalid session ${message.sessionId} requested by ${deviceId}, using active session`);
               }
             }
             
