@@ -2590,3 +2590,131 @@ header {
   color: #666;
   margin-top: 0.25rem;
 }
+
+/* ========================================
+   F3: Session View - Connection Indicator
+   ======================================== */
+
+/* Plug icon connection indicator - always visible in lower-right */
+.connection-indicator {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  border-radius: 50%;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.connection-indicator.connected {
+  background: rgba(0, 200, 83, 0.2);
+  border: 2px solid #00c853;
+  box-shadow: 0 0 12px rgba(0, 200, 83, 0.4);
+}
+
+.connection-indicator.disconnected {
+  background: rgba(255, 68, 68, 0.2);
+  border: 2px solid #ff4444;
+  animation: pulse-disconnect 1.5s infinite;
+}
+
+@keyframes pulse-disconnect {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7; 
+    transform: scale(0.95);
+  }
+}
+
+/* In kiosk display area, adjust position */
+.kiosk-display .connection-indicator {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+}
+
+/* When AI status is shown, move connection indicator up */
+.kiosk-display .kiosk-ai-status + .connection-indicator,
+.kiosk-display .connection-indicator:has(+ .kiosk-ai-status) {
+  /* AI status takes the bottom-right, connection indicator above it */
+}
+
+/* Actually, let's move AI status above and keep connection at bottom-right */
+.kiosk-ai-status {
+  bottom: 4.5rem; /* Move AI status up to make room for connection indicator */
+}
+
+/* ========================================
+   F3: Idle State - QR Code Display
+   ======================================== */
+
+.display-idle-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.idle-qr-title {
+  font-size: 2rem;
+  font-weight: 300;
+  color: #888;
+  margin-bottom: 2rem;
+}
+
+.display-idle-qr .qr-code-container {
+  background: rgba(26, 26, 46, 0.5);
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid #333;
+}
+
+.display-idle-qr .qr-code-container img {
+  border-radius: 12px;
+}
+
+.display-idle-qr .qr-label {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.display-idle-qr .qr-url {
+  max-width: 400px;
+  word-break: break-all;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.display-idle-qr .qr-url:hover {
+  background: rgba(50, 130, 184, 0.2);
+}
+
+/* Mobile adjustments for session view */
+@media (max-width: 767px) {
+  .connection-indicator {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+  
+  .idle-qr-title {
+    font-size: 1.5rem;
+  }
+  
+  .display-idle-qr .qr-code-container {
+    padding: 1.5rem;
+  }
+}

@@ -16,6 +16,8 @@ interface KioskModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
+  workspaceId?: string;
+  sessionId?: string;
 }
 
 // Hook to detect mobile devices
@@ -43,7 +45,9 @@ export function KioskMode({
   displayContent,
   sendText, 
   onModeChange,
-  onAIStatusChange
+  onAIStatusChange,
+  workspaceId,
+  sessionId
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -51,7 +55,7 @@ export function KioskMode({
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);  // Start collapsed per F3
   const [qrModalOpen, setQrModalOpen] = useState(false);
   
   const isMobile = useIsMobile();
@@ -225,14 +229,19 @@ export function KioskMode({
         <header className="kiosk-header">
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
-            <span className={`connection-status ${connected ? 'connected' : ''}`}>
-              {connected ? '● Connected' : '○ Disconnected'}
-            </span>
           </div>
           <button className="exit-kiosk" onClick={() => onModeChange('mobile')} title="Exit kiosk mode">
             ✕
           </button>
         </header>
+        
+        {/* Connection indicator - always visible in lower-right */}
+        <div 
+          className={`connection-indicator ${connected ? 'connected' : 'disconnected'}`}
+          title={connected ? 'Connected' : 'Disconnected'}
+        >
+          🔌
+        </div>
 
         <div className="kiosk-messages">
           {sortedUtterances.length === 0 ? (
@@ -312,9 +321,6 @@ export function KioskMode({
         <header className="kiosk-header">
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
-            <span className={`connection-status ${connected ? 'connected' : ''}`}>
-              {connected ? '● Connected' : '○ Disconnected'}
-            </span>
           </div>
           <div className="header-buttons">
             <button className="drawer-toggle" onClick={() => setDrawerOpen(false)} title="Close drawer">
@@ -449,18 +455,28 @@ export function KioskMode({
             </div>
           ) : null
         ) : (
-          <div className="display-empty">
-            <div className="display-empty-icon">✨</div>
-            <div className="display-empty-text">Ready</div>
+          // Idle state: show QR code for joining
+          <div className="display-idle-qr">
+            <h2 className="idle-qr-title">Join this session</h2>
+            <QRCodeDisplay 
+              size={280} 
+              workspaceId={workspaceId} 
+              sessionId={sessionId} 
+              showUrl={true}
+              label="Scan to join on your phone"
+            />
           </div>
         )}
 
-        {/* QR Code button (bottom-left of display area) */}
-        <button className="qr-code-btn" onClick={() => setQrModalOpen(true)} title="Show QR code to connect mobile">
-          📱
-        </button>
+        {/* Connection status indicator - plug icon (always visible, bottom-right) */}
+        <div 
+          className={`connection-indicator ${connected ? 'connected' : 'disconnected'}`}
+          title={connected ? 'Connected' : 'Disconnected'}
+        >
+          🔌
+        </div>
 
-        {/* AI status indicator (bottom-right of display area) */}
+        {/* AI status indicator (above connection indicator when active) */}
         {(ai.connecting || ai.connected) && (
           <div className={`kiosk-ai-status ${ai.connecting ? 'thinking' : 'connected'}`}>
             {ai.connecting ? '🤔' : '✨'}
@@ -468,13 +484,13 @@ export function KioskMode({
         )}
       </main>
 
-      {/* QR Code Modal */}
+      {/* QR Code Modal (for manual trigger) */}
       {qrModalOpen && (
         <div className="qr-modal-overlay" onClick={() => setQrModalOpen(false)}>
           <div className="qr-modal" onClick={(e) => e.stopPropagation()}>
             <button className="qr-modal-close" onClick={() => setQrModalOpen(false)}>✕</button>
             <h2>Scan to connect</h2>
-            <QRCodeDisplay size={250} />
+            <QRCodeDisplay size={250} workspaceId={workspaceId} sessionId={sessionId} />
           </div>
         </div>
       )}

@@ -27,15 +27,15 @@ function buildQrUrl(options: {
   const { protocol, hostname, port } = window.location;
   const baseUrl = `${protocol}//${hostname}${port ? ':' + port : ''}`;
   
-  // Priority: joinCode > sessionId > workspaceId > current URL
+  // Priority: joinCode > (workspaceId + sessionId) > workspaceId > current URL
   if (options.joinCode) {
     // Join code URL for workspace joining
     return `${baseUrl}/join/${options.joinCode}`;
   }
   
   if (options.workspaceId && options.sessionId) {
-    // Deep link to specific session
-    return `${baseUrl}/workspace/${options.workspaceId}?session=${options.sessionId}`;
+    // Deep link to specific session - new direct URL format per F3
+    return `${baseUrl}/workspace/${options.workspaceId}/session/${options.sessionId}`;
   }
   
   if (options.workspaceId) {
