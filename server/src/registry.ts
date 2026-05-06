@@ -29,13 +29,15 @@ export class DeviceRegistry {
     displayName: string, 
     mode: DeviceMode,
     screenWidth?: number,
-    screenHeight?: number
+    screenHeight?: number,
+    sessionId?: string
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
-      // Reconnection: update WebSocket reference, workspace, and screen info
+      // Reconnection: update WebSocket reference, workspace, session, and screen info
       existing.ws = ws;
       existing.workspaceId = workspaceId;
+      existing.sessionId = sessionId;
       existing.displayName = displayName;
       existing.mode = mode;
       // Only track screen dimensions for kiosk devices (they have the display)
@@ -45,9 +47,9 @@ export class DeviceRegistry {
         if (screenWidth && screenHeight) {
           existing.displayLines = calculateDisplayLines(screenWidth, screenHeight);
         }
-        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id}) in workspace ${workspaceId}, ${existing.displayLines || '?'} display lines`);
+        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id}) in workspace ${workspaceId}, session ${sessionId || 'none'}, ${existing.displayLines || '?'} display lines`);
       } else {
-        console.log(`[Registry] Device reconnected: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}`);
+        console.log(`[Registry] Device reconnected: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
       }
       return existing;
     }
@@ -60,6 +62,7 @@ export class DeviceRegistry {
     const device: Device = {
       id,
       workspaceId,
+      sessionId,
       displayName,
       mode,
       ws,
@@ -71,9 +74,9 @@ export class DeviceRegistry {
     this.devices.set(id, device);
     
     if (mode === 'kiosk') {
-      console.log(`[Registry] Kiosk registered: ${displayName} (${id}) in workspace ${workspaceId}, ${displayLines || '?'} display lines`);
+      console.log(`[Registry] Kiosk registered: ${displayName} (${id}) in workspace ${workspaceId}, session ${sessionId || 'none'}, ${displayLines || '?'} display lines`);
     } else {
-      console.log(`[Registry] Device registered: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}`);
+      console.log(`[Registry] Device registered: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
     }
     return device;
   }
@@ -119,6 +122,13 @@ export class DeviceRegistry {
    */
   getDevicesByWorkspace(workspaceId: string): Device[] {
     return [...this.devices.values()].filter(d => d.workspaceId === workspaceId);
+  }
+
+  /**
+   * Get all devices in a specific session.
+   */
+  getDevicesBySession(sessionId: string): Device[] {
+    return [...this.devices.values()].filter(d => d.sessionId === sessionId);
   }
 
   getMobileDevices(workspaceId?: string): Device[] {
@@ -188,6 +198,20 @@ export class DeviceRegistry {
    */
   broadcastToOutputs(message: RelayedTextMessage, workspaceId: string, excludeId?: string): void {
     const receivers = this.getReceivingDevices(workspaceId);
+    const payload = JSON.stringify(message);
+
+    for (const device of receivers) {
+      if (device.id !== excludeId && device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
+  }
+
+  /**
+   * Broadcast a text message to all devices in a session.
+   */
+  broadcastToSession(message: RelayedTextMessage, sessionId: string, excludeId?: string): void {
+    const receivers = this.getDevicesBySession(sessionId);
     const payload = JSON.stringify(message);
 
     for (const device of receivers) {

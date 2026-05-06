@@ -67,6 +67,22 @@ export class FirestoreStore implements MessageStore {
     return [];
   }
 
+  async getRecentBySession(_limit: number, _sessionId: string): Promise<RelayedTextMessage[]> {
+    // if (!this.db) throw new Error('FirestoreStore not connected');
+    // 
+    // const snapshot = await this.db
+    //   .collection(this.collectionName)
+    //   .where('sessionId', '==', sessionId)
+    //   .orderBy('createdAt', 'desc')
+    //   .limit(limit)
+    //   .get();
+    // 
+    // return snapshot.docs
+    //   .map(doc => doc.data() as RelayedTextMessage)
+    //   .reverse();
+    return [];
+  }
+
   async clear(): Promise<void> {
     // if (!this.db) throw new Error('FirestoreStore not connected');
     // 

@@ -63,13 +63,14 @@ export class SQLiteStore implements MessageStore {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO messages (utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       message.utteranceId,
       message.workspaceId,
+      message.sessionId ?? null,
       message.senderId,
       message.senderName,
       message.text,
@@ -82,12 +83,12 @@ export class SQLiteStore implements MessageStore {
 
     // Filter by workspace if provided
     const sql = workspaceId
-      ? `SELECT utterance_id, workspace_id, sender_id, sender_name, text, partial
+      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
          FROM messages
          WHERE workspace_id = ?
          ORDER BY id DESC
          LIMIT ?`
-      : `SELECT utterance_id, workspace_id, sender_id, sender_name, text, partial
+      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
          FROM messages
          ORDER BY id DESC
          LIMIT ?`;
@@ -96,6 +97,7 @@ export class SQLiteStore implements MessageStore {
     const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as Array<{
       utterance_id: string;
       workspace_id: string | null;
+      session_id: string | null;
       sender_id: string;
       sender_name: string;
       text: string;
@@ -107,6 +109,41 @@ export class SQLiteStore implements MessageStore {
       type: 'text' as const,
       utteranceId: row.utterance_id,
       workspaceId: row.workspace_id || 'default',
+      sessionId: row.session_id ?? undefined,
+      senderId: row.sender_id,
+      senderName: row.sender_name,
+      text: row.text,
+      partial: row.partial === 1,
+    }));
+  }
+
+  async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
+    if (!this.db) throw new Error('SQLiteStore not connected');
+
+    const stmt = this.db.prepare(`
+      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      FROM messages
+      WHERE session_id = ?
+      ORDER BY id DESC
+      LIMIT ?
+    `);
+
+    const rows = stmt.all(sessionId, limit) as Array<{
+      utterance_id: string;
+      workspace_id: string | null;
+      session_id: string | null;
+      sender_id: string;
+      sender_name: string;
+      text: string;
+      partial: number;
+    }>;
+
+    // Reverse to get oldest-first order
+    return rows.reverse().map(row => ({
+      type: 'text' as const,
+      utteranceId: row.utterance_id,
+      workspaceId: row.workspace_id || 'default',
+      sessionId: row.session_id ?? undefined,
       senderId: row.sender_id,
       senderName: row.sender_name,
       text: row.text,

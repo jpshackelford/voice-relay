@@ -38,6 +38,11 @@ export class MemoryStore implements MessageStore {
     return filtered.slice(-count);
   }
 
+  async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
+    const filtered = this.messages.filter(m => m.sessionId === sessionId);
+    return filtered.slice(-limit);
+  }
+
   async clear(): Promise<void> {
     this.messages = [];
   }
