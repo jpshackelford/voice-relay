@@ -1290,3 +1290,39 @@ Added technical detail for improving kiosk display UX when mobile devices join a
 **Complexity:** Low
 
 ---
+
+### 2026-05-06 18:18 UTC - Review Worker
+
+✅ **Addressed Review Feedback: PR #29**
+
+- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
+- Status: Ready for review, CI green ✅
+
+**Review Feedback Addressed:**
+
+1. **httpOnly Cookie Contradiction (CRITICAL SECURITY) - FIXED**
+   - Problem: PR claimed device tokens stored in httpOnly cookies, but client reads via document.cookie (mutually exclusive)
+   - Solution: Split cookie options - auth tokens remain httpOnly (XSS-safe), device cookies are NOT httpOnly since client needs to read device info
+   - Added comprehensive security documentation explaining why this is safe (device tokens have limited scope, auth tokens required for authenticated ops)
+
+2. **Empty Display Name Bug (CRITICAL UX) - FIXED**  
+   - Problem: When user has no display name, device shows as possessive "'s iPhone" instead of sensible fallback
+   - Solution: Added fallback in `generateDeviceName()` - now returns "My iPhone" etc. when no display name provided
+   - Updated tests to verify new behavior
+
+3. **Race Condition - DOCUMENTED**
+   - Not fixing: Very low probability edge case, harmless if duplicate workspaces created
+   - Added to PR description "Known Limitations" section
+
+4. **Silent Failure - DOCUMENTED**
+   - Not fixing: Device creation failure is intentionally non-blocking (users can still log in and add devices later)
+   - Added to PR description "Known Limitations" section
+
+**Commits:**
+- `d25ce74` - fix: handle empty display name in device naming
+- `1e18549` - fix: clarify device cookie is NOT httpOnly (security documentation)
+
+**Tests:** All passing (350 server tests, 85 client tests)
+
+---
