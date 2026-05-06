@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { WorkspaceRepository } from './workspace-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
+import type { QrTokenRepository } from '../qr-tokens/index.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
@@ -22,12 +23,13 @@ const autoJoinLimiter = rateLimit({
 export interface WorkspaceRouterConfig {
   workspaceRepository: WorkspaceRepository;
   deviceRepository?: DeviceRepository;
+  qrTokenRepository?: QrTokenRepository;
   authConfig: AuthMiddlewareConfig;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   const router = Router();
-  const { workspaceRepository, deviceRepository, authConfig } = config;
+  const { workspaceRepository, deviceRepository, qrTokenRepository, authConfig } = config;
   const auth = requireAuth(authConfig);
 
   // List user's workspaces
@@ -207,6 +209,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   // Auto-join workspace by ID (for QR code session links)
   // Automatically adds the authenticated user as a member if they're not already
   // Security: Checks workspace's allowAutoJoin setting before allowing join
+  // Security: Validates QR token if workspace.requireQrToken is enabled
   // Rate limited to prevent workspace ID enumeration and bulk joining
   router.post('/:id/auto-join', auth, autoJoinLimiter, async (req: Request, res: Response) => {
     try {
@@ -246,6 +249,61 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           return;
         }
 
+        // Check if QR token is required for this workspace
+        const requireQrToken = settings?.requireQrToken ?? false;
+        if (requireQrToken) {
+          const qrTokenParam = req.query.qr as string | undefined;
+          
+          if (!qrTokenParam) {
+            console.log('[Workspaces] Auto-join denied - QR token required but not provided:', {
+              workspaceId: workspace.id,
+              workspaceName: workspace.name,
+              userId: req.user!.id,
+            });
+            res.status(403).json({
+              error: 'Invalid or expired QR code. Please scan a valid QR code to join.',
+              code: 'QR_TOKEN_REQUIRED',
+            });
+            return;
+          }
+
+          // Validate QR token
+          if (!qrTokenRepository) {
+            console.error('[Workspaces] QR token repository not configured but requireQrToken is enabled');
+            res.status(500).json({ error: 'QR token validation not available' });
+            return;
+          }
+
+          const validation = qrTokenRepository.validate(qrTokenParam, workspace.id);
+          if (!validation.valid) {
+            const errorMessages: Record<string, string> = {
+              NOT_FOUND: 'Invalid or expired QR code. Please scan again.',
+              EXPIRED: 'QR code has expired. Please scan a new QR code.',
+              WORKSPACE_MISMATCH: 'This QR code is for a different workspace.',
+              SESSION_MISMATCH: 'This QR code is for a different session.',
+            };
+            
+            console.log('[Workspaces] Auto-join denied - QR token validation failed:', {
+              workspaceId: workspace.id,
+              workspaceName: workspace.name,
+              userId: req.user!.id,
+              error: validation.error,
+            });
+            
+            res.status(403).json({
+              error: errorMessages[validation.error!] || 'Invalid QR code.',
+              code: `QR_TOKEN_${validation.error}`,
+            });
+            return;
+          }
+          
+          console.log('[Workspaces] QR token validated successfully:', {
+            workspaceId: workspace.id,
+            tokenId: validation.token?.id,
+            userId: req.user!.id,
+          });
+        }
+
         // Add user as member
         try {
           workspaceRepository.addMember(workspace.id, req.user!.id);
@@ -260,6 +318,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           workspaceId: workspace.id,
           workspaceName: workspace.name,
           userId: req.user!.id,
+          hadQrToken: !!req.query.qr,
           timestamp: new Date().toISOString(),
         });
       }
@@ -299,6 +358,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         ttsVoice: settings?.ttsVoice ?? null,
         sttLanguage: settings?.sttLanguage ?? null,
         allowAutoJoin: settings?.allowAutoJoin ?? false,  // Default to false (security-first)
+        requireQrToken: settings?.requireQrToken ?? false,  // Default to false (backward compat)
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -322,10 +382,11 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage, allowAutoJoin } = req.body as { 
+      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken } = req.body as { 
         ttsVoice?: string; 
         sttLanguage?: string;
         allowAutoJoin?: boolean;
+        requireQrToken?: boolean;
       };
 
       // Note: API key encryption would be handled by a service layer
@@ -334,6 +395,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         ttsVoice,
         sttLanguage,
         allowAutoJoin,
+        requireQrToken,
       });
 
       res.json({
@@ -342,6 +404,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         ttsVoice: settings.ttsVoice,
         sttLanguage: settings.sttLanguage,
         allowAutoJoin: settings.allowAutoJoin,
+        requireQrToken: settings.requireQrToken,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {

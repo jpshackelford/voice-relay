@@ -5,12 +5,14 @@ import request from 'supertest';
 import { createSessionRouter } from './router.js';
 import { SessionRepository } from './session-repository.js';
 import { WorkspaceRepository } from '../workspaces/workspace-repository.js';
+import { QrTokenRepository } from '../qr-tokens/qr-token-repository.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { DeviceRepository } from '../devices/device-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
+import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
 
 describe('Session Router', () => {
   let app: Express;
@@ -482,6 +484,282 @@ describe('Session Router', () => {
         .expect(404);
 
       expect(response.body.error).toBe('Session not found');
+    });
+  });
+});
+
+describe('Session Router - QR Token Generation', () => {
+  let app: Express;
+  let db: Database.Database;
+  let sessionRepository: SessionRepository;
+  let workspaceRepository: WorkspaceRepository;
+  let qrTokenRepository: QrTokenRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let testUserId: string;
+  let otherUserId: string;
+  let authToken: string;
+  let otherAuthToken: string;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    // Apply migrations
+    db.exec(usersMigration.up);
+    db.exec(workspacesMigration.up);
+    db.exec(allowAutoJoinMigration.up);
+    // Create sessions table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        metadata TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+    `);
+    // Apply QR tokens migration
+    db.exec(qrTokensMigration.up);
+
+    sessionRepository = new SessionRepository(db);
+    workspaceRepository = new WorkspaceRepository(db);
+    qrTokenRepository = new QrTokenRepository(db);
+    userRepository = new UserRepository(db);
+    jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
+
+    // Create test users
+    testUserId = 'user-123';
+    otherUserId = 'user-456';
+
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testUserId, 12345, 'testuser');
+
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(otherUserId, 67890, 'otheruser');
+
+    // Create test workspace owned by testUserId
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, testUserId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Generate auth tokens
+    const user = userRepository.findById(testUserId)!;
+    authToken = jwtService.sign(user);
+    const otherUser = userRepository.findById(otherUserId)!;
+    otherAuthToken = jwtService.sign(otherUser);
+
+    // Set up Express app with merged params (for :workspaceId)
+    app = express();
+    app.use(express.json());
+
+    const router = createSessionRouter({
+      sessionRepository,
+      workspaceRepository,
+      qrTokenRepository,
+      authConfig: { jwtService, userRepository },
+    });
+    app.use('/api/workspaces/:workspaceId/sessions', router);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  describe('POST /sessions/:sessionId/qr-token', () => {
+    it('requires authentication', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('returns 403 for non-member', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${otherAuthToken}`)
+        .expect(403);
+
+      expect(response.body.error).toBe('Access denied to workspace');
+    });
+
+    it('returns 404 for non-existent session', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/non-existent/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.error).toBe('Session not found');
+    });
+
+    it('returns 404 for session belonging to different workspace', async () => {
+      // Create another workspace that the user also owns
+      const otherWorkspaceId = 'workspace-other';
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherWorkspaceId, testUserId, 'Other Workspace', 'other-workspace', 'EFGH-5678');
+
+      // Create a session in the other workspace
+      const sessionInOtherWorkspace = sessionRepository.create({ workspaceId: otherWorkspaceId });
+
+      // Try to access this session through the first workspace's URL
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${sessionInOtherWorkspace.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.error).toBe('Session not found');
+    });
+
+    it('generates token for valid session', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      expect(response.body.token).toBeDefined();
+      expect(response.body.expiresAt).toBeDefined();
+      expect(response.body.url).toBeDefined();
+      expect(response.body.workspaceId).toBe(testWorkspaceId);
+      expect(response.body.sessionId).toBe(session.id);
+    });
+
+    it('token matches expected format (32 hex chars)', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      // Token should be 32 hex characters (128 bits)
+      expect(response.body.token).toMatch(/^[0-9a-f]{32}$/);
+    });
+
+    it('generated URL includes token in query parameter', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const { token, url } = response.body;
+      expect(url).toContain(`?qr=${token}`);
+      expect(url).toContain(`/workspace/${testWorkspaceId}/session/${session.id}`);
+    });
+
+    it('expiresAt is in the future', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(200);
+
+      const expiresAt = new Date(response.body.expiresAt);
+      expect(expiresAt.getTime()).toBeGreaterThan(Date.now());
+    });
+  });
+});
+
+describe('Session Router - QR Token Unavailable', () => {
+  let app: Express;
+  let db: Database.Database;
+  let sessionRepository: SessionRepository;
+  let workspaceRepository: WorkspaceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let testUserId: string;
+  let authToken: string;
+
+  beforeEach(() => {
+    db = new Database(':memory:');
+    // Apply migrations
+    db.exec(usersMigration.up);
+    db.exec(workspacesMigration.up);
+    db.exec(allowAutoJoinMigration.up);
+    // Create sessions table (no QR tokens table - testing 503)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        metadata TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+    `);
+
+    sessionRepository = new SessionRepository(db);
+    workspaceRepository = new WorkspaceRepository(db);
+    userRepository = new UserRepository(db);
+    jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
+
+    // Create test user
+    testUserId = 'user-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testUserId, 12345, 'testuser');
+
+    // Create test workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, testUserId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Generate auth token
+    const user = userRepository.findById(testUserId)!;
+    authToken = jwtService.sign(user);
+
+    // Set up Express app WITHOUT qrTokenRepository
+    app = express();
+    app.use(express.json());
+
+    const router = createSessionRouter({
+      sessionRepository,
+      workspaceRepository,
+      // qrTokenRepository intentionally omitted
+      authConfig: { jwtService, userRepository },
+    });
+    app.use('/api/workspaces/:workspaceId/sessions', router);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  describe('POST /sessions/:sessionId/qr-token', () => {
+    it('returns 503 when qrTokenRepository is undefined', async () => {
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${session.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(503);
+
+      expect(response.body.error).toBe('QR token generation not available');
     });
   });
 });

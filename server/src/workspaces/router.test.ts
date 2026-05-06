@@ -5,18 +5,20 @@ import request from 'supertest';
 import { createWorkspaceRouter } from './router.js';
 import { WorkspaceRepository } from './workspace-repository.js';
 import { DeviceRepository } from '../devices/device-repository.js';
+import { QrTokenRepository } from '../qr-tokens/index.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
+import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
 
 // Helper to set up test database and app
 function setupTestEnv() {
   const db = new Database(':memory:');
   db.exec(usersMigration.up);
   db.exec(workspacesMigration.up);
-    db.exec(allowAutoJoinMigration.up);
+  db.exec(allowAutoJoinMigration.up);
   db.exec(`
     CREATE TABLE IF NOT EXISTS devices (
       id TEXT PRIMARY KEY,
@@ -31,9 +33,25 @@ function setupTestEnv() {
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
     );
   `);
+  // Create sessions table for QR tokens FK constraint
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      ended_at TEXT,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(qrTokensMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);
+  const qrTokenRepository = new QrTokenRepository(db);
   const userRepository = new UserRepository(db);
   const jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
 
@@ -42,11 +60,12 @@ function setupTestEnv() {
   const router = createWorkspaceRouter({
     workspaceRepository,
     deviceRepository,
+    qrTokenRepository,
     authConfig: { jwtService, userRepository },
   });
   app.use('/api/workspaces', router);
 
-  return { db, app, workspaceRepository, deviceRepository, userRepository, jwtService };
+  return { db, app, workspaceRepository, deviceRepository, qrTokenRepository, userRepository, jwtService };
 }
 
 describe('Workspace Router - POST /:id/auto-join', () => {
@@ -283,6 +302,204 @@ describe('Workspace Router - POST /:id/auto-join', () => {
     // Verify user is still NOT a member
     expect(workspaceRepository.canAccess(noSettingsWorkspaceId, newUserId)).toBe(false);
   });
+
+  it('requires QR token when requireQrToken is enabled', async () => {
+    const env = setupTestEnv();
+    const { app, db, workspaceRepository, qrTokenRepository, userRepository, jwtService } = env;
+
+    // Create owner
+    const ownerId = 'owner-qr';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 55555, 'ownerqr');
+
+    // Create workspace
+    const workspaceId = 'workspace-qr';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(workspaceId, ownerId, 'QR Workspace', 'qr-workspace', 'QR-CODE-1234');
+
+    // Add owner as workspace member
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(workspaceId, ownerId, 'owner');
+
+    // Enable both auto-join AND require QR token
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, require_qr_token, updated_at)
+      VALUES (?, 1, 1, datetime('now'))
+    `).run(workspaceId);
+
+    // Create session for QR token
+    db.prepare(`
+      INSERT INTO sessions (id, workspace_id, name, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run('session-qr', workspaceId, 'QR Session', 'active');
+
+    // Create a new user who is NOT a member
+    const newUserId = 'new-user-qr';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 66666, 'newuserqr');
+
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Attempt auto-join WITHOUT QR token - should be denied
+    const response = await request(app)
+      .post(`/api/workspaces/${workspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.error).toContain('Invalid or expired QR code');
+    expect(response.body.code).toBe('QR_TOKEN_REQUIRED');
+
+    // Verify user is still NOT a member
+    expect(workspaceRepository.canAccess(workspaceId, newUserId)).toBe(false);
+
+    db.close();
+  });
+
+  it('allows auto-join with valid QR token', async () => {
+    const env = setupTestEnv();
+    const { app, db, workspaceRepository, qrTokenRepository, userRepository, jwtService } = env;
+
+    // Create owner
+    const ownerId = 'owner-qr2';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 77777, 'ownerqr2');
+
+    // Create workspace
+    const workspaceId = 'workspace-qr2';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(workspaceId, ownerId, 'QR Workspace 2', 'qr-workspace-2', 'QR-CODE-5678');
+
+    // Add owner as workspace member
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(workspaceId, ownerId, 'owner');
+
+    // Enable both auto-join AND require QR token
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, require_qr_token, updated_at)
+      VALUES (?, 1, 1, datetime('now'))
+    `).run(workspaceId);
+
+    // Create session for QR token
+    const sessionId = 'session-qr2';
+    db.prepare(`
+      INSERT INTO sessions (id, workspace_id, name, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(sessionId, workspaceId, 'QR Session 2', 'active');
+
+    // Generate valid QR token
+    const qrToken = qrTokenRepository.create({
+      workspaceId,
+      sessionId,
+    });
+
+    // Create a new user who is NOT a member
+    const newUserId = 'new-user-qr2';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 88888, 'newuserqr2');
+
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Attempt auto-join WITH valid QR token - should succeed
+    const response = await request(app)
+      .post(`/api/workspaces/${workspaceId}/auto-join?qr=${qrToken.token}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.id).toBe(workspaceId);
+    expect(response.body.joined).toBe(true);
+
+    // Verify user is now a member
+    expect(workspaceRepository.canAccess(workspaceId, newUserId)).toBe(true);
+
+    db.close();
+  });
+
+  it('denies auto-join with expired QR token', async () => {
+    const env = setupTestEnv();
+    const { app, db, workspaceRepository, qrTokenRepository, userRepository, jwtService } = env;
+
+    // Create owner
+    const ownerId = 'owner-qr3';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 99999, 'ownerqr3');
+
+    // Create workspace
+    const workspaceId = 'workspace-qr3';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(workspaceId, ownerId, 'QR Workspace 3', 'qr-workspace-3', 'QR-CODE-9999');
+
+    // Add owner as workspace member
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(workspaceId, ownerId, 'owner');
+
+    // Enable both auto-join AND require QR token
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, require_qr_token, updated_at)
+      VALUES (?, 1, 1, datetime('now'))
+    `).run(workspaceId);
+
+    // Create session for QR token
+    const sessionId = 'session-qr3';
+    db.prepare(`
+      INSERT INTO sessions (id, workspace_id, name, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(sessionId, workspaceId, 'QR Session 3', 'active');
+
+    // Generate EXPIRED QR token
+    const qrToken = qrTokenRepository.create({
+      workspaceId,
+      sessionId,
+      ttlMs: -1000, // Already expired
+    });
+
+    // Create a new user who is NOT a member
+    const newUserId = 'new-user-qr3';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 11111, 'newuserqr3');
+
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Attempt auto-join with expired QR token - should be denied
+    const response = await request(app)
+      .post(`/api/workspaces/${workspaceId}/auto-join?qr=${qrToken.token}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.error).toContain('expired');
+    expect(response.body.code).toBe('QR_TOKEN_EXPIRED');
+
+    // Verify user is still NOT a member
+    expect(workspaceRepository.canAccess(workspaceId, newUserId)).toBe(false);
+
+    db.close();
+  });
 });
 
 describe('Workspace Router - GET /:id/devices', () => {
@@ -317,6 +534,21 @@ describe('Workspace Router - GET /:id/devices', () => {
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
     `);
+    // Create sessions table for QR tokens FK constraint
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        metadata TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+    `);
+    db.exec(qrTokensMigration.up);
 
     workspaceRepository = new WorkspaceRepository(db);
     deviceRepository = new DeviceRepository(db);

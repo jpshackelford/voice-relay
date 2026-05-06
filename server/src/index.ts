@@ -12,6 +12,7 @@ import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from '.
 import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
+import { QrTokenRepository } from './qr-tokens/index.js';
 import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -43,6 +44,7 @@ const store: MessageStore = createStoreFromEnv();
 let workspaceRepository: WorkspaceRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
+let qrTokenRepository: QrTokenRepository | null = null;
 
 // Auth configuration from environment variables
 
@@ -495,7 +497,8 @@ async function start() {
       workspaceRepository = new WorkspaceRepository(db);
       deviceRepository = new DeviceRepository(db);
       sessionRepository = new SessionRepository(db);
-      console.log('[Repositories] Workspace, Device, Session repositories initialized');
+      qrTokenRepository = new QrTokenRepository(db);
+      console.log('[Repositories] Workspace, Device, Session, QrToken repositories initialized');
     }
   }
 
@@ -522,6 +525,7 @@ async function start() {
       const workspaceRouter = createWorkspaceRouter({
         workspaceRepository,
         deviceRepository,
+        qrTokenRepository: qrTokenRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,
@@ -546,6 +550,7 @@ async function start() {
       const sessionRouter = createSessionRouter({
         sessionRepository,
         workspaceRepository,
+        qrTokenRepository: qrTokenRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,
@@ -553,6 +558,10 @@ async function start() {
       });
       app.use('/api/workspaces/:workspaceId/sessions', sessionRouter);
       console.log('[Sessions] API enabled');
+      
+      if (qrTokenRepository) {
+        console.log('[QR Tokens] Signed time-limited QR tokens enabled');
+      }
     }
   }
 
