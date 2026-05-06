@@ -764,3 +764,33 @@ When a new user authenticates and a default workspace is created, the device use
 - Ready for merge
 
 ---
+### 2026-05-06 14:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f8a7589` | merge | PR #19 - QR tokens security | **NEW** |
+| `81888ff` | review | PR #24 - Smoke tests (PRIORITY) | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#19 - feat: add signed, time-limited QR tokens](https://github.com/jpshackelford/voice-relay/pull/19)
+   - All 12 review threads resolved, CI green, ready for merge
+   - Conversation: [`f8a7589`](https://app.all-hands.dev/conversations/f8a7589c3a6b4feeb9d42b6425e58cf1)
+
+2. **Review Worker (PRIORITY)**
+   - PR: [#24 - fix(smoke): update dashboard test](https://github.com/jpshackelford/voice-relay/pull/24)
+   - Smoke tests broken since PR #14 - critical quality infrastructure
+   - Issue: Conventional Commits check failing (CI tests pass)
+   - Conversation: [`81888ff`](https://app.all-hands.dev/conversations/81888ff1defb43fb8bf27d499be38456)
+
+**Current State:**
+- [PR #19](https://github.com/jpshackelford/voice-relay/pull/19): `oRCFRFRFRCFRFRCFC green ready --` → merge in progress
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `o red draft` → fixing conventional commits check
+- Issues needing expansion: #21, #22, #23
+- Ready issues: #20 (Auto add first device)
+
+**Note:** Smoke tests are important quality apparatus - PR #24 prioritized for immediate attention.
+
+---
