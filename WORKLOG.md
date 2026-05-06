@@ -1098,3 +1098,26 @@ The `session_devices` table has `FOREIGN KEY (device_id) REFERENCES devices(id)`
 Spawned merge worker to finalize and merge PR #26, which fixes critical bug where message sending fails due to FK constraint violation in session_devices table.
 
 ---
+
+### 2026-05-06 17:10 UTC - Merge Worker (`17b26ba`)
+
+✅ **Merged: PR #26 - Fix Session Device FK Constraint**
+
+- PR: [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+- Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) → **CLOSED** ✅
+- Merge: Squash merged to main
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**What Was Fixed:**
+Critical bug where all message sending was broken when using SQLite storage with sessions enabled. The `session_devices` table has a FK constraint to `devices(id)`, and the original code tried to add a device to a session BEFORE registering it in the devices table, causing `SQLITE_CONSTRAINT_FOREIGNKEY` error.
+
+**Changes Merged:**
+- `server/src/index.ts` - Reordered device registration before session membership
+- `server/src/sessions/session-repository.test.ts` - Added FK constraint regression test
+
+**Verification:**
+- CI: All 334 tests passing
+- Review: 🟢 Good taste (LOW risk)
+- Issue #23 auto-closed via "Fixes #23" in commit message
+
+---
