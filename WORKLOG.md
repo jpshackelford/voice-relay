@@ -869,3 +869,31 @@ The exit button (✕) in KioskMode sidebar currently calls `onModeChange('mobile
 **Complexity:** Low (30 minutes)
 
 ---
+### 2026-05-06 15:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #23**
+
+- Issue: [Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23)
+- Type: Bug (Critical)
+- Status: Ready for implementation
+- Label: `ready` applied
+
+**Problem:**
+All message sending is broken when using SQLite storage with sessions enabled. Messages are never relayed between devices in the same session.
+
+**Root Cause:**
+Ordering bug in WebSocket handler (`server/src/index.ts`):
+1. `sessionRepository.addDevice(session.id, deviceId)` is called at line 347
+2. `deviceRepository.registerOrUpdate()` is called later at lines 359-372
+
+The `session_devices` table has a FK constraint to `devices(id)`, so `addDevice()` fails with `SQLITE_CONSTRAINT_FOREIGNKEY` because the device hasn't been created yet. This causes device registration to fail silently, preventing all subsequent message relay.
+
+**Fix:**
+Move `deviceRepository.registerOrUpdate()` to **before** `sessionRepository.addDevice()`.
+
+**Files Affected:**
+- `server/src/index.ts` - Reorder device registration and session tracking operations
+
+**Complexity:** Low (15 minutes)
+
+---
