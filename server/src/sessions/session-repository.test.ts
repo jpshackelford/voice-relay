@@ -304,6 +304,17 @@ describe('SessionRepository', () => {
       expect(membership.joinedAt).toBeDefined();
     });
 
+    it('fails with FK constraint if device does not exist', () => {
+      // This test documents the bug from issue #23:
+      // addDevice() must be called AFTER device exists in devices table
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      const nonExistentDeviceId = 'device-does-not-exist';
+
+      expect(() => {
+        repo.addDevice(session.id, nonExistentDeviceId);
+      }).toThrow(/FOREIGN KEY constraint failed/);
+    });
+
     it('removes device from session', () => {
       const session = repo.create({ workspaceId: testWorkspaceId });
       repo.addDevice(session.id, testDeviceId);
