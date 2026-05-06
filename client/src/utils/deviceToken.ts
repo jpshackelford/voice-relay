@@ -1,10 +1,12 @@
 /**
  * Device token storage and validation for reconnection support.
  * Uses localStorage for persistence across page refreshes.
+ * Also checks for server-set cookies from auto-device creation.
  */
 
 const DEVICE_TOKEN_KEY = 'voice_relay_device_token';
 const DEVICE_ID_KEY = 'voice_relay_device_id';
+const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
 
 interface StoredDeviceInfo {
   deviceId: string;
@@ -22,6 +24,47 @@ interface ValidatedDevice {
 }
 
 /**
+ * Read a cookie by name.
+ */
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    const cookieValue = parts.pop()?.split(';').shift();
+    return cookieValue ? decodeURIComponent(cookieValue) : null;
+  }
+  return null;
+}
+
+/**
+ * Read device info from server-set cookie (from auto-device creation).
+ * Returns null if cookie doesn't exist or is invalid.
+ */
+export function getServerSetDeviceToken(): StoredDeviceInfo | null {
+  try {
+    const cookieData = getCookie(DEVICE_TOKEN_COOKIE_NAME);
+    if (!cookieData) return null;
+    
+    const parsed = JSON.parse(cookieData);
+    // Validate required fields
+    if (!parsed.deviceId || !parsed.deviceToken || !parsed.workspaceId) {
+      return null;
+    }
+    
+    return {
+      deviceId: parsed.deviceId,
+      deviceToken: parsed.deviceToken,
+      workspaceId: parsed.workspaceId,
+      name: parsed.name || 'Device',
+      mode: parsed.mode || 'mobile',
+    };
+  } catch (e) {
+    console.error('[DeviceToken] Failed to read server-set device cookie:', e);
+    return null;
+  }
+}
+
+/**
  * Store device token after successful registration/login.
  */
 export function storeDeviceToken(info: StoredDeviceInfo): void {
@@ -33,13 +76,27 @@ export function storeDeviceToken(info: StoredDeviceInfo): void {
 }
 
 /**
- * Get stored device token info.
+ * Get stored device token info from localStorage.
+ * Also checks for server-set cookie and migrates to localStorage if found.
  */
 export function getStoredDeviceToken(): StoredDeviceInfo | null {
   try {
+    // First check localStorage
     const stored = localStorage.getItem(DEVICE_TOKEN_KEY);
-    if (!stored) return null;
-    return JSON.parse(stored) as StoredDeviceInfo;
+    if (stored) {
+      return JSON.parse(stored) as StoredDeviceInfo;
+    }
+    
+    // Check for server-set cookie (from auto-device creation)
+    const serverSetDevice = getServerSetDeviceToken();
+    if (serverSetDevice) {
+      // Migrate to localStorage for consistency
+      console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
+      storeDeviceToken(serverSetDevice);
+      return serverSetDevice;
+    }
+    
+    return null;
   } catch (e) {
     console.error('[DeviceToken] Failed to read device token:', e);
     return null;

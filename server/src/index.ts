@@ -517,6 +517,7 @@ async function start() {
         config: authConfig,
         userRepository,
         workspaceRepository,
+        deviceRepository,
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');

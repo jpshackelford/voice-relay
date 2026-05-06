@@ -6,12 +6,16 @@ import { JWTService } from './jwt.js';
 import { UserRepository } from './user-repository.js';
 import { requireAuth, type AuthMiddlewareConfig } from './middleware.js';
 import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
+import type { DeviceRepository } from '../devices/device-repository.js';
+import { generateDeviceName } from '../devices/device-utils.js';
 
 export interface AuthRouterConfig {
   config: AuthConfig;
   userRepository: UserRepository;
   /** Optional workspace repository for auto-creating default workspace */
   workspaceRepository?: WorkspaceRepository;
+  /** Optional device repository for auto-creating first device */
+  deviceRepository?: DeviceRepository;
   /** Where to redirect after successful login (default: /) */
   successRedirect?: string;
   /** Where to redirect after failed login (default: /login?error=1) */
@@ -21,6 +25,7 @@ export interface AuthRouterConfig {
 // Cookie names
 const AUTH_COOKIE_NAME = 'voice_relay_auth';
 const REFRESH_COOKIE_NAME = 'voice_relay_refresh';
+const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
 
 // Cookie options for secure httpOnly cookies
 function getCookieOptions(isProduction: boolean, maxAge: number) {
@@ -70,7 +75,7 @@ setInterval(() => {
 
 export function createAuthRouter(options: AuthRouterConfig): Router {
   const router = Router();
-  const { config, userRepository, workspaceRepository, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
+  const { config, userRepository, workspaceRepository, deviceRepository, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
 
   const github = new GitHubOAuth({
     githubClientId: config.githubClientId,
@@ -163,13 +168,47 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       // have multiple workspaces, and the probability is very low in practice.
       // A more robust solution would use a unique constraint or transaction,
       // but that adds complexity for minimal benefit.
+      let newlyCreatedWorkspaceId: string | null = null;
       if (workspaceRepository) {
         const workspaces = workspaceRepository.findByOwner(user.id);
         if (workspaces.length === 0) {
           const displayName = user.displayName || user.username;
           const workspaceName = `${displayName}'s Workspace`;
           const workspace = workspaceRepository.create(user.id, { name: workspaceName });
+          newlyCreatedWorkspaceId = workspace.id;
           console.log(`[Auth] Created default workspace for ${user.username}: ${workspace.name} (id: ${workspace.id})`);
+        }
+      }
+      
+      // Auto-create first device in the newly created workspace
+      // This reduces friction for first-time users
+      if (newlyCreatedWorkspaceId && deviceRepository) {
+        try {
+          const userAgent = req.headers['user-agent'] || '';
+          const displayName = user.displayName || user.username;
+          const deviceName = generateDeviceName(displayName, userAgent);
+          
+          const { device, token: deviceToken, expiresAt } = deviceRepository.create({
+            workspaceId: newlyCreatedWorkspaceId,
+            name: deviceName,
+            mode: 'mobile', // Default to mobile mode
+          });
+          
+          console.log(`[Auth] Auto-created first device for ${user.username}: ${device.name} (id: ${device.id})`);
+          
+          // Set device token cookie (90 days expiry matches device token expiry)
+          const deviceTokenMaxAge = 90 * 24 * 60 * 60 * 1000;
+          const deviceCookieData = JSON.stringify({
+            deviceId: device.id,
+            deviceToken,
+            workspaceId: newlyCreatedWorkspaceId,
+            name: device.name,
+            mode: device.mode,
+          });
+          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getCookieOptions(isProduction, deviceTokenMaxAge));
+        } catch (err) {
+          // Device creation is non-critical; log and continue
+          console.error('[Auth] Failed to auto-create first device:', err);
         }
       }
       
@@ -300,12 +339,44 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       console.log(`[Auth] Test session created for user: ${testUser.username}`);
       
       // Auto-create default workspace if test user doesn't have any
+      let testWorkspaceId: string | null = null;
       if (workspaceRepository) {
         const workspaces = workspaceRepository.findByOwner(testUser.id);
         if (workspaces.length === 0) {
           const workspaceName = `${testUser.displayName}'s Workspace`;
           const workspace = workspaceRepository.create(testUser.id, { name: workspaceName });
+          testWorkspaceId = workspace.id;
           console.log(`[Auth] Created default workspace for test user: ${workspace.name} (id: ${workspace.id})`);
+        }
+      }
+      
+      // Auto-create first device in the newly created workspace
+      if (testWorkspaceId && deviceRepository) {
+        try {
+          const userAgent = req.headers['user-agent'] || '';
+          const displayName = testUser.displayName || testUser.username;
+          const deviceName = generateDeviceName(displayName, userAgent);
+          
+          const { device, token: deviceToken } = deviceRepository.create({
+            workspaceId: testWorkspaceId,
+            name: deviceName,
+            mode: 'mobile',
+          });
+          
+          console.log(`[Auth] Auto-created first device for test user: ${device.name} (id: ${device.id})`);
+          
+          // Set device token cookie
+          const deviceTokenMaxAge = 90 * 24 * 60 * 60 * 1000;
+          const deviceCookieData = JSON.stringify({
+            deviceId: device.id,
+            deviceToken,
+            workspaceId: testWorkspaceId,
+            name: device.name,
+            mode: device.mode,
+          });
+          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getCookieOptions(isProduction, deviceTokenMaxAge));
+        } catch (err) {
+          console.error('[Auth] Failed to auto-create first device for test user:', err);
         }
       }
       
@@ -331,4 +402,4 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
   return router;
 }
 
-export { JWTService, AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME };
+export { JWTService, AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME, DEVICE_TOKEN_COOKIE_NAME };
