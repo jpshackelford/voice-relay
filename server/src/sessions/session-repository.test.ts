@@ -49,6 +49,18 @@ describe('SessionRepository', () => {
         FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
       );
+      
+      CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        utterance_id TEXT NOT NULL UNIQUE,
+        workspace_id TEXT,
+        session_id TEXT,
+        sender_id TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        text TEXT NOT NULL,
+        partial INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
     
     repo = new SessionRepository(db);
@@ -241,7 +253,7 @@ describe('SessionRepository', () => {
   });
 
   describe('getSessionSummaries', () => {
-    it('returns summaries with device counts', () => {
+    it('returns summaries with device counts and lastActiveAt', () => {
       const session = repo.create({ workspaceId: testWorkspaceId, name: 'Test Session' });
       repo.addDevice(session.id, testDeviceId);
 
@@ -250,6 +262,8 @@ describe('SessionRepository', () => {
       expect(summaries[0].id).toBe(session.id);
       expect(summaries[0].name).toBe('Test Session');
       expect(summaries[0].deviceCount).toBe(1);
+      // lastActiveAt defaults to startedAt when no messages
+      expect(summaries[0].lastActiveAt).toBe(session.startedAt);
     });
 
     it('filters by status', () => {
@@ -260,6 +274,21 @@ describe('SessionRepository', () => {
       const activeSummaries = repo.getSessionSummaries(testWorkspaceId, 'active');
       expect(activeSummaries).toHaveLength(1);
       expect(activeSummaries[0].name).toBe('Active');
+    });
+
+    it('returns lastActiveAt from most recent message', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId, name: 'Test Session' });
+      
+      // Insert a message
+      const messageTime = new Date().toISOString();
+      db.prepare(`
+        INSERT INTO messages (utterance_id, workspace_id, session_id, sender_id, sender_name, text, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('test-utterance', testWorkspaceId, session.id, 'device-1', 'Test Device', 'Hello', messageTime);
+
+      const summaries = repo.getSessionSummaries(testWorkspaceId);
+      expect(summaries).toHaveLength(1);
+      expect(summaries[0].lastActiveAt).toBe(messageTime);
     });
   });
 

@@ -2189,3 +2189,392 @@ header {
 .device-reconnect-banner .reconnect-btn:hover {
   background: #0f4c75;
 }
+
+/* ========================================
+   Workspace Home
+   ======================================== */
+
+.workspace-home {
+  min-height: 100vh;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-home.loading,
+.workspace-home.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.workspace-home.error h2 {
+  margin-bottom: 1rem;
+}
+
+.workspace-home.error button {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: #3282b8;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+}
+
+.workspace-title-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.workspace-dropdown-container {
+  position: relative;
+}
+
+.workspace-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.workspace-dropdown-trigger:hover {
+  border-color: #3282b8;
+  background: rgba(50, 130, 184, 0.1);
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.workspace-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 200px;
+  background: #16213e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.workspace-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.workspace-dropdown-item:hover {
+  background: rgba(50, 130, 184, 0.2);
+}
+
+.workspace-dropdown-item.active {
+  background: rgba(50, 130, 184, 0.3);
+  color: #fff;
+}
+
+.workspace-dropdown-item .owner-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.4rem;
+  background: #3282b8;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.user-name {
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+.workspace-content {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.workspace-content section {
+  margin-bottom: 2rem;
+  background: #16213e;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.workspace-content h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section-icon {
+  font-size: 1.1rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
+.empty-message {
+  color: #666;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* Devices List */
+.devices-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.device-row:hover {
+  background: #1f1f3a;
+}
+
+.device-row.current {
+  border: 1px solid #3282b8;
+  background: rgba(50, 130, 184, 0.1);
+}
+
+.device-icon {
+  font-size: 1.25rem;
+}
+
+.device-details {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.device-name-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.device-name-text:hover .rename-btn {
+  opacity: 1;
+}
+
+.rename-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.device-name-input {
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  background: #1a1a2e;
+  border: 1px solid #3282b8;
+  border-radius: 4px;
+  color: #fff;
+  outline: none;
+  width: 200px;
+}
+
+.current-badge {
+  font-size: 0.75rem;
+  color: #3282b8;
+}
+
+.device-last-seen {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Sessions List */
+.new-session-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background: #3282b8;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.new-session-btn:hover:not(:disabled) {
+  background: #0f4c75;
+}
+
+.new-session-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.session-row:hover {
+  background: #1f1f3a;
+}
+
+.session-row.active {
+  border-left: 3px solid #4f4;
+}
+
+.session-row .session-info {
+  flex: 1;
+}
+
+.session-row .session-name {
+  font-weight: 500;
+  color: #fff;
+}
+
+.session-row .session-meta {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.125rem;
+}
+
+.session-last-active {
+  font-size: 0.85rem;
+  color: #666;
+  min-width: 80px;
+  text-align: right;
+}
+
+.view-session-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.85rem;
+  background: transparent;
+  border: 1px solid #3282b8;
+  border-radius: 4px;
+  color: #3282b8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-session-btn:hover {
+  background: #3282b8;
+  color: #fff;
+}
+
+/* Settings Section */
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-row label {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.setting-row .join-code {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-size: 1.25rem;
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+}

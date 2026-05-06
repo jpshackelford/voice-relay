@@ -145,6 +145,33 @@ export function createDeviceRouter({ deviceRepository, authConfig }: DeviceRoute
     });
   });
 
+  // Update device (requires auth) - for renaming, changing mode
+  router.patch('/:deviceId', auth, (req: Request, res: Response) => {
+    const { deviceId } = req.params;
+    const { name, mode } = req.body;
+    
+    const device = deviceRepository.findById(deviceId);
+    if (!device) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+
+    const updated = deviceRepository.update(deviceId, { name, mode });
+    if (!updated) {
+      res.status(500).json({ error: 'Failed to update device' });
+      return;
+    }
+
+    res.json({
+      id: updated.id,
+      workspaceId: updated.workspaceId,
+      name: updated.name,
+      mode: updated.mode,
+      lastSeenAt: updated.lastSeenAt,
+      createdAt: updated.createdAt,
+    });
+  });
+
   // Regenerate device token (requires auth)
   router.post('/:deviceId/token', auth, (req: Request, res: Response) => {
     const { deviceId } = req.params;

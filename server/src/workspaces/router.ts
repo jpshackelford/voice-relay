@@ -1,16 +1,18 @@
 import { Router, type Request, type Response } from 'express';
 import type { WorkspaceRepository } from './workspace-repository.js';
+import type { DeviceRepository } from '../devices/device-repository.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
 export interface WorkspaceRouterConfig {
   workspaceRepository: WorkspaceRepository;
+  deviceRepository?: DeviceRepository;
   authConfig: AuthMiddlewareConfig;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   const router = Router();
-  const { workspaceRepository, authConfig } = config;
+  const { workspaceRepository, deviceRepository, authConfig } = config;
   const auth = requireAuth(authConfig);
 
   // List user's workspaces
@@ -330,6 +332,42 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     } catch (err) {
       console.error('[Workspaces] Remove member error:', err);
       res.status(500).json({ error: 'Failed to remove member' });
+    }
+  });
+
+  // List devices in workspace
+  router.get('/:id/devices', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.canAccess(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      if (!deviceRepository) {
+        res.status(503).json({ error: 'Device repository not available' });
+        return;
+      }
+
+      const devices = deviceRepository.findByWorkspace(workspace.id);
+      res.json({
+        devices: devices.map(d => ({
+          id: d.id,
+          name: d.name,
+          mode: d.mode,
+          lastSeenAt: d.lastSeenAt,
+          createdAt: d.createdAt,
+        })),
+      });
+    } catch (err) {
+      console.error('[Workspaces] List devices error:', err);
+      res.status(500).json({ error: 'Failed to list devices' });
     }
   });
 
