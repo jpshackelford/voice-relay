@@ -31,108 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 15:15 UTC - Expansion Worker
-
-✅ **Expanded Issue #23**
-
-- Issue: [Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23)
-- Type: Bug (Critical)
-- Status: Ready for implementation
-- Label: `ready` applied
-
-**Problem:**
-All message sending is broken when using SQLite storage with sessions enabled. Messages are never relayed between devices in the same session.
-
-**Root Cause:**
-Ordering bug in WebSocket handler (`server/src/index.ts`):
-1. `sessionRepository.addDevice(session.id, deviceId)` is called at line 347
-2. `deviceRepository.registerOrUpdate()` is called later at lines 359-372
-
-The `session_devices` table has a FK constraint to `devices(id)`, so `addDevice()` fails with `SQLITE_CONSTRAINT_FOREIGNKEY` because the device hasn't been created yet. This causes device registration to fail silently, preventing all subsequent message relay.
-
-**Fix:**
-Move `deviceRepository.registerOrUpdate()` to **before** `sessionRepository.addDevice()`.
-
-**Files Affected:**
-- `server/src/index.ts` - Reorder device registration and session tracking operations
-
-**Complexity:** Low (15 minutes)
-
----
-### 2026-05-06 16:05 UTC - Expansion Worker
-
-⚠️ **Issue #22 Needs Split** 
-
-- Issue: [Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
-- Type: Enhancement (mixed bug + feature)
-- Status: Labeled `needs-split` - recommend breaking into two issues
-- Labels: `needs-split`, `enhancement`
-
-**Analysis:**
-Issue #22 describes two distinct problems that should be tracked separately:
-
-1. **Bug (Phase A)**: Owner's new device not registering after QR scan
-   - Investigation needed to find root cause
-   - May be OAuth redirect issue or WebSocket connection issue after auth
-   - Est: 2-4 hours
-
-2. **Feature (Phase B)**: Pending join request approval flow for non-owners
-   - Requires new `workspace_join_requests` table
-   - New API endpoints for approve/deny
-   - New WebSocket messages for real-time approval
-   - New UI components for kiosk notification and mobile waiting state
-   - Documented in DESIGN.md Section 12
-   - Est: 2-3 days
-
-**Recommendation:**
-Split into:
-- Issue #22A: Bug - Owner's new device not registering after QR scan
-- Issue #22B: Feature - Pending join request approval flow
-
-**Files Documented:**
-- `server/src/workspaces/router.ts` - Auto-join endpoint
-- `server/src/index.ts` - Device registration via WebSocket
-- `client/src/hooks/useWorkspaceAutoJoin.ts` - Client-side auto-join
-- `docs/DESIGN.md` Section 12 - Spec for join request flow
-
----
-### 2026-05-06 16:05 UTC - Expansion Worker
-
-⚠️ **Issue #22 Needs Split**
-
-- Issue: [Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
-- Type: Enhancement (mixed bug + feature)
-- Status: Labeled `needs-split` - recommend breaking into two issues
-- Labels: `needs-split`, `enhancement`
-
-**Analysis:**
-Issue #22 describes two distinct problems that should be tracked separately:
-
-1. **Bug (Phase A)**: Owner's new device not registering after QR scan
-   - Investigation needed to find root cause
-   - May be OAuth redirect issue or WebSocket connection issue after auth
-   - Est: 2-4 hours
-
-2. **Feature (Phase B)**: Pending join request approval flow for non-owners
-   - Requires new `workspace_join_requests` table
-   - New API endpoints for approve/deny
-   - New WebSocket messages for real-time approval
-   - New UI components for kiosk notification and mobile waiting state
-   - Documented in DESIGN.md Section 12
-   - Est: 2-3 days
-
-**Recommendation:**
-Split into:
-- Issue #22A: Bug - Owner's new device not registering after QR scan
-- Issue #22B: Feature - Pending join request approval flow
-
-**Files Documented:**
-- `server/src/workspaces/router.ts` - Auto-join endpoint
-- `server/src/index.ts` - Device registration via WebSocket
-- `client/src/hooks/useWorkspaceAutoJoin.ts` - Client-side auto-join
-- `docs/DESIGN.md` Section 12 - Spec for join request flow
-
----
 ### 2026-05-06 16:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -1006,3 +904,35 @@ Implemented per-workspace OpenHands API key configuration through the UI:
 - Create helpers only when you plan to use them (avoid dead code)
 
 ---
+### 2026-05-06 23:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be029ba` | merge | PR #34 - Workspace API key settings | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27) (will auto-close on merge)
+- Status: CI green, all review threads resolved, bot review approved ✅
+- Conversation: [`be029ba`](https://app.all-hands.dev/conversations/be029ba76a514dc18da668e41706d006)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cb7cefe` | implementation | Issue #27 | finished ✓ |
+| `89f7f8b` | review | PR #34 | finished ✓ |
+
+**Current State:**
+- [PR #34](https://github.com/jpshackelford/voice-relay/pull/34): `oRFC green ready` - MERGING NOW
+- No issues need expansion
+- Ready issues (remaining):
+  - #31 (priority:high) - Auto rollback on smoke test failure
+  - #28 - QR code dismiss
+  - #33 - Join code → join link
+- Blocked issues: #22 (needs-split)
+
+**Housekeeping:**
+- Archived 3 worklog entries older than 6hr productive window
+- WORKLOG.md now at 29 entries
+
