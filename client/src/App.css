@@ -2641,15 +2641,10 @@ header {
   right: 1rem;
 }
 
-/* When AI status is shown, move connection indicator up */
-.kiosk-display .kiosk-ai-status + .connection-indicator,
-.kiosk-display .connection-indicator:has(+ .kiosk-ai-status) {
-  /* AI status takes the bottom-right, connection indicator above it */
-}
-
-/* Actually, let's move AI status above and keep connection at bottom-right */
+/* Position AI status above connection indicator to avoid overlap.
+   Connection indicator stays at bottom-right (1rem), AI status sits above it. */
 .kiosk-ai-status {
-  bottom: 4.5rem; /* Move AI status up to make room for connection indicator */
+  bottom: 4.5rem;
 }
 
 /* ========================================
