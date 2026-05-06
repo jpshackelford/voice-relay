@@ -158,6 +158,11 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       console.log(`[Auth] User ${user.username} logged in (id: ${user.id})`);
       
       // Auto-create default workspace if user doesn't have any
+      // Note: In rare race conditions (simultaneous login requests for new user),
+      // this could create duplicate workspaces. This is harmless since users can
+      // have multiple workspaces, and the probability is very low in practice.
+      // A more robust solution would use a unique constraint or transaction,
+      // but that adds complexity for minimal benefit.
       if (workspaceRepository) {
         const workspaces = workspaceRepository.findByOwner(user.id);
         if (workspaces.length === 0) {
