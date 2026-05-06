@@ -11,6 +11,20 @@ export interface DeviceInfo {
   isCurrentDevice: boolean;
 }
 
+/** Sort devices: current device first, then by most recently seen */
+function sortDevices(devices: DeviceInfo[]): DeviceInfo[] {
+  return [...devices].sort((a, b) => {
+    // Current device always first
+    if (a.isCurrentDevice !== b.isCurrentDevice) {
+      return a.isCurrentDevice ? -1 : 1;
+    }
+    // Then sort by lastSeenAt (most recent first)
+    const aTime = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+    const bTime = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
 interface UseDevicesReturn {
   devices: DeviceInfo[];
   loading: boolean;
@@ -55,16 +69,7 @@ export function useDevices(workspaceId: string | undefined): UseDevicesReturn {
         isCurrentDevice: d.id === currentDeviceId,
       }));
       
-      // Sort devices: current device first, then by lastSeenAt
-      devicesWithCurrentFlag.sort((a: DeviceInfo, b: DeviceInfo) => {
-        if (a.isCurrentDevice) return -1;
-        if (b.isCurrentDevice) return 1;
-        const aTime = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
-        const bTime = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
-        return bTime - aTime;
-      });
-      
-      setDevices(devicesWithCurrentFlag);
+      setDevices(sortDevices(devicesWithCurrentFlag));
     } catch (err) {
       setError((err as Error).message);
     } finally {
