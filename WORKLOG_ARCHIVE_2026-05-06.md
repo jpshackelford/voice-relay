@@ -754,3 +754,111 @@ When a new user authenticates and a default workspace is created, the device use
 **PR Status:**
 - [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): CI green, moved from draft to ready for review
 - Should be merged immediately after PR #19 to restore smoke test coverage
+
+---
+### 2026-05-06 14:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9d53325` | merge | PR #24 - fix(e2e): smoke test | **NEW** |
+| `3e48245` | expansion | Issue #21 - Exit kiosk mode | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#24 - fix(e2e): update dashboard test for WorkspaceHome redirect](https://github.com/jpshackelford/voice-relay/pull/24)
+   - CI green, no unresolved threads, ready to merge
+   - Conversation: [`9d53325`](https://app.all-hands.dev/conversations/9d53325bfd3b42adae3fbff7091a551e)
+
+2. **Expansion Worker**
+   - Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+   - Needs technical analysis and acceptance criteria
+   - Conversation: [`3e48245`](https://app.all-hands.dev/conversations/3e482459bdec455197c1e72972e04471)
+
+**Current State:**
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `oC green ready --` (merge in progress)
+- PR #19 (Issue #18) was merged at 14:06 UTC ✅
+- Issues needing expansion: #21 (now being expanded), #22, #23
+- Ready issues: #20 (Auto add first device)
+
+**What Changed Since Last Run:**
+- f8a7589 (merge worker for PR #19) completed → PR #19 merged, Issue #18 closed
+- 81888ff (review worker for PR #24) completed → PR #24 ready for merge
+
+---
+### 2026-05-06 14:34 UTC - Expansion Worker
+
+✅ **Expanded Issue #21**
+
+- Issue: [Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+- Type: Enhancement (UX improvement)
+- Status: Ready for implementation
+- Label: `ready` applied
+
+**Problem:**
+The exit button (✕) in KioskMode sidebar currently calls `onModeChange('mobile')`, which only toggles the display mode while staying on the same session URL. Users expect "exit" to navigate back to workspace home.
+
+**Technical Approach:**
+1. Add `onExit?: () => void` prop to `KioskMode` component
+2. Change exit button onClick from mode toggle to `onExit?.()` callback
+3. Implement `handleExit` in `SessionView` that navigates to `/workspace/:workspaceId`
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add onExit prop, update exit button handlers
+- `client/src/pages/SessionView.tsx` - Add handleExit callback, pass to KioskMode
+
+**Complexity:** Low (30 minutes)
+
+---
+### 2026-05-06 15:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6dec092` | expansion | Issue #23 - Session messaging bug | **NEW** |
+| `0d030f0` | implementation | Issue #21 - Exit kiosk mode nav | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Expansion Worker**
+   - Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) (BUG)
+   - Conversation: [`6dec092`](https://app.all-hands.dev/conversations/6dec0924c8e94a8e95fd5d1f6cc78e0d)
+   - Task: Reproduce bug, find root cause, add technical detail, label ready
+
+2. **Implementation Worker**
+   - Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21) (priority:high)
+   - Conversation: [`0d030f0`](https://app.all-hands.dev/conversations/0d030f0ed7d34f0c872f0f73cc6f5c3c)
+   - Task: Implement onExit callback in KioskMode, navigate to workspace home
+
+**Current State:**
+- No open PRs
+- Issues needing expansion: #22 (Scan QR code and join), #23 (now being expanded)
+- Ready issues: #20 (priority:medium), #21 (priority:high - now being implemented)
+
+**Priority Assessment (performed inline):**
+- Added `priority:high` to #21 (simple 30-min fix, quick win)
+- Added `priority:medium` to #20 (1-2 day complexity)
+- Created priority labels: `priority:high`, `priority:medium`, `priority:low`
+
+---
+### 2026-05-06 15:13 UTC - Implementation Worker (`0d030f0`)
+
+✅ **Completed: PR #25 - Exit Kiosk Mode Navigation**
+
+- Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+- PR: [#25 - feat: exit kiosk mode navigates to workspace home](https://github.com/jpshackelford/voice-relay/pull/25)
+- Status: Ready for review
+
+**Work Done:**
+1. Added `onExit` optional prop to KioskMode component
+2. Updated both desktop sidebar and mobile header exit buttons to use `onExit?.()` instead of mode toggle
+3. Added `handleExit` callback in SessionView that navigates to `/workspace/:workspaceId`
+4. Added comprehensive tests for KioskMode exit functionality (7 new tests)
+5. All unit tests pass (85 client tests, 333 server tests)
+6. CI green ✅
+
+**Files Changed:**
+- `client/src/components/KioskMode.tsx` - Add onExit prop, update exit buttons
+- `client/src/pages/SessionView.tsx` - Add handleExit callback
+- `client/src/components/KioskMode.test.tsx` - New test file
