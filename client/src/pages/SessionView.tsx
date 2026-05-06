@@ -310,9 +310,10 @@ export function SessionView() {
   ) : null;
 
   // Joined workspace banner (shown when user was auto-added to workspace)
+  // Use auto-join response data directly to eliminate race condition with refetch
   const joinedBanner = showJoinedBanner ? (
     <div className="device-reconnect-banner" style={{ backgroundColor: '#4ade80' }}>
-      <span className="banner-text">✓ Joined workspace: {workspace?.name}</span>
+      <span className="banner-text">✓ Joined workspace: {autoJoin.result.workspace?.name || workspace?.name}</span>
       <button className="reconnect-btn" onClick={handleDismissJoinedBanner}>
         Dismiss
       </button>

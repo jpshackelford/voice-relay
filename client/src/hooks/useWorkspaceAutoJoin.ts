@@ -1,12 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
 import type { ResourceError } from './useResourceFetch';
 
+/** Workspace data returned from auto-join endpoint */
+export interface AutoJoinWorkspace {
+  id: string;
+  name: string;
+  slug: string;
+  isOwner: boolean;
+  joined: boolean;
+}
+
 /** Result of auto-join attempt */
 export interface AutoJoinResult {
   /** true = success, false = failed, null = not attempted/in progress */
   success: boolean | null;
   /** Error message if failed */
   error: string | null;
+  /** Workspace data returned on success (eliminates race condition with refetch) */
+  workspace: AutoJoinWorkspace | null;
 }
 
 interface UseWorkspaceAutoJoinOptions {
@@ -56,6 +67,7 @@ export function useWorkspaceAutoJoin({
   const [result, setResult] = useState<AutoJoinResult>({
     success: null,
     error: null,
+    workspace: null,
   });
 
   // Auto-join when we get ACCESS_DENIED error
@@ -83,12 +95,13 @@ export function useWorkspaceAutoJoin({
           if (res.ok) {
             const data = await res.json();
             if (!cancelled) {
-              setResult({ success: true, error: null });
+              // Store workspace data from response to eliminate race condition with refetch
+              setResult({ success: true, error: null, workspace: data });
               onJoinSuccess(data.joined === true);
             }
           } else if (res.status === 404) {
             if (!cancelled) {
-              setResult({ success: false, error: 'Workspace not found' });
+              setResult({ success: false, error: 'Workspace not found', workspace: null });
             }
           } else {
             const errorData = await res.json().catch(() => null);
@@ -96,6 +109,7 @@ export function useWorkspaceAutoJoin({
               setResult({
                 success: false,
                 error: errorData?.error || 'Failed to join workspace',
+                workspace: null,
               });
             }
           }
@@ -105,6 +119,7 @@ export function useWorkspaceAutoJoin({
             setResult({
               success: false,
               error: 'Failed to join workspace',
+              workspace: null,
             });
           }
         }
