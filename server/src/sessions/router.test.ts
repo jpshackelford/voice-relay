@@ -605,6 +605,26 @@ describe('Session Router - QR Token Generation', () => {
       expect(response.body.error).toBe('Session not found');
     });
 
+    it('returns 404 for session belonging to different workspace', async () => {
+      // Create another workspace that the user also owns
+      const otherWorkspaceId = 'workspace-other';
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherWorkspaceId, testUserId, 'Other Workspace', 'other-workspace', 'EFGH-5678');
+
+      // Create a session in the other workspace
+      const sessionInOtherWorkspace = sessionRepository.create({ workspaceId: otherWorkspaceId });
+
+      // Try to access this session through the first workspace's URL
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/sessions/${sessionInOtherWorkspace.id}/qr-token`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.error).toBe('Session not found');
+    });
+
     it('generates token for valid session', async () => {
       const session = sessionRepository.create({ workspaceId: testWorkspaceId });
 

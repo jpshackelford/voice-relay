@@ -218,6 +218,12 @@ export function createSessionRouter({
       return;
     }
 
+    // Verify session belongs to this workspace
+    if (session.workspaceId !== workspaceId) {
+      res.status(404).json({ error: 'Session not found' });
+      return;
+    }
+
     // Generate a new QR token
     const token = qrTokenRepository.create({
       workspaceId,
