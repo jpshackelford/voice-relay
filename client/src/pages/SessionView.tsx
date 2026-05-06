@@ -278,9 +278,13 @@ export function SessionView() {
   // 2. Workspace is null after auto-join completed (catch refetch failures post-join)
   // We don't show errors while auto-join is in progress since it will refetch on success.
   if ((workspaceError && !autoJoin.attempted) || (!workspace && !autoJoin.inProgress)) {
+    // If auto-join succeeded but workspace is still null, refetch failed - show appropriate message
+    const errorMessage = autoJoin.result.success
+      ? 'Failed to load workspace after joining. Please refresh the page.'
+      : workspaceError || 'Workspace not found';
     return (
       <div className="workspace-error">
-        <h2>⚠️ {workspaceError || 'Workspace not found'}</h2>
+        <h2>⚠️ {errorMessage}</h2>
         <button onClick={handleBackToWorkspace}>← Back to Workspace</button>
       </div>
     );
