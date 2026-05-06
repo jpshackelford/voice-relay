@@ -845,3 +845,27 @@ When a new user authenticates and a default workspace is created, the device use
 - 81888ff (review worker for PR #24) completed → PR #24 ready for merge
 
 ---
+### 2026-05-06 14:34 UTC - Expansion Worker
+
+✅ **Expanded Issue #21**
+
+- Issue: [Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21)
+- Type: Enhancement (UX improvement)
+- Status: Ready for implementation
+- Label: `ready` applied
+
+**Problem:**
+The exit button (✕) in KioskMode sidebar currently calls `onModeChange('mobile')`, which only toggles the display mode while staying on the same session URL. Users expect "exit" to navigate back to workspace home.
+
+**Technical Approach:**
+1. Add `onExit?: () => void` prop to `KioskMode` component
+2. Change exit button onClick from mode toggle to `onExit?.()` callback
+3. Implement `handleExit` in `SessionView` that navigates to `/workspace/:workspaceId`
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add onExit prop, update exit button handlers
+- `client/src/pages/SessionView.tsx` - Add handleExit callback, pass to KioskMode
+
+**Complexity:** Low (30 minutes)
+
+---
