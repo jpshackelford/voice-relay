@@ -13,10 +13,18 @@ export interface EncryptedKey {
 
 /**
  * Derive encryption key from secret using PBKDF2
+ * 
+ * Security note: We use a fixed salt here intentionally because:
+ * 1. The ENCRYPTION_SECRET is already high-entropy (not a user password)
+ * 2. The IV is random per encryption, providing unique ciphertext
+ * 3. Per-key random salts would require database schema changes
+ * 
+ * In password-based encryption, random salts prevent rainbow tables and
+ * ensure identical passwords produce different keys. Here, the secret
+ * itself provides sufficient entropy, making per-key salts unnecessary.
+ * The random IV ensures identical plaintexts encrypt to different ciphertext.
  */
 function deriveKey(secret: string): Buffer {
-  // Use a fixed salt for deterministic key derivation
-  // (The actual secret provides the entropy)
   const salt = 'voice-relay-api-key-salt';
   return crypto.pbkdf2Sync(secret, salt, 100000, KEY_LENGTH, 'sha256');
 }
