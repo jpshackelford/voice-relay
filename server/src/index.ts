@@ -512,6 +512,7 @@ async function start() {
       // Set up device routes
       const deviceRouter = createDeviceRouter({
         deviceRepository,
+        workspaceRepository,
         authConfig: {
           jwtService,
           userRepository,

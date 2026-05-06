@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import request from 'supertest';
 import { createDeviceRouter } from './router.js';
 import { DeviceRepository } from './device-repository.js';
+import { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
@@ -13,6 +14,7 @@ describe('Device Router', () => {
   let app: Express;
   let db: Database.Database;
   let deviceRepository: DeviceRepository;
+  let workspaceRepository: WorkspaceRepository;
   let userRepository: UserRepository;
   let jwtService: JWTService;
   let testWorkspaceId: string;
@@ -41,6 +43,7 @@ describe('Device Router', () => {
     `);
 
     deviceRepository = new DeviceRepository(db);
+    workspaceRepository = new WorkspaceRepository(db);
     userRepository = new UserRepository(db);
     jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
 
@@ -58,6 +61,12 @@ describe('Device Router', () => {
       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).run(testWorkspaceId, testUserId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
 
+    // Add owner as workspace member (required for canAccess to work)
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, testUserId, 'owner');
+
     // Get user for token generation
     const user = userRepository.findById(testUserId)!;
     authToken = jwtService.sign(user);
@@ -68,6 +77,7 @@ describe('Device Router', () => {
 
     const router = createDeviceRouter({
       deviceRepository,
+      workspaceRepository,
       authConfig: { jwtService, userRepository },
     });
     app.use('/api/devices', router);
