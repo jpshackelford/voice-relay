@@ -105,7 +105,7 @@ export function QRCodeDisplay({
     })
       .then(setQrDataUrl)
       .catch(console.error);
-  }, [size, currentUrl, token]); // Re-generate when token changes
+  }, [size, currentUrl]);
 
   const copyToClipboard = useCallback(async () => {
     try {
