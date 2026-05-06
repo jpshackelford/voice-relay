@@ -6,7 +6,10 @@ const TEST_SERVER_PORT = 3002;
 
 export default defineConfig({
   testDir: './tests',
-  // Exclude smoke tests (they need auth state from production)
+  // Smoke tests are excluded from regular test runs - they require production
+  // auth state and target the deployed server. Run them separately with:
+  // `SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke`
+  // See tests/smoke/README.md for setup instructions.
   testIgnore: ['**/smoke/**'],
   timeout: 30000,
   retries: 0,
