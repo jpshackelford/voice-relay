@@ -11,12 +11,20 @@ export interface WorkspaceSettings {
   updatedAt: string | null;
 }
 
+export interface ApiKeyTestResult {
+  valid: boolean;
+  message: string;
+}
+
 interface UseWorkspaceSettingsReturn {
   settings: WorkspaceSettings | null;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
   updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken'>>) => Promise<void>;
+  setApiKey: (apiKey: string) => Promise<void>;
+  testApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
+  removeApiKey: () => Promise<void>;
 }
 
 /**
@@ -100,11 +108,80 @@ export function useWorkspaceSettings(
     setSettings(data as WorkspaceSettings);
   }, [workspaceId, ensureValidToken]);
 
+  const setApiKey = useCallback(async (apiKey: string) => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/api-key`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to set API key');
+    }
+
+    // Refresh settings to get updated hasApiKey
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
+  const testApiKey = useCallback(async (apiKey?: string): Promise<ApiKeyTestResult> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/api-key/test`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(apiKey ? { apiKey } : {}),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to test API key');
+    }
+
+    return await res.json() as ApiKeyTestResult;
+  }, [workspaceId, ensureValidToken]);
+
+  const removeApiKey = useCallback(async () => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/api-key`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!res.ok && res.status !== 204) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to remove API key');
+    }
+
+    // Refresh settings to get updated hasApiKey
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
   return {
     settings,
     loading,
     error,
     refresh,
     updateSettings,
+    setApiKey,
+    testApiKey,
+    removeApiKey,
   };
 }

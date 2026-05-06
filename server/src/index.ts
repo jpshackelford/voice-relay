@@ -7,9 +7,9 @@ import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
-import { aiSessionManager } from './openhands.js';
+import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
 import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
-import { createWorkspaceRouter, WorkspaceRepository } from './workspaces/index.js';
+import { createWorkspaceRouter, WorkspaceRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
@@ -186,11 +186,6 @@ app.post('/api/ai/connect', async (req, res) => {
     return;
   }
   
-  if (!aiSessionManager.isAvailable()) {
-    res.status(503).json({ error: 'OpenHands API not configured' });
-    return;
-  }
-  
   try {
     const device = registry.getDevice(deviceId);
     if (!device) {
@@ -199,8 +194,26 @@ app.post('/api/ai/connect', async (req, res) => {
     }
 
     // Device's workspaceId is the one it registered with.
-    // Validation deferred to Phase 4 with user authentication.
     const deviceWorkspaceId = device.workspaceId;
+
+    // Try to get workspace-specific API key using the helper
+    const workspaceApiKey = workspaceRepository
+      ? await getWorkspaceApiKey(
+          deviceWorkspaceId,
+          (id) => workspaceRepository?.getSettings(id) ?? null,
+          decryptApiKey
+        )
+      : null;
+
+    if (workspaceApiKey) {
+      console.log(`[AI] Using workspace-specific API key for workspace ${deviceWorkspaceId}`);
+    }
+
+    // Check if we have any API key available (workspace or env)
+    if (!workspaceApiKey && !aiSessionManager.isAvailable()) {
+      res.status(503).json({ error: 'OpenHands API not configured' });
+      return;
+    }
 
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
@@ -226,7 +239,8 @@ app.post('/api/ai/connect', async (req, res) => {
       deviceId, 
       mode || 'chat', 
       onMessage,
-      displayLines
+      displayLines,
+      workspaceApiKey || undefined  // Pass workspace key or let it fall back to env
     );
     
     // Notify the device that AI is connected

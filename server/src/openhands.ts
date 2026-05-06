@@ -432,14 +432,18 @@ export class AISessionManager {
    * @param mode - 'chat' or 'kiosk' mode
    * @param onMessage - Callback for agent responses
    * @param displayLines - Optional max display lines for kiosk (from device screen size)
+   * @param apiKey - Optional workspace-specific API key (falls back to env var)
    */
   async startSession(
     deviceId: string,
     mode: 'chat' | 'kiosk',
     onMessage: (message: string) => void,
-    displayLines?: number
+    displayLines?: number,
+    apiKey?: string
   ): Promise<AISession> {
-    if (!this.client) {
+    // Create a client with the provided API key or use the default
+    const client = apiKey ? new OpenHandsClient(apiKey) : this.client;
+    if (!client) {
       throw new Error('OpenHands API not configured');
     }
 
@@ -459,7 +463,7 @@ export class AISessionManager {
 
     // Start conversation
     console.log(`[AI] Creating OpenHands conversation...`);
-    const startResponse = await this.client.startConversation(
+    const startResponse = await client.startConversation(
       systemPrompt,
       `Voice Relay ${mode} session`
     );
@@ -467,7 +471,7 @@ export class AISessionManager {
 
     // Wait for conversation to be ready
     console.log(`[AI] Waiting for conversation to be ready...`);
-    const readyTask = await this.client.pollUntilReady(
+    const readyTask = await client.pollUntilReady(
       startResponse.id,
       60000, // 1 minute timeout for initial start
       2000
@@ -478,7 +482,7 @@ export class AISessionManager {
     console.log(`[AI] Using conversation ID: ${conversationId}`);
 
     // Get conversation details for WebSocket connection
-    const convInfo = await this.client.getConversation(conversationId);
+    const convInfo = await client.getConversation(conversationId);
     if (!convInfo) {
       throw new Error('Failed to get conversation info');
     }
@@ -564,3 +568,33 @@ export class AISessionManager {
 
 // Export singleton instance
 export const aiSessionManager = new AISessionManager();
+
+/**
+ * Helper function to get workspace API key from settings
+ * Returns null if not configured or if decryption fails
+ */
+export async function getWorkspaceApiKey(
+  workspaceId: string,
+  getSettings: (id: string) => { 
+    openhandsApiKeyEncrypted: string | null;
+    openhandsApiKeyIv: string | null;
+    openhandsApiKeyTag: string | null;
+  } | null,
+  decryptFn: (encrypted: { encrypted: string; iv: string; tag: string }) => string
+): Promise<string | null> {
+  const settings = getSettings(workspaceId);
+  if (!settings?.openhandsApiKeyEncrypted || !settings?.openhandsApiKeyIv || !settings?.openhandsApiKeyTag) {
+    return null;
+  }
+
+  try {
+    return decryptFn({
+      encrypted: settings.openhandsApiKeyEncrypted,
+      iv: settings.openhandsApiKeyIv,
+      tag: settings.openhandsApiKeyTag,
+    });
+  } catch (err) {
+    console.error('[AI] Failed to decrypt workspace API key:', err);
+    return null;
+  }
+}

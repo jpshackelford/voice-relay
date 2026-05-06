@@ -5,6 +5,7 @@ import type { DeviceRepository } from '../devices/device-repository.js';
 import type { QrTokenRepository } from '../qr-tokens/index.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+import { encryptApiKey, decryptApiKey, isValidApiKeyFormat } from './encryption.js';
 
 // Rate limiter for auto-join endpoint to prevent enumeration/abuse
 const autoJoinLimiter = rateLimit({
@@ -413,6 +414,129 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Set API key (encrypted storage)
+  router.put('/:id/settings/api-key', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can set API key' });
+        return;
+      }
+
+      const { apiKey } = req.body as { apiKey: string };
+      
+      if (!apiKey || typeof apiKey !== 'string') {
+        res.status(400).json({ error: 'API key is required' });
+        return;
+      }
+
+      if (!isValidApiKeyFormat(apiKey)) {
+        res.status(400).json({ error: 'Invalid API key format' });
+        return;
+      }
+
+      // Encrypt and store the API key
+      const encrypted = encryptApiKey(apiKey);
+      workspaceRepository.updateSettings(workspace.id, {
+        openhandsApiKeyEncrypted: encrypted.encrypted,
+        openhandsApiKeyIv: encrypted.iv,
+        openhandsApiKeyTag: encrypted.tag,
+      });
+
+      // Audit log (without revealing the key)
+      console.log('[Workspaces] API key set:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({ success: true, hasApiKey: true });
+    } catch (err) {
+      console.error('[Workspaces] Set API key error:', err);
+      res.status(500).json({ error: 'Failed to set API key' });
+    }
+  });
+
+  // Test API key connectivity
+  router.post('/:id/settings/api-key/test', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can test API key' });
+        return;
+      }
+
+      // Use provided API key or get stored one
+      const { apiKey: providedKey } = req.body as { apiKey?: string };
+      let apiKeyToTest: string | null = null;
+
+      if (providedKey) {
+        apiKeyToTest = providedKey;
+      } else {
+        // Get stored API key
+        const settings = workspaceRepository.getSettings(workspace.id);
+        if (settings?.openhandsApiKeyEncrypted && settings?.openhandsApiKeyIv && settings?.openhandsApiKeyTag) {
+          try {
+            apiKeyToTest = decryptApiKey({
+              encrypted: settings.openhandsApiKeyEncrypted,
+              iv: settings.openhandsApiKeyIv,
+              tag: settings.openhandsApiKeyTag,
+            });
+          } catch (decryptErr) {
+            console.error('[Workspaces] Failed to decrypt API key:', decryptErr);
+            res.json({ valid: false, message: 'Failed to decrypt stored API key' });
+            return;
+          }
+        }
+      }
+
+      if (!apiKeyToTest) {
+        res.json({ valid: false, message: 'No API key configured' });
+        return;
+      }
+
+      // Test the API key by making a lightweight request to OpenHands
+      try {
+        const response = await fetch('https://app.all-hands.dev/api/conversations', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKeyToTest}`,
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        if (response.ok) {
+          res.json({ valid: true, message: 'API key is valid' });
+        } else if (response.status === 401 || response.status === 403) {
+          res.json({ valid: false, message: 'Invalid or expired API key' });
+        } else {
+          res.json({ valid: false, message: `OpenHands API returned status ${response.status}` });
+        }
+      } catch (fetchErr) {
+        const message = fetchErr instanceof Error ? fetchErr.message : 'Unknown error';
+        console.error('[Workspaces] API key test fetch error:', message);
+        res.json({ valid: false, message: 'Failed to connect to OpenHands API' });
+      }
+    } catch (err) {
+      console.error('[Workspaces] Test API key error:', err);
+      res.status(500).json({ error: 'Failed to test API key' });
+    }
+  });
+
   // Remove API key
   router.delete('/:id/settings/api-key', auth, async (req: Request, res: Response) => {
     try {
@@ -429,6 +553,15 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       }
 
       workspaceRepository.clearApiKey(workspace.id);
+
+      // Audit log
+      console.log('[Workspaces] API key removed:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+
       res.status(204).send();
     } catch (err) {
       console.error('[Workspaces] Remove API key error:', err);
