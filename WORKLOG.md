@@ -714,7 +714,7 @@ Spawned review worker to add the missing test coverage, then move PR back to rea
 
 **Current State:**
 - [PR #19](https://github.com/jpshackelford/voice-relay/pull/19): `oRCFRFRFRCFRFRC green ready 💬1` (1 unresolved thread)
-- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `o red draft` (smoke test fix, separate concern)
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `o red draft` (smoke test fix -- this should be a priority!)
 - Issues needing expansion: #21, #22, #23
 - Ready issues: none (awaiting #20 expansion)
 
