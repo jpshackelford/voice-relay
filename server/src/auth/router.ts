@@ -81,6 +81,55 @@ function parseDurationToMs(duration: string): number {
   }
 }
 
+// Device token cookie expiry for one-time migration to localStorage
+const DEVICE_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+/**
+ * Auto-create first device for a user in their newly created workspace.
+ * Sets device token cookie for client-side session restoration.
+ * 
+ * @param username - User's username for logging
+ * @param displayName - User's display name for device naming
+ * @param workspaceId - ID of the newly created workspace
+ * @param userAgent - User-Agent header for device type detection
+ * @param res - Express response for setting cookies
+ * @param deviceRepository - Repository for creating devices
+ * @param isProduction - Whether running in production (for secure cookies)
+ */
+function autoCreateFirstDevice(
+  username: string,
+  displayName: string,
+  workspaceId: string,
+  userAgent: string,
+  res: Response,
+  deviceRepository: DeviceRepository,
+  isProduction: boolean
+): void {
+  try {
+    const deviceName = generateDeviceName(displayName, userAgent);
+    const { device, token: deviceToken } = deviceRepository.create({
+      workspaceId,
+      name: deviceName,
+      mode: 'mobile', // Default to mobile mode
+    });
+
+    console.log(`[Auth] Auto-created first device for ${username}: ${device.name} (id: ${device.id})`);
+
+    // Set device token cookie (short expiry for one-time migration to localStorage)
+    const deviceCookieData = JSON.stringify({
+      deviceId: device.id,
+      deviceToken,
+      workspaceId,
+      name: device.name,
+      mode: device.mode,
+    });
+    res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getDeviceCookieOptions(isProduction, DEVICE_TOKEN_MAX_AGE));
+  } catch (err) {
+    // Device creation is non-critical; log and continue
+    console.error(`[Auth] Failed to auto-create first device for ${username}:`, err);
+  }
+}
+
 // In-memory state store (for CSRF protection)
 // In production with multiple servers, use Redis
 const pendingStates = new Map<string, { createdAt: number; returnTo?: string }>();
@@ -206,33 +255,9 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       // Auto-create first device in the newly created workspace
       // This reduces friction for first-time users
       if (newlyCreatedWorkspaceId && deviceRepository) {
-        try {
-          const userAgent = req.headers['user-agent'] || '';
-          const displayName = user.displayName || user.username;
-          const deviceName = generateDeviceName(displayName, userAgent);
-          
-          const { device, token: deviceToken, expiresAt } = deviceRepository.create({
-            workspaceId: newlyCreatedWorkspaceId,
-            name: deviceName,
-            mode: 'mobile', // Default to mobile mode
-          });
-          
-          console.log(`[Auth] Auto-created first device for ${user.username}: ${device.name} (id: ${device.id})`);
-          
-          // Set device token cookie (short expiry for one-time migration to localStorage)
-          const deviceTokenMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-          const deviceCookieData = JSON.stringify({
-            deviceId: device.id,
-            deviceToken,
-            workspaceId: newlyCreatedWorkspaceId,
-            name: device.name,
-            mode: device.mode,
-          });
-          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getDeviceCookieOptions(isProduction, deviceTokenMaxAge));
-        } catch (err) {
-          // Device creation is non-critical; log and continue
-          console.error('[Auth] Failed to auto-create first device:', err);
-        }
+        const userAgent = req.headers['user-agent'] || '';
+        const displayName = user.displayName || user.username;
+        autoCreateFirstDevice(user.username, displayName, newlyCreatedWorkspaceId, userAgent, res, deviceRepository, isProduction);
       }
       
       // Generate JWT access token
@@ -375,32 +400,9 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       
       // Auto-create first device in the newly created workspace
       if (testWorkspaceId && deviceRepository) {
-        try {
-          const userAgent = req.headers['user-agent'] || '';
-          const displayName = testUser.displayName || testUser.username;
-          const deviceName = generateDeviceName(displayName, userAgent);
-          
-          const { device, token: deviceToken } = deviceRepository.create({
-            workspaceId: testWorkspaceId,
-            name: deviceName,
-            mode: 'mobile',
-          });
-          
-          console.log(`[Auth] Auto-created first device for test user: ${device.name} (id: ${device.id})`);
-          
-          // Set device token cookie (short expiry for one-time migration to localStorage)
-          const deviceTokenMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-          const deviceCookieData = JSON.stringify({
-            deviceId: device.id,
-            deviceToken,
-            workspaceId: testWorkspaceId,
-            name: device.name,
-            mode: device.mode,
-          });
-          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getDeviceCookieOptions(isProduction, deviceTokenMaxAge));
-        } catch (err) {
-          console.error('[Auth] Failed to auto-create first device for test user:', err);
-        }
+        const userAgent = req.headers['user-agent'] || '';
+        const displayName = testUser.displayName || testUser.username;
+        autoCreateFirstDevice(testUser.username, displayName, testWorkspaceId, userAgent, res, deviceRepository, isProduction);
       }
       
       // Generate tokens
