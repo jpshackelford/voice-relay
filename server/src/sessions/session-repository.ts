@@ -99,7 +99,7 @@ export class SessionRepository {
   }
 
   /**
-   * Get session summaries with device counts for a workspace.
+   * Get session summaries with device counts and last activity time for a workspace.
    */
   getSessionSummaries(workspaceId: string, status?: SessionStatus): SessionSummary[] {
     const statusFilter = status ? 'AND s.status = ?' : '';
@@ -110,14 +110,17 @@ export class SessionRepository {
       status: string;
       started_at: string;
       device_count: number;
+      last_active_at: string | null;
     }>(`
       SELECT s.id, s.workspace_id, s.name, s.status, s.started_at,
-             COUNT(sd.device_id) as device_count
+             COUNT(DISTINCT sd.device_id) as device_count,
+             MAX(m.created_at) as last_active_at
       FROM sessions s
       LEFT JOIN session_devices sd ON s.id = sd.session_id
+      LEFT JOIN messages m ON s.id = m.session_id
       WHERE s.workspace_id = ? ${statusFilter}
       GROUP BY s.id
-      ORDER BY s.started_at DESC
+      ORDER BY COALESCE(MAX(m.created_at), s.started_at) DESC
     `);
 
     const rows = status 
@@ -131,6 +134,7 @@ export class SessionRepository {
       status: row.status as SessionStatus,
       startedAt: row.started_at,
       deviceCount: row.device_count,
+      lastActiveAt: row.last_active_at || row.started_at,
     }));
   }
 

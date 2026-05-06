@@ -5,10 +5,13 @@ import { GitHubOAuth } from './github-oauth.js';
 import { JWTService } from './jwt.js';
 import { UserRepository } from './user-repository.js';
 import { requireAuth, type AuthMiddlewareConfig } from './middleware.js';
+import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 
 export interface AuthRouterConfig {
   config: AuthConfig;
   userRepository: UserRepository;
+  /** Optional workspace repository for auto-creating default workspace */
+  workspaceRepository?: WorkspaceRepository;
   /** Where to redirect after successful login (default: /) */
   successRedirect?: string;
   /** Where to redirect after failed login (default: /login?error=1) */
@@ -67,7 +70,7 @@ setInterval(() => {
 
 export function createAuthRouter(options: AuthRouterConfig): Router {
   const router = Router();
-  const { config, userRepository, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
+  const { config, userRepository, workspaceRepository, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
 
   const github = new GitHubOAuth({
     githubClientId: config.githubClientId,
@@ -153,6 +156,22 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       });
       
       console.log(`[Auth] User ${user.username} logged in (id: ${user.id})`);
+      
+      // Auto-create default workspace if user doesn't have any
+      // Note: In rare race conditions (simultaneous login requests for new user),
+      // this could create duplicate workspaces. This is harmless since users can
+      // have multiple workspaces, and the probability is very low in practice.
+      // A more robust solution would use a unique constraint or transaction,
+      // but that adds complexity for minimal benefit.
+      if (workspaceRepository) {
+        const workspaces = workspaceRepository.findByOwner(user.id);
+        if (workspaces.length === 0) {
+          const displayName = user.displayName || user.username;
+          const workspaceName = `${displayName}'s Workspace`;
+          const workspace = workspaceRepository.create(user.id, { name: workspaceName });
+          console.log(`[Auth] Created default workspace for ${user.username}: ${workspace.name} (id: ${workspace.id})`);
+        }
+      }
       
       // Generate JWT access token
       const token = jwtService.sign(user);
@@ -279,6 +298,16 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       });
       
       console.log(`[Auth] Test session created for user: ${testUser.username}`);
+      
+      // Auto-create default workspace if test user doesn't have any
+      if (workspaceRepository) {
+        const workspaces = workspaceRepository.findByOwner(testUser.id);
+        if (workspaces.length === 0) {
+          const workspaceName = `${testUser.displayName}'s Workspace`;
+          const workspace = workspaceRepository.create(testUser.id, { name: workspaceName });
+          console.log(`[Auth] Created default workspace for test user: ${workspace.name} (id: ${workspace.id})`);
+        }
+      }
       
       // Generate tokens
       const token = jwtService.sign(testUser);

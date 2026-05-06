@@ -1,9 +1,14 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import type { DeviceRepository } from './device-repository.js';
+import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+
+/** Max device name length (prevents UI overflow and DB bloat) */
+const MAX_DEVICE_NAME_LENGTH = 100;
 
 export interface DeviceRouterOptions {
   deviceRepository: DeviceRepository;
+  workspaceRepository: WorkspaceRepository;
   authConfig: AuthMiddlewareConfig;
 }
 
@@ -87,7 +92,7 @@ function rateLimitValidate(req: Request, res: Response, next: NextFunction): voi
  * Create the device API router.
  * Provides endpoints for device token management.
  */
-export function createDeviceRouter({ deviceRepository, authConfig }: DeviceRouterOptions): Router {
+export function createDeviceRouter({ deviceRepository, workspaceRepository, authConfig }: DeviceRouterOptions): Router {
   const router = Router();
   const auth = requireAuth(authConfig);
 
@@ -142,6 +147,51 @@ export function createDeviceRouter({ deviceRepository, authConfig }: DeviceRoute
       mode: device.mode,
       lastSeenAt: device.lastSeenAt,
       createdAt: device.createdAt,
+    });
+  });
+
+  // Update device (requires auth) - for renaming, changing mode
+  router.patch('/:deviceId', auth, (req: Request, res: Response) => {
+    const { deviceId } = req.params;
+    const { name, mode } = req.body;
+    
+    const device = deviceRepository.findById(deviceId);
+    if (!device) {
+      res.status(404).json({ error: 'Device not found' });
+      return;
+    }
+
+    // Security: Check user has access to the workspace that owns this device
+    if (!workspaceRepository.canAccess(device.workspaceId, req.user!.id)) {
+      res.status(403).json({ error: 'Access denied' });
+      return;
+    }
+
+    // Validate name if provided
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0) {
+        res.status(400).json({ error: 'Device name is required' });
+        return;
+      }
+      if (name.length > MAX_DEVICE_NAME_LENGTH) {
+        res.status(400).json({ error: `Device name too long (max ${MAX_DEVICE_NAME_LENGTH} chars)` });
+        return;
+      }
+    }
+
+    const updated = deviceRepository.update(deviceId, { name: name?.trim(), mode });
+    if (!updated) {
+      res.status(500).json({ error: 'Failed to update device' });
+      return;
+    }
+
+    res.json({
+      id: updated.id,
+      workspaceId: updated.workspaceId,
+      name: updated.name,
+      mode: updated.mode,
+      lastSeenAt: updated.lastSeenAt,
+      createdAt: updated.createdAt,
     });
   });
 

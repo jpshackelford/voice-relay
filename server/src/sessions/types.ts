@@ -68,4 +68,6 @@ export interface SessionSummary {
   status: SessionStatus;
   startedAt: string;
   deviceCount: number;
+  /** Last message timestamp in this session, or startedAt if no messages */
+  lastActiveAt: string;
 }

@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 import request from 'supertest';
 import { createDeviceRouter } from './router.js';
 import { DeviceRepository } from './device-repository.js';
+import { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
@@ -13,6 +14,7 @@ describe('Device Router', () => {
   let app: Express;
   let db: Database.Database;
   let deviceRepository: DeviceRepository;
+  let workspaceRepository: WorkspaceRepository;
   let userRepository: UserRepository;
   let jwtService: JWTService;
   let testWorkspaceId: string;
@@ -41,6 +43,7 @@ describe('Device Router', () => {
     `);
 
     deviceRepository = new DeviceRepository(db);
+    workspaceRepository = new WorkspaceRepository(db);
     userRepository = new UserRepository(db);
     jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
 
@@ -58,6 +61,12 @@ describe('Device Router', () => {
       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).run(testWorkspaceId, testUserId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
 
+    // Add owner as workspace member (required for canAccess to work)
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, testUserId, 'owner');
+
     // Get user for token generation
     const user = userRepository.findById(testUserId)!;
     authToken = jwtService.sign(user);
@@ -68,6 +77,7 @@ describe('Device Router', () => {
 
     const router = createDeviceRouter({
       deviceRepository,
+      workspaceRepository,
       authConfig: { jwtService, userRepository },
     });
     app.use('/api/devices', router);
@@ -404,6 +414,135 @@ describe('Device Router', () => {
         .expect(404);
 
       expect(response.body.error).toBe('Device not found');
+    });
+  });
+
+  describe('PATCH /:deviceId', () => {
+    it('requires authentication', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Test Device',
+        mode: 'mobile',
+      });
+
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .send({ name: 'New Name' })
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('renames device when user has workspace access', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Original Name',
+        mode: 'mobile',
+      });
+
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'New Name' })
+        .expect(200);
+
+      expect(response.body.name).toBe('New Name');
+      expect(response.body.id).toBe(device.id);
+    });
+
+    it('returns 403 when user lacks workspace access', async () => {
+      // Create another user and workspace they don't have access to
+      const otherUserId = 'other-user-456';
+      const otherWorkspaceId = 'other-workspace-456';
+
+      db.prepare(`
+        INSERT INTO users (id, github_id, username, created_at, last_login_at)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherUserId, 99999, 'otheruser');
+
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherWorkspaceId, otherUserId, 'Other Workspace', 'other-workspace', 'WXYZ-9999');
+
+      // Create device in the OTHER workspace
+      const { device } = deviceRepository.create({
+        workspaceId: otherWorkspaceId,
+        name: 'Other Device',
+        mode: 'mobile',
+      });
+
+      // Try to rename with testUser's token (who is NOT in otherWorkspace)
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Hacked Name' })
+        .expect(403);
+
+      expect(response.body.error).toBe('Access denied');
+
+      // Verify device wasn't renamed
+      const unchangedDevice = deviceRepository.findById(device.id);
+      expect(unchangedDevice?.name).toBe('Other Device');
+    });
+
+    it('returns 404 for non-existent device', async () => {
+      const response = await request(app)
+        .patch('/api/devices/non-existent-id')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'New Name' })
+        .expect(404);
+
+      expect(response.body.error).toBe('Device not found');
+    });
+
+    it('rejects empty device name', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Original Name',
+        mode: 'mobile',
+      });
+
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: '   ' })
+        .expect(400);
+
+      expect(response.body.error).toBe('Device name is required');
+    });
+
+    it('rejects device name that is too long', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Original Name',
+        mode: 'mobile',
+      });
+
+      const longName = 'x'.repeat(101);
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: longName })
+        .expect(400);
+
+      expect(response.body.error).toBe('Device name too long (max 100 chars)');
+    });
+
+    it('trims whitespace from device name', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Original Name',
+        mode: 'mobile',
+      });
+
+      const response = await request(app)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: '  Trimmed Name  ' })
+        .expect(200);
+
+      expect(response.body.name).toBe('Trimmed Name');
     });
   });
 });

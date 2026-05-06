@@ -492,6 +492,7 @@ async function start() {
       const authRouter = createAuthRouter({
         config: authConfig,
         userRepository,
+        workspaceRepository,
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');
@@ -499,6 +500,7 @@ async function start() {
       // Set up workspace routes
       const workspaceRouter = createWorkspaceRouter({
         workspaceRepository,
+        deviceRepository,
         authConfig: {
           jwtService,
           userRepository,
@@ -510,6 +512,7 @@ async function start() {
       // Set up device routes
       const deviceRouter = createDeviceRouter({
         deviceRepository,
+        workspaceRepository,
         authConfig: {
           jwtService,
           userRepository,

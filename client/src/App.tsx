@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { WorkspaceHome } from './pages/WorkspaceHome';
 import { Workspace } from './pages/Workspace';
+import { useWorkspaces } from './hooks/useWorkspaces';
 import './App.css';
 
 // Protected route wrapper
@@ -24,6 +26,29 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Auto-redirect to default workspace
+function DefaultWorkspaceRedirect() {
+  const { workspaces, loading } = useWorkspaces();
+
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner">Loading workspace...</div>
+      </div>
+    );
+  }
+
+  // If user has workspaces, redirect to the first one
+  // TODO: Consider tracking most-recently-accessed workspace in localStorage
+  // or adding an `isDefault` field to improve UX for multi-workspace users
+  if (workspaces.length > 0) {
+    return <Navigate to={`/workspace/${workspaces[0].id}`} replace />;
+  }
+
+  // Fall back to legacy dashboard if no workspaces (shouldn't happen with auto-create)
+  return <Dashboard />;
+}
+
 // Main App with routing
 function AppRoutes() {
   return (
@@ -33,7 +58,7 @@ function AppRoutes() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <DefaultWorkspaceRedirect />
           </ProtectedRoute>
         }
       />
@@ -41,11 +66,19 @@ function AppRoutes() {
         path="/workspace/:workspaceId"
         element={
           <ProtectedRoute>
+            <WorkspaceHome />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace/:workspaceId/session"
+        element={
+          <ProtectedRoute>
             <Workspace />
           </ProtectedRoute>
         }
       />
-      {/* Redirect root to dashboard */}
+      {/* Redirect root to dashboard (which will auto-redirect to default workspace) */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       {/* Catch-all redirect */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

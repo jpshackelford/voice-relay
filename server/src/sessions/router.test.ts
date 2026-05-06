@@ -64,6 +64,18 @@ describe('Session Router', () => {
         FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        utterance_id TEXT NOT NULL UNIQUE,
+        workspace_id TEXT,
+        session_id TEXT,
+        sender_id TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        text TEXT NOT NULL,
+        partial INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
     `);
 
     sessionRepository = new SessionRepository(db);
