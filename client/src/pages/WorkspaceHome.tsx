@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
@@ -94,11 +94,18 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
 
 export function WorkspaceHome() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { workspaces, loading: workspacesLoading } = useWorkspaces();
   const { sessions, loading: sessionsLoading, createSession } = useSessions(workspaceId);
   const { devices, loading: devicesLoading, renameDevice } = useDevices(workspaceId);
+
+  // Redirect legacy bookmarks: /workspace/:id?session=X -> /workspace/:id/session?session=X
+  const sessionParam = searchParams.get('session');
+  if (sessionParam) {
+    return <Navigate to={`/workspace/${workspaceId}/session?session=${sessionParam}`} replace />;
+  }
   
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
@@ -128,9 +135,8 @@ export function WorkspaceHome() {
   }, [sessionsLoading, sessions.length, workspaceId, createSession, creatingSession]);
 
   const handleViewSession = (session: SessionSummary) => {
-    // Navigate to the workspace with session context
-    // Mobile devices get conversation view, desktop gets kiosk
-    navigate(`/workspace/${workspaceId}?session=${session.id}`);
+    // Navigate to the session view
+    navigate(`/workspace/${workspaceId}/session?session=${session.id}`);
   };
 
   const handleNewSession = async () => {

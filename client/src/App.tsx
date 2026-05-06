@@ -39,6 +39,8 @@ function DefaultWorkspaceRedirect() {
   }
 
   // If user has workspaces, redirect to the first one
+  // TODO: Consider tracking most-recently-accessed workspace in localStorage
+  // or adding an `isDefault` field to improve UX for multi-workspace users
   if (workspaces.length > 0) {
     return <Navigate to={`/workspace/${workspaces[0].id}`} replace />;
   }
