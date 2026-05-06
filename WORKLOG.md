@@ -869,3 +869,34 @@ The exit button (✕) in KioskMode sidebar currently calls `onModeChange('mobile
 **Complexity:** Low (30 minutes)
 
 ---
+### 2026-05-06 15:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6dec092` | expansion | Issue #23 - Session messaging bug | **NEW** |
+| `0d030f0` | implementation | Issue #21 - Exit kiosk mode nav | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Expansion Worker**
+   - Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) (BUG)
+   - Conversation: [`6dec092`](https://app.all-hands.dev/conversations/6dec0924c8e94a8e95fd5d1f6cc78e0d)
+   - Task: Reproduce bug, find root cause, add technical detail, label ready
+
+2. **Implementation Worker**
+   - Issue: [#21 - Exit kiosk mode navigation should be to workspace home](https://github.com/jpshackelford/voice-relay/issues/21) (priority:high)
+   - Conversation: [`0d030f0`](https://app.all-hands.dev/conversations/0d030f0ed7d34f0c872f0f73cc6f5c3c)
+   - Task: Implement onExit callback in KioskMode, navigate to workspace home
+
+**Current State:**
+- No open PRs
+- Issues needing expansion: #22 (Scan QR code and join), #23 (now being expanded)
+- Ready issues: #20 (priority:medium), #21 (priority:high - now being implemented)
+
+**Priority Assessment (performed inline):**
+- Added `priority:high` to #21 (simple 30-min fix, quick win)
+- Added `priority:medium` to #20 (1-2 day complexity)
+- Created priority labels: `priority:high`, `priority:medium`, `priority:low`
+
+---
