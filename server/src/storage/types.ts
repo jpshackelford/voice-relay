@@ -7,6 +7,9 @@ export interface MessageStore {
   /** Get recent messages, newest last. Optionally filter by workspaceId. */
   getRecent(limit?: number, workspaceId?: string): Promise<RelayedTextMessage[]>;
 
+  /** Get recent messages by session, newest last. */
+  getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]>;
+
   /** Clear all messages */
   clear(): Promise<void>;
 

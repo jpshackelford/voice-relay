@@ -401,4 +401,116 @@ describe('DeviceRegistry', () => {
       expect(emptyWorkspace).toHaveLength(0);
     });
   });
+
+  describe('session support', () => {
+    it('should register a device with sessionId', () => {
+      const ws = createMockWebSocket();
+      const device = registry.register(
+        'device-1',
+        'workspace-1',
+        ws,
+        'Test Device',
+        'mobile',
+        undefined,
+        undefined,
+        'session-123'
+      );
+
+      expect(device.sessionId).toBe('session-123');
+    });
+
+    it('should update sessionId on reconnection', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      const device = registry.register('device-1', 'workspace-1', ws2, 'Device 1', 'mobile', undefined, undefined, 'session-b');
+
+      expect(device.sessionId).toBe('session-b');
+    });
+
+    it('should get devices by session', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      const ws3 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-3', 'workspace-1', ws3, 'Device 3', 'mobile', undefined, undefined, 'session-b');
+
+      const sessionADevices = registry.getDevicesBySession('session-a');
+      expect(sessionADevices).toHaveLength(2);
+      expect(sessionADevices.map(d => d.id)).toContain('device-1');
+      expect(sessionADevices.map(d => d.id)).toContain('device-2');
+
+      const sessionBDevices = registry.getDevicesBySession('session-b');
+      expect(sessionBDevices).toHaveLength(1);
+      expect(sessionBDevices[0].id).toBe('device-3');
+    });
+
+    it('should broadcast to session only', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      const ws3 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-3', 'workspace-1', ws3, 'Device 3', 'mobile', undefined, undefined, 'session-b');
+
+      const message = {
+        type: 'text' as const,
+        utteranceId: 'test-123',
+        senderId: 'device-1',
+        senderName: 'Test',
+        text: 'Hello',
+        partial: false,
+        workspaceId: 'workspace-1',
+        sessionId: 'session-a',
+      };
+
+      registry.broadcastToSession(message, 'session-a', 'device-1');
+
+      // ws1 is excluded (sender)
+      expect(ws1.send).not.toHaveBeenCalled();
+      // ws2 is in session-a, should receive
+      expect(ws2.send).toHaveBeenCalledTimes(1);
+      // ws3 is in session-b, should not receive
+      expect(ws3.send).not.toHaveBeenCalled();
+    });
+
+    it('should isolate messages between sessions in the same workspace', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      // Both devices in same workspace, different sessions
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'mobile', undefined, undefined, 'session-b');
+
+      const message = {
+        type: 'text' as const,
+        utteranceId: 'test-123',
+        senderId: 'external',
+        senderName: 'External',
+        text: 'Hello Session A',
+        partial: false,
+        workspaceId: 'workspace-1',
+        sessionId: 'session-a',
+      };
+
+      registry.broadcastToSession(message, 'session-a');
+
+      // Only device-1 in session-a should receive
+      expect(ws1.send).toHaveBeenCalledTimes(1);
+      // device-2 in session-b should not receive
+      expect(ws2.send).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array for session with no devices', () => {
+      const ws = createMockWebSocket();
+      registry.register('device-1', 'workspace-1', ws, 'Test', 'mobile', undefined, undefined, 'session-a');
+
+      const emptySession = registry.getDevicesBySession('session-999');
+      expect(emptySession).toHaveLength(0);
+    });
+  });
 });

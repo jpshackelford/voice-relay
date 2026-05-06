@@ -5,6 +5,7 @@ export type DeviceMode = 'mobile' | 'kiosk';
 export interface Device {
   id: string;
   workspaceId: string;
+  sessionId?: string;  // Current session device is in
   displayName: string;
   mode: DeviceMode;
   ws: WebSocket;
@@ -31,6 +32,7 @@ export interface RegisterMessage {
   type: 'register';
   deviceId: string;
   workspaceId?: string;  // Optional for backward compatibility; defaults to 'default'
+  sessionId?: string;    // Optional; auto-assigns to active session if omitted
   displayName: string;
   mode: DeviceMode;
   screenWidth?: number;
@@ -72,9 +74,15 @@ export interface DisplayMessage {
   display: DisplayContent;
 }
 
+export interface SessionInfo {
+  id: string;
+  name: string | null;
+}
+
 export interface RegisteredMessage {
   type: 'registered';
   deviceId: string;
+  session: SessionInfo;
 }
 
 export interface HistoryMessage {
@@ -98,6 +106,7 @@ export interface RelayedTextMessage {
   type: 'text';
   utteranceId: string;
   workspaceId: string;
+  sessionId?: string;  // Optional for backward compatibility
   senderId: string;
   senderName: string;
   text: string;

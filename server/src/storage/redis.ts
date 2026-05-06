@@ -61,6 +61,19 @@ export class RedisStore implements MessageStore {
     return items.map(item => JSON.parse(item) as RelayedTextMessage);
   }
 
+  async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
+    if (!this.client) throw new Error('RedisStore not connected');
+
+    // Redis doesn't support efficient session filtering, so we need to filter client-side
+    // Get more messages than requested and filter down
+    const items = await this.client.lRange(this.listKey, -this.maxMessages, -1);
+    const messages = items.map(item => JSON.parse(item) as RelayedTextMessage);
+    
+    // Filter by session and take last N
+    const sessionMessages = messages.filter(m => m.sessionId === sessionId);
+    return sessionMessages.slice(-limit);
+  }
+
   async clear(): Promise<void> {
     if (!this.client) throw new Error('RedisStore not connected');
     await this.client.del(this.listKey);

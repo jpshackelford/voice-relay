@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo } from '../types';
 
 interface UseWebSocketOptions {
   deviceId: string;
   displayName: string;
   mode: DeviceMode;
   workspaceId?: string;
+  sessionId?: string;  // Optional: if omitted, server auto-assigns to active session
   onTextMessage?: (message: ServerMessage & { type: 'text' }) => void;
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
   const registeredRef = useRef(false);
   const currentModeRef = useRef(mode);
   const onTextMessageRef = useRef(onTextMessage);
@@ -43,13 +45,14 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextM
       console.log('[WS] Connected');
       setConnected(true);
       
-      // Register this device with current mode, workspace, and screen dimensions
+      // Register this device with current mode, workspace, session, and screen dimensions
       const registerMsg: ClientMessage = {
         type: 'register',
         deviceId,
         displayName,
         mode: currentModeRef.current,
         workspaceId,
+        sessionId,
         screenWidth: window.innerWidth,
         screenHeight: window.innerHeight,
       };
@@ -63,7 +66,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextM
         
         switch (message.type) {
           case 'registered':
-            console.log('[WS] Registered as', message.deviceId);
+            console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
+            setCurrentSession(message.session);
             break;
           case 'device-list':
             setDevices(message.devices);
@@ -90,6 +94,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextM
       console.log('[WS] Disconnected', event.code, event.reason);
       setConnected(false);
       registeredRef.current = false;
+      setCurrentSession(null);
     };
 
     ws.onerror = (err) => {
@@ -99,7 +104,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextM
     return () => {
       ws.close();
     };
-  }, [deviceId, displayName, workspaceId]);
+  }, [deviceId, displayName, workspaceId, sessionId]);
 
   // Update mode on server when it changes (without reconnecting)
   useEffect(() => {
@@ -136,5 +141,5 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, onTextM
     }
   }, []);
 
-  return { connected, devices, sendText, updateDevice };
+  return { connected, devices, currentSession, sendText, updateDevice };
 }

@@ -125,4 +125,37 @@ describe('MemoryStore', () => {
       await expect(store.clear()).resolves.not.toThrow();
     });
   });
+
+  describe('getRecentBySession', () => {
+    it('filters messages by sessionId', async () => {
+      await store.append(createMessage({ text: 'Session A msg 1', sessionId: 'session-a' }));
+      await store.append(createMessage({ text: 'Session B msg 1', sessionId: 'session-b' }));
+      await store.append(createMessage({ text: 'Session A msg 2', sessionId: 'session-a' }));
+
+      const sessionAMessages = await store.getRecentBySession(10, 'session-a');
+      expect(sessionAMessages).toHaveLength(2);
+      expect(sessionAMessages.map(m => m.text)).toEqual(['Session A msg 1', 'Session A msg 2']);
+
+      const sessionBMessages = await store.getRecentBySession(10, 'session-b');
+      expect(sessionBMessages).toHaveLength(1);
+      expect(sessionBMessages[0].text).toBe('Session B msg 1');
+    });
+
+    it('returns empty array for non-existent session', async () => {
+      await store.append(createMessage({ text: 'Session A msg', sessionId: 'session-a' }));
+
+      const messages = await store.getRecentBySession(10, 'non-existent');
+      expect(messages).toEqual([]);
+    });
+
+    it('respects limit parameter', async () => {
+      for (let i = 0; i < 10; i++) {
+        await store.append(createMessage({ text: `Message ${i}`, sessionId: 'session-a' }));
+      }
+
+      const messages = await store.getRecentBySession(3, 'session-a');
+      expect(messages).toHaveLength(3);
+      expect(messages.map(m => m.text)).toEqual(['Message 7', 'Message 8', 'Message 9']);
+    });
+  });
 });

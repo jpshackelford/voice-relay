@@ -301,6 +301,7 @@ wss.on('connection', (ws: WebSocket) => {
   console.log('[WS] New connection');
   let deviceId: string | null = null;
   let workspaceId: string | null = null;
+  let sessionId: string | null = null;
 
   ws.on('message', async (data) => {
     try {
@@ -319,6 +320,33 @@ wss.on('connection', (ws: WebSocket) => {
 
           deviceId = message.deviceId;
           workspaceId = requestedWorkspaceId;
+
+          // Determine session for this device
+          let session: { id: string; name: string | null } | null = null;
+          
+          if (sessionRepository) {
+            // If client provided sessionId, try to use it
+            if (message.sessionId) {
+              const requestedSession = sessionRepository.findById(message.sessionId);
+              if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
+                session = { id: requestedSession.id, name: requestedSession.name };
+              }
+            }
+            
+            // If no valid session from client request, get or create active session
+            if (!session) {
+              const activeSession = sessionRepository.getOrCreateActiveSession(requestedWorkspaceId);
+              session = { id: activeSession.id, name: activeSession.name };
+            }
+            
+            // Track device in session_devices table
+            sessionRepository.addDevice(session.id, deviceId);
+            sessionId = session.id;
+          } else {
+            // Fallback for non-SQLite stores: no session tracking
+            session = { id: 'default', name: 'Default Session' };
+            sessionId = 'default';
+          }
           
           registry.register(
             message.deviceId,
@@ -327,20 +355,24 @@ wss.on('connection', (ws: WebSocket) => {
             message.displayName, 
             message.mode,
             message.screenWidth,
-            message.screenHeight
+            message.screenHeight,
+            sessionId
           );
           
           const response: RegisteredMessage = {
             type: 'registered',
             deviceId: message.deviceId,
+            session: session,
           };
           ws.send(JSON.stringify(response));
           
           // Broadcast updated device list to devices in the same workspace
           registry.broadcastDeviceList(workspaceId);
 
-          // Send workspace-scoped message history to this device
-          const history = await store.getRecent(50, workspaceId);
+          // Send session-scoped message history to this device
+          const history = sessionRepository && sessionId !== 'default'
+            ? await store.getRecentBySession(50, sessionId)
+            : await store.getRecent(50, workspaceId);
           const historyMessage: HistoryMessage = {
             type: 'history',
             messages: history,
@@ -376,19 +408,24 @@ wss.on('connection', (ws: WebSocket) => {
             type: 'text',
             utteranceId: message.utteranceId,
             workspaceId: device.workspaceId,
+            sessionId: device.sessionId,
             senderId: deviceId,
             senderName: device.displayName,
             text: message.text,
             partial: message.partial,
           };
 
-          // Store final messages only
+          // Store final messages only (with session_id)
           if (!message.partial) {
             await store.append(relayMessage);
           }
 
-          // Broadcast only to devices in the same workspace
-          registry.broadcastToOutputs(relayMessage, device.workspaceId);
+          // Broadcast to devices in the same session (or workspace if no session)
+          if (device.sessionId && device.sessionId !== 'default') {
+            registry.broadcastToSession(relayMessage, device.sessionId);
+          } else {
+            registry.broadcastToOutputs(relayMessage, device.workspaceId);
+          }
           break;
         }
       }
@@ -401,6 +438,13 @@ wss.on('connection', (ws: WebSocket) => {
     if (deviceId) {
       const device = registry.getDevice(deviceId);
       const deviceWorkspaceId = device?.workspaceId;
+      const deviceSessionId = device?.sessionId;
+      
+      // Remove device from session_devices table
+      if (sessionRepository && deviceSessionId && deviceSessionId !== 'default') {
+        sessionRepository.removeDevice(deviceSessionId, deviceId);
+      }
+      
       registry.disconnect(deviceId);
       // Broadcast updated device list to remaining devices in the workspace
       if (deviceWorkspaceId) {

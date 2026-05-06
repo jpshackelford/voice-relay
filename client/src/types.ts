@@ -19,6 +19,7 @@ export interface RegisterMessage {
   displayName: string;
   mode: DeviceMode;
   workspaceId?: string;
+  sessionId?: string;  // Optional; auto-assigns to active session if omitted
   screenWidth?: number;
   screenHeight?: number;
 }
@@ -40,9 +41,15 @@ export interface TextMessage {
 export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage;
 
 // Messages from server to client
+export interface SessionInfo {
+  id: string;
+  name: string | null;
+}
+
 export interface RegisteredMessage {
   type: 'registered';
   deviceId: string;
+  session: SessionInfo;
 }
 
 export interface DeviceListMessage {
@@ -57,6 +64,7 @@ export interface RelayedTextMessage {
   senderName: string;
   text: string;
   partial: boolean;
+  sessionId?: string;  // Session the message belongs to
 }
 
 export interface HistoryMessage {
