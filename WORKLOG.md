@@ -1498,3 +1498,33 @@ When smoke tests fail after deployment, the CI should automatically file a GitHu
 - Issues needing split: #22
 
 ---
+
+### 2026-05-06 19:39 UTC - Expansion Worker (`d45c683`)
+
+✅ **Expanded Issue #33**
+
+- Issue: [#33 - workspace home replace join code with join link](https://github.com/jpshackelford/voice-relay/issues/33)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+Replace the static join code display in WorkspaceHome Settings with a shareable invite link that users can copy to clipboard. The current UX shows a join code (e.g., `ABCD-1234`) but doesn't provide a clear way to share it effectively. Users must manually navigate to Dashboard → "Join with Code" → type the code.
+
+**Technical Approach:**
+- Leverage existing `join_code` in workspaces table (no new tables needed)
+- Add `/join/:code` client route with JoinPage component
+- Handle unauthenticated flow: redirect to login → return to join URL
+- Replace raw code display with "Copy Invite Link" button in WorkspaceHome
+
+**Files Affected:**
+- `client/src/App.tsx` - Add `/join/:code` route
+- `client/src/pages/JoinPage.tsx` - **New** - Join flow page
+- `client/src/pages/WorkspaceHome.tsx` - Replace join code with copy button
+- `client/src/pages/Login.tsx` - Handle returnTo param
+- `client/src/App.css` - Styles
+
+**Complexity:** Low - Primarily client-side routing; backend infrastructure already exists
+
+**Labels Applied:** `ready`
+
+---
