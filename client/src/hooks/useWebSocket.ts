@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo } from '../types';
+import { storeDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
   deviceId: string;
@@ -68,6 +69,18 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'registered':
             console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
             setCurrentSession(message.session);
+            
+            // Store device token if provided (first-time registration)
+            if (message.deviceToken && workspaceId) {
+              console.log('[WS] Storing device token for reconnection');
+              storeDeviceToken({
+                deviceId: message.deviceId,
+                deviceToken: message.deviceToken,
+                workspaceId,
+                name: displayName,
+                mode,
+              });
+            }
             break;
           case 'device-list':
             setDevices(message.devices);

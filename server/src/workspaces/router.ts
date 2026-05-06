@@ -189,6 +189,34 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Auto-join workspace by ID (for QR code session links)
+  // Automatically adds the authenticated user as a member if they're not already
+  router.post('/:id/auto-join', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Add user as member if not already
+      const wasAlreadyMember = workspaceRepository.canAccess(workspace.id, req.user!.id);
+      if (!wasAlreadyMember) {
+        workspaceRepository.addMember(workspace.id, req.user!.id);
+      }
+
+      res.json({
+        ...workspace,
+        isOwner: workspace.ownerId === req.user!.id,
+        joined: !wasAlreadyMember,
+      });
+    } catch (err) {
+      console.error('[Workspaces] Auto-join error:', err);
+      res.status(500).json({ error: 'Failed to join workspace' });
+    }
+  });
+
   // Get workspace settings (owner only, API key masked)
   router.get('/:id/settings', auth, async (req: Request, res: Response) => {
     try {

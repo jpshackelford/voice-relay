@@ -50,6 +50,10 @@ export interface RegisteredMessage {
   type: 'registered';
   deviceId: string;
   session: SessionInfo;
+  /** Device token for reconnection (only sent on first registration) */
+  deviceToken?: string;
+  /** Token expiration timestamp (only sent on first registration) */
+  tokenExpiresAt?: string;
 }
 
 export interface DeviceListMessage {

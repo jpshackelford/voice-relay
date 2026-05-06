@@ -10,6 +10,178 @@ import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 
+// Helper to set up test database and app
+function setupTestEnv() {
+  const db = new Database(':memory:');
+  db.exec(usersMigration.up);
+  db.exec(workspacesMigration.up);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS devices (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      device_token_hash TEXT UNIQUE,
+      token_expires_at TEXT,
+      last_seen_at TEXT,
+      config TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    );
+  `);
+
+  const workspaceRepository = new WorkspaceRepository(db);
+  const deviceRepository = new DeviceRepository(db);
+  const userRepository = new UserRepository(db);
+  const jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
+
+  const app = express();
+  app.use(express.json());
+  const router = createWorkspaceRouter({
+    workspaceRepository,
+    deviceRepository,
+    authConfig: { jwtService, userRepository },
+  });
+  app.use('/api/workspaces', router);
+
+  return { db, app, workspaceRepository, deviceRepository, userRepository, jwtService };
+}
+
+describe('Workspace Router - POST /:id/auto-join', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+
+  beforeEach(() => {
+    const env = setupTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 12345, 'owner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Add owner as workspace member
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'owner');
+
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('requires authentication', async () => {
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/auto-join`)
+      .expect(401);
+
+    expect(response.body.error).toBe('Authentication required');
+  });
+
+  it('auto-joins a new user to the workspace', async () => {
+    // Create a new user who is NOT a member
+    const newUserId = 'new-user-456';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 67890, 'newuser');
+
+    const newUser = userRepository.findById(newUserId)!;
+    const newUserToken = jwtService.sign(newUser);
+
+    // Verify user is NOT a member
+    expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(false);
+
+    // Auto-join
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${newUserToken}`)
+      .expect(200);
+
+    // Verify response
+    expect(response.body.id).toBe(testWorkspaceId);
+    expect(response.body.name).toBe('Test Workspace');
+    expect(response.body.joined).toBe(true);
+    expect(response.body.isOwner).toBe(false);
+
+    // Verify user is now a member
+    expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(true);
+  });
+
+  it('returns joined=false for existing members', async () => {
+    // Owner is already a member
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(response.body.id).toBe(testWorkspaceId);
+    expect(response.body.joined).toBe(false);
+    expect(response.body.isOwner).toBe(true);
+  });
+
+  it('returns 404 for non-existent workspace', async () => {
+    const response = await request(app)
+      .post('/api/workspaces/nonexistent-workspace/auto-join')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Workspace not found');
+  });
+
+  it('allows joining a second workspace', async () => {
+    // Create a second workspace
+    const secondWorkspaceId = 'workspace-456';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(secondWorkspaceId, ownerId, 'Second Workspace', 'second-workspace', 'EFGH-5678');
+
+    // Create a new user
+    const userId = 'user-789';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(userId, 11111, 'someuser');
+
+    const user = userRepository.findById(userId)!;
+    const userToken = jwtService.sign(user);
+
+    // Auto-join second workspace
+    const response = await request(app)
+      .post(`/api/workspaces/${secondWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .expect(200);
+
+    expect(response.body.id).toBe(secondWorkspaceId);
+    expect(response.body.joined).toBe(true);
+    expect(workspaceRepository.canAccess(secondWorkspaceId, userId)).toBe(true);
+  });
+});
+
 describe('Workspace Router - GET /:id/devices', () => {
   let app: Express;
   let db: Database.Database;
