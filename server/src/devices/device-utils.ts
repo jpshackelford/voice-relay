@@ -23,10 +23,18 @@ export function detectDeviceType(userAgent: string): string {
 /**
  * Generate a personalized device name using the user's display name and detected device type.
  * Example: "John's iPhone", "Sarah's Mac"
+ * Falls back to "My iPhone" etc. if no display name is provided.
  */
 export function generateDeviceName(userDisplayName: string, userAgent: string): string {
   const deviceType = detectDeviceType(userAgent);
+  
+  // Handle empty or whitespace-only display names
+  const trimmedName = userDisplayName?.trim();
+  if (!trimmedName) {
+    return `My ${deviceType}`;
+  }
+  
   // Use first name (or full username if no spaces) for personalized naming
-  const firstName = userDisplayName.split(' ')[0];
+  const firstName = trimmedName.split(' ')[0];
   return `${firstName}'s ${deviceType}`;
 }

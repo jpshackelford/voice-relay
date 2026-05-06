@@ -70,8 +70,19 @@ describe('generateDeviceName', () => {
     expect(generateDeviceName('Test User', '')).toBe("Test's Device");
   });
 
-  it('handles empty display name', () => {
+  it('handles empty display name with fallback', () => {
     const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)';
-    expect(generateDeviceName('', ua)).toBe("'s iPhone");
+    expect(generateDeviceName('', ua)).toBe("My iPhone");
+  });
+
+  it('handles whitespace-only display name with fallback', () => {
+    const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+    expect(generateDeviceName('   ', ua)).toBe("My Mac");
+  });
+
+  it('handles null/undefined-like display name', () => {
+    const ua = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)';
+    // Test with undefined coerced to string
+    expect(generateDeviceName(undefined as unknown as string, ua)).toBe("My iPad");
   });
 });
