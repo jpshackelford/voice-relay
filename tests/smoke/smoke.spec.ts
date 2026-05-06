@@ -76,10 +76,9 @@ test.describe('Production Smoke Tests', () => {
       // Should not redirect to login
       await expect(page).not.toHaveURL(/\/login/);
       
-      // Dashboard redirects to workspace home which shows devices and sessions sections
-      // Check for either heading to confirm workspace home loaded
+      // Dashboard redirects to workspace home which shows devices section
       await expect(
-        page.getByRole('heading', { name: /devices/i }).or(page.getByRole('heading', { name: /sessions/i }))
+        page.getByRole('heading', { name: /devices/i })
       ).toBeVisible({ timeout: 10000 });
     });
 
