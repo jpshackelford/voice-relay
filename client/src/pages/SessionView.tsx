@@ -24,10 +24,9 @@ interface SessionInfo {
   status: string;
 }
 
-/** Result of auto-join attempt */
-interface AutoJoinState {
-  attempted: boolean;
-  success: boolean | null;
+/** Result of auto-join attempt (success/error only - attempted is tracked via ref) */
+interface AutoJoinResult {
+  success: boolean | null;  // null = not yet attempted or in progress
   error: string | null;
 }
 
@@ -75,12 +74,12 @@ export function SessionView() {
   const [showJoinedBanner, setShowJoinedBanner] = useState(false);
 
   // Auto-join state for handling 403 on workspace fetch
-  const [autoJoin, setAutoJoin] = useState<AutoJoinState>({
-    attempted: false,
+  // Use ref for synchronous guard against double-execution, state for render updates
+  const autoJoinAttempted = useRef(false);
+  const [autoJoinResult, setAutoJoinResult] = useState<AutoJoinResult>({
     success: null,
     error: null,
   });
-  const autoJoinAttempted = useRef(false);
 
   // Auto-detect mode based on screen size
   const autoMode = useAutoDetectMode();
@@ -116,8 +115,8 @@ export function SessionView() {
       workspaceId &&
       !autoJoinAttempted.current
     ) {
+      // Mark as attempted synchronously to prevent re-runs
       autoJoinAttempted.current = true;
-      setAutoJoin({ attempted: true, success: null, error: null });
 
       // Attempt auto-join
       (async () => {
@@ -130,24 +129,22 @@ export function SessionView() {
 
           if (res.ok) {
             const data = await res.json();
-            setAutoJoin({ attempted: true, success: true, error: null });
+            setAutoJoinResult({ success: true, error: null });
             setShowJoinedBanner(data.joined === true);
             // Trigger workspace refetch
             refetchWorkspace();
           } else if (res.status === 404) {
-            setAutoJoin({ attempted: true, success: false, error: 'Workspace not found' });
+            setAutoJoinResult({ success: false, error: 'Workspace not found' });
           } else {
             const errorData = await res.json().catch(() => null);
-            setAutoJoin({
-              attempted: true,
+            setAutoJoinResult({
               success: false,
               error: errorData?.error || 'Failed to join workspace',
             });
           }
         } catch (err) {
           console.error('[SessionView] Auto-join failed:', err);
-          setAutoJoin({
-            attempted: true,
+          setAutoJoinResult({
             success: false,
             error: 'Failed to join workspace',
           });
@@ -263,8 +260,8 @@ export function SessionView() {
     setShowJoinedBanner(false);
   };
 
-  // Auto-join in progress (after 403, before success/failure)
-  const autoJoinInProgress = autoJoin.attempted && autoJoin.success === null;
+  // Auto-join in progress: ref indicates attempt started, null result means still waiting
+  const autoJoinInProgress = autoJoinAttempted.current && autoJoinResult.success === null;
 
   // Consolidated loading state for easier reasoning
   const isLoading = authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoinInProgress;
@@ -307,10 +304,10 @@ export function SessionView() {
   }
 
   // Auto-join failed
-  if (autoJoin.attempted && autoJoin.success === false) {
+  if (autoJoinAttempted.current && autoJoinResult.success === false) {
     return (
       <div className="workspace-error">
-        <h2>⚠️ {autoJoin.error || 'Failed to join workspace'}</h2>
+        <h2>⚠️ {autoJoinResult.error || 'Failed to join workspace'}</h2>
         <p>Unable to automatically join this workspace.</p>
         <button onClick={() => navigate('/dashboard')}>← Go to Dashboard</button>
       </div>
@@ -318,7 +315,7 @@ export function SessionView() {
   }
 
   // Workspace or session error (only show if auto-join wasn't triggered or has completed)
-  if ((workspaceError && !autoJoin.attempted) || (!workspace && !autoJoinInProgress)) {
+  if ((workspaceError && !autoJoinAttempted.current) || (!workspace && !autoJoinInProgress)) {
     return (
       <div className="workspace-error">
         <h2>⚠️ {workspaceError || 'Workspace not found'}</h2>
