@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { DeviceSetup } from '../components/DeviceSetup';
 import { MobileMode } from '../components/MobileMode';
@@ -20,7 +20,14 @@ interface WorkspaceInfo {
 
 export function Workspace() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  // Redirect legacy session URLs: /workspace/:id/session?session=X -> /workspace/:id/session/X
+  const sessionParam = searchParams.get('session');
+  if (sessionParam) {
+    return <Navigate to={`/workspace/${workspaceId}/session/${sessionParam}`} replace />;
+  }
   const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
   // Device restoration hook handles token validation and session restoration
