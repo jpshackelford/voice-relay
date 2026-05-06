@@ -2452,6 +2452,18 @@ header {
   width: 200px;
 }
 
+.device-name-editing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rename-error {
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  margin-left: 0.5rem;
+}
+
 .current-badge {
   font-size: 0.75rem;
   color: #3282b8;

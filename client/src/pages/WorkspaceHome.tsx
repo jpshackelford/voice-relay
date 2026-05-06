@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
@@ -40,21 +40,27 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(device.name);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (name.trim() === device.name || !name.trim()) {
       setIsEditing(false);
       setName(device.name);
+      setError(null);
       return;
     }
     
     setSaving(true);
+    setError(null);
     try {
       await onRename(device.id, name.trim());
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to rename device:', err);
       setName(device.name);
+      setError('Failed to rename device');
+      // Clear error after 3 seconds
+      setTimeout(() => setError(null), 3000);
     } finally {
       setSaving(false);
     }
@@ -66,21 +72,25 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
     } else if (e.key === 'Escape') {
       setIsEditing(false);
       setName(device.name);
+      setError(null);
     }
   };
 
   if (isEditing) {
     return (
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        autoFocus
-        disabled={saving}
-        className="device-name-input"
-      />
+      <span className="device-name-editing">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          disabled={saving}
+          className="device-name-input"
+        />
+        {error && <span className="rename-error">{error}</span>}
+      </span>
     );
   }
 
@@ -88,6 +98,7 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
     <span className="device-name-text" onClick={() => setIsEditing(true)}>
       {device.name}
       <button className="rename-btn" title="Rename device">✏️</button>
+      {error && <span className="rename-error">{error}</span>}
     </span>
   );
 }
@@ -110,6 +121,24 @@ export function WorkspaceHome() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  
+  // Use ref to prevent race condition with auto-create
+  // Ref persists across re-renders and is set synchronously before the async call
+  const autoCreatingRef = useRef(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Click-away handler to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowWorkspaceDropdown(false);
+      }
+    };
+    if (showWorkspaceDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showWorkspaceDropdown]);
 
   // Find current workspace from list
   useEffect(() => {
@@ -121,7 +150,9 @@ export function WorkspaceHome() {
 
   // Auto-create session if none exist
   useEffect(() => {
-    if (!sessionsLoading && sessions.length === 0 && workspaceId && !creatingSession) {
+    // Check ref synchronously to prevent race condition with component remount
+    if (!sessionsLoading && sessions.length === 0 && workspaceId && !autoCreatingRef.current) {
+      autoCreatingRef.current = true;
       setCreatingSession(true);
       createSession()
         .then(() => {
@@ -130,9 +161,10 @@ export function WorkspaceHome() {
         .catch((err) => {
           console.error('Failed to auto-create session:', err);
           setCreatingSession(false);
+          autoCreatingRef.current = false; // Allow retry on error
         });
     }
-  }, [sessionsLoading, sessions.length, workspaceId, createSession, creatingSession]);
+  }, [sessionsLoading, sessions.length, workspaceId, createSession]);
 
   const handleViewSession = (session: SessionSummary) => {
     // Navigate to the session view
@@ -180,7 +212,7 @@ export function WorkspaceHome() {
     <div className="workspace-home">
       <header className="workspace-header">
         <div className="workspace-title-area">
-          <div className="workspace-dropdown-container">
+          <div className="workspace-dropdown-container" ref={dropdownRef}>
             <button 
               className="workspace-dropdown-trigger"
               onClick={() => setShowWorkspaceDropdown(!showWorkspaceDropdown)}
