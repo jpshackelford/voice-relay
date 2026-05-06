@@ -1026,3 +1026,29 @@ Split into:
 - `docs/DESIGN.md` Section 12 - Spec for join request flow
 
 ---
+
+### 2026-05-06 16:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `11b6dcd` | implementation | Issue #23 - Session messaging bug | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+**Issue:** [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) (priority:high)
+**Conversation:** [`11b6dcd`](https://app.all-hands.dev/conversations/11b6dcd790fb43e9b5932c30b19d57e5)
+
+**Current State:**
+- No open PRs
+- Ready issues: #23 (priority:high - BUG), #20 (priority:medium)
+- Issues needing split: #22
+
+**What's Being Fixed:**
+Critical bug where all message sending fails due to FK constraint violation. The `session_devices` table FK check fails because device is added to session before being registered in `devices` table.
+
+**Action Taken:**
+- Added `priority:high` label to Issue #23 (critical bug takes precedence)
+- Spawned implementation worker to fix the ordering bug in `server/src/index.ts`
+
+---
