@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileMode } from '../components/MobileMode';
@@ -6,6 +6,7 @@ import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
+import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
 
@@ -22,12 +23,6 @@ interface SessionInfo {
   id: string;
   name: string | null;
   status: string;
-}
-
-/** Result of auto-join attempt (success/error only - attempted is tracked via ref) */
-interface AutoJoinResult {
-  success: boolean | null;  // null = not yet attempted or in progress
-  error: string | null;
 }
 
 const KIOSK_BREAKPOINT = 768;
@@ -73,14 +68,6 @@ export function SessionView() {
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
   const [showJoinedBanner, setShowJoinedBanner] = useState(false);
 
-  // Auto-join state for handling 403 on workspace fetch
-  // Use ref for synchronous guard against double-execution, state for render updates
-  const autoJoinAttempted = useRef(false);
-  const [autoJoinResult, setAutoJoinResult] = useState<AutoJoinResult>({
-    success: null,
-    error: null,
-  });
-
   // Auto-detect mode based on screen size
   const autoMode = useAutoDetectMode();
   const [mode, setMode] = useState<DeviceMode>(autoMode);
@@ -108,52 +95,24 @@ export function SessionView() {
     enabled: !!workspaceId && isAuthenticated,
   });
 
+  // Handle auto-join callback
+  const handleAutoJoinSuccess = useCallback(
+    (wasNewlyJoined: boolean) => {
+      setShowJoinedBanner(wasNewlyJoined);
+      refetchWorkspace();
+    },
+    [refetchWorkspace]
+  );
+
   // Auto-join workspace when we get a 403 (access denied)
-  // Uses structured error type instead of brittle string matching
-  useEffect(() => {
-    if (
-      workspaceErrorInfo?.type === 'ACCESS_DENIED' &&
-      isAuthenticated &&
-      workspaceId &&
-      !autoJoinAttempted.current
-    ) {
-      // Mark as attempted synchronously to prevent re-runs
-      autoJoinAttempted.current = true;
-
-      // Attempt auto-join
-      (async () => {
-        try {
-          await ensureValidToken();
-          const res = await fetch(`/api/workspaces/${workspaceId}/auto-join`, {
-            method: 'POST',
-            credentials: 'include',
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            setAutoJoinResult({ success: true, error: null });
-            setShowJoinedBanner(data.joined === true);
-            // Trigger workspace refetch
-            refetchWorkspace();
-          } else if (res.status === 404) {
-            setAutoJoinResult({ success: false, error: 'Workspace not found' });
-          } else {
-            const errorData = await res.json().catch(() => null);
-            setAutoJoinResult({
-              success: false,
-              error: errorData?.error || 'Failed to join workspace',
-            });
-          }
-        } catch (err) {
-          console.error('[SessionView] Auto-join failed:', err);
-          setAutoJoinResult({
-            success: false,
-            error: 'Failed to join workspace',
-          });
-        }
-      })();
-    }
-  }, [workspaceErrorInfo, isAuthenticated, workspaceId, ensureValidToken, refetchWorkspace]);
+  // Encapsulated in custom hook for better separation of concerns
+  const autoJoin = useWorkspaceAutoJoin({
+    workspaceId,
+    isAuthenticated,
+    workspaceErrorInfo,
+    ensureValidToken,
+    onJoinSuccess: handleAutoJoinSuccess,
+  });
 
   // Fetch session using shared hook - only after workspace loads
   const {
@@ -262,16 +221,13 @@ export function SessionView() {
     setShowJoinedBanner(false);
   };
 
-  // Auto-join in progress: ref indicates attempt started, null result means still waiting
-  const autoJoinInProgress = autoJoinAttempted.current && autoJoinResult.success === null;
-
   // Consolidated loading state for easier reasoning
-  const isLoading = authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoinInProgress;
+  const isLoading = authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoin.inProgress;
 
   // Determine loading message based on current state
   const getLoadingMessage = (): string => {
     if (deviceTokenValidating) return 'Validating device...';
-    if (autoJoinInProgress) return 'Joining workspace...';
+    if (autoJoin.inProgress) return 'Joining workspace...';
     if (sessionLoading) return 'Loading session...';
     return 'Loading workspace...';
   };
@@ -306,10 +262,10 @@ export function SessionView() {
   }
 
   // Auto-join failed
-  if (autoJoinAttempted.current && autoJoinResult.success === false) {
+  if (autoJoin.attempted && autoJoin.result.success === false) {
     return (
       <div className="workspace-error">
-        <h2>⚠️ {autoJoinResult.error || 'Failed to join workspace'}</h2>
+        <h2>⚠️ {autoJoin.result.error || 'Failed to join workspace'}</h2>
         <p>Unable to automatically join this workspace.</p>
         <button onClick={() => navigate('/dashboard')}>← Go to Dashboard</button>
       </div>
@@ -317,7 +273,7 @@ export function SessionView() {
   }
 
   // Workspace or session error (only show if auto-join wasn't triggered or has completed)
-  if ((workspaceError && !autoJoinAttempted.current) || (!workspace && !autoJoinInProgress)) {
+  if ((workspaceError && !autoJoin.attempted) || (!workspace && !autoJoin.inProgress)) {
     return (
       <div className="workspace-error">
         <h2>⚠️ {workspaceError || 'Workspace not found'}</h2>
