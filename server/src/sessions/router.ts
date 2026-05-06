@@ -208,6 +208,10 @@ export function createSessionRouter({
     const host = req.get('host') || 'localhost:3000';
     const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
     const baseUrl = `${proto}://${host}`;
+    // SECURITY NOTE: Token in query parameter may be logged by proxies/browsers.
+    // Acceptable trade-off: 5-minute TTL limits exposure window, and primary threat
+    // (URL sharing for unauthorized access) is mitigated by token expiration.
+    // Future hardening options: POST body, fragment identifier (#qr=), or one-time use.
     const sessionUrl = `${baseUrl}/workspace/${workspaceId}/session/${sessionId}?qr=${token.token}`;
 
     res.json({
