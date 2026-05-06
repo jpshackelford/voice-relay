@@ -943,23 +943,43 @@ Replace the static join code display in WorkspaceHome Settings with a shareable 
 **All 9 review threads on PR #29 are now resolved.**
 
 ---
-### 2026-05-06 21:31 UTC - Orchestrator
+### 2026-05-06 21:35 UTC - Merge Worker (`a7cb8b1`)
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a7cb8b1` | merge | PR #29 - Auto-register first device | **NEW** |
+✅ **Merged: PR #29 - Auto-register first device**
 
-🚀 **Spawned: Merge Worker**
 - PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: CI green, no unresolved review threads, latest review says "Worth merging"
-- Conversation: [`a7cb8b1`](https://app.all-hands.dev/conversations/a7cb8b1da4a0458db8cc1787ab90d8b1)
+- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20) → **CLOSED** ✅
+- Merge: Squash merged to main
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**What Was Implemented:**
+Automatically registers the authenticating device when a new user's default workspace is created, reducing friction for first-time users.
+
+**Changes Merged:**
+- `server/src/devices/device-utils.ts` - Device type detection and personalized naming
+- `server/src/auth/router.ts` - Auto-create device during OAuth callback
+- `client/src/utils/deviceToken.ts` - Read server-set cookie and migrate to localStorage
+- Comprehensive tests (16 device utility tests, 11 cookie parsing tests)
+
+**Security Design:**
+- Auth tokens remain httpOnly (XSS-safe)
+- Device tokens use non-httpOnly cookie (justified: limited scope, migrated to localStorage after first load)
+
+**Review Journey:** 9 review threads addressed across 4 rounds
+- Cookie vs httpOnly tradeoff documented
+- Empty display name handling fixed ("My [DeviceType]" fallback)
+- localStorage migration safety implemented
+- Config object pattern adopted
+- Comprehensive test coverage added
+
+**Verification:**
+- CI: All tests passing (350 server, 99 client)
+- No database migrations required (uses existing tables)
+- Issue #20 auto-closed via "Fixes #20" in commit message
+
+---
 
 **Current State:**
-- [PR #29](https://github.com/jpshackelford/voice-relay/pull/29): Ready to merge ✅
-- Issues needing expansion: None (Issue #22 has `needs-split`, not expandable)
-- Ready issues: #20 (priority:medium), #27 (priority:high), #28, #31 (priority:high), #33
-
-**Previous Worker:**
-- `8b31a8a` (review for PR #29 round 4) → finished ✅
+- Ready issues: #27 (priority:high), #31 (priority:high), #28, #33
+- Issues needing split: #22
 
