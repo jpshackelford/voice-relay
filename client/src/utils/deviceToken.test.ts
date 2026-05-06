@@ -10,9 +10,6 @@ import {
   getServerSetDeviceToken,
 } from './deviceToken';
 
-// Cookie name must match the constant in deviceToken.ts
-const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
-
 describe('deviceToken utilities', () => {
   beforeEach(() => {
     // Clear storage before each test
