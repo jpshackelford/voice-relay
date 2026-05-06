@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { WorkspaceHome } from './pages/WorkspaceHome';
 import { Workspace } from './pages/Workspace';
+import { SessionView } from './pages/SessionView';
 import { useWorkspaces } from './hooks/useWorkspaces';
 import './App.css';
 
@@ -75,6 +76,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Workspace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workspace/:workspaceId/session/:sessionId"
+        element={
+          <ProtectedRoute>
+            <SessionView />
           </ProtectedRoute>
         }
       />

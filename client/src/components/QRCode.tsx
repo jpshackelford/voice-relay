@@ -34,8 +34,8 @@ function buildQrUrl(options: {
   }
   
   if (options.workspaceId && options.sessionId) {
-    // Deep link to specific session
-    return `${baseUrl}/workspace/${options.workspaceId}?session=${options.sessionId}`;
+    // Deep link to specific session (new clean URL format)
+    return `${baseUrl}/workspace/${options.workspaceId}/session/${options.sessionId}`;
   }
   
   if (options.workspaceId) {
