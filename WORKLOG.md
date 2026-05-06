@@ -719,6 +719,34 @@ Spawned review worker to add the missing test coverage, then move PR back to rea
 - Ready issues: none (awaiting #20 expansion)
 
 ---
+### 2026-05-06 13:35 UTC - Expansion Worker (`79440ed`)
+
+✅ **Expanded Issue #20**
+
+- Issue: [Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
+- Type: Enhancement
+- Status: Ready for implementation
+- Label: `ready` applied
+
+**Summary:**
+When a new user authenticates and a default workspace is created, the device used for that interaction should be automatically registered in the workspace with an intelligent name (e.g., "John's iPhone"). The existing rename endpoint (PATCH /api/devices/:id) already supports renaming devices.
+
+**Technical Approach:**
+1. Server-side: Add device creation during OAuth callback when workspace is created
+2. Parse User-Agent to detect device type (iPhone, Mac, Android, etc.)
+3. Generate friendly name using user's display name + device type
+4. Return device token via secure httpOnly cookie
+5. Client-side: Check for server-set device cookie on mount, skip DeviceSetup if valid
+
+**Files Affected:**
+- `server/src/devices/device-utils.ts` (new)
+- `server/src/auth/router.ts`
+- `client/src/utils/deviceToken.ts`
+- `client/src/hooks/useDeviceRestoration.ts`
+
+**Complexity:** Medium (1-2 days)
+
+---
 ### 2026-05-06 13:38 UTC - Review Worker (3b11424)
 
 ✅ **Completed: PR #19 Review Thread Resolved**
