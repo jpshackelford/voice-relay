@@ -272,7 +272,11 @@ export function SessionView() {
     );
   }
 
-  // Workspace or session error (only show if auto-join wasn't triggered or has completed)
+  // Workspace or session error - only show if auto-join wasn't triggered or has completed.
+  // Two cases handled:
+  // 1. Access denied before auto-join attempted (show initial 403 error)
+  // 2. Workspace is null after auto-join completed (catch refetch failures post-join)
+  // We don't show errors while auto-join is in progress since it will refetch on success.
   if ((workspaceError && !autoJoin.attempted) || (!workspace && !autoJoin.inProgress)) {
     return (
       <div className="workspace-error">

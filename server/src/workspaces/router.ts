@@ -10,9 +10,9 @@ const autoJoinLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   limit: 10, // limit each user to 10 auto-joins per window
   message: { error: 'Too many join attempts, please try again later' },
-  // Use authenticated user ID for rate limiting (primary key)
-  // IP-based fallback disabled since this endpoint requires auth
-  keyGenerator: (req: Request) => req.user?.id || 'unauthenticated',
+  // Use authenticated user ID for rate limiting - endpoint requires auth middleware
+  // so req.user is guaranteed to exist (non-null assertion is safe here)
+  keyGenerator: (req: Request) => req.user!.id,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => process.env.NODE_ENV === 'test', // Skip in tests

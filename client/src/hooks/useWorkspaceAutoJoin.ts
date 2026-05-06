@@ -60,6 +60,8 @@ export function useWorkspaceAutoJoin({
 
   // Auto-join when we get ACCESS_DENIED error
   useEffect(() => {
+    let cancelled = false;
+
     if (
       workspaceErrorInfo?.type === 'ACCESS_DENIED' &&
       isAuthenticated &&
@@ -80,26 +82,38 @@ export function useWorkspaceAutoJoin({
 
           if (res.ok) {
             const data = await res.json();
-            setResult({ success: true, error: null });
-            onJoinSuccess(data.joined === true);
+            if (!cancelled) {
+              setResult({ success: true, error: null });
+              onJoinSuccess(data.joined === true);
+            }
           } else if (res.status === 404) {
-            setResult({ success: false, error: 'Workspace not found' });
+            if (!cancelled) {
+              setResult({ success: false, error: 'Workspace not found' });
+            }
           } else {
             const errorData = await res.json().catch(() => null);
-            setResult({
-              success: false,
-              error: errorData?.error || 'Failed to join workspace',
-            });
+            if (!cancelled) {
+              setResult({
+                success: false,
+                error: errorData?.error || 'Failed to join workspace',
+              });
+            }
           }
         } catch (err) {
           console.error('[useWorkspaceAutoJoin] Auto-join failed:', err);
-          setResult({
-            success: false,
-            error: 'Failed to join workspace',
-          });
+          if (!cancelled) {
+            setResult({
+              success: false,
+              error: 'Failed to join workspace',
+            });
+          }
         }
       })();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [workspaceErrorInfo, isAuthenticated, workspaceId, ensureValidToken, onJoinSuccess]);
 
   return {
