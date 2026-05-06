@@ -1187,3 +1187,42 @@ Added technical detail to implement workspace-level OpenHands API key management
 **Complexity:** Medium
 
 ---
+
+### 2026-05-06 17:45 UTC - Implementation Worker
+
+✅ **Created: PR #29 - Auto-register first device when creating default workspace**
+
+- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
+- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+- Status: Ready for review, CI green ✅
+
+**Work Done:**
+When a new user authenticates and a default workspace is created, their authenticating device is now automatically registered:
+
+1. **Server-side device detection** (`server/src/devices/device-utils.ts`):
+   - `detectDeviceType(userAgent)` - Parses User-Agent to identify device type
+   - `generateDeviceName(displayName, userAgent)` - Creates friendly names like "John's iPhone"
+
+2. **Auth router modification** (`server/src/auth/router.ts`):
+   - After workspace creation, auto-create first device using User-Agent detection
+   - Device token stored in httpOnly cookie (`voice_relay_device`)
+   - Works for both OAuth callback and test-session endpoint
+
+3. **Client-side cookie reading** (`client/src/utils/deviceToken.ts`):
+   - `getServerSetDeviceToken()` - Reads device info from server-set cookie
+   - `getStoredDeviceToken()` - Now checks for server-set cookie and migrates to localStorage
+
+**Tests:**
+- 14 unit tests for device detection and naming utilities
+- All server tests pass (362 tests)
+- All client tests pass (85 tests)
+
+**Acceptance Criteria Met:**
+- [x] Device auto-registered when workspace created
+- [x] Intelligent naming (user's name + device type)
+- [x] Secure device token in httpOnly cookie
+- [x] DeviceSetup skipped when valid token exists
+- [x] Device renaming works via existing endpoint
+
+---
+
