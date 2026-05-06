@@ -692,3 +692,30 @@ Addressing final feedback on: [PR #19 - feat(server): add signed, time-limited Q
 Spawned review worker to add the missing test coverage, then move PR back to ready for merge.
 
 ---
+### 2026-05-06 13:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3b11424` | review | PR #19 - Session-workspace validation | **NEW** |
+| `79440ed` | expansion | Issue #20 - Auto add first device | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#19 - feat: add signed, time-limited QR tokens](https://github.com/jpshackelford/voice-relay/pull/19)
+   - Unresolved thread: Missing session-workspace validation
+   - Conversation: [`3b11424`](https://app.all-hands.dev/conversations/3b114242fc724c8fac8c8f1b5f8e5828)
+
+2. **Expansion Worker**
+   - Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
+   - Needs technical analysis and acceptance criteria
+   - Conversation: [`79440ed`](https://app.all-hands.dev/conversations/79440ede4db247a8b9d0a75514c1e12a)
+
+**Current State:**
+- [PR #19](https://github.com/jpshackelford/voice-relay/pull/19): `oRCFRFRFRCFRFRC green ready 💬1` (1 unresolved thread)
+- [PR #24](https://github.com/jpshackelford/voice-relay/pull/24): `o red draft` (smoke test fix, separate concern)
+- Issues needing expansion: #21, #22, #23
+- Ready issues: none (awaiting #20 expansion)
+
+---
