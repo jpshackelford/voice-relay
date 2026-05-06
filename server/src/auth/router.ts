@@ -219,8 +219,8 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           
           console.log(`[Auth] Auto-created first device for ${user.username}: ${device.name} (id: ${device.id})`);
           
-          // Set device token cookie (90 days expiry matches device token expiry)
-          const deviceTokenMaxAge = 90 * 24 * 60 * 60 * 1000;
+          // Set device token cookie (short expiry for one-time migration to localStorage)
+          const deviceTokenMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
           const deviceCookieData = JSON.stringify({
             deviceId: device.id,
             deviceToken,
@@ -388,8 +388,8 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           
           console.log(`[Auth] Auto-created first device for test user: ${device.name} (id: ${device.id})`);
           
-          // Set device token cookie
-          const deviceTokenMaxAge = 90 * 24 * 60 * 60 * 1000;
+          // Set device token cookie (short expiry for one-time migration to localStorage)
+          const deviceTokenMaxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
           const deviceCookieData = JSON.stringify({
             deviceId: device.id,
             deviceToken,

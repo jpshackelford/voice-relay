@@ -99,6 +99,8 @@ export function getStoredDeviceToken(): StoredDeviceInfo | null {
       // Migrate to localStorage for consistency
       console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
       storeDeviceToken(serverSetDevice);
+      // Delete the cookie to minimize XSS exposure window
+      document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
       return serverSetDevice;
     }
     
