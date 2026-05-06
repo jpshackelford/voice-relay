@@ -1392,3 +1392,32 @@ page.getByRole('heading', { name: /devices/i })
 **CI Status:** All checks passing ✅
 
 ---
+
+### 2026-05-06 18:48 UTC - Review Worker
+
+✅ **Addressed Final Review Feedback: PR #29**
+
+- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+- Status: Ready for review, all threads resolved ✅
+
+**Review Feedback Addressed:**
+
+1. **Device cookie not deleted after migration (XSS concern) - FIXED**
+   - Problem: After migrating device token to localStorage, cookie remained readable for 90 days
+   - Solution: Delete the cookie immediately after migration using:
+     ```javascript
+     document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+     ```
+   - Token now only exists in non-httpOnly cookie until first page load
+
+2. **90-day expiry unnecessarily long - FIXED**
+   - Problem: Cookie expiry was 90 days, but only needed for one-time migration
+   - Solution: Changed to 7 days in both OAuth callback and test-session endpoints
+   - 7-day expiry is now just a safety net if migration doesn't happen (e.g., JS disabled)
+
+**Commits:**
+- `734c7c0` - fix: delete device cookie after migration to localStorage
+
+**Thread Status:** Both review threads replied to and resolved ✅
+
+---
