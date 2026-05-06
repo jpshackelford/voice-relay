@@ -182,6 +182,65 @@ describe('Workspace Router - POST /:id/auto-join', () => {
     expect(response.body.joined).toBe(true);
     expect(workspaceRepository.canAccess(secondWorkspaceId, userId)).toBe(true);
   });
+
+  it('denies auto-join when allowAutoJoin is disabled', async () => {
+    // Set allowAutoJoin to false
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 0, datetime('now'))
+    `).run(testWorkspaceId);
+
+    // Create a new user who is NOT a member
+    const newUserId = 'blocked-user';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 99999, 'blockeduser');
+    
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Verify user is NOT a member
+    expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(false);
+
+    // Attempt auto-join - should be denied
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.error).toContain('Auto-join is disabled');
+    
+    // Verify user is still NOT a member
+    expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(false);
+  });
+
+  it('allows auto-join when allowAutoJoin is explicitly enabled', async () => {
+    // Set allowAutoJoin to true explicitly
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 1, datetime('now'))
+    `).run(testWorkspaceId);
+
+    // Create a new user who is NOT a member
+    const newUserId = 'allowed-user';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 88888, 'alloweduser');
+    
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Attempt auto-join - should succeed
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.joined).toBe(true);
+    expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(true);
+  });
 });
 
 describe('Workspace Router - GET /:id/devices', () => {
