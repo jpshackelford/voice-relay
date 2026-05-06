@@ -278,6 +278,38 @@ describe('WorkspaceRepository', () => {
       expect(settings?.openhandsApiKeyIv).toBeNull();
       expect(settings?.openhandsApiKeyTag).toBeNull();
     });
+
+    it('defaults allowAutoJoin to false for new workspaces (security-first)', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      // Set some non-allowAutoJoin setting to create settings record
+      repo.updateSettings(workspace.id, { ttsVoice: 'alloy' });
+      
+      const settings = repo.getSettings(workspace.id);
+      // Should default to false for new workspaces
+      expect(settings?.allowAutoJoin).toBe(false);
+    });
+
+    it('respects explicit allowAutoJoin=true when specified', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      repo.updateSettings(workspace.id, { allowAutoJoin: true });
+      
+      const settings = repo.getSettings(workspace.id);
+      expect(settings?.allowAutoJoin).toBe(true);
+    });
+
+    it('allows updating allowAutoJoin to false after creation', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      // First enable it
+      repo.updateSettings(workspace.id, { allowAutoJoin: true });
+      expect(repo.getSettings(workspace.id)?.allowAutoJoin).toBe(true);
+      
+      // Then disable it
+      repo.updateSettings(workspace.id, { allowAutoJoin: false });
+      expect(repo.getSettings(workspace.id)?.allowAutoJoin).toBe(false);
+    });
   });
 
   describe('members', () => {

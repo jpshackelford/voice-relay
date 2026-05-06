@@ -288,7 +288,8 @@ export class WorkspaceRepository {
         workspaceId
       );
     } else {
-      // Insert with default allowAutoJoin = true
+      // Insert with default allowAutoJoin = false for new workspaces (security-first)
+      // Existing workspaces keep allowAutoJoin=true via migration default for backward compat
       const stmt = this.db.prepare(`
         INSERT INTO workspace_settings 
         (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
@@ -302,7 +303,7 @@ export class WorkspaceRepository {
         settings.openhandsApiKeyTag ?? null,
         settings.ttsVoice ?? null,
         settings.sttLanguage ?? null,
-        settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : 1,
+        settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : 0,
         now
       );
     }
