@@ -85,26 +85,32 @@ function parseDurationToMs(duration: string): number {
 const DEVICE_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 /**
+ * Configuration for auto-creating a device during authentication.
+ */
+interface AutoCreateDeviceConfig {
+  /** User's username for logging */
+  username: string;
+  /** User's display name for device naming (falls back to 'My [DeviceType]' if empty) */
+  displayName: string;
+  /** ID of the workspace to create the device in */
+  workspaceId: string;
+  /** User-Agent header for device type detection */
+  userAgent: string;
+  /** Express response for setting cookies */
+  res: Response;
+  /** Repository for creating devices */
+  deviceRepository: DeviceRepository;
+  /** Whether running in production (for secure cookies) */
+  isProduction: boolean;
+}
+
+/**
  * Auto-create first device for a user in their newly created workspace.
  * Sets device token cookie for client-side session restoration.
- * 
- * @param username - User's username for logging
- * @param displayName - User's display name for device naming
- * @param workspaceId - ID of the newly created workspace
- * @param userAgent - User-Agent header for device type detection
- * @param res - Express response for setting cookies
- * @param deviceRepository - Repository for creating devices
- * @param isProduction - Whether running in production (for secure cookies)
  */
-function autoCreateFirstDevice(
-  username: string,
-  displayName: string,
-  workspaceId: string,
-  userAgent: string,
-  res: Response,
-  deviceRepository: DeviceRepository,
-  isProduction: boolean
-): void {
+function autoCreateFirstDevice(config: AutoCreateDeviceConfig): void {
+  const { username, displayName, workspaceId, userAgent, res, deviceRepository, isProduction } = config;
+  
   try {
     const deviceName = generateDeviceName(displayName, userAgent);
     const { device, token: deviceToken } = deviceRepository.create({
@@ -255,9 +261,15 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       // Auto-create first device in the newly created workspace
       // This reduces friction for first-time users
       if (newlyCreatedWorkspaceId && deviceRepository) {
-        const userAgent = req.headers['user-agent'] || '';
-        const displayName = user.displayName || user.username;
-        autoCreateFirstDevice(user.username, displayName, newlyCreatedWorkspaceId, userAgent, res, deviceRepository, isProduction);
+        autoCreateFirstDevice({
+          username: user.username,
+          displayName: user.displayName || user.username,
+          workspaceId: newlyCreatedWorkspaceId,
+          userAgent: req.headers['user-agent'] || '',
+          res,
+          deviceRepository,
+          isProduction,
+        });
       }
       
       // Generate JWT access token
@@ -400,9 +412,15 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       
       // Auto-create first device in the newly created workspace
       if (testWorkspaceId && deviceRepository) {
-        const userAgent = req.headers['user-agent'] || '';
-        const displayName = testUser.displayName || testUser.username;
-        autoCreateFirstDevice(testUser.username, displayName, testWorkspaceId, userAgent, res, deviceRepository, isProduction);
+        autoCreateFirstDevice({
+          username: testUser.username,
+          displayName: testUser.displayName || testUser.username,
+          workspaceId: testWorkspaceId,
+          userAgent: req.headers['user-agent'] || '',
+          res,
+          deviceRepository,
+          isProduction,
+        });
       }
       
       // Generate tokens
