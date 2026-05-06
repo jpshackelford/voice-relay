@@ -2,6 +2,12 @@
  * Device token storage and validation for reconnection support.
  * Uses localStorage for persistence across page refreshes.
  * Also checks for server-set cookies from auto-device creation.
+ * 
+ * SECURITY NOTE: Device cookies are NOT httpOnly - they are readable by JavaScript
+ * to allow client-side device session restoration. This is acceptable because:
+ * - Device tokens only identify a device within a workspace
+ * - Auth tokens (which ARE httpOnly) are required for authenticated operations
+ * - Device tokens cannot be used to impersonate users or access other workspaces
  */
 
 const DEVICE_TOKEN_KEY = 'voice_relay_device_token';

@@ -27,14 +27,37 @@ const AUTH_COOKIE_NAME = 'voice_relay_auth';
 const REFRESH_COOKIE_NAME = 'voice_relay_refresh';
 const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
 
-// Cookie options for secure httpOnly cookies
-function getCookieOptions(isProduction: boolean, maxAge: number) {
+// Cookie options for secure httpOnly cookies (auth tokens)
+function getAuthCookieOptions(isProduction: boolean, maxAge: number) {
   return {
     httpOnly: true,
     secure: isProduction, // Require HTTPS in production
     sameSite: 'lax' as const,
     path: '/',
     maxAge, // in milliseconds
+  };
+}
+
+/**
+ * Cookie options for device token cookie.
+ * 
+ * SECURITY NOTE: Device cookies are NOT httpOnly because the client needs to read
+ * them to restore device sessions. This is acceptable because:
+ * 1. Device tokens have limited scope - they only identify a device within a workspace
+ * 2. Auth tokens (which ARE httpOnly) are required for any authenticated operations  
+ * 3. Device tokens cannot be used to impersonate users or access other workspaces
+ * 4. The main XSS risk (session hijacking) is mitigated by httpOnly auth tokens
+ * 
+ * If XSS is a concern in your environment, consider using a server-side endpoint
+ * to validate device tokens instead of client-side cookie reading.
+ */
+function getDeviceCookieOptions(isProduction: boolean, maxAge: number) {
+  return {
+    httpOnly: false, // Client needs to read device info
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge,
   };
 }
 
@@ -205,7 +228,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
             name: device.name,
             mode: device.mode,
           });
-          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getCookieOptions(isProduction, deviceTokenMaxAge));
+          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getDeviceCookieOptions(isProduction, deviceTokenMaxAge));
         } catch (err) {
           // Device creation is non-critical; log and continue
           console.error('[Auth] Failed to auto-create first device:', err);
@@ -219,8 +242,8 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       const refreshToken = jwtService.signRefresh(user);
       
       // Set httpOnly cookies (not accessible via JavaScript - XSS safe)
-      res.cookie(AUTH_COOKIE_NAME, token, getCookieOptions(isProduction, tokenMaxAge));
-      res.cookie(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(isProduction, refreshMaxAge));
+      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(isProduction, tokenMaxAge));
+      res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
       
       // Redirect without token in URL (security: prevents browser history/referer leakage)
       const redirectTo = pendingState.returnTo || successRedirect;
@@ -278,8 +301,8 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
     const newRefreshToken = jwtService.signRefresh(user);
     
     // Update cookies
-    res.cookie(AUTH_COOKIE_NAME, newToken, getCookieOptions(isProduction, tokenMaxAge));
-    res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, getCookieOptions(isProduction, refreshMaxAge));
+    res.cookie(AUTH_COOKIE_NAME, newToken, getAuthCookieOptions(isProduction, tokenMaxAge));
+    res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
     
     res.json({ 
       success: true, 
@@ -374,7 +397,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
             name: device.name,
             mode: device.mode,
           });
-          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getCookieOptions(isProduction, deviceTokenMaxAge));
+          res.cookie(DEVICE_TOKEN_COOKIE_NAME, deviceCookieData, getDeviceCookieOptions(isProduction, deviceTokenMaxAge));
         } catch (err) {
           console.error('[Auth] Failed to auto-create first device for test user:', err);
         }
@@ -385,8 +408,8 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       const refreshToken = jwtService.signRefresh(testUser);
       
       // Set cookies (same as normal OAuth flow)
-      res.cookie(AUTH_COOKIE_NAME, token, getCookieOptions(isProduction, tokenMaxAge));
-      res.cookie(REFRESH_COOKIE_NAME, refreshToken, getCookieOptions(isProduction, refreshMaxAge));
+      res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(isProduction, tokenMaxAge));
+      res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
       
       res.json({ 
         success: true,
