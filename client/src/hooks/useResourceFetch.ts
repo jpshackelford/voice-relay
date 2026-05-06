@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getUserFriendlyMessage } from '../utils/errors';
 
+/** Error types for structured error handling */
+export type ResourceErrorType = 'NOT_FOUND' | 'ACCESS_DENIED' | 'UNAUTHORIZED' | 'NETWORK' | 'UNKNOWN';
+
+/** Structured error information from fetch */
+export interface ResourceError {
+  type: ResourceErrorType;
+  message: string;
+  status?: number;
+}
+
 interface ResourceFetchOptions<T> {
   /** URL to fetch from */
   url: string | null;
@@ -21,13 +31,19 @@ interface ResourceFetchOptions<T> {
 interface ResourceFetchResult<T> {
   data: T | null;
   loading: boolean;
+  /** User-friendly error message (for display) */
   error: string | null;
+  /** Structured error info (for programmatic checks) */
+  errorInfo: ResourceError | null;
   refetch: () => void;
 }
 
 /**
  * Generic hook for fetching resources with standardized error handling.
  * Reduces duplication across workspace/session/device fetch patterns.
+ * 
+ * Returns both a user-friendly error message (for display) and structured
+ * error info (for programmatic checks like auto-join triggering).
  */
 export function useResourceFetch<T>({
   url,
@@ -41,6 +57,7 @@ export function useResourceFetch<T>({
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<ResourceError | null>(null);
   const [fetchTrigger, setFetchTrigger] = useState(0);
 
   const refetch = useCallback(() => {
@@ -58,6 +75,7 @@ export function useResourceFetch<T>({
 
       setLoading(true);
       setError(null);
+      setErrorInfo(null);
 
       try {
         if (ensureAuth) {
@@ -72,20 +90,29 @@ export function useResourceFetch<T>({
           const json = await res.json();
           setData(extractData(json));
           setError(null);
+          setErrorInfo(null);
         } else if (res.status === 404) {
           setError(notFoundMessage);
+          setErrorInfo({ type: 'NOT_FOUND', message: notFoundMessage, status: 404 });
         } else if (res.status === 403) {
           setError(forbiddenMessage);
+          setErrorInfo({ type: 'ACCESS_DENIED', message: forbiddenMessage, status: 403 });
         } else if (res.status === 401) {
-          setError('Session expired. Please log in again.');
+          const msg = 'Session expired. Please log in again.';
+          setError(msg);
+          setErrorInfo({ type: 'UNAUTHORIZED', message: msg, status: 401 });
         } else {
           const errorData = await res.json().catch(() => null);
-          setError(getUserFriendlyMessage(errorData || failurePrefix));
+          const msg = getUserFriendlyMessage(errorData || failurePrefix);
+          setError(msg);
+          setErrorInfo({ type: 'UNKNOWN', message: msg, status: res.status });
         }
       } catch (err) {
         if (cancelled) return;
         console.error(`${failurePrefix}:`, err);
-        setError(getUserFriendlyMessage(err as Error));
+        const msg = getUserFriendlyMessage(err as Error);
+        setError(msg);
+        setErrorInfo({ type: 'NETWORK', message: msg });
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -100,5 +127,5 @@ export function useResourceFetch<T>({
     };
   }, [url, enabled, ensureAuth, extractData, notFoundMessage, forbiddenMessage, failurePrefix, fetchTrigger]);
 
-  return { data, loading, error, refetch };
+  return { data, loading, error, errorInfo, refetch };
 }

@@ -96,6 +96,7 @@ export function SessionView() {
     data: workspace,
     loading: workspaceLoading,
     error: workspaceError,
+    errorInfo: workspaceErrorInfo,
     refetch: refetchWorkspace,
   } = useResourceFetch<WorkspaceInfo>({
     url: workspaceId && isAuthenticated ? `/api/workspaces/${workspaceId}` : null,
@@ -108,9 +109,10 @@ export function SessionView() {
   });
 
   // Auto-join workspace when we get a 403 (access denied)
+  // Uses structured error type instead of brittle string matching
   useEffect(() => {
     if (
-      workspaceError === 'You do not have access to this workspace' &&
+      workspaceErrorInfo?.type === 'ACCESS_DENIED' &&
       isAuthenticated &&
       workspaceId &&
       !autoJoinAttempted.current
@@ -151,7 +153,7 @@ export function SessionView() {
         }
       })();
     }
-  }, [workspaceError, isAuthenticated, workspaceId, ensureValidToken, refetchWorkspace]);
+  }, [workspaceErrorInfo, isAuthenticated, workspaceId, ensureValidToken, refetchWorkspace]);
 
   // Fetch session using shared hook - only after workspace loads
   const {
