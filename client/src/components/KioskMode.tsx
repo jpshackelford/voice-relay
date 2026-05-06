@@ -16,6 +16,7 @@ interface KioskModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
+  onExit?: () => void;  // Navigate back to workspace home
   workspaceId?: string;
   sessionId?: string;
 }
@@ -44,8 +45,9 @@ export function KioskMode({
   utterances,
   displayContent,
   sendText, 
-  onModeChange,
+  onModeChange: _onModeChange,  // Kept for future "compact view" toggle
   onAIStatusChange,
+  onExit,
   workspaceId,
   sessionId
 }: KioskModeProps) {
@@ -230,7 +232,7 @@ export function KioskMode({
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
           </div>
-          <button className="exit-kiosk" onClick={() => onModeChange('mobile')} title="Exit kiosk mode">
+          <button className="exit-kiosk" onClick={() => onExit?.()} title="Exit to workspace">
             ✕
           </button>
         </header>
@@ -326,7 +328,7 @@ export function KioskMode({
             <button className="drawer-toggle" onClick={() => setDrawerOpen(false)} title="Close drawer">
               ◀
             </button>
-            <button className="exit-kiosk" onClick={() => onModeChange('mobile')} title="Exit kiosk mode">
+            <button className="exit-kiosk" onClick={() => onExit?.()} title="Exit to workspace">
               ✕
             </button>
           </div>

@@ -213,6 +213,10 @@ export function SessionView() {
     navigate(`/workspace/${workspaceId}`);
   };
 
+  const handleExit = () => {
+    navigate(`/workspace/${workspaceId}`);
+  };
+
   const handleDismissReconnectBanner = () => {
     setShowReconnectBanner(false);
   };
@@ -335,6 +339,7 @@ export function SessionView() {
           displayContent={displayContent}
           sendText={sendText}
           onModeChange={handleModeChange}
+          onExit={handleExit}
           workspaceId={workspaceId}
           sessionId={sessionId}
         />
