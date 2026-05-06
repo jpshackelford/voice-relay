@@ -158,6 +158,15 @@ export class WorkspaceRepository {
     // Also add owner as a member with 'owner' role
     this.addMember(id, ownerId, 'owner');
 
+    // Create settings row with allowAutoJoin=0 (security-first for new workspaces)
+    // This ensures new workspaces require explicit opt-in for auto-join
+    // See migration 007_allow_auto_join.ts for full security posture documentation
+    const settingsStmt = this.db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 0, ?)
+    `);
+    settingsStmt.run(id, now);
+
     return {
       id,
       ownerId,

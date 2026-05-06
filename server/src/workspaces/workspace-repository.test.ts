@@ -85,6 +85,19 @@ describe('WorkspaceRepository', () => {
       expect(() => repo.create(testUserId, { name: 'Test', slug: 'Invalid_Slug!' }))
         .toThrow('Invalid slug format');
     });
+
+    it('creates settings row with allowAutoJoin=false (security-first)', () => {
+      // This test verifies the security-first design: new workspaces must opt-in to auto-join
+      const workspace = repo.create(testUserId, { name: 'Security First Workspace' });
+      
+      // Settings row should be created automatically during workspace creation
+      const settings = repo.getSettings(workspace.id);
+      
+      // Must have settings row (not null)
+      expect(settings).not.toBeNull();
+      // Must default to false for security-first
+      expect(settings?.allowAutoJoin).toBe(false);
+    });
   });
 
   describe('findById', () => {

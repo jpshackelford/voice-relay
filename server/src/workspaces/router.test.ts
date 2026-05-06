@@ -87,6 +87,12 @@ describe('Workspace Router - POST /:id/auto-join', () => {
       VALUES (?, ?, ?, datetime('now'))
     `).run(testWorkspaceId, ownerId, 'owner');
 
+    // Create settings row with auto-join enabled (simulates a workspace that opted in)
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 1, datetime('now'))
+    `).run(testWorkspaceId);
+
     const owner = userRepository.findById(ownerId)!;
     ownerToken = jwtService.sign(owner);
   });
@@ -155,12 +161,18 @@ describe('Workspace Router - POST /:id/auto-join', () => {
   });
 
   it('allows joining a second workspace', async () => {
-    // Create a second workspace
+    // Create a second workspace with auto-join enabled
     const secondWorkspaceId = 'workspace-456';
     db.prepare(`
       INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
     `).run(secondWorkspaceId, ownerId, 'Second Workspace', 'second-workspace', 'EFGH-5678');
+    
+    // Enable auto-join for this workspace
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 1, datetime('now'))
+    `).run(secondWorkspaceId);
 
     // Create a new user
     const userId = 'user-789';
@@ -184,10 +196,10 @@ describe('Workspace Router - POST /:id/auto-join', () => {
   });
 
   it('denies auto-join when allowAutoJoin is disabled', async () => {
-    // Set allowAutoJoin to false
+    // Update settings to disable auto-join (setup already created with allow_auto_join=1)
     db.prepare(`
-      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
-      VALUES (?, 0, datetime('now'))
+      UPDATE workspace_settings SET allow_auto_join = 0, updated_at = datetime('now')
+      WHERE workspace_id = ?
     `).run(testWorkspaceId);
 
     // Create a new user who is NOT a member
@@ -216,11 +228,7 @@ describe('Workspace Router - POST /:id/auto-join', () => {
   });
 
   it('allows auto-join when allowAutoJoin is explicitly enabled', async () => {
-    // Set allowAutoJoin to true explicitly
-    db.prepare(`
-      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
-      VALUES (?, 1, datetime('now'))
-    `).run(testWorkspaceId);
+    // Settings row already has allow_auto_join=1 from setup
 
     // Create a new user who is NOT a member
     const newUserId = 'allowed-user';
@@ -240,6 +248,40 @@ describe('Workspace Router - POST /:id/auto-join', () => {
 
     expect(response.body.joined).toBe(true);
     expect(workspaceRepository.canAccess(testWorkspaceId, newUserId)).toBe(true);
+  });
+
+  it('denies auto-join for workspace without settings row (security-first)', async () => {
+    // Create a workspace WITHOUT a settings row (simulates edge case or data corruption)
+    const noSettingsWorkspaceId = 'workspace-no-settings';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(noSettingsWorkspaceId, ownerId, 'No Settings Workspace', 'no-settings', 'NOSETTING-1234');
+    // Note: Intentionally NOT inserting a workspace_settings row
+
+    // Create a new user who is NOT a member
+    const newUserId = 'edge-case-user';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(newUserId, 77777, 'edgecaseuser');
+    
+    const newUser = userRepository.findById(newUserId)!;
+    const token = jwtService.sign(newUser);
+
+    // Verify user is NOT a member
+    expect(workspaceRepository.canAccess(noSettingsWorkspaceId, newUserId)).toBe(false);
+
+    // Attempt auto-join - should be DENIED (security-first default)
+    const response = await request(app)
+      .post(`/api/workspaces/${noSettingsWorkspaceId}/auto-join`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+
+    expect(response.body.error).toContain('Auto-join is disabled');
+    
+    // Verify user is still NOT a member
+    expect(workspaceRepository.canAccess(noSettingsWorkspaceId, newUserId)).toBe(false);
   });
 });
 

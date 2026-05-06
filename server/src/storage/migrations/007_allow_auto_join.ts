@@ -7,23 +7,25 @@ import type { Migration } from '../migrator.js';
  * users can auto-join via QR code links without a join code.
  * 
  * SECURITY POSTURE:
- * This migration creates a complex but deliberate security posture when
- * combined with the application code defaults:
+ * This migration creates a deliberate security posture combined with
+ * the application code:
  * 
- * - Existing workspaces with settings rows:
+ * - Existing workspaces WITH settings rows:
  *   → allow_auto_join=1 (DEFAULT 1 applies during ALTER TABLE)
  *   → Backward compatible: existing QR code flows continue to work
  * 
- * - Existing workspaces without settings rows (edge case):
- *   → Router code falls back to true (allowAutoJoin ?? true)
- *   → Backward compatible: these rare workspaces still work
+ * - Existing workspaces WITHOUT settings rows (edge case):
+ *   → Router code falls back to FALSE (security-first)
+ *   → These rare workspaces will deny auto-join until owner opts in
  * 
  * - New workspaces created after this migration:
- *   → App code explicitly sets allow_auto_join=0 on workspace creation
- *   → Security-first: owners must opt-in to auto-join
+ *   → WorkspaceRepository.create() automatically creates settings row
+ *     with allow_auto_join=0
+ *   → Security-first: owners must explicitly opt-in to auto-join
  * 
- * This design prioritizes not breaking existing deployments while
- * adopting a secure-by-default posture for new workspaces.
+ * This design prioritizes not breaking existing deployments (production
+ * workspaces with settings rows continue working) while adopting a 
+ * secure-by-default posture for new workspaces and edge cases.
  */
 export const migration: Migration = {
   version: 7,

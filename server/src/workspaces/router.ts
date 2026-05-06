@@ -225,11 +225,14 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         const settings = workspaceRepository.getSettings(workspace.id);
         // Security fallback behavior:
         // - Old workspaces with settings: respect explicit setting (migration sets 1)
-        // - Old workspaces without settings: allow (backward compatibility, ?? true)
-        // - New workspaces: code sets allowAutoJoin=0 on creation (must opt-in)
-        // This means workspaces created before migration 007 default to allowing
-        // auto-join, while new workspaces require explicit enablement.
-        const allowAutoJoin = settings?.allowAutoJoin ?? true;
+        // - Old workspaces without settings: deny (security-first fallback)
+        // - New workspaces: WorkspaceRepository.create() sets allowAutoJoin=0
+        // 
+        // NOTE: The false fallback ensures security-first for any edge case where
+        // a workspace exists without a settings row. While migration 007 adds
+        // DEFAULT 1 for existing settings rows, any workspace without a settings
+        // row (e.g., data corruption, manual DB edits) will default to secure.
+        const allowAutoJoin = settings?.allowAutoJoin ?? false;
         
         if (!allowAutoJoin) {
           console.log('[Workspaces] Auto-join denied - disabled for workspace:', {
@@ -295,7 +298,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasApiKey: !!settings?.openhandsApiKeyEncrypted,
         ttsVoice: settings?.ttsVoice ?? null,
         sttLanguage: settings?.sttLanguage ?? null,
-        allowAutoJoin: settings?.allowAutoJoin ?? true,  // Default to true
+        allowAutoJoin: settings?.allowAutoJoin ?? false,  // Default to false (security-first)
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
