@@ -191,6 +191,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
 
   // Auto-join workspace by ID (for QR code session links)
   // Automatically adds the authenticated user as a member if they're not already
+  // Security: Checks workspace's allowAutoJoin setting before allowing join
   router.post('/:id/auto-join', auth, async (req: Request, res: Response) => {
     try {
       const workspace = workspaceRepository.findById(req.params.id);
@@ -200,10 +201,37 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      // Add user as member if not already
+      // Check if user is already a member
       const wasAlreadyMember = workspaceRepository.canAccess(workspace.id, req.user!.id);
+      
       if (!wasAlreadyMember) {
+        // Check if auto-join is allowed for this workspace
+        const settings = workspaceRepository.getSettings(workspace.id);
+        // Default to true if settings don't exist (backward compatibility)
+        const allowAutoJoin = settings?.allowAutoJoin ?? true;
+        
+        if (!allowAutoJoin) {
+          console.log('[Workspaces] Auto-join denied - disabled for workspace:', {
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            userId: req.user!.id,
+          });
+          res.status(403).json({ 
+            error: 'Auto-join is disabled for this workspace. Please use a join code.' 
+          });
+          return;
+        }
+
+        // Add user as member
         workspaceRepository.addMember(workspace.id, req.user!.id);
+        
+        // Audit log for successful auto-join
+        console.log('[Workspaces] Auto-join successful:', {
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          userId: req.user!.id,
+          timestamp: new Date().toISOString(),
+        });
       }
 
       res.json({
@@ -240,6 +268,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasApiKey: !!settings?.openhandsApiKeyEncrypted,
         ttsVoice: settings?.ttsVoice ?? null,
         sttLanguage: settings?.sttLanguage ?? null,
+        allowAutoJoin: settings?.allowAutoJoin ?? true,  // Default to true
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -263,9 +292,10 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage } = req.body as { 
+      const { ttsVoice, sttLanguage, allowAutoJoin } = req.body as { 
         ttsVoice?: string; 
         sttLanguage?: string;
+        allowAutoJoin?: boolean;
       };
 
       // Note: API key encryption would be handled by a service layer
@@ -273,6 +303,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       const settings = workspaceRepository.updateSettings(workspace.id, {
         ttsVoice,
         sttLanguage,
+        allowAutoJoin,
       });
 
       res.json({
@@ -280,6 +311,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasApiKey: !!settings.openhandsApiKeyEncrypted,
         ttsVoice: settings.ttsVoice,
         sttLanguage: settings.sttLanguage,
+        allowAutoJoin: settings.allowAutoJoin,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {
