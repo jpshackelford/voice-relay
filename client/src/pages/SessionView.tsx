@@ -266,21 +266,24 @@ export function SessionView() {
   // Auto-join in progress (after 403, before success/failure)
   const autoJoinInProgress = autoJoin.attempted && autoJoin.success === null;
 
+  // Consolidated loading state for easier reasoning
+  const isLoading = authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoinInProgress;
+
+  // Determine loading message based on current state
+  const getLoadingMessage = (): string => {
+    if (deviceTokenValidating) return 'Validating device...';
+    if (autoJoinInProgress) return 'Joining workspace...';
+    if (sessionLoading) return 'Loading session...';
+    return 'Loading workspace...';
+  };
+
   // Loading states
-  if (authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoinInProgress) {
+  if (isLoading) {
     return (
       <div className="loading-overlay">
         <div className="loading-card">
           <div className="spinner"></div>
-          <p className="loading-text">
-            {deviceTokenValidating
-              ? 'Validating device...'
-              : autoJoinInProgress
-              ? 'Joining workspace...'
-              : sessionLoading
-              ? 'Loading session...'
-              : 'Loading workspace...'}
-          </p>
+          <p className="loading-text">{getLoadingMessage()}</p>
         </div>
       </div>
     );
