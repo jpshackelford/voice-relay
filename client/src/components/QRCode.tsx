@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import QRCode from 'qrcode';
 import { useQrToken } from '../hooks/useQrToken';
 
@@ -82,7 +82,7 @@ export function QRCodeDisplay({
   });
 
   // Determine the URL to encode
-  const currentUrl = useCallback((): string => {
+  const currentUrl = useMemo((): string => {
     // For session URLs, use the hook's URL builder (includes token if available)
     if (sessionId && workspaceId) {
       return getQrUrl();
@@ -95,8 +95,7 @@ export function QRCodeDisplay({
   useEffect(() => {
     setIsLocalhost(isLocalNetwork());
     
-    const url = currentUrl();
-    QRCode.toDataURL(url, {
+    QRCode.toDataURL(currentUrl, {
       width: size,
       margin: 2,
       color: {
@@ -110,7 +109,7 @@ export function QRCodeDisplay({
 
   const copyToClipboard = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(currentUrl());
+      await navigator.clipboard.writeText(currentUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -163,7 +162,7 @@ export function QRCodeDisplay({
       {showUrl && (
         <div className="qr-url-container">
           <p className="qr-url" onClick={copyToClipboard} title="Click to copy">
-            {currentUrl()}
+            {currentUrl}
           </p>
           {copied && <span className="copied-indicator">✓ Copied!</span>}
         </div>

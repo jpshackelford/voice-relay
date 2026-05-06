@@ -88,11 +88,15 @@ export function useQrToken({
         headers: { 'Content-Type': 'application/json' },
       });
 
-      // 503 means feature not configured - gracefully degrade
+      // 503 indicates the QR token feature is not configured on the server
+      // (e.g., requireQrToken is disabled for this workspace).
+      // This is not a hard error - we gracefully degrade by marking the feature
+      // as unsupported while keeping error=null so the UI can fall back to
+      // unsigned URLs without showing error states.
       if (res.status === 503) {
         setSupported(false);
         setToken(null);
-        setError(null); // Not an error - just not supported
+        setError(null);
         return;
       }
 

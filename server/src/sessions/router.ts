@@ -204,7 +204,6 @@ export function createSessionRouter({
     });
 
     // Build the full URL with the QR token
-    const { protocol, hostname, port } = req.headers;
     // Use the origin from request headers or construct from host
     const host = req.get('host') || 'localhost:3000';
     const proto = req.get('x-forwarded-proto') || req.protocol || 'http';
