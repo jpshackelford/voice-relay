@@ -61,11 +61,19 @@ export class RedisStore implements MessageStore {
     return items.map(item => JSON.parse(item) as RelayedTextMessage);
   }
 
+  /**
+   * Get recent messages for a specific session.
+   * 
+   * LIMITATION: This implementation uses client-side filtering - it fetches up to
+   * `maxMessages` from Redis and filters locally. This is inefficient for high-volume
+   * deployments with many sessions. For production use with high message volumes,
+   * consider using SQLite storage or implementing Redis Sorted Sets with session-prefixed keys.
+   */
   async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
     if (!this.client) throw new Error('RedisStore not connected');
 
-    // Redis doesn't support efficient session filtering, so we need to filter client-side
-    // Get more messages than requested and filter down
+    // Fetch up to maxMessages and filter client-side
+    // This bounds the query but may return fewer than `limit` session messages
     const items = await this.client.lRange(this.listKey, -this.maxMessages, -1);
     const messages = items.map(item => JSON.parse(item) as RelayedTextMessage);
     
