@@ -8,6 +8,7 @@ import {
   storeSessionDeviceId,
   getSessionDeviceId,
   getServerSetDeviceToken,
+  parseDeviceCookieJson,
 } from './deviceToken';
 
 describe('deviceToken utilities', () => {
@@ -250,21 +251,134 @@ describe('deviceToken utilities', () => {
     });
   });
 
+  describe('parseDeviceCookieJson', () => {
+    // This function is extracted to enable thorough testing of the parsing/validation
+    // logic without relying on jsdom cookie mocking.
+
+    it('parses valid JSON with all required fields', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My iPhone',
+        mode: 'mobile',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result).toEqual({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My iPhone',
+        mode: 'mobile',
+      });
+    });
+
+    it('provides default name when not specified', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result?.name).toBe('Device');
+    });
+
+    it('provides default mode when not specified', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result?.mode).toBe('mobile');
+    });
+
+    it('returns null when deviceId is missing', () => {
+      const json = JSON.stringify({
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when deviceToken is missing', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        workspaceId: 'workspace-456',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when workspaceId is missing', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for malformed JSON', () => {
+      const result = parseDeviceCookieJson('not-valid-json');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for empty JSON object', () => {
+      const result = parseDeviceCookieJson('{}');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for JSON array', () => {
+      const result = parseDeviceCookieJson('[]');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null for empty string values in required fields', () => {
+      const json = JSON.stringify({
+        deviceId: '',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result).toBeNull();
+    });
+
+    it('preserves kiosk mode when specified', () => {
+      const json = JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        mode: 'kiosk',
+      });
+
+      const result = parseDeviceCookieJson(json);
+
+      expect(result?.mode).toBe('kiosk');
+    });
+  });
+
   describe('getServerSetDeviceToken', () => {
-    // Note: Direct cookie mocking in jsdom is unreliable because Document.prototype.cookie
-    // has special handling that interferes with simple property redefinition.
-    // 
-    // The getServerSetDeviceToken function is tested indirectly through:
-    // 1. Integration with getStoredDeviceToken (tested in the next describe block)
-    // 2. The implementation has straightforward parsing logic that can be verified
-    //    through code review:
-    //    - Reads cookie using getCookie helper
-    //    - Parses JSON
-    //    - Validates required fields (deviceId, deviceToken, workspaceId)
-    //    - Provides defaults for optional fields (name='Device', mode='mobile')
-    //
-    // If you need to test cookie reading in isolation, consider using a higher-level
-    // integration test with a real browser environment (e.g., Playwright).
+    // Cookie reading is tested via the parseDeviceCookieJson tests above.
+    // Here we test the integration behavior (cookie lookup returning null).
 
     it('returns null when no cookie is set (jsdom default state)', () => {
       // In jsdom, document.cookie starts empty
@@ -274,18 +388,9 @@ describe('deviceToken utilities', () => {
   });
 
   describe('cookie migration in getStoredDeviceToken', () => {
-    // Note: The cookie migration logic is tested through the getServerSetDeviceToken tests
-    // above, which verify that cookies can be read and parsed correctly.
-    // 
-    // Direct testing of the full migration flow (read cookie -> write localStorage -> 
-    // delete cookie) is challenging in jsdom because Document.prototype.cookie mocking
-    // interferes with the localStorage operations.
-    //
-    // Key behaviors covered by other tests:
-    // 1. Cookie reading: getServerSetDeviceToken tests verify cookie parsing
-    // 2. localStorage write: storeDeviceToken tests verify localStorage operations
-    // 3. localStorage errors: storeDeviceToken 'handles localStorage errors gracefully' test
-    // 4. Priority: Below test verifies localStorage is preferred over cookies
+    // The migration flow (read cookie -> write localStorage -> delete cookie)
+    // is tested via parseDeviceCookieJson tests (parsing) and storeDeviceToken tests
+    // (localStorage write). Full integration testing requires real browser (Playwright).
 
     it('prefers localStorage over cookie when both exist', () => {
       const localStorageDevice = {

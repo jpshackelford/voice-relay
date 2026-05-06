@@ -43,15 +43,13 @@ function getCookie(name: string): string | null {
 }
 
 /**
- * Read device info from server-set cookie (from auto-device creation).
- * Returns null if cookie doesn't exist or is invalid.
+ * Parse and validate device cookie JSON string.
+ * Extracted as a pure function for easier testing.
+ * Returns null if JSON is invalid or required fields are missing.
  */
-export function getServerSetDeviceToken(): StoredDeviceInfo | null {
+export function parseDeviceCookieJson(json: string): StoredDeviceInfo | null {
   try {
-    const cookieData = getCookie(DEVICE_TOKEN_COOKIE_NAME);
-    if (!cookieData) return null;
-    
-    const parsed = JSON.parse(cookieData);
+    const parsed = JSON.parse(json);
     // Validate required fields
     if (!parsed.deviceId || !parsed.deviceToken || !parsed.workspaceId) {
       return null;
@@ -64,6 +62,21 @@ export function getServerSetDeviceToken(): StoredDeviceInfo | null {
       name: parsed.name || 'Device',
       mode: parsed.mode || 'mobile',
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Read device info from server-set cookie (from auto-device creation).
+ * Returns null if cookie doesn't exist or is invalid.
+ */
+export function getServerSetDeviceToken(): StoredDeviceInfo | null {
+  try {
+    const cookieData = getCookie(DEVICE_TOKEN_COOKIE_NAME);
+    if (!cookieData) return null;
+    
+    return parseDeviceCookieJson(cookieData);
   } catch (e) {
     console.error('[DeviceToken] Failed to read server-set device cookie:', e);
     return null;
