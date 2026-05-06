@@ -887,3 +887,30 @@ Implemented per-workspace OpenHands API key configuration through the UI:
 **Housekeeping:**
 - Archived 3 worklog entries older than 6hr productive window
 - WORKLOG.md now at 29 entries
+
+---
+### 2026-05-06 23:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `80cc4b3` | implementation | Issue #31 - Auto rollback on smoke test failure | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#31 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/issues/31) (priority:high)
+- Conversation: [`80cc4b3`](https://app.all-hands.dev/conversations/80cc4b3b13ee477f957a21e555fb680c)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be029ba` | merge | PR #34 - Workspace API key settings | finished ✓ (merged at 23:06) |
+
+**Current State:**
+- No open PRs
+- ✅ PR #34 merged, Issue #27 closed
+- Ready issues (remaining):
+  - #31 (priority:high) - NOW IMPLEMENTING
+  - #28 - QR code dismiss
+  - #33 - Join code → join link
+- Blocked issues: #22 (needs-split)
+- No issues need expansion 🎉
