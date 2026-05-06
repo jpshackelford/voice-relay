@@ -950,3 +950,32 @@ Move `deviceRepository.registerOrUpdate()` to **before** `sessionRepository.addD
 **Complexity:** Low (15 minutes)
 
 ---
+### 2026-05-06 16:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `dbca042` | merge | PR #25 - Exit kiosk mode | **NEW** |
+| `6606a4a` | expansion | Issue #22 - Scan QR code | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#25 - feat: exit kiosk mode navigates to workspace home](https://github.com/jpshackelford/voice-relay/pull/25)
+   - Status: `oC green ready --` (all review feedback addressed, CI green, no unresolved threads)
+   - Conversation: [`dbca042`](https://app.all-hands.dev/conversations/dbca0421506a4b18b86bf3769fc6a7b6)
+   - Will close Issue #21 on merge
+
+2. **Expansion Worker**
+   - Issue: [#22 - Scan QR code and join](https://github.com/jpshackelford/voice-relay/issues/22)
+   - Status: Needs technical analysis and acceptance criteria
+   - Conversation: [`6606a4a`](https://app.all-hands.dev/conversations/6606a4a89ab949ed907b3ac9223cab86)
+
+**Current State:**
+- [PR #25](https://github.com/jpshackelford/voice-relay/pull/25): Ready for merge
+- Issues needing expansion: #22 (now being expanded)
+- Ready issues: #20 (priority:medium), #21 (has PR #25), #23 (bug, needs priority)
+
+**Note:** Issue #23 (critical messaging bug) is marked `ready` but has no priority label yet. Should be prioritized as `priority:high` after PR #25 merge since it affects core functionality.
+
+---
