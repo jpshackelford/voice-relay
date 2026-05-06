@@ -851,3 +851,36 @@ Replace the static join code display in WorkspaceHome Settings with a shareable 
 - WORKLOG_ARCHIVE_2026-05-05.md: 2 entries
 - WORKLOG_ARCHIVE_2026-05-06.md: 28 entries
 
+
+---
+### 2026-05-06 20:14 UTC - Review Worker (`21d153f`)
+
+✅ **Addressed Review Feedback on PR #29 (Second Round)**
+
+- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+- Status: **Ready for review** ✅
+
+**Review Threads Addressed:**
+
+1. **🟠 Cookie deletion may fail in production HTTPS environments** → **Fixed in fa95b01**
+   - Problem: Cookies set with `secure: true` must be deleted with the secure flag
+   - Added HTTPS detection: `window.location.protocol === 'https:'`
+   - Cookie deletion now includes secure flag in production
+
+2. **🟡 Extract device auto-creation to shared function** → **Fixed in 35df83e**
+   - Consolidated duplicated device creation logic from OAuth callback and test-session endpoints
+   - Created `autoCreateFirstDevice()` helper function
+   - Extracted `DEVICE_TOKEN_MAX_AGE` constant to avoid magic number duplication
+   - Future updates now only need one code change
+
+**Commits:**
+- `fa95b01` - fix: add secure flag when deleting device cookie in HTTPS environments
+- `35df83e` - refactor: extract device auto-creation to shared helper function
+
+**Tests:**
+- Server: 350 tests passing ✅
+- Client: 85 tests passing ✅
+- CI: All checks green ✅
+
+**All 6 review threads on PR #29 are now resolved.**
+
