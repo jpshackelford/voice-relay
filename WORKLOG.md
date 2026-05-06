@@ -1442,3 +1442,28 @@ The smoke test was using `.or()` to match either Devices or Sessions heading, bu
 - Issue #30 auto-closed via "Fixes #30" in commit message
 
 ---
+
+### 2026-05-06 19:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #31**
+
+- Issue: [#31 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/issues/31)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+When smoke tests fail after deployment, the CI should automatically file a GitHub issue and roll back to the last known working version. The issue was expanded with:
+- Clear problem statement and acceptance criteria
+- Technical approach using git tags (`deploy-success-{sha}`) to track successful deployments
+- Implementation plan with workflow YAML examples for three new jobs:
+  1. `tag-success` - Tags commits that pass smoke tests
+  2. `handle-failure` - Creates issue and triggers rollback on failure
+  3. Rollback verification via health check (not full smoke tests to prevent loops)
+- Risk mitigations for infinite loops, no prior deployments, and SSH failures
+
+**Files Affected:**
+- `.github/workflows/deploy.yml` - Main changes (add 3 new jobs)
+
+**Labels Applied:** `ready`, `enhancement`
+
+---
