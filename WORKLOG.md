@@ -1076,3 +1076,25 @@ Critical bug where all message sending fails due to FK constraint violation. The
 The `session_devices` table has `FOREIGN KEY (device_id) REFERENCES devices(id)`. When `addDevice()` was called before the device existed in the `devices` table, SQLite threw `SQLITE_CONSTRAINT_FOREIGNKEY`, silently breaking device registration and all message relay.
 
 ---
+### 2026-05-06 17:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `17b26ba` | merge | PR #26 - Fix session device FK constraint | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+**PR:** [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+**Fixes:** Issue #23 - Sending messages to a session does not work (priority:high, BUG)
+**Conversation:** [`17b26ba`](https://app.all-hands.dev/conversations/17b26bada3964ae4a91d75a70d6f5e7a)
+
+**Current State:**
+- PR #26: `oC green ready --` (CI green, no unresolved threads, MERGEABLE)
+- Open issues: #23 (being fixed by PR #26), #22 (needs-split), #20 (ready, priority:medium)
+- Previous PRs: #25 merged (Issue #21 closed ✅)
+
+**Action Taken:**
+Spawned merge worker to finalize and merge PR #26, which fixes critical bug where message sending fails due to FK constraint violation in session_devices table.
+
+---
