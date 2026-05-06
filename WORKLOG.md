@@ -1122,32 +1122,68 @@ Critical bug where all message sending was broken when using SQLite storage with
 
 ---
 
-### 2026-05-06 17:31 UTC - Orchestrator
+### 2026-05-06 17:33 UTC - Expansion Worker
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c67420c` | expansion | Issue #27 - Workspace missing settings | **NEW** |
-| `055ab39` | implementation | Issue #20 - Auto add first device | **NEW** |
+✅ **Expanded Issue #27**
 
-🚀 **Spawned: 2 Workers (parallel)**
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`, `enhancement`
 
-1. **Expansion Worker**
-   - Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
-   - Conversation: [`c67420c`](https://app.all-hands.dev/conversations/c67420ca9308425d96981b1a6e17d574)
+**Summary:**
+Added technical detail to implement workspace-level OpenHands API key management. The enhancement covers:
+1. API key input UI in workspace settings (WorkspaceHome.tsx)
+2. Test Connection button to validate API key
+3. Encrypted storage using existing AES-256-GCM schema
+4. Integration with AI endpoints to use workspace-specific keys
 
-2. **Implementation Worker**  
-   - Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20) (priority:medium)
-   - Conversation: [`055ab39`](https://app.all-hands.dev/conversations/055ab39ae2f742868776a8552e6aaeea)
+**Implementation Plan:**
+- Phase 1: Backend API key endpoints (PUT, POST /test)
+- Phase 2: AI integration with workspace key lookup
+- Phase 3: Frontend settings UI
 
-**Current State:**
-- No open PRs
-- Ready issues: #20 (priority:medium) - now being implemented
-- Issues needing expansion: #27 (now being expanded), #28
-- Issues needing split: #22
+**Files Affected:**
+- `server/src/workspaces/encryption.ts` (NEW)
+- `server/src/workspaces/router.ts`
+- `server/src/openhands.ts`
+- `server/src/index.ts`
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/hooks/useWorkspaceSettings.ts`
 
-**Previous Conversations (completed):**
-- `17b26ba` - Merge worker for PR #26 (completed, PR merged)
-- `11b6dcd` - Implementation worker for Issue #23 (completed)
+**Complexity:** Medium
+
+---
+
+### 2026-05-06 17:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #27**
+
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`, `enhancement`
+
+**Summary:**
+Added technical detail to implement workspace-level OpenHands API key management. The enhancement covers:
+1. API key input UI in workspace settings (WorkspaceHome.tsx)
+2. Test Connection button to validate API key
+3. Encrypted storage using existing AES-256-GCM schema
+4. Integration with AI endpoints to use workspace-specific keys
+
+**Implementation Plan:**
+- Phase 1: Backend API key endpoints (PUT, POST /test)
+- Phase 2: AI integration with workspace key lookup
+- Phase 3: Frontend settings UI
+
+**Files Affected:**
+- `server/src/workspaces/encryption.ts` (NEW)
+- `server/src/workspaces/router.ts`
+- `server/src/openhands.ts`
+- `server/src/index.ts`
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/hooks/useWorkspaceSettings.ts`
+
+**Complexity:** Medium
 
 ---
