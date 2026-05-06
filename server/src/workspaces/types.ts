@@ -25,6 +25,8 @@ export interface WorkspaceSettings {
   openhandsApiKeyTag: string | null;
   ttsVoice: string | null;
   sttLanguage: string | null;
+  /** Whether to allow auto-join via QR code links (default: true for backward compat) */
+  allowAutoJoin: boolean;
   updatedAt: string | null;
 }
 
@@ -32,6 +34,7 @@ export interface WorkspaceSettingsInput {
   openhandsApiKey?: string; // Plain text - will be encrypted before storage
   ttsVoice?: string;
   sttLanguage?: string;
+  allowAutoJoin?: boolean;
 }
 
 export interface WorkspaceMember {

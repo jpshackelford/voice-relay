@@ -10,6 +10,7 @@ import { UserRepository } from '../auth/user-repository.js';
 import { DeviceRepository } from '../devices/device-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
+import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 
 describe('Session Router', () => {
   let app: Express;
@@ -30,6 +31,7 @@ describe('Session Router', () => {
     // Apply migrations
     db.exec(usersMigration.up);
     db.exec(workspacesMigration.up);
+    db.exec(allowAutoJoinMigration.up);
     // Create devices and sessions tables
     db.exec(`
       CREATE TABLE IF NOT EXISTS devices (

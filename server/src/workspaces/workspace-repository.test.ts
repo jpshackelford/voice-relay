@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { WorkspaceRepository } from './workspace-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
+import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 
 describe('WorkspaceRepository', () => {
   let db: Database.Database;
@@ -14,6 +15,7 @@ describe('WorkspaceRepository', () => {
     // Apply migrations
     db.exec(usersMigration.up);
     db.exec(workspacesMigration.up);
+    db.exec(allowAutoJoinMigration.up);
     repo = new WorkspaceRepository(db);
 
     // Create a test user
@@ -82,6 +84,19 @@ describe('WorkspaceRepository', () => {
     it('rejects invalid slug format', () => {
       expect(() => repo.create(testUserId, { name: 'Test', slug: 'Invalid_Slug!' }))
         .toThrow('Invalid slug format');
+    });
+
+    it('creates settings row with allowAutoJoin=false (security-first)', () => {
+      // This test verifies the security-first design: new workspaces must opt-in to auto-join
+      const workspace = repo.create(testUserId, { name: 'Security First Workspace' });
+      
+      // Settings row should be created automatically during workspace creation
+      const settings = repo.getSettings(workspace.id);
+      
+      // Must have settings row (not null)
+      expect(settings).not.toBeNull();
+      // Must default to false for security-first
+      expect(settings?.allowAutoJoin).toBe(false);
     });
   });
 
@@ -275,6 +290,38 @@ describe('WorkspaceRepository', () => {
       expect(settings?.openhandsApiKeyEncrypted).toBeNull();
       expect(settings?.openhandsApiKeyIv).toBeNull();
       expect(settings?.openhandsApiKeyTag).toBeNull();
+    });
+
+    it('defaults allowAutoJoin to false for new workspaces (security-first)', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      // Set some non-allowAutoJoin setting to create settings record
+      repo.updateSettings(workspace.id, { ttsVoice: 'alloy' });
+      
+      const settings = repo.getSettings(workspace.id);
+      // Should default to false for new workspaces
+      expect(settings?.allowAutoJoin).toBe(false);
+    });
+
+    it('respects explicit allowAutoJoin=true when specified', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      repo.updateSettings(workspace.id, { allowAutoJoin: true });
+      
+      const settings = repo.getSettings(workspace.id);
+      expect(settings?.allowAutoJoin).toBe(true);
+    });
+
+    it('allows updating allowAutoJoin to false after creation', () => {
+      const workspace = repo.create(testUserId, { name: 'New Workspace' });
+      
+      // First enable it
+      repo.updateSettings(workspace.id, { allowAutoJoin: true });
+      expect(repo.getSettings(workspace.id)?.allowAutoJoin).toBe(true);
+      
+      // Then disable it
+      repo.updateSettings(workspace.id, { allowAutoJoin: false });
+      expect(repo.getSettings(workspace.id)?.allowAutoJoin).toBe(false);
     });
   });
 

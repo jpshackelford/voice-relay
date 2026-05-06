@@ -350,6 +350,25 @@ wss.on('connection', (ws: WebSocket) => {
             sessionId = 'default';
           }
           
+          // Persist device to database (for reconnection support)
+          // This auto-registers devices with generated names when joining via QR code
+          let deviceToken: string | null = null;
+          let tokenExpiresAt: string | null = null;
+          if (deviceRepository) {
+            const result = deviceRepository.registerOrUpdate(
+              message.deviceId,
+              requestedWorkspaceId,
+              message.displayName,
+              message.mode
+            );
+            // Only send token if this is a new device registration
+            if (result.isNew && result.token) {
+              deviceToken = result.token;
+              tokenExpiresAt = result.expiresAt;
+              console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
+            }
+          }
+          
           registry.register(
             message.deviceId,
             requestedWorkspaceId,
@@ -365,6 +384,8 @@ wss.on('connection', (ws: WebSocket) => {
             type: 'registered',
             deviceId: message.deviceId,
             session: session,
+            deviceToken: deviceToken ?? undefined,
+            tokenExpiresAt: tokenExpiresAt ?? undefined,
           };
           ws.send(JSON.stringify(response));
           

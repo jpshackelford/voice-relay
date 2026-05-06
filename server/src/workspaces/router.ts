@@ -1,8 +1,23 @@
 import { Router, type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import type { WorkspaceRepository } from './workspace-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+
+// Rate limiter for auto-join endpoint to prevent enumeration/abuse
+const autoJoinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // limit each user to 10 auto-joins per window
+  message: { error: 'Too many join attempts, please try again later' },
+  // Use authenticated user ID for rate limiting - endpoint requires auth middleware
+  // so req.user is guaranteed to exist (non-null assertion is safe here)
+  keyGenerator: (req: Request) => req.user!.id,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test', // Skip in tests
+  validate: { xForwardedForHeader: false }, // Disable IP-related validation since we use user ID
+});
 
 export interface WorkspaceRouterConfig {
   workspaceRepository: WorkspaceRepository;
@@ -189,6 +204,77 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Auto-join workspace by ID (for QR code session links)
+  // Automatically adds the authenticated user as a member if they're not already
+  // Security: Checks workspace's allowAutoJoin setting before allowing join
+  // Rate limited to prevent workspace ID enumeration and bulk joining
+  router.post('/:id/auto-join', auth, autoJoinLimiter, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Check if user is already a member
+      const wasAlreadyMember = workspaceRepository.canAccess(workspace.id, req.user!.id);
+      
+      if (!wasAlreadyMember) {
+        // Check if auto-join is allowed for this workspace
+        const settings = workspaceRepository.getSettings(workspace.id);
+        // Security fallback behavior:
+        // - Old workspaces with settings: respect explicit setting (migration sets 1)
+        // - Old workspaces without settings: deny (security-first fallback)
+        // - New workspaces: WorkspaceRepository.create() sets allowAutoJoin=0
+        // 
+        // NOTE: The false fallback ensures security-first for any edge case where
+        // a workspace exists without a settings row. While migration 007 adds
+        // DEFAULT 1 for existing settings rows, any workspace without a settings
+        // row (e.g., data corruption, manual DB edits) will default to secure.
+        const allowAutoJoin = settings?.allowAutoJoin ?? false;
+        
+        if (!allowAutoJoin) {
+          console.log('[Workspaces] Auto-join denied - disabled for workspace:', {
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            userId: req.user!.id,
+          });
+          res.status(403).json({ 
+            error: 'Auto-join is disabled for this workspace. Please use a join code.' 
+          });
+          return;
+        }
+
+        // Add user as member
+        try {
+          workspaceRepository.addMember(workspace.id, req.user!.id);
+        } catch (err) {
+          console.error('[Workspaces] Failed to add member:', err);
+          res.status(500).json({ error: 'Failed to join workspace. Please try again.' });
+          return;
+        }
+        
+        // Audit log for successful auto-join
+        console.log('[Workspaces] Auto-join successful:', {
+          workspaceId: workspace.id,
+          workspaceName: workspace.name,
+          userId: req.user!.id,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      res.json({
+        ...workspace,
+        isOwner: workspace.ownerId === req.user!.id,
+        joined: !wasAlreadyMember,
+      });
+    } catch (err) {
+      console.error('[Workspaces] Auto-join error:', err);
+      res.status(500).json({ error: 'Failed to join workspace' });
+    }
+  });
+
   // Get workspace settings (owner only, API key masked)
   router.get('/:id/settings', auth, async (req: Request, res: Response) => {
     try {
@@ -212,6 +298,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasApiKey: !!settings?.openhandsApiKeyEncrypted,
         ttsVoice: settings?.ttsVoice ?? null,
         sttLanguage: settings?.sttLanguage ?? null,
+        allowAutoJoin: settings?.allowAutoJoin ?? false,  // Default to false (security-first)
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -235,9 +322,10 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage } = req.body as { 
+      const { ttsVoice, sttLanguage, allowAutoJoin } = req.body as { 
         ttsVoice?: string; 
         sttLanguage?: string;
+        allowAutoJoin?: boolean;
       };
 
       // Note: API key encryption would be handled by a service layer
@@ -245,6 +333,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       const settings = workspaceRepository.updateSettings(workspace.id, {
         ttsVoice,
         sttLanguage,
+        allowAutoJoin,
       });
 
       res.json({
@@ -252,6 +341,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasApiKey: !!settings.openhandsApiKeyEncrypted,
         ttsVoice: settings.ttsVoice,
         sttLanguage: settings.sttLanguage,
+        allowAutoJoin: settings.allowAutoJoin,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {

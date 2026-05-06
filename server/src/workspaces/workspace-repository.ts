@@ -26,6 +26,7 @@ interface WorkspaceSettingsRow {
   openhands_api_key_tag: string | null;
   tts_voice: string | null;
   stt_language: string | null;
+  allow_auto_join: number;
   updated_at: string | null;
 }
 
@@ -56,6 +57,7 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     openhandsApiKeyTag: row.openhands_api_key_tag,
     ttsVoice: row.tts_voice,
     sttLanguage: row.stt_language,
+    allowAutoJoin: row.allow_auto_join === 1,
     updatedAt: row.updated_at,
   };
 }
@@ -156,6 +158,15 @@ export class WorkspaceRepository {
     // Also add owner as a member with 'owner' role
     this.addMember(id, ownerId, 'owner');
 
+    // Create settings row with allowAutoJoin=0 (security-first for new workspaces)
+    // This ensures new workspaces require explicit opt-in for auto-join
+    // See migration 007_allow_auto_join.ts for full security posture documentation
+    const settingsStmt = this.db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, allow_auto_join, updated_at)
+      VALUES (?, 0, ?)
+    `);
+    settingsStmt.run(id, now);
+
     return {
       id,
       ownerId,
@@ -241,7 +252,7 @@ export class WorkspaceRepository {
   getSettings(workspaceId: string): WorkspaceSettings | null {
     const stmt = this.db.prepare<[string], WorkspaceSettingsRow>(`
       SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
-             openhands_api_key_tag, tts_voice, stt_language, updated_at
+             openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -256,6 +267,7 @@ export class WorkspaceRepository {
       openhandsApiKeyTag?: string | null;
       ttsVoice?: string | null;
       sttLanguage?: string | null;
+      allowAutoJoin?: boolean;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
@@ -270,6 +282,7 @@ export class WorkspaceRepository {
             openhands_api_key_tag = COALESCE(?, openhands_api_key_tag),
             tts_voice = COALESCE(?, tts_voice),
             stt_language = COALESCE(?, stt_language),
+            allow_auto_join = COALESCE(?, allow_auto_join),
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -279,16 +292,18 @@ export class WorkspaceRepository {
         settings.openhandsApiKeyTag ?? null,
         settings.ttsVoice ?? null,
         settings.sttLanguage ?? null,
+        settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : null,
         now,
         workspaceId
       );
     } else {
-      // Insert
+      // Insert with default allowAutoJoin = false for new workspaces (security-first)
+      // Existing workspaces keep allowAutoJoin=true via migration default for backward compat
       const stmt = this.db.prepare(`
         INSERT INTO workspace_settings 
         (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
-         openhands_api_key_tag, tts_voice, stt_language, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+         openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -297,6 +312,7 @@ export class WorkspaceRepository {
         settings.openhandsApiKeyTag ?? null,
         settings.ttsVoice ?? null,
         settings.sttLanguage ?? null,
+        settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : 0,
         now
       );
     }

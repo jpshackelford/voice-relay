@@ -6,6 +6,7 @@ import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
+import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
 
@@ -15,6 +16,7 @@ interface WorkspaceInfo {
   slug: string;
   isOwner: boolean;
   joinCode?: string;
+  joined?: boolean;  // True if user was just added to workspace via auto-join
 }
 
 interface SessionInfo {
@@ -48,6 +50,7 @@ function useAutoDetectMode(): DeviceMode {
 /**
  * SessionView - Direct session entry point without setup screen.
  * Auto-detects kiosk vs mobile mode based on screen size.
+ * Supports QR code join flow with auto-join for non-members.
  */
 export function SessionView() {
   const { workspaceId, sessionId } = useParams<{ workspaceId: string; sessionId: string }>();
@@ -63,6 +66,7 @@ export function SessionView() {
   } = useDeviceRestoration(workspaceId);
 
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
+  const [showJoinedBanner, setShowJoinedBanner] = useState(false);
 
   // Auto-detect mode based on screen size
   const autoMode = useAutoDetectMode();
@@ -79,6 +83,8 @@ export function SessionView() {
     data: workspace,
     loading: workspaceLoading,
     error: workspaceError,
+    errorInfo: workspaceErrorInfo,
+    refetch: refetchWorkspace,
   } = useResourceFetch<WorkspaceInfo>({
     url: workspaceId && isAuthenticated ? `/api/workspaces/${workspaceId}` : null,
     extractData: extractWorkspace,
@@ -87,6 +93,25 @@ export function SessionView() {
     failurePrefix: 'Failed to load workspace',
     ensureAuth: ensureValidToken,
     enabled: !!workspaceId && isAuthenticated,
+  });
+
+  // Handle auto-join callback
+  const handleAutoJoinSuccess = useCallback(
+    (wasNewlyJoined: boolean) => {
+      setShowJoinedBanner(wasNewlyJoined);
+      refetchWorkspace();
+    },
+    [refetchWorkspace]
+  );
+
+  // Auto-join workspace when we get a 403 (access denied)
+  // Encapsulated in custom hook for better separation of concerns
+  const autoJoin = useWorkspaceAutoJoin({
+    workspaceId,
+    isAuthenticated,
+    workspaceErrorInfo,
+    ensureValidToken,
+    onJoinSuccess: handleAutoJoinSuccess,
   });
 
   // Fetch session using shared hook - only after workspace loads
@@ -192,19 +217,28 @@ export function SessionView() {
     setShowReconnectBanner(false);
   };
 
+  const handleDismissJoinedBanner = () => {
+    setShowJoinedBanner(false);
+  };
+
+  // Consolidated loading state for easier reasoning
+  const isLoading = authLoading || workspaceLoading || sessionLoading || deviceTokenValidating || autoJoin.inProgress;
+
+  // Determine loading message based on current state
+  const getLoadingMessage = (): string => {
+    if (deviceTokenValidating) return 'Validating device...';
+    if (autoJoin.inProgress) return 'Joining workspace...';
+    if (sessionLoading) return 'Loading session...';
+    return 'Loading workspace...';
+  };
+
   // Loading states
-  if (authLoading || workspaceLoading || sessionLoading || deviceTokenValidating) {
+  if (isLoading) {
     return (
       <div className="loading-overlay">
         <div className="loading-card">
           <div className="spinner"></div>
-          <p className="loading-text">
-            {deviceTokenValidating
-              ? 'Validating device...'
-              : sessionLoading
-              ? 'Loading session...'
-              : 'Loading workspace...'}
-          </p>
+          <p className="loading-text">{getLoadingMessage()}</p>
         </div>
       </div>
     );
@@ -227,11 +261,30 @@ export function SessionView() {
     );
   }
 
-  // Workspace or session error
-  if (workspaceError || !workspace) {
+  // Auto-join failed
+  if (autoJoin.attempted && autoJoin.result.success === false) {
     return (
       <div className="workspace-error">
-        <h2>⚠️ {workspaceError || 'Workspace not found'}</h2>
+        <h2>⚠️ {autoJoin.result.error || 'Failed to join workspace'}</h2>
+        <p>Unable to automatically join this workspace.</p>
+        <button onClick={() => navigate('/dashboard')}>← Go to Dashboard</button>
+      </div>
+    );
+  }
+
+  // Workspace or session error - only show if auto-join wasn't triggered or has completed.
+  // Two cases handled:
+  // 1. Access denied before auto-join attempted (show initial 403 error)
+  // 2. Workspace is null after auto-join completed (catch refetch failures post-join)
+  // We don't show errors while auto-join is in progress since it will refetch on success.
+  if ((workspaceError && !autoJoin.attempted) || (!workspace && !autoJoin.inProgress)) {
+    // If auto-join succeeded but workspace is still null, refetch failed - show appropriate message
+    const errorMessage = autoJoin.result.success
+      ? 'Failed to load workspace after joining. Please refresh the page.'
+      : workspaceError || 'Workspace not found';
+    return (
+      <div className="workspace-error">
+        <h2>⚠️ {errorMessage}</h2>
         <button onClick={handleBackToWorkspace}>← Back to Workspace</button>
       </div>
     );
@@ -256,11 +309,23 @@ export function SessionView() {
     </div>
   ) : null;
 
+  // Joined workspace banner (shown when user was auto-added to workspace)
+  // Use auto-join response data directly to eliminate race condition with refetch
+  const joinedBanner = showJoinedBanner ? (
+    <div className="device-reconnect-banner" style={{ backgroundColor: '#4ade80' }}>
+      <span className="banner-text">✓ Joined workspace: {autoJoin.result.workspace?.name || workspace?.name}</span>
+      <button className="reconnect-btn" onClick={handleDismissJoinedBanner}>
+        Dismiss
+      </button>
+    </div>
+  ) : null;
+
   // Render kiosk or mobile mode based on auto-detected/current mode
   if (mode === 'kiosk') {
     return (
       <>
         {reconnectBanner}
+        {joinedBanner}
         <KioskMode
           deviceId={deviceId}
           displayName={displayName}
@@ -281,6 +346,7 @@ export function SessionView() {
   return (
     <>
       {reconnectBanner}
+      {joinedBanner}
       <MobileMode
         deviceId={deviceId}
         displayName={displayName}
