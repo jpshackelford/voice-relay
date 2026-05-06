@@ -76,8 +76,11 @@ test.describe('Production Smoke Tests', () => {
       // Should not redirect to login
       await expect(page).not.toHaveURL(/\/login/);
       
-      // Dashboard should show workspaces heading or create button
-      await expect(page.getByRole('heading', { name: /workspaces/i })).toBeVisible({ timeout: 10000 });
+      // Dashboard redirects to workspace home which shows devices and sessions sections
+      // Check for either heading to confirm workspace home loaded
+      await expect(
+        page.getByRole('heading', { name: /devices/i }).or(page.getByRole('heading', { name: /sessions/i }))
+      ).toBeVisible({ timeout: 10000 });
     });
 
     test('can access auth/me endpoint', async ({ request }) => {
