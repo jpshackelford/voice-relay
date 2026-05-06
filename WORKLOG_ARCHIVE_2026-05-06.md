@@ -964,3 +964,51 @@ Split into:
 - `server/src/index.ts` - Device registration via WebSocket
 - `client/src/hooks/useWorkspaceAutoJoin.ts` - Client-side auto-join
 - `docs/DESIGN.md` Section 12 - Spec for join request flow
+
+---
+### 2026-05-06 16:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `11b6dcd` | implementation | Issue #23 - Session messaging bug | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+**Issue:** [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) (priority:high)
+**Conversation:** [`11b6dcd`](https://app.all-hands.dev/conversations/11b6dcd790fb43e9b5932c30b19d57e5)
+
+**Current State:**
+- No open PRs
+- Ready issues: #23 (priority:high - BUG), #20 (priority:medium)
+- Issues needing split: #22
+
+**What's Being Fixed:**
+Critical bug where all message sending fails due to FK constraint violation. The `session_devices` table FK check fails because device is added to session before being registered in `devices` table.
+
+**Action Taken:**
+- Added `priority:high` label to Issue #23 (critical bug takes precedence)
+- Spawned implementation worker to fix the ordering bug in `server/src/index.ts`
+
+---
+### 2026-05-06 16:40 UTC - Implementation Worker (`11b6dcd`)
+
+✅ **Completed: PR #26 - Fix Session Device FK Constraint**
+
+- Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23)
+- PR: [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+- Status: Ready for review
+
+**Work Done:**
+1. Fixed ordering bug: moved `deviceRepository.registerOrUpdate()` to execute **before** `sessionRepository.addDevice()` to satisfy the FK constraint
+2. Added regression test documenting the FK constraint requirement
+3. All unit tests pass (334 tests including new one)
+4. TypeScript compiles without errors
+5. CI green ✅
+
+**Files Changed:**
+- `server/src/index.ts` - Reordered device registration before session membership
+- `server/src/sessions/session-repository.test.ts` - Added FK constraint test
+
+**Root Cause Summary:**
+The `session_devices` table has `FOREIGN KEY (device_id) REFERENCES devices(id)`. When `addDevice()` was called before the device existed in the `devices` table, SQLite threw `SQLITE_CONSTRAINT_FOREIGNKEY`, silently breaking device registration and all message relay.
