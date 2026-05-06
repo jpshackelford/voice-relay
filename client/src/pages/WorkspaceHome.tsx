@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
+import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings';
 
 // Format relative time (e.g., "2m ago", "1hr ago")
 function formatRelativeTime(date: string): string {
@@ -122,6 +123,19 @@ export function WorkspaceHome() {
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   
+  // API key settings state
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
+  const [apiKeyMessage, setApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Workspace settings hook
+  const { 
+    settings, 
+    setApiKey, 
+    testApiKey, 
+    removeApiKey 
+  } = useWorkspaceSettings(workspaceId, workspace?.isOwner ?? false);
+  
   // Use ref to prevent race condition with auto-create
   // Ref persists across re-renders and is set synchronously before the async call
   const autoCreatingRef = useRef(false);
@@ -186,6 +200,58 @@ export function WorkspaceHome() {
   const handleSwitchWorkspace = (ws: Workspace) => {
     setShowWorkspaceDropdown(false);
     navigate(`/workspace/${ws.id}`);
+  };
+
+  // API key handlers
+  const handleSaveApiKey = async () => {
+    if (!apiKeyInput.trim()) return;
+    
+    setApiKeyStatus('saving');
+    setApiKeyMessage(null);
+    
+    try {
+      await setApiKey(apiKeyInput.trim());
+      setApiKeyInput('');
+      setApiKeyMessage({ type: 'success', text: 'API key saved successfully' });
+    } catch (err) {
+      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+    } finally {
+      setApiKeyStatus('idle');
+    }
+  };
+
+  const handleTestApiKey = async () => {
+    setApiKeyStatus('testing');
+    setApiKeyMessage(null);
+    
+    try {
+      // Test with input if provided, otherwise test stored key
+      const result = await testApiKey(apiKeyInput.trim() || undefined);
+      setApiKeyMessage({ 
+        type: result.valid ? 'success' : 'error', 
+        text: result.message 
+      });
+    } catch (err) {
+      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+    } finally {
+      setApiKeyStatus('idle');
+    }
+  };
+
+  const handleRemoveApiKey = async () => {
+    if (!confirm('Are you sure you want to remove the API key?')) return;
+    
+    setApiKeyStatus('removing');
+    setApiKeyMessage(null);
+    
+    try {
+      await removeApiKey();
+      setApiKeyMessage({ type: 'success', text: 'API key removed' });
+    } catch (err) {
+      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+    } finally {
+      setApiKeyStatus('idle');
+    }
   };
 
   const loading = workspacesLoading || sessionsLoading || devicesLoading;
@@ -324,18 +390,75 @@ export function WorkspaceHome() {
           </div>
         </section>
 
-        {/* Settings Section (Join Code for owners) */}
-        {workspace.isOwner && workspace.joinCode && (
+        {/* Settings Section (for owners) */}
+        {workspace.isOwner && (
           <section className="settings-section">
             <h2>
               <span className="section-icon">⚙️</span>
               Settings
             </h2>
             <div className="settings-content">
-              <div className="setting-row">
-                <label>Join Code</label>
-                <code className="join-code">{workspace.joinCode}</code>
-                <span className="setting-hint">Share this code to let others join your workspace</span>
+              {/* Join Code */}
+              {workspace.joinCode && (
+                <div className="setting-row">
+                  <label>Join Code</label>
+                  <code className="join-code">{workspace.joinCode}</code>
+                  <span className="setting-hint">Share this code to let others join your workspace</span>
+                </div>
+              )}
+              
+              {/* OpenHands API Key */}
+              <div className="setting-row api-key-setting">
+                <label>OpenHands API Key</label>
+                <div className="api-key-status">
+                  {settings?.hasApiKey ? (
+                    <span className="status-configured">✓ Configured</span>
+                  ) : (
+                    <span className="status-not-configured">⚠️ Not Configured</span>
+                  )}
+                </div>
+                <div className="api-key-input-row">
+                  <input
+                    type="password"
+                    placeholder={settings?.hasApiKey ? '••••••••••••••••' : 'Enter your OpenHands API key'}
+                    value={apiKeyInput}
+                    onChange={(e) => setApiKeyInput(e.target.value)}
+                    disabled={apiKeyStatus !== 'idle'}
+                    className="api-key-input"
+                  />
+                  <button
+                    onClick={handleSaveApiKey}
+                    disabled={apiKeyStatus !== 'idle' || !apiKeyInput.trim()}
+                    className="api-key-btn save-btn"
+                  >
+                    {apiKeyStatus === 'saving' ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={handleTestApiKey}
+                    disabled={apiKeyStatus !== 'idle' || (!apiKeyInput.trim() && !settings?.hasApiKey)}
+                    className="api-key-btn test-btn"
+                  >
+                    {apiKeyStatus === 'testing' ? 'Testing...' : 'Test'}
+                  </button>
+                  {settings?.hasApiKey && (
+                    <button
+                      onClick={handleRemoveApiKey}
+                      disabled={apiKeyStatus !== 'idle'}
+                      className="api-key-btn remove-btn"
+                    >
+                      {apiKeyStatus === 'removing' ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+                {apiKeyMessage && (
+                  <div className={`api-key-message ${apiKeyMessage.type}`}>
+                    {apiKeyMessage.text}
+                  </div>
+                )}
+                <span className="setting-hint">
+                  Your OpenHands Cloud API key for AI-powered conversations. 
+                  Get one at <a href="https://app.all-hands.dev" target="_blank" rel="noopener noreferrer">app.all-hands.dev</a>
+                </span>
               </div>
             </div>
           </section>

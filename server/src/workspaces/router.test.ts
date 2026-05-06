@@ -719,3 +719,227 @@ describe('Workspace Router - GET /:id/devices', () => {
     expect(device.createdAt).toBeDefined();
   });
 });
+
+describe('Workspace Router - API Key Endpoints', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+  let nonOwnerId: string;
+  let nonOwnerToken: string;
+
+  beforeEach(() => {
+    // Set encryption secret for tests
+    process.env.ENCRYPTION_SECRET = 'test-encryption-secret-for-tests';
+    
+    const env = setupTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-api-key';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 99999, 'apikey-owner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-api-key';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'API Key Test Workspace', 'api-key-test', 'APIKEY12');
+
+    // Add owner as workspace member
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'owner');
+
+    // Create settings row
+    db.prepare(`
+      INSERT INTO workspace_settings (workspace_id, updated_at)
+      VALUES (?, datetime('now'))
+    `).run(testWorkspaceId);
+
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+    
+    // Create a non-owner member
+    nonOwnerId = 'non-owner-api-key';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(nonOwnerId, 88888, 'apikey-nonowner');
+    
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, nonOwnerId, 'member');
+    
+    const nonOwner = userRepository.findById(nonOwnerId)!;
+    nonOwnerToken = jwtService.sign(nonOwner);
+  });
+
+  afterEach(() => {
+    db.close();
+    delete process.env.ENCRYPTION_SECRET;
+  });
+
+  describe('PUT /:id/settings/api-key', () => {
+    it('requires authentication', async () => {
+      const response = await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .send({ apiKey: 'test_api_key_12345678901234567890' })
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('requires owner permission', async () => {
+      const response = await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${nonOwnerToken}`)
+        .send({ apiKey: 'test_api_key_12345678901234567890' })
+        .expect(403);
+
+      expect(response.body.error).toBe('Only owner can set API key');
+    });
+
+    it('validates API key is provided', async () => {
+      const response = await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.error).toBe('API key is required');
+    });
+
+    it('validates API key format', async () => {
+      const response = await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ apiKey: 'too_short' })
+        .expect(400);
+
+      expect(response.body.error).toBe('Invalid API key format');
+    });
+
+    it('saves API key successfully', async () => {
+      const response = await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ apiKey: 'valid_api_key_12345678901234567890' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.hasApiKey).toBe(true);
+
+      // Verify it's stored
+      const settings = workspaceRepository.getSettings(testWorkspaceId);
+      expect(settings?.openhandsApiKeyEncrypted).toBeDefined();
+      expect(settings?.openhandsApiKeyIv).toBeDefined();
+      expect(settings?.openhandsApiKeyTag).toBeDefined();
+    });
+
+    it('returns 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .put('/api/workspaces/nonexistent/settings/api-key')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ apiKey: 'valid_api_key_12345678901234567890' })
+        .expect(404);
+
+      expect(response.body.error).toBe('Workspace not found');
+    });
+  });
+
+  describe('POST /:id/settings/api-key/test', () => {
+    it('requires authentication', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/settings/api-key/test`)
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('requires owner permission', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/settings/api-key/test`)
+        .set('Authorization', `Bearer ${nonOwnerToken}`)
+        .expect(403);
+
+      expect(response.body.error).toBe('Only owner can test API key');
+    });
+
+    it('returns no key configured when no key exists', async () => {
+      const response = await request(app)
+        .post(`/api/workspaces/${testWorkspaceId}/settings/api-key/test`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+
+      expect(response.body.valid).toBe(false);
+      expect(response.body.message).toBe('No API key configured');
+    });
+  });
+
+  describe('DELETE /:id/settings/api-key', () => {
+    beforeEach(async () => {
+      // Set up an API key to delete
+      await request(app)
+        .put(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ apiKey: 'valid_api_key_12345678901234567890' })
+        .expect(200);
+    });
+
+    it('requires authentication', async () => {
+      const response = await request(app)
+        .delete(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .expect(401);
+
+      expect(response.body.error).toBe('Authentication required');
+    });
+
+    it('requires owner permission', async () => {
+      const response = await request(app)
+        .delete(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${nonOwnerToken}`)
+        .expect(403);
+
+      expect(response.body.error).toBe('Only owner can remove API key');
+    });
+
+    it('removes API key successfully', async () => {
+      // Verify key exists
+      let settings = workspaceRepository.getSettings(testWorkspaceId);
+      expect(settings?.openhandsApiKeyEncrypted).toBeDefined();
+
+      // Delete it
+      await request(app)
+        .delete(`/api/workspaces/${testWorkspaceId}/settings/api-key`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(204);
+
+      // Verify it's gone
+      settings = workspaceRepository.getSettings(testWorkspaceId);
+      expect(settings?.openhandsApiKeyEncrypted).toBeNull();
+    });
+
+    it('returns 404 for non-existent workspace', async () => {
+      const response = await request(app)
+        .delete('/api/workspaces/nonexistent/settings/api-key')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(404);
+
+      expect(response.body.error).toBe('Workspace not found');
+    });
+  });
+});
