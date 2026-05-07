@@ -130,7 +130,8 @@ function getAuthConfig(): AuthConfig | null {
   // without requiring real GitHub OAuth setup.
   const useTestMode = testAuthSecret && jwtSecret && (!githubClientId || !githubClientSecret);
 
-  if (!jwtSecret && !useTestMode) {
+  // Note: useTestMode requires jwtSecret to be truthy, so this check is sufficient
+  if (!jwtSecret) {
     console.log('[Auth] Missing JWT_SECRET - auth disabled');
     return null;
   }
