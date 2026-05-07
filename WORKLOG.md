@@ -735,3 +735,36 @@ When a mobile device joins a kiosk session, automatically transition from the la
 - [x] displayContent takes priority over both states
 
 **No database changes required** - purely client-side UI logic.
+
+---
+### 2026-05-07 06:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `66856a7` | merge | PR #39 - Auto-dismiss QR code | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#39 - feat: auto-dismiss QR code when mobile device joins](https://github.com/jpshackelford/voice-relay/pull/39)
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28) (will auto-close on merge)
+- Conversation: [`66856a7`](https://app.all-hands.dev/conversations/66856a7388c04c6fa365edd654be899e)
+
+**Merge Criteria Met:**
+- CI: All checks passing ✅
+- Review: "Worth merging" - clean implementation with solid test coverage
+- Review threads: 0 (none to address)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `bf855fb` | implementation | Issue #28 | finished ✓ |
+| `42e82b1` | merge | PR #36 - Invite link feature | finished ✓ |
+
+**Current State:**
+- [PR #39](https://github.com/jpshackelford/voice-relay/pull/39): Ready for merge → MERGING NOW
+- Expansion slot: Empty (no issues need expansion)
+- Ready issues: #28 (priority:medium, being merged)
+- Blocked issues: #22 (needs-split)
+
+**Housekeeping:**
+- ✅ Archived 4 worklog entries older than 6hr productive window
