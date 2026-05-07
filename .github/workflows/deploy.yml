@@ -248,6 +248,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            set -e  # Exit on first error
             export PATH=$HOME/bin/node/bin:$PATH
             cd /var/www/vr.chorecraft.net/app
             echo "=== Rolling back to ${{ steps.find-good.outputs.commit }} ==="
