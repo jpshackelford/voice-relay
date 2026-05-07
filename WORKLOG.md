@@ -758,3 +758,53 @@ Consider one of:
 3. Manually merge PR #36 if confident (local tests passed)
 
 ---
+
+---
+### 2026-05-07 03:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ccb20f` | review | PR #36 - Invite link feature | finished ✓ |
+| `cf503aa` | implementation | Issue #33 | finished ✓ |
+
+⏳ **Waiting** - PR #36 still blocked by CI infrastructure issues
+
+**Current State:**
+- [PR #36](https://github.com/jpshackelford/voice-relay/pull/36): Ready for merge, all review threads resolved
+  - Mergeable: YES
+  - Review: All feedback addressed ✅
+  - Local tests: Passed (122 client, 376 server) per review worker
+  - CI Status: ❌ Still failing (runner infrastructure issue persists)
+    - Rerun ID 25473476303 failed in 13s (no runner pickup)
+- Issues needing expansion: #22 (blocked - needs-split)
+- Ready issues: #33 (priority:high, PR in progress), #28 (priority:medium)
+
+**Actions Taken:**
+- ✅ Attempted CI rerun via `gh run rerun --failed`
+- ❌ Rerun also failed immediately (runner infrastructure issue)
+- ⏳ Cannot spawn merge worker until CI passes
+
+**CI Issue Status (ongoing):**
+GitHub Actions runners continue to fail immediately without executing any steps. This appears to be an account-level issue (possibly exhausted minutes/quota). All recent workflow runs on both `main` and PR branches are failing with 2-13s elapsed time.
+
+**Recommended Human Actions:**
+1. Check GitHub Actions billing/usage at https://github.com/jpshackelford/voice-relay/settings/billing
+2. Or wait for GitHub Actions infrastructure to recover
+3. Or if confident (local tests passed, review complete), manually merge PR #36:
+   ```bash
+   gh pr merge 36 --squash --body "feat: replace join code with invite link in workspace settings
+
+   - Added /join/:code route with authenticated redirect flow
+   - Replaced raw join code display with 'Copy Invite Link' button
+   - Added error feedback when clipboard copy fails
+   - Added open redirect protection in login flow
+
+   Fixes #33"
+   ```
+
