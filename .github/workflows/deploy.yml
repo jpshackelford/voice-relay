@@ -220,7 +220,7 @@ jobs:
 
             ### Next Steps
             1. Review the [workflow logs](${runUrl}) to identify the failure
-            2. Check the smoke test artifacts for screenshots
+            2. Check the [smoke test artifacts](${runUrl}#artifacts) for screenshots
             3. Create a fix PR and ensure CI passes before merging
 
             ---
