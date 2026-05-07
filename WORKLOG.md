@@ -579,3 +579,34 @@ From lxa status: `oRCFRC green ready 💬7`
 
 ---
 
+### 2026-05-07 17:07 UTC - Merge Worker Complete
+
+✅ **PR #41 Merged Successfully**
+
+**Summary:**
+- [PR #41](https://github.com/jpshackelford/voice-relay/pull/41) - feat(workspaces): implement pending join request approval flow
+- [Issue #40](https://github.com/jpshackelford/voice-relay/issues/40) auto-closed on merge
+
+**Actions Taken:**
+1. Migration safety verified: `009_join_requests.ts` is purely additive (new table only)
+2. All review threads confirmed resolved (0 unresolved)
+3. CI verified green (5/5 checks passing, including E2E tests)
+4. PR description updated with migration safety notes
+5. Squash merged with conventional commit message
+6. Issue #40 auto-closed via "Fixes #40" in commit
+
+**Commit:** `feat(workspaces): implement pending join request approval flow`
+
+**Production Impact:**
+- Auto-deploys to vr.chorecraft.net
+- Migration creates new `workspace_join_requests` table (safe, additive)
+- Feature is opt-in: only affects workspaces with `allowAutoJoin=false`
+
+**Stats:**
+- Files changed: 17
+- Lines added: 2,277
+- Lines removed: 65
+- Review rounds: 5
+- Unit tests added: 30
+
+---
