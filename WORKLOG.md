@@ -819,35 +819,63 @@ From lxa status: `oRCFRC green ready 💬7`
 - ✅ Stable tests (no flaky timing issues)
 
 ---
-### 2026-05-07 19:01 UTC - Orchestrator
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c13e5b6` | review | PR #48 - E2E tests for multi-device relay | **NEW** |
-| `d320cc1` | expansion | Issue #45 - E2E Test: Session Management | **NEW** |
+### 2026-05-07 19:10 UTC - Expansion Worker
 
-🚀 **Spawned: 2 Workers (parallel)**
+✅ **Expanded Issue #45: E2E Test - Session Management (Create, View, Switch)**
 
-1. **Review Worker**
-   - PR: [#48 - test: add E2E tests for multi-device relay](https://github.com/jpshackelford/voice-relay/pull/48)
-   - Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay](https://github.com/jpshackelford/voice-relay/issues/42) (priority:high)
-   - Review threads: 5 unresolved
-   - Conversation: [`c13e5b6`](https://app.all-hands.dev/conversations/c13e5b66bcfd404a955767633e3c9dbd)
+- Issue: [#45](https://github.com/jpshackelford/voice-relay/issues/45)
+- Type: E2E Test Enhancement
+- Status: Ready for implementation
+- Label: `ready`
 
-2. **Expansion Worker**
-   - Issue: [#45 - E2E Test: Session Management (Create, View, Switch)](https://github.com/jpshackelford/voice-relay/issues/45)
-   - Conversation: [`d320cc1`](https://app.all-hands.dev/conversations/d320cc14ae894a16b8fe6835093cb6b7)
+**Summary:**
+Expanded E2E test issue for session management with technical implementation details. The issue covers:
+- Auto-creation of first session
+- Viewing sessions from workspace home
+- Creating additional sessions
+- Switching between sessions
+- Session message isolation
+- Persistence across page reloads
 
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `8d62eec` | implementation | Issue #42 - E2E Test: Multi-Device Real-Time Text Relay | finished ✓ |
-| `41fc3a2` | expansion | Issue #44 - E2E Test: QR Code Join Flow | finished ✓ |
+**Technical Details Added:**
+- Authentication strategy using existing smoke test patterns (`TEST_AUTH_SECRET` or interactive OAuth)
+- Key selectors/locators for workspace home and session view pages
+- Helper functions for common test operations
+- Implementation order (6 test cases)
+- Test data setup considerations for isolation
 
-**Current State:**
-- [PR #48](https://github.com/jpshackelford/voice-relay/pull/48): `oR green ready 💬5` → Review worker addressing feedback
-- Ready issues: #42 (priority:high, PR open), #43, #44
-- Issues needing expansion: #45 (expanding), #46, #47
+**Files to Create:**
+- `tests/session-management.spec.ts` - Main test file
+
+---
+
+### 2026-05-07 19:10 UTC - Expansion Worker
+
+✅ **Expanded Issue #45: E2E Test - Session Management (Create, View, Switch)**
+
+- Issue: [#45](https://github.com/jpshackelford/voice-relay/issues/45)
+- Type: E2E Test Enhancement
+- Status: Ready for implementation
+- Label: `ready`
+
+**Summary:**
+Expanded E2E test issue for session management with technical implementation details. The issue covers:
+- Auto-creation of first session
+- Viewing sessions from workspace home
+- Creating additional sessions
+- Switching between sessions
+- Session message isolation
+- Persistence across page reloads
+
+**Technical Details Added:**
+- Authentication strategy using existing smoke test patterns (`TEST_AUTH_SECRET` or interactive OAuth)
+- Key selectors/locators for workspace home and session view pages
+- Helper functions for common test operations
+- Implementation order (6 test cases)
+- Test data setup considerations for isolation
+
+**Files to Create:**
+- `tests/session-management.spec.ts` - Main test file
 
 ---
