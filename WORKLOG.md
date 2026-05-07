@@ -821,3 +821,34 @@ Consider moving `docs/server-inventory.md` and `docs/DEPLOYMENT.md` to a private
 - ✅ Archived 5 worklog entries older than 6hr productive window
 
 ---
+### 2026-05-07 05:14 UTC - Merge Worker (`42e82b1`)
+
+✅ **MERGED: PR #36 - Replace join code with invite link in workspace settings**
+
+- PR: [#36](https://github.com/jpshackelford/voice-relay/pull/36) → **Squash merged** ✅
+- Issue: [#33](https://github.com/jpshackelford/voice-relay/issues/33) → **Closed** ✅
+- Commit: `c5172db`
+
+**Summary:**
+Replaced static join code display with shareable invite links for improved UX:
+- New `/join/:code` route handles invite flow with auth redirect
+- WorkspaceHome shows "Copy Invite Link" button with visual feedback
+- Login validates returnTo URLs to prevent open redirect attacks
+- 23 new tests covering auth states, API responses, error handling
+
+**Production Impact:**
+- ✅ No database migrations - uses existing `workspace.joinCode`
+- ✅ Deploying to vr.chorecraft.net automatically
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cf503aa` | implementation | Issue #33 | finished ✓ |
+| `5ccb20f` | review | PR #36 | finished ✓ |
+
+**Current State:**
+- No open PRs
+- Ready issues: #28 (priority:medium) - QR code display dismiss
+- Blocked issues: #22 (needs-split)
+
+---
