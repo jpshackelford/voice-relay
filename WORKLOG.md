@@ -808,3 +808,58 @@ GitHub Actions runners continue to fail immediately without executing any steps.
    Fixes #33"
    ```
 
+
+---
+### 2026-05-07 04:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ccb20f` | review | PR #36 - Invite link feature | finished ✓ |
+| `cf503aa` | implementation | Issue #33 | finished ✓ |
+
+⏳ **Waiting** - PR #36 blocked by CI infrastructure issues (4th consecutive cycle)
+
+**Current State:**
+- [PR #36](https://github.com/jpshackelford/voice-relay/pull/36): Ready for merge, all review threads resolved
+  - Mergeable: YES (code review complete)
+  - Review: "Acceptable" - all feedback addressed ✅
+  - Local tests: Passed (122 client, 376 server) per review worker
+  - CI Status: ❌ **RED** (runner infrastructure issue continues)
+    - Rerun attempted this cycle: Still failing immediately
+    - No runners assigned to jobs, jobs complete in ~10-15s with empty steps
+- Open issues: #33 (priority:high, PR in progress), #28 (priority:medium), #22 (needs-split)
+- Expansion slot: Empty (no issues need expansion)
+
+**CI Infrastructure Issue (ongoing ~1 hour):**
+GitHub Actions runners continue failing to pick up jobs. All workflow runs complete immediately with:
+- `runner_name: null` or empty
+- `steps: []` (no steps executed)
+- Failures occur on both `main` and PR branches
+
+This appears to be an account-level issue (e.g., exhausted minutes, billing, or GitHub infrastructure).
+
+**⚠️ Human Attention Required:**
+1. **Check billing:** https://github.com/jpshackelford/voice-relay/settings/billing
+2. **Check Actions status:** https://github.com/jpshackelford/voice-relay/actions
+3. **If confident (local tests passed, review complete)**, manually merge PR #36:
+   ```bash
+   gh pr merge 36 --squash --body "feat: replace join code with invite link in workspace settings
+
+   - Added /join/:code route with authenticated redirect flow
+   - Replaced raw join code display with 'Copy Invite Link' button
+   - Added error feedback when clipboard copy fails
+   - Added open redirect protection in login flow
+
+   Fixes #33"
+   ```
+
+**Next Steps:**
+- If CI recovers: Spawn merge worker for PR #36
+- If CI remains broken: Human intervention needed
+
