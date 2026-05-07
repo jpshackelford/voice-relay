@@ -328,21 +328,14 @@ test.describe('Authentication Flow', () => {
     const githubButton = page.getByRole('button', { name: /Sign in with GitHub/i });
     await expect(githubButton).toBeVisible();
 
-    // Clicking should navigate to /auth/github
-    // Note: We don't actually follow the redirect to GitHub OAuth
-    // Just verify the button triggers the correct endpoint
-    const [response] = await Promise.all([
-      page.waitForResponse(resp => resp.url().includes('/auth/github'), { timeout: 5000 }).catch(() => null),
-      githubButton.click()
-    ]);
+    // Click the button and verify navigation to auth endpoint
+    await githubButton.click();
 
-    // The button click should trigger navigation to auth endpoint
-    // (The actual OAuth redirect will happen server-side)
-    await page.waitForTimeout(500);
-    
-    // Page should have navigated away from login (either to GitHub or back with error)
-    // For tests without GITHUB_CLIENT_ID, it may redirect back with error
-    const currentUrl = page.url();
-    expect(currentUrl.includes('/auth') || currentUrl.includes('github') || currentUrl.includes('/login')).toBeTruthy();
+    // Wait for navigation to /auth/github endpoint
+    // The server will redirect to GitHub OAuth or back with error if not configured
+    await page.waitForURL(/\/auth\/github/, { timeout: 5000 });
+
+    // Verify we reached the auth endpoint
+    expect(page.url()).toContain('/auth/github');
   });
 });
