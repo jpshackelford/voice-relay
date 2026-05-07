@@ -812,3 +812,29 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 **Learnings:**
 - Remote SSH scripts need `set -e` for defensive error handling - failures can be silent otherwise
 - Only use GitHub labels that are verified to exist or created earlier in the workflow
+
+---
+### 2026-05-07 01:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `af46e77` | review | PR #35 - Auto rollback on smoke test failure | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: CI green, 1 unresolved review thread to address (tag creation on re-runs)
+- Conversation: [`af46e77`](https://app.all-hands.dev/conversations/af46e77d8f4143b7bc8a686172f4b820)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1941fd7` | review | PR #35 | finished ✓ |
+
+**Current State:**
+- [PR #35](https://github.com/jpshackelford/voice-relay/pull/35): `oRCFRFRC green ready 💬1`
+- Open issues: #31 (being fixed by PR #35), #28 (ready), #33 (ready), #22 (needs-split)
+- No issues need expansion
+
+**Housekeeping:**
+- Archived 4 worklog entries older than 6hr productive window
