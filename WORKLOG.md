@@ -776,3 +776,46 @@ From lxa status: `oRCFRC green ready 💬7`
 **Complexity:** Medium
 
 ---
+### 2026-05-07 18:55 UTC - Implementation Worker (`8d62eec`)
+
+✅ **PR Created for Issue #42**
+
+- PR: [#48 - test: add E2E tests for multi-device relay](https://github.com/jpshackelford/voice-relay/pull/48)
+- Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42)
+- Status: Ready for review
+
+**Implementation Summary:**
+- Created `tests/multi-device-relay.spec.ts` with 4 E2E test scenarios:
+  1. Two devices join same session and relay messages bidirectionally
+  2. Typing indicator shows partial messages to other devices
+  3. Device count updates when devices join/leave
+  4. Message sender attribution is correct
+- Created `tests/utils/auth-helper.ts` with test auth utilities including `waitForStableConnection()`
+- Updated `playwright.config.ts` with TEST_AUTH_SECRET env vars
+- Updated `server/src/index.ts` with TEST_AUTH_SECRET authentication bypass for E2E tests
+
+**Key Fixes Applied:**
+- WebSocket stability: wait for stable connection after reconnects
+- Fixed selectors: kiosk uses `.kiosk-message`, mobile uses `.message`
+- Fixed kiosk drawer handling (collapsed by default, need `.drawer-open-btn`)
+- Used unique timestamps in messages to avoid conflicts between test runs
+
+**CI Status:**
+- Build: ✅ Pass
+- Server tests: 406 pass
+- E2E tests: 23 pass (4 new + existing)
+- Lint-pr-title: ✅ Pass
+
+**All acceptance criteria from Issue #42 met:**
+- ✅ Test creates two isolated browser contexts successfully
+- ✅ Both devices authenticate and connect to the same session
+- ✅ WebSocket connections established for both devices
+- ✅ Messages relay bidirectionally within 1 second
+- ✅ Partial messages show typing indicator
+- ✅ Final messages do not show typing indicator
+- ✅ Device count updates in real-time
+- ✅ Correct sender attribution ("You:" vs device name)
+- ✅ Proper context cleanup after tests
+- ✅ Stable tests (no flaky timing issues)
+
+---
