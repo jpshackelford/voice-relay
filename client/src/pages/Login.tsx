@@ -1,14 +1,40 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+
+/**
+ * Validate returnTo URL to prevent open redirect attacks.
+ * Only allows relative paths starting with '/'.
+ */
+function sanitizeReturnTo(returnTo: string | null): string {
+  const defaultPath = '/dashboard';
+  
+  if (!returnTo) return defaultPath;
+  
+  // Must start with / and not with // (protocol-relative URL)
+  if (!returnTo.startsWith('/') || returnTo.startsWith('//')) {
+    return defaultPath;
+  }
+  
+  // Basic check for javascript: or data: schemes embedded in path
+  const lowerPath = returnTo.toLowerCase();
+  if (lowerPath.includes('javascript:') || lowerPath.includes('data:')) {
+    return defaultPath;
+  }
+  
+  return returnTo;
+}
 
 export function Login() {
   const { isAuthenticated, loading, login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   const hasError = searchParams.get('error') === '1';
-  const returnTo = searchParams.get('returnTo') || '/dashboard';
+  const returnTo = useMemo(
+    () => sanitizeReturnTo(searchParams.get('returnTo')),
+    [searchParams]
+  );
 
   // Redirect if already authenticated
   useEffect(() => {

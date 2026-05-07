@@ -2591,6 +2591,127 @@ header {
   margin-top: 0.25rem;
 }
 
+/* Invite Link Button */
+.invite-link-setting {
+  margin-bottom: 0.5rem;
+}
+
+.invite-link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.copy-invite-btn {
+  padding: 0.625rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 2px solid #3282b8;
+  border-radius: 6px;
+  background: transparent;
+  color: #3282b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.copy-invite-btn:hover {
+  background: #3282b8;
+  color: #fff;
+}
+
+.copy-invite-btn.copied {
+  background: #00c853;
+  border-color: #00c853;
+  color: #fff;
+}
+
+/* ========================================
+   Join Page Styles
+   ======================================== */
+
+.join-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #1a1a2e;
+}
+
+.join-card {
+  background: #16213e;
+  border-radius: 12px;
+  padding: 2.5rem;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.join-card h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  color: #fff;
+}
+
+.join-subtitle {
+  font-size: 1rem;
+  color: #aaa;
+  margin-bottom: 1.5rem;
+}
+
+.join-redirect {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 1rem;
+}
+
+.join-error-message {
+  font-size: 1rem;
+  color: #ccc;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.join-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.join-btn {
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.join-btn.primary {
+  background: #3282b8;
+  color: #fff;
+}
+
+.join-btn.primary:hover {
+  background: #0f4c75;
+}
+
+.join-btn.secondary {
+  background: transparent;
+  border: 2px solid #444;
+  color: #aaa;
+}
+
+.join-btn.secondary:hover {
+  border-color: #666;
+  color: #fff;
+}
+
 /* ========================================
    F3: Session View - Connection Indicator
    ======================================== */
