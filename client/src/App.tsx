@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { WorkspaceHome } from './pages/WorkspaceHome';
 import { Workspace } from './pages/Workspace';
 import { SessionView } from './pages/SessionView';
+import { JoinPage } from './pages/JoinPage';
 import { useWorkspaces } from './hooks/useWorkspaces';
 import './App.css';
 
@@ -55,6 +56,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Join workspace via invite link - handles auth redirect internally */}
+      <Route path="/join/:code" element={<JoinPage />} />
       <Route
         path="/dashboard"
         element={

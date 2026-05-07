@@ -123,6 +123,10 @@ export function WorkspaceHome() {
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   
+  // Invite link copy state
+  const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [inviteLinkError, setInviteLinkError] = useState(false);
+  
   // API key settings state
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
@@ -251,6 +255,27 @@ export function WorkspaceHome() {
       setApiKeyMessage({ type: 'error', text: (err as Error).message });
     } finally {
       setApiKeyStatus('idle');
+    }
+  };
+
+  // Copy invite link to clipboard
+  const handleCopyInviteLink = async () => {
+    if (!workspace?.joinCode) return;
+    
+    const { protocol, hostname, port } = window.location;
+    const baseUrl = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+    const inviteLink = `${baseUrl}/join/${workspace.joinCode}`;
+    
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteLinkError(false);
+      setInviteLinkCopied(true);
+      setTimeout(() => setInviteLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy invite link:', err);
+      setInviteLinkCopied(false);
+      setInviteLinkError(true);
+      setTimeout(() => setInviteLinkError(false), 3000);
     }
   };
 
@@ -398,12 +423,22 @@ export function WorkspaceHome() {
               Settings
             </h2>
             <div className="settings-content">
-              {/* Join Code */}
+              {/* Invite Link */}
               {workspace.joinCode && (
-                <div className="setting-row">
-                  <label>Join Code</label>
-                  <code className="join-code">{workspace.joinCode}</code>
-                  <span className="setting-hint">Share this code to let others join your workspace</span>
+                <div className="setting-row invite-link-setting">
+                  <label>Invite Link</label>
+                  <div className="invite-link-row">
+                    <button 
+                      className={`copy-invite-btn ${inviteLinkCopied ? 'copied' : ''} ${inviteLinkError ? 'error' : ''}`}
+                      onClick={handleCopyInviteLink}
+                    >
+                      {inviteLinkCopied ? '✓ Copied!' : inviteLinkError ? '✗ Copy failed' : '📋 Copy Invite Link'}
+                    </button>
+                  </div>
+                  <span className="setting-hint">
+                    Share this link to let others join your workspace. 
+                    The link uses the workspace join code.
+                  </span>
                 </div>
               )}
               
