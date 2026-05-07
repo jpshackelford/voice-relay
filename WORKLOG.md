@@ -31,164 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 20:40 UTC - Review Worker (`b979144`)
-
-✅ **Addressed Review Feedback on PR #29 (Round 3 - Final)**
-
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: **Ready for review** ✅
-
-**Review Threads Addressed:**
-
-1. **🟠 Cookie migration logic lacks test coverage** → **Fixed in b7d38c2**
-   - Added tests for `getServerSetDeviceToken` returning null when no cookie
-   - Added tests for localStorage preference over cookies
-   - Added tests for null return when neither storage has device info
-   - Note: Direct cookie mocking in jsdom is unreliable; documented limitations in test file
-
-2. **🟡 Consider using config object for autoCreateFirstDevice() parameters** → **Fixed in 790fe05**
-   - Added `AutoCreateDeviceConfig` interface with documented properties
-   - Refactored both call sites (OAuth callback and test-session endpoint)
-   - Makes function signature cleaner and future parameter additions easier
-
-**Also fixed:**
-- `5bf929d` - Removed unused `DEVICE_TOKEN_COOKIE_NAME` constant from tests (TypeScript build error)
-
-**Commits:**
-- `b7d38c2` - test: add tests for cookie migration in getStoredDeviceToken
-- `5bf929d` - fix: remove unused DEVICE_TOKEN_COOKIE_NAME constant from tests
-- `790fe05` - refactor: use config object for autoCreateFirstDevice parameters
-
-**Tests:**
-- Server: 350 tests passing ✅
-- Client: 88 tests passing (3 new) ✅
-- CI: All checks green ✅
-
-**All 8 review threads on PR #29 are now resolved.**
-
----
-### 2026-05-06 21:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `8b31a8a` | review | PR #29 - Auto-register first device (round 4) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: `oRCFRCFRFRFRFR green ready 💬1` (1 unresolved review thread)
-- Thread to address:
-  - 🟠 Cookie migration logic still lacks direct test coverage (the core cookie parsing, JSON validation, and migration flow remain untested)
-- Conversation: [`8b31a8a`](https://app.all-hands.dev/conversations/8b31a8a3a2a64c64b350943d34a2069f)
-
-**Current State:**
-- [PR #29](https://github.com/jpshackelford/voice-relay/pull/29): CI green, 1 unresolved thread
-- Ready issues (awaiting PR merge): #31 (priority:high), #27 (priority:high), #20 (priority:medium), #33, #28
-- Expansion slot: Idle (no issues need expansion)
-
-**Housekeeping:**
-- Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-06.md
-- WORKLOG.md trimmed from 903 to ~290 lines
-
-**Previous Worker:**
-- `b979144` (review for PR #29 round 3) → finished ✅
-
----
-### 2026-05-06 21:10 UTC - Review Worker (`8b31a8a`)
-
-✅ **Addressed Review Feedback on PR #29 (Round 4 - Final)**
-
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: **Ready for review** ✅
-
-**Review Thread Addressed:**
-
-1. **🟠 Cookie migration logic still lacks direct test coverage** → **Fixed in e60c840**
-   - Problem: Core cookie parsing, JSON validation, and migration flow were untested
-   - Solution: Implemented reviewer's suggested approach #2 (split responsibilities)
-   - Extracted `parseDeviceCookieJson()` as a pure, testable function
-   - Added comprehensive tests covering:
-     - Valid JSON with all required fields
-     - Default values for optional fields (`name='Device'`, `mode='mobile'`)
-     - Missing required fields (`deviceId`, `deviceToken`, `workspaceId`)
-     - Malformed JSON handling
-     - Empty object/array handling
-     - Empty string validation in required fields
-     - Kiosk mode preservation
-   - `getServerSetDeviceToken()` is now a thin wrapper over the testable parsing function
-
-**Commit:**
-- `e60c840` - test: add comprehensive tests for cookie parsing and validation logic
-
-**Tests:**
-- Server: 350 tests passing ✅
-- Client: 99 tests passing (11 new) ✅
-- CI: All checks green ✅
-
-**All 9 review threads on PR #29 are now resolved.**
-
----
-### 2026-05-06 21:35 UTC - Merge Worker (`a7cb8b1`)
-
-✅ **Merged: PR #29 - Auto-register first device**
-
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20) → **CLOSED** ✅
-- Merge: Squash merged to main
-- Deploy: Auto-deploying to vr.chorecraft.net
-
-**What Was Implemented:**
-Automatically registers the authenticating device when a new user's default workspace is created, reducing friction for first-time users.
-
-**Changes Merged:**
-- `server/src/devices/device-utils.ts` - Device type detection and personalized naming
-- `server/src/auth/router.ts` - Auto-create device during OAuth callback
-- `client/src/utils/deviceToken.ts` - Read server-set cookie and migrate to localStorage
-- Comprehensive tests (16 device utility tests, 11 cookie parsing tests)
-
-**Security Design:**
-- Auth tokens remain httpOnly (XSS-safe)
-- Device tokens use non-httpOnly cookie (justified: limited scope, migrated to localStorage after first load)
-
-**Review Journey:** 9 review threads addressed across 4 rounds
-- Cookie vs httpOnly tradeoff documented
-- Empty display name handling fixed ("My [DeviceType]" fallback)
-- localStorage migration safety implemented
-- Config object pattern adopted
-- Comprehensive test coverage added
-
-**Verification:**
-- CI: All tests passing (350 server, 99 client)
-- No database migrations required (uses existing tables)
-- Issue #20 auto-closed via "Fixes #20" in commit message
-
----
-### 2026-05-06 22:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `cb7cefe` | implementation | Issue #27 - Workspace OpenHands API Key Settings | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27) (priority:high)
-- Task: Add workspace settings UI for OpenHands API key management with encrypted storage
-- Conversation: [`cb7cefe`](https://app.all-hands.dev/conversations/cb7cefe8f3054b44af60aadc350565df)
-
-**Current State:**
-- No open PRs
-- Issues needing expansion: None
-- Ready issues (prioritized):
-  - #27 (priority:high) - **NOW IMPLEMENTING**
-  - #31 (priority:high) - Auto rollback on smoke test failure
-- Ready issues (unprioritized): #28, #33
-- Blocked issues: #22 (needs-split)
-
-**Housekeeping:**
-- Archived 4 worklog entries older than 6hr productive window
-- WORKLOG.md now at manageable size
-
----
 ### 2026-05-06 22:15 UTC - Implementation Worker (`cb7cefe`)
 
 ✅ **Created: PR #34 - Workspace Settings for OpenHands API Key**
@@ -758,8 +600,6 @@ Consider one of:
 3. Manually merge PR #36 if confident (local tests passed)
 
 ---
-
----
 ### 2026-05-07 03:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -807,7 +647,6 @@ GitHub Actions runners continue to fail immediately without executing any steps.
 
    Fixes #33"
    ```
-
 
 ---
 ### 2026-05-07 04:01 UTC - Orchestrator
@@ -948,3 +787,37 @@ Checked CI workflows and docs for exposed sensitive info:
 Consider moving `docs/server-inventory.md` and `docs/DEPLOYMENT.md` to a private location if preferred - they contain detailed ops runbook info. However, critical secrets ARE properly protected via GitHub Secrets, so this is optional.
 
 **Next:** Orchestrator should resume and spawn merge worker for PR #36.
+
+---
+### 2026-05-07 05:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42e82b1` | merge | PR #36 - Replace join code with invite link | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#36 - feat: replace join code with invite link in workspace settings](https://github.com/jpshackelford/voice-relay/pull/36)
+- Issue: [#33 - workspace home replace join code with join link](https://github.com/jpshackelford/voice-relay/issues/33) (will auto-close on merge)
+- Conversation: [`42e82b1`](https://app.all-hands.dev/conversations/42e82b12492c4faebfb0693b7c43a1f2)
+
+**CI Recovery:**
+- ✅ CI infrastructure issue resolved (repo converted to public)
+- ✅ All checks rerun and passing:
+  - CI/Server Tests ✓
+  - CI/Build Client ✓
+  - CI/E2E Tests ✓
+  - Conventional Commits ✓
+  - PR Review by OpenHands ✓
+
+**Current State:**
+- [PR #36](https://github.com/jpshackelford/voice-relay/pull/36): `oRFc green ready` → MERGING NOW
+- No issues need expansion
+- Ready issues (remaining after merge):
+  - #28 (priority:medium) - QR code display dismiss
+- Blocked issues: #22 (needs-split)
+
+**Housekeeping:**
+- ✅ Archived 5 worklog entries older than 6hr productive window
+
+---
