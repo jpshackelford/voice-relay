@@ -2842,6 +2842,128 @@ header {
 }
 
 /* ========================================
+   F3: Connected State - Greeting Display
+   ======================================== */
+
+.display-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.greeting-content {
+  max-width: 600px;
+}
+
+.greeting-title {
+  font-size: 3rem;
+  font-weight: 300;
+  color: #e0e0e0;
+  margin: 0 0 1rem 0;
+  letter-spacing: 0.05em;
+}
+
+.greeting-subtitle {
+  font-size: 1.25rem;
+  color: #888;
+  margin: 0;
+}
+
+/* Mini QR Code Overlay - positioned in lower-right corner */
+.mini-qr-overlay {
+  position: absolute;
+  bottom: 5rem; /* Above connection indicator */
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid #444;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.mini-qr-overlay:hover {
+  background: rgba(40, 40, 70, 0.9);
+  border-color: #3282b8;
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(50, 130, 184, 0.3);
+}
+
+.mini-qr-overlay .qr-code-container {
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.mini-qr-overlay .qr-code-container img {
+  border-radius: 8px;
+}
+
+.mini-qr-hint {
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 0.25rem;
+  transition: color 0.2s;
+}
+
+.mini-qr-overlay:hover .mini-qr-hint {
+  color: #3282b8;
+}
+
+/* Transition between idle and connected states */
+.display-idle-qr,
+.display-greeting {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Mobile adjustments for greeting display */
+@media (max-width: 767px) {
+  .greeting-title {
+    font-size: 2rem;
+  }
+  
+  .greeting-subtitle {
+    font-size: 1rem;
+  }
+  
+  .mini-qr-overlay {
+    bottom: 4rem;
+    padding: 0.375rem;
+  }
+  
+  .mini-qr-overlay .qr-code-container img {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .mini-qr-hint {
+    font-size: 0.6rem;
+  }
+}
+
+/* ========================================
    API Key Settings
    ======================================== */
 

@@ -456,8 +456,32 @@ export function KioskMode({
               <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(displayContent.content || '') }} />
             </div>
           ) : null
+        ) : mobileDevices.length > 0 ? (
+          // Connected state: show greeting + mini QR in corner
+          <div className="display-greeting">
+            <div className="greeting-content">
+              <h1 className="greeting-title">Session Ready</h1>
+              <p className="greeting-subtitle">
+                📱 {mobileDevices.length} device{mobileDevices.length > 1 ? 's' : ''} connected
+              </p>
+            </div>
+            {/* Mini QR code in lower-right corner */}
+            <div 
+              className="mini-qr-overlay"
+              onClick={() => setQrModalOpen(true)}
+              title="Click to enlarge QR code"
+            >
+              <QRCodeDisplay 
+                size={90} 
+                workspaceId={workspaceId} 
+                sessionId={sessionId} 
+                showUrl={false}
+              />
+              <span className="mini-qr-hint">+ Add device</span>
+            </div>
+          </div>
         ) : (
-          // Idle state: show QR code for joining
+          // Idle state: show large QR code for joining
           <div className="display-idle-qr">
             <h2 className="idle-qr-title">Join this session</h2>
             <QRCodeDisplay 
