@@ -236,6 +236,9 @@ jobs:
 
             core.setOutput('issue_number', issue.number);
       
+      # NOTE: This rollback assumes stateless deployments. If the failed deployment
+      # included database migrations or server-side config changes, the rollback may
+      # create version mismatches. For stateful changes, manual intervention is required.
       - name: Rollback deployment
         id: rollback
         if: steps.find-good.outputs.has_rollback_target == 'true'
