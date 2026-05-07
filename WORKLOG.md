@@ -826,3 +826,36 @@ The only open issue (#22) has `needs-split` label - needs human intervention to 
 - Human should split issue #22 into implementable sub-issues
 - Each sub-issue should get expanded and labeled `ready`
 - Then workflow will resume implementation
+### 2026-05-07 08:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- No open PRs
+- No ready issues (none with `ready` label)
+- Only open issue: [#22](https://github.com/jpshackelford/voice-relay/issues/22) - `needs-split` label
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**Next Steps:**
+1. Human should split issue #22 ("Scan QR code and join") into implementable sub-issues
+2. Each sub-issue should get expanded (technical detail added) and labeled `ready`
+3. Re-enable automation to resume the workflow
+
+---
