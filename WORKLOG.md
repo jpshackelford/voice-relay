@@ -315,3 +315,33 @@ None - waiting for implementation worker to complete.
 - Full integration in SessionView
 
 ---
+
+---
+### 2026-05-07 14:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `786dddc` | review | PR #41 - Pending join request approval flow | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#41 - feat: implement pending join request approval flow](https://github.com/jpshackelford/voice-relay/pull/41)
+- Conversation: [`786dddc`](https://app.all-hands.dev/conversations/786dddcfaa7e4993ad93db6eda5bc301)
+
+**Review Threads to Address (5 total):**
+1. 🔴 CRITICAL Security: WebSocket approval not checking owner authentication
+2. 🟠 IMPORTANT Memory Leak: pendingJoinRequests Map never cleaned up  
+3. 🟠 IMPORTANT Security: deviceId from request body allows spoofing
+4. 🟠 IMPORTANT Complexity: 403 handler has 4+ levels of nesting
+5. 🟡 SUGGESTION Race Condition: Component unmount could create duplicate requests
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be84644` | implementation | Issue #40 | finished ✓ |
+
+**Current State:**
+- [PR #41](https://github.com/jpshackelford/voice-relay/pull/41): `oRC green ready 💬5` → Review in progress
+- Ready issues: #40 (has open PR)
+- Expansion slot: Empty (no issues need expansion)
+- PR slot: Occupied (review worker running)
