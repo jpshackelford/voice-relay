@@ -938,3 +938,28 @@ After careful analysis of the codebase, filed [Issue #40: feat: Implement pendin
 - Recommended closing #22 since Phase A is complete and Phase B has dedicated issue
 
 ---
+### 2026-05-07 13:52 UTC - Orchestration Re-enabled
+
+🚀 **Workflow orchestration resumed**
+
+**Actions taken:**
+1. ✅ Closed Issue #22 - Split work complete, Phase A implemented, Phase B extracted
+2. ✅ Added `ready` label to Issue #40 - Ready for implementation
+3. ✅ Re-enabled automation via API
+
+**Current State:**
+- Open issues: [#40](https://github.com/jpshackelford/voice-relay/issues/40) - Pending join request approval flow (`ready`, `enhancement`)
+- Automation: **ENABLED** (cron: every 30 min)
+- Next scheduled run: Within 30 minutes
+
+**Issue #40 Summary:**
+- Implements DESIGN.md Section 12 (QR Code Join Flow - Multi-User)
+- Database migration for `workspace_join_requests` table
+- 4 new API endpoints for approval workflow
+- 3 new WebSocket message types
+- 2 new UI components
+- Estimated: 2-3 days
+
+The orchestrator will pick up Issue #40 on next scheduled run and spawn an implementation worker.
+
+---
