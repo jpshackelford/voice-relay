@@ -135,6 +135,8 @@ jobs:
       
       - name: Create success tag
         run: |
+          git config user.name "openhands"
+          git config user.email "openhands@all-hands.dev"
           TAG="deploy-success-${{ github.sha }}"
           git tag "$TAG"
           git push origin "$TAG"
