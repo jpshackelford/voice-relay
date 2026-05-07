@@ -31,98 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 20:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `21d153f` | review | PR #29 - Auto-register first device | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: `oRCFRCFRFR green ready 💬2` (2 unresolved review threads)
-- Threads to address:
-  - 🟠 Cookie deletion may fail in production HTTPS environments
-  - 🟡 Extract device auto-creation to shared function (code duplication)
-- Conversation: [`21d153f`](https://app.all-hands.dev/conversations/21d153f589f74d7e993df401aae320d4)
-
-**Current State:**
-- [PR #29](https://github.com/jpshackelford/voice-relay/pull/29): CI green, addressing review feedback
-- Ready issues (awaiting PR merge): #27 (priority:high), #31 (priority:high), #20 (priority:medium), #28, #33
-- Issues needing split: #22
-- Expansion slot: Idle (all expandable issues have `ready` label)
-
-**Previous Workers:**
-- `704be33` (review for PR #29) → finished ✅
-- `d45c683` (expansion for Issue #33) → finished ✅
-
-**Housekeeping:**
-- Archived 30 worklog entries older than 6hr productive window
-- WORKLOG_ARCHIVE_2026-05-05.md: 2 entries
-- WORKLOG_ARCHIVE_2026-05-06.md: 28 entries
-
----
-### 2026-05-06 20:14 UTC - Review Worker (`21d153f`)
-
-✅ **Addressed Review Feedback on PR #29 (Second Round)**
-
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: **Ready for review** ✅
-
-**Review Threads Addressed:**
-
-1. **🟠 Cookie deletion may fail in production HTTPS environments** → **Fixed in fa95b01**
-   - Problem: Cookies set with `secure: true` must be deleted with the secure flag
-   - Added HTTPS detection: `window.location.protocol === 'https:'`
-   - Cookie deletion now includes secure flag in production
-
-2. **🟡 Extract device auto-creation to shared function** → **Fixed in 35df83e**
-   - Consolidated duplicated device creation logic from OAuth callback and test-session endpoints
-   - Created `autoCreateFirstDevice()` helper function
-   - Extracted `DEVICE_TOKEN_MAX_AGE` constant to avoid magic number duplication
-   - Future updates now only need one code change
-
-**Commits:**
-- `fa95b01` - fix: add secure flag when deleting device cookie in HTTPS environments
-- `35df83e` - refactor: extract device auto-creation to shared helper function
-
-**Tests:**
-- Server: 350 tests passing ✅
-- Client: 85 tests passing ✅
-- CI: All checks green ✅
-
-**All 6 review threads on PR #29 are now resolved.**
-
----
-### 2026-05-06 20:36 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `b979144` | review | PR #29 - Auto-register first device (round 3) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: `oRCFRCFRFRFR green ready 💬2` (2 unresolved review threads)
-- Threads to address:
-  - 🟠 Cookie migration logic lacks test coverage
-  - 🟡 Consider using config object for autoCreateFirstDevice() parameters
-- Conversation: [`b979144`](https://app.all-hands.dev/conversations/b9791449a0ea416d91c3a59be38a65c9)
-
-**Current State:**
-- [PR #29](https://github.com/jpshackelford/voice-relay/pull/29): CI green, addressing review feedback
-- Ready issues (awaiting PR merge): #27 (priority:high), #31 (priority:high), #20 (priority:medium), #28, #33
-- Issues needing split: #22
-- Expansion slot: Idle (all expandable issues have `ready` label or `needs-split`)
-
-**Housekeeping:**
-- Archived 2 more worklog entries to WORKLOG_ARCHIVE_2026-05-06.md
-- WORKLOG.md trimmed from 886 to ~300 lines
-
-**Previous Worker:**
-- `21d153f` (review for PR #29 round 2) → finished ✅
-
----
 ### 2026-05-06 20:40 UTC - Review Worker (`b979144`)
 
 ✅ **Addressed Review Feedback on PR #29 (Round 3 - Final)**
@@ -758,7 +666,6 @@ Replaced the static join code display in WorkspaceHome Settings with a shareable
 **CI:** All checks passing ✅ (122 client tests, 376 server tests)
 
 ---
-
 ### 2026-05-07 02:35 UTC - Orchestrator
 
 **Active Workers:**
