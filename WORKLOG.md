@@ -1040,3 +1040,37 @@ Expanded E2E test issue for workspace invite link flow with comprehensive test s
 - PR slot: Occupied (merge worker running)
 
 ---
+
+### 2026-05-07 20:05 UTC - Issue Expansion Worker
+
+**Task:** Expand GitHub Issue #47 - E2E Test: AI Assistant Integration
+
+**Status:** ✅ COMPLETE
+
+**Actions Taken:**
+1. Analyzed existing test infrastructure (`tests/`, `tests/smoke/`)
+2. Reviewed AI Assistant implementation:
+   - `client/src/hooks/useAI.ts` - Client-side AI hook
+   - `server/src/openhands.ts` - OpenHands API client
+   - `server/src/index.ts` - AI API endpoints (lines 193-359)
+   - `client/src/components/KioskMode.tsx` - UI integration
+   - `server/prompts/` - System prompts for kiosk/chat modes
+3. Confirmed feature is **fully implemented** and ready for E2E testing
+4. Added detailed technical comment to issue with:
+   - Implementation approach
+   - CSS selectors reference
+   - API endpoint documentation
+   - Test code examples
+   - Environment requirements
+   - Edge cases
+   - Estimated implementation time (~4 hours)
+5. Added `ready` label to issue #47
+
+**Issue URL:** https://github.com/jpshackelford/voice-relay/issues/47
+
+**Notes:**
+- Issue already had comprehensive scenario documentation
+- Added technical implementation plan as comment
+- Test file location: `tests/smoke/ai-integration.spec.ts` (new file)
+- Requires workspace with OpenHands API key configured
+- Tests depend on external OpenHands Cloud API availability
