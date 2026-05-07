@@ -905,3 +905,36 @@ The approval workflow for non-owner users has NOT been implemented:
 - Issue #22 could be closed with Phase B extracted, or kept open for Phase B work only
 
 ---
+### 2026-05-07 12:45 UTC - Issue Filed for Phase B
+
+🎫 **Created dedicated issue for remaining Phase B work**
+
+After careful analysis of the codebase, filed [Issue #40: feat: Implement pending join request approval flow for workspaces](https://github.com/jpshackelford/voice-relay/issues/40)
+
+**What Was Analyzed:**
+- Reviewed all migrations (001-008) - no `workspace_join_requests` table exists
+- Checked `server/src/workspaces/router.ts` - no approval endpoints exist
+- Searched for WebSocket join-request messages - none implemented
+- Verified client has no approval UI components
+- Confirmed `allowAutoJoin` setting exists but only controls auto-join (not approval flow)
+
+**What Was Implemented (existing):**
+- `workspace_members` table and membership management
+- `allow_auto_join` setting in `workspace_settings`
+- Auto-join endpoint with rate limiting when `allowAutoJoin=true`
+- Direct join via join code (bypasses approval entirely)
+
+**What's Missing (filed in #40):**
+- `workspace_join_requests` table (new migration 009)
+- 4 new API endpoints: `/requests`, `/request-join`, `/approve`, `/deny`
+- 3 WebSocket message types: `join-request`, `join-response`, `join-resolved`
+- 2 UI components: `JoinRequestNotification`, `WaitingForApproval`
+- Request expiration logic (5 minute timeout)
+
+**Estimated Effort:** 2-3 days (Medium-High complexity)
+
+**Issue #22 Status:**
+- Added comment linking to new Issue #40
+- Recommended closing #22 since Phase A is complete and Phase B has dedicated issue
+
+---
