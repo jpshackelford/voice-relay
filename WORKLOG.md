@@ -31,51 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 22:37 UTC - Review Worker (`89f7f8b`)
-
-✅ **Addressed Review Feedback on PR #34**
-
-- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
-- Status: **Ready for review** ✅
-
-**Review Threads Addressed:**
-
-1. **🟠 Fixed salt in PBKDF2** → **Documented in 51466e6**
-   - Decision: Keep fixed salt, add comprehensive documentation
-   - Rationale: ENCRYPTION_SECRET is high-entropy (not a user password), IV provides unique ciphertext, per-key random salts would require schema changes
-   - Added clear comment explaining the security trade-off
-
-2. **🟡 Code duplication in index.ts** → **Fixed in f178ce5**
-   - Refactored to use `getWorkspaceApiKey` helper instead of inline decryption logic
-   - Eliminates duplicate try/catch and centralizes decryption
-
-3. **🟡 Dead code (getWorkspaceApiKey never used)** → **Fixed in f178ce5**
-   - Same commit - helper is now actively used in index.ts
-
-**Commits:**
-- `51466e6` - docs: document fixed salt security trade-off in encryption.ts
-- `f178ce5` - refactor: use getWorkspaceApiKey helper in AI connect endpoint
-
-**Tests:** All 376 tests passing ✅
-**CI:** All checks green ✅
-**All 3 review threads resolved and marked resolved on GitHub.**
-
----
-### 2026-05-06 22:40 UTC - Review Worker Handoff
-
-**PR #34 Ready for Next Review Round**
-
-- Status: Draft mode removed, ready for review
-- All 3 automated review comments addressed
-- CI passing on latest commit (f178ce5)
-- Awaiting human reviewer or automated merge if no further feedback
-
-**Learnings Applied:**
-- Document security trade-offs in code comments when making intentional simplifications
-- Always use helper functions instead of duplicating logic
-- Create helpers only when you plan to use them (avoid dead code)
-
----
 ### 2026-05-06 23:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -850,3 +805,34 @@ Option C - Run `npm ci` without omitting devDependencies on production:
 - Issue #28 (QR code dismiss) is ready but blocked by production outage
 
 ---
+### 2026-05-07 06:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `bf855fb` | implementation | Issue #28 - QR code display dismiss | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28) (priority:medium)
+- Conversation: [`bf855fb`](https://app.all-hands.dev/conversations/bf855fba11d2416c9a782037a1fc5d49)
+
+**Production Recovery:**
+✅ Production at vr.chorecraft.net is **RESTORED**
+- Successful deployment at 05:36 UTC (workflow run 25477932841)
+- CI-failure issues #37 and #38 closed as resolved
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42e82b1` | merge | PR #36 - Invite link feature | finished ✓ |
+
+**Current State:**
+- No open PRs
+- Ready issues: #28 (priority:medium) - NOW IMPLEMENTING
+- Blocked issues: #22 (needs-split)
+- No issues need expansion
+
+**Housekeeping:**
+- ✅ Archived 2 worklog entries older than 6hr productive window
+- WORKLOG.md reduced from 852 to ~200 lines
+
