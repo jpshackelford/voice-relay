@@ -123,10 +123,25 @@ function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
   const jwtSecret = process.env.JWT_SECRET;
+  const testAuthSecret = process.env.TEST_AUTH_SECRET;
 
-  if (!githubClientId || !githubClientSecret || !jwtSecret) {
-    console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or JWT_SECRET - auth disabled');
+  // For testing: If TEST_AUTH_SECRET is set but GitHub credentials are missing,
+  // use placeholder credentials. This allows the test auth endpoint to work
+  // without requiring real GitHub OAuth setup.
+  const useTestMode = testAuthSecret && jwtSecret && (!githubClientId || !githubClientSecret);
+
+  if (!jwtSecret && !useTestMode) {
+    console.log('[Auth] Missing JWT_SECRET - auth disabled');
     return null;
+  }
+
+  if (!githubClientId || !githubClientSecret) {
+    if (useTestMode) {
+      console.log('[Auth] Using test mode - TEST_AUTH_SECRET is set, GitHub OAuth disabled');
+    } else {
+      console.log('[Auth] Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET - auth disabled');
+      return null;
+    }
   }
 
   const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
@@ -144,9 +159,11 @@ function getAuthConfig(): AuthConfig | null {
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
 
   return {
-    githubClientId,
-    githubClientSecret,
-    jwtSecret,
+    // Use placeholder values for GitHub OAuth in test mode - the GitHub OAuth
+    // routes will fail but that's expected, we only need the test-session endpoint
+    githubClientId: githubClientId || 'test-mode-placeholder',
+    githubClientSecret: githubClientSecret || 'test-mode-placeholder',
+    jwtSecret: jwtSecret || 'test-jwt-secret',
     jwtExpiresIn,
     callbackUrl: `${baseUrl}/auth/github/callback`,
   };
