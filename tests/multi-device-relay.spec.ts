@@ -17,7 +17,8 @@ import { setupTwoDeviceSession, ensureKioskInputVisible } from './utils/auth-hel
  * These tests run against the local dev server (via webServer config in playwright.config.ts)
  */
 
-// Mark entire test file as slow - multi-device tests need more time
+// Run tests serially to avoid port conflicts and resource contention
+// (individual tests call test.slow() to get 3x timeout)
 test.describe.configure({ mode: 'serial' });
 
 // Get test auth secret from environment
@@ -168,22 +169,19 @@ test.describe('Multi-Device Real-Time Relay', () => {
     const { kioskPage, mobilePage, cleanup } = session;
 
     try {
-      // After both devices join, kiosk should show both devices
-      const deviceIndicator = kioskPage.locator('.kiosk-participants, .participants, .device-count');
-      const indicatorText = await deviceIndicator.textContent().catch(() => '');
-
-      // Also check mobile's perspective - it should see devices too
-      const mobileParticipants = mobilePage.locator('.mobile-participants, .participants, .device-count');
-      const mobileIndicatorText = await mobileParticipants.textContent().catch(() => '');
-
-      console.log('Kiosk indicator text:', indicatorText);
-      console.log('Mobile indicator text:', mobileIndicatorText);
-
-      // At minimum, both devices should be connected and see each other
+      // Both devices should be connected
       expect(await kioskPage.locator('.connection-indicator.connected, .connection-status.connected').isVisible()).toBe(true);
       expect(await mobilePage.locator('.connection-status.connected, .connection-indicator.connected').isVisible()).toBe(true);
 
-      console.log('Device count test passed');
+      // After both devices join, verify count shows 2 devices
+      // Try multiple possible selectors for device count indicator
+      const deviceIndicator = kioskPage.locator('.kiosk-participants, .participants, .device-count');
+      await expect(deviceIndicator).toContainText(/2|two/i, { timeout: 5000 });
+
+      const mobileParticipants = mobilePage.locator('.mobile-participants, .participants, .device-count');
+      await expect(mobileParticipants).toContainText(/2|two/i, { timeout: 5000 });
+
+      console.log('Device count test passed - both views show 2 devices');
 
     } finally {
       await cleanup();
