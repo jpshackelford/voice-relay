@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { getAuthState, waitForWebSocketConnected, waitForStableConnection } from './utils/auth-helper';
+import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput } from './utils/auth-helper';
 
 /**
  * E2E Test: Complete User Onboarding Flow (First-Time Experience)
@@ -111,33 +111,12 @@ test.describe('User Onboarding Flow', () => {
     // =====================
     // STEP 11: Send first message
     // =====================
-    // Find the message input - try both kiosk and mobile modes
-    const kioskInput = page.locator('.kiosk-input-row input[type="text"]');
-    const mobileInput = page.locator('.mobile-input-row input[type="text"]');
-    
-    // Check which mode we're in and use appropriate input
-    let input = kioskInput;
-    let sendBtn = page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small');
-    
-    // Try kiosk input first (may need to open drawer)
-    if (!await kioskInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-      // Check for mobile input
-      if (await mobileInput.isVisible({ timeout: 1000 }).catch(() => false)) {
-        input = mobileInput;
-        sendBtn = page.locator('.mobile-input-row .send-btn-small');
-      } else {
-        // Kiosk mode with closed drawer - open it
-        const drawerOpenBtn = page.locator('.drawer-open-btn');
-        if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-          await drawerOpenBtn.click();
-          await page.waitForTimeout(300); // Wait for drawer animation
-        }
-      }
-    }
+    // Use helper to find input across kiosk/mobile modes
+    const { input, sendBtn } = await findMessageInput(page);
 
-    // Fill in the message
+    // Fill in the message and click send button
     await input.fill('Hello world!');
-    await input.press('Enter');
+    await sendBtn.click();
 
     // =====================
     // STEP 12: Verify message appears

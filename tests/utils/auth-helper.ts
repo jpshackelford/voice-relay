@@ -388,3 +388,56 @@ export async function ensureKioskInputVisible(page: Page): Promise<import('@play
   }
   return page.locator('.kiosk-sidebar .kiosk-input-row input[type="text"]');
 }
+
+/**
+ * Return type for findMessageInput helper.
+ */
+export interface MessageInputResult {
+  input: import('@playwright/test').Locator;
+  sendBtn: import('@playwright/test').Locator;
+}
+
+/**
+ * Find the message input and send button, handling kiosk/mobile modes.
+ *
+ * This helper abstracts the complexity of finding the input element across
+ * different viewport modes (kiosk vs mobile) and drawer states. It:
+ * 1. Checks for kiosk mode input first
+ * 2. Falls back to mobile mode input
+ * 3. Opens the drawer if in kiosk mode with closed drawer
+ *
+ * @param page - The Playwright page
+ * @returns Object with input locator and send button locator
+ */
+export async function findMessageInput(page: Page): Promise<MessageInputResult> {
+  const kioskInput = page.locator('.kiosk-input-row input[type="text"]');
+  const mobileInput = page.locator('.mobile-input-row input[type="text"]');
+
+  // Try kiosk input first
+  if (await kioskInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+    return {
+      input: kioskInput,
+      sendBtn: page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small'),
+    };
+  }
+
+  // Check for mobile input
+  if (await mobileInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+    return {
+      input: mobileInput,
+      sendBtn: page.locator('.mobile-input-row .send-btn-small'),
+    };
+  }
+
+  // Kiosk mode with closed drawer - open it
+  const drawerOpenBtn = page.locator('.drawer-open-btn');
+  if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await drawerOpenBtn.click();
+    await page.waitForTimeout(300); // Wait for drawer animation
+  }
+
+  return {
+    input: kioskInput,
+    sendBtn: page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small'),
+  };
+}
