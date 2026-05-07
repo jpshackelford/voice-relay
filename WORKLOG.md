@@ -744,3 +744,35 @@ From lxa status: `oRCFRC green ready 💬7`
 - Expansion slot: Available → Spawned expansion worker for Issue #44
 
 ---
+### 2026-05-07 18:35 UTC - Expansion Worker (`41fc3a2`)
+
+✅ **Expanded Issue #44**
+
+- Issue: [#44 - E2E Test: QR Code Join Flow (Device Pairing)](https://github.com/jpshackelford/voice-relay/issues/44)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Multi-browser context testing with Playwright (kiosk + mobile)
+- QR URL extraction from `data-qr-url` attribute (requires minor component modification)
+- Auto-join flow verification for second device
+- Real-time device count updates via WebSocket
+- QR code display state changes (large → mini after device joins)
+
+**Files to Create/Modify:**
+- `tests/qr-join-flow.spec.ts` - Main E2E test file (new)
+- `client/src/components/QRCode.tsx` - Add `data-qr-url` attribute for test access (modify)
+
+**Key Test Steps:**
+1. Create authenticated kiosk context (desktop viewport)
+2. Navigate to session, verify large QR displayed
+3. Extract QR URL via data attribute
+4. Create authenticated mobile context (375x667 viewport)
+5. Navigate mobile to QR URL
+6. Verify auto-join, mobile mode, device counts on both devices
+7. Verify mini QR replaces large QR on kiosk
+
+**Complexity:** Medium
+
+---
