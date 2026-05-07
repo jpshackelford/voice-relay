@@ -838,3 +838,28 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 
 **Housekeeping:**
 - Archived 4 worklog entries older than 6hr productive window
+
+---
+### 2026-05-07 01:10 UTC - Review Worker (`af46e77`)
+
+✅ **Addressed Final Review Feedback on PR #35**
+
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: **Ready for review** ✅ (all threads resolved)
+
+**Review Thread Addressed (1 remaining):**
+
+1. **🟡 Tag creation fails on workflow re-runs** → Fixed in `a2ce442`
+   - Added check for existing tag before creating/pushing
+   - Now idempotent: re-running a successful workflow won't fail
+   - Outputs "Tag already exists, skipping" if tag was previously created
+
+**Commit:**
+- `a2ce442` - fix(ci): make tag creation idempotent for workflow re-runs
+
+**CI:** All checks passing ✅
+**All review threads replied to and resolved.**
+
+**Learnings:**
+- GitHub Actions workflows should be idempotent where possible - re-runs are common
+- `git rev-parse "$TAG"` returns success (0) if a tag/ref exists, making it a clean existence check
