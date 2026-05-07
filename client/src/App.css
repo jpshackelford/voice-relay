@@ -3082,3 +3082,202 @@ header {
 .setting-hint a:hover {
   text-decoration: underline;
 }
+
+/* ===== Waiting for Approval Overlay ===== */
+.waiting-for-approval-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 20, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.waiting-for-approval-card {
+  background: #1a1a2e;
+  border-radius: 16px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.waiting-for-approval-card h2 {
+  color: #fff;
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.waiting-for-approval-card .workspace-name {
+  color: #9ca3af;
+  margin: 0.5rem 0 1rem;
+  font-size: 1rem;
+}
+
+.waiting-for-approval-card .workspace-name strong {
+  color: #fff;
+}
+
+.waiting-for-approval-card .waiting-hint {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.waiting-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+}
+
+.cancel-request-btn {
+  background: transparent;
+  border: 1px solid #4b5563;
+  color: #9ca3af;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.cancel-request-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-color: #6b7280;
+}
+
+/* ===== Join Request Notifications (Kiosk) ===== */
+.join-request-stack {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 1000;
+  max-width: 380px;
+}
+
+.join-request-notification {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: slide-in-right 0.3s ease-out;
+  border: 1px solid #2a2a4e;
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.join-request-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.join-request-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.join-request-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #3282b8, #0f4c75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.join-request-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.join-request-title {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.join-request-user {
+  color: #fff;
+  font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.join-request-user .username {
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.join-request-hint {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.join-request-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.join-request-actions button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.join-request-actions .approve-btn {
+  background: #10b981;
+  color: #fff;
+}
+
+.join-request-actions .approve-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+}
+
+.join-request-actions .deny-btn {
+  background: #ef4444;
+  color: #fff;
+}
+
+.join-request-actions .deny-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}

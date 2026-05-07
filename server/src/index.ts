@@ -9,11 +9,20 @@ import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
 import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
-import { createWorkspaceRouter, WorkspaceRepository, decryptApiKey } from './workspaces/index.js';
+import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
-import type { ClientMessage, RegisteredMessage, RelayedTextMessage, HistoryMessage, DisplayContent, DisplayRequest } from './types.js';
+import type { 
+  ClientMessage, 
+  RegisteredMessage, 
+  RelayedTextMessage, 
+  HistoryMessage, 
+  DisplayContent, 
+  DisplayRequest,
+  JoinRequestMessage,
+  JoinResolvedMessage,
+} from './types.js';
 
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
@@ -42,9 +51,50 @@ const store: MessageStore = createStoreFromEnv();
 
 // Repositories for database access (set up later if SQLite is used)
 let workspaceRepository: WorkspaceRepository | null = null;
+let joinRequestRepository: JoinRequestRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
+
+// Map requestId -> userId for tracking pending join requests
+// Used to send join-resolved messages back to the requesting user's devices.
+// NOTE: We track by userId (from authenticated HTTP request) instead of deviceId
+// to prevent spoofing - a malicious user cannot hijack notifications by providing
+// another user's deviceId. When resolving, we send to all connected devices in
+// the workspace; the requesting user's device will receive the notification.
+//
+// Cleanup: Entries are removed when requests are approved/denied. For orphaned
+// entries (e.g., server restart, expired requests), we run periodic cleanup.
+const pendingJoinRequests = new Map<string, string>();
+
+// Periodic cleanup of orphaned pending join requests (every 10 minutes)
+// This handles edge cases where entries weren't cleaned up properly.
+const PENDING_REQUEST_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const PENDING_REQUEST_MAX_AGE_MS = 6 * 60 * 1000; // 6 minutes (request expiry is 5 min)
+const pendingRequestTimestamps = new Map<string, number>();
+
+function cleanupOrphanedPendingRequests() {
+  const now = Date.now();
+  const expiredRequests: string[] = [];
+  
+  for (const [requestId, timestamp] of pendingRequestTimestamps) {
+    if (now - timestamp > PENDING_REQUEST_MAX_AGE_MS) {
+      expiredRequests.push(requestId);
+    }
+  }
+  
+  for (const requestId of expiredRequests) {
+    pendingJoinRequests.delete(requestId);
+    pendingRequestTimestamps.delete(requestId);
+  }
+  
+  if (expiredRequests.length > 0) {
+    console.log('[JoinRequest] Cleaned up orphaned pending requests:', expiredRequests.length);
+  }
+}
+
+// Start periodic cleanup
+setInterval(cleanupOrphanedPendingRequests, PENDING_REQUEST_CLEANUP_INTERVAL_MS);
 
 // Auth configuration from environment variables
 
@@ -467,6 +517,113 @@ wss.on('connection', (ws: WebSocket) => {
           }
           break;
         }
+
+        case 'join-response': {
+          // Handle approve/deny from kiosk owner
+          if (!deviceId || !workspaceId) {
+            console.warn('[WS] Received join-response from unregistered device');
+            return;
+          }
+
+          const device = registry.getDevice(deviceId);
+          if (!device || device.mode !== 'kiosk') {
+            console.warn('[WS] join-response received from non-kiosk device');
+            return;
+          }
+
+          if (!joinRequestRepository || !workspaceRepository) {
+            console.warn('[WS] Join request feature not available');
+            return;
+          }
+
+          const { requestId, approved } = message;
+          const request = joinRequestRepository.findById(requestId);
+          
+          if (!request) {
+            console.warn('[WS] Join request not found:', requestId);
+            return;
+          }
+
+          // Verify the device is in the same workspace as the request
+          if (request.workspaceId !== device.workspaceId) {
+            console.warn('[WS] Join request workspace mismatch');
+            return;
+          }
+
+          // Get workspace to check ownership
+          const workspace = workspaceRepository.findById(request.workspaceId);
+          if (!workspace) {
+            console.warn('[WS] Workspace not found for join request');
+            return;
+          }
+
+          // SECURITY NOTE: We verify the kiosk device belongs to the workspace (line 516).
+          // We cannot verify the *operator* is the owner because WebSocket connections
+          // don't carry user authentication - kiosks are shared devices.
+          // This is a known limitation of the current architecture. Physical access
+          // to the kiosk is the security boundary. In high-security scenarios,
+          // consider requiring owner re-authentication for approval actions.
+
+          // Helper to broadcast join-resolved to all mobile devices in workspace
+          const broadcastResolved = (resolvedMessage: JoinResolvedMessage) => {
+            const mobileDevices = registry.getMobileDevices(workspace.id);
+            const payload = JSON.stringify(resolvedMessage);
+            let sentCount = 0;
+            
+            for (const mobileDevice of mobileDevices) {
+              if (mobileDevice.ws.readyState === mobileDevice.ws.OPEN) {
+                try {
+                  mobileDevice.ws.send(payload);
+                  sentCount++;
+                } catch (err) {
+                  console.error('[WS] Failed to send join-resolved:', err);
+                }
+              }
+            }
+            
+            console.log('[WS] Broadcast join-resolved to mobile devices:', {
+              requestId: request.id,
+              approved: resolvedMessage.approved,
+              sentCount,
+            });
+          };
+
+          if (approved) {
+            const updated = joinRequestRepository.approve(request.id, workspace.ownerId);
+            if (updated) {
+              // Add user as member
+              workspaceRepository.addMember(workspace.id, request.userId);
+
+              // Broadcast resolved message to all mobile devices in workspace
+              broadcastResolved({
+                type: 'join-resolved',
+                requestId: request.id,
+                approved: true,
+                workspace: {
+                  id: workspace.id,
+                  name: workspace.name,
+                  slug: workspace.slug,
+                },
+              });
+            }
+          } else {
+            const updated = joinRequestRepository.deny(request.id, workspace.ownerId);
+            if (updated) {
+              // Broadcast resolved message to all mobile devices in workspace
+              broadcastResolved({
+                type: 'join-resolved',
+                requestId: request.id,
+                approved: false,
+                error: 'Request denied by workspace owner',
+              });
+            }
+          }
+
+          // Remove from pending tracking
+          pendingJoinRequests.delete(requestId);
+          pendingRequestTimestamps.delete(requestId);
+          break;
+        }
       }
     } catch (err) {
       console.error('[WS] Error processing message:', err);
@@ -509,10 +666,11 @@ async function start() {
     const db = store.getDatabase();
     if (db) {
       workspaceRepository = new WorkspaceRepository(db);
+      joinRequestRepository = new JoinRequestRepository(db);
       deviceRepository = new DeviceRepository(db);
       sessionRepository = new SessionRepository(db);
       qrTokenRepository = new QrTokenRepository(db);
-      console.log('[Repositories] Workspace, Device, Session, QrToken repositories initialized');
+      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken repositories initialized');
     }
   }
 
@@ -536,18 +694,115 @@ async function start() {
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');
       
-      // Set up workspace routes
+      // Set up workspace routes with WebSocket callbacks for join request flow
       const workspaceRouter = createWorkspaceRouter({
         workspaceRepository,
+        joinRequestRepository: joinRequestRepository ?? undefined,
         deviceRepository,
         qrTokenRepository: qrTokenRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,
         },
+        // Callback to broadcast join request to owner's kiosk devices
+        onJoinRequest: (workspaceId, request) => {
+          // Track the pending request for later resolution (requestId -> userId)
+          // We track by userId (from authenticated request) not deviceId to prevent spoofing
+          pendingJoinRequests.set(request.id, request.user.id);
+          pendingRequestTimestamps.set(request.id, Date.now());
+
+          // Find all kiosk devices for this workspace and send join-request message
+          const kioskDevices = registry.getKioskDevices(workspaceId);
+          const message: JoinRequestMessage = {
+            type: 'join-request',
+            request,
+          };
+          const payload = JSON.stringify(message);
+
+          let sentCount = 0;
+          for (const device of kioskDevices) {
+            if (device.ws.readyState === device.ws.OPEN) {
+              try {
+                device.ws.send(payload);
+                sentCount++;
+              } catch (err) {
+                console.error('[WS] Failed to send join-request to kiosk:', err);
+              }
+            }
+          }
+
+          // Warn if no kiosk devices received the request
+          if (sentCount === 0) {
+            console.warn('[JoinRequest] No kiosk devices available to receive request:', {
+              workspaceId,
+              requestId: request.id,
+              userId: request.user.id,
+              kioskCount: kioskDevices.length,
+            });
+          } else {
+            console.log('[JoinRequest] Broadcast to kiosks:', {
+              workspaceId,
+              requestId: request.id,
+              userId: request.user.id,
+              kioskCount: kioskDevices.length,
+              sentCount,
+            });
+          }
+        },
+        // Callback to send join-resolved to all mobile devices in workspace
+        // (the requesting user's device is among them)
+        onJoinResolved: (requestId, approved, workspace, error) => {
+          // Get the tracked userId and remove from pending
+          const userId = pendingJoinRequests.get(requestId);
+          pendingJoinRequests.delete(requestId);
+          pendingRequestTimestamps.delete(requestId);
+
+          if (!userId) {
+            console.log('[JoinRequest] No tracked user for request:', requestId);
+            return;
+          }
+
+          // Send to all mobile devices in the workspace
+          // Since we don't track user<->device association, we broadcast to all
+          // mobile devices. The requesting user's device will receive it.
+          const workspaceId = workspace?.id;
+          if (!workspaceId) {
+            console.log('[JoinRequest] No workspace for resolved request:', requestId);
+            return;
+          }
+
+          const mobileDevices = registry.getMobileDevices(workspaceId);
+          const message: JoinResolvedMessage = {
+            type: 'join-resolved',
+            requestId,
+            approved,
+            workspace,
+            error,
+          };
+          const payload = JSON.stringify(message);
+          let sentCount = 0;
+
+          for (const device of mobileDevices) {
+            if (device.ws.readyState === device.ws.OPEN) {
+              try {
+                device.ws.send(payload);
+                sentCount++;
+              } catch (err) {
+                console.error('[WS] Failed to send join-resolved:', err);
+              }
+            }
+          }
+
+          console.log('[JoinRequest] Broadcast join-resolved to mobile devices:', {
+            requestId,
+            userId,
+            approved,
+            sentCount,
+          });
+        },
       });
       app.use('/api/workspaces', workspaceRouter);
-      console.log('[Workspaces] API enabled');
+      console.log('[Workspaces] API enabled (with join request flow)');
 
       // Set up device routes
       const deviceRouter = createDeviceRouter({

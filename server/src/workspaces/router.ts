@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { WorkspaceRepository } from './workspace-repository.js';
+import type { JoinRequestRepository } from './join-request-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
 import type { QrTokenRepository } from '../qr-tokens/index.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
@@ -21,16 +22,50 @@ const autoJoinLimiter = rateLimit({
   validate: { xForwardedForHeader: false }, // Disable IP-related validation since we use user ID
 });
 
+// Rate limiter for request-join endpoint (same limits as auto-join)
+const requestJoinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 10, // limit each user to 10 join requests per window
+  message: { error: 'Too many join requests, please try again later' },
+  keyGenerator: (req: Request) => req.user!.id,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
+  validate: { xForwardedForHeader: false },
+});
+
 export interface WorkspaceRouterConfig {
   workspaceRepository: WorkspaceRepository;
+  joinRequestRepository?: JoinRequestRepository;
   deviceRepository?: DeviceRepository;
   qrTokenRepository?: QrTokenRepository;
   authConfig: AuthMiddlewareConfig;
+  /** Callback to broadcast join request to owner's kiosk devices */
+  onJoinRequest?: (workspaceId: string, request: {
+    id: string;
+    workspaceId: string;
+    user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
+    createdAt: string;
+  }) => void;
+  /** Callback to send join-resolved to the requesting user's device */
+  onJoinResolved?: (requestId: string, approved: boolean, workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+  }, error?: string) => void;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   const router = Router();
-  const { workspaceRepository, deviceRepository, qrTokenRepository, authConfig } = config;
+  const { 
+    workspaceRepository, 
+    joinRequestRepository, 
+    deviceRepository, 
+    qrTokenRepository, 
+    authConfig,
+    onJoinRequest,
+    onJoinResolved,
+  } = config;
   const auth = requireAuth(authConfig);
 
   // List user's workspaces
@@ -654,6 +689,364 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     } catch (err) {
       console.error('[Workspaces] List devices error:', err);
       res.status(500).json({ error: 'Failed to list devices' });
+    }
+  });
+
+  // === Join Request Endpoints ===
+
+  // Create join request (when allowAutoJoin=false)
+  // Rate limited to prevent spam
+  router.post('/:id/request-join', auth, requestJoinLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Check if user is already a member - no need for request
+      if (workspaceRepository.canAccess(workspace.id, req.user!.id)) {
+        res.status(400).json({ 
+          error: 'Already a member of this workspace',
+          alreadyMember: true,
+        });
+        return;
+      }
+
+      // Check if auto-join is enabled - should use auto-join instead
+      const settings = workspaceRepository.getSettings(workspace.id);
+      if (settings?.allowAutoJoin) {
+        res.status(400).json({
+          error: 'Auto-join is enabled for this workspace. Use auto-join endpoint instead.',
+          code: 'AUTO_JOIN_ENABLED',
+        });
+        return;
+      }
+
+      // Create the join request
+      const request = joinRequestRepository.create(workspace.id, req.user!.id);
+
+      // NOTE: We intentionally do NOT accept deviceId from request body.
+      // Tracking is by userId (from authenticated JWT) to prevent spoofing.
+      // WebSocket notification will be sent to all connected devices in the workspace
+      // when the request is resolved.
+
+      // Fetch user info for the notification
+      const user = {
+        id: req.user!.id,
+        username: req.user!.username,
+        displayName: (req.user as { displayName?: string | null }).displayName ?? null,
+        avatarUrl: (req.user as { avatarUrl?: string | null }).avatarUrl ?? null,
+      };
+
+      // Broadcast to owner's kiosk devices via WebSocket
+      if (onJoinRequest) {
+        onJoinRequest(workspace.id, {
+          id: request.id,
+          workspaceId: workspace.id,
+          user,
+          createdAt: request.createdAt,
+        });
+      }
+
+      // Audit log
+      console.log('[Workspaces] Join request created:', {
+        requestId: request.id,
+        workspaceId: workspace.id,
+        userId: req.user!.id,
+        timestamp: request.createdAt,
+      });
+
+      res.status(201).json({
+        requestId: request.id,
+        status: request.status,
+        createdAt: request.createdAt,
+        workspace: {
+          id: workspace.id,
+          name: workspace.name,
+          slug: workspace.slug,
+        },
+      });
+    } catch (err) {
+      console.error('[Workspaces] Request join error:', err);
+      res.status(500).json({ error: 'Failed to create join request' });
+    }
+  });
+
+  // List pending join requests for a workspace (owner only)
+  router.get('/:id/requests', auth, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Only owner can view join requests
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can view join requests' });
+        return;
+      }
+
+      const requests = joinRequestRepository.findPendingByWorkspace(workspace.id);
+      res.json({
+        requests: requests.map(r => ({
+          id: r.id,
+          user: r.user,
+          status: r.status,
+          createdAt: r.createdAt,
+        })),
+      });
+    } catch (err) {
+      console.error('[Workspaces] List requests error:', err);
+      res.status(500).json({ error: 'Failed to list join requests' });
+    }
+  });
+
+  // Approve a join request (owner only)
+  router.post('/:id/requests/:requestId/approve', auth, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Only owner can approve requests
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can approve join requests' });
+        return;
+      }
+
+      const request = joinRequestRepository.findById(req.params.requestId);
+      if (!request || request.workspaceId !== workspace.id) {
+        res.status(404).json({ error: 'Join request not found' });
+        return;
+      }
+
+      if (request.status !== 'pending') {
+        res.status(400).json({ error: `Request already ${request.status}` });
+        return;
+      }
+
+      // Check if request has expired (>5 minutes old)
+      if (joinRequestRepository.isExpired(request)) {
+        joinRequestRepository.expire(request.id);
+        res.status(400).json({ error: 'Request has expired' });
+        return;
+      }
+
+      // Approve the request
+      const updated = joinRequestRepository.approve(request.id, req.user!.id);
+      if (!updated) {
+        res.status(500).json({ error: 'Failed to approve request' });
+        return;
+      }
+
+      // Add user as member
+      workspaceRepository.addMember(workspace.id, request.userId);
+
+      // Notify the requesting user via WebSocket
+      if (onJoinResolved) {
+        onJoinResolved(
+          request.id,
+          true,
+          {
+            id: workspace.id,
+            name: workspace.name,
+            slug: workspace.slug,
+          }
+        );
+      }
+
+      res.json({
+        success: true,
+        request: {
+          id: updated.id,
+          status: updated.status,
+          resolvedAt: updated.resolvedAt,
+        },
+      });
+    } catch (err) {
+      console.error('[Workspaces] Approve request error:', err);
+      res.status(500).json({ error: 'Failed to approve join request' });
+    }
+  });
+
+  // Deny a join request (owner only)
+  router.post('/:id/requests/:requestId/deny', auth, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Only owner can deny requests
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can deny join requests' });
+        return;
+      }
+
+      const request = joinRequestRepository.findById(req.params.requestId);
+      if (!request || request.workspaceId !== workspace.id) {
+        res.status(404).json({ error: 'Join request not found' });
+        return;
+      }
+
+      if (request.status !== 'pending') {
+        res.status(400).json({ error: `Request already ${request.status}` });
+        return;
+      }
+
+      // Check if request has expired (>5 minutes old)
+      if (joinRequestRepository.isExpired(request)) {
+        joinRequestRepository.expire(request.id);
+        res.status(400).json({ error: 'Request has expired' });
+        return;
+      }
+
+      // Deny the request
+      const updated = joinRequestRepository.deny(request.id, req.user!.id);
+      if (!updated) {
+        res.status(500).json({ error: 'Failed to deny request' });
+        return;
+      }
+
+      // Notify the requesting user via WebSocket
+      if (onJoinResolved) {
+        onJoinResolved(
+          request.id,
+          false,
+          undefined,
+          'Request denied by workspace owner'
+        );
+      }
+
+      res.json({
+        success: true,
+        request: {
+          id: updated.id,
+          status: updated.status,
+          resolvedAt: updated.resolvedAt,
+        },
+      });
+    } catch (err) {
+      console.error('[Workspaces] Deny request error:', err);
+      res.status(500).json({ error: 'Failed to deny join request' });
+    }
+  });
+
+  // Cancel own join request (requesting user only)
+  router.delete('/:id/requests/:requestId', auth, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      const request = joinRequestRepository.findById(req.params.requestId);
+      if (!request || request.workspaceId !== workspace.id) {
+        res.status(404).json({ error: 'Join request not found' });
+        return;
+      }
+
+      // Only the requesting user can cancel their own request
+      if (request.userId !== req.user!.id) {
+        res.status(403).json({ error: 'Can only cancel your own join request' });
+        return;
+      }
+
+      const success = joinRequestRepository.cancel(request.id, req.user!.id);
+      if (!success) {
+        res.status(400).json({ error: 'Request cannot be cancelled (already resolved or not yours)' });
+        return;
+      }
+
+      res.status(204).send();
+    } catch (err) {
+      console.error('[Workspaces] Cancel request error:', err);
+      res.status(500).json({ error: 'Failed to cancel join request' });
+    }
+  });
+
+  // Get status of a specific join request (for polling by requesting user)
+  router.get('/:id/requests/:requestId/status', auth, async (req: Request, res: Response) => {
+    try {
+      if (!joinRequestRepository) {
+        res.status(503).json({ error: 'Join request feature not available' });
+        return;
+      }
+
+      const request = joinRequestRepository.findById(req.params.requestId);
+      if (!request || request.workspaceId !== req.params.id) {
+        res.status(404).json({ error: 'Join request not found' });
+        return;
+      }
+
+      // Only the requesting user or workspace owner can check status
+      const workspace = workspaceRepository.findById(req.params.id);
+      const isOwner = workspace && workspaceRepository.isOwner(workspace.id, req.user!.id);
+      
+      if (request.userId !== req.user!.id && !isOwner) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      // Check if expired (but not yet marked as such in DB)
+      if (request.status === 'pending' && joinRequestRepository.isExpired(request)) {
+        joinRequestRepository.expire(request.id);
+        res.json({
+          id: request.id,
+          status: 'expired',
+          createdAt: request.createdAt,
+          resolvedAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      res.json({
+        id: request.id,
+        status: request.status,
+        createdAt: request.createdAt,
+        resolvedAt: request.resolvedAt,
+        ...(request.status === 'approved' && workspace ? {
+          workspace: {
+            id: workspace.id,
+            name: workspace.name,
+            slug: workspace.slug,
+          },
+        } : {}),
+      });
+    } catch (err) {
+      console.error('[Workspaces] Get request status error:', err);
+      res.status(500).json({ error: 'Failed to get request status' });
     }
   });
 
