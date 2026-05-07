@@ -466,3 +466,30 @@ From lxa status: `oRCFRC green ready 💬7`
 - Ready issues: #40 (has open PR)
 - Expansion slot: Empty (no issues need expansion)
 - PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 16:10 UTC - Review Worker Complete (Round 4)
+
+✅ **All 7 review threads addressed and resolved**
+
+**Changes Made:**
+1. **Memory Leak (SessionView):** Added `joinRequestTimeoutsRef` to track setTimeout IDs, with useEffect cleanup on unmount
+2. **Duplicate Timers:** Moved setTimeout inside `setPendingJoinRequests` to only run for new (non-duplicate) requests
+3. **Error Boundaries:** Added try-catch around both WebSocket handlers (`handleJoinResolvedMessage`, `handleJoinRequestMessage`)
+4. **Error Recovery:** On cancel failure, clear `pendingRequest` locally with helpful error message
+5. **Polling Fallback:** Declined - existing 5-min timeout provides fallback, polling adds complexity for marginal benefit
+6. **Cancel Loading State:** Added `cancelling` state with disabled button and "Cancelling..." text
+7. **Idempotency Check:** Already handled - `addMember` uses `INSERT OR REPLACE` which is idempotent
+
+**Commits:**
+- `0b41063` - fix(client): memory leak and error handling in SessionView join request handlers
+- `f5094df` - fix(client): handle cancel request error by treating as locally cancelled
+- `3e5ded4` - feat(client): add loading state to cancel button in WaitingForApproval
+
+**Status:** PR #41 marked ready for review
+- Build: ✅ Pass
+- Server tests: 406 pass
+- Client tests: 133 pass
+- All 7 review threads resolved ✅
+
+**Next:** Awaiting final review or merge approval
