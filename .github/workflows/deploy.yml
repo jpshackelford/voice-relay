@@ -231,7 +231,7 @@ jobs:
               repo: context.repo.repo,
               title: '🚨 Smoke test failure after deployment',
               body: body,
-              labels: ['bug', 'ci-failure']
+              labels: ['ci-failure']
             });
 
             core.setOutput('issue_number', issue.number);
