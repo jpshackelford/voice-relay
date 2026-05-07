@@ -688,3 +688,32 @@ From lxa status: `oRCFRC green ready 💬7`
 - Applied `priority:high` label to Issue #42
 
 ---
+### 2026-05-07 18:06 UTC - Expansion Worker (`de3407d`)
+
+✅ **Expanded Issue #43**
+
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow (First-Time Experience)](https://github.com/jpshackelford/voice-relay/issues/43)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Complete first-time user journey from login to first message
+- Auth via `/auth/test-session` endpoint for CI automation
+- Redirect chain verification (root → login → dashboard → workspace)
+- Auto-created workspace and session verification
+- WebSocket connection status verification
+- First message send/receive verification
+
+**Files to Create:**
+- `tests/onboarding-flow.spec.ts` - Complete onboarding E2E test
+
+**Key Selectors Identified:**
+- Login page: `page.getByText("Voice Relay")`, `page.getByRole("button", { name: /Sign in with GitHub/i })`
+- WorkspaceHome: `page.getByRole("heading", { name: /devices/i })`, `page.getByText("View →")`
+- SessionView: `.connection-indicator.connected`
+- KioskMode: `.kiosk-input-row input`, `.kiosk-message`
+
+**Complexity:** Medium (2-3 hours estimated)
+
+---
