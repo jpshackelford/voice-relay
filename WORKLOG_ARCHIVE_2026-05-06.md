@@ -1727,3 +1727,68 @@ Automatically registers the authenticating device when a new user's default work
 **Housekeeping:**
 - Archived 4 worklog entries older than 6hr productive window
 - WORKLOG.md now at manageable size
+
+---
+### 2026-05-06 22:15 UTC - Implementation Worker (`cb7cefe`)
+
+✅ **Created: PR #34 - Workspace Settings for OpenHands API Key**
+
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
+- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
+- Status: **Ready for review** ✅
+
+**Work Done:**
+Implemented per-workspace OpenHands API key configuration through the UI:
+
+**Backend:**
+- `server/src/workspaces/encryption.ts` - AES-256-GCM encryption/decryption utilities
+- `server/src/workspaces/router.ts` - Added 3 API endpoints:
+  - `PUT /:id/settings/api-key` - Set encrypted API key
+  - `POST /:id/settings/api-key/test` - Validate API key against OpenHands API
+  - `DELETE /:id/settings/api-key` - Remove API key
+- `server/src/openhands.ts` - Updated `startSession()` to accept optional `apiKey`, added `getWorkspaceApiKey()` helper
+- `server/src/index.ts` - AI connect endpoint fetches workspace API key
+
+**Frontend:**
+- `client/src/hooks/useWorkspaceSettings.ts` - Added `setApiKey`, `testApiKey`, `removeApiKey` methods
+- `client/src/pages/WorkspaceHome.tsx` - Added API key settings UI section for owners
+- `client/src/App.css` - Styles for API key settings components
+
+**Security:**
+- ✅ API keys encrypted at rest using AES-256-GCM
+- ✅ Keys never returned in API responses (only `hasApiKey` boolean)
+- ✅ Owner-only access enforced on all endpoints
+- ✅ Audit logging for API key changes
+
+**Tests:**
+- 13 new encryption utility tests
+- Router tests for all 3 new endpoints
+- All 376 tests passing ✅
+
+**Acceptance Criteria Met:**
+- [x] Workspace owners can input their OpenHands API key through the settings UI
+- [x] "Test Connection" button validates the key and shows success/failure
+- [x] API key is stored encrypted in the database
+- [x] Settings show indicator when API key is configured
+- [x] Owners can delete/clear their API key
+- [x] AI connect endpoint uses workspace-specific API key
+- [x] Non-owners cannot view or modify API key settings
+- [x] API key is never exposed in API responses
+
+### 2026-05-06 22:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `89f7f8b` | review | PR #34 - Workspace API key settings | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
+- Status: CI green, 3 unresolved review threads to address
+- Review feedback: 1 🟠 Important (encryption salt), 2 🟡 Suggestions (code duplication)
+- Conversation: [`89f7f8b`](https://app.all-hands.dev/conversations/89f7f8b814d84c80bbae5994bd930cec)
+
+**Current State:**
+- [PR #34](https://github.com/jpshackelford/voice-relay/pull/34): `oR green ready 💬3`
+- No issues need expansion
+- Ready issues: #31 (priority:high), #28, #33

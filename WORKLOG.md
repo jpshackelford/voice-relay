@@ -31,71 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 22:15 UTC - Implementation Worker (`cb7cefe`)
-
-✅ **Created: PR #34 - Workspace Settings for OpenHands API Key**
-
-- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
-- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
-- Status: **Ready for review** ✅
-
-**Work Done:**
-Implemented per-workspace OpenHands API key configuration through the UI:
-
-**Backend:**
-- `server/src/workspaces/encryption.ts` - AES-256-GCM encryption/decryption utilities
-- `server/src/workspaces/router.ts` - Added 3 API endpoints:
-  - `PUT /:id/settings/api-key` - Set encrypted API key
-  - `POST /:id/settings/api-key/test` - Validate API key against OpenHands API
-  - `DELETE /:id/settings/api-key` - Remove API key
-- `server/src/openhands.ts` - Updated `startSession()` to accept optional `apiKey`, added `getWorkspaceApiKey()` helper
-- `server/src/index.ts` - AI connect endpoint fetches workspace API key
-
-**Frontend:**
-- `client/src/hooks/useWorkspaceSettings.ts` - Added `setApiKey`, `testApiKey`, `removeApiKey` methods
-- `client/src/pages/WorkspaceHome.tsx` - Added API key settings UI section for owners
-- `client/src/App.css` - Styles for API key settings components
-
-**Security:**
-- ✅ API keys encrypted at rest using AES-256-GCM
-- ✅ Keys never returned in API responses (only `hasApiKey` boolean)
-- ✅ Owner-only access enforced on all endpoints
-- ✅ Audit logging for API key changes
-
-**Tests:**
-- 13 new encryption utility tests
-- Router tests for all 3 new endpoints
-- All 376 tests passing ✅
-
-**Acceptance Criteria Met:**
-- [x] Workspace owners can input their OpenHands API key through the settings UI
-- [x] "Test Connection" button validates the key and shows success/failure
-- [x] API key is stored encrypted in the database
-- [x] Settings show indicator when API key is configured
-- [x] Owners can delete/clear their API key
-- [x] AI connect endpoint uses workspace-specific API key
-- [x] Non-owners cannot view or modify API key settings
-- [x] API key is never exposed in API responses
-
-### 2026-05-06 22:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `89f7f8b` | review | PR #34 - Workspace API key settings | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#34 - feat: add workspace settings for OpenHands API key](https://github.com/jpshackelford/voice-relay/pull/34)
-- Status: CI green, 3 unresolved review threads to address
-- Review feedback: 1 🟠 Important (encryption salt), 2 🟡 Suggestions (code duplication)
-- Conversation: [`89f7f8b`](https://app.all-hands.dev/conversations/89f7f8b814d84c80bbae5994bd930cec)
-
-**Current State:**
-- [PR #34](https://github.com/jpshackelford/voice-relay/pull/34): `oR green ready 💬3`
-- No issues need expansion
-- Ready issues: #31 (priority:high), #28, #33
-
----
 ### 2026-05-06 22:37 UTC - Review Worker (`89f7f8b`)
 
 ✅ **Addressed Review Feedback on PR #34**
@@ -850,5 +785,68 @@ Replaced static join code display with shareable invite links for improved UX:
 - No open PRs
 - Ready issues: #28 (priority:medium) - QR code display dismiss
 - Blocked issues: #22 (needs-split)
+### 2026-05-07 05:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42e82b1` | merge | PR #36 - Invite link feature | finished ✓ |
+
+🚨 **CRITICAL: Production Infrastructure Broken**
+
+**Situation:**
+- PR #36 merged successfully at 05:14 UTC
+- Deployment to vr.chorecraft.net **FAILED**
+- Automatic rollback also **FAILED**
+- Two new issues auto-created by CI:
+  - [#37](https://github.com/jpshackelford/voice-relay/issues/37) - 🚨 Smoke test failure (critical, rollback failed)
+  - [#38](https://github.com/jpshackelford/voice-relay/issues/38) - 🚨 Smoke test failure
+
+**Root Cause Analysis:**
+The production server at `/var/www/vr.chorecraft.net/app` is missing build tools:
+```
+sh: 1: tsc: not found
+sh: 1: vite: not found
+npm error gyp ERR! stack Error: not found: make
+```
+
+After `npm ci` (which deletes and reinstalls node_modules), the build step fails because:
+1. TypeScript (`tsc`) is not available globally
+2. Vite is not available globally
+3. `make` is not installed for native module compilation (better-sqlite3)
+
+The deploy script runs `npm run build` which expects devDependencies to be available, but `npm ci` with `--omit=dev` (or production mode) doesn't install them.
+
+**Impact:**
+- Production is currently DOWN (vr.chorecraft.net)
+- Both the new deployment AND the rollback failed
+- Cannot auto-fix: requires production server access to install build tools
+
+**⚠️ Human Intervention Required:**
+
+Option A - Install build tools on production server:
+```bash
+ssh deploy@vr.chorecraft.net
+npm install -g typescript vite
+sudo apt-get install build-essential  # for 'make'
+```
+
+Option B - Fix deployment workflow to build before deploy:
+- Build artifacts in CI (GitHub Actions)
+- Deploy pre-built artifacts instead of building on production
+
+Option C - Run `npm ci` without omitting devDependencies on production:
+- Current: `npm ci --omit=dev` (likely)
+- Change to: `npm ci` (include devDependencies for build)
+
+**Workflow Status: PAUSED**
+- Not spawning implementation workers until production is restored
+- Issues #37 and #38 are CI-generated, not feature work
+- Issue #28 (QR code dismiss) is ready but blocked by production outage
 
 ---
