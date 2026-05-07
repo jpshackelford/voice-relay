@@ -274,7 +274,7 @@ jobs:
           exit 1
       
       - name: Update issue on rollback failure
-        if: failure() && steps.verify-rollback.outputs.rollback_success == 'false'
+        if: failure() && steps.find-good.outputs.has_rollback_target == 'true'
         uses: actions/github-script@v7
         with:
           script: |
