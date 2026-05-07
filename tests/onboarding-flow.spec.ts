@@ -129,6 +129,28 @@ test.describe('User Onboarding Flow', () => {
     await expect(page.locator('.kiosk-message.final, .message.final').filter({ hasText: 'Hello world!' }).first()).toBeVisible();
   });
 
+  // =====================
+  // Focused Tests (smaller units for easier debugging)
+  // =====================
+
+  test('unauthenticated user redirects to login from root', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/login/);
+  });
+
+  test('login page shows branding and sign-in button', async ({ page }) => {
+    await page.goto('/login');
+
+    // Verify Voice Relay branding
+    await expect(page.getByText('Voice Relay')).toBeVisible();
+
+    // Verify tagline
+    await expect(page.getByText(/Real-time voice and text communication/)).toBeVisible();
+
+    // Verify GitHub sign-in button
+    await expect(page.getByRole('button', { name: /Sign in with GitHub/i })).toBeVisible();
+  });
+
   test('login page shows error message when error param present', async ({ page }) => {
     // Navigate to login with error parameter
     await page.goto('/login?error=1');
@@ -136,6 +158,82 @@ test.describe('User Onboarding Flow', () => {
     // Verify error message is displayed
     await expect(page.getByText(/Authentication failed/)).toBeVisible();
   });
+
+  test('authenticated user redirects to workspace from dashboard', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    // Authenticate
+    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
+    await page.context().addCookies(storageState.cookies);
+
+    // Navigate to dashboard
+    await page.goto('/dashboard');
+
+    // Should redirect to workspace URL format
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+  });
+
+  test('workspace shows auto-created session', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    // Authenticate
+    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
+    await page.context().addCookies(storageState.cookies);
+
+    // Navigate to dashboard → workspace
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+
+    // Wait for workspace elements
+    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 10000 });
+
+    // Verify auto-created session is visible
+    const viewButton = page.getByRole('button', { name: /view/i });
+    await expect(viewButton).toBeVisible({ timeout: 10000 });
+  });
+
+  test('user can send message in session', async ({ page }) => {
+    test.slow();
+
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    // Authenticate and navigate to workspace
+    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
+    await page.context().addCookies(storageState.cookies);
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+
+    // Enter session
+    const viewButton = page.getByRole('button', { name: /view/i });
+    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await viewButton.first().click();
+
+    // Wait for session and WebSocket connection
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: 10000 });
+    await waitForStableConnection(page, 20000);
+
+    // Send message
+    const { input, sendBtn } = await findMessageInput(page);
+    await input.fill('Test message');
+    await sendBtn.click();
+
+    // Verify message appears
+    const ownMessage = page.locator('.kiosk-message.final, .message.final').filter({ hasText: 'You:' });
+    await expect(ownMessage.first()).toBeVisible({ timeout: 5000 });
+  });
+
+  // =====================
+  // Unauthenticated Redirect Tests
+  // =====================
 
   test('workspace URL redirects to login when not authenticated', async ({ page }) => {
     // Try to access a workspace directly without auth
