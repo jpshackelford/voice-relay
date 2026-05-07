@@ -844,6 +844,13 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
+      // Check if request has expired (>5 minutes old)
+      if (joinRequestRepository.isExpired(request)) {
+        joinRequestRepository.expire(request.id);
+        res.status(400).json({ error: 'Request has expired' });
+        return;
+      }
+
       // Approve the request
       const updated = joinRequestRepository.approve(request.id, req.user!.id);
       if (!updated) {
@@ -909,6 +916,13 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
 
       if (request.status !== 'pending') {
         res.status(400).json({ error: `Request already ${request.status}` });
+        return;
+      }
+
+      // Check if request has expired (>5 minutes old)
+      if (joinRequestRepository.isExpired(request)) {
+        joinRequestRepository.expire(request.id);
+        res.status(400).json({ error: 'Request has expired' });
         return;
       }
 

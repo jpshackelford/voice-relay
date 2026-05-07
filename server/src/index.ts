@@ -572,8 +572,12 @@ wss.on('connection', (ws: WebSocket) => {
             
             for (const mobileDevice of mobileDevices) {
               if (mobileDevice.ws.readyState === mobileDevice.ws.OPEN) {
-                mobileDevice.ws.send(payload);
-                sentCount++;
+                try {
+                  mobileDevice.ws.send(payload);
+                  sentCount++;
+                } catch (err) {
+                  console.error('[WS] Failed to send join-resolved:', err);
+                }
               }
             }
             
@@ -715,18 +719,35 @@ async function start() {
           };
           const payload = JSON.stringify(message);
 
+          let sentCount = 0;
           for (const device of kioskDevices) {
             if (device.ws.readyState === device.ws.OPEN) {
-              device.ws.send(payload);
+              try {
+                device.ws.send(payload);
+                sentCount++;
+              } catch (err) {
+                console.error('[WS] Failed to send join-request to kiosk:', err);
+              }
             }
           }
 
-          console.log('[JoinRequest] Broadcast to kiosks:', {
-            workspaceId,
-            requestId: request.id,
-            userId: request.user.id,
-            kioskCount: kioskDevices.length,
-          });
+          // Warn if no kiosk devices received the request
+          if (sentCount === 0) {
+            console.warn('[JoinRequest] No kiosk devices available to receive request:', {
+              workspaceId,
+              requestId: request.id,
+              userId: request.user.id,
+              kioskCount: kioskDevices.length,
+            });
+          } else {
+            console.log('[JoinRequest] Broadcast to kiosks:', {
+              workspaceId,
+              requestId: request.id,
+              userId: request.user.id,
+              kioskCount: kioskDevices.length,
+              sentCount,
+            });
+          }
         },
         // Callback to send join-resolved to all mobile devices in workspace
         // (the requesting user's device is among them)
@@ -763,8 +784,12 @@ async function start() {
 
           for (const device of mobileDevices) {
             if (device.ws.readyState === device.ws.OPEN) {
-              device.ws.send(payload);
-              sentCount++;
+              try {
+                device.ws.send(payload);
+                sentCount++;
+              } catch (err) {
+                console.error('[WS] Failed to send join-resolved:', err);
+              }
             }
           }
 
