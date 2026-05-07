@@ -1,4 +1,4 @@
-import { request, type BrowserContext } from '@playwright/test';
+import { request, type BrowserContext, type Browser, type Page, expect } from '@playwright/test';
 
 /**
  * Authentication helper for E2E tests.
@@ -6,6 +6,13 @@ import { request, type BrowserContext } from '@playwright/test';
  * Provides utilities to authenticate browser contexts using TEST_AUTH_SECRET.
  * This is extracted from the smoke test auth setup for reuse in other E2E tests.
  */
+
+/**
+ * IMPORTANT: Must match DEVICE_TOKEN_COOKIE_NAME in server/src/auth/router.ts
+ * This cookie is filtered out when creating authenticated contexts so each
+ * browser context registers as a separate device for message relay testing.
+ */
+const DEVICE_COOKIE_NAME = 'voice_relay_device';
 
 interface AuthCookie {
   name: string;
@@ -120,7 +127,7 @@ export async function createAuthenticatedContext(
   // The test auth endpoint creates a device and sets a cookie, but we need
   // separate devices for each browser context to test message relay
   const filteredCookies = storageState.cookies.filter(
-    (cookie) => cookie.name !== 'voice_relay_device'
+    (cookie) => cookie.name !== DEVICE_COOKIE_NAME
   );
 
   const context = await browser.newContext({
@@ -260,4 +267,124 @@ export async function waitForSessionReady(
 
   // Small additional delay for WebSocket to fully stabilize
   await page.waitForTimeout(500);
+}
+
+/**
+ * Return type for setupTwoDeviceSession helper.
+ */
+export interface TwoDeviceSession {
+  kioskContext: BrowserContext;
+  mobileContext: BrowserContext;
+  kioskPage: Page;
+  mobilePage: Page;
+  sessionUrl: string;
+  /** Cleanup function that closes both contexts */
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Set up a two-device session for multi-device E2E tests.
+ *
+ * This helper encapsulates the common setup pattern:
+ * 1. Create kiosk and mobile authenticated contexts
+ * 2. Navigate kiosk to dashboard → enter first session
+ * 3. Wait for kiosk WebSocket connection to stabilize
+ * 4. Navigate mobile to the same session
+ * 5. Wait for mobile WebSocket connection to stabilize
+ *
+ * @param browser - The browser instance
+ * @param baseURL - The base URL of the server
+ * @param testAuthSecret - The TEST_AUTH_SECRET value
+ * @returns Object with kiosk/mobile contexts, pages, session URL, and cleanup function
+ */
+export async function setupTwoDeviceSession(
+  browser: Browser,
+  baseURL: string,
+  testAuthSecret: string
+): Promise<TwoDeviceSession> {
+  // Create two isolated browser contexts (simulates separate devices)
+  // Kiosk: >= 768px width, Mobile: < 768px width
+  const kioskContext = await createAuthenticatedContext(
+    browser,
+    baseURL,
+    testAuthSecret,
+    { viewport: { width: 1200, height: 800 } }  // Triggers kiosk mode
+  );
+
+  const mobileContext = await createAuthenticatedContext(
+    browser,
+    baseURL,
+    testAuthSecret,
+    { viewport: { width: 375, height: 667 } }  // Triggers mobile mode
+  );
+
+  const kioskPage = await kioskContext.newPage();
+  const mobilePage = await mobileContext.newPage();
+
+  // Navigate kiosk to dashboard (which redirects to workspace home)
+  await kioskPage.goto('/dashboard');
+
+  // Wait for workspace home to load (shows devices section)
+  await expect(kioskPage.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
+
+  // Wait for sessions section to appear
+  await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
+
+  // Click "View →" button to enter the first session
+  const viewButton = kioskPage.getByRole('button', { name: /view/i });
+  await expect(viewButton).toBeVisible({ timeout: 5000 });
+  await viewButton.click();
+
+  // Wait for session view to load
+  await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
+
+  // Get the session URL
+  const sessionUrl = kioskPage.url();
+
+  // Wait for kiosk WebSocket connection to stabilize
+  await waitForStableConnection(kioskPage, 20000);
+
+  // Navigate mobile to the same session URL
+  await mobilePage.goto(sessionUrl);
+
+  // Wait for mobile to be in session view
+  await mobilePage.waitForFunction(
+    () => document.querySelector('.mobile-mode') !== null ||
+         document.querySelector('.kiosk-mode') !== null,
+    { timeout: 15000 }
+  );
+
+  // Wait for mobile WebSocket connection to stabilize
+  await waitForStableConnection(mobilePage, 20000);
+
+  return {
+    kioskContext,
+    mobileContext,
+    kioskPage,
+    mobilePage,
+    sessionUrl,
+    cleanup: async () => {
+      await kioskContext.close();
+      await mobileContext.close();
+    },
+  };
+}
+
+/**
+ * Ensure kiosk input is visible (opens drawer if needed).
+ *
+ * In desktop kiosk mode, the input is in a collapsible sidebar drawer
+ * that starts closed. This helper opens it and returns the input locator.
+ *
+ * @param page - The kiosk Playwright page
+ * @returns Locator for the kiosk text input
+ */
+export async function ensureKioskInputVisible(page: Page): Promise<import('@playwright/test').Locator> {
+  const drawerOpenBtn = page.locator('.drawer-open-btn');
+  if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await drawerOpenBtn.click();
+    // Wait for drawer to animate open
+    await page.waitForTimeout(300);
+  }
+  return page.locator('.kiosk-sidebar .kiosk-input-row input[type="text"]');
 }
