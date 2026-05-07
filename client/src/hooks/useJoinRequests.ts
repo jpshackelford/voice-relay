@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { JoinRequestMessage, JoinResponseMessage } from '../types';
 
 /** Pending join request displayed on kiosk */
@@ -46,10 +46,36 @@ export function useJoinRequests({
   sendMessage,
 }: UseJoinRequestsOptions): UseJoinRequestsReturn {
   const [pendingRequests, setPendingRequests] = useState<PendingJoinRequestInfo[]>([]);
+  
+  // Track timeout IDs to prevent memory leaks and duplicate timers on unmount/remount
+  const timeoutIdsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    const timeoutIds = timeoutIdsRef.current;
+    return () => {
+      for (const timeoutId of timeoutIds.values()) {
+        clearTimeout(timeoutId);
+      }
+      timeoutIds.clear();
+    };
+  }, []);
+
+  // Helper to clear and remove a timeout
+  const clearRequestTimeout = useCallback((requestId: string) => {
+    const timeoutId = timeoutIdsRef.current.get(requestId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutIdsRef.current.delete(requestId);
+    }
+  }, []);
 
   // Handle incoming join-request message
   const handleJoinRequest = useCallback((message: JoinRequestMessage) => {
     const { request } = message;
+    
+    // Clear any existing timeout for this request (handles duplicate messages)
+    clearRequestTimeout(request.id);
     
     // Add to pending requests (avoid duplicates)
     setPendingRequests(prev => {
@@ -62,11 +88,14 @@ export function useJoinRequests({
       }];
     });
 
-    // Set up auto-removal after expiry
-    setTimeout(() => {
+    // Set up auto-removal after expiry with tracked timeout
+    const timeoutId = setTimeout(() => {
       setPendingRequests(prev => prev.filter(r => r.id !== request.id));
+      timeoutIdsRef.current.delete(request.id);
     }, REQUEST_EXPIRY_MS);
-  }, []);
+    
+    timeoutIdsRef.current.set(request.id, timeoutId);
+  }, [clearRequestTimeout]);
 
   // Approve a request
   const approveRequest = useCallback((requestId: string) => {
@@ -76,9 +105,10 @@ export function useJoinRequests({
       approved: true,
     });
     
-    // Remove from pending
+    // Clear timeout and remove from pending
+    clearRequestTimeout(requestId);
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-  }, [sendMessage]);
+  }, [sendMessage, clearRequestTimeout]);
 
   // Deny a request
   const denyRequest = useCallback((requestId: string) => {
@@ -88,14 +118,16 @@ export function useJoinRequests({
       approved: false,
     });
     
-    // Remove from pending
+    // Clear timeout and remove from pending
+    clearRequestTimeout(requestId);
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-  }, [sendMessage]);
+  }, [sendMessage, clearRequestTimeout]);
 
   // Manually remove a request
   const removeRequest = useCallback((requestId: string) => {
+    clearRequestTimeout(requestId);
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-  }, []);
+  }, [clearRequestTimeout]);
 
   return {
     pendingRequests,
