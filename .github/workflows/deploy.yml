@@ -138,8 +138,12 @@ jobs:
           git config user.name "openhands"
           git config user.email "openhands@all-hands.dev"
           TAG="deploy-success-${{ github.sha }}"
-          git tag "$TAG"
-          git push origin "$TAG"
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG"
+            git push origin "$TAG"
+          else
+            echo "Tag $TAG already exists, skipping"
+          fi
 
   handle-failure:
     runs-on: ubuntu-latest
