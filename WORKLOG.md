@@ -635,3 +635,24 @@ From lxa status: `oRCFRC green ready 💬7`
 **Note:** 6 new E2E test issues (#42-47) created. Starting expansion with #42.
 
 ---
+### 2026-05-07 17:34 UTC - Expansion Worker (`6fbc196`)
+
+✅ **Expanded Issue #42**
+
+- Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Multi-browser context testing with Playwright
+- Kiosk + Mobile mode simulation via viewport sizes
+- WebSocket connection and message relay verification
+- Partial message (typing indicator) testing
+- Device list real-time updates
+
+**Files to Create:**
+- `tests/multi-device-relay.spec.ts` - Main E2E test file
+- `tests/utils/auth-helper.ts` - Shared authentication helper
+
+---
