@@ -836,3 +836,42 @@ Option C - Run `npm ci` without omitting devDependencies on production:
 - ✅ Archived 2 worklog entries older than 6hr productive window
 - WORKLOG.md reduced from 852 to ~200 lines
 
+
+---
+### 2026-05-07 06:12 UTC - Implementation Worker (`bf855fb`)
+
+✅ **Created: PR #39 - Auto-dismiss QR code when mobile device joins**
+
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28) (priority:medium)
+- PR: [#39 - feat: auto-dismiss QR code when mobile device joins](https://github.com/jpshackelford/voice-relay/pull/39)
+- Status: **Ready for review** ✅
+
+**Work Done:**
+When a mobile device joins a kiosk session, automatically transition from the large centered QR code to a greeting display:
+
+**KioskMode.tsx Changes:**
+- Added conditional rendering based on `mobileDevices.length > 0`
+- When mobile connected: Show "Session Ready" greeting with device count
+- Mini QR (~90px) in lower-right corner, clickable to expand
+- When all mobiles disconnect: Return to large QR state
+- displayContent from AI/server still takes priority
+
+**App.css Additions:**
+- `.display-greeting` with fade-in animation
+- `.mini-qr-overlay` positioned above connection indicator
+- Responsive styles for mobile devices
+
+**Tests:**
+- Added 11 new tests covering state transitions
+- Total: 133 client tests ✅, 376 server tests ✅
+
+**Acceptance Criteria Met:**
+- [x] Large QR when no mobile devices connected
+- [x] Greeting + mini QR when mobile device joins
+- [x] Mini QR clickable to expand modal
+- [x] Return to large QR when all mobiles disconnect
+- [x] Smooth fade animation on transitions
+- [x] displayContent takes priority over both states
+
+**No database changes required** - purely client-side UI logic.
+
