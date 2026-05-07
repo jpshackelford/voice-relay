@@ -939,3 +939,38 @@ Expanded E2E test issue for session management with technical implementation det
 - Issues needing expansion: #46 (expanding), #47
 
 ---
+### 2026-05-07 19:35 UTC - Expansion Worker (`3e0f8a3`)
+
+✅ **Expanded Issue #46: E2E Test - Workspace Invite Link Flow**
+
+- Issue: [#46 - E2E Test: Workspace Invite Link Flow (Share Access)](https://github.com/jpshackelford/voice-relay/issues/46)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label: `ready`
+
+**Summary:**
+Expanded E2E test issue for workspace invite link flow with comprehensive test scenarios and technical implementation details.
+
+**Key Scenarios Covered:**
+1. Owner sees Settings section with invite link
+2. Copy Invite Link button works and copies correct URL
+3. Unauthenticated user redirects to login with returnTo
+4. Authenticated user without access joins successfully
+5. Already-member user redirects directly to workspace
+6. Invalid join code shows friendly error
+7. Non-owner does NOT see Settings section
+
+**Technical Approach:**
+- Recommend creating `tests/smoke/invite-link.spec.ts` (smoke test)
+- Uses existing auth state infrastructure from `auth.setup.ts`
+- Multi-browser context for owner vs new user testing
+- Clipboard API testing with `context.grantPermissions`
+
+**Files to Create:**
+- `tests/smoke/invite-link.spec.ts` - Main test file
+
+**Files to Modify:**
+- `tests/smoke/playwright.config.ts` - Update testMatch for new file
+- `tests/smoke/README.md` - Document new test scenarios
+
+---
