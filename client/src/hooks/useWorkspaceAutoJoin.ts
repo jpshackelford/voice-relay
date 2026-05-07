@@ -32,8 +32,6 @@ export interface PendingJoinRequest {
 interface UseWorkspaceAutoJoinOptions {
   /** Workspace ID to join */
   workspaceId: string | undefined;
-  /** Device ID for WebSocket tracking */
-  deviceId: string | undefined;
   /** Whether user is authenticated */
   isAuthenticated: boolean;
   /** Error info from workspace fetch (triggers auto-join on ACCESS_DENIED) */
@@ -76,7 +74,6 @@ interface UseWorkspaceAutoJoinReturn {
  */
 export function useWorkspaceAutoJoin({
   workspaceId,
-  deviceId,
   isAuthenticated,
   workspaceErrorInfo,
   ensureValidToken,
@@ -154,6 +151,105 @@ export function useWorkspaceAutoJoin({
   useEffect(() => {
     let cancelled = false;
 
+    // Helper to set error result if not cancelled
+    const setErrorResult = (error: string) => {
+      if (!cancelled) {
+        setResult({ success: false, error, workspace: null });
+      }
+    };
+
+    // Handle the join request flow when auto-join is disabled
+    const handleJoinRequestFlow = async () => {
+      console.log('[useWorkspaceAutoJoin] Auto-join disabled, creating join request');
+      
+      try {
+        // NOTE: We don't send deviceId - server tracks by authenticated userId for security
+        const requestRes = await fetch(`/api/workspaces/${workspaceId}/request-join`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (requestRes.ok) {
+          const requestData = await requestRes.json();
+          if (!cancelled) {
+            setPendingRequest({
+              requestId: requestData.requestId,
+              workspaceId: requestData.workspace.id,
+              workspaceName: requestData.workspace.name,
+              createdAt: requestData.createdAt,
+            });
+            // Don't set result yet - wait for approval
+          }
+          return;
+        }
+
+        if (requestRes.status === 400) {
+          const reqErrorData = await requestRes.json().catch(() => null);
+          if (reqErrorData?.alreadyMember) {
+            // User is already a member - this shouldn't happen but handle it
+            if (!cancelled) {
+              onJoinSuccess(false);
+            }
+            return;
+          }
+          setErrorResult(reqErrorData?.error || 'Failed to create join request');
+          return;
+        }
+
+        setErrorResult('Failed to create join request');
+      } catch (reqErr) {
+        console.error('[useWorkspaceAutoJoin] Failed to create join request:', reqErr);
+        setErrorResult('Failed to create join request');
+      }
+    };
+
+    // Main auto-join attempt
+    const attemptAutoJoin = async () => {
+      try {
+        await ensureValidToken();
+        const res = await fetch(`/api/workspaces/${workspaceId}/auto-join`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled) {
+            // Store workspace data from response to eliminate race condition with refetch
+            setResult({ success: true, error: null, workspace: data });
+            onJoinSuccess(data.joined === true);
+          }
+          return;
+        }
+
+        if (res.status === 404) {
+          setErrorResult('Workspace not found');
+          return;
+        }
+
+        if (res.status === 403) {
+          // Auto-join disabled - try request-join flow
+          const errorData = await res.json().catch(() => null);
+          
+          if (cancelled) return;
+          
+          if (errorData?.error?.includes('disabled')) {
+            await handleJoinRequestFlow();
+          } else {
+            setErrorResult(errorData?.error || 'Auto-join is not enabled for this workspace');
+          }
+          return;
+        }
+
+        // Other error status
+        const errorData = await res.json().catch(() => null);
+        setErrorResult(errorData?.error || 'Failed to join workspace');
+      } catch (err) {
+        console.error('[useWorkspaceAutoJoin] Auto-join failed:', err);
+        setErrorResult('Failed to join workspace');
+      }
+    };
+
     if (
       workspaceErrorInfo?.type === 'ACCESS_DENIED' &&
       isAuthenticated &&
@@ -162,123 +258,13 @@ export function useWorkspaceAutoJoin({
     ) {
       // Mark as attempted synchronously to prevent re-runs
       attemptedRef.current = true;
-
-      // Attempt auto-join
-      (async () => {
-        try {
-          await ensureValidToken();
-          const res = await fetch(`/api/workspaces/${workspaceId}/auto-join`, {
-            method: 'POST',
-            credentials: 'include',
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            if (!cancelled) {
-              // Store workspace data from response to eliminate race condition with refetch
-              setResult({ success: true, error: null, workspace: data });
-              onJoinSuccess(data.joined === true);
-            }
-          } else if (res.status === 404) {
-            if (!cancelled) {
-              setResult({ success: false, error: 'Workspace not found', workspace: null });
-            }
-          } else if (res.status === 403) {
-            // Auto-join disabled - try request-join flow
-            const errorData = await res.json().catch(() => null);
-            
-            if (!cancelled && errorData?.error?.includes('disabled')) {
-              console.log('[useWorkspaceAutoJoin] Auto-join disabled, creating join request');
-              
-              // Create join request
-              try {
-                const requestRes = await fetch(`/api/workspaces/${workspaceId}/request-join`, {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ deviceId }),
-                });
-
-                if (requestRes.ok) {
-                  const requestData = await requestRes.json();
-                  if (!cancelled) {
-                    setPendingRequest({
-                      requestId: requestData.requestId,
-                      workspaceId: requestData.workspace.id,
-                      workspaceName: requestData.workspace.name,
-                      createdAt: requestData.createdAt,
-                    });
-                    // Don't set result yet - wait for approval
-                  }
-                } else if (requestRes.status === 400) {
-                  const reqErrorData = await requestRes.json().catch(() => null);
-                  if (reqErrorData?.alreadyMember) {
-                    // User is already a member - this shouldn't happen but handle it
-                    if (!cancelled) {
-                      onJoinSuccess(false);
-                    }
-                  } else {
-                    if (!cancelled) {
-                      setResult({
-                        success: false,
-                        error: reqErrorData?.error || 'Failed to create join request',
-                        workspace: null,
-                      });
-                    }
-                  }
-                } else {
-                  if (!cancelled) {
-                    setResult({
-                      success: false,
-                      error: 'Failed to create join request',
-                      workspace: null,
-                    });
-                  }
-                }
-              } catch (reqErr) {
-                console.error('[useWorkspaceAutoJoin] Failed to create join request:', reqErr);
-                if (!cancelled) {
-                  setResult({
-                    success: false,
-                    error: 'Failed to create join request',
-                    workspace: null,
-                  });
-                }
-              }
-            } else if (!cancelled) {
-              setResult({
-                success: false,
-                error: errorData?.error || 'Auto-join is not enabled for this workspace',
-                workspace: null,
-              });
-            }
-          } else {
-            const errorData = await res.json().catch(() => null);
-            if (!cancelled) {
-              setResult({
-                success: false,
-                error: errorData?.error || 'Failed to join workspace',
-                workspace: null,
-              });
-            }
-          }
-        } catch (err) {
-          console.error('[useWorkspaceAutoJoin] Auto-join failed:', err);
-          if (!cancelled) {
-            setResult({
-              success: false,
-              error: 'Failed to join workspace',
-              workspace: null,
-            });
-          }
-        }
-      })();
+      attemptAutoJoin();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [workspaceErrorInfo, isAuthenticated, workspaceId, deviceId, ensureValidToken, onJoinSuccess]);
+  }, [workspaceErrorInfo, isAuthenticated, workspaceId, ensureValidToken, onJoinSuccess]);
 
   return {
     attempted: attemptedRef.current,

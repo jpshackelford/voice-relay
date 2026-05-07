@@ -110,7 +110,6 @@ export function SessionView() {
   // Encapsulated in custom hook for better separation of concerns
   const autoJoin = useWorkspaceAutoJoin({
     workspaceId,
-    deviceId,
     isAuthenticated,
     workspaceErrorInfo,
     ensureValidToken,

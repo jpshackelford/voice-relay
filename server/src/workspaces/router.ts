@@ -46,7 +46,7 @@ export interface WorkspaceRouterConfig {
     workspaceId: string;
     user: { id: string; username: string; displayName: string | null; avatarUrl: string | null };
     createdAt: string;
-  }, deviceId?: string) => void;
+  }) => void;
   /** Callback to send join-resolved to the requesting user's device */
   onJoinResolved?: (requestId: string, approved: boolean, workspace?: {
     id: string;
@@ -731,8 +731,10 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       // Create the join request
       const request = joinRequestRepository.create(workspace.id, req.user!.id);
 
-      // Get deviceId from request body (for WebSocket notifications)
-      const { deviceId } = req.body as { deviceId?: string };
+      // NOTE: We intentionally do NOT accept deviceId from request body.
+      // Tracking is by userId (from authenticated JWT) to prevent spoofing.
+      // WebSocket notification will be sent to all connected devices in the workspace
+      // when the request is resolved.
 
       // Fetch user info for the notification
       const user = {
@@ -749,7 +751,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           workspaceId: workspace.id,
           user,
           createdAt: request.createdAt,
-        }, deviceId);
+        });
       }
 
       // Audit log
