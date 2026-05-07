@@ -125,6 +125,7 @@ export function WorkspaceHome() {
   
   // Invite link copy state
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
+  const [inviteLinkError, setInviteLinkError] = useState(false);
   
   // API key settings state
   const [apiKeyInput, setApiKeyInput] = useState('');
@@ -267,10 +268,14 @@ export function WorkspaceHome() {
     
     try {
       await navigator.clipboard.writeText(inviteLink);
+      setInviteLinkError(false);
       setInviteLinkCopied(true);
       setTimeout(() => setInviteLinkCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy invite link:', err);
+      setInviteLinkCopied(false);
+      setInviteLinkError(true);
+      setTimeout(() => setInviteLinkError(false), 3000);
     }
   };
 
@@ -424,10 +429,10 @@ export function WorkspaceHome() {
                   <label>Invite Link</label>
                   <div className="invite-link-row">
                     <button 
-                      className={`copy-invite-btn ${inviteLinkCopied ? 'copied' : ''}`}
+                      className={`copy-invite-btn ${inviteLinkCopied ? 'copied' : ''} ${inviteLinkError ? 'error' : ''}`}
                       onClick={handleCopyInviteLink}
                     >
-                      {inviteLinkCopied ? '✓ Copied!' : '📋 Copy Invite Link'}
+                      {inviteLinkCopied ? '✓ Copied!' : inviteLinkError ? '✗ Copy failed' : '📋 Copy Invite Link'}
                     </button>
                   </div>
                   <span className="setting-hint">
