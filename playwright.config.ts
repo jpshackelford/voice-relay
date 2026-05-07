@@ -6,7 +6,11 @@ const TEST_SERVER_PORT = 3002;
 
 // Get auth secret from environment for multi-device tests
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET || '';
-const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret';
+// JWT_SECRET is required for auth to work. In local development, a fallback is
+// convenient. In CI, JWT_SECRET MUST be set explicitly via environment/secrets
+// to avoid using a well-known value that could be exploited if tests somehow
+// run against non-test infrastructure.
+const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-local-dev-only';
 
 // Use a separate test database to avoid conflicts with dev/prod
 const SQLITE_PATH = process.env.SQLITE_PATH || './data/test-messages.db';
