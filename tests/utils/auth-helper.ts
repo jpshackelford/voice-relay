@@ -433,11 +433,17 @@ export async function findMessageInput(page: Page): Promise<MessageInputResult> 
   const drawerOpenBtn = page.locator('.drawer-open-btn');
   if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
     await drawerOpenBtn.click();
-    await page.waitForTimeout(300); // Wait for drawer animation
+    // Wait for drawer animation and verify input becomes visible
+    await kioskInput.waitFor({ state: 'visible', timeout: 2000 });
+    return {
+      input: kioskInput,
+      sendBtn: page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small'),
+    };
   }
 
-  return {
-    input: kioskInput,
-    sendBtn: page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small'),
-  };
+  // If we get here, no input was found - throw descriptive error
+  throw new Error(
+    'Could not find message input. Tried kiosk input, mobile input, and drawer button. ' +
+    'Verify the UI mode and that the session view is fully loaded.'
+  );
 }
