@@ -31,64 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 18:40 UTC - Implementation Worker (`d20ea4c`)
-
-✅ **Completed: PR #32 - Fix Playwright strict mode violation**
-
-- Issue: [#30 - fix(smoke): dashboard test fails due to Playwright strict mode violation](https://github.com/jpshackelford/voice-relay/issues/30)
-- PR: [#32 - fix(e2e): resolve Playwright strict mode violation in dashboard test](https://github.com/jpshackelford/voice-relay/pull/32)
-- Status: Ready for review, CI green ✅
-
-**Work Done:**
-Fixed the Playwright strict mode violation in the smoke test that was blocking CI.
-
-**Problem:**
-The smoke test used `.or()` to match either 'Devices' or 'Sessions' heading:
-```typescript
-page.getByRole('heading', { name: /devices/i }).or(page.getByRole('heading', { name: /sessions/i }))
-```
-But **both** headings exist on the workspace home page, causing Playwright strict mode error.
-
-**Solution:**
-Simplified to check only the 'Devices' heading which is always present:
-```typescript
-page.getByRole('heading', { name: /devices/i })
-```
-
-**Files Changed:**
-- `tests/smoke/smoke.spec.ts` - Removed `.or()` matcher that caused strict mode violation
-
-**CI Status:** All checks passing ✅
-
----
-### 2026-05-06 18:48 UTC - Review Worker
-
-✅ **Addressed Final Review Feedback: PR #29**
-
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: Ready for review, all threads resolved ✅
-
-**Review Feedback Addressed:**
-
-1. **Device cookie not deleted after migration (XSS concern) - FIXED**
-   - Problem: After migrating device token to localStorage, cookie remained readable for 90 days
-   - Solution: Delete the cookie immediately after migration using:
-     ```javascript
-     document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-     ```
-   - Token now only exists in non-httpOnly cookie until first page load
-
-2. **90-day expiry unnecessarily long - FIXED**
-   - Problem: Cookie expiry was 90 days, but only needed for one-time migration
-   - Solution: Changed to 7 days in both OAuth callback and test-session endpoints
-   - 7-day expiry is now just a safety net if migration doesn't happen (e.g., JS disabled)
-
-**Commits:**
-- `734c7c0` - fix: delete device cookie after migration to localStorage
-
-**Thread Status:** Both review threads replied to and resolved ✅
-
----
 ### 2026-05-06 19:10 UTC - Merge Worker
 
 ✅ **Merged: PR #32 - Fix Playwright strict mode violation**
@@ -863,3 +805,29 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 **Learnings:**
 - GitHub Actions workflows should be idempotent where possible - re-runs are common
 - `git rev-parse "$TAG"` returns success (0) if a tag/ref exists, making it a clean existence check
+
+---
+### 2026-05-07 01:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `af1c272` | merge | PR #35 - Auto rollback on smoke test failure | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: CI green, all 8 review threads resolved, final review says "✅ Worth merging"
+- Conversation: [`af1c272`](https://app.all-hands.dev/conversations/af1c272f8d32465384e18acd682d5292)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `af46e77` | review | PR #35 | finished ✓ |
+
+**Current State:**
+- [PR #35](https://github.com/jpshackelford/voice-relay/pull/35): `oRCFRFRCFC green ready 💬0` - merging now
+- Open issues: #31 (will close when PR #35 merges), #28 (ready), #33 (ready), #22 (needs-split)
+- No issues need expansion
+
+**Housekeeping:**
+- Archived 2 worklog entries older than 6hr productive window
