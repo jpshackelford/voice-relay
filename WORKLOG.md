@@ -295,3 +295,23 @@ The orchestrator will pick up Issue #40 on next scheduled run and spawn an imple
 None - waiting for implementation worker to complete.
 
 ---
+### 2026-05-07 14:22 UTC - Implementation Worker Complete
+
+**PR Created:**
+- [PR #41 - feat: implement pending join request approval flow for workspaces](https://github.com/jpshackelford/voice-relay/pull/41)
+- Fixes [Issue #40](https://github.com/jpshackelford/voice-relay/issues/40)
+
+**Status:** Ready for review
+- All CI checks passing ✅
+- 30 new tests for JoinRequestRepository
+- 406 server tests pass, 133 client tests pass
+
+**Implementation Summary:**
+- Database migration (009_join_requests.ts)
+- JoinRequestRepository with approve/deny/cancel/expire
+- 4 API endpoints: request-join, approve, deny, list requests
+- 3 WebSocket message types: join-request, join-response, join-resolved
+- 2 UI components: WaitingForApproval, JoinRequestNotification
+- Full integration in SessionView
+
+---
