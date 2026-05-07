@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileMode } from '../components/MobileMode';
@@ -187,27 +187,50 @@ export function SessionView() {
 
   // Handle join-resolved message (for pending join request flow)
   const handleJoinResolvedMessage = useCallback((message: JoinResolvedMessage) => {
-    autoJoin.handleJoinResolved(message);
+    try {
+      autoJoin.handleJoinResolved(message);
+    } catch (err) {
+      console.error('[SessionView] Failed to handle join-resolved:', err);
+    }
   }, [autoJoin.handleJoinResolved]);
 
   // Join request state for kiosk (owner) devices - use refs to avoid circular deps
   const [pendingJoinRequests, setPendingJoinRequests] = useState<JoinRequestMessage['request'][]>([]);
   
+  // Track timeout IDs for cleanup on unmount
+  const joinRequestTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      joinRequestTimeoutsRef.current.forEach(clearTimeout);
+      joinRequestTimeoutsRef.current.clear();
+    };
+  }, []);
+  
   // Handle join-request message (for kiosk to receive join requests)
   const handleJoinRequestMessage = useCallback((message: JoinRequestMessage) => {
-    // Only handle on kiosk mode devices (owners)
-    if (workspace?.isOwner) {
-      setPendingJoinRequests(prev => {
-        if (prev.some(r => r.id === message.request.id)) {
-          return prev;
-        }
-        return [...prev, message.request];
-      });
-      
-      // Auto-remove after 5 minutes (expiry)
-      setTimeout(() => {
-        setPendingJoinRequests(prev => prev.filter(r => r.id !== message.request.id));
-      }, 5 * 60 * 1000);
+    try {
+      // Only handle on kiosk mode devices (owners)
+      if (workspace?.isOwner) {
+        setPendingJoinRequests(prev => {
+          // Don't add or create timer for duplicates
+          if (prev.some(r => r.id === message.request.id)) {
+            return prev;
+          }
+          
+          // Register auto-remove timer only for new requests
+          const timeoutId = setTimeout(() => {
+            setPendingJoinRequests(p => p.filter(r => r.id !== message.request.id));
+            joinRequestTimeoutsRef.current.delete(message.request.id);
+          }, 5 * 60 * 1000);
+          joinRequestTimeoutsRef.current.set(message.request.id, timeoutId);
+          
+          return [...prev, message.request];
+        });
+      }
+    } catch (err) {
+      console.error('[SessionView] Failed to handle join-request:', err);
     }
   }, [workspace?.isOwner]);
 
@@ -225,16 +248,27 @@ export function SessionView() {
     onJoinRequestMessage: handleJoinRequestMessage,
   });
 
+  // Helper to clear timeout for a request
+  const clearRequestTimeout = useCallback((requestId: string) => {
+    const timeoutId = joinRequestTimeoutsRef.current.get(requestId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      joinRequestTimeoutsRef.current.delete(requestId);
+    }
+  }, []);
+
   // Approve/deny join requests (kiosk only)
   const handleApproveRequest = useCallback((requestId: string) => {
     sendJoinResponse({ type: 'join-response', requestId, approved: true });
+    clearRequestTimeout(requestId);
     setPendingJoinRequests(prev => prev.filter(r => r.id !== requestId));
-  }, [sendJoinResponse]);
+  }, [sendJoinResponse, clearRequestTimeout]);
 
   const handleDenyRequest = useCallback((requestId: string) => {
     sendJoinResponse({ type: 'join-response', requestId, approved: false });
+    clearRequestTimeout(requestId);
     setPendingJoinRequests(prev => prev.filter(r => r.id !== requestId));
-  }, [sendJoinResponse]);
+  }, [sendJoinResponse, clearRequestTimeout]);
 
   const handleModeChange = (newMode: DeviceMode) => {
     setMode(newMode);
