@@ -717,3 +717,44 @@ Replaced the static join code display in WorkspaceHome Settings with a shareable
 **CI Note:** GitHub Actions runners are experiencing issues (jobs fail immediately without runner assignment). This appears to be a transient infrastructure issue affecting the entire repository. Local tests confirm all code changes are valid.
 
 **All review threads replied to and resolved.**
+
+---
+### 2026-05-07 03:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ccb20f` | review | PR #36 - Invite link feature | finished ✓ |
+| `cf503aa` | implementation | Issue #33 | finished ✓ |
+
+⏳ **Waiting** - PR #36 blocked by CI infrastructure issues
+
+**Current State:**
+- [PR #36](https://github.com/jpshackelford/voice-relay/pull/36): Ready for merge, all review threads resolved
+  - CI Status: ❌ RED (runner infrastructure issue - jobs fail immediately without runner assignment)
+  - Review: "Acceptable" - all feedback addressed in commit `b1f5cbe`
+  - Local tests: All passing (122 client, 376 server) per previous worker
+  - Mergeable: YES
+- Issues needing expansion: #22 (blocked - needs-split, skip)
+- Ready issues: #33 (priority:high, PR #36 in progress), #28 (priority:medium)
+
+**Actions Taken:**
+- ✅ Archived 3 worklog entries older than 6hr productive window
+- ✅ Attempted CI rerun (failed again due to runner issues)
+- ⏳ Cannot spawn merge worker until CI passes
+
+**CI Issue Details:**
+GitHub Actions runners are not picking up jobs - all recent runs complete in ~10s with empty `runner_name` and no steps executed. This appears to be an account-level issue (possibly exhausted minutes/quota).
+
+**Human Attention Needed:**
+Consider one of:
+1. Wait for GitHub Actions to recover (if transient)
+2. Check GitHub Actions billing/quota status
+3. Manually merge PR #36 if confident (local tests passed)
+
+---
