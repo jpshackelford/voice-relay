@@ -123,10 +123,26 @@ function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
   const jwtSecret = process.env.JWT_SECRET;
+  const testAuthSecret = process.env.TEST_AUTH_SECRET;
 
-  if (!githubClientId || !githubClientSecret || !jwtSecret) {
-    console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or JWT_SECRET - auth disabled');
+  // For testing: If TEST_AUTH_SECRET is set but GitHub credentials are missing,
+  // use placeholder credentials. This allows the test auth endpoint to work
+  // without requiring real GitHub OAuth setup.
+  const useTestMode = testAuthSecret && jwtSecret && (!githubClientId || !githubClientSecret);
+
+  // Note: useTestMode requires jwtSecret to be truthy, so this check is sufficient
+  if (!jwtSecret) {
+    console.log('[Auth] Missing JWT_SECRET - auth disabled');
     return null;
+  }
+
+  if (!githubClientId || !githubClientSecret) {
+    if (useTestMode) {
+      console.log('[Auth] Using test mode - TEST_AUTH_SECRET is set, GitHub OAuth disabled');
+    } else {
+      console.log('[Auth] Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET - auth disabled');
+      return null;
+    }
   }
 
   const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '7d';
@@ -143,9 +159,21 @@ function getAuthConfig(): AuthConfig | null {
 
   const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
 
+  // SECURITY: jwtSecret must be set at this point - the early return at lines 133-136
+  // handles the missing case. Never use a fallback value for JWT secrets.
+  if (!jwtSecret) {
+    // This should be unreachable, but guard against future refactoring
+    throw new Error('[Auth] JWT_SECRET is required but not set');
+  }
+
   return {
-    githubClientId,
-    githubClientSecret,
+    // In test mode (TEST_AUTH_SECRET set, GitHub credentials missing), use
+    // placeholder values for GitHub OAuth. The GitHub OAuth routes will fail
+    // but that's expected - we only need the test-session endpoint.
+    // IMPORTANT: TEST_AUTH_SECRET requires JWT_SECRET to be explicitly set;
+    // test mode does NOT bypass the JWT secret requirement.
+    githubClientId: githubClientId || 'test-mode-placeholder',
+    githubClientSecret: githubClientSecret || 'test-mode-placeholder',
     jwtSecret,
     jwtExpiresIn,
     callbackUrl: `${baseUrl}/auth/github/callback`,
