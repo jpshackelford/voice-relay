@@ -910,3 +910,34 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 **Housekeeping:**
 - Archived 1 worklog entry older than 6hr productive window
 
+---
+### 2026-05-07 00:40 UTC - Review Worker (`1941fd7`)
+
+✅ **Addressed Final Review Feedback on PR #35**
+
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: **Ready for review** ✅ (all threads resolved)
+
+**Review Threads Addressed (2 remaining):**
+
+1. **🟡 'bug' label not verified to exist** → Fixed in `d450d30`
+   - Removed 'bug' from labels array, now only uses 'ci-failure'
+   - 'ci-failure' is guaranteed to exist from the "Ensure labels exist" step
+
+2. **🟠 Rollback script lacks error handling** → Fixed in `b538906`
+   - Added `set -e` to the rollback SSH script
+   - Script now exits immediately on first command failure
+   - Failures trigger the "Update issue on rollback failure" step
+   - Prevents silent failures in git fetch, npm ci, or systemctl restart
+
+**Commits:**
+- `d450d30` - fix(ci): remove unverified 'bug' label from failure issues
+- `b538906` - fix(ci): add error handling to rollback script
+
+**CI:** All checks passing ✅
+**All review threads replied to and resolved.**
+
+**Learnings:**
+- Remote SSH scripts need `set -e` for defensive error handling - failures can be silent otherwise
+- Only use GitHub labels that are verified to exist or created earlier in the workflow
+
