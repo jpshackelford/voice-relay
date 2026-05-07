@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, JoinResponseMessage } from '../types';
 import { storeDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
@@ -12,9 +12,11 @@ interface UseWebSocketOptions {
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
+  onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
+  onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -25,12 +27,16 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onHistoryMessageRef = useRef(onHistoryMessage);
   const onDisplayMessageRef = useRef(onDisplayMessage);
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
+  const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
+  const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
 
   // Keep refs up to date
   onTextMessageRef.current = onTextMessage;
   onHistoryMessageRef.current = onHistoryMessage;
   onDisplayMessageRef.current = onDisplayMessage;
   onAIStatusMessageRef.current = onAIStatusMessage;
+  onJoinRequestMessageRef.current = onJoinRequestMessage;
+  onJoinResolvedMessageRef.current = onJoinResolvedMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -97,6 +103,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'ai-status':
             onAIStatusMessageRef.current?.(message);
             break;
+          case 'join-request':
+            onJoinRequestMessageRef.current?.(message);
+            break;
+          case 'join-resolved':
+            onJoinResolvedMessageRef.current?.(message);
+            break;
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err);
@@ -154,5 +166,11 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
-  return { connected, devices, currentSession, sendText, updateDevice };
+  const sendJoinResponse = useCallback((response: JoinResponseMessage) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(response));
+    }
+  }, []);
+
+  return { connected, devices, currentSession, sendText, updateDevice, sendJoinResponse };
 }

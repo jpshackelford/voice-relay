@@ -26,7 +26,8 @@ export interface DisplayContent {
 export type ClientMessage =
   | RegisterMessage
   | UpdateDeviceMessage
-  | TextMessage;
+  | TextMessage
+  | JoinResponseMessage;
 
 export interface RegisterMessage {
   type: 'register';
@@ -61,13 +62,25 @@ export interface TextMessage {
   partial: boolean;
 }
 
+/**
+ * Owner device → Server: Approve/deny a join request.
+ * Sent from kiosk when owner clicks approve/deny button.
+ */
+export interface JoinResponseMessage {
+  type: 'join-response';
+  requestId: string;
+  approved: boolean;
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
   | DeviceListMessage
   | RelayedTextMessage
   | HistoryMessage
-  | DisplayMessage;
+  | DisplayMessage
+  | JoinRequestMessage
+  | JoinResolvedMessage;
 
 export interface DisplayMessage {
   type: 'display';
@@ -115,4 +128,41 @@ export interface RelayedTextMessage {
   senderName: string;
   text: string;
   partial: boolean;
+}
+
+/**
+ * Server → Owner's kiosk devices: New join request notification.
+ * Sent when a user requests to join a workspace where allowAutoJoin=false.
+ */
+export interface JoinRequestMessage {
+  type: 'join-request';
+  request: {
+    id: string;
+    workspaceId: string;
+    user: {
+      id: string;
+      username: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+    };
+    createdAt: string;
+  };
+}
+
+/**
+ * Server → Requesting user: Join request resolved (approved/denied/expired).
+ * Sent to the mobile device that initiated the join request.
+ */
+export interface JoinResolvedMessage {
+  type: 'join-resolved';
+  requestId: string;
+  approved: boolean;
+  /** Workspace info, only if approved */
+  workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  /** Error message, only if denied/expired */
+  error?: string;
 }

@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
+import { WaitingForApproval } from '../components/WaitingForApproval';
+import { JoinRequestStack } from '../components/JoinRequestNotification';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
-import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage } from '../types';
 
 interface WorkspaceInfo {
   id: string;
@@ -108,6 +110,7 @@ export function SessionView() {
   // Encapsulated in custom hook for better separation of concerns
   const autoJoin = useWorkspaceAutoJoin({
     workspaceId,
+    deviceId,
     isAuthenticated,
     workspaceErrorInfo,
     ensureValidToken,
@@ -183,8 +186,34 @@ export function SessionView() {
     }
   }, []);
 
+  // Handle join-resolved message (for pending join request flow)
+  const handleJoinResolvedMessage = useCallback((message: JoinResolvedMessage) => {
+    autoJoin.handleJoinResolved(message);
+  }, [autoJoin.handleJoinResolved]);
+
+  // Join request state for kiosk (owner) devices - use refs to avoid circular deps
+  const [pendingJoinRequests, setPendingJoinRequests] = useState<JoinRequestMessage['request'][]>([]);
+  
+  // Handle join-request message (for kiosk to receive join requests)
+  const handleJoinRequestMessage = useCallback((message: JoinRequestMessage) => {
+    // Only handle on kiosk mode devices (owners)
+    if (workspace?.isOwner) {
+      setPendingJoinRequests(prev => {
+        if (prev.some(r => r.id === message.request.id)) {
+          return prev;
+        }
+        return [...prev, message.request];
+      });
+      
+      // Auto-remove after 5 minutes (expiry)
+      setTimeout(() => {
+        setPendingJoinRequests(prev => prev.filter(r => r.id !== message.request.id));
+      }, 5 * 60 * 1000);
+    }
+  }, [workspace?.isOwner]);
+
   // Connect WebSocket with specific session ID
-  const { connected, devices, sendText, updateDevice } = useWebSocket({
+  const { connected, devices, sendText, updateDevice, sendJoinResponse } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
     mode,
@@ -193,7 +222,20 @@ export function SessionView() {
     onTextMessage: handleTextMessage,
     onHistoryMessage: handleHistoryMessage,
     onDisplayMessage: handleDisplayMessage,
+    onJoinResolvedMessage: handleJoinResolvedMessage,
+    onJoinRequestMessage: handleJoinRequestMessage,
   });
+
+  // Approve/deny join requests (kiosk only)
+  const handleApproveRequest = useCallback((requestId: string) => {
+    sendJoinResponse({ type: 'join-response', requestId, approved: true });
+    setPendingJoinRequests(prev => prev.filter(r => r.id !== requestId));
+  }, [sendJoinResponse]);
+
+  const handleDenyRequest = useCallback((requestId: string) => {
+    sendJoinResponse({ type: 'join-response', requestId, approved: false });
+    setPendingJoinRequests(prev => prev.filter(r => r.id !== requestId));
+  }, [sendJoinResponse]);
 
   const handleModeChange = (newMode: DeviceMode) => {
     setMode(newMode);
@@ -265,14 +307,24 @@ export function SessionView() {
     );
   }
 
-  // Auto-join failed
-  if (autoJoin.attempted && autoJoin.result.success === false) {
+  // Auto-join failed (but not due to pending request)
+  if (autoJoin.attempted && autoJoin.result.success === false && !autoJoin.pendingRequest) {
     return (
       <div className="workspace-error">
         <h2>⚠️ {autoJoin.result.error || 'Failed to join workspace'}</h2>
         <p>Unable to automatically join this workspace.</p>
         <button onClick={() => navigate('/dashboard')}>← Go to Dashboard</button>
       </div>
+    );
+  }
+
+  // Show waiting for approval overlay if there's a pending join request
+  if (autoJoin.pendingRequest) {
+    return (
+      <WaitingForApproval
+        request={autoJoin.pendingRequest}
+        onCancel={autoJoin.cancelRequest}
+      />
     );
   }
 
@@ -324,12 +376,28 @@ export function SessionView() {
     </div>
   ) : null;
 
+  // Convert pending join requests to the format expected by JoinRequestStack
+  const joinRequestsForStack = pendingJoinRequests.map(r => ({
+    id: r.id,
+    workspaceId: r.workspaceId,
+    user: r.user,
+    createdAt: r.createdAt,
+  }));
+
   // Render kiosk or mobile mode based on auto-detected/current mode
   if (mode === 'kiosk') {
     return (
       <>
         {reconnectBanner}
         {joinedBanner}
+        {/* Show join request notifications for workspace owner */}
+        {workspace?.isOwner && (
+          <JoinRequestStack
+            requests={joinRequestsForStack}
+            onApprove={handleApproveRequest}
+            onDeny={handleDenyRequest}
+          />
+        )}
         <KioskMode
           deviceId={deviceId}
           displayName={displayName}

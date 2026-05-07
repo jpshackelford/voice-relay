@@ -38,7 +38,14 @@ export interface TextMessage {
   partial: boolean;
 }
 
-export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage;
+/** Owner device → Server: Approve/deny a join request */
+export interface JoinResponseMessage {
+  type: 'join-response';
+  requestId: string;
+  approved: boolean;
+}
+
+export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage;
 
 // Messages from server to client
 export interface SessionInfo {
@@ -87,7 +94,44 @@ export interface AIStatusMessage {
   conversationId?: string;
 }
 
-export type ServerMessage = RegisteredMessage | DeviceListMessage | RelayedTextMessage | HistoryMessage | DisplayMessage | AIStatusMessage;
+/** Server → Owner's kiosk devices: New join request notification */
+export interface JoinRequestMessage {
+  type: 'join-request';
+  request: {
+    id: string;
+    workspaceId: string;
+    user: {
+      id: string;
+      username: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+    };
+    createdAt: string;
+  };
+}
+
+/** Server → Requesting user: Join request resolved */
+export interface JoinResolvedMessage {
+  type: 'join-resolved';
+  requestId: string;
+  approved: boolean;
+  workspace?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  error?: string;
+}
+
+export type ServerMessage = 
+  | RegisteredMessage 
+  | DeviceListMessage 
+  | RelayedTextMessage 
+  | HistoryMessage 
+  | DisplayMessage 
+  | AIStatusMessage
+  | JoinRequestMessage
+  | JoinResolvedMessage;
 
 export interface Utterance {
   id: string;
