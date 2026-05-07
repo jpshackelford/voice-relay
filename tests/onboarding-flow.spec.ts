@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page, BrowserContext } from '@playwright/test';
 import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput } from './utils/auth-helper';
 
 /**
@@ -18,7 +18,25 @@ import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findM
  * GitHub Issue: #43
  */
 
+// Timeout constants (in milliseconds)
+const WORKSPACE_REDIRECT_TIMEOUT = 15000;
+const ELEMENT_VISIBLE_TIMEOUT = 10000;
+const MESSAGE_APPEAR_TIMEOUT = 5000;
+const CONNECTION_STABLE_TIMEOUT = 20000;
+const AUTH_FLOW_TIMEOUT = 5000;
+
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
+
+/**
+ * Helper: Authenticate and navigate to workspace
+ * Reduces duplication across tests that need authenticated workspace access
+ */
+async function authenticateAndNavigateToWorkspace(page: Page, baseURL: string, secret: string): Promise<void> {
+  const storageState = await getAuthState(baseURL, secret);
+  await page.context().addCookies(storageState.cookies);
+  await page.goto('/dashboard');
+  await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: WORKSPACE_REDIRECT_TIMEOUT });
+}
 
 test.describe('User Onboarding Flow', () => {
   // Skip all tests if no auth secret
@@ -57,37 +75,25 @@ test.describe('User Onboarding Flow', () => {
     await expect(page.getByRole('button', { name: /Sign in with GitHub/i })).toBeVisible();
 
     // =====================
-    // STEP 3: Authenticate via test-session endpoint
+    // STEP 3-5: Authenticate and navigate to workspace
     // =====================
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-
-    // =====================
-    // STEP 4: Navigate to dashboard (triggers redirect chain)
-    // =====================
-    await page.goto('/dashboard');
-
-    // =====================
-    // STEP 5: Verify redirect to workspace home
-    // =====================
-    // Should redirect to /workspace/{uuid} format
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
 
     // =====================
     // STEP 6: Verify workspace home elements
     // =====================
     // Wait for Devices heading
-    await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
     
     // Wait for Sessions heading
-    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
 
     // =====================
     // STEP 7: Wait for auto-created session
     // =====================
     // The workspace auto-creates a session when none exist
     const viewButton = page.getByRole('button', { name: /view/i });
-    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await expect(viewButton).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
 
     // =====================
     // STEP 8: Enter the session
@@ -97,13 +103,13 @@ test.describe('User Onboarding Flow', () => {
     // =====================
     // STEP 9: Verify session view URL
     // =====================
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: 10000 });
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: ELEMENT_VISIBLE_TIMEOUT });
 
     // =====================
     // STEP 10: Verify WebSocket connected
     // =====================
     // Wait for connection indicator to show connected state
-    await waitForStableConnection(page, 20000);
+    await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
     // Verify connected indicator is visible
     await expect(page.locator('.connection-indicator.connected, .connection-status.connected')).toBeVisible();
@@ -121,12 +127,10 @@ test.describe('User Onboarding Flow', () => {
     // =====================
     // STEP 12: Verify message appears
     // =====================
-    // Check for final message with "You:" prefix (not partial)
-    const ownMessage = page.locator('.kiosk-message.final, .message.final').filter({ hasText: 'You:' });
-    await expect(ownMessage.first()).toBeVisible({ timeout: 5000 });
-    
-    // Verify the message content appears in a final message
-    await expect(page.locator('.kiosk-message.final, .message.final').filter({ hasText: 'Hello world!' }).first()).toBeVisible();
+    // Verify message appears with "You:" prefix and content
+    const messageWithContent = page.locator('.kiosk-message.final, .message.final')
+      .filter({ hasText: 'You: Hello world!' });
+    await expect(messageWithContent.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
 
   // =====================
@@ -165,15 +169,8 @@ test.describe('User Onboarding Flow', () => {
       return;
     }
 
-    // Authenticate
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-
-    // Navigate to dashboard
-    await page.goto('/dashboard');
-
-    // Should redirect to workspace URL format
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    // Authenticate and navigate to workspace
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
   });
 
   test('workspace shows auto-created session', async ({ page }) => {
@@ -182,20 +179,15 @@ test.describe('User Onboarding Flow', () => {
       return;
     }
 
-    // Authenticate
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-
-    // Navigate to dashboard → workspace
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    // Authenticate and navigate to workspace
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
 
     // Wait for workspace elements
-    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
 
     // Verify auto-created session is visible
     const viewButton = page.getByRole('button', { name: /view/i });
-    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await expect(viewButton).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
   });
 
   test('user can send message in session', async ({ page }) => {
@@ -207,28 +199,26 @@ test.describe('User Onboarding Flow', () => {
     }
 
     // Authenticate and navigate to workspace
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
 
     // Enter session
     const viewButton = page.getByRole('button', { name: /view/i });
-    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await expect(viewButton).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
     await viewButton.first().click();
 
     // Wait for session and WebSocket connection
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: 10000 });
-    await waitForStableConnection(page, 20000);
+    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: ELEMENT_VISIBLE_TIMEOUT });
+    await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
     // Send message
     const { input, sendBtn } = await findMessageInput(page);
     await input.fill('Test message');
     await sendBtn.click();
 
-    // Verify message appears
-    const ownMessage = page.locator('.kiosk-message.final, .message.final').filter({ hasText: 'You:' });
-    await expect(ownMessage.first()).toBeVisible({ timeout: 5000 });
+    // Verify message appears with content
+    const messageWithContent = page.locator('.kiosk-message.final, .message.final')
+      .filter({ hasText: 'You: Test message' });
+    await expect(messageWithContent.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
 
   // =====================
@@ -265,18 +255,11 @@ test.describe('User Onboarding Flow', () => {
       return;
     }
 
-    // Authenticate
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-
-    // Navigate to dashboard
-    await page.goto('/dashboard');
-
-    // Wait for redirect to workspace
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    // Authenticate and navigate to workspace
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
 
     // Verify key workspace elements
-    await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
     await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible();
     
     // Verify user info area exists (sign out button indicates authenticated state)
@@ -294,28 +277,23 @@ test.describe('User Onboarding Flow', () => {
     // Set viewport to trigger kiosk mode (>= 768px width)
     await page.setViewportSize({ width: 1200, height: 800 });
 
-    // Authenticate
-    const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
-    await page.context().addCookies(storageState.cookies);
-
-    // Navigate through the flow
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+$/, { timeout: 15000 });
+    // Authenticate and navigate to workspace
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
 
     // Wait for and click the session view button
     const viewButton = page.getByRole('button', { name: /view/i });
-    await expect(viewButton).toBeVisible({ timeout: 10000 });
+    await expect(viewButton).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
     await viewButton.first().click();
 
     // Wait for session view
     await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/);
 
     // Wait for connection to stabilize
-    await waitForStableConnection(page, 20000);
+    await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
     // Verify QR code is present in kiosk mode
     const qrCode = page.locator('.qr-code-container, .qr-code, canvas');
-    await expect(qrCode).toBeVisible({ timeout: 5000 });
+    await expect(qrCode).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
 });
 
@@ -333,9 +311,6 @@ test.describe('Authentication Flow', () => {
 
     // Wait for navigation to /auth/github endpoint
     // The server will redirect to GitHub OAuth or back with error if not configured
-    await page.waitForURL(/\/auth\/github/, { timeout: 5000 });
-
-    // Verify we reached the auth endpoint
-    expect(page.url()).toContain('/auth/github');
+    await page.waitForURL(/\/auth\/github/, { timeout: AUTH_FLOW_TIMEOUT });
   });
 });
