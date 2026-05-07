@@ -522,3 +522,27 @@ From lxa status: `oRCFRC green ready 💬7`
 - PR slot: Occupied (review worker running)
 
 ---
+### 2026-05-07 16:38 UTC - Review Worker Complete (Round 5)
+
+✅ **All 3 review threads addressed and resolved**
+
+**Changes Made:**
+1. **Missing Expiration Check:** Added `isExpired()` check before approve/deny operations in `router.ts`. If expired, calls `expire()` to update DB and returns 400 error.
+2. **WebSocket Error Handling:** Added try-catch around all `ws.send()` calls:
+   - `broadcastResolved` helper (line 575)
+   - `onJoinRequest` callback (line 726)
+   - `onJoinResolved` callback (line 788)
+3. **No Broadcast Feedback:** Added `console.warn` when `sentCount === 0` after attempting kiosk broadcast. Provides observability for debugging when no kiosks are connected.
+
+**Commit:**
+- `ee5c4fb` - fix: address review feedback for join request flow
+
+**Status:** PR #41 marked ready for review
+- Build: ✅ Pass
+- Server tests: 406 pass
+- Client tests: 133 pass
+- All 3 review threads resolved ✅
+
+**Next:** Awaiting final review or merge approval
+
+---
