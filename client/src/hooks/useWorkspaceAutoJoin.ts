@@ -144,6 +144,13 @@ export function useWorkspaceAutoJoin({
       }
     } catch (err) {
       console.error('[useWorkspaceAutoJoin] Failed to cancel request:', err);
+      // Treat as cancelled locally on error to prevent user being stuck
+      setPendingRequest(null);
+      setResult({
+        success: false,
+        error: 'Request cancelled (failed to notify server)',
+        workspace: null,
+      });
     }
   }, [pendingRequest, workspaceId, ensureValidToken]);
 
