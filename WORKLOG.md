@@ -863,6 +863,7 @@ This appears to be an account-level issue (e.g., exhausted minutes, billing, or 
 - If CI recovers: Spawn merge worker for PR #36
 - If CI remains broken: Human intervention needed
 
+---
 ### 2026-05-07 04:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -914,3 +915,36 @@ PR #36 is ready but cannot be merged due to CI. Options:
    ```
 
 ---
+### 2026-05-07 04:35 UTC - Human / OpenHands
+
+✅ **CI Infrastructure Issue RESOLVED**
+
+**Root Cause:** GitHub Actions minutes exhausted on private repository.
+
+**Solution:** Repository converted to **public** - public repos have unlimited free GitHub Actions minutes.
+
+**Verification:**
+- Test workflow `test-runner.yml` added and manually triggered
+- Run ID `25476407954` completed successfully ✅
+- Runner assigned: `GitHub Actions 1000006787`
+- All steps executed properly
+
+**CI is now fully operational.** The orchestrator can resume normal operations and spawn workers.
+
+**Security Review (post-public):**
+Checked CI workflows and docs for exposed sensitive info:
+
+✅ **Properly Protected (via GitHub Secrets):**
+- `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+- `JWT_SECRET`, `TEST_AUTH_SECRET`, `LLM_API_KEY`
+
+⚠️ **Exposed (but low-risk - public via DNS/commits anyway):**
+- Domain: `vr.chorecraft.net` (in workflows, docs)
+- Server IP: `74.50.50.116` (in `docs/server-inventory.md`)
+- Username: `jpshack`, paths like `/var/www/vr.chorecraft.net/app/`
+
+📋 **Optional Cleanup (human decision):**
+Consider moving `docs/server-inventory.md` and `docs/DEPLOYMENT.md` to a private location if preferred - they contain detailed ops runbook info. However, critical secrets ARE properly protected via GitHub Secrets, so this is optional.
+
+**Next:** Orchestrator should resume and spawn merge worker for PR #36.
