@@ -42,6 +42,7 @@ jobs:
             tests
             e2e
             deps
+            ci
           # Ensure subject doesn't start with uppercase
           subjectPattern: ^[a-z].+$
           subjectPatternError: |
