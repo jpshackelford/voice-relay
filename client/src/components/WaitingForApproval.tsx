@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import type { PendingJoinRequest } from '../hooks/useWorkspaceAutoJoin';
 
 interface WaitingForApprovalProps {
   /** Pending join request info */
   request: PendingJoinRequest;
   /** Cancel the pending request */
-  onCancel: () => void;
+  onCancel: () => Promise<void>;
 }
 
 /**
@@ -12,6 +13,18 @@ interface WaitingForApprovalProps {
  * to approve their join request.
  */
 export function WaitingForApproval({ request, onCancel }: WaitingForApprovalProps) {
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    if (cancelling) return;
+    setCancelling(true);
+    try {
+      await onCancel();
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <div className="waiting-for-approval-overlay">
       <div className="waiting-for-approval-card">
@@ -23,8 +36,12 @@ export function WaitingForApproval({ request, onCancel }: WaitingForApprovalProp
         <p className="waiting-hint">
           The workspace owner will see your request on their device
         </p>
-        <button className="cancel-request-btn" onClick={onCancel}>
-          Cancel Request
+        <button 
+          className="cancel-request-btn" 
+          onClick={handleCancel}
+          disabled={cancelling}
+        >
+          {cancelling ? 'Cancelling...' : 'Cancel Request'}
         </button>
       </div>
     </div>
