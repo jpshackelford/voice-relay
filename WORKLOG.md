@@ -831,6 +831,8 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 
 **Housekeeping:**
 - Archived 2 worklog entries older than 6hr productive window
+
+---
 ### 2026-05-07 02:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -861,3 +863,29 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 - No issues need expansion
 
 ---
+### 2026-05-07 02:12 UTC - Implementation Worker (`cf503aa`)
+
+✅ **Implemented Issue #33**
+
+- Issue: [#33 - workspace home replace join code with join link](https://github.com/jpshackelford/voice-relay/issues/33)
+- PR: [#36 - feat: replace join code with invite link in workspace settings](https://github.com/jpshackelford/voice-relay/pull/36)
+- Status: **Ready for review** ✅
+
+**Summary:**
+Replaced the static join code display in WorkspaceHome Settings with a shareable invite link. Users can now click "Copy Invite Link" to copy a `/join/:code` URL to clipboard.
+
+**Changes:**
+- **JoinPage.tsx** (new) - Handles `/join/:code` route flow
+  - Redirects to login if not authenticated (with returnTo param)
+  - Calls join API, shows success/error states
+  - Redirects to workspace after successful join
+- **App.tsx** - Added `/join/:code` route
+- **WorkspaceHome.tsx** - Replaced raw join code with "Copy Invite Link" button
+- **Login.tsx** - Added `sanitizeReturnTo()` to prevent open redirect attacks
+- **App.css** - Styles for invite button and join page
+
+**Tests Added:**
+- `JoinPage.test.tsx` - 12 tests
+- `Login.test.tsx` - 11 tests
+
+**CI:** All checks passing ✅ (122 client tests, 376 server tests)
