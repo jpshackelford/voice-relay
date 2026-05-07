@@ -863,3 +863,54 @@ This appears to be an account-level issue (e.g., exhausted minutes, billing, or 
 - If CI recovers: Spawn merge worker for PR #36
 - If CI remains broken: Human intervention needed
 
+### 2026-05-07 04:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Previous Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ccb20f` | review | PR #36 - Invite link feature | finished ✓ |
+| `cf503aa` | implementation | Issue #33 | finished ✓ |
+
+⏳ **Waiting** - PR #36 blocked by CI infrastructure issues (5th consecutive cycle)
+
+**Current State:**
+- [PR #36](https://github.com/jpshackelford/voice-relay/pull/36): Ready for merge, all review threads resolved
+  - Mergeable: YES (code review complete)
+  - Review: "Acceptable" - all feedback addressed ✅
+  - CI Status: ❌ **RED** (runner infrastructure issue continues)
+    - Attempted rerun: Run 25473476303 failed again in ~10s (no runner pickup)
+    - Owner deployed diagnostic workflow (bcbe7b1) - also failing
+- Open issues: #33 (priority:high, PR in progress), #28 (priority:medium), #22 (needs-split)
+- Expansion slot: Empty (no issues need expansion)
+
+**CI Infrastructure Issue (ongoing ~1.5 hours):**
+GitHub Actions runners continue failing to pick up jobs. All workflow runs complete immediately with:
+- Jobs fail in 2-10 seconds
+- No logs available (runner never executed)
+- Affects both `main` branch and PR branches
+- Owner's diagnostic workflow (`test-runner.yml`) also affected
+
+This is likely a GitHub Actions quota/billing or infrastructure issue.
+
+**⚠️ Human Attention Required:**
+PR #36 is ready but cannot be merged due to CI. Options:
+1. **Check billing:** https://github.com/jpshackelford/voice-relay/settings/billing
+2. **Wait** for GitHub Actions infrastructure to recover
+3. **Manual merge** if confident (local tests passed, review complete):
+   ```bash
+   gh pr merge 36 --squash --body "feat: replace join code with invite link in workspace settings
+
+   - Added /join/:code route with authenticated redirect flow
+   - Replaced raw join code display with 'Copy Invite Link' button
+   - Added error feedback when clipboard copy fails
+   - Added open redirect protection in login flow
+
+   Fixes #33"
+   ```
+
+---
