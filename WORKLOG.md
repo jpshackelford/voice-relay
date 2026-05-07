@@ -31,43 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-06 17:45 UTC - Implementation Worker
-
-✅ **Created: PR #29 - Auto-register first device when creating default workspace**
-
-- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
-- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
-- Status: Ready for review, CI green ✅
-
-**Work Done:**
-When a new user authenticates and a default workspace is created, their authenticating device is now automatically registered:
-
-1. **Server-side device detection** (`server/src/devices/device-utils.ts`):
-   - `detectDeviceType(userAgent)` - Parses User-Agent to identify device type
-   - `generateDeviceName(displayName, userAgent)` - Creates friendly names like "John's iPhone"
-
-2. **Auth router modification** (`server/src/auth/router.ts`):
-   - After workspace creation, auto-create first device using User-Agent detection
-   - Device token stored in httpOnly cookie (`voice_relay_device`)
-   - Works for both OAuth callback and test-session endpoint
-
-3. **Client-side cookie reading** (`client/src/utils/deviceToken.ts`):
-   - `getServerSetDeviceToken()` - Reads device info from server-set cookie
-   - `getStoredDeviceToken()` - Now checks for server-set cookie and migrates to localStorage
-
-**Tests:**
-- 14 unit tests for device detection and naming utilities
-- All server tests pass (362 tests)
-- All client tests pass (85 tests)
-
-**Acceptance Criteria Met:**
-- [x] Device auto-registered when workspace created
-- [x] Intelligent naming (user's name + device type)
-- [x] Secure device token in httpOnly cookie
-- [x] DeviceSetup skipped when valid token exists
-- [x] Device renaming works via existing endpoint
-
----
 ### 2026-05-06 18:04 UTC - Expansion Worker
 
 ✅ **Expanded Issue #28**
@@ -921,5 +884,29 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 
 **CI:** All checks passing ✅
 **All 5 review threads replied to and resolved.**
-
 ---
+### 2026-05-07 00:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1941fd7` | review | PR #35 - Auto rollback on smoke test failure | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: CI green, 2 unresolved review threads to address
+- Conversation: [`1941fd7`](https://app.all-hands.dev/conversations/1941fd77aad142edb117c7a9820a526d)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9e534c0` | review | PR #35 | finished ✓ |
+
+**Current State:**
+- [PR #35](https://github.com/jpshackelford/voice-relay/pull/35): `oRCFR green ready 💬2`
+- Open issues: #31 (being fixed by PR #35), #28 (ready), #33 (ready), #22 (needs-split)
+- No issues need expansion
+
+**Housekeeping:**
+- Archived 1 worklog entry older than 6hr productive window
+
