@@ -434,7 +434,14 @@ export async function findMessageInput(page: Page): Promise<MessageInputResult> 
   if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
     await drawerOpenBtn.click();
     // Wait for drawer animation and verify input becomes visible
-    await kioskInput.waitFor({ state: 'visible', timeout: 2000 });
+    try {
+      await kioskInput.waitFor({ state: 'visible', timeout: 2000 });
+    } catch (error) {
+      throw new Error(
+        'Drawer button was clicked but input did not appear. The drawer animation may have failed or taken longer than expected. ' +
+        `Original error: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     return {
       input: kioskInput,
       sendBtn: page.locator('.kiosk-input-row .send-btn-small, .kiosk-sidebar .send-btn-small'),
