@@ -345,3 +345,25 @@ None - waiting for implementation worker to complete.
 - Ready issues: #40 (has open PR)
 - Expansion slot: Empty (no issues need expansion)
 - PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 14:45 UTC - Review Worker Complete
+
+✅ **All 5 review threads addressed and resolved**
+
+**Changes Made:**
+1. **Security (owner auth):** Added detailed security note explaining kiosk architecture limitations. Physical access is the security boundary.
+2. **Memory Leak:** Added periodic cleanup with timestamp tracking for orphaned entries (every 10 min, 6 min max age).
+3. **Security (deviceId spoofing):** Track by `userId` (from JWT) instead of `deviceId`. Broadcast resolved to all mobile devices.
+4. **Complexity:** Extracted helper functions to reduce nesting to max 2 levels with early returns.
+5. **Race Condition:** Added timeout ID tracking in ref Map with cleanup on unmount/approve/deny.
+
+**Commits:**
+- `8066f43` - fix(security): track join requests by userId instead of deviceId
+- `e6b0a0d` - fix(client): prevent race condition in join request timeout cleanup
+
+**Status:** PR #41 marked ready for review
+- Build: ✅ Pass
+- Server tests: 406 pass
+- Client tests: 133 pass
+- All 5 review threads resolved ✅
