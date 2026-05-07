@@ -886,3 +886,40 @@ Enhanced `deploy.yml` workflow to automatically respond to smoke test failures:
 - Archived 4 worklog entries older than 6hr productive window
 
 ---
+### 2026-05-07 00:08 UTC - Review Worker (`9e534c0`)
+
+✅ **Addressed Review Feedback on PR #35**
+
+- PR: [#35 - feat(ci): add automatic rollback and issue filing on smoke test failure](https://github.com/jpshackelford/voice-relay/pull/35)
+- Status: **Ready for review** ✅
+
+**Review Threads Addressed (5 total):**
+
+1. **🔴 CRITICAL: Git user config missing for tag push** → Fixed in `30526bd`
+   - Added `git config user.name/email` before creating success tags
+
+2. **🟠 Tag parsing lacks validation** → Fixed in `724fd2d`
+   - Added `git rev-parse --verify` to validate extracted commit hash
+   - Prevents cryptic failures from malformed manual tags
+
+3. **🟠 Artifacts link missing in issue** → Fixed in `e5bedf3`
+   - Changed "Check the smoke test artifacts" to link directly to `${runUrl}#artifacts`
+
+4. **🟠 Rollback failure detection fragile** → Fixed in `7cfb5fb`
+   - Changed from checking specific output value to `failure() && has_rollback_target`
+   - Catches all failure scenarios (SSH, health check, or verification)
+
+5. **🟡 Rollback assumes stateless deploys** → Documented in `5120adb`
+   - Added comment explaining limitation for database migrations or server config changes
+
+**Commits:**
+- `30526bd` - fix(ci): add git user config before tag push
+- `724fd2d` - fix(ci): validate commit hash before rollback
+- `e5bedf3` - fix(ci): add direct link to artifacts in failure issue
+- `7cfb5fb` - fix(ci): improve rollback failure detection
+- `5120adb` - docs(ci): document stateless deployment assumption for rollback
+
+**CI:** All checks passing ✅
+**All 5 review threads replied to and resolved.**
+
+---
