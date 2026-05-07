@@ -1012,3 +1012,111 @@ Critical bug where all message sending fails due to FK constraint violation. The
 
 **Root Cause Summary:**
 The `session_devices` table has `FOREIGN KEY (device_id) REFERENCES devices(id)`. When `addDevice()` was called before the device existed in the `devices` table, SQLite threw `SQLITE_CONSTRAINT_FOREIGNKEY`, silently breaking device registration and all message relay.
+
+---
+### 2026-05-06 17:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `17b26ba` | merge | PR #26 - Fix session device FK constraint | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+**PR:** [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+**Fixes:** Issue #23 - Sending messages to a session does not work (priority:high, BUG)
+**Conversation:** [`17b26ba`](https://app.all-hands.dev/conversations/17b26bada3964ae4a91d75a70d6f5e7a)
+
+**Current State:**
+- PR #26: `oC green ready --` (CI green, no unresolved threads, MERGEABLE)
+- Open issues: #23 (being fixed by PR #26), #22 (needs-split), #20 (ready, priority:medium)
+- Previous PRs: #25 merged (Issue #21 closed ✅)
+
+**Action Taken:**
+Spawned merge worker to finalize and merge PR #26, which fixes critical bug where message sending fails due to FK constraint violation in session_devices table.
+
+---
+### 2026-05-06 17:10 UTC - Merge Worker (`17b26ba`)
+
+✅ **Merged: PR #26 - Fix Session Device FK Constraint**
+
+- PR: [#26 - fix(server): register device before adding to session](https://github.com/jpshackelford/voice-relay/pull/26)
+- Issue: [#23 - Sending messages to a session does not work](https://github.com/jpshackelford/voice-relay/issues/23) → **CLOSED** ✅
+- Merge: Squash merged to main
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**What Was Fixed:**
+Critical bug where all message sending was broken when using SQLite storage with sessions enabled. The `session_devices` table has a FK constraint to `devices(id)`, and the original code tried to add a device to a session BEFORE registering it in the devices table, causing `SQLITE_CONSTRAINT_FOREIGNKEY` error.
+
+**Changes Merged:**
+- `server/src/index.ts` - Reordered device registration before session membership
+- `server/src/sessions/session-repository.test.ts` - Added FK constraint regression test
+
+**Verification:**
+- CI: All 334 tests passing
+- Review: 🟢 Good taste (LOW risk)
+- Issue #23 auto-closed via "Fixes #23" in commit message
+
+---
+### 2026-05-06 17:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #27**
+
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`, `enhancement`
+
+**Summary:**
+Added technical detail to implement workspace-level OpenHands API key management. The enhancement covers:
+1. API key input UI in workspace settings (WorkspaceHome.tsx)
+2. Test Connection button to validate API key
+3. Encrypted storage using existing AES-256-GCM schema
+4. Integration with AI endpoints to use workspace-specific keys
+
+**Implementation Plan:**
+- Phase 1: Backend API key endpoints (PUT, POST /test)
+- Phase 2: AI integration with workspace key lookup
+- Phase 3: Frontend settings UI
+
+**Files Affected:**
+- `server/src/workspaces/encryption.ts` (NEW)
+- `server/src/workspaces/router.ts`
+- `server/src/openhands.ts`
+- `server/src/index.ts`
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/hooks/useWorkspaceSettings.ts`
+
+**Complexity:** Medium
+
+---
+### 2026-05-06 17:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #27**
+
+- Issue: [#27 - Workspace missing settings for OpenHands API Key](https://github.com/jpshackelford/voice-relay/issues/27)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`, `enhancement`
+
+**Summary:**
+Added technical detail to implement workspace-level OpenHands API key management. The enhancement covers:
+1. API key input UI in workspace settings (WorkspaceHome.tsx)
+2. Test Connection button to validate API key
+3. Encrypted storage using existing AES-256-GCM schema
+4. Integration with AI endpoints to use workspace-specific keys
+
+**Implementation Plan:**
+- Phase 1: Backend API key endpoints (PUT, POST /test)
+- Phase 2: AI integration with workspace key lookup
+- Phase 3: Frontend settings UI
+
+**Files Affected:**
+- `server/src/workspaces/encryption.ts` (NEW)
+- `server/src/workspaces/router.ts`
+- `server/src/openhands.ts`
+- `server/src/index.ts`
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/hooks/useWorkspaceSettings.ts`
+
+**Complexity:** Medium
