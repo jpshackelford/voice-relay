@@ -1,4 +1,4 @@
-import { test, expect, Page, BrowserContext } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput } from './utils/auth-helper';
 
 /**
@@ -23,7 +23,6 @@ const WORKSPACE_REDIRECT_TIMEOUT = 15000;
 const ELEMENT_VISIBLE_TIMEOUT = 10000;
 const MESSAGE_APPEAR_TIMEOUT = 5000;
 const CONNECTION_STABLE_TIMEOUT = 20000;
-const AUTH_FLOW_TIMEOUT = 5000;
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
 
@@ -86,7 +85,7 @@ test.describe('User Onboarding Flow', () => {
     await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
     
     // Wait for Sessions heading
-    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
+    await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
 
     // =====================
     // STEP 7: Wait for auto-created session
@@ -288,6 +287,9 @@ test.describe('User Onboarding Flow', () => {
     // Wait for session view
     await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/);
 
+    // Verify kiosk mode is active (check for kiosk-specific element)
+    await expect(page.locator('.kiosk-sidebar, .kiosk-input-row')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+
     // Wait for connection to stabilize
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
@@ -297,20 +299,8 @@ test.describe('User Onboarding Flow', () => {
   });
 });
 
-test.describe('Authentication Flow', () => {
-  test('GitHub OAuth button initiates auth flow', async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
-
-    // Find the GitHub login button
-    const githubButton = page.getByRole('button', { name: /Sign in with GitHub/i });
-    await expect(githubButton).toBeVisible();
-
-    // Click the button and verify navigation to auth endpoint
-    await githubButton.click();
-
-    // Wait for navigation to /auth/github endpoint
-    // The server will redirect to GitHub OAuth or back with error if not configured
-    await page.waitForURL(/\/auth\/github/, { timeout: AUTH_FLOW_TIMEOUT });
-  });
-});
+// Note: GitHub OAuth button test removed per review feedback.
+// The test only verified navigation to /auth/github which provides minimal value:
+// - The button presence is already tested in 'login page shows branding and sign-in button'
+// - Without actual OAuth credentials, the endpoint redirects back with error
+// - This test added maintenance burden without proving meaningful OAuth behavior
