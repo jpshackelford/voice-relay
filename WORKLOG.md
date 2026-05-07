@@ -859,3 +859,49 @@ Automation has been disabled to prevent unnecessary runs.
 3. Re-enable automation to resume the workflow
 
 ---
+### 2026-05-07 12:18 UTC - Investigation: Issue #22 "needs-split" Status
+
+🔍 **Investigation performed by AI agent (OpenHands) at user request**
+
+**Finding:** Issue #22 was partially implemented through related issues/PRs but never formally split.
+
+#### Phase A: Fix Owner's New Device Registration - ✅ COMPLETE
+
+The bug preventing owner's new device from registering was fixed through:
+
+| Issue/PR | Title | Status |
+|----------|-------|--------|
+| [#23](https://github.com/jpshackelford/voice-relay/issues/23) | Sending messages to a session does not work | ✅ Closed |
+| [PR #26](https://github.com/jpshackelford/voice-relay/pull/26) | fix(server): register device before adding to session | ✅ Merged |
+| [#20](https://github.com/jpshackelford/voice-relay/issues/20) | Auto add first device | ✅ Closed |
+| [PR #29](https://github.com/jpshackelford/voice-relay/pull/29) | feat: auto-register first device when creating default workspace | ✅ Merged |
+
+**Root Cause (Fixed):** Device registration failed due to FK constraint violation - devices were added to `session_devices` before existing in `devices` table.
+
+**Related Improvements Also Merged:**
+- [#12](https://github.com/jpshackelford/voice-relay/issues/12) / [PR #17](https://github.com/jpshackelford/voice-relay/pull/17) - QR code session join with auto-join workspace
+- [#18](https://github.com/jpshackelford/voice-relay/issues/18) - Security: signed/time-limited QR tokens
+- [#28](https://github.com/jpshackelford/voice-relay/issues/28) / [PR #39](https://github.com/jpshackelford/voice-relay/pull/39) - Auto-dismiss QR code when mobile joins
+
+#### Phase B: Pending Join Request Flow - ⏳ NOT IMPLEMENTED
+
+The approval workflow for non-owner users has NOT been implemented:
+- No `workspace_join_requests` table
+- No `/approve`, `/deny` endpoints
+- No WebSocket join-request messages
+- No "Waiting for approval" UI
+
+#### Actions Taken
+
+1. ✅ Added comment to [Issue #22](https://github.com/jpshackelford/voice-relay/issues/22#issuecomment-4397065058) documenting:
+   - Complete list of related issues/PRs that addressed Phase A
+   - Confirmation that Phase B is still pending
+   - Recommendation for next steps
+
+#### Recommendation
+
+- **Phase A**: Complete - no further work needed
+- **Phase B**: Should be extracted to a new dedicated issue if still desired
+- Issue #22 could be closed with Phase B extracted, or kept open for Phase B work only
+
+---
