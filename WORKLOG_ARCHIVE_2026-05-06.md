@@ -1157,3 +1157,132 @@ When a new user authenticates and a default workspace is created, their authenti
 - [x] Secure device token in httpOnly cookie
 - [x] DeviceSetup skipped when valid token exists
 - [x] Device renaming works via existing endpoint
+
+---
+### 2026-05-06 18:04 UTC - Expansion Worker
+
+✅ **Expanded Issue #28**
+
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`
+
+**Summary:**
+Added technical detail for improving kiosk display UX when mobile devices join a session. Currently the large QR code remains displayed even after devices have connected.
+
+**Enhancement Details:**
+1. When no mobile devices are connected → Show large centered QR code (current behavior)
+2. When 1+ mobile devices join → Transition QR to small (~90px) thumbnail in lower-right corner
+3. Display greeting message in main canvas area
+4. If all mobile devices disconnect → Return to large QR state
+
+**Technical Approach:**
+- Uses existing `devices` prop from WebSocket device-list messages
+- Derives `hasMobileConnected` from `devices.filter(d => d.mode === 'mobile').length > 0`
+- Client-side only - no server changes needed
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add conditional display logic
+- `client/src/components/QRCode.tsx` - Potentially add compact variant
+- `client/src/App.css` - Add `.display-greeting`, `.mini-qr-overlay` styles
+
+**Complexity:** Low
+
+---
+### 2026-05-06 18:04 UTC - Expansion Worker
+
+✅ **Expanded Issue #28**
+
+- Issue: [#28 - QR code display should be dismissed once a mobile device has joined](https://github.com/jpshackelford/voice-relay/issues/28)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`
+
+**Summary:**
+Added technical detail for improving kiosk display UX when mobile devices join a session. Currently the large QR code remains displayed even after devices have connected.
+
+**Enhancement Details:**
+1. When no mobile devices are connected → Show large centered QR code (current behavior)
+2. When 1+ mobile devices join → Transition QR to small (~90px) thumbnail in lower-right corner
+3. Display greeting message in main canvas area
+4. If all mobile devices disconnect → Return to large QR state
+
+**Technical Approach:**
+- Uses existing `devices` prop from WebSocket device-list messages
+- Derives `hasMobileConnected` from `devices.filter(d => d.mode === 'mobile').length > 0`
+- Client-side only - no server changes needed
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Add conditional display logic
+- `client/src/components/QRCode.tsx` - Potentially add compact variant
+- `client/src/App.css` - Add `.display-greeting`, `.mini-qr-overlay` styles
+
+**Complexity:** Low
+
+---
+### 2026-05-06 18:18 UTC - Review Worker
+
+✅ **Addressed Review Feedback: PR #29**
+
+- PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+- Issue: [#20 - Auto add first device](https://github.com/jpshackelford/voice-relay/issues/20)
+- Status: Ready for review, CI green ✅
+
+**Review Feedback Addressed:**
+
+1. **httpOnly Cookie Contradiction (CRITICAL SECURITY) - FIXED**
+   - Problem: PR claimed device tokens stored in httpOnly cookies, but client reads via document.cookie (mutually exclusive)
+   - Solution: Split cookie options - auth tokens remain httpOnly (XSS-safe), device cookies are NOT httpOnly since client needs to read device info
+   - Added comprehensive security documentation explaining why this is safe (device tokens have limited scope, auth tokens required for authenticated ops)
+
+2. **Empty Display Name Bug (CRITICAL UX) - FIXED**  
+   - Problem: When user has no display name, device shows as possessive "'s iPhone" instead of sensible fallback
+   - Solution: Added fallback in `generateDeviceName()` - now returns "My iPhone" etc. when no display name provided
+   - Updated tests to verify new behavior
+
+3. **Race Condition - DOCUMENTED**
+   - Not fixing: Very low probability edge case, harmless if duplicate workspaces created
+   - Added to PR description "Known Limitations" section
+
+4. **Silent Failure - DOCUMENTED**
+   - Not fixing: Device creation failure is intentionally non-blocking (users can still log in and add devices later)
+   - Added to PR description "Known Limitations" section
+
+**Commits:**
+- `d25ce74` - fix: handle empty display name in device naming
+- `1e18549` - fix: clarify device cookie is NOT httpOnly (security documentation)
+
+**Tests:** All passing (350 server tests, 85 client tests)
+
+---
+### 2026-05-06 18:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `25339c7` | review | PR #29 - Auto-register first device | **NEW** |
+| `d20ea4c` | implementation | Issue #30 - Smoke test fix | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** (PR Slot)
+   - PR: [#29 - feat: auto-register first device when creating default workspace](https://github.com/jpshackelford/voice-relay/pull/29)
+   - Addressing 2 review threads about cookie security
+   - Conversation: [`25339c7`](https://app.all-hands.dev/conversations/25339c715b1f4c8b9b33f21009ecf03e)
+
+2. **Implementation Worker** (Expansion Slot - treating bug fix as high priority)
+   - Issue: [#30 - fix(smoke): dashboard test fails due to Playwright strict mode](https://github.com/jpshackelford/voice-relay/issues/30) (priority:high)
+   - Bug blocking all CI - needs quick fix
+   - Conversation: [`d20ea4c`](https://app.all-hands.dev/conversations/d20ea4cf10b841e8a65b06de4c7d0de4)
+
+**Current State:**
+- PR #29: `oRCFRC green ready 💬2` (2 unresolved review threads)
+- Ready issues: #20 (in PR #29), #27, #28 (need priority assessment)
+- Issues needing expansion: #31 (enhancement - auto rollback)
+- Issues needing split: #22 (QR code join)
+
+**Action Taken:**
+- Labeled Issue #30 as `ready` + `priority:high` (well-detailed bug blocking CI)
+- Spawned review worker for PR #29 (2 cookie security threads)
+- Spawned implementation worker for Issue #30 (urgent bug fix)
