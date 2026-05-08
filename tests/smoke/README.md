@@ -86,6 +86,24 @@ SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.s
 
 > **Note**: The "new user joins workspace" scenario is not tested in smoke tests because they run against production with a single test user who is already a member of existing workspaces. The already-member redirect behavior is tested instead.
 
+### AI Integration Tests (`ai-integration.spec.ts`)
+
+| Test | Auth Required | Description |
+|------|---------------|-------------|
+| AI status endpoint | ✅ | Returns availability info |
+| Sparkle button visibility | ✅ | Visible when AI is available |
+| Connect to AI | ✅ | Shows connecting then connected state |
+| Send message to AI | ✅ | AI responds within timeout |
+| AI displays image | ✅ | Image appears on kiosk canvas |
+| AI displays markdown | ✅ | Markdown content renders on canvas |
+| Disconnect from AI | ✅ | Returns to inactive state |
+| Rapid toggle | ✅ | State not corrupted by rapid clicks |
+| AI unavailable | ✅ | Sparkle button hidden when no API key |
+| API error handling | ✅ | Proper errors for invalid requests |
+| Display API validation | ✅ | Validates required parameters |
+
+> **Note**: AI integration tests require a workspace with `OPENHANDS_API_KEY` configured and sufficient API quota. Tests gracefully skip when AI is unavailable. AI tests use longer timeouts (up to 120s) due to API response times.
+
 ## CI/CD Integration
 
 Add to your GitHub Actions workflow:

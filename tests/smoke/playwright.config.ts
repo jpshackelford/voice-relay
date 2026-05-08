@@ -10,10 +10,11 @@ import * as path from 'path';
  * Test files:
  * - smoke.spec.ts: Core health/auth/connectivity tests
  * - invite-link.spec.ts: Workspace invite link flow tests
+ * - ai-integration.spec.ts: AI assistant E2E tests (requires OPENHANDS_API_KEY)
  */
 export default defineConfig({
   testDir: '.',
-  testMatch: ['smoke.spec.ts', 'invite-link.spec.ts'],
+  testMatch: ['smoke.spec.ts', 'invite-link.spec.ts', 'ai-integration.spec.ts'],
   timeout: 30000,
   globalSetup: path.join(__dirname, 'auth.setup.ts'),
   use: {
