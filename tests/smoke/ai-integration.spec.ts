@@ -230,7 +230,7 @@ test.describe('AI Assistant Integration', () => {
       const displayRequest = await displayApiPromise;
       const requestBody = displayRequest.postDataJSON();
       expect(requestBody).toHaveProperty('type');
-      expect(['image', 'markdown']).toContain(requestBody.type);
+      expect(requestBody.type).toBe('image');
       expect(requestBody.content).toBeTruthy();
 
       // Verify image appears on canvas
