@@ -88,10 +88,9 @@ test.describe('Invite Link Flow', () => {
         page.getByRole('button', { name: /copied/i })
       ).toBeVisible({ timeout: 5000 });
       
-      // Read and verify clipboard content
+      // Read and verify clipboard content - validate complete URL structure
       const clipboardText = await page.evaluate(() => navigator.clipboard.readText());
-      expect(clipboardText).toMatch(/\/join\/.+/);
-      expect(clipboardText).toContain(BASE_URL.replace(/^https?:\/\//, '').split('/')[0] || 'join');
+      expect(clipboardText).toMatch(new RegExp(`^${BASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/join/[A-Za-z0-9_-]+$`));
     });
 
     test('invite link URL format is /join/{code}', async ({ page, context }) => {
