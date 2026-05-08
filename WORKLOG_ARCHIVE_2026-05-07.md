@@ -1168,3 +1168,169 @@ From lxa status: `oRCFRC green ready 💬7`
 - Ready issues: #40 (has open PR)
 - Expansion slot: Empty (no issues need expansion)
 - PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 16:10 UTC - Review Worker Complete (Round 4)
+
+✅ **All 7 review threads addressed and resolved**
+
+**Changes Made:**
+1. **Memory Leak (SessionView):** Added `joinRequestTimeoutsRef` to track setTimeout IDs, with useEffect cleanup on unmount
+2. **Duplicate Timers:** Moved setTimeout inside `setPendingJoinRequests` to only run for new (non-duplicate) requests
+3. **Error Boundaries:** Added try-catch around both WebSocket handlers (`handleJoinResolvedMessage`, `handleJoinRequestMessage`)
+4. **Error Recovery:** On cancel failure, clear `pendingRequest` locally with helpful error message
+5. **Polling Fallback:** Declined - existing 5-min timeout provides fallback, polling adds complexity for marginal benefit
+6. **Cancel Loading State:** Added `cancelling` state with disabled button and "Cancelling..." text
+7. **Idempotency Check:** Already handled - `addMember` uses `INSERT OR REPLACE` which is idempotent
+
+**Commits:**
+- `0b41063` - fix(client): memory leak and error handling in SessionView join request handlers
+- `f5094df` - fix(client): handle cancel request error by treating as locally cancelled
+- `3e5ded4` - feat(client): add loading state to cancel button in WaitingForApproval
+
+**Status:** PR #41 marked ready for review
+- Build: ✅ Pass
+- Server tests: 406 pass
+- Client tests: 133 pass
+- All 7 review threads resolved ✅
+
+**Next:** Awaiting final review or merge approval
+### 2026-05-07 16:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9211631` | review | PR #41 - Join request approval (round 5) | **NEW** |
+
+🚀 **Spawned: Review Worker (Round 5)**
+- PR: [#41 - feat: implement pending join request approval flow](https://github.com/jpshackelford/voice-relay/pull/41)
+- Conversation: [`9211631`](https://app.all-hands.dev/conversations/9211631d54614bd88b83bd74116f9187)
+
+**Review Threads to Address (3 total):**
+1. 🟠 IMPORTANT: Missing expiration check in approve/deny endpoints
+2. 🟠 IMPORTANT: WebSocket error handling - ws.send() can throw
+3. 🟡 SUGGESTION: No broadcast feedback when no kiosks connected
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fd5cea4` | review | PR #41 (round 4) | finished ✓ |
+| `be84644` | implementation | Issue #40 | finished ✓ |
+
+**Current State:**
+- [PR #41](https://github.com/jpshackelford/voice-relay/pull/41): `oRCFRCFR green ready 💬3` → Review round 5 in progress
+- Ready issues: [#40](https://github.com/jpshackelford/voice-relay/issues/40) (has open PR)
+- Expansion slot: Empty (no issues need expansion)
+- PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 16:38 UTC - Review Worker Complete (Round 5)
+
+✅ **All 3 review threads addressed and resolved**
+
+**Changes Made:**
+1. **Missing Expiration Check:** Added `isExpired()` check before approve/deny operations in `router.ts`. If expired, calls `expire()` to update DB and returns 400 error.
+2. **WebSocket Error Handling:** Added try-catch around all `ws.send()` calls:
+   - `broadcastResolved` helper (line 575)
+   - `onJoinRequest` callback (line 726)
+   - `onJoinResolved` callback (line 788)
+3. **No Broadcast Feedback:** Added `console.warn` when `sentCount === 0` after attempting kiosk broadcast. Provides observability for debugging when no kiosks are connected.
+
+**Commit:**
+- `ee5c4fb` - fix: address review feedback for join request flow
+
+**Status:** PR #41 marked ready for review
+- Build: ✅ Pass
+- Server tests: 406 pass
+- Client tests: 133 pass
+- All 3 review threads resolved ✅
+
+**Next:** Awaiting final review or merge approval
+
+---
+### 2026-05-07 17:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4ec8905` | merge | PR #41 - Join request approval flow | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#41 - feat: implement pending join request approval flow](https://github.com/jpshackelford/voice-relay/pull/41)
+- Issue: [#40](https://github.com/jpshackelford/voice-relay/issues/40) (will auto-close on merge)
+- Conversation: [`4ec8905`](https://app.all-hands.dev/conversations/4ec890531c47497a844fcde1ac1f8cfd)
+
+**Merge Criteria:**
+- CI: All checks passing ✅
+- Review threads: 0 unresolved ✅
+- Review history: `oRCFRCFRFC` (5 review rounds, all feedback addressed)
+- Last review: "Worth merging after evidence is provided" (soft ask)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9211631` | review | PR #41 (round 5) | finished ✓ |
+| `fd5cea4` | review | PR #41 (round 4) | finished ✓ |
+| `be84644` | implementation | Issue #40 | finished ✓ |
+
+**Current State:**
+- [PR #41](https://github.com/jpshackelford/voice-relay/pull/41): Ready for merge → MERGING NOW
+- Expansion slot: Empty (no issues need expansion)
+- Ready issues: #40 (priority:high, being merged)
+- No other open issues
+
+---
+### 2026-05-07 17:07 UTC - Merge Worker Complete
+
+✅ **PR #41 Merged Successfully**
+
+**Summary:**
+- [PR #41](https://github.com/jpshackelford/voice-relay/pull/41) - feat(workspaces): implement pending join request approval flow
+- [Issue #40](https://github.com/jpshackelford/voice-relay/issues/40) auto-closed on merge
+
+**Actions Taken:**
+1. Migration safety verified: `009_join_requests.ts` is purely additive (new table only)
+2. All review threads confirmed resolved (0 unresolved)
+3. CI verified green (5/5 checks passing, including E2E tests)
+4. PR description updated with migration safety notes
+5. Squash merged with conventional commit message
+6. Issue #40 auto-closed via "Fixes #40" in commit
+
+**Commit:** `feat(workspaces): implement pending join request approval flow`
+
+**Production Impact:**
+- Auto-deploys to vr.chorecraft.net
+- Migration creates new `workspace_join_requests` table (safe, additive)
+- Feature is opt-in: only affects workspaces with `allowAutoJoin=false`
+
+**Stats:**
+- Files changed: 17
+- Lines added: 2,277
+- Lines removed: 65
+- Review rounds: 5
+- Unit tests added: 30
+
+---
+### 2026-05-07 17:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6fbc196` | expansion | Issue #42 - E2E Test: Multi-Device Real-Time Text Relay | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+- Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42)
+- Conversation: [`6fbc196`](https://app.all-hands.dev/conversations/6fbc19619153413ca281376cb7fb354b)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4ec8905` | merge | PR #41 - Join request approval flow | finished ✓ |
+
+**Current State:**
+- No open PRs
+- Issues needing expansion: #42 (now being expanded), #43, #44, #45, #46, #47
+- Ready issues: (none)
+- PR slot: Empty (waiting for expansion to complete)
+
+**Note:** 6 new E2E test issues (#42-47) created. Starting expansion with #42.
