@@ -854,3 +854,45 @@ Implemented comprehensive E2E smoke test suite for workspace invite link feature
 - Tests include: AI connection, message sending, canvas display (image/markdown)
 - Once #47 is complete and merged, the original issue backlog (#9-#12, #44-#47) will be DONE
 
+---
+### 2026-05-08 07:45 UTC - Implementation Worker (`ef1f93d`)
+
+✅ **PR Created for Issue #47**
+
+- PR: [#62 - feat(e2e): add AI assistant integration tests](https://github.com/jpshackelford/voice-relay/pull/62)
+- Issue: [#47 - E2E Test: AI Assistant Integration (Human-to-Agent Communication)](https://github.com/jpshackelford/voice-relay/issues/47)
+- Status: Ready for review
+
+**Implementation Summary:**
+- Created `tests/smoke/ai-integration.spec.ts` with 17 comprehensive test cases
+- Updated `tests/smoke/playwright.config.ts` to include AI tests
+- Updated `tests/smoke/README.md` with AI test documentation
+
+**Test Coverage:**
+| Category | Tests | Description |
+|----------|-------|-------------|
+| AI Status API | 1 | Endpoint availability check |
+| Kiosk AI Features | 7 | Connection, messages, canvas display, disconnect |
+| AI Unavailable | 1 | Graceful handling when no API key |
+| API Error Handling | 4 | Invalid requests, missing params |
+| Display API | 4 | Validation, clear type support |
+
+**Acceptance Criteria Covered:**
+- ✅ AI sparkle button appears when workspace has API key
+- ✅ AI sparkle button hidden/disabled without API key  
+- ✅ Clicking sparkle connects to AI (shows connecting then connected state)
+- ✅ Messages can be sent to AI when connected
+- ✅ AI responses appear in chat within reasonable timeout
+- ✅ AI can display images on kiosk canvas
+- ✅ AI can display markdown on kiosk canvas
+- ✅ Clicking sparkle again disconnects from AI
+- ✅ Error states are displayed appropriately
+
+**CI Status:**
+- Build Client: ✅ Pass
+- Server Tests: ✅ Pass
+- E2E Tests: ✅ Pass
+- PR Title Lint: ✅ Pass
+
+**Note:** Tests gracefully skip when AI is unavailable (no OPENHANDS_API_KEY configured)
+
