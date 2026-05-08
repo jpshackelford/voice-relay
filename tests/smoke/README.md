@@ -59,6 +59,8 @@ SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.s
 
 ## What's Tested
 
+### Core Smoke Tests (`smoke.spec.ts`)
+
 | Test | Auth Required | Description |
 |------|---------------|-------------|
 | Health endpoint | ❌ | `/health` returns `{"status":"ok"}` |
@@ -69,6 +71,19 @@ SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.s
 | Auth API | ✅ | `/auth/me` returns user info |
 | Workspaces API | ✅ | `/api/workspaces` returns data |
 | WebSocket | ✅ | WSS connection can be established |
+
+### Invite Link Flow Tests (`invite-link.spec.ts`)
+
+| Test | Auth Required | Description |
+|------|---------------|-------------|
+| Owner sees Settings | ✅ | Owner-only Settings section visibility |
+| Copy Invite Link | ✅ | Clipboard copies valid `/join/{code}` URL |
+| Invite URL format | ✅ | URL matches `/join/{code}` pattern |
+| Unauthenticated redirect | ❌ | Redirects to `/login?returnTo=/join/{code}` |
+| Valid code join | ✅ | User joins workspace successfully |
+| Already-member join | ✅ | Redirects to workspace (skip join) |
+| Invalid code error | ✅ | Shows "invalid or expired" message |
+| Non-owner access | ✅ | Settings section hidden for non-owners |
 
 ## CI/CD Integration
 
