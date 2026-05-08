@@ -878,3 +878,43 @@ Closed duplicate issue #80
 🎉 **All code issues complete!** Issue #74 is the only blocker (infra, not code).
 
 ---
+### 2026-05-08 14:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+🔒 **Auto-disabled due to extended waiting period**
+
+**Housekeeping:**
+- ✅ Closed #81 as duplicate of #74 (same root cause)
+
+**Current State:**
+- No open PRs
+- Open issues: #74 (critical, infrastructure)
+- Ready issues: None
+- 5+ consecutive "Waiting" entries for infrastructure issue
+
+**Reason for Disable:**
+The only open issue (#74) requires **manual SSH intervention** to fix:
+- Node.js version upgrade (20.18.3 → 20.19+)
+- Corrupted node_modules cleanup
+
+This is NOT a code bug - CI tests pass successfully. Automation cannot help until server is manually fixed.
+
+**To re-enable after fixing the server:**
+1. SSH to vr.chorecraft.net and run the fix commands from #74
+2. Verify the app is healthy: `curl -s http://localhost:3000/api/health`
+3. Close issue #74
+4. Re-enable automation:
+   - OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator" → Enable
+   - Or via API:
+     ```bash
+     curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+       -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+       -H "Content-Type: application/json" \
+       -d '{"enabled": true}'
+     ```
+
+---
