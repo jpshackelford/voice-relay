@@ -77,14 +77,14 @@ test.describe('AI Assistant Integration', () => {
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
     }
 
-    // Helper to wait for AI status to be determined (replaces arbitrary timeout)
-    async function waitForAIStatusDetermined(page: import('@playwright/test').Page) {
-      // Wait for AI availability to be determined by checking for sparkle button state
+    // Helper to wait for AI availability check to complete
+    // Button appears if AI is available, remains hidden if not
+    async function waitForAIAvailabilityCheck(page: import('@playwright/test').Page) {
       const sparkleButton = page.locator('.ai-toggle');
-      // Either button becomes visible (AI available) or we confirm it's not there
+      // Wait for either button to appear (AI available) or timeout (AI unavailable)
       await expect(sparkleButton).toBeVisible({ timeout: 10000 })
         .catch(() => {
-          // AI not available - button won't appear, that's expected
+          // Expected when AI not available - button won't render
         });
     }
 
@@ -116,7 +116,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       // Sparkle button should be visible
       const sparkleButton = page.locator('.ai-toggle');
@@ -142,7 +142,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       const sparkleButton = page.locator('.ai-toggle');
       await expect(sparkleButton).toBeVisible({ timeout: 10000 });
@@ -174,7 +174,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       // Connect to AI
       const sparkleButton = page.locator('.ai-toggle');
@@ -208,7 +208,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       // Connect to AI
       const sparkleButton = page.locator('.ai-toggle');
@@ -260,7 +260,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       // Connect to AI
       const sparkleButton = page.locator('.ai-toggle');
@@ -307,7 +307,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       // Connect to AI
       const sparkleButton = page.locator('.ai-toggle');
@@ -340,7 +340,7 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIStatusDetermined(page);
+      await waitForAIAvailabilityCheck(page);
 
       const sparkleButton = page.locator('.ai-toggle');
       await expect(sparkleButton).toBeVisible({ timeout: 10000 });
@@ -357,15 +357,18 @@ test.describe('AI Assistant Integration', () => {
         expect(isConnecting).toBe(false);
       }).toPass({ timeout: 10000 });
 
-      // Button should be in exactly one valid state (active or inactive)
+      // Button should be in exactly one valid state (active OR inactive, not both/neither)
       const classes = await sparkleButton.evaluate((el) => Array.from(el.classList));
       const isActive = classes.includes('active');
       const hasAiToggle = classes.includes('ai-toggle');
       
-      // Should have base class and be in a definite state
       expect(hasAiToggle).toBe(true);
-      // active is boolean - either true or false, not both or neither of mutually exclusive states
-      expect(typeof isActive).toBe('boolean');
+      // Verify it's in a definite state (connected or disconnected)
+      expect(isActive).toBeDefined();
+      
+      // Verify UI consistency - active state should match visible status indicator
+      const statusVisible = await page.locator('.kiosk-ai-status').isVisible();
+      expect(statusVisible).toBe(isActive);
       
       // Should still be functional - can click without error
       await expect(sparkleButton).toBeEnabled();
