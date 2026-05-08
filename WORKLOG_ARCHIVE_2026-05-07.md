@@ -1807,3 +1807,184 @@ Applied priority labels to all ready issues:
 **Housekeeping:**
 - ✅ Archived 5 worklog entries older than 6hr productive window
 - WORKLOG.md reduced from 1076 to ~400 lines
+
+---
+### 2026-05-07 20:42 UTC - Implementation Worker Complete
+
+**PR Created:**
+- [PR #49](https://github.com/jpshackelford/voice-relay/pull/49): `test(e2e): complete user onboarding flow tests`
+
+**Issue:** [#43 - E2E Test: Complete User Onboarding Flow (First-Time Experience)](https://github.com/jpshackelford/voice-relay/issues/43)
+
+**Summary:**
+Implemented comprehensive E2E test suite for the complete user onboarding flow covering the golden path from first visit to first message.
+
+**Tests Added (8 total):**
+1. ✅ `complete onboarding flow - new user to first message` - Full journey test
+2. ✅ `login page shows error message when error param present`
+3. ✅ `workspace URL redirects to login when not authenticated`
+4. ✅ `session URL redirects to login when not authenticated`
+5. ✅ `dashboard redirects to login when not authenticated`
+6. ✅ `authenticated user can see workspace elements`
+7. ✅ `session view shows QR code in kiosk mode`
+8. ✅ `GitHub OAuth button initiates auth flow`
+
+**Files Changed:**
+- `tests/onboarding-flow.spec.ts` (new, 271 lines)
+
+**Acceptance Criteria Met:**
+- ✅ Unauthenticated users redirected to /login
+- ✅ Login page displays all required elements
+- ✅ OAuth flow initiates correctly
+- ✅ Post-authentication redirects to workspace
+- ✅ Workspace auto-creates if none exist
+- ✅ Session auto-creates if none exist in workspace
+- ✅ User can enter session from workspace home
+- ✅ Session view shows connected WebSocket status
+- ✅ User can send first message
+
+**CI Status:** ✅ All checks passed
+
+**PR Status:** Ready for review
+### 2026-05-07 21:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6ea9f31` | review | PR #49 - E2E onboarding flow tests | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#49 - test(e2e): complete user onboarding flow tests](https://github.com/jpshackelford/voice-relay/pull/49)
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow](https://github.com/jpshackelford/voice-relay/issues/43)
+- Conversation: [`6ea9f31`](https://app.all-hands.dev/conversations/6ea9f31c8a754c38bce8cdfd1d40f87a)
+
+**PR #49 Review Status:**
+- CI: Green ✅
+- Review history: `oR` (opened, reviewed)
+- 4 unresolved review threads:
+  1. Extract input-finding logic to helper function
+  2. Use send button click instead of Enter key
+  3. Split large test into smaller focused tests
+  4. Improve GitHub OAuth button test
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `dacd328` | merge | PR #48 - E2E multi-device relay | finished ✓ |
+| `6e57904` | expansion | Issue #47 - AI Assistant | finished ✓ |
+| `8c9f663` | implementation | Issue #43 - Onboarding flow | finished ✓ |
+
+**Current State:**
+- [PR #49](https://github.com/jpshackelford/voice-relay/pull/49): `oR green ready 💬4` → review in progress
+- Ready issues: #44 (priority:high), #45 (medium), #46 (medium), #47 (medium)
+- All issues expanded - expansion slot idle
+- PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 21:10 UTC - Review Worker Complete (`6ea9f31`)
+
+✅ **Addressed All 4 Review Threads on PR #49**
+
+- PR: [#49 - test(e2e): complete user onboarding flow tests](https://github.com/jpshackelford/voice-relay/pull/49)
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow](https://github.com/jpshackelford/voice-relay/issues/43)
+- Status: Ready for review (all feedback addressed)
+
+**Commits Added:**
+1. `bda729e` - refactor(tests): extract findMessageInput helper and use send button click
+2. `517be96` - test(e2e): add smaller focused tests for easier debugging
+3. `ab8b0a5` - test(e2e): improve GitHub OAuth button test
+
+**Review Feedback Addressed:**
+| Thread | Severity | Action Taken |
+|--------|----------|--------------|
+| Extract input-finding logic | 🟡 Suggestion | Fixed - Created `findMessageInput()` helper in auth-helper.ts |
+| Use send button click | 🟡 Suggestion | Fixed - Now uses `sendBtn.click()` instead of Enter key |
+| Split large test | 🟡 Suggestion | Fixed - Added 5 focused tests while keeping integration flow test |
+| Improve OAuth button test | 🟡 Suggestion | Fixed - Uses `waitForURL(/\/auth\/github/)` for specific verification |
+
+**CI Status:** All checks passing (Build, Server Tests, E2E Tests, PR Lint)
+
+**All 4 review threads resolved.**
+
+---
+### 2026-05-07 21:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b11de9b` | review | PR #49 - E2E onboarding flow tests (round 2) | **NEW** |
+
+🚀 **Spawned: Review Worker (Round 2)**
+- PR: [#49 - test(e2e): complete user onboarding flow tests](https://github.com/jpshackelford/voice-relay/pull/49)
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow](https://github.com/jpshackelford/voice-relay/issues/43)
+- Conversation: [`b11de9b`](https://app.all-hands.dev/conversations/b11de9b67839487c9fa6470e96411797)
+
+**Review Threads Remaining:** 4 (new batch from latest review)
+1. Extract magic timeout numbers to named constants
+2. Extract authentication + workspace navigation pattern to helper function
+3. Simplify message content assertion
+4. Remove redundant URL check
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6ea9f31` | review | PR #49 (round 1) | finished ✓ |
+| `8c9f663` | implementation | Issue #43 | finished ✓ |
+| `dacd328` | merge | PR #48 | finished ✓ |
+
+**Current State:**
+- [PR #49](https://github.com/jpshackelford/voice-relay/pull/49): CI green ✅, 4 unresolved threads → review in progress
+- Ready issues: #44 (priority:high), #45 (medium), #46 (medium), #47 (medium)
+- All issues expanded - expansion slot idle
+- PR slot: Occupied (review worker running)
+
+---
+### 2026-05-07 21:48 UTC - Review Worker Complete (`b11de9b`)
+
+✅ **Addressed All 4 Review Threads on PR #49 (Round 2)**
+
+- PR: [#49 - test(e2e): complete user onboarding flow tests](https://github.com/jpshackelford/voice-relay/pull/49)
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow](https://github.com/jpshackelford/voice-relay/issues/43)
+- Status: Ready for review (all feedback addressed)
+
+**Commits Added:**
+1. `9ac9b47` - refactor(e2e): address review feedback - extract constants and helpers
+
+**Review Feedback Addressed:**
+| Thread | Severity | Action Taken |
+|--------|----------|--------------|
+| Extract timeout constants | 🟡 Suggestion | Fixed - Added named constants: WORKSPACE_REDIRECT_TIMEOUT, ELEMENT_VISIBLE_TIMEOUT, MESSAGE_APPEAR_TIMEOUT, CONNECTION_STABLE_TIMEOUT, AUTH_FLOW_TIMEOUT |
+| Extract auth+navigate helper | 🟡 Suggestion | Fixed - Created `authenticateAndNavigateToWorkspace()` helper used in 6 tests |
+| Simplify message assertion | 🟡 Suggestion | Fixed - Single filter assertion for 'You: <message>' content |
+| Remove redundant URL check | 🟡 Suggestion | Fixed - Removed `expect(page.url()).toContain('/auth/github')` after waitForURL |
+
+**CI Status:** All checks passing (Build, Server Tests, E2E Tests, PR Lint)
+
+**All 8 review threads (4 from round 1 + 4 from round 2) are now resolved.**
+### 2026-05-07 22:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9710d60` | review | PR #49 - E2E onboarding flow tests (round 3) | **NEW** |
+
+🚀 **Spawned: Review Worker (Round 3)**
+- PR: [#49 - test(e2e): complete user onboarding flow tests](https://github.com/jpshackelford/voice-relay/pull/49)
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow](https://github.com/jpshackelford/voice-relay/issues/43)
+- Conversation: [`9710d60`](https://app.all-hands.dev/conversations/9710d606fedb48f8a2f1d43b8b8e9296)
+
+**Review Thread Remaining:** 1 unresolved (of 9 total)
+- Issue: `findMessageInput` helper fallback logic needs verification after drawer open and descriptive error when no input found
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b11de9b` | review | PR #49 (round 2) | finished ✓ |
+| `6ea9f31` | review | PR #49 (round 1) | finished ✓ |
+| `8c9f663` | implementation | Issue #43 | finished ✓ |
+
+**Current State:**
+- [PR #49](https://github.com/jpshackelford/voice-relay/pull/49): CI green ✅, 1 unresolved thread → review in progress
+- Ready issues: #44 (priority:high), #45 (medium), #46 (medium), #47 (medium)
+- All issues expanded - expansion slot idle
+- PR slot: Occupied (review worker running)
