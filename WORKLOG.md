@@ -890,3 +890,32 @@ The `.kiosk-display` element's CSS intercepts pointer events, blocking clicks on
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
 | `2df9693` | merge | PR #62 - E2E AI tests | finished ✓ |
+
+---
+### 2026-05-08 11:15 UTC - Implementation Worker Complete (Issue #67)
+
+**PR Created:**
+- [PR #68](https://github.com/jpshackelford/voice-relay/pull/68): `fix(client): fix kiosk drawer CSS to prevent pointer event interception`
+
+**Issue:** [#67 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67)
+
+**Summary:**
+Fixed the CSS bug causing smoke tests to fail with "kiosk-display intercepts pointer events" error.
+
+**Root Cause:**
+1. The kiosk sidebar used `transform: translateX(-100%)` when closed, but with `width: 0`, -100% of 0 = 0, so it didn't actually move
+2. The sidebar content was hidden by `overflow: hidden` but remained in the DOM at position x=0
+3. Playwright could find the button but clicks landed on the overlapping `kiosk-display` element
+
+**Fixes Applied:**
+1. **CSS** (`App.css`):
+   - Changed `translateX(-100%)` to fixed `translateX(-320px)` for proper movement
+   - Added `visibility: hidden` and `pointer-events: none` to closed sidebar
+   - Added proper visibility transitions for smooth animation
+
+2. **Component** (`KioskMode.tsx`):
+   - Changed default drawer state from `false` to `true` so controls are accessible on load
+
+**CI Status:** ✅ All checks passing (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
