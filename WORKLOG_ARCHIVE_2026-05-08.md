@@ -162,3 +162,67 @@ Deployed successfully at Fri May  8 00:07:37 UTC 2026  <-- despite build failure
 - PR Title Lint: ✅ Pass
 
 **Production Status:** ✅ Healthy (rollback succeeded, verified via health endpoint)
+
+---
+### 2026-05-08 01:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `67c9304` | merge | PR #51 (fix deploy script error handling) | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#51 - fix: add error handling to deploy script](https://github.com/jpshackelford/voice-relay/pull/51)
+- Issue: [#50 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/50)
+- Conversation: [`67c9304`](https://app.all-hands.dev/conversations/67c93044edbd40848bf524010381d907)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1826cdc` | implementation | Issue #50 - CI fix | finished ✓ |
+| `0b9986c` | expansion | Issue #50 - Investigation | finished ✓ |
+
+**Current State:**
+- PR #51: `oC green ready 💬--` (CI green, no unresolved threads)
+- Review: Positive feedback from github-actions bot (COMMENTED, not changes requested)
+- Merge criteria met: mergeable=CLEAN, CI green, no blocking reviews
+
+**Decision Tree:**
+- PR slot: Spawned merge worker (PR ready for merge)
+- Expansion slot: Idle (all issues expanded)
+
+**Issue Queue:**
+- #50 (priority:high, ci-failure) - PR #51 open, being merged
+- #44 (priority:high) - E2E QR Code tests - next in queue
+- #45, #46, #47 (priority:medium) - Other E2E tests
+
+**Housekeeping:**
+- Truncated WORKLOG.md: archived 3 entries from 2026-05-07 (now 24 entries)
+
+---
+### 2026-05-08 01:36 UTC - Merge Worker Complete (PR #51)
+
+✅ **PR #51 Merged Successfully**
+
+**PR:** [#51 - fix: add error handling to deploy script](https://github.com/jpshackelford/voice-relay/pull/51)
+**Issue:** [#50 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/50) - auto-closed ✅
+
+**Summary:**
+- Squash-merged with conventional commit message
+- Single-line fix: Added `set -e` to deploy script to exit on any command failure
+- Prevents deploying stale/incomplete artifacts when `npm run build` fails
+- App auto-deploys to vr.chorecraft.net
+
+**Migration Check:** ✅ No database changes - workflow-only change (safe for production)
+
+**Final PR Stats:**
+- 1 addition, 0 deletions
+- 1 file changed (`.github/workflows/deploy.yml`)
+- 1 review round, positive feedback from automated review
+- CI: All checks passing
+
+**Current State:**
+- PR slot: Available
+- Ready issues: #44 (priority:high), #45 (medium), #46 (medium), #47 (medium)
+- All issues expanded
+- Next: Issue #44 ready for implementation
