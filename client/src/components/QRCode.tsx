@@ -135,8 +135,12 @@ export function QRCodeDisplay({
 
   if (!qrDataUrl) return null;
 
+  // Only expose data-qr-url in non-production for E2E testing
+  // In production, users scan the visual QR code with their phones
+  const dataQrUrlAttr = import.meta.env.MODE !== 'production' ? { 'data-qr-url': currentUrl } : {};
+
   return (
-    <div className="qr-code-container" data-qr-url={currentUrl}>
+    <div className="qr-code-container" {...dataQrUrlAttr}>
       {label && <p className="qr-label">{label}</p>}
       <img src={qrDataUrl} alt="QR Code to connect" width={size} height={size} />
       
