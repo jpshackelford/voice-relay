@@ -39,6 +39,7 @@ jobs:
             
             case "$ACTION" in
               deploy)
+                set -e  # Exit immediately on any error
                 echo "=== Deploying latest code ==="
                 git fetch origin
                 git reset --hard origin/main
