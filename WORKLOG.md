@@ -719,3 +719,35 @@ Fixed the CSS bug causing smoke tests to fail with "kiosk-display intercepts poi
 **CI Status:** ✅ All checks passing (Build, Server Tests, E2E Tests, PR Lint)
 
 **PR Status:** Ready for review
+### 2026-05-08 11:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1ce63fd` | review | PR #68 - Fix kiosk drawer CSS | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#68 - fix(client): fix kiosk drawer CSS to prevent pointer event interception](https://github.com/jpshackelford/voice-relay/pull/68)
+- Issue: [#67 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67)
+- Conversation: [`1ce63fd`](https://app.all-hands.dev/conversations/1ce63fdd931744189869ef246426722e)
+
+**Review Feedback to Address:**
+1. 🟡 CSS variable suggestion for maintainability (minor)
+2. 🟠 Revert behavioral change - drawer default should stay closed per F3, fix tests instead
+
+**Housekeeping:**
+- ✅ Archived 5 worklog entries (truncated WORKLOG.md from 921 → 296 lines)
+- ✅ Closed #69 and #70 as duplicates of #67
+
+**Current State:**
+- PR #68: CI green, 2 unresolved review threads
+- PR slot: Spawned review worker
+- Expansion slot: Idle (all issues expanded)
+- Open issues: #67 (being fixed by PR #68)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `683d93a` | implementation | Issue #67 | finished ✓ |
+
+---
