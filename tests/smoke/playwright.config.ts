@@ -6,10 +6,14 @@ import * as path from 'path';
  * 
  * Uses global setup to handle authentication before tests run.
  * This ensures auth state is available when tests load.
+ * 
+ * Test files:
+ * - smoke.spec.ts: Core health/auth/connectivity tests
+ * - invite-link.spec.ts: Workspace invite link flow tests
  */
 export default defineConfig({
   testDir: '.',
-  testMatch: 'smoke.spec.ts',
+  testMatch: ['smoke.spec.ts', 'invite-link.spec.ts'],
   timeout: 30000,
   globalSetup: path.join(__dirname, 'auth.setup.ts'),
   use: {
