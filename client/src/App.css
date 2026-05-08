@@ -1,3 +1,7 @@
+:root {
+  --kiosk-sidebar-min-width: 320px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -690,7 +694,7 @@ header {
 
 .kiosk-sidebar {
   width: 38.2%; /* Golden ratio: 1 / (1 + 1.618) ≈ 0.382 */
-  min-width: 320px;
+  min-width: var(--kiosk-sidebar-min-width);
   max-width: 500px;
   height: 100%;
   display: flex;
@@ -1048,18 +1052,23 @@ header {
 
 /* Kiosk Drawer Styles */
 .kiosk-sidebar {
-  transition: transform 0.3s ease, width 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease, visibility 0s 0.3s;
 }
 
 .kiosk-sidebar.closed {
-  transform: translateX(-100%);
+  transform: translateX(calc(-1 * var(--kiosk-sidebar-min-width)));
   width: 0;
   min-width: 0;
   overflow: hidden;
+  visibility: hidden;  /* Properly hide from accessibility tree and pointer events */
+  pointer-events: none;  /* Extra safety for click interception */
 }
 
 .kiosk-sidebar.open {
   transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.3s ease, width 0.3s ease, visibility 0s;  /* visibility immediate on open */
 }
 
 .kiosk-header .header-buttons {
