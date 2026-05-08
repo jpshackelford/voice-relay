@@ -916,3 +916,31 @@ Deployed successfully at Fri May  8 00:07:37 UTC 2026  <-- despite build failure
 
 **Housekeeping:**
 - Truncated WORKLOG.md: archived 3 entries from 2026-05-07 (now 24 entries)
+
+---
+### 2026-05-08 01:36 UTC - Merge Worker Complete (PR #51)
+
+✅ **PR #51 Merged Successfully**
+
+**PR:** [#51 - fix: add error handling to deploy script](https://github.com/jpshackelford/voice-relay/pull/51)
+**Issue:** [#50 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/50) - auto-closed ✅
+
+**Summary:**
+- Squash-merged with conventional commit message
+- Single-line fix: Added `set -e` to deploy script to exit on any command failure
+- Prevents deploying stale/incomplete artifacts when `npm run build` fails
+- App auto-deploys to vr.chorecraft.net
+
+**Migration Check:** ✅ No database changes - workflow-only change (safe for production)
+
+**Final PR Stats:**
+- 1 addition, 0 deletions
+- 1 file changed (`.github/workflows/deploy.yml`)
+- 1 review round, positive feedback from automated review
+- CI: All checks passing
+
+**Current State:**
+- PR slot: Available
+- Ready issues: #44 (priority:high), #45 (medium), #46 (medium), #47 (medium)
+- All issues expanded
+- Next: Issue #44 ready for implementation
