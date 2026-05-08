@@ -158,30 +158,6 @@ test.describe('Invite Link Flow', () => {
       storageState: AUTH_FILE,
     });
 
-    test('authenticated user with valid code joins successfully', async ({ page }) => {
-      // Get a workspace with a join code
-      const response = await page.request.get(`${BASE_URL}/api/workspaces`);
-      expect(response.ok()).toBeTruthy();
-      
-      const workspaces = await response.json();
-      const workspaceWithCode = workspaces.find((ws: { joinCode?: string }) => ws.joinCode);
-      
-      if (!workspaceWithCode) {
-        test.skip(true, 'No workspace with joinCode found');
-        return;
-      }
-
-      // Navigate to join URL (user is already a member, so this tests "already member" case)
-      await page.goto(`${BASE_URL}/join/${workspaceWithCode.joinCode}`);
-      
-      // Should either show success message or redirect to workspace
-      // (Already-member users skip join and go directly to workspace)
-      await Promise.race([
-        expect(page.getByText(/joined successfully/i)).toBeVisible({ timeout: 5000 }),
-        expect(page).toHaveURL(new RegExp(`/workspace/${workspaceWithCode.id}`), { timeout: 5000 }),
-      ]);
-    });
-
     test('already-member user redirects to workspace', async ({ page }) => {
       // Get user's workspace
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
