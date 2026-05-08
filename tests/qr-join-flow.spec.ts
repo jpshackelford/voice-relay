@@ -2,7 +2,8 @@ import { test, expect, type Browser, type BrowserContext, type Page } from '@pla
 import { 
   createAuthenticatedContext, 
   waitForStableConnection,
-  getAuthState 
+  navigateKioskToSession,
+  extractQrUrl,
 } from './utils/auth-helper';
 
 /**
@@ -67,48 +68,19 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      // =====================
-      // STEP 1: Navigate kiosk to session
-      // =====================
-      await kioskPage.goto('/dashboard');
-      
-      // Wait for workspace home to load
-      await expect(kioskPage.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
-      await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
+      // Navigate kiosk to session
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
 
-      // Click View button to enter session
-      const viewButton = kioskPage.getByRole('button', { name: /view/i });
-      await expect(viewButton).toBeVisible({ timeout: 5000 });
-      await viewButton.click();
-
-      // Wait for session view
-      await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-
-      // Wait for WebSocket connection to stabilize
-      await waitForStableConnection(kioskPage, CONNECTION_STABLE_TIMEOUT);
-
-      // =====================
-      // STEP 2: Verify large QR code is displayed (no mobile devices yet)
-      // =====================
+      // Verify large QR code is displayed (no mobile devices yet)
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
       await expect(kioskPage.getByText('Scan to join on your phone')).toBeVisible();
       await expect(kioskPage.getByText('Join this session')).toBeVisible();
 
-      // =====================
-      // STEP 3: Extract QR URL from data attribute
-      // =====================
-      const qrContainer = kioskPage.locator('[data-qr-url]').first();
-      await expect(qrContainer).toBeVisible({ timeout: QR_URL_EXTRACT_TIMEOUT });
-      
-      const qrUrl = await qrContainer.getAttribute('data-qr-url');
-      expect(qrUrl).toBeTruthy();
-      expect(qrUrl).toContain('/workspace/');
-      expect(qrUrl).toContain('/session/');
+      // Extract QR URL from data attribute
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
       console.log('Extracted QR URL:', qrUrl);
 
-      // =====================
-      // STEP 4: Create mobile context with mobile viewport
-      // =====================
+      // Create mobile context with mobile viewport
       const mobileContext = await createAuthenticatedContext(
         browser,
         baseURL,
@@ -118,37 +90,22 @@ test.describe('QR Code Join Flow', () => {
       const mobilePage = await mobileContext.newPage();
 
       try {
-        // =====================
-        // STEP 5: Navigate mobile to extracted QR URL (simulates QR code scan)
-        // =====================
-        await mobilePage.goto(qrUrl!);
+        // Navigate mobile to extracted QR URL (simulates QR code scan)
+        await mobilePage.goto(qrUrl);
 
-        // =====================
-        // STEP 6: Verify mobile is in session and mobile mode
-        // =====================
+        // Verify mobile is in session and mobile mode
         await expect(mobilePage.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
-
-        // Wait for mobile WebSocket connection to stabilize
         await waitForStableConnection(mobilePage, CONNECTION_STABLE_TIMEOUT);
 
-        // =====================
-        // STEP 7: Verify kiosk sees device count update
-        // =====================
-        // The greeting content should now show "1 device connected"
+        // Verify kiosk sees device count update
         await expect(kioskPage.locator('.display-greeting')).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
         await expect(kioskPage.getByText(/📱.*1.*device.*connected/)).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
 
-        // =====================
-        // STEP 8: Verify kiosk shows mini QR code (not large QR)
-        // =====================
+        // Verify kiosk shows mini QR code (not large QR)
         await expect(kioskPage.locator('.mini-qr-overlay')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
-        // Large QR should no longer be visible
         await expect(kioskPage.locator('.display-idle-qr')).not.toBeVisible();
 
-        // =====================
-        // STEP 9: Verify mobile sees device counts
-        // =====================
-        // Mobile should show both kiosk and mobile counts
+        // Verify mobile sees device counts
         await expect(mobilePage.locator('.mobile-participants')).toBeVisible();
         await expect(mobilePage.getByText(/🖥️.*1.*kiosk/)).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
         await expect(mobilePage.getByText(/📱.*1.*mobile/)).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
@@ -172,7 +129,6 @@ test.describe('QR Code Join Flow', () => {
       return;
     }
 
-    // Create kiosk context
     const kioskContext = await createAuthenticatedContext(
       browser,
       baseURL,
@@ -182,26 +138,13 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      // Navigate to session
-      await kioskPage.goto('/dashboard');
-      await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 15000 });
-      
-      const viewButton = kioskPage.getByRole('button', { name: /view/i });
-      await expect(viewButton).toBeVisible({ timeout: 5000 });
-      await viewButton.click();
-
-      await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-      await waitForStableConnection(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
 
       // Extract and validate QR URL
-      const qrContainer = kioskPage.locator('[data-qr-url]').first();
-      await expect(qrContainer).toBeVisible({ timeout: QR_URL_EXTRACT_TIMEOUT });
-      
-      const qrUrl = await qrContainer.getAttribute('data-qr-url');
-      expect(qrUrl).toBeTruthy();
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
 
       // Parse the URL and validate structure
-      const parsedUrl = new URL(qrUrl!);
+      const parsedUrl = new URL(qrUrl);
       
       // Should be a valid URL with the expected path format
       expect(parsedUrl.pathname).toMatch(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+/);
@@ -220,6 +163,7 @@ test.describe('QR Code Join Flow', () => {
     }
   });
 
+
   test('large QR code disappears and mini QR appears after mobile joins', async ({ browser }) => {
     test.slow();
 
@@ -228,7 +172,6 @@ test.describe('QR Code Join Flow', () => {
       return;
     }
 
-    // Create kiosk context
     const kioskContext = await createAuthenticatedContext(
       browser,
       baseURL,
@@ -238,16 +181,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      // Navigate to session
-      await kioskPage.goto('/dashboard');
-      await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 15000 });
-      
-      const viewButton = kioskPage.getByRole('button', { name: /view/i });
-      await expect(viewButton).toBeVisible({ timeout: 5000 });
-      await viewButton.click();
-
-      await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-      await waitForStableConnection(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
 
       // Verify initial state: large QR visible, mini QR not visible
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible();
@@ -255,8 +189,7 @@ test.describe('QR Code Join Flow', () => {
       await expect(kioskPage.locator('.display-greeting')).not.toBeVisible();
 
       // Extract QR URL
-      const qrUrl = await kioskPage.locator('[data-qr-url]').first().getAttribute('data-qr-url');
-      expect(qrUrl).toBeTruthy();
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
 
       // Create mobile context and join
       const mobileContext = await createAuthenticatedContext(
@@ -268,7 +201,7 @@ test.describe('QR Code Join Flow', () => {
       const mobilePage = await mobileContext.newPage();
 
       try {
-        await mobilePage.goto(qrUrl!);
+        await mobilePage.goto(qrUrl);
         await expect(mobilePage.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
         await waitForStableConnection(mobilePage, CONNECTION_STABLE_TIMEOUT);
 
@@ -303,7 +236,6 @@ test.describe('QR Code Join Flow', () => {
       return;
     }
 
-    // Create kiosk context
     const kioskContext = await createAuthenticatedContext(
       browser,
       baseURL,
@@ -313,20 +245,10 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      // Navigate to session
-      await kioskPage.goto('/dashboard');
-      await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 15000 });
-      
-      const viewButton = kioskPage.getByRole('button', { name: /view/i });
-      await expect(viewButton).toBeVisible({ timeout: 5000 });
-      await viewButton.click();
-
-      await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-      await waitForStableConnection(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
 
       // Extract QR URL
-      const qrUrl = await kioskPage.locator('[data-qr-url]').first().getAttribute('data-qr-url');
-      expect(qrUrl).toBeTruthy();
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
 
       // Create first mobile context
       const mobile1Context = await createAuthenticatedContext(
@@ -348,7 +270,7 @@ test.describe('QR Code Join Flow', () => {
 
       try {
         // First mobile joins
-        await mobile1Page.goto(qrUrl!);
+        await mobile1Page.goto(qrUrl);
         await expect(mobile1Page.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
         await waitForStableConnection(mobile1Page, CONNECTION_STABLE_TIMEOUT);
 
@@ -356,10 +278,8 @@ test.describe('QR Code Join Flow', () => {
         await expect(kioskPage.getByText(/📱.*1.*device.*connected/)).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
 
         // Second mobile joins (using mini QR URL from kiosk)
-        const miniQrUrl = await kioskPage.locator('.mini-qr-overlay [data-qr-url]').getAttribute('data-qr-url');
-        expect(miniQrUrl).toBeTruthy();
-        
-        await mobile2Page.goto(miniQrUrl!);
+        const miniQrUrl = await extractQrUrl(kioskPage, '.mini-qr-overlay [data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
+        await mobile2Page.goto(miniQrUrl);
         await expect(mobile2Page.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
         await waitForStableConnection(mobile2Page, CONNECTION_STABLE_TIMEOUT);
 
@@ -393,7 +313,6 @@ test.describe('QR Code Join Flow', () => {
       return;
     }
 
-    // Create kiosk context
     const kioskContext = await createAuthenticatedContext(
       browser,
       baseURL,
@@ -403,20 +322,10 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      // Navigate to session
-      await kioskPage.goto('/dashboard');
-      await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 15000 });
-      
-      const viewButton = kioskPage.getByRole('button', { name: /view/i });
-      await expect(viewButton).toBeVisible({ timeout: 5000 });
-      await viewButton.click();
-
-      await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-      await waitForStableConnection(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
 
       // Extract QR URL
-      const qrUrl = await kioskPage.locator('[data-qr-url]').first().getAttribute('data-qr-url');
-      expect(qrUrl).toBeTruthy();
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
 
       // Create mobile context and join
       const mobileContext = await createAuthenticatedContext(
@@ -428,7 +337,7 @@ test.describe('QR Code Join Flow', () => {
       const mobilePage = await mobileContext.newPage();
 
       try {
-        await mobilePage.goto(qrUrl!);
+        await mobilePage.goto(qrUrl);
         await expect(mobilePage.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
         await waitForStableConnection(mobilePage, CONNECTION_STABLE_TIMEOUT);
 

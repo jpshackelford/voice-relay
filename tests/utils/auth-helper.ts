@@ -398,6 +398,62 @@ export interface MessageInputResult {
 }
 
 /**
+ * Navigate a kiosk page to a session via dashboard.
+ *
+ * This helper encapsulates the common navigation pattern for E2E tests:
+ * 1. Navigate to /dashboard
+ * 2. Wait for workspace home to load (devices/sessions headings)
+ * 3. Click the "View" button to enter the first session
+ * 4. Wait for session URL to load
+ * 5. Wait for WebSocket connection to stabilize
+ *
+ * @param page - The kiosk Playwright page
+ * @param connectionTimeout - Timeout for connection stabilization (default: 20000)
+ */
+export async function navigateKioskToSession(
+  page: Page,
+  connectionTimeout: number = 20000
+): Promise<void> {
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
+
+  const viewButton = page.getByRole('button', { name: /view/i });
+  await expect(viewButton).toBeVisible({ timeout: 5000 });
+  await viewButton.click();
+
+  await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
+  await waitForStableConnection(page, connectionTimeout);
+}
+
+/**
+ * Extract QR URL from a page element with data-qr-url attribute.
+ *
+ * This helper encapsulates the common pattern for extracting and validating
+ * QR code URLs in E2E tests.
+ *
+ * @param page - The Playwright page
+ * @param selector - CSS selector for element with data-qr-url attribute (default: '[data-qr-url]')
+ * @param timeout - Maximum time to wait for element (default: 10000)
+ * @returns The extracted and validated QR URL
+ */
+export async function extractQrUrl(
+  page: Page,
+  selector: string = '[data-qr-url]',
+  timeout: number = 10000
+): Promise<string> {
+  const qrContainer = page.locator(selector).first();
+  await expect(qrContainer).toBeVisible({ timeout });
+
+  const qrUrl = await qrContainer.getAttribute('data-qr-url');
+  expect(qrUrl).toBeTruthy();
+  expect(qrUrl).toContain('/workspace/');
+  expect(qrUrl).toContain('/session/');
+
+  return qrUrl!;
+}
+
+/**
  * Find the message input and send button, handling kiosk/mobile modes.
  *
  * This helper abstracts the complexity of finding the input element across
