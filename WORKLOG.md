@@ -862,3 +862,48 @@ Deployed successfully at Fri May  8 00:07:37 UTC 2026  <-- despite build failure
 - #45 (priority:medium) - E2E Session Management
 - #46 (priority:medium) - E2E Invite Link Flow
 - #47 (priority:medium) - E2E AI Assistant Integration
+
+---
+### 2026-05-08 02:22 UTC - Implementation Worker (`d4100f5`)
+
+✅ **PR Created for Issue #44**
+
+- PR: [#54 - test(e2e): add QR code join flow test (device pairing)](https://github.com/jpshackelford/voice-relay/pull/54)
+- Issue: [#44 - E2E Test: QR Code Join Flow (Device Pairing)](https://github.com/jpshackelford/voice-relay/issues/44)
+- Status: Ready for review
+
+**Implementation Summary:**
+1. **QRCode Component Enhancement:**
+   - Added `data-qr-url` attribute to QR code container for programmatic URL extraction in tests
+
+2. **New E2E Test Suite:** `tests/qr-join-flow.spec.ts` with 5 tests:
+   - Mobile device joins session via QR code URL (complete flow)
+   - QR code contains proper session URL format
+   - Large QR code disappears and mini QR appears after mobile joins
+   - Multiple mobile devices can join via QR code
+   - Kiosk device count shows correct emoji and text format
+
+**Technical Approach:**
+- Uses Playwright multi-context for multi-device simulation
+- Reuses existing `createAuthenticatedContext` helper
+- Kiosk viewport: 1280x720, Mobile viewport: 375x667
+- Proper cleanup with try/finally blocks
+
+**CI Status:**
+- Build Client: ✅ Pass
+- Server Tests: ✅ Pass
+- E2E Tests: ✅ Pass
+- PR Title Lint: ✅ Pass
+
+**Acceptance Criteria Met:**
+- [x] Test creates kiosk context and navigates to a session
+- [x] Kiosk displays large QR code when no mobile devices are present
+- [x] QR code URL can be extracted programmatically (via `data-qr-url` attribute)
+- [x] Test creates second context with mobile viewport (375x667)
+- [x] Mobile context navigates to extracted QR URL
+- [x] Mobile auto-joins workspace (testing auto-join flow)
+- [x] Mobile lands in correct session in mobile mode
+- [x] Device counts update on kiosk to show: "📱 1 device connected"
+- [x] Device counts visible on mobile showing both kiosk and mobile devices
+- [x] Mini QR code appears on kiosk after first device joins
+- [x] Test handles authentication appropriately (uses test auth)
