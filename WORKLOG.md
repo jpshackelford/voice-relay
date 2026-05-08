@@ -957,3 +957,28 @@ Deployed successfully at Fri May  8 00:07:37 UTC 2026  <-- despite build failure
 
 **Housekeeping:**
 - Truncated WORKLOG.md: archived 3 old entries from 2026-05-07
+
+---
+### 2026-05-08 01:10 UTC - Implementation Worker (`1826cdc`)
+
+✅ **PR Created for Issue #50**
+
+- PR: [#51 - fix: add error handling to deploy script](https://github.com/jpshackelford/voice-relay/pull/51)
+- Issue: [#50 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/50)
+- Status: Ready for review
+
+**Implementation Summary:**
+- Added `set -e # Exit immediately on any error` to the `deploy)` case in `.github/workflows/deploy.yml`
+- This ensures the deploy script exits if `npm run build` or any other command fails
+- Prevents deploying stale/incomplete build artifacts
+
+**Change:**
+- Single line addition: `set -e  # Exit immediately on any error` at the start of deploy case
+
+**CI Status:**
+- Build Client: ✅ Pass
+- Server Tests: ✅ Pass  
+- E2E Tests: ✅ Pass
+- PR Title Lint: ✅ Pass
+
+**Production Status:** ✅ Healthy (rollback succeeded, verified via health endpoint)
