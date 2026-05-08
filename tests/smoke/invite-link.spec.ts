@@ -63,6 +63,8 @@ test.describe('Invite Link Flow', () => {
       
       // Get owned workspace
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
+      expect(response.ok()).toBeTruthy();
+      
       const workspaces = await response.json();
       const ownedWorkspace = workspaces.find((ws: { isOwner: boolean }) => ws.isOwner);
       
@@ -96,6 +98,8 @@ test.describe('Invite Link Flow', () => {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
       
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
+      expect(response.ok()).toBeTruthy();
+      
       const workspaces = await response.json();
       const ownedWorkspace = workspaces.find((ws: { isOwner: boolean, joinCode?: string }) => 
         ws.isOwner && ws.joinCode
@@ -158,6 +162,8 @@ test.describe('Invite Link Flow', () => {
     test('authenticated user with valid code joins successfully', async ({ page }) => {
       // Get a workspace with a join code
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
+      expect(response.ok()).toBeTruthy();
+      
       const workspaces = await response.json();
       const workspaceWithCode = workspaces.find((ws: { joinCode?: string }) => ws.joinCode);
       
@@ -180,6 +186,8 @@ test.describe('Invite Link Flow', () => {
     test('already-member user redirects to workspace', async ({ page }) => {
       // Get user's workspace
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
+      expect(response.ok()).toBeTruthy();
+      
       const workspaces = await response.json();
       const memberWorkspace = workspaces.find((ws: { joinCode?: string }) => ws.joinCode);
       
@@ -225,6 +233,8 @@ test.describe('Invite Link Flow', () => {
     test('non-owner does not see Settings section', async ({ page }) => {
       // Find a workspace where user is NOT the owner
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
+      expect(response.ok()).toBeTruthy();
+      
       const workspaces = await response.json();
       const nonOwnedWorkspace = workspaces.find((ws: { isOwner: boolean }) => !ws.isOwner);
       
