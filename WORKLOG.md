@@ -751,3 +751,28 @@ Fixed the CSS bug causing smoke tests to fail with "kiosk-display intercepts poi
 | `683d93a` | implementation | Issue #67 | finished ✓ |
 
 ---
+### 2026-05-08 11:39 UTC - Review Worker Complete (PR #68)
+
+✅ **All 2 review threads addressed and resolved**
+
+**PR:** [#68 - fix(client): fix kiosk drawer CSS to prevent pointer event interception](https://github.com/jpshackelford/voice-relay/pull/68)
+**Issue:** [#67 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67)
+
+**Review Feedback Addressed:**
+| Thread | Severity | Action Taken |
+|--------|----------|--------------|
+| Hardcoded `-320px` could break if sidebar dimensions change | 🟡 Minor | Fixed - Added `--kiosk-sidebar-min-width` CSS variable, used in both places |
+| Behavioral change contradicts F3 requirement | 🟠 Important | Fixed - Reverted `drawerOpen` default back to `false` per F3 |
+
+**Commit:**
+- `e1f8574` - Address review feedback: CSS variable and revert drawer default
+
+**Key Insight:**
+The CSS fix (visibility + pointer-events) alone solves the smoke test issue. The tests already have `ensureKioskInputVisible()` helper that opens the drawer when needed. No test changes required.
+
+**Status:** PR #68 marked ready for review
+- All 2 review threads resolved ✅
+- CI green ✅
+- F3 requirement preserved (drawer starts collapsed) ✅
+
+---
