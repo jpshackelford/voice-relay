@@ -57,7 +57,7 @@ export function KioskMode({
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(true);  // Start open so controls are accessible
+  const [drawerOpen, setDrawerOpen] = useState(false);  // Start collapsed per F3
   const [qrModalOpen, setQrModalOpen] = useState(false);
   
   const isMobile = useIsMobile();

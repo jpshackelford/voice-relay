@@ -1,3 +1,7 @@
+:root {
+  --kiosk-sidebar-min-width: 320px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -690,7 +694,7 @@ header {
 
 .kiosk-sidebar {
   width: 38.2%; /* Golden ratio: 1 / (1 + 1.618) ≈ 0.382 */
-  min-width: 320px;
+  min-width: var(--kiosk-sidebar-min-width);
   max-width: 500px;
   height: 100%;
   display: flex;
@@ -1052,7 +1056,7 @@ header {
 }
 
 .kiosk-sidebar.closed {
-  transform: translateX(-320px);  /* Use fixed value since -100% of width:0 = 0 */
+  transform: translateX(calc(-1 * var(--kiosk-sidebar-min-width)));
   width: 0;
   min-width: 0;
   overflow: hidden;
