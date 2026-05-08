@@ -923,3 +923,33 @@ Implemented comprehensive E2E test suite covering the complete session managemen
 **PR Status:** Ready for review
 
 ---
+
+### 2026-05-08 04:12 UTC - Merge Worker Complete
+
+**PR Merged:**
+- [PR #58](https://github.com/jpshackelford/voice-relay/pull/58): `test(e2e): add session management lifecycle tests`
+
+**Issue Closed:** [#45 - E2E Test: Session Management (Create, View, Switch)](https://github.com/jpshackelford/voice-relay/issues/45)
+
+**Summary:**
+Merged comprehensive E2E test suite for session management lifecycle covering 11 tests:
+- Auto-creation of first session when workspace has no sessions
+- View session from workspace home navigation
+- Create additional sessions with New Session button
+- Switch between sessions shows correct isolated content
+- Session messages are isolated between different sessions
+- Sessions persist across page reloads
+- Session metadata displays correctly
+- Empty sessions display correctly
+- Rapid session switching works without errors
+- Exit button navigates back to workspace home
+- Session count updates correctly after operations
+
+**Migration Check:** ✅ No database changes in this PR - pure test code addition
+
+**Files Changed:**
+- `tests/session-management.spec.ts` (new, 575 lines)
+
+**Review Status:** ✅ Approved (code review passed, all CI checks green)
+
+**Production Impact:** None - test code only, no production changes
