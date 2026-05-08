@@ -970,3 +970,39 @@ Implemented comprehensive E2E test suite for the complete user onboarding flow c
 - Workflow: https://github.com/jpshackelford/voice-relay/actions/runs/25528955142
 
 ---
+### 2026-05-08 00:40 UTC - Issue #50 Investigation Complete
+
+🔍 **Smoke Test Failure Investigated**
+
+**Issue:** [#50 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/50)
+**Failed Commit:** `5b538a5` (PR #49 merge)
+**Rollback Target:** `dee78f1` (automatic rollback succeeded)
+
+**Root Cause Identified:**
+
+1. **Build Failure**: TypeScript compilation failed during deployment with 28 `TS6053: File not found` errors for `@types` packages
+2. **Missing Error Handling**: Deploy script lacks `set -e`, so build failure didn't stop deployment
+3. **Stale Deploy**: Server restarted with incomplete/stale `client/dist` files
+4. **Symptom**: `/dashboard` returned "Not Found" instead of React SPA
+
+**Evidence:**
+```
+error TS6053: File '/var/www/vr.chorecraft.net/app/node_modules/@types/react-dom/index.d.ts' not found.
+npm error Lifecycle script `build` failed with error:
+npm error code 1
+...
+Deployed successfully at Fri May  8 00:07:37 UTC 2026  <-- despite build failure!
+```
+
+**Proposed Fix:**
+1. Add `set -e` to deploy script in `.github/workflows/deploy.yml`
+2. Clean node_modules on production server before next deploy
+
+**Issue Updated:** 
+- Root cause analysis added to issue body
+- `ready` label added
+- Status: Ready for implementation
+
+**Production Status:** ✅ Healthy (rollback succeeded, verified via health endpoint)
+
+---
