@@ -121,6 +121,7 @@ test.describe('Invite Link Flow', () => {
       
       // The join code should match the workspace's joinCode
       const extractedCode = extractJoinCode(clipboardText);
+      expect(extractedCode).not.toBeNull();
       expect(extractedCode).toBe(ownedWorkspace.joinCode);
     });
   });
@@ -175,7 +176,7 @@ test.describe('Invite Link Flow', () => {
       
       // Wait for redirect to workspace (success state triggers redirect after ~1s)
       await expect(page).toHaveURL(
-        new RegExp(`/workspace/${memberWorkspace.id}`), 
+        `${BASE_URL}/workspace/${memberWorkspace.id}`,
         { timeout: 10000 }
       );
     });
