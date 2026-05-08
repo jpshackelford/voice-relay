@@ -31,83 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-08 12:05 UTC - PR #68 Merged
-
-✅ **Merged: fix(client): fix kiosk drawer CSS to prevent pointer event interception**
-
-**PR:** [#68](https://github.com/jpshackelford/voice-relay/pull/68)
-**Issue:** [#67 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67) (auto-closed)
-
-**What was fixed:**
-- Kiosk sidebar CSS was intercepting pointer events when closed
-- Root cause: `transform: translateX(-100%)` had no effect when `width: 0` (-100% of 0 = 0)
-- Fix: Added `visibility: hidden` + `pointer-events: none` to closed sidebar state
-
-**Key decisions during review:**
-1. Reverted behavioral change (defaultDrawerOpen) per code review - keeping drawer closed by default as per F3 requirement
-2. Added CSS variable `--kiosk-sidebar-min-width` for maintainability
-
-**Migration:** None needed (pure CSS change)
-
-**Auto-deploys to:** vr.chorecraft.net
-
----
-
-### 2026-05-08 05:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `076c5d9` | review | PR #61 - E2E invite link tests | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-- Status: CI green, 1 unresolved review thread (documentation sync issue)
-- Conversation: [`076c5d9`](https://app.all-hands.dev/conversations/076c5d9e46fc4971b1b0f7a0197f5ba5)
-
-**Previous Workers:**
-- `e30d40e` (review) - PAUSED/finished
-- `7fa1073` (implementation) - PAUSED/finished
-
-**Current State:**
-- Open PR: #61 (CI green, 1 review thread pending)
-- Ready issues: #46 (priority:medium), #47 (priority:medium)
-- Issues needing expansion: none 🎉
-- Expansion slot: idle (all issues expanded)
-
-**Housekeeping:**
-- Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-07.md
-
----
-### 2026-05-08 05:40 UTC - Review Worker Complete (PR #61, Round 2)
-
-✅ **Final review thread addressed and resolved**
-
-**PR:** [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-**Issue:** [#46 - E2E Test: Workspace Invite Link Flow](https://github.com/jpshackelford/voice-relay/issues/46)
-
-**Review Feedback Addressed:**
-| Thread | Severity | Action Taken |
-|--------|----------|--------------|
-| Documentation out of sync - test described in docs doesn't exist | 🟠 Important | Fixed - Updated README test table from 8→7 tests, removed "Valid code join" row, added note explaining smoke test constraint |
-
-**Commit:**
-- `450c218` - docs: sync README with actual test count (7 tests, not 8)
-
-**Additional Updates:**
-- Updated PR description to match README (7 test cases, not 8)
-- Added note in acceptance criteria that "new user joins workspace" is not tested due to smoke test constraints
-
-**Status:** PR #61 marked ready for review
-- All review threads resolved ✅
-- CI green ✅
-- Documentation and code now in sync ✅
-
-**Learnings:**
-1. When tests are removed or consolidated, update ALL documentation surfaces (README, PR description, acceptance criteria)
-2. Be transparent about test coverage limitations with explanatory notes
-
----
 ### 2026-05-08 06:03 UTC - Orchestrator
 
 **Active Workers:**
@@ -773,3 +696,23 @@ The CSS fix (visibility + pointer-events) alone solves the smoke test issue. The
 | `1ce63fd` | review | PR #68 (addressed feedback) | finished ✓ |
 | `683d93a` | implementation | Issue #67 | finished ✓ |
 
+---
+### 2026-05-08 12:05 UTC - PR #68 Merged
+
+✅ **Merged: fix(client): fix kiosk drawer CSS to prevent pointer event interception**
+
+**PR:** [#68](https://github.com/jpshackelford/voice-relay/pull/68)
+**Issue:** [#67 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67) (auto-closed)
+
+**What was fixed:**
+- Kiosk sidebar CSS was intercepting pointer events when closed
+- Root cause: `transform: translateX(-100%)` had no effect when `width: 0` (-100% of 0 = 0)
+- Fix: Added `visibility: hidden` + `pointer-events: none` to closed sidebar state
+
+**Key decisions during review:**
+1. Reverted behavioral change (defaultDrawerOpen) per code review - keeping drawer closed by default as per F3 requirement
+2. Added CSS variable `--kiosk-sidebar-min-width` for maintainability
+
+**Migration:** None needed (pure CSS change)
+
+**Auto-deploys to:** vr.chorecraft.net
