@@ -80,10 +80,11 @@ SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.s
 | Copy Invite Link | ✅ | Clipboard copies valid `/join/{code}` URL |
 | Invite URL format | ✅ | URL matches `/join/{code}` pattern |
 | Unauthenticated redirect | ❌ | Redirects to `/login?returnTo=/join/{code}` |
-| Valid code join | ✅ | User joins workspace successfully |
-| Already-member join | ✅ | Redirects to workspace (skip join) |
+| Already-member redirect | ✅ | Redirects to workspace (skip join) |
 | Invalid code error | ✅ | Shows "invalid or expired" message |
 | Non-owner access | ✅ | Settings section hidden for non-owners |
+
+> **Note**: The "new user joins workspace" scenario is not tested in smoke tests because they run against production with a single test user who is already a member of existing workspaces. The already-member redirect behavior is tested instead.
 
 ## CI/CD Integration
 
