@@ -31,6 +31,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-08 12:05 UTC - PR #68 Merged
+
+✅ **Merged: fix(client): fix kiosk drawer CSS to prevent pointer event interception**
+
+**PR:** [#68](https://github.com/jpshackelford/voice-relay/pull/68)
+**Issue:** [#67 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/67) (auto-closed)
+
+**What was fixed:**
+- Kiosk sidebar CSS was intercepting pointer events when closed
+- Root cause: `transform: translateX(-100%)` had no effect when `width: 0` (-100% of 0 = 0)
+- Fix: Added `visibility: hidden` + `pointer-events: none` to closed sidebar state
+
+**Key decisions during review:**
+1. Reverted behavioral change (defaultDrawerOpen) per code review - keeping drawer closed by default as per F3 requirement
+2. Added CSS variable `--kiosk-sidebar-min-width` for maintainability
+
+**Migration:** None needed (pure CSS change)
+
+**Auto-deploys to:** vr.chorecraft.net
+
+---
+
 ### 2026-05-08 05:35 UTC - Orchestrator
 
 **Active Workers:**
