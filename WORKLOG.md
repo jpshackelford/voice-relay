@@ -908,3 +908,61 @@ Once PR #62 is merged, the voice-relay issue queue will be empty.
 Once PR #62 is merged, Issue #47 will auto-close and the queue will be empty.
 
 ---
+### 2026-05-08 09:35 UTC - Merge Worker Complete (PR #62)
+
+✅ **PR #62 Merged Successfully**
+
+**PR:** [#62 - feat(e2e): add AI assistant integration tests](https://github.com/jpshackelford/voice-relay/pull/62) → **MERGED**
+**Issue:** [#47 - E2E Test: AI Assistant Integration](https://github.com/jpshackelford/voice-relay/issues/47) → **CLOSED (auto)**
+
+**Squash-merge commit summary:**
+```
+feat(e2e): add comprehensive AI assistant integration tests
+
+- AI status endpoint availability check
+- Sparkle button visibility based on API key configuration
+- Connect/disconnect flow with state transition validation
+- Message send/receive with AI assistant
+- Image display on kiosk canvas with load verification
+- Markdown content rendering on canvas
+- State stability tests for rapid toggle scenarios
+- Graceful skip handling when AI is unavailable
+- Display API parameter validation (separate api-validation.spec.ts)
+```
+
+**Files Added:**
+- `tests/smoke/ai-integration.spec.ts` - 472 lines
+- `tests/smoke/api-validation.spec.ts` - 78 lines
+
+**Migration Check:** ✅ No database changes - test-only PR
+
+**Review History:**
+- Round 1: 5 threads → all resolved (scoped timeouts, state-based waits, cleanup hook, test separation)
+- Round 2: 2 threads → all resolved (function naming, stronger assertions)
+- Round 3: 1 thread → resolved (precise type expectation)
+
+**Final Review:** 🟢 Good taste (automated reviewer approved)
+
+---
+
+## 🎉 BACKLOG COMPLETE
+
+All original issues in the voice-relay backlog have been completed:
+
+| Issue | Title | PR | Status |
+|-------|-------|-----|--------|
+| #44 | E2E Test: QR Code Join Flow | #54 | ✅ Merged |
+| #45 | E2E Test: Session Management | #58 | ✅ Merged |
+| #46 | E2E Test: Invite Link Flow | #61 | ✅ Merged |
+| #47 | E2E Test: AI Assistant Integration | #62 | ✅ Merged |
+
+**Total E2E Test Coverage Added:**
+- QR code join flow tests
+- Session management tests (create, rename, delete)
+- Invite link workflow tests
+- AI assistant integration tests (connect, chat, display)
+- API validation tests
+
+The voice-relay project now has comprehensive E2E smoke test coverage for all major user flows.
+
+---
