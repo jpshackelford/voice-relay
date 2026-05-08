@@ -1416,3 +1416,105 @@ From lxa status: `oRCFRC green ready 💬7`
 - KioskMode: `.kiosk-input-row input`, `.kiosk-message`
 
 **Complexity:** Medium (2-3 hours estimated)
+
+---
+### 2026-05-07 18:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8d62eec` | implementation | Issue #42 - E2E Test: Multi-Device Real-Time Text Relay | running |
+| `41fc3a2` | expansion | Issue #44 - E2E Test: QR Code Join Flow | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+- Issue: [#44 - E2E Test: QR Code Join Flow (Device Pairing)](https://github.com/jpshackelford/voice-relay/issues/44)
+- Conversation: [`41fc3a2`](https://app.all-hands.dev/conversations/41fc3a2f97944c03905cb41ad545a98b)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `de3407d` | expansion | Issue #43 - E2E Test: Onboarding Flow | finished ✓ |
+
+**Current State:**
+- No open PRs (implementation in progress)
+- Ready issues: #42 (priority:high) - implementing, #43 (no priority)
+- Issues needing expansion: #44 (expanding), #45, #46, #47
+
+**Decision:**
+- PR slot: Occupied (implementation worker `8d62eec` running)
+- Expansion slot: Available → Spawned expansion worker for Issue #44
+
+---
+### 2026-05-07 18:35 UTC - Expansion Worker (`41fc3a2`)
+
+✅ **Expanded Issue #44**
+
+- Issue: [#44 - E2E Test: QR Code Join Flow (Device Pairing)](https://github.com/jpshackelford/voice-relay/issues/44)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Multi-browser context testing with Playwright (kiosk + mobile)
+- QR URL extraction from `data-qr-url` attribute (requires minor component modification)
+- Auto-join flow verification for second device
+- Real-time device count updates via WebSocket
+- QR code display state changes (large → mini after device joins)
+
+**Files to Create/Modify:**
+- `tests/qr-join-flow.spec.ts` - Main E2E test file (new)
+- `client/src/components/QRCode.tsx` - Add `data-qr-url` attribute for test access (modify)
+
+**Key Test Steps:**
+1. Create authenticated kiosk context (desktop viewport)
+2. Navigate to session, verify large QR displayed
+3. Extract QR URL via data attribute
+4. Create authenticated mobile context (375x667 viewport)
+5. Navigate mobile to QR URL
+6. Verify auto-join, mobile mode, device counts on both devices
+7. Verify mini QR replaces large QR on kiosk
+
+**Complexity:** Medium
+
+---
+### 2026-05-07 18:55 UTC - Implementation Worker (`8d62eec`)
+
+✅ **PR Created for Issue #42**
+
+- PR: [#48 - test: add E2E tests for multi-device relay](https://github.com/jpshackelford/voice-relay/pull/48)
+- Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42)
+- Status: Ready for review
+
+**Implementation Summary:**
+- Created `tests/multi-device-relay.spec.ts` with 4 E2E test scenarios:
+  1. Two devices join same session and relay messages bidirectionally
+  2. Typing indicator shows partial messages to other devices
+  3. Device count updates when devices join/leave
+  4. Message sender attribution is correct
+- Created `tests/utils/auth-helper.ts` with test auth utilities including `waitForStableConnection()`
+- Updated `playwright.config.ts` with TEST_AUTH_SECRET env vars
+- Updated `server/src/index.ts` with TEST_AUTH_SECRET authentication bypass for E2E tests
+
+**Key Fixes Applied:**
+- WebSocket stability: wait for stable connection after reconnects
+- Fixed selectors: kiosk uses `.kiosk-message`, mobile uses `.message`
+- Fixed kiosk drawer handling (collapsed by default, need `.drawer-open-btn`)
+- Used unique timestamps in messages to avoid conflicts between test runs
+
+**CI Status:**
+- Build: ✅ Pass
+- Server tests: 406 pass
+- E2E tests: 23 pass (4 new + existing)
+- Lint-pr-title: ✅ Pass
+
+**All acceptance criteria from Issue #42 met:**
+- ✅ Test creates two isolated browser contexts successfully
+- ✅ Both devices authenticate and connect to the same session
+- ✅ WebSocket connections established for both devices
+- ✅ Messages relay bidirectionally within 1 second
+- ✅ Partial messages show typing indicator
+- ✅ Final messages do not show typing indicator
+- ✅ Device count updates in real-time
+- ✅ Correct sender attribution ("You:" vs device name)
+- ✅ Proper context cleanup after tests
+- ✅ Stable tests (no flaky timing issues)
