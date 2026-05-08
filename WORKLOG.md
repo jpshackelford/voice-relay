@@ -798,3 +798,46 @@ Merged comprehensive E2E test suite for session management lifecycle covering 11
 - #46 (priority:medium) - E2E Invite Link Flow - **in progress**
 - #47 (priority:medium) - E2E AI Assistant Integration
 
+---
+### 2026-05-08 04:42 UTC - Implementation Worker Complete (Issue #46)
+
+**PR Created:**
+- [PR #61](https://github.com/jpshackelford/voice-relay/pull/61): `feat(tests): add E2E smoke tests for workspace invite link flow`
+
+**Issue:** [#46 - E2E Test: Workspace Invite Link Flow (Share Access)](https://github.com/jpshackelford/voice-relay/issues/46)
+
+**Summary:**
+Implemented comprehensive E2E smoke test suite for workspace invite link feature.
+
+**Tests Added (8 total):**
+1. ✅ `owner sees Settings section with Invite Link option`
+2. ✅ `owner can copy invite link`
+3. ✅ `invite link URL format is /join/{code}`
+4. ✅ `unauthenticated user redirects to login with returnTo`
+5. ✅ `authenticated user with valid code joins successfully`
+6. ✅ `already-member user redirects to workspace`
+7. ✅ `invalid join code shows error`
+8. ✅ `non-owner does not see Settings section`
+
+**Files Changed:**
+- `tests/smoke/invite-link.spec.ts` (new, 256 lines)
+- `tests/smoke/playwright.config.ts` (updated testMatch)
+- `tests/smoke/README.md` (documented new tests)
+
+**Acceptance Criteria Met:**
+- ✅ Settings section shows Invite Link option for owners only
+- ✅ Copy Invite Link button copies valid URL and shows feedback
+- ✅ Invite link URL format is `/join/{code}`
+- ✅ Unauthenticated users redirected to login with returnTo
+- ✅ Authenticated users without access join workspace successfully
+- ✅ Already-member users skip join and go directly to workspace
+- ✅ Invalid codes show friendly error message
+
+**CI Status:**
+- Build Client: ✅ Pass
+- Server Tests: ✅ Pass
+- E2E Tests: ✅ Pass
+- PR Title Lint: ✅ Pass
+
+**PR Status:** Ready for review
+
