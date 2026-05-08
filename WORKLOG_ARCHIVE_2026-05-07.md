@@ -1334,3 +1334,85 @@ From lxa status: `oRCFRC green ready 💬7`
 - PR slot: Empty (waiting for expansion to complete)
 
 **Note:** 6 new E2E test issues (#42-47) created. Starting expansion with #42.
+
+---
+### 2026-05-07 17:34 UTC - Expansion Worker (`6fbc196`)
+
+✅ **Expanded Issue #42**
+
+- Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Multi-browser context testing with Playwright
+- Kiosk + Mobile mode simulation via viewport sizes
+- WebSocket connection and message relay verification
+- Partial message (typing indicator) testing
+- Device list real-time updates
+
+**Files to Create:**
+- `tests/multi-device-relay.spec.ts` - Main E2E test file
+- `tests/utils/auth-helper.ts` - Shared authentication helper
+
+---
+### 2026-05-07 18:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8d62eec` | implementation | Issue #42 - E2E Test: Multi-Device Real-Time Text Relay | **NEW** |
+| `de3407d` | expansion | Issue #43 - E2E Test: Complete User Onboarding Flow | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker**
+   - Issue: [#42 - E2E Test: Multi-Device Real-Time Text Relay (Core Feature)](https://github.com/jpshackelford/voice-relay/issues/42) (priority:high)
+   - Conversation: [`8d62eec`](https://app.all-hands.dev/conversations/8d62eec6865c46f5a037bd7f9035c1e8)
+
+2. **Expansion Worker**
+   - Issue: [#43 - E2E Test: Complete User Onboarding Flow (First-Time Experience)](https://github.com/jpshackelford/voice-relay/issues/43)
+   - Conversation: [`de3407d`](https://app.all-hands.dev/conversations/de3407d3cb0240d2861b1e6aceec1ae3)
+
+**Previous Workers (finished):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6fbc196` | expansion | Issue #42 - E2E Test | finished ✓ |
+
+**Current State:**
+- No open PRs (implementation in progress)
+- Ready issues: #42 (priority:high) - implementing
+- Issues needing expansion: #43 (expanding), #44, #45, #46, #47
+
+**Priority Assessment:**
+- Applied `priority:high` label to Issue #42
+
+---
+### 2026-05-07 18:06 UTC - Expansion Worker (`de3407d`)
+
+✅ **Expanded Issue #43**
+
+- Issue: [#43 - E2E Test: Complete User Onboarding Flow (First-Time Experience)](https://github.com/jpshackelford/voice-relay/issues/43)
+- Type: E2E Test
+- Status: Ready for implementation
+- Label added: `ready`
+
+**Technical Scope:**
+- Complete first-time user journey from login to first message
+- Auth via `/auth/test-session` endpoint for CI automation
+- Redirect chain verification (root → login → dashboard → workspace)
+- Auto-created workspace and session verification
+- WebSocket connection status verification
+- First message send/receive verification
+
+**Files to Create:**
+- `tests/onboarding-flow.spec.ts` - Complete onboarding E2E test
+
+**Key Selectors Identified:**
+- Login page: `page.getByText("Voice Relay")`, `page.getByRole("button", { name: /Sign in with GitHub/i })`
+- WorkspaceHome: `page.getByRole("heading", { name: /devices/i })`, `page.getByText("View →")`
+- SessionView: `.connection-indicator.connected`
+- KioskMode: `.kiosk-input-row input`, `.kiosk-message`
+
+**Complexity:** Medium (2-3 hours estimated)
