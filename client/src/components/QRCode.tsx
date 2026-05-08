@@ -136,7 +136,7 @@ export function QRCodeDisplay({
   if (!qrDataUrl) return null;
 
   return (
-    <div className="qr-code-container">
+    <div className="qr-code-container" data-qr-url={currentUrl}>
       {label && <p className="qr-label">{label}</p>}
       <img src={qrDataUrl} alt="QR Code to connect" width={size} height={size} />
       
