@@ -411,3 +411,30 @@ Waiting for smoke test investigation to complete before spawning new implementat
 - Expansion slot: Occupied (expansion worker)
 
 ---
+### 2026-05-10 03:15 UTC - Implementation Worker (`2858a29`)
+
+✅ **Created: PR #108**
+
+- PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
+- Issue: [#86 - Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
+- Conversation: [`2858a29`](https://app.all-hands.dev/conversations/2858a29eb6c64e00af12cc1a3133e617)
+
+**Root Cause:**
+- `/api/display` endpoint requires `workspaceId` to route content to correct kiosk devices
+- The kiosk system prompt (`kiosk-system.md`) had curl examples **without** workspaceId
+- AI-generated display calls returned 400 errors, canvas never updated
+
+**Fix Applied:**
+1. Added `{{WORKSPACE_ID}}` placeholder to `server/prompts/kiosk-system.md` curl examples
+2. Extended `loadPrompt()` to accept optional `workspaceId` and replace placeholder
+3. Extended `startSession()` to accept `workspaceId` parameter
+4. Updated `/api/ai/connect` endpoint to pass `deviceWorkspaceId` to session
+
+**Testing:**
+- ✅ Added 11 unit tests for `loadPrompt()` function
+- ✅ All 417 server tests pass
+- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
+
+---
