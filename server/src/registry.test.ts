@@ -566,7 +566,7 @@ describe('DeviceRegistry', () => {
       expect(wsClosed.close).not.toHaveBeenCalled();
     });
 
-    it('should continue on per-device errors', () => {
+    it('should continue on per-device errors and still remove from registry', () => {
       const ws1 = createMockWebSocket();
       const ws2 = createMockWebSocket();
       
@@ -581,9 +581,10 @@ describe('DeviceRegistry', () => {
       // Should not throw, and should still process the second device
       const count = registry.disconnectWorkspaceDevices('workspace-1');
 
-      // Only the successful device is counted (error handling keeps broken device in registry)
+      // Only the successful device is counted, but both are removed from registry
+      // (failed devices will timeout/disconnect naturally)
       expect(count).toBe(1);
-      expect(registry.getDevice('device-1')).toBeDefined(); // stays in registry on error
+      expect(registry.getDevice('device-1')).toBeUndefined(); // removed even on error
       expect(registry.getDevice('device-2')).toBeUndefined();
       
       // Second device should have received the message

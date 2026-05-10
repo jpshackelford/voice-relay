@@ -310,11 +310,13 @@ export class DeviceRegistry {
           device.ws.send(payload);
           device.ws.close(1000, 'Workspace deleted');
         }
-        this.devices.delete(device.id);
         disconnectedCount++;
       } catch (err) {
         console.error(`[Registry] Error disconnecting device ${device.id}:`, err);
       }
+      // Always remove from registry, even if notification failed.
+      // Devices that couldn't be notified will eventually timeout/disconnect naturally.
+      this.devices.delete(device.id);
     }
 
     if (disconnectedCount > 0) {

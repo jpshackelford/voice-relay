@@ -81,7 +81,7 @@ export function DeleteWorkspaceModal({ workspace, onConfirm, onCancel }: DeleteW
               <li>{formatCount(counts.sessions, 'session', 'sessions')}</li>
               <li>{formatCount(counts.devices, 'device', 'devices')}</li>
               <li>{formatCount(counts.messages, 'message', 'messages')}</li>
-              <li>{formatCount(counts.members - 1, 'member', 'members')} (besides you)</li>
+              <li>{formatCount(counts.members - 1, 'other member', 'other members')}</li>
             </ul>
           </div>
         ) : null}

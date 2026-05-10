@@ -224,7 +224,15 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       // Disconnect active WebSocket connections AFTER successful DB transaction
       // This ensures we only disconnect devices if the workspace was actually deleted
       if (onWorkspaceDeleted) {
-        onWorkspaceDeleted(workspace.id);
+        try {
+          onWorkspaceDeleted(workspace.id);
+        } catch (err) {
+          // Log but don't fail the request - workspace is already deleted
+          console.error('[Audit] Error disconnecting workspace devices:', {
+            workspaceId: workspace.id,
+            error: err,
+          });
+        }
       }
 
       // Log deletion completion

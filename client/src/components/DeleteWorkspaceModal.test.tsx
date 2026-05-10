@@ -202,7 +202,7 @@ describe('DeleteWorkspaceModal', () => {
     expect(screen.getByText('5 sessions')).toBeDefined();
     expect(screen.getByText('3 devices')).toBeDefined();
     expect(screen.getByText('100 messages')).toBeDefined();
-    expect(screen.getByText('1 member (besides you)')).toBeDefined(); // members - 1
+    expect(screen.getByText('1 other member')).toBeDefined(); // members - 1
   });
 
   it('uses singular form for count of 1', async () => {
