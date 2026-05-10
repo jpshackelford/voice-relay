@@ -923,3 +923,181 @@ updated from the server's validate response, ensuring all storage layers
 - App auto-deploys to vr.chorecraft.net on merge to main
 - No breaking changes, no migrations, low risk
 - Device names now persist correctly across all views
+
+---
+### 2026-05-10 07:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b5306ea` | expansion | Issue #98 - AI mobile display API | **NEW** |
+| `75f2955` | implementation | Issue #87 - QR code expiry bug | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Expansion Worker**
+   - Issue: [#98 - AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98)
+   - Conversation: [`b5306ea`](https://app.all-hands.dev/conversations/b5306ea58f2847a5b33d864860f1f555)
+
+2. **Implementation Worker**  
+   - Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
+   - Conversation: [`75f2955`](https://app.all-hands.dev/conversations/75f2955a30e244d6865185a1e99c382e)
+
+**Priority Assessment (inline):**
+- #93 (Archive/rename sessions): Assigned `priority:low` - UX enhancement, moderate complexity
+- #95 (Delete workspace): Assigned `priority:low` - Cleanup feature, medium-high complexity
+
+**Previous Workers Completed:**
+- `d7bfdd5` (merge): ✅ Merged PR #109 (Issue #85)
+- `1c8d81d` (expansion): ✅ Expanded Issue #95
+
+**Current State:**
+- No open PRs
+- Ready issues: #84 (low), #87 (medium - being implemented), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- Issues needing expansion: #98 (in progress), #103
+- PR slot: Occupied (implementation worker - Issue #87)
+- Expansion slot: Occupied (expansion worker - Issue #98)
+
+---
+### 2026-05-10 07:10 UTC - Expansion Worker (`b5306ea`)
+
+✅ **Expanded Issue #98**
+
+- Issue: [#98 - AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98)
+- Type: Bug
+- Status: **Ready for implementation** ✅
+
+**Root Cause:**
+- System uses separate prompts for kiosk (`kiosk-system.md`) vs chat (`chat-system.md`) modes
+- `chat-system.md` lacks display API documentation
+- Prompt selection in `server/src/openhands.ts` lines 360-364 chooses based on mode
+
+**Proposed Fix:**
+Create unified `system-prompt.md` combining both prompts, remove mode-based selection logic
+
+**Files to modify:**
+- `server/prompts/system-prompt.md` - **CREATE** unified prompt
+- `server/prompts/kiosk-system.md` - **DELETE**
+- `server/prompts/chat-system.md` - **DELETE**
+- `server/src/openhands.ts` - Simplify to always load `system-prompt`
+- `server/src/openhands.test.ts` - Update tests
+
+**Complexity:** Low
+
+**Labels added:** `ready`
+
+---
+### 2026-05-10 07:18 UTC - Implementation Worker (`75f2955`)
+
+✅ **Created PR #110**
+
+- PR: [#110 - fix: preserve device state during QR token refresh to prevent UI flicker](https://github.com/jpshackelford/voice-relay/pull/110)
+- Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR instead of refreshing corner QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
+
+**Root Cause Analysis:**
+The issue involved three contributing factors:
+1. `useQrToken.ts`: No retry logic when token refresh failed - token was cleared immediately
+2. `useWebSocket.ts`: Device state was not preserved during reconnection, causing UI flicker
+3. `KioskMode.tsx`: Display logic depended directly on `mobileDevices.length > 0` without defensive fallback
+
+**Implementation:**
+
+1. **useQrToken.ts** - Added retry logic with exponential backoff:
+   - Configurable `maxRetries` (default 3) and `baseRetryDelayMs` (default 5s)
+   - Preserves last valid token during retry attempts
+   - Resets retry count on 503 (unsupported feature)
+
+2. **useWebSocket.ts** - Preserves device state during reconnection:
+   - Added `lastKnownDevicesRef` to track devices across reconnections
+   - Restores devices immediately on reconnection to prevent UI flicker
+
+3. **KioskMode.tsx** - Defensive device count tracking:
+   - Added `lastMobileCountRef` to preserve last known mobile count
+   - Uses placeholder devices when disconnected to maintain UI state
+   - Properly clears count when connected and devices explicitly become empty
+
+**Testing:**
+- 3 new tests for useQrToken retry logic
+- 4 new tests for useWebSocket device preservation
+- All 159 client tests pass
+- All 419 server tests pass
+
+**CI Status:** ✅ All checks passed (Build Client, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
+
+---
+### 2026-05-10 07:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #103**
+
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103)
+- Type: Security Bug
+- Status: **Ready for implementation** ✅
+
+**Vulnerability Verified:**
+Unauthenticated POST to `/api/display` successfully returns `{"success":true,"kioskCount":0}`. Anyone who knows or guesses a workspace ID can send arbitrary content to kiosk displays.
+
+**Root Cause:**
+- `server/src/index.ts` lines 221-247
+- The `/api/display` handler performs input validation but has **no authentication check**
+- Comment in code acknowledges this: "Workspace validation deferred to Phase 4"
+
+**Proposed Fix: Per-Session Display API Secret**
+1. New migration: Add `display_api_secret_encrypted/iv/tag` columns to sessions table
+2. Generate 32-byte random secret on session creation, encrypt using existing `encryptApiKey()`
+3. Pass secret to OpenHands via `secrets` parameter in StartConversationRequest
+4. Update system prompt with `Authorization: Bearer $DISPLAY_API_SECRET` header
+5. Validate Authorization header in `/api/display` using `crypto.timingSafeEqual()`
+6. Change request body from `workspaceId` to `sessionId` (secrets are per-session)
+
+**Files to modify:**
+- `server/src/storage/migrations/010_display_api_secrets.ts` - New migration
+- `server/src/sessions/types.ts` - Add secret fields to Session interface
+- `server/src/sessions/session-repository.ts` - Secret generation/retrieval
+- `server/src/openhands.ts` - Add secrets param to StartConversationRequest
+- `server/src/index.ts` - Add auth check to `/api/display`
+- `server/prompts/kiosk-system.md` - Update curl examples with Authorization header
+- `server/src/types.ts` - Update DisplayRequest to use sessionId
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
+
+---
+### 2026-05-10 07:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #103**
+
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103)
+- Type: Security Bug
+- Status: **Ready for implementation** ✅
+
+**Vulnerability Verified:**
+Unauthenticated POST to `/api/display` successfully returns `{"success":true,"kioskCount":0}`. Anyone who knows or guesses a workspace ID can send arbitrary content to kiosk displays.
+
+**Root Cause:**
+- `server/src/index.ts` lines 221-247
+- The `/api/display` handler performs input validation but has **no authentication check**
+- Comment in code acknowledges this: "Workspace validation deferred to Phase 4"
+
+**Proposed Fix: Per-Session Display API Secret**
+1. New migration: Add `display_api_secret_encrypted/iv/tag` columns to sessions table
+2. Generate 32-byte random secret on session creation, encrypt using existing `encryptApiKey()`
+3. Pass secret to OpenHands via `secrets` parameter in StartConversationRequest
+4. Update system prompt with `Authorization: Bearer $DISPLAY_API_SECRET` header
+5. Validate Authorization header in `/api/display` using `crypto.timingSafeEqual()`
+6. Change request body from `workspaceId` to `sessionId` (secrets are per-session)
+
+**Files to modify:**
+- `server/src/storage/migrations/010_display_api_secrets.ts` - New migration
+- `server/src/sessions/types.ts` - Add secret fields to Session interface
+- `server/src/sessions/session-repository.ts` - Secret generation/retrieval
+- `server/src/openhands.ts` - Add secrets param to StartConversationRequest
+- `server/src/index.ts` - Add auth check to `/api/display`
+- `server/prompts/kiosk-system.md` - Update curl examples with Authorization header
+- `server/src/types.ts` - Update DisplayRequest to use sessionId
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
