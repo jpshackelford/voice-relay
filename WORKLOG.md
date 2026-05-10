@@ -970,3 +970,34 @@ Changes:
 - No issues need expansion 🎉
 - PR slot: Occupied (merge worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 14:05 UTC - Merge Worker
+
+✅ **Merged PR #115**
+
+- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
+- Status: **MERGED** ✅
+
+**What Shipped:**
+- `DELETE /api/workspaces/:id/devices/:deviceId` endpoint (owner-only)
+- WebSocket notification to removed device before disconnect
+- Device removed from all active sessions
+- Client-side remove button with confirmation modal
+- Success notification after device removal
+
+**Migration Notes:** None - no database schema changes required.
+
+**Issue Closed:** #90 auto-closed via "Fixes #90" in PR description
+
+**Commit:**
+```
+feat: allow workspace owners to remove devices
+
+Add the ability for workspace owners to remove any device from their workspace.
+When a device is removed:
+- Device is removed from all active sessions
+- WebSocket notification sent before disconnect
+- Device token is invalidated (record deleted)
+```
