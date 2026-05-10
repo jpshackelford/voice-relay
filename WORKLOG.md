@@ -207,3 +207,27 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 - PR slot: Occupied (merge worker)
 - Expansion slot: Occupied (expansion worker)
 
+
+---
+### 2026-05-10 01:35 UTC - Merge Agent
+
+**PR #83 Merged Successfully** ✅
+
+| PR | Issue | Status |
+|-----|-------|--------|
+| [#83](https://github.com/jpshackelford/voice-relay/pull/83) | [#82](https://github.com/jpshackelford/voice-relay/issues/82) | ✅ Squash-merged |
+
+**Summary:**
+- Fixed smoke test failure caused by AI toggle button not being visible
+- Root cause: kiosk drawer starts collapsed (F3 requirement), but tests didn't open it first
+- Solution: Added `ensureDrawerOpen()` helper function at outer test scope
+- No production code changes - test-only fix
+- No database migrations
+
+**Review Evolution:**
+1. Initial fix accepted with code duplication noted
+2. Refactored to move helper to outer scope for reuse
+
+**Commit:** `7467b37` - fix(tests): open drawer before clicking AI toggle button
+
+**Auto-deploy:** App will deploy to vr.chorecraft.net on merge to main.
