@@ -178,3 +178,32 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 
 **PR Status:** Ready for review → Review feedback addressed → Ready for merge
 
+
+---
+### 2026-05-10 01:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `969608b` | merge | PR #83 - AI toggle visibility fix | **NEW** |
+| `7c6a3d9` | expansion | Issue #85 - Device name reset bug | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
+   - Issue: [#82 - Smoke test failure](https://github.com/jpshackelford/voice-relay/issues/82)
+   - Conversation: [`969608b`](https://app.all-hands.dev/conversations/969608b0dc2e4dbbb1249a8e7df639e6)
+   - All review threads resolved, CI green, mergeable
+
+2. **Expansion Worker**
+   - Issue: [#85 - bug: Device name resets to random name after visiting kiosk view](https://github.com/jpshackelford/voice-relay/issues/85)
+   - Conversation: [`7c6a3d9`](https://app.all-hands.dev/conversations/7c6a3d9ca0ea4d82a6c0152a520cd407)
+
+**Current State:**
+- [PR #83](https://github.com/jpshackelford/voice-relay/pull/83): `oRFC green ready` → merge worker merging
+- Ready issues: #82 (linked to PR), #84 (commit hash feature)
+- Issues needing expansion: #85 (now being expanded), #86, #87, #88, #89, #90, #91 + more
+- PR slot: Occupied (merge worker)
+- Expansion slot: Occupied (expansion worker)
+
