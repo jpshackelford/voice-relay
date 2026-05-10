@@ -962,3 +962,37 @@ updated from the server's validate response, ensuring all storage layers
 - No breaking changes, no migrations, low risk
 - Device names now persist correctly across all views
 
+
+---
+### 2026-05-10 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #95**
+
+- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Technical Summary:**
+- Backend DELETE endpoint exists but needs enhancement for messages cleanup and WebSocket disconnection
+- Need new deletion-preview endpoint for showing counts before deletion
+- Client needs DeleteWorkspaceModal component and danger zone section
+
+**Key Findings:**
+- CASCADE deletion works for most tables (workspace_settings, workspace_members, devices, sessions, qr_tokens, join_requests)
+- Messages table does NOT cascade - requires explicit `DELETE FROM messages WHERE workspace_id = ?`
+- DeviceRegistry needs `disconnectWorkspaceDevices()` method for graceful socket cleanup
+
+**Files to create:**
+- `client/src/components/DeleteWorkspaceModal.tsx` - Confirmation modal with name typing
+- `client/src/hooks/useDeletionPreview.ts` - Hook to fetch deletion counts
+
+**Files to modify:**
+- `server/src/workspaces/router.ts` - Add deletion-preview endpoint, enhance DELETE
+- `server/src/workspaces/workspace-repository.ts` - Add getDeletionCounts, deleteMessages methods
+- `server/src/registry.ts` - Add disconnectWorkspaceDevices method
+- `client/src/pages/WorkspaceHome.tsx` - Add danger zone section
+- `client/src/App.css` - Danger zone styling
+
+**Complexity:** Medium-High (~10 hours estimated)
+
+**Labels added:** `ready`
