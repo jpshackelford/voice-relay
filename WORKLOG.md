@@ -178,7 +178,6 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 
 **PR Status:** Ready for review → Review feedback addressed → Ready for merge
 
-
 ---
 ### 2026-05-10 01:35 UTC - Orchestrator
 
@@ -231,3 +230,32 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 **Commit:** `7467b37` - fix(tests): open drawer before clicking AI toggle button
 
 **Auto-deploy:** App will deploy to vr.chorecraft.net on merge to main.
+
+---
+### 2026-05-10 01:35 UTC - Expansion Worker (`7c6a3d9`)
+
+✅ **Expanded Issue #85**
+
+- Issue: [#85 - bug: Device name resets to random name after visiting kiosk view](https://github.com/jpshackelford/voice-relay/issues/85)
+- Type: Bug
+- Status: **Ready for implementation**
+
+**Root Cause:**
+- `useDeviceRestoration` reads device name from sessionStorage/localStorage (stale)
+- When `validateDeviceToken()` returns the correct server-side name, the hook ignores `validatedDevice.name`
+- It updates mode but not name, leaving the stale cached name in use
+
+**Proposed Fix:**
+Update `client/src/hooks/useDeviceRestoration.ts` to sync name from server validation response:
+```typescript
+if (validatedDevice.name) {
+  setDisplayName(validatedDevice.name);
+  sessionStorage.setItem('displayName', validatedDevice.name);
+  // Update localStorage device token with correct name
+}
+```
+
+**Files to modify:**
+- `client/src/hooks/useDeviceRestoration.ts` - Use server name from validate response
+
+**Complexity:** Low
