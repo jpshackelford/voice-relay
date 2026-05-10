@@ -1037,3 +1037,42 @@ The workspaceId backward compatibility path accepted ANY bearer token as valid a
 - No issues need expansion 🎉
 - PR slot: Occupied (merge worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 09:38 UTC - Merge Worker (`d0ab989`)
+
+✅ **MERGED: PR #111**
+
+- PR: [#111 - fix(server): add display API authentication](https://github.com/jpshackelford/voice-relay/pull/111) → **MERGED**
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103) → **CLOSED**
+- Merge commit: `d7ef67e` (squash merge)
+
+**Final State:**
+- All CI checks: ✅ PASSED (5/5)
+- All review threads: ✅ RESOLVED (4/4)
+- Migration safety: ✅ VERIFIED (additive only - nullable columns)
+- Tests: 438 passing (includes 19 new display API auth tests)
+
+**Production Impact:**
+- Auto-deploying to vr.chorecraft.net on merge to main
+- Migration `010_display_api_secrets.ts` adds 3 nullable columns to sessions table
+- BREAKING: Existing AI sessions without display secrets will return 401 (expected)
+- No manual post-deploy steps required
+
+**Squash Commit Message:**
+```
+fix(security): add authentication to display API endpoint
+
+Addresses security vulnerability #103 where the /api/display endpoint had no
+authentication, allowing unauthorized content injection into kiosk displays.
+
+BREAKING CHANGE: Display API no longer accepts workspaceId. Only sessionId
+with proper secret authentication is supported.
+```
+
+**Current State:**
+- No open PRs ✅
+- Issue #103 closed ✅
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), #98 (medium)
+- PR slot: Available
+- Expansion slot: Available
