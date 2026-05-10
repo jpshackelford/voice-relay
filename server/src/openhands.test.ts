@@ -81,6 +81,29 @@ describe('loadPrompt', () => {
       expect(prompt).toContain(`"workspaceId": "${testWorkspaceId}"`);
     });
 
+    test('escapes JSON-breaking characters in workspaceId', () => {
+      // Test that quotes are properly escaped to prevent broken JSON
+      const testWorkspaceId = 'ws"test';
+      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
+
+      // Should contain escaped version in JSON context
+      expect(prompt).toContain('"workspaceId": "ws\\"test"');
+      expect(prompt).not.toContain('{{WORKSPACE_ID}}');
+
+      // Verify the escaped JSON is valid by extracting and parsing
+      const jsonMatch = prompt.match(/"workspaceId":\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+      expect(jsonMatch).toBeTruthy();
+    });
+
+    test('escapes backslashes in workspaceId', () => {
+      // Test that backslashes are properly escaped
+      const testWorkspaceId = 'ws\\test';
+      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
+
+      // Should contain escaped backslash
+      expect(prompt).toContain('"workspaceId": "ws\\\\test"');
+    });
+
     test('handles empty string workspaceId (no replacement)', () => {
       // Empty string is falsy, so no replacement should occur
       const prompt = loadPrompt('kiosk-system', undefined, '');

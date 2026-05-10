@@ -249,8 +249,10 @@ export function loadPrompt(promptName: string, displayLines?: number, workspaceI
   }
   
   // Replace workspace ID placeholder if provided
+  // Escape JSON-breaking characters to prevent malformed curl examples in prompts
   if (workspaceId) {
-    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, workspaceId);
+    const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, escapedId);
   }
   
   return prompt;
