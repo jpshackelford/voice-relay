@@ -976,3 +976,42 @@ with proper secret authentication is supported.
 - No issues need expansion 🎉
 - PR slot: Occupied (merge worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 10:36 UTC - Merge Worker (`368aab1`)
+
+✅ **MERGED: PR #112**
+
+- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112) → **MERGED**
+- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98) → **CLOSED**
+- Merge commit: `d641357` (squash merge)
+
+**Final State:**
+- All CI checks: ✅ PASSED (Build, Server Tests, E2E Tests, PR Lint)
+- Review: ✅ Bot approved - "Elegant simplification"
+- Migration safety: ✅ VERIFIED (no database changes)
+- Tests: 441 passing
+
+**Production Impact:**
+- Auto-deploying to vr.chorecraft.net on merge to main
+- No database migrations required
+- No breaking changes - additive behavior only
+- Mobile devices can now command kiosk displays to show content
+
+**Squash Commit Message:**
+```
+fix: unify system prompt for all device modes
+
+Merges kiosk-system.md and chat-system.md into a single system-prompt.md
+that all AI sessions receive, regardless of device mode (mobile or kiosk).
+Enables mobile devices to command kiosk displays to show content.
+
+Fixes #98
+```
+
+**Current State:**
+- No open PRs ✅
+- Issue #98 closed ✅
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- PR slot: Available
+- Expansion slot: Available
