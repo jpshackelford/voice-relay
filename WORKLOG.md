@@ -31,6 +31,50 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-10 13:51 UTC - Implementation Worker
+
+✅ **Created PR #115 for Issue #90**
+
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90) (priority:low, ready)
+- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
+- Status: **Ready for review** ✅
+
+**Implementation Summary:**
+- Added `DELETE /api/workspaces/:id/devices/:deviceId` endpoint (owner-only)
+- Device is removed from all active sessions via `sessionRepository.removeDeviceFromAll()`
+- WebSocket notification sent to removed device before disconnect via `onDeviceRemoved` callback
+- Device token is invalidated on removal (delete from devices table)
+- Client-side `useDevices` hook now includes `removeDevice` function
+- `useWebSocket` hook handles `device-removed` message (clears token, sets `wasRemoved` state)
+- `WorkspaceHome.tsx` adds remove button with confirmation modal
+- Success notification appears after device removal (auto-dismisses after 3 seconds)
+
+**Tests Added:** 8 test cases for DELETE endpoint (all passing)
+
+**Acceptance Criteria Met:**
+- ✅ Workspace owner can remove any device from the device list via UI
+- ✅ DELETE endpoint works correctly
+- ✅ Removed device is immediately disconnected (if connected via WebSocket)
+- ✅ Removed device no longer appears in the workspace device list
+- ✅ Removed device's token is invalidated
+- ✅ Removed device is removed from all active sessions
+- ✅ Confirmation dialog prevents accidental removal
+- ✅ Toast/notification shows feedback when device is removed
+- ✅ Removed device must go through normal join flow to rejoin
+
+**Files Modified:**
+- `server/src/types.ts` - Added DeviceRemovedMessage type
+- `server/src/workspaces/router.ts` - Added DELETE endpoint, onDeviceRemoved callback
+- `server/src/index.ts` - Wired up onDeviceRemoved callback
+- `client/src/types.ts` - Added DeviceRemovedMessage type
+- `client/src/hooks/useDevices.ts` - Added removeDevice function
+- `client/src/hooks/useWebSocket.ts` - Handle device-removed message
+- `client/src/pages/WorkspaceHome.tsx` - Remove button, confirmation modal, success message
+- `client/src/App.css` - Button and modal styles
+- `server/src/workspaces/router.test.ts` - 8 new test cases
+
+---
+
 ### 2026-05-10 06:36 UTC - Expansion Worker
 
 ✅ **Expanded Issue #95**
