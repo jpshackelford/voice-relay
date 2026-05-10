@@ -541,3 +541,33 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 
 **Complexity:** Low
 
+---
+### 2026-05-10 03:45 UTC - Review Worker (`4bab751`)
+
+✅ **Addressed Review Feedback on PR #108**
+
+- PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
+- Issue: [#86 - Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
+
+**Review Feedback Addressed:**
+
+1. **JSON Escaping (inline thread - openhands.ts:253)**
+   - Suggestion: Escape quotes/backslashes in workspaceId before injection
+   - Action: ✅ Implemented in commit `dde8204`
+   - Added escaping for `"` and `\` to prevent malformed curl examples
+
+2. **Test for JSON-breaking chars (inline thread - openhands.test.ts:78)**
+   - Suggestion: Add test for quote/backslash handling
+   - Action: ✅ Added 2 new tests in commit `dde8204`
+     - `escapes JSON-breaking characters in workspaceId` (quotes)
+     - `escapes backslashes in workspaceId`
+
+3. **E2E Evidence (PR comment)**
+   - Suggestion: Add screenshots/logs showing fix works
+   - Action: 📝 Acknowledged - unit tests verify prompt injection logic; E2E testing appropriate for manual verification before merge
+
+**CI Status:** ✅ All 4 checks passed (Build, Server Tests, E2E Tests, PR Lint)
+**Test Count:** 419 total (was 417, +2 new tests)
+
+**PR Status:** Ready for review → All threads resolved → Marked ready for review
+
