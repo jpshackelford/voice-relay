@@ -56,6 +56,9 @@ describe('Session Router', () => {
         status TEXT NOT NULL DEFAULT 'active',
         started_at TEXT NOT NULL DEFAULT (datetime('now')),
         ended_at TEXT,
+        display_api_secret_encrypted TEXT,
+        display_api_secret_iv TEXT,
+        display_api_secret_tag TEXT,
         metadata TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
@@ -517,6 +520,9 @@ describe('Session Router - QR Token Generation', () => {
         status TEXT NOT NULL DEFAULT 'active',
         started_at TEXT NOT NULL DEFAULT (datetime('now')),
         ended_at TEXT,
+        display_api_secret_encrypted TEXT,
+        display_api_secret_iv TEXT,
+        display_api_secret_tag TEXT,
         metadata TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
@@ -705,6 +711,9 @@ describe('Session Router - QR Token Unavailable', () => {
         status TEXT NOT NULL DEFAULT 'active',
         started_at TEXT NOT NULL DEFAULT (datetime('now')),
         ended_at TEXT,
+        display_api_secret_encrypted TEXT,
+        display_api_secret_iv TEXT,
+        display_api_secret_tag TEXT,
         metadata TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );

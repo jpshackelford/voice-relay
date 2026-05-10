@@ -42,9 +42,15 @@ export interface RegisterMessage {
 
 /**
  * Request payload for POST /api/display endpoint.
- * Extends DisplayContent with optional workspace targeting.
+ * Extends DisplayContent with session/workspace targeting.
+ * 
+ * Authentication: Requires Authorization: Bearer <secret> header.
+ * The secret is per-session and passed to the AI via the DISPLAY_API_SECRET env var.
  */
 export interface DisplayRequest extends DisplayContent {
+  /** Session ID (preferred - secrets are per-session) */
+  sessionId?: string;
+  /** @deprecated Use sessionId instead. Kept for backward compatibility. */
   workspaceId?: string;
 }
 

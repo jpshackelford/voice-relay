@@ -218,8 +218,8 @@ app.get('/api/server-info', (req, res) => {
 // Display API for AI agents to send content to kiosk displays
 app.use(express.json());
 
-app.post('/api/display', (req, res) => {
-  const { type, content, title, workspaceId } = req.body as DisplayRequest;
+app.post('/api/display', async (req, res) => {
+  const { type, content, title, sessionId, workspaceId } = req.body as DisplayRequest;
   
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
@@ -231,19 +231,81 @@ app.post('/api/display', (req, res) => {
     return;
   }
 
-  if (!workspaceId) {
-    res.status(400).json({ error: 'workspaceId is required.' });
+  // Require sessionId (preferred) or workspaceId (deprecated)
+  if (!sessionId && !workspaceId) {
+    res.status(400).json({ error: 'sessionId is required.' });
     return;
   }
 
-  // NOTE: Workspace validation deferred to Phase 4 with user authentication
-  // See: https://github.com/jpshackelford/voice-relay/issues/6
-  
-  const displayContent: DisplayContent = { type, content, title };
-  registry.broadcastToKiosks(displayContent, workspaceId);
-  
-  const kioskCount = registry.getKioskDevices(workspaceId).length;
-  res.json({ success: true, kioskCount });
+  // Authentication: validate Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Authorization header required. Format: Bearer <secret>' });
+    return;
+  }
+
+  const providedSecret = authHeader.slice(7); // Remove 'Bearer ' prefix
+
+  // If sessionId is provided, validate the secret against the session
+  if (sessionId) {
+    if (!sessionRepository) {
+      res.status(500).json({ error: 'Session repository not available' });
+      return;
+    }
+
+    const session = sessionRepository.findById(sessionId);
+    if (!session) {
+      res.status(401).json({ error: 'Invalid session' });
+      return;
+    }
+
+    // Get the stored secret and compare using timing-safe comparison
+    const storedSecret = sessionRepository.getDisplaySecret(sessionId);
+    if (!storedSecret) {
+      res.status(401).json({ error: 'Session has no display API secret' });
+      return;
+    }
+
+    // Timing-safe comparison to prevent timing attacks
+    const providedBuffer = Buffer.from(providedSecret);
+    const storedBuffer = Buffer.from(storedSecret);
+    
+    // Ensure buffers are same length before comparison to avoid timing leaks
+    if (providedBuffer.length !== storedBuffer.length) {
+      res.status(401).json({ error: 'Invalid secret' });
+      return;
+    }
+
+    const { timingSafeEqual } = await import('crypto');
+    if (!timingSafeEqual(providedBuffer, storedBuffer)) {
+      res.status(401).json({ error: 'Invalid secret' });
+      return;
+    }
+
+    // Broadcast to kiosks using the session's workspace
+    const displayContent: DisplayContent = { type, content, title };
+    registry.broadcastToKiosks(displayContent, session.workspaceId);
+    
+    const kioskCount = registry.getKioskDevices(session.workspaceId).length;
+    res.json({ success: true, kioskCount });
+  } else {
+    // Deprecated: workspaceId-based access (no secret validation)
+    // This path exists for backward compatibility but logs a deprecation warning
+    console.warn('[Display API] DEPRECATED: Using workspaceId instead of sessionId. This will be removed in a future version.');
+    
+    // For now, we still require auth but cannot validate it without a session
+    // We accept any non-empty secret for backward compatibility but log the issue
+    if (!providedSecret) {
+      res.status(401).json({ error: 'Invalid secret' });
+      return;
+    }
+
+    const displayContent: DisplayContent = { type, content, title };
+    registry.broadcastToKiosks(displayContent, workspaceId!);
+    
+    const kioskCount = registry.getKioskDevices(workspaceId!).length;
+    res.json({ success: true, kioskCount, deprecated: 'workspaceId is deprecated. Use sessionId instead.' });
+  }
 });
 
 // AI conversation management endpoints
@@ -293,12 +355,26 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
+    // Create or get session with display API secret for kiosk mode
+    let vrSessionId: string | undefined;
+    let displayApiSecret: string | undefined;
+
+    if (mode === 'kiosk' && sessionRepository) {
+      // Create a new session with display API secret
+      const { session: vrSession, displayApiSecret: secret } = 
+        sessionRepository.createWithDisplaySecret({ workspaceId: deviceWorkspaceId });
+      vrSessionId = vrSession.id;
+      displayApiSecret = secret;
+      console.log(`[AI] Created session ${vrSessionId} with display API secret`);
+    }
+
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
       const aiMessage: RelayedTextMessage = {
         type: 'text',
         utteranceId: `ai-${Date.now()}`,
         workspaceId: deviceWorkspaceId,
+        sessionId: vrSessionId,
         senderId: 'openhands-ai',
         senderName: '✨ AI',
         text,
@@ -313,25 +389,28 @@ app.post('/api/ai/connect', async (req, res) => {
     // Get the minimum display lines across kiosk devices in the workspace
     const displayLines = registry.getMinKioskDisplayLines(deviceWorkspaceId);
     
-    const session = await aiSessionManager.startSession(
+    const aiSession = await aiSessionManager.startSession(
       deviceId, 
       mode || 'chat', 
       onMessage,
       displayLines,
       workspaceApiKey || undefined,  // Pass workspace key or let it fall back to env
-      deviceWorkspaceId  // Pass workspace ID for injection into kiosk prompts
+      deviceWorkspaceId,  // Pass workspace ID for injection into kiosk prompts
+      vrSessionId,  // Pass session ID for display API calls
+      displayApiSecret  // Pass display API secret for authentication
     );
     
     // Notify the device that AI is connected
     registry.sendToDevice(deviceId, {
       type: 'ai-status',
       connected: true,
-      conversationId: session.conversationId,
+      conversationId: aiSession.conversationId,
     });
     
     res.json({ 
       success: true, 
-      conversationId: session.conversationId,
+      conversationId: aiSession.conversationId,
+      sessionId: vrSessionId,
       displayLines,
       message: 'AI connected'
     });

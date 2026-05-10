@@ -7,6 +7,7 @@ import { migration as migration006 } from './006_device_token_security.js';
 import { migration as migration007 } from './007_allow_auto_join.js';
 import { migration as migration008 } from './008_qr_tokens.js';
 import { migration as migration009 } from './009_join_requests.js';
+import { migration as migration010 } from './010_display_api_secrets.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -19,6 +20,7 @@ export const migrations: Migration[] = [
   migration007,
   migration008,
   migration009,
+  migration010,
 ];
 
 export function getMigrations(): Migration[] {
