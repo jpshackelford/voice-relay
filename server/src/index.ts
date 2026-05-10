@@ -24,6 +24,7 @@ import type {
   DisplayRequest,
   JoinRequestMessage,
   JoinResolvedMessage,
+  DeviceRemovedMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -762,10 +763,40 @@ async function start() {
         workspaceRepository,
         joinRequestRepository: joinRequestRepository ?? undefined,
         deviceRepository,
+        sessionRepository,
         qrTokenRepository: qrTokenRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,
+        },
+        // Callback to handle device removal from workspace
+        onDeviceRemoved: (deviceId, workspaceId) => {
+          // Send removal notification to the device
+          const device = registry.getDevice(deviceId);
+          if (device && device.ws.readyState === device.ws.OPEN) {
+            const message: DeviceRemovedMessage = {
+              type: 'device-removed',
+              deviceId,
+              reason: 'removed-from-workspace',
+            };
+            try {
+              device.ws.send(JSON.stringify(message));
+            } catch (err) {
+              console.error('[WS] Failed to send device-removed message:', err);
+            }
+          }
+
+          // Disconnect the WebSocket (removes from registry)
+          registry.disconnect(deviceId);
+
+          // Broadcast updated device list to remaining devices
+          registry.broadcastDeviceList(workspaceId);
+
+          console.log('[DeviceRemoval] Device removed and notified:', {
+            deviceId,
+            workspaceId,
+            wasConnected: !!device,
+          });
         },
         // Callback to broadcast join request to owner's kiosk devices
         onJoinRequest: (workspaceId, request) => {

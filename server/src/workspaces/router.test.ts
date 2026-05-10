@@ -943,3 +943,247 @@ describe('Workspace Router - API Key Endpoints', () => {
     });
   });
 });
+
+describe('Workspace Router - DELETE /:id/devices/:deviceId', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let deviceRepository: DeviceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let testDeviceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+  let nonOwnerId: string;
+  let nonOwnerToken: string;
+
+  beforeEach(() => {
+    const env = setupTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    deviceRepository = env.deviceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 12345, 'owner');
+
+    // Create non-owner user
+    nonOwnerId = 'nonowner-456';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(nonOwnerId, 67890, 'nonowner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Add owner and non-owner as workspace members
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'owner');
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, nonOwnerId, 'member');
+
+    // Create a device in the workspace
+    const { device } = deviceRepository.create({
+      workspaceId: testWorkspaceId,
+      name: 'Test Device',
+      mode: 'mobile',
+    });
+    testDeviceId = device.id;
+
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+
+    const nonOwner = userRepository.findById(nonOwnerId)!;
+    nonOwnerToken = jwtService.sign(nonOwner);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('requires authentication', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${testDeviceId}`)
+      .expect(401);
+
+    expect(response.body.error).toBe('Authentication required');
+  });
+
+  it('requires owner permission', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${nonOwnerToken}`)
+      .expect(403);
+
+    expect(response.body.error).toBe('Only owner can remove devices');
+  });
+
+  it('removes device successfully', async () => {
+    // Verify device exists
+    let device = deviceRepository.findById(testDeviceId);
+    expect(device).toBeDefined();
+
+    // Delete it
+    await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    // Verify it's gone
+    device = deviceRepository.findById(testDeviceId);
+    expect(device).toBeNull();
+  });
+
+  it('returns 404 for non-existent workspace', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/nonexistent/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Workspace not found');
+  });
+
+  it('returns 404 for non-existent device', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/nonexistent-device`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Device not found in workspace');
+  });
+
+  it('returns 404 for device in different workspace', async () => {
+    // Create a second workspace
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run('workspace-456', ownerId, 'Other Workspace', 'other-workspace', 'EFGH-5678');
+
+    // Create device in the second workspace
+    const { device } = deviceRepository.create({
+      workspaceId: 'workspace-456',
+      name: 'Other Device',
+      mode: 'mobile',
+    });
+
+    // Try to delete device from first workspace (should fail)
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${device.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Device not found in workspace');
+  });
+
+  it('calls onDeviceRemoved callback when provided', async () => {
+    // Set up app with onDeviceRemoved callback
+    let callbackCalled = false;
+    let callbackDeviceId: string | null = null;
+    let callbackWorkspaceId: string | null = null;
+
+    const customApp = express();
+    customApp.use(express.json());
+    
+    const router = createWorkspaceRouter({
+      workspaceRepository,
+      deviceRepository,
+      // Don't pass sessionRepository to avoid table dependency
+      authConfig: { jwtService, userRepository },
+      onDeviceRemoved: (deviceId, workspaceId) => {
+        callbackCalled = true;
+        callbackDeviceId = deviceId;
+        callbackWorkspaceId = workspaceId;
+      },
+    });
+    customApp.use('/api/workspaces', router);
+
+    await request(customApp)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    expect(callbackCalled).toBe(true);
+    expect(callbackDeviceId).toBe(testDeviceId);
+    expect(callbackWorkspaceId).toBe(testWorkspaceId);
+  });
+
+  it('removes device from sessions when sessionRepository is provided', async () => {
+    // Set up app with session repository
+    const customApp = express();
+    customApp.use(express.json());
+    const { SessionRepository } = await import('../sessions/session-repository.js');
+    
+    // Drop existing sessions table (created earlier with different schema) and recreate with full schema
+    db.exec(`DROP TABLE IF EXISTS sessions;`);
+    db.exec(`
+      CREATE TABLE sessions (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        name TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        started_at TEXT NOT NULL DEFAULT (datetime('now')),
+        ended_at TEXT,
+        metadata TEXT,
+        display_api_secret_encrypted TEXT,
+        display_api_secret_iv TEXT,
+        display_api_secret_tag TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+      );
+    `);
+    
+    // Create session_devices table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS session_devices (
+        session_id TEXT NOT NULL,
+        device_id TEXT NOT NULL,
+        joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (session_id, device_id),
+        FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+        FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+      );
+    `);
+    
+    const sessionRepository = new SessionRepository(db);
+    
+    // Create a session and add device to it
+    const session = sessionRepository.create({ workspaceId: testWorkspaceId, name: 'Test Session' });
+    sessionRepository.addDevice(session.id, testDeviceId);
+    
+    // Verify device is in session
+    let sessionDevices = sessionRepository.getDevices(session.id);
+    expect(sessionDevices.length).toBe(1);
+    
+    const router = createWorkspaceRouter({
+      workspaceRepository,
+      deviceRepository,
+      sessionRepository,
+      authConfig: { jwtService, userRepository },
+    });
+    customApp.use('/api/workspaces', router);
+
+    await request(customApp)
+      .delete(`/api/workspaces/${testWorkspaceId}/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    // Verify device is removed from session
+    sessionDevices = sessionRepository.getDevices(session.id);
+    expect(sessionDevices.length).toBe(0);
+  });
+});
