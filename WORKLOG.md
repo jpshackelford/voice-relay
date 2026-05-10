@@ -571,3 +571,35 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 
 **PR Status:** Ready for review → All threads resolved → Marked ready for review
 
+
+---
+### 2026-05-10 04:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a9753bf` | merge | PR #108 - workspaceId injection | **NEW** |
+| `cdd226f` | expansion | Issue #90 - Remove device from workspace | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
+   - Issue: [#86 - Kiosk canvas does not update](https://github.com/jpshackelford/voice-relay/issues/86)
+   - Conversation: [`a9753bf`](https://app.all-hands.dev/conversations/a9753bfd37c549b0a0c8aa151d689dd0)
+   - All review threads resolved, CI green, mergeable=CLEAN
+
+2. **Expansion Worker**
+   - Issue: [#90 - Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
+   - Conversation: [`cdd226f`](https://app.all-hands.dev/conversations/cdd226f579ee4fa2916c5bb95f139456)
+
+**Previous Workers Completed:**
+- `4bab751` (review): Addressed PR #108 feedback ✓
+- `b78ddf1` (expansion): Expanded #89 ✓
+
+**Current State:**
+- [PR #108](https://github.com/jpshackelford/voice-relay/pull/108): `oRFc green ready` → being merged
+- Ready issues: #84 (low), #85 (medium), #86 (high - linked to PR), #87 (unprioritized), #89 (unprioritized)
+- Issues needing expansion: #90 (in progress), #91, #93, #95, #98, #103
+- PR slot: Occupied (merge worker)
+- Expansion slot: Occupied (expansion worker)
