@@ -755,3 +755,52 @@ Fixes #91
 - Expansion slot: Available (nothing to expand)
 
 ---
+### 2026-05-10 18:45 UTC - Implementation Worker (`ed7e24b`)
+
+✅ **PR CREATED: #118**
+
+- PR: [#118 - feat: add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/pull/118) → **READY FOR REVIEW**
+- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+
+**Implementation Summary:**
+
+Backend changes:
+- Added `GET /api/workspaces/:id/deletion-preview` endpoint to return counts of sessions, devices, messages, and members
+- Enhanced `DELETE /api/workspaces/:id` to disconnect WebSocket connections before deletion, explicitly delete messages (no CASCADE), and add audit logging
+- Added `getDeletionCounts()` and `deleteMessages()` methods to `WorkspaceRepository`
+- Added `disconnectWorkspaceDevices()` method to `DeviceRegistry`
+- Wired up `onWorkspaceDeleted` callback in server index.ts
+
+Frontend changes:
+- Created `DeleteWorkspaceModal` component with warning, counts display, name confirmation input, and loading/error states
+- Created `useDeletionPreview` hook for fetching deletion counts
+- Added "Danger Zone" section to `WorkspaceHome` (owner only)
+- Handle `workspace-deleted` WebSocket message in `useWebSocket` hook (clear token, set state, clear devices)
+- Added `WorkspaceDeletedMessage` type to client/server types
+- Added CSS styles for danger zone and delete modal
+
+Tests added:
+- Router tests for deletion-preview endpoint (ownership, counts)
+- Router tests for workspace deletion with messages (cascade delete)
+- Workspace-repository tests for `getDeletionCounts()` and `deleteMessages()`
+
+**CI Status:**
+- Build Client: ✅ PASSED
+- Server Tests: ✅ PASSED (474 tests)
+- E2E Tests: ✅ PASSED
+- lint-pr-title: ✅ PASSED
+
+**Acceptance Criteria Met:**
+- ✅ "Danger Zone" section visible only to workspace owners
+- ✅ Delete button styled as destructive action (red)
+- ✅ Confirmation modal displays accurate counts
+- ✅ User must type exact workspace name to enable delete button
+- ✅ Clear visual feedback during deletion (loading state)
+- ✅ Redirect to dashboard after successful deletion
+- ✅ `GET /api/workspaces/:id/deletion-preview` returns counts
+- ✅ `DELETE /api/workspaces/:id` performs cascade deletion
+- ✅ Active WebSocket connections gracefully closed
+- ✅ Deletion logged for audit purposes
+- ✅ Only owner can delete (403 for non-owners)
+
+---
