@@ -841,3 +841,28 @@ After successful `validateDeviceToken()`, the hook now:
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
 
+
+---
+### 2026-05-10 06:14 UTC - Expansion Worker (`e8f5c2b`)
+
+✅ **Expanded Issue #93**
+
+- Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Technical Summary:**
+- Backend APIs already exist (`POST /archive`, `PATCH` for rename)
+- Repository methods exist (`archiveSession()`, `update()`)
+- Pattern to follow: `EditableDeviceName` component in `WorkspaceHome.tsx`
+- Main work: Client-side UI (kebab menu, inline rename, CSS styles)
+
+**Files to modify:**
+- `client/src/hooks/useSessions.ts` - Add `archiveSession`, `renameSession`
+- `client/src/pages/WorkspaceHome.tsx` - `EditableSessionName`, `SessionKebabMenu` components
+- `client/src/App.css` - Session editing/menu styles
+- `tests/session-management.spec.ts` - E2E tests
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
