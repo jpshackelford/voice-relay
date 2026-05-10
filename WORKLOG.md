@@ -784,3 +784,33 @@ Fixes #91
 - lint-pr-title: ✅ PASSED
 
 **PR Status:** Ready for review ✅ (all review threads resolved)
+
+### 2026-05-10 17:03 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f4b0656` | review | PR #117 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#117 - feat: archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/pull/117)
+- Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+- Review Status: `oRCFR` (2 unresolved review threads)
+- Conversation: [`f4b0656`](https://app.all-hands.dev/conversations/f4b0656d94414dc588e9759420d34a0d)
+
+**Unresolved Threads (2):**
+1. Stale state - `name` state in `EditableSessionName` needs to sync when `session` prop changes
+2. Memory leak - `setTimeout` for `archiveToast` in `WorkspaceHome` needs cleanup `useEffect`
+
+**Previous Worker Completed:**
+- `74eebca` (review): Addressed 5/7 review threads ✓
+
+**Current State:**
+- PR #117 open with 2 unresolved review threads (addressing feedback)
+- Ready issues: #93 (PR in review), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (review worker)
+- Expansion slot: Available (nothing to expand)
+
+---
