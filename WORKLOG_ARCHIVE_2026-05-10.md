@@ -1831,3 +1831,67 @@ Changes:
 - `client/src/pages/WorkspaceHome.tsx` - Remove button, confirmation modal, success message
 - `client/src/App.css` - Button and modal styles
 - `server/src/workspaces/router.test.ts` - 8 new test cases
+
+---
+### 2026-05-10 14:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b0d4389` | merge | PR #115 - feat: allow removing device from workspace | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
+- Linked Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
+- Conversation: [`b0d4389`](https://app.all-hands.dev/conversations/b0d438955a6145668b2a12c5370b0512)
+
+**Merge Criteria Met:**
+- ✅ CI green (all 5 checks pass)
+- ✅ No unresolved review threads
+- ✅ PR is mergeable (MERGEABLE status)
+- ✅ Review bot approved: "✅ Worth merging"
+
+**Housekeeping:**
+- 📦 Archived 2 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md
+
+**Previous Worker Completed:**
+- `16c5256` (implementation): Created PR #115 ✓
+
+**Current State:**
+- [PR #115](https://github.com/jpshackelford/voice-relay/pull/115): CI green, ready to merge
+- Ready issues: #90 (has PR being merged), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (merge worker)
+- Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 14:05 UTC - Merge Worker
+
+✅ **Merged PR #115**
+
+- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
+- Status: **MERGED** ✅
+
+**What Shipped:**
+- `DELETE /api/workspaces/:id/devices/:deviceId` endpoint (owner-only)
+- WebSocket notification to removed device before disconnect
+- Device removed from all active sessions
+- Client-side remove button with confirmation modal
+- Success notification after device removal
+
+**Migration Notes:** None - no database schema changes required.
+
+**Issue Closed:** #90 auto-closed via "Fixes #90" in PR description
+
+**Commit:**
+```
+feat: allow workspace owners to remove devices
+
+Add the ability for workspace owners to remove any device from their workspace.
+When a device is removed:
+- Device is removed from all active sessions
+- WebSocket notification sent before disconnect
+- Device token is invalidated (record deleted)
+```
