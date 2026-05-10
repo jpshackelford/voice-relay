@@ -895,3 +895,49 @@ Race condition between client and server:
 - No issues need expansion 🎉
 - PR slot: Occupied (merge worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 13:05 UTC - Merge Worker (`e21c013`)
+
+✅ **Merged PR #114**
+
+- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
+- Merge Type: Squash merge
+
+**Pre-merge Verification:**
+- ✅ All CI checks pass (Server Tests, Build Client, E2E Tests, PR Lint, PR Review)
+- ✅ All 3 review threads resolved (simplified conditional error clearing)
+- ✅ No database migrations (client-only change, safe for production)
+- ✅ `mergeable: CLEAN`
+
+**Actions:**
+1. Updated PR description with review evolution and final state
+2. Squash-merged with conventional commit message
+3. Issue #89 auto-closed via `Fixes #89` in commit message
+
+**Commit Summary:**
+```
+fix: clear AI error state on successful message send
+
+Fixes a race condition where transient WebSocket errors during initial
+AI connection persisted indefinitely. Solution: unconditionally call
+setError(null) after successful message send.
+
+Changes:
+- client/src/hooks/useAI.ts: Add setError(null) on success (3 lines)
+- client/src/hooks/useAI.test.ts: New test suite (16 tests, 379 lines)
+```
+
+**Impact:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- No breaking changes, no migrations, low risk
+- Self-healing fix - transient errors cleared by next successful operation
+
+**Current State:**
+- No open PRs ✅
+- Issue #89 closed ✅
+- Ready issues: #90 (low), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Available
+- Expansion slot: Available
