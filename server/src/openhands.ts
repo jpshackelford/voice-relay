@@ -492,18 +492,15 @@ export class AISessionManager {
       await this.endSession(deviceId);
     }
 
-    // Load appropriate system prompt with display line info, workspace ID, and session ID
-    const systemPrompt = loadPrompt(
-      mode === 'kiosk' ? 'kiosk-system' : 'chat-system',
-      mode === 'kiosk' ? displayLines : undefined,
-      mode === 'kiosk' ? workspaceId : undefined,
-      mode === 'kiosk' ? sessionId : undefined
-    );
+    // Load unified system prompt with display line info, workspace ID, and session ID
+    // All sessions receive the same prompt with full capabilities (including display API)
+    const systemPrompt = loadPrompt('system-prompt', displayLines, workspaceId, sessionId);
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
-    // Build secrets map for OpenHands
+    // Build secrets map for OpenHands - inject display API secret for all sessions
+    // Mobile devices can still command kiosk displays to show content
     const secrets: Record<string, string> = {};
-    if (mode === 'kiosk' && displayApiSecret) {
+    if (displayApiSecret) {
       secrets['DISPLAY_API_SECRET'] = displayApiSecret;
     }
 

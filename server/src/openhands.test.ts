@@ -7,15 +7,34 @@ import { loadPrompt } from './openhands.js';
 
 describe('loadPrompt', () => {
   describe('basic functionality', () => {
-    test('loads kiosk-system prompt', () => {
-      const prompt = loadPrompt('kiosk-system');
-      expect(prompt).toContain('Voice Relay Kiosk Assistant');
+    test('loads unified system-prompt', () => {
+      const prompt = loadPrompt('system-prompt');
+      expect(prompt).toContain('Voice Relay Assistant');
       expect(prompt).toContain('/api/display');
     });
 
-    test('loads chat-system prompt', () => {
-      const prompt = loadPrompt('chat-system');
-      expect(prompt).toBeTruthy();
+    test('unified prompt contains display API instructions', () => {
+      const prompt = loadPrompt('system-prompt');
+      expect(prompt).toContain('Display API');
+      expect(prompt).toContain('DISPLAY_API_SECRET');
+      expect(prompt).toContain('curl -X POST');
+      expect(prompt).toContain('"type": "markdown"');
+      expect(prompt).toContain('"type": "image"');
+      expect(prompt).toContain('"type": "clear"');
+    });
+
+    test('unified prompt contains voice response guidelines', () => {
+      const prompt = loadPrompt('system-prompt');
+      expect(prompt).toContain('spoken aloud via text-to-speech');
+      expect(prompt).toContain('Keep responses to 2-4 sentences');
+      expect(prompt).toContain('Be conversational and friendly');
+    });
+
+    test('unified prompt contains display constraints', () => {
+      const prompt = loadPrompt('system-prompt');
+      expect(prompt).toContain('Display Constraints');
+      expect(prompt).toContain('NOT scrollable');
+      expect(prompt).toContain('Maximum 10-12 lines of body text');
     });
 
     test('throws error for non-existent prompt', () => {
@@ -25,28 +44,22 @@ describe('loadPrompt', () => {
 
   describe('displayLines injection', () => {
     test('replaces display lines placeholder when provided', () => {
-      const prompt = loadPrompt('kiosk-system', 15);
+      const prompt = loadPrompt('system-prompt', 15);
       expect(prompt).toContain('Maximum 15 lines of body text');
       expect(prompt).toContain('content beyond 15 lines will be invisible');
     });
 
     test('keeps default display lines when not provided', () => {
-      const prompt = loadPrompt('kiosk-system');
+      const prompt = loadPrompt('system-prompt');
       expect(prompt).toContain('Maximum 10-12 lines of body text');
       expect(prompt).toContain('content beyond ~10 lines will be invisible');
-    });
-
-    test('does not modify chat-system prompt with displayLines', () => {
-      const prompt = loadPrompt('chat-system', 15);
-      // Chat prompt should not have display lines content
-      expect(prompt).not.toContain('Maximum 15 lines of body text');
     });
   });
 
   describe('sessionId injection', () => {
     test('replaces {{SESSION_ID}} placeholder when sessionId provided', () => {
       const testSessionId = 'session_test_12345_abcde';
-      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
+      const prompt = loadPrompt('system-prompt', undefined, undefined, testSessionId);
       
       // Should contain the actual session ID, not the placeholder
       expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
@@ -60,14 +73,14 @@ describe('loadPrompt', () => {
     });
 
     test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {
-      const prompt = loadPrompt('kiosk-system');
+      const prompt = loadPrompt('system-prompt');
       expect(prompt).toContain('{{SESSION_ID}}');
     });
 
     test('combines displayLines and sessionId injection', () => {
       const testSessionId = 'session_combined_test';
       const displayLines = 20;
-      const prompt = loadPrompt('kiosk-system', displayLines, undefined, testSessionId);
+      const prompt = loadPrompt('system-prompt', displayLines, undefined, testSessionId);
       
       // Both should be injected
       expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
@@ -77,14 +90,14 @@ describe('loadPrompt', () => {
 
     test('handles special characters in sessionId', () => {
       const testSessionId = 'session-special_chars.123';
-      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
+      const prompt = loadPrompt('system-prompt', undefined, undefined, testSessionId);
       expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
     });
 
     test('escapes JSON-breaking characters in sessionId', () => {
       // Test that quotes are properly escaped to prevent broken JSON
       const testSessionId = 'session"test';
-      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
+      const prompt = loadPrompt('system-prompt', undefined, undefined, testSessionId);
 
       // Should contain escaped version in JSON context
       expect(prompt).toContain('"sessionId": "session\\"test"');
@@ -98,7 +111,7 @@ describe('loadPrompt', () => {
     test('escapes backslashes in sessionId', () => {
       // Test that backslashes are properly escaped
       const testSessionId = 'session\\test';
-      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
+      const prompt = loadPrompt('system-prompt', undefined, undefined, testSessionId);
 
       // Should contain escaped backslash
       expect(prompt).toContain('"sessionId": "session\\\\test"');
@@ -106,8 +119,28 @@ describe('loadPrompt', () => {
 
     test('handles empty string sessionId (no replacement)', () => {
       // Empty string is falsy, so no replacement should occur
-      const prompt = loadPrompt('kiosk-system', undefined, undefined, '');
+      const prompt = loadPrompt('system-prompt', undefined, undefined, '');
       expect(prompt).toContain('{{SESSION_ID}}');
+    });
+  });
+
+  describe('unified prompt for all device modes', () => {
+    test('same prompt is used regardless of device mode', () => {
+      // This test verifies the unified prompt approach - all sessions get the same prompt
+      const prompt = loadPrompt('system-prompt');
+      
+      // Should have capabilities for both kiosk display and voice chat
+      expect(prompt).toContain('Display Content');
+      expect(prompt).toContain('Voice Responses');
+      expect(prompt).toContain('/api/display');
+      expect(prompt).toContain('text-to-speech');
+    });
+
+    test('display API is available even without displayLines', () => {
+      // Mobile/chat sessions should still have display API knowledge
+      const prompt = loadPrompt('system-prompt');
+      expect(prompt).toContain('Display API');
+      expect(prompt).toContain('curl -X POST https://vr.chorecraft.net/api/display');
     });
   });
 });
