@@ -9,3 +9,4 @@ playwright-report/
 coverage/
 .env
 tests/smoke/.auth-state.json
+version.json
