@@ -572,4 +572,247 @@ test.describe('Session Management', () => {
     // Note: Current UI shows "Sessions" without count in heading
     await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible();
   });
+
+  // =====================
+  // Session Rename Tests (Issue #93)
+  // =====================
+
+  test('rename session via inline edit', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Click on the session name to enter edit mode
+    const sessionRow = page.locator('.session-row').first();
+    const sessionNameText = sessionRow.locator('.session-name-text');
+    await sessionNameText.click();
+    
+    // Edit input should appear
+    const editInput = sessionRow.locator('.session-name-input');
+    await expect(editInput).toBeVisible({ timeout: 2000 });
+    
+    // Enter a new name
+    const newName = `Renamed Session ${Date.now()}`;
+    await editInput.fill(newName);
+    await editInput.press('Enter');
+    
+    // Input should disappear and new name should be shown
+    await expect(editInput).not.toBeVisible({ timeout: 2000 });
+    await expect(sessionRow.locator('.session-name-text')).toContainText(newName);
+  });
+
+  test('rename session via kebab menu', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Open kebab menu on first session
+    const sessionRow = page.locator('.session-row').first();
+    const kebabBtn = sessionRow.locator('.session-kebab-btn');
+    await kebabBtn.click();
+    
+    // Dropdown should appear
+    const dropdown = sessionRow.locator('.session-dropdown');
+    await expect(dropdown).toBeVisible();
+    
+    // Click rename option
+    const renameOption = dropdown.locator('.session-dropdown-item', { hasText: 'Rename' });
+    await renameOption.click();
+    
+    // Edit input should appear
+    const editInput = sessionRow.locator('.session-name-input');
+    await expect(editInput).toBeVisible({ timeout: 2000 });
+    
+    // Enter a new name
+    const newName = `Menu Rename ${Date.now()}`;
+    await editInput.fill(newName);
+    await editInput.press('Enter');
+    
+    // Input should disappear and new name should be shown
+    await expect(editInput).not.toBeVisible({ timeout: 2000 });
+    await expect(sessionRow.locator('.session-name-text')).toContainText(newName);
+  });
+
+  test('cancel rename with Escape key', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Get original name
+    const sessionRow = page.locator('.session-row').first();
+    const sessionNameText = sessionRow.locator('.session-name-text');
+    const originalName = await sessionNameText.innerText();
+    
+    // Click to edit
+    await sessionNameText.click();
+    const editInput = sessionRow.locator('.session-name-input');
+    await expect(editInput).toBeVisible();
+    
+    // Type something different but cancel with Escape
+    await editInput.fill('Cancelled Name');
+    await editInput.press('Escape');
+    
+    // Input should disappear and original name should remain
+    await expect(editInput).not.toBeVisible();
+    await expect(sessionNameText).toContainText(originalName.replace('✏️', '').trim());
+  });
+
+  // =====================
+  // Session Archive Tests (Issue #93)
+  // =====================
+
+  test('archive session via kebab menu', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    const workspaceId = await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Create a new session to archive (don't archive the only session)
+    const newSessionBtn = page.getByRole('button', { name: /\+ New Session/i });
+    await newSessionBtn.click();
+    await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/);
+    await exitToWorkspaceHome(page, workspaceId);
+    await waitForSessionInList(page);
+    
+    // Get initial count
+    const initialCount = await getSessionCount(page);
+    expect(initialCount).toBeGreaterThanOrEqual(2);
+    
+    // Get the name of first session (the one we just created)
+    const sessionRow = page.locator('.session-row').first();
+    
+    // Open kebab menu
+    const kebabBtn = sessionRow.locator('.session-kebab-btn');
+    await kebabBtn.click();
+    
+    // Click archive option
+    const dropdown = sessionRow.locator('.session-dropdown');
+    await expect(dropdown).toBeVisible();
+    const archiveOption = dropdown.locator('.session-dropdown-item.archive');
+    await archiveOption.click();
+    
+    // Confirmation modal should appear
+    const modal = page.locator('.modal-content');
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('h3')).toContainText('Archive Session');
+    
+    // Click Archive button
+    const archiveBtn = modal.locator('.modal-btn.primary');
+    await archiveBtn.click();
+    
+    // Modal should close and session count should decrease
+    await expect(modal).not.toBeVisible({ timeout: 3000 });
+    
+    // Toast should appear
+    const toast = page.locator('.archive-toast');
+    await expect(toast).toBeVisible({ timeout: 2000 });
+    await expect(toast).toContainText('archived');
+    
+    // Session count should be one less
+    await page.waitForTimeout(500); // Wait for state to update
+    const afterCount = await getSessionCount(page);
+    expect(afterCount).toBe(initialCount - 1);
+  });
+
+  test('cancel archive session', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Get initial count
+    const initialCount = await getSessionCount(page);
+    
+    // Open kebab menu
+    const sessionRow = page.locator('.session-row').first();
+    const kebabBtn = sessionRow.locator('.session-kebab-btn');
+    await kebabBtn.click();
+    
+    // Click archive option
+    const archiveOption = sessionRow.locator('.session-dropdown-item.archive');
+    await archiveOption.click();
+    
+    // Confirmation modal should appear
+    const modal = page.locator('.modal-content');
+    await expect(modal).toBeVisible();
+    
+    // Click Cancel button
+    const cancelBtn = modal.locator('.modal-btn.cancel');
+    await cancelBtn.click();
+    
+    // Modal should close
+    await expect(modal).not.toBeVisible({ timeout: 2000 });
+    
+    // Session count should remain the same
+    const afterCount = await getSessionCount(page);
+    expect(afterCount).toBe(initialCount);
+  });
+
+  test('archived sessions are hidden from list', async ({ page }) => {
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    const workspaceId = await authenticateAndNavigateToWorkspace(page, baseURL, TEST_AUTH_SECRET);
+    await waitForWorkspaceHomeLoaded(page);
+    await waitForSessionInList(page);
+    
+    // Create a session with a unique name
+    const newSessionBtn = page.getByRole('button', { name: /\+ New Session/i });
+    await newSessionBtn.click();
+    await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/);
+    await exitToWorkspaceHome(page, workspaceId);
+    await waitForSessionInList(page);
+    
+    // Rename the first session (just created) with a unique name
+    const sessionRow = page.locator('.session-row').first();
+    const sessionNameText = sessionRow.locator('.session-name-text');
+    await sessionNameText.click();
+    const editInput = sessionRow.locator('.session-name-input');
+    const uniqueName = `ToArchive-${Date.now()}`;
+    await editInput.fill(uniqueName);
+    await editInput.press('Enter');
+    await expect(editInput).not.toBeVisible();
+    
+    // Verify the session name is shown
+    await expect(page.locator('.session-name-text', { hasText: uniqueName })).toBeVisible();
+    
+    // Archive the session
+    const kebabBtn = sessionRow.locator('.session-kebab-btn');
+    await kebabBtn.click();
+    const archiveOption = sessionRow.locator('.session-dropdown-item.archive');
+    await archiveOption.click();
+    const archiveBtn = page.locator('.modal-btn.primary');
+    await archiveBtn.click();
+    
+    // Wait for archive to complete
+    await expect(page.locator('.modal-content')).not.toBeVisible({ timeout: 3000 });
+    
+    // The session with unique name should no longer be visible
+    await expect(page.locator('.session-name-text', { hasText: uniqueName })).not.toBeVisible({ timeout: 2000 });
+  });
 });
