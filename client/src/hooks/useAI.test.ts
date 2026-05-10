@@ -102,37 +102,6 @@ describe('useAI hook', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('does not clear error if there is no previous error', async () => {
-      const { result } = renderHook(() => useAI(defaultOptions));
-
-      // Mock fetch for connect
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ conversationId: 'conv-123' }),
-        });
-
-      // Connect first
-      await act(async () => {
-        await result.current.connect();
-      });
-
-      expect(result.current.error).toBeNull();
-
-      // Mock successful message send
-      global.fetch = vi.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({}),
-        });
-
-      await act(async () => {
-        await result.current.sendMessage('Hello');
-      });
-
-      // Error should still be null (not changed)
-      expect(result.current.error).toBeNull();
-    });
   });
 
   describe('connect', () => {

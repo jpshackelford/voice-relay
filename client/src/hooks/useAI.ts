@@ -107,13 +107,11 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
       }
 
       // Clear any previous transient errors on success
-      if (error) {
-        setError(null);
-      }
+      setError(null);
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [deviceId, connected, error]);
+  }, [deviceId, connected]);
 
   const toggle = useCallback(async () => {
     console.log('[AI] toggle() called', { connected, connecting });
