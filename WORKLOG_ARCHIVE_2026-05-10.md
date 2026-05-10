@@ -1446,3 +1446,104 @@ with proper secret authentication is supported.
 - [x] Both `displayLines` and `workspaceId` injected for all sessions
 
 **PR Status:** Ready for review ✅
+
+---
+### 2026-05-10 10:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `368aab1` | merge | PR #112 - unify system prompt | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112)
+- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98) (priority:medium)
+- Conversation: [`368aab1`](https://app.all-hands.dev/conversations/368aab1cf77c4f978c8c007da0e085dd)
+
+**Pre-merge Status:**
+- All CI checks: ✅ PASSED (Build, Server Tests, E2E Tests, PR Lint)
+- Review: ✅ Bot approved - "Elegant simplification that eliminates mode-based conditionals"
+- No unresolved review threads
+- Mergeable: ✅ CLEAN
+
+**Previous Worker Completed:**
+- `1a8a178` (implementation): Created PR #112 ✓
+
+**Housekeeping:**
+- 📦 Archived 6 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md
+
+**Current State:**
+- [PR #112](https://github.com/jpshackelford/voice-relay/pull/112): Ready for merge
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), **#98 (medium)** ← linked to PR #112
+- No issues need expansion 🎉
+- PR slot: Occupied (merge worker)
+- Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 10:36 UTC - Merge Worker (`368aab1`)
+
+✅ **MERGED: PR #112**
+
+- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112) → **MERGED**
+- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98) → **CLOSED**
+- Merge commit: `d641357` (squash merge)
+
+**Final State:**
+- All CI checks: ✅ PASSED (Build, Server Tests, E2E Tests, PR Lint)
+- Review: ✅ Bot approved - "Elegant simplification"
+- Migration safety: ✅ VERIFIED (no database changes)
+- Tests: 441 passing
+
+**Production Impact:**
+- Auto-deploying to vr.chorecraft.net on merge to main
+- No database migrations required
+- No breaking changes - additive behavior only
+- Mobile devices can now command kiosk displays to show content
+
+**Squash Commit Message:**
+```
+fix: unify system prompt for all device modes
+
+Merges kiosk-system.md and chat-system.md into a single system-prompt.md
+that all AI sessions receive, regardless of device mode (mobile or kiosk).
+Enables mobile devices to command kiosk displays to show content.
+
+Fixes #98
+```
+
+**Current State:**
+- No open PRs ✅
+- Issue #98 closed ✅
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- PR slot: Available
+- Expansion slot: Available
+
+---
+### 2026-05-10 11:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c1dff8c` | implementation | Issue #84 - Display commit hash | **PR READY** |
+
+✅ **Implementation Complete**
+
+- Issue: [#84 - feat: Display deployed commit hash in health endpoint and UI footer](https://github.com/jpshackelford/voice-relay/issues/84) (priority:low)
+- PR: [#113](https://github.com/jpshackelford/voice-relay/pull/113)
+- Conversation: [`c1dff8c`](https://app.all-hands.dev/conversations/c1dff8c619a1418bb13b024cfe6b90e4)
+- All CI checks pass, PR marked ready for review
+
+**Changes Made:**
+- Add version.json to .gitignore
+- Generate version.json during deploy and rollback workflows
+- Update /health endpoint with version and deployedAt fields
+- Add version footer to WorkspaceHome component
+- Add 9 tests for version loading
+
+**Current State:**
+- Open PRs: #113 (Issue #84 - awaiting review)
+- Ready issues: #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (#113 awaiting review)
+- Expansion slot: Available (nothing to expand)
