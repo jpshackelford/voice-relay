@@ -259,3 +259,26 @@ if (validatedDevice.name) {
 - `client/src/hooks/useDeviceRestoration.ts` - Use server name from validate response
 
 **Complexity:** Low
+### 2026-05-10 02:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `92f0f3b` | expansion | Issue #86 - Kiosk canvas not updating | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+- Issue: [#86 - bug: Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
+- Conversation: [`92f0f3b`](https://app.all-hands.dev/conversations/92f0f3bc1940421b89a66e13f5e2b308)
+
+**Housekeeping:**
+- ✅ Moved PR #105 from draft to ready (impl worker `da0c98b` completed, CI green)
+- ✅ Previous workers completed: `969608b` (merge), `7c6a3d9` (expansion)
+
+**Current State:**
+- [PR #105](https://github.com/jpshackelford/voice-relay/pull/105): CI green ✅, ready for review (Fixes #104)
+- Ready issues: #84 (commit hash feature), #85 (device name bug)
+- Issues needing expansion: #86 (now being expanded), #87, #88, #89, #90, #91, #93, #95, #98, #103
+- PR slot: Waiting for review (PR #105)
+- Expansion slot: Occupied (expansion worker for #86)
+
+---
