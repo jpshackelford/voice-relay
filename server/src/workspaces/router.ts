@@ -56,6 +56,8 @@ export interface WorkspaceRouterConfig {
   }, error?: string) => void;
   /** Callback to handle device removal (send notification, disconnect WebSocket, broadcast device list) */
   onDeviceRemoved?: (deviceId: string, workspaceId: string) => void;
+  /** Callback to disconnect all devices when a workspace is deleted */
+  onWorkspaceDeleted?: (workspaceId: string) => void;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
@@ -70,6 +72,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     onJoinRequest,
     onJoinResolved,
     onDeviceRemoved,
+    onWorkspaceDeleted,
   } = config;
   const auth = requireAuth(authConfig);
 
@@ -169,6 +172,29 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Get deletion preview (counts of items to be deleted)
+  router.get('/:id/deletion-preview', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can view deletion preview' });
+        return;
+      }
+
+      const counts = workspaceRepository.getDeletionCounts(workspace.id);
+      res.json(counts);
+    } catch (err) {
+      console.error('[Workspaces] Deletion preview error:', err);
+      res.status(500).json({ error: 'Failed to get deletion preview' });
+    }
+  });
+
   // Delete workspace
   router.delete('/:id', auth, async (req: Request, res: Response) => {
     try {
@@ -184,7 +210,26 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
+      // Disconnect active WebSocket connections before deletion
+      if (onWorkspaceDeleted) {
+        onWorkspaceDeleted(workspace.id);
+      }
+
+      // Delete messages explicitly (no CASCADE on messages table)
+      const deletedMessages = workspaceRepository.deleteMessages(workspace.id);
+
+      // Delete workspace (CASCADE handles settings, members, devices, sessions)
       workspaceRepository.delete(workspace.id);
+
+      // Log for audit purposes
+      console.log('[Audit] Workspace deleted:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        ownerId: workspace.ownerId,
+        deletedBy: req.user!.id,
+        deletedMessages,
+      });
+
       res.status(204).send();
     } catch (err) {
       console.error('[Workspaces] Delete error:', err);

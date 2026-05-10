@@ -1187,3 +1187,356 @@ describe('Workspace Router - DELETE /:id/devices/:deviceId', () => {
     expect(sessionDevices.length).toBe(0);
   });
 });
+
+// Helper to set up test database with messages table for deletion tests
+function setupDeletionTestEnv() {
+  const db = new Database(':memory:');
+  db.exec(usersMigration.up);
+  db.exec(workspacesMigration.up);
+  db.exec(allowAutoJoinMigration.up);
+  // Create messages table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      utterance_id TEXT NOT NULL,
+      workspace_id TEXT,
+      session_id TEXT,
+      sender_id TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      text TEXT NOT NULL,
+      partial INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  // Create devices table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS devices (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      device_token_hash TEXT UNIQUE,
+      token_expires_at TEXT,
+      last_seen_at TEXT,
+      config TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    );
+  `);
+  // Create sessions table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL,
+      name TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      metadata TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      ended_at TEXT,
+      FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(qrTokensMigration.up);
+
+  const workspaceRepository = new WorkspaceRepository(db);
+  const deviceRepository = new DeviceRepository(db);
+  const qrTokenRepository = new QrTokenRepository(db);
+  const userRepository = new UserRepository(db);
+  const jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
+
+  const app = express();
+  app.use(express.json());
+  const router = createWorkspaceRouter({
+    workspaceRepository,
+    deviceRepository,
+    qrTokenRepository,
+    authConfig: { jwtService, userRepository },
+  });
+  app.use('/api/workspaces', router);
+
+  return { db, app, workspaceRepository, deviceRepository, qrTokenRepository, userRepository, jwtService };
+}
+
+describe('Workspace Router - GET /:id/deletion-preview', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let deviceRepository: DeviceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+  let nonOwnerId: string;
+  let nonOwnerToken: string;
+
+  beforeEach(() => {
+    const env = setupDeletionTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    deviceRepository = env.deviceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 12345, 'owner');
+
+    // Create non-owner user
+    nonOwnerId = 'nonowner-456';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(nonOwnerId, 67890, 'nonowner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Add owner and non-owner as workspace members
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'owner');
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, nonOwnerId, 'member');
+
+    // Create some data in the workspace
+    // Sessions
+    db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-1', testWorkspaceId, 'Session 1');
+    db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-2', testWorkspaceId, 'Session 2');
+
+    // Devices
+    deviceRepository.create({ workspaceId: testWorkspaceId, name: 'Device 1', mode: 'kiosk' });
+    deviceRepository.create({ workspaceId: testWorkspaceId, name: 'Device 2', mode: 'mobile' });
+    deviceRepository.create({ workspaceId: testWorkspaceId, name: 'Device 3', mode: 'mobile' });
+
+    // Messages
+    db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', testWorkspaceId, 'user-1', 'User', 'Hello', 0);
+    db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', testWorkspaceId, 'user-2', 'User2', 'World', 0);
+
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+
+    const nonOwner = userRepository.findById(nonOwnerId)!;
+    nonOwnerToken = jwtService.sign(nonOwner);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('requires authentication', async () => {
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/deletion-preview`)
+      .expect(401);
+
+    expect(response.body.error).toBe('Authentication required');
+  });
+
+  it('requires owner permission', async () => {
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/deletion-preview`)
+      .set('Authorization', `Bearer ${nonOwnerToken}`)
+      .expect(403);
+
+    expect(response.body.error).toBe('Only owner can view deletion preview');
+  });
+
+  it('returns counts of items to be deleted', async () => {
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/deletion-preview`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual({
+      sessions: 2,
+      devices: 3,
+      messages: 2,
+      members: 2, // owner + non-owner
+    });
+  });
+
+  it('returns 404 for non-existent workspace', async () => {
+    const response = await request(app)
+      .get('/api/workspaces/nonexistent/deletion-preview')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Workspace not found');
+  });
+
+  it('returns zero counts for empty workspace', async () => {
+    // Create an empty workspace
+    const emptyWorkspaceId = 'empty-workspace';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(emptyWorkspaceId, ownerId, 'Empty Workspace', 'empty-workspace', 'EFGH-5678');
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(emptyWorkspaceId, ownerId, 'owner');
+
+    const response = await request(app)
+      .get(`/api/workspaces/${emptyWorkspaceId}/deletion-preview`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual({
+      sessions: 0,
+      devices: 0,
+      messages: 0,
+      members: 1, // just the owner
+    });
+  });
+});
+
+describe('Workspace Router - DELETE /:id (enhanced)', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+  let nonOwnerId: string;
+  let nonOwnerToken: string;
+
+  beforeEach(() => {
+    const env = setupDeletionTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 12345, 'owner');
+
+    // Create non-owner user
+    nonOwnerId = 'nonowner-456';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(nonOwnerId, 67890, 'nonowner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Add members
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'owner');
+    db.prepare(`
+      INSERT INTO workspace_members (workspace_id, user_id, role, joined_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(testWorkspaceId, nonOwnerId, 'member');
+
+    // Create some messages
+    db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', testWorkspaceId, 'user-1', 'User', 'Hello', 0);
+    db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', testWorkspaceId, 'user-2', 'User2', 'World', 0);
+
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+
+    const nonOwner = userRepository.findById(nonOwnerId)!;
+    nonOwnerToken = jwtService.sign(nonOwner);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('requires authentication', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}`)
+      .expect(401);
+
+    expect(response.body.error).toBe('Authentication required');
+  });
+
+  it('requires owner permission', async () => {
+    const response = await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}`)
+      .set('Authorization', `Bearer ${nonOwnerToken}`)
+      .expect(403);
+
+    expect(response.body.error).toBe('Only owner can delete workspace');
+  });
+
+  it('deletes workspace and messages', async () => {
+    // Verify workspace and messages exist
+    expect(workspaceRepository.findById(testWorkspaceId)).not.toBeNull();
+    const messageCount = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(testWorkspaceId) as { count: number } | undefined;
+    expect(messageCount?.count).toBe(2);
+
+    // Delete workspace
+    await request(app)
+      .delete(`/api/workspaces/${testWorkspaceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    // Verify workspace is deleted
+    expect(workspaceRepository.findById(testWorkspaceId)).toBeNull();
+
+    // Verify messages are deleted
+    const messagesAfter = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(testWorkspaceId) as { count: number } | undefined;
+    expect(messagesAfter?.count).toBe(0);
+  });
+
+  it('returns 404 for non-existent workspace', async () => {
+    const response = await request(app)
+      .delete('/api/workspaces/nonexistent')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+
+    expect(response.body.error).toBe('Workspace not found');
+  });
+
+  it('calls onWorkspaceDeleted callback when provided', async () => {
+    let callbackCalled = false;
+    let callbackWorkspaceId: string | null = null;
+
+    const customApp = express();
+    customApp.use(express.json());
+
+    const router = createWorkspaceRouter({
+      workspaceRepository,
+      authConfig: { jwtService, userRepository },
+      onWorkspaceDeleted: (workspaceId) => {
+        callbackCalled = true;
+        callbackWorkspaceId = workspaceId;
+      },
+    });
+    customApp.use('/api/workspaces', router);
+
+    await request(customApp)
+      .delete(`/api/workspaces/${testWorkspaceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    expect(callbackCalled).toBe(true);
+    expect(callbackWorkspaceId).toBe(testWorkspaceId);
+  });
+});

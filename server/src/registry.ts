@@ -292,4 +292,35 @@ export class DeviceRegistry {
     device.ws.send(JSON.stringify(message));
     return true;
   }
+
+  /**
+   * Disconnect all devices in a workspace.
+   * Sends a workspace-deleted message and closes WebSocket connections.
+   * Returns the number of devices disconnected.
+   */
+  disconnectWorkspaceDevices(workspaceId: string, reason?: string): number {
+    const devices = this.getDevicesByWorkspace(workspaceId);
+    const message = { type: 'workspace-deleted', reason };
+    const payload = JSON.stringify(message);
+    let disconnectedCount = 0;
+
+    for (const device of devices) {
+      try {
+        if (device.ws.readyState === device.ws.OPEN) {
+          device.ws.send(payload);
+          device.ws.close(1000, 'Workspace deleted');
+        }
+        this.devices.delete(device.id);
+        disconnectedCount++;
+      } catch (err) {
+        console.error(`[Registry] Error disconnecting device ${device.id}:`, err);
+      }
+    }
+
+    if (disconnectedCount > 0) {
+      console.log(`[Registry] Disconnected ${disconnectedCount} devices from workspace ${workspaceId}`);
+    }
+
+    return disconnectedCount;
+  }
 }

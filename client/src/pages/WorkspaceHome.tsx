@@ -5,6 +5,7 @@ import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
 import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings';
+import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
 
 // Format relative time (e.g., "2m ago", "1hr ago")
 function formatRelativeTime(date: string): string {
@@ -277,7 +278,7 @@ export function WorkspaceHome() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { workspaces, loading: workspacesLoading } = useWorkspaces();
+  const { workspaces, loading: workspacesLoading, deleteWorkspace } = useWorkspaces();
   const { sessions, loading: sessionsLoading, createSession, renameSession, archiveSession } = useSessions(workspaceId);
   const { devices, loading: devicesLoading, renameDevice, removeDevice } = useDevices(workspaceId);
 
@@ -315,6 +316,9 @@ export function WorkspaceHome() {
 
   // Version info from health endpoint
   const [version, setVersion] = useState<string | null>(null);
+
+  // Delete workspace state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Workspace settings hook
   const { 
@@ -559,6 +563,14 @@ export function WorkspaceHome() {
       setInviteLinkError(true);
       // Will be cleared by useEffect when inviteLinkError changes
     }
+  };
+
+  // Delete workspace handler
+  const handleDeleteWorkspace = async () => {
+    if (!workspaceId) return;
+    await deleteWorkspace(workspaceId);
+    // Navigate to dashboard after successful deletion
+    navigate('/');
   };
 
   const loading = workspacesLoading || sessionsLoading || devicesLoading;
@@ -876,6 +888,39 @@ export function WorkspaceHome() {
               </div>
             </div>
           </section>
+        )}
+
+        {/* Danger Zone Section (for owners) */}
+        {workspace.isOwner && (
+          <section className="danger-zone-section">
+            <h2>
+              <span className="section-icon">⚠️</span>
+              Danger Zone
+            </h2>
+            <div className="danger-zone-content">
+              <div className="danger-zone-item">
+                <div className="danger-zone-info">
+                  <strong>Delete this workspace</strong>
+                  <p>Once you delete a workspace, there is no going back. This action will permanently delete the workspace and all of its data, including sessions, devices, and messages.</p>
+                </div>
+                <button 
+                  className="delete-workspace-trigger"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Delete Workspace
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Delete Workspace Modal */}
+        {showDeleteModal && workspace && (
+          <DeleteWorkspaceModal
+            workspace={workspace}
+            onConfirm={handleDeleteWorkspace}
+            onCancel={() => setShowDeleteModal(false)}
+          />
         )}
       </main>
       {version && (
