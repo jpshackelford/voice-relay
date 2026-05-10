@@ -31,271 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-08 06:03 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `664a58e` | review | PR #61 - E2E invite link tests (round 3) | **NEW** |
-
-🚀 **Spawned: Review Worker (Round 3)**
-- PR: [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-- Issue: [#46 - E2E Test: Workspace Invite Link Flow](https://github.com/jpshackelford/voice-relay/issues/46)
-- Conversation: [`664a58e`](https://app.all-hands.dev/conversations/664a58e5984f41bf8b1e6e7dee30f9fc)
-
-**Review Threads to Address (2 remaining):**
-- 🟠 IMPORTANT: Workspace ID not escaped in regex - could cause test failures with special characters
-- 🟠 IMPORTANT: Missing null check on extractJoinCode() - would produce confusing error messages
-
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `076c5d9` | review | PR #61 (round 2) | finished ✓ |
-| `e30d40e` | review | PR #61 (round 1) | finished ✓ |
-| `7fa1073` | implementation | Issue #46 | finished ✓ |
-
-**Current State:**
-- [PR #61](https://github.com/jpshackelford/voice-relay/pull/61): CI green ✅, 2 unresolved threads → review round 3 in progress
-- Ready issues: #46 (linked to PR), #47 (priority:medium)
-- All issues expanded - expansion slot idle
-- PR slot: Occupied (review worker running)
-
-**Housekeeping:**
-- Archived 2 worklog entries from 2026-05-07 (now ~22 entries)
-
----
-### 2026-05-08 06:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `4d0dfc1` | review | PR #61 - E2E invite link tests (round 4) | **NEW** |
-
-🚀 **Spawned: Review Worker (Round 4)**
-- PR: [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-- Issue: [#46 - E2E Test: Workspace Invite Link Flow](https://github.com/jpshackelford/voice-relay/issues/46)
-- Conversation: [`4d0dfc1`](https://app.all-hands.dev/conversations/4d0dfc14c9e54cf8aa8df5b845c11733)
-
-**Review Threads to Address (2 remaining):**
-- 🟠 Workspace ID not escaped in regex - could cause test failures with special characters
-- 🟠 Missing null check on extractJoinCode() - would produce confusing error messages
-
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `664a58e` | review | PR #61 (round 3) | finished ✓ |
-| `076c5d9` | review | PR #61 (round 2) | finished ✓ |
-| `e30d40e` | review | PR #61 (round 1) | finished ✓ |
-| `7fa1073` | implementation | Issue #46 | finished ✓ |
-
-**Current State:**
-- [PR #61](https://github.com/jpshackelford/voice-relay/pull/61): CI green ✅, 2 unresolved threads → review round 4 in progress
-- Ready issues: #46 (linked to PR), #47 (priority:medium)
-- All issues expanded - expansion slot idle
-- PR slot: Occupied (review worker running)
-
----
-### 2026-05-08 06:37 UTC - Review Worker Complete (PR #61, Round 4)
-
-✅ **Final review threads addressed and resolved**
-
-**PR:** [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-**Issue:** [#46 - E2E Test: Workspace Invite Link Flow](https://github.com/jpshackelford/voice-relay/issues/46)
-
-**Review Feedback Addressed:**
-| Thread | Severity | Action Taken |
-|--------|----------|--------------|
-| Workspace ID not escaped in regex | 🟠 Important | Fixed - Switched to exact string URL match instead of regex to avoid escaping issues |
-| Missing null check on extractJoinCode() | 🟠 Important | Fixed - Added explicit `.not.toBeNull()` assertion for clearer error messages |
-
-**Commit:**
-- `aeee59b` - test: address review feedback - null check and URL matching
-
-**Status:** PR #61 marked ready for review
-- All review threads resolved (7/7) ✅
-- CI green ✅
-- Ready for final approval or merge
-
----
-### 2026-05-08 07:00 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `d1ce583` | merge | PR #61 - E2E invite link tests | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-- PR: [#61 - feat(tests): add E2E smoke tests for workspace invite link flow](https://github.com/jpshackelford/voice-relay/pull/61)
-- Issue: [#46 - E2E Test: Workspace Invite Link Flow](https://github.com/jpshackelford/voice-relay/issues/46)
-- Conversation: [`d1ce583`](https://app.all-hands.dev/conversations/d1ce583024074773ab188da6faae4608)
-
-**Merge Criteria Met:**
-- CI: green ✅
-- All 7 review threads resolved ✅
-- State: ready (not draft) ✅
-- PR description has "Fixes #46" ✅
-
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `4d0dfc1` | review | PR #61 (round 4) | finished ✓ |
-| `664a58e` | review | PR #61 (round 3) | finished ✓ |
-| `076c5d9` | review | PR #61 (round 2) | finished ✓ |
-| `e30d40e` | review | PR #61 (round 1) | finished ✓ |
-| `7fa1073` | implementation | Issue #46 | finished ✓ |
-
-**Current State:**
-- [PR #61](https://github.com/jpshackelford/voice-relay/pull/61): CI green, all threads resolved → merge in progress
-- Ready issues: #47 (priority:medium)
-- All issues expanded - expansion slot idle
-
-**Housekeeping:**
-- Archived 3 worklog entries (2 from 2026-05-07, 1 from 2026-05-08)
-- WORKLOG.md reduced from 902 lines to ~250 lines
-
----
-### 2026-05-08 07:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ef1f93d` | implementation | Issue #47 - E2E AI Tests | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-- Issue: [#47 - E2E Test: AI Assistant Integration (Human-to-Agent Communication)](https://github.com/jpshackelford/voice-relay/issues/47)
-- Priority: `priority:medium`
-- Conversation: [`ef1f93d`](https://app.all-hands.dev/conversations/ef1f93de2af742d1be4cd372b1233005)
-
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `d1ce583` | merge | PR #61 (E2E invite link tests) | finished ✓ |
-| `4d0dfc1` | review | PR #61 (round 4) | finished ✓ |
-
-**Current State:**
-- ✅ PR #61 merged at 07:06 UTC (Issue #46 complete)
-- No open PRs
-- **Last remaining issue:** #47 (priority:medium) - implementation in progress
-- All issues expanded - expansion slot idle
-- 🎉 This is the FINAL issue in the backlog!
-
-**Notes:**
-- Issue #47 tests AI Assistant integration (human-to-agent communication)
-- Requires workspace with OpenHands API key configured
-- Tests include: AI connection, message sending, canvas display (image/markdown)
-- Once #47 is complete and merged, the original issue backlog (#9-#12, #44-#47) will be DONE
-
----
-### 2026-05-08 07:45 UTC - Implementation Worker (`ef1f93d`)
-
-✅ **PR Created for Issue #47**
-
-- PR: [#62 - feat(e2e): add AI assistant integration tests](https://github.com/jpshackelford/voice-relay/pull/62)
-- Issue: [#47 - E2E Test: AI Assistant Integration (Human-to-Agent Communication)](https://github.com/jpshackelford/voice-relay/issues/47)
-- Status: Ready for review
-
-**Implementation Summary:**
-- Created `tests/smoke/ai-integration.spec.ts` with 17 comprehensive test cases
-- Updated `tests/smoke/playwright.config.ts` to include AI tests
-- Updated `tests/smoke/README.md` with AI test documentation
-
-**Test Coverage:**
-| Category | Tests | Description |
-|----------|-------|-------------|
-| AI Status API | 1 | Endpoint availability check |
-| Kiosk AI Features | 7 | Connection, messages, canvas display, disconnect |
-| AI Unavailable | 1 | Graceful handling when no API key |
-| API Error Handling | 4 | Invalid requests, missing params |
-| Display API | 4 | Validation, clear type support |
-
-**Acceptance Criteria Covered:**
-- ✅ AI sparkle button appears when workspace has API key
-- ✅ AI sparkle button hidden/disabled without API key  
-- ✅ Clicking sparkle connects to AI (shows connecting then connected state)
-- ✅ Messages can be sent to AI when connected
-- ✅ AI responses appear in chat within reasonable timeout
-- ✅ AI can display images on kiosk canvas
-- ✅ AI can display markdown on kiosk canvas
-- ✅ Clicking sparkle again disconnects from AI
-- ✅ Error states are displayed appropriately
-
-**CI Status:**
-- Build Client: ✅ Pass
-- Server Tests: ✅ Pass
-- E2E Tests: ✅ Pass
-- PR Title Lint: ✅ Pass
-
-**Note:** Tests gracefully skip when AI is unavailable (no OPENHANDS_API_KEY configured)
-
----
-### 2026-05-08 08:08 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ecc8b1a` | review | PR #62 - E2E AI assistant tests | **NEW** |
-
-🚀 **Spawned: Review Worker**
-- PR: [#62 - feat(e2e): add AI assistant integration tests](https://github.com/jpshackelford/voice-relay/pull/62)
-- Issue: [#47 - E2E Test: AI Assistant Integration](https://github.com/jpshackelford/voice-relay/issues/47)
-- Conversation: [`ecc8b1a`](https://app.all-hands.dev/conversations/ecc8b1aac01a4c7f82aa70b1629723b5)
-
-**Review Threads (5 total):**
-- PR has 5 unresolved review threads to address
-- CI: green ✅
-- State: ready (not draft)
-
-**Previous Workers (finished):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ef1f93d` | implementation | Issue #47 - E2E AI tests | finished ✓ |
-| `d1ce583` | merge | PR #61 (invite link tests) | finished ✓ |
-
-**Housekeeping:**
-- Archived worklog entries older than 6hr productive window (898→~250 lines)
-
-**Current State:**
-- [PR #62](https://github.com/jpshackelford/voice-relay/pull/62): `oR green ready 💬5` → review in progress
-- Ready issues: #47 (linked to PR #62) - **LAST issue in backlog!**
-- All issues expanded - expansion slot idle
-- PR slot: Occupied (review worker running)
-
-**Issue Queue:**
-- #47 (priority:medium) - E2E AI Tests - PR #62 open, review in progress
-
-🎉 **This is the FINAL issue in the original backlog!**
-Once PR #62 is merged, the voice-relay issue queue will be empty.
-
----
-### 2026-05-08 08:15 UTC - Review Worker Complete (PR #62, Round 1)
-
-✅ **All 5 review threads addressed and resolved**
-
-**PR:** [#62 - feat(e2e): add AI assistant integration tests](https://github.com/jpshackelford/voice-relay/pull/62)
-**Issue:** [#47 - E2E Test: AI Assistant Integration](https://github.com/jpshackelford/voice-relay/issues/47)
-
-**Review Feedback Addressed:**
-| Thread | Severity | Action Taken |
-|--------|----------|--------------|
-| Global 120s timeout | 🟠 Important | Fixed - Moved `test.setTimeout()` to `Kiosk AI Features` describe block only |
-| Hardcoded waitForTimeout(2000) | 🟠 Important | Fixed - Replaced all with `waitForAIStatusDetermined()` helper |
-| Missing cleanup after AI connection | 🟡 Suggestion | Fixed - Added `test.afterEach()` hook to disconnect AI sessions |
-| Weak rapid toggle assertion | 🟡 Suggestion | Fixed - Improved state validation with `expect().toPass()` and class checks |
-| Display API tests should be separate | 🟡 Suggestion | Fixed - Moved to new `api-validation.spec.ts` file |
-
-**Commit:**
-- `a8b6342` - refactor(tests): address PR review feedback
-
-**Status:** PR #62 marked ready for review
-- All review threads resolved (5/5) ✅
-- CI green ✅
-- Ready for final approval or merge
-
-**Files Changed:**
-- `tests/smoke/ai-integration.spec.ts` - refactored per review feedback
-- `tests/smoke/api-validation.spec.ts` - new file for API validation tests
-
----
 ### 2026-05-08 08:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -916,5 +651,46 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
        -H "Content-Type: application/json" \
        -d '{"enabled": true}'
      ```
+
+---
+### 2026-05-10 00:43 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (this) | implementation | Issue #82 - AI toggle visibility | in-progress |
+
+🚀 **Created: PR #83**
+- PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
+- Issue: [#82 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/82)
+
+**Root Cause Analysis:**
+- The `.ai-toggle` button is inside the kiosk drawer
+- Per F3 requirement, the drawer starts **collapsed** by default
+- Tests tried to click the button without opening the drawer first
+- PR #68's CSS fix works, but only when the drawer is open
+
+**Fix Applied:**
+- Added `ensureDrawerOpen()` helper to open the collapsed drawer
+- Updated `waitForAIAvailabilityCheck()` to call `ensureDrawerOpen()` first
+- Updated AI Unavailable test to also open drawer before checking
+
+**CI Status:**
+- Build Client: ✅ Pass
+- Server Tests: ✅ Pass
+- E2E Tests: ✅ Pass  
+- PR Title Lint: ✅ Pass
+
+**PR Status:** Ready for review
+
+**Housekeeping:**
+- ✅ Added root cause analysis comment to Issue #82
+- ✅ Added `ready` and `priority:high` labels to Issue #82
+- ✅ Archived 8 worklog entries from 2026-05-08
+
+**Current State:**
+- PR #83: CI green ✅, ready for review
+- Open issues: #82 (linked to PR #83)
+- Automation was re-enabled (manually by this orchestrator run)
 
 ---
