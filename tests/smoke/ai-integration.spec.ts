@@ -77,9 +77,24 @@ test.describe('AI Assistant Integration', () => {
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
     }
 
+    // Helper to ensure the kiosk drawer is open
+    // The drawer starts collapsed (per F3 requirement), so we need to open it
+    // before interacting with elements inside (like .ai-toggle button)
+    async function ensureDrawerOpen(page: import('@playwright/test').Page) {
+      const drawerOpenBtn = page.locator('.drawer-open-btn');
+      if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await drawerOpenBtn.click();
+        // Wait for drawer to animate open
+        await page.waitForTimeout(300);
+      }
+    }
+
     // Helper to wait for AI availability check to complete
-    // Button appears if AI is available, remains hidden if not
+    // Opens drawer first, then checks if button appears
     async function waitForAIAvailabilityCheck(page: import('@playwright/test').Page) {
+      // First ensure the drawer is open so the AI toggle button is accessible
+      await ensureDrawerOpen(page);
+      
       const sparkleButton = page.locator('.ai-toggle');
       // Wait for either button to appear (AI available) or timeout (AI unavailable)
       await expect(sparkleButton).toBeVisible({ timeout: 10000 })
@@ -410,6 +425,13 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
+
+      // Open the drawer first to ensure .ai-toggle would be visible if it existed
+      const drawerOpenBtn = page.locator('.drawer-open-btn');
+      if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+        await drawerOpenBtn.click();
+        await page.waitForTimeout(300);
+      }
 
       // Wait for AI availability check to complete - button should remain hidden
       // Use expect.poll to wait for the UI to settle
