@@ -996,3 +996,38 @@ updated from the server's validate response, ensuring all storage layers
 **Complexity:** Medium-High (~10 hours estimated)
 
 **Labels added:** `ready`
+
+---
+### 2026-05-10 07:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b5306ea` | expansion | Issue #98 - AI mobile display API | **NEW** |
+| `75f2955` | implementation | Issue #87 - QR code expiry bug | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Expansion Worker**
+   - Issue: [#98 - AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98)
+   - Conversation: [`b5306ea`](https://app.all-hands.dev/conversations/b5306ea58f2847a5b33d864860f1f555)
+
+2. **Implementation Worker**  
+   - Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
+   - Conversation: [`75f2955`](https://app.all-hands.dev/conversations/75f2955a30e244d6865185a1e99c382e)
+
+**Priority Assessment (inline):**
+- #93 (Archive/rename sessions): Assigned `priority:low` - UX enhancement, moderate complexity
+- #95 (Delete workspace): Assigned `priority:low` - Cleanup feature, medium-high complexity
+
+**Previous Workers Completed:**
+- `d7bfdd5` (merge): ✅ Merged PR #109 (Issue #85)
+- `1c8d81d` (expansion): ✅ Expanded Issue #95
+
+**Current State:**
+- No open PRs
+- Ready issues: #84 (low), #87 (medium - being implemented), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- Issues needing expansion: #98 (in progress), #103
+- PR slot: Occupied (implementation worker - Issue #87)
+- Expansion slot: Occupied (expansion worker - Issue #98)
+
