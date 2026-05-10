@@ -3,6 +3,10 @@ name: Server Operations
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
   workflow_dispatch:
     inputs:
       action:
@@ -205,8 +209,57 @@ jobs:
               }
             }
       
+      - name: Check for existing issue
+        id: check-existing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-failure'
+            });
+
+            const existing = issues.find(i =>
+              i.title === '🚨 Smoke test failure after deployment'
+            );
+
+            if (existing) {
+              core.setOutput('exists', 'true');
+              core.setOutput('issue_number', existing.number);
+            } else {
+              core.setOutput('exists', 'false');
+            }
+      
+      - name: Comment on existing issue
+        if: steps.check-existing.outputs.exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const hasRollback = '${{ steps.find-good.outputs.has_rollback_target }}' === 'true';
+            const rollbackCommit = '${{ steps.find-good.outputs.commit }}';
+
+            const body = `## 🔄 Another deployment failure
+
+            **Failed Commit:** \`${{ github.sha }}\`
+            **Workflow Run:** [View logs](${runUrl})
+            **Triggered By:** ${context.actor}
+            **Time:** ${new Date().toISOString()}
+
+            ${hasRollback ? `🔄 Automatic rollback initiated to commit \`${rollbackCommit}\`` : '⚠️ No previous successful deployment found'}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.check-existing.outputs.issue_number }},
+              body: body
+            });
+
       - name: Create failure issue
         id: create-issue
+        if: steps.check-existing.outputs.exists == 'false'
         uses: actions/github-script@v7
         with:
           script: |
@@ -287,12 +340,20 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const issueNumber = ${{ steps.create-issue.outputs.issue_number }};
+            // Determine issue number: use existing issue if found, otherwise use newly created
+            const existingIssue = '${{ steps.check-existing.outputs.issue_number }}';
+            const newIssue = '${{ steps.create-issue.outputs.issue_number }}';
+            const issueNumber = existingIssue || newIssue;
+            
+            if (!issueNumber) {
+              core.warning('No issue number available - skipping rollback failure comment');
+              return;
+            }
             
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issueNumber,
+              issue_number: parseInt(issueNumber),
               body: `## ⚠️ Rollback Failed
 
             The automatic rollback to commit \`${{ steps.find-good.outputs.commit }}\` did not restore the service.
@@ -311,6 +372,6 @@ jobs:
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issueNumber,
+              issue_number: parseInt(issueNumber),
               labels: ['critical']
             });
