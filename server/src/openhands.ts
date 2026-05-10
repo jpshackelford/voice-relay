@@ -223,8 +223,9 @@ export class OpenHandsClient {
  * Load a prompt from the prompts directory
  * @param promptName - Name of the prompt file (without .md extension)
  * @param displayLines - Optional number of display lines to inject into the prompt
+ * @param workspaceId - Optional workspace ID to inject into the prompt for display API calls
  */
-export function loadPrompt(promptName: string, displayLines?: number): string {
+export function loadPrompt(promptName: string, displayLines?: number, workspaceId?: string): string {
   const promptsDir = path.join(__dirname, '..', 'prompts');
   const promptPath = path.join(promptsDir, `${promptName}.md`);
   
@@ -245,6 +246,11 @@ export function loadPrompt(promptName: string, displayLines?: number): string {
       /content beyond ~10 lines will be invisible/g,
       `content beyond ${displayLines} lines will be invisible`
     );
+  }
+  
+  // Replace workspace ID placeholder if provided
+  if (workspaceId) {
+    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, workspaceId);
   }
   
   return prompt;
@@ -433,13 +439,15 @@ export class AISessionManager {
    * @param onMessage - Callback for agent responses
    * @param displayLines - Optional max display lines for kiosk (from device screen size)
    * @param apiKey - Optional workspace-specific API key (falls back to env var)
+   * @param workspaceId - Optional workspace ID to inject into kiosk prompts for display API calls
    */
   async startSession(
     deviceId: string,
     mode: 'chat' | 'kiosk',
     onMessage: (message: string) => void,
     displayLines?: number,
-    apiKey?: string
+    apiKey?: string,
+    workspaceId?: string
   ): Promise<AISession> {
     // Create a client with the provided API key or use the default
     const client = apiKey ? new OpenHandsClient(apiKey) : this.client;
@@ -447,17 +455,18 @@ export class AISessionManager {
       throw new Error('OpenHands API not configured');
     }
 
-    console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}`);
+    console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}${workspaceId ? ` (workspace: ${workspaceId})` : ''}`);
 
     // End existing session if any
     if (this.sessions.has(deviceId)) {
       await this.endSession(deviceId);
     }
 
-    // Load appropriate system prompt with display line info
+    // Load appropriate system prompt with display line info and workspace ID
     const systemPrompt = loadPrompt(
       mode === 'kiosk' ? 'kiosk-system' : 'chat-system',
-      mode === 'kiosk' ? displayLines : undefined
+      mode === 'kiosk' ? displayLines : undefined,
+      mode === 'kiosk' ? workspaceId : undefined
     );
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
