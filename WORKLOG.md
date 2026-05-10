@@ -786,3 +786,25 @@ Fixes #91
 - No issues need expansion 🎉
 - PR slot: Occupied (review worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 17:50 UTC - Review Worker (`8ddb37d`)
+
+✅ **PR FEEDBACK ADDRESSED: #117**
+
+- PR: [#117 - feat: archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/pull/117) → **READY FOR REVIEW**
+- Commit: `26a8b52`
+
+**Review Feedback Addressed (7/7 threads resolved):**
+
+1. **Stale state in EditableSessionName** (Important) - Added `useEffect` to sync `name` state when `session.name` prop changes. Also applied same fix to `EditableDeviceName` for consistency.
+
+2. **Memory leak with archiveToast timeout** (Important) - Moved `archiveToast` timeout to `useEffect` with proper cleanup. Also applied same pattern to all other setTimeout-based state resets (`removeDeviceMessage`, `inviteLinkCopied`, `inviteLinkError`, `error` in `EditableDeviceName`).
+
+**CI Status:**
+- Build Client: ✅ PASSED
+- Server Tests: ✅ PASSED
+- E2E Tests: ✅ PASSED
+- lint-pr-title: ✅ PASSED
+
+**PR Status:** Ready for review ✅ (all 7 review threads resolved)
