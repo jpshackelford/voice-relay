@@ -1547,3 +1547,106 @@ Fixes #98
 - No issues need expansion 🎉
 - PR slot: Occupied (#113 awaiting review)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 11:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2fc2117` | merge | PR #113 - Display commit hash | **NEW** |
+
+**Current State:**
+- [PR #113](https://github.com/jpshackelford/voice-relay/pull/113): CI green, approved, ready for merge
+- Ready issues: #89, #90, #91, #93, #95 (all priority:low)
+- Issues needing expansion: none
+
+**Action Taken:**
+🚀 **Spawned: Merge Worker**
+- PR: [#113 - Display deployed commit hash](https://github.com/jpshackelford/voice-relay/pull/113)
+- Linked Issue: #84
+- Conversation: [`2fc2117`](https://app.all-hands.dev/conversations/2fc2117b940e4397822ef065dd76fc8a)
+
+PR #113 meets merge criteria: CI green, no review threads, bot approved.
+Spawned merge worker to finalize description and squash-merge.
+
+---
+### 2026-05-10 12:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cc3f13f` | implementation | Issue #89 - AI websocket error | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
+- Conversation: [`cc3f13f`](https://app.all-hands.dev/conversations/cc3f13f8f910412aac0ee38d7d3bfaa1)
+
+**Housekeeping:**
+- 📦 Archived 3 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md (worklog was >1000 lines)
+
+**Previous Worker Completed:**
+- `2fc2117` (merge): Merged PR #113 ✓ (Issue #84 closed)
+
+**Current State:**
+- No open PRs ✅
+- Issue #84 closed ✅
+- Ready issues: **#89 (low)** ← implementing, #90 (low), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 12:10 UTC - Implementation Worker (`cc3f13f`)
+
+✅ **Created: PR #114**
+
+- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
+- Conversation: [`cc3f13f`](https://app.all-hands.dev/conversations/cc3f13f8f910412aac0ee38d7d3bfaa1)
+
+**Root Cause:**
+Race condition between client and server:
+1. Client sends connect request → server returns success before WebSocket is fully OPEN
+2. Client immediately forwards messages → server returns "WebSocket not connected" error
+3. WebSocket connects ~100ms later → AI works perfectly
+4. **Error display persists forever** because `sendMessage()` never cleared errors on success
+
+**Fix Applied:**
+- Added error clearing in `sendMessage()` function in `client/src/hooks/useAI.ts`
+- After successful message send, clear any previous transient errors: `if (error) setError(null)`
+- Self-healing: any transient error during connection will be cleared by the next successful operation
+
+**Testing:**
+- ✅ Created comprehensive test suite for `useAI` hook (16 tests)
+- ✅ All 175 client tests pass
+- ✅ TypeScript compilation successful
+- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review ✅
+
+---
+### 2026-05-10 12:30 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `7687506` | review | PR #114 - Clear AI error state on success | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
+- Conversation: [`7687506`](https://app.all-hands.dev/conversations/7687506ad0b542b09b9e5a34e151645d)
+- Review feedback: 3 unresolved threads about simplifying conditional error clearing
+
+**Previous Worker Completed:**
+- `cc3f13f` (implementation): Created PR #114 ✓
+
+**Current State:**
+- [PR #114](https://github.com/jpshackelford/voice-relay/pull/114): `oR green ready 💬3` → review feedback being addressed
+- Ready issues: #89 (has PR), #90 (low), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (review worker)
+- Expansion slot: Available (nothing to expand)
