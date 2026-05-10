@@ -987,19 +987,25 @@ Fixes #98
 **Active Workers:**
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
-| `c1dff8c` | implementation | Issue #84 - Display commit hash | **NEW** |
+| `c1dff8c` | implementation | Issue #84 - Display commit hash | **PR READY** |
 
-🚀 **Spawned: Implementation Worker**
+✅ **Implementation Complete**
 
 - Issue: [#84 - feat: Display deployed commit hash in health endpoint and UI footer](https://github.com/jpshackelford/voice-relay/issues/84) (priority:low)
+- PR: [#113](https://github.com/jpshackelford/voice-relay/pull/113)
 - Conversation: [`c1dff8c`](https://app.all-hands.dev/conversations/c1dff8c619a1418bb13b024cfe6b90e4)
+- All CI checks pass, PR marked ready for review
 
-**Previous Worker Completed:**
-- `368aab1` (merge): Merged PR #112 ✓ (Issue #98 closed)
+**Changes Made:**
+- Add version.json to .gitignore
+- Generate version.json during deploy and rollback workflows
+- Update /health endpoint with version and deployedAt fields
+- Add version footer to WorkspaceHome component
+- Add 9 tests for version loading
 
 **Current State:**
-- No open PRs (implementation starting for #84)
-- Ready issues: #84 (low - being implemented), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
+- Open PRs: #113 (Issue #84 - awaiting review)
+- Ready issues: #89 (low), #90 (low), #91 (low), #93 (low), #95 (low)
 - No issues need expansion 🎉
-- PR slot: Occupied (implementation worker)
+- PR slot: Occupied (#113 awaiting review)
 - Expansion slot: Available (nothing to expand)
