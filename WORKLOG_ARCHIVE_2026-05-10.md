@@ -854,3 +854,72 @@ Confirmed server **always** returns name:
 - Issues needing expansion: #95 (in progress), #98, #103
 - PR slot: Occupied (merge worker)
 - Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #95**
+
+- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Technical Summary:**
+- Backend DELETE endpoint exists but needs enhancement for messages cleanup and WebSocket disconnection
+- Need new deletion-preview endpoint for showing counts before deletion
+- Client needs DeleteWorkspaceModal component and danger zone section
+
+**Key Findings:**
+- CASCADE deletion works for most tables (workspace_settings, workspace_members, devices, sessions, qr_tokens, join_requests)
+- Messages table does NOT cascade - requires explicit `DELETE FROM messages WHERE workspace_id = ?`
+- DeviceRegistry needs `disconnectWorkspaceDevices()` method for graceful socket cleanup
+
+**Files to create:**
+- `client/src/components/DeleteWorkspaceModal.tsx` - Confirmation modal with name typing
+- `client/src/hooks/useDeletionPreview.ts` - Hook to fetch deletion counts
+
+**Files to modify:**
+- `server/src/workspaces/router.ts` - Add deletion-preview endpoint, enhance DELETE
+- `server/src/workspaces/workspace-repository.ts` - Add getDeletionCounts, deleteMessages methods
+- `server/src/registry.ts` - Add disconnectWorkspaceDevices method
+- `client/src/pages/WorkspaceHome.tsx` - Add danger zone section
+- `client/src/App.css` - Danger zone styling
+
+**Complexity:** Medium-High (~10 hours estimated)
+
+**Labels added:** `ready`
+
+---
+### 2026-05-10 06:37 UTC - Merge Worker (PR #109)
+
+✅ **Merged PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+- Merge Type: Squash merge
+
+**Pre-merge Verification:**
+- ✅ All CI checks pass (Server Tests, Build Client, E2E Tests, PR Lint, PR Review)
+- ✅ Review thread resolved (removed unnecessary defensive check per reviewer feedback)
+- ✅ No database migrations (client-only change, safe for production)
+- ✅ `mergeable: CLEAN`
+
+**Actions:**
+1. Updated PR description with final state and review history
+2. Squash-merged with conventional commit message
+3. Issue #85 auto-closed via `Fixes #85` in commit message
+
+**Commit Summary:**
+```
+fix(client): device name persists correctly across kiosk navigation
+
+Sync device name from server-authoritative source on token validation.
+When navigating between workspace and kiosk views, the display name is now
+updated from the server's validate response, ensuring all storage layers
+(React state, sessionStorage, localStorage) stay in sync with the database.
+```
+
+**Impact:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- No breaking changes, no migrations, low risk
+- Device names now persist correctly across all views

@@ -31,119 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-10 13:51 UTC - Implementation Worker
-
-✅ **Created PR #115 for Issue #90**
-
-- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90) (priority:low, ready)
-- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
-- Status: **Ready for review** ✅
-
-**Implementation Summary:**
-- Added `DELETE /api/workspaces/:id/devices/:deviceId` endpoint (owner-only)
-- Device is removed from all active sessions via `sessionRepository.removeDeviceFromAll()`
-- WebSocket notification sent to removed device before disconnect via `onDeviceRemoved` callback
-- Device token is invalidated on removal (delete from devices table)
-- Client-side `useDevices` hook now includes `removeDevice` function
-- `useWebSocket` hook handles `device-removed` message (clears token, sets `wasRemoved` state)
-- `WorkspaceHome.tsx` adds remove button with confirmation modal
-- Success notification appears after device removal (auto-dismisses after 3 seconds)
-
-**Tests Added:** 8 test cases for DELETE endpoint (all passing)
-
-**Acceptance Criteria Met:**
-- ✅ Workspace owner can remove any device from the device list via UI
-- ✅ DELETE endpoint works correctly
-- ✅ Removed device is immediately disconnected (if connected via WebSocket)
-- ✅ Removed device no longer appears in the workspace device list
-- ✅ Removed device's token is invalidated
-- ✅ Removed device is removed from all active sessions
-- ✅ Confirmation dialog prevents accidental removal
-- ✅ Toast/notification shows feedback when device is removed
-- ✅ Removed device must go through normal join flow to rejoin
-
-**Files Modified:**
-- `server/src/types.ts` - Added DeviceRemovedMessage type
-- `server/src/workspaces/router.ts` - Added DELETE endpoint, onDeviceRemoved callback
-- `server/src/index.ts` - Wired up onDeviceRemoved callback
-- `client/src/types.ts` - Added DeviceRemovedMessage type
-- `client/src/hooks/useDevices.ts` - Added removeDevice function
-- `client/src/hooks/useWebSocket.ts` - Handle device-removed message
-- `client/src/pages/WorkspaceHome.tsx` - Remove button, confirmation modal, success message
-- `client/src/App.css` - Button and modal styles
-- `server/src/workspaces/router.test.ts` - 8 new test cases
-
----
-
-### 2026-05-10 06:36 UTC - Expansion Worker
-
-✅ **Expanded Issue #95**
-
-- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Technical Summary:**
-- Backend DELETE endpoint exists but needs enhancement for messages cleanup and WebSocket disconnection
-- Need new deletion-preview endpoint for showing counts before deletion
-- Client needs DeleteWorkspaceModal component and danger zone section
-
-**Key Findings:**
-- CASCADE deletion works for most tables (workspace_settings, workspace_members, devices, sessions, qr_tokens, join_requests)
-- Messages table does NOT cascade - requires explicit `DELETE FROM messages WHERE workspace_id = ?`
-- DeviceRegistry needs `disconnectWorkspaceDevices()` method for graceful socket cleanup
-
-**Files to create:**
-- `client/src/components/DeleteWorkspaceModal.tsx` - Confirmation modal with name typing
-- `client/src/hooks/useDeletionPreview.ts` - Hook to fetch deletion counts
-
-**Files to modify:**
-- `server/src/workspaces/router.ts` - Add deletion-preview endpoint, enhance DELETE
-- `server/src/workspaces/workspace-repository.ts` - Add getDeletionCounts, deleteMessages methods
-- `server/src/registry.ts` - Add disconnectWorkspaceDevices method
-- `client/src/pages/WorkspaceHome.tsx` - Add danger zone section
-- `client/src/App.css` - Danger zone styling
-
-**Complexity:** Medium-High (~10 hours estimated)
-
-**Labels added:** `ready`
-
----
-### 2026-05-10 06:37 UTC - Merge Worker (PR #109)
-
-✅ **Merged PR #109**
-
-- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
-- Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
-- Merge Type: Squash merge
-
-**Pre-merge Verification:**
-- ✅ All CI checks pass (Server Tests, Build Client, E2E Tests, PR Lint, PR Review)
-- ✅ Review thread resolved (removed unnecessary defensive check per reviewer feedback)
-- ✅ No database migrations (client-only change, safe for production)
-- ✅ `mergeable: CLEAN`
-
-**Actions:**
-1. Updated PR description with final state and review history
-2. Squash-merged with conventional commit message
-3. Issue #85 auto-closed via `Fixes #85` in commit message
-
-**Commit Summary:**
-```
-fix(client): device name persists correctly across kiosk navigation
-
-Sync device name from server-authoritative source on token validation.
-When navigating between workspace and kiosk views, the display name is now
-updated from the server's validate response, ensuring all storage layers
-(React state, sessionStorage, localStorage) stay in sync with the database.
-```
-
-**Impact:**
-- App auto-deploys to vr.chorecraft.net on merge to main
-- No breaking changes, no migrations, low risk
-- Device names now persist correctly across all views
-
----
 ### 2026-05-10 07:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -1009,3 +896,44 @@ Changes:
 - Expansion slot: Available (nothing to expand)
 
 ---
+### 2026-05-10 13:51 UTC - Implementation Worker
+
+✅ **Created PR #115 for Issue #90**
+
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90) (priority:low, ready)
+- PR: [#115 - feat: allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/pull/115)
+- Status: **Ready for review** ✅
+
+**Implementation Summary:**
+- Added `DELETE /api/workspaces/:id/devices/:deviceId` endpoint (owner-only)
+- Device is removed from all active sessions via `sessionRepository.removeDeviceFromAll()`
+- WebSocket notification sent to removed device before disconnect via `onDeviceRemoved` callback
+- Device token is invalidated on removal (delete from devices table)
+- Client-side `useDevices` hook now includes `removeDevice` function
+- `useWebSocket` hook handles `device-removed` message (clears token, sets `wasRemoved` state)
+- `WorkspaceHome.tsx` adds remove button with confirmation modal
+- Success notification appears after device removal (auto-dismisses after 3 seconds)
+
+**Tests Added:** 8 test cases for DELETE endpoint (all passing)
+
+**Acceptance Criteria Met:**
+- ✅ Workspace owner can remove any device from the device list via UI
+- ✅ DELETE endpoint works correctly
+- ✅ Removed device is immediately disconnected (if connected via WebSocket)
+- ✅ Removed device no longer appears in the workspace device list
+- ✅ Removed device's token is invalidated
+- ✅ Removed device is removed from all active sessions
+- ✅ Confirmation dialog prevents accidental removal
+- ✅ Toast/notification shows feedback when device is removed
+- ✅ Removed device must go through normal join flow to rejoin
+
+**Files Modified:**
+- `server/src/types.ts` - Added DeviceRemovedMessage type
+- `server/src/workspaces/router.ts` - Added DELETE endpoint, onDeviceRemoved callback
+- `server/src/index.ts` - Wired up onDeviceRemoved callback
+- `client/src/types.ts` - Added DeviceRemovedMessage type
+- `client/src/hooks/useDevices.ts` - Added removeDevice function
+- `client/src/hooks/useWebSocket.ts` - Handle device-removed message
+- `client/src/pages/WorkspaceHome.tsx` - Remove button, confirmation modal, success message
+- `client/src/App.css` - Button and modal styles
+- `server/src/workspaces/router.test.ts` - 8 new test cases
