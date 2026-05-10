@@ -1056,3 +1056,29 @@ Unauthenticated POST to `/api/display` successfully returns `{"success":true,"ki
 **Complexity:** Medium
 
 **Labels added:** `ready`
+
+---
+### 2026-05-10 07:38 UTC - Review Agent (PR #110)
+
+✅ **Addressed Review Feedback**
+
+- PR: [#110 - fix: preserve device state during QR token refresh to prevent UI flicker (#87)](https://github.com/jpshackelford/voice-relay/pull/110)
+- Issue: [#87 - QR code expiry shows full-screen QR instead of refreshing corner mini QR](https://github.com/jpshackelford/voice-relay/issues/87)
+
+**Review Feedback (3 inline comments):**
+1. **Data Structure Redundancy** - Both useWebSocket and KioskMode tracked device state during reconnection
+2. **Special Case Handling** - Placeholder devices with fake IDs were a code smell
+3. **Complexity** - Nested ternary operators made logic hard to follow
+
+**Resolution:**
+All three issues resolved with a single refactoring commit (`74adb47`):
+- Removed `lastMobileCountRef` from KioskMode entirely
+- Removed placeholder device creation logic
+- Made `useWebSocket` the single source of truth for device preservation
+- Simplified mobileDevices derivation to a single filter line
+
+**Changes:** -33 lines, +3 lines (net -30 lines)
+
+**CI Status:** ✅ All checks passed (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review → Review feedback addressed → Ready for merge
