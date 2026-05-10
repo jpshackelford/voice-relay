@@ -19,17 +19,17 @@ To display content on the kiosk, make HTTP POST requests to the voice relay serv
 # Display markdown
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "markdown", "title": "Title", "content": "# Header\n\nContent here..."}'
+  -d '{"type": "markdown", "workspaceId": "{{WORKSPACE_ID}}", "title": "Title", "content": "# Header\n\nContent here..."}'
 
 # Display an image
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "image", "title": "Photo", "content": "https://example.com/image.jpg"}'
+  -d '{"type": "image", "workspaceId": "{{WORKSPACE_ID}}", "title": "Photo", "content": "https://example.com/image.jpg"}'
 
 # Clear the display
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "clear"}'
+  -d '{"type": "clear", "workspaceId": "{{WORKSPACE_ID}}"}'
 ```
 
 ## Display Constraints - IMPORTANT

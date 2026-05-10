@@ -318,7 +318,8 @@ app.post('/api/ai/connect', async (req, res) => {
       mode || 'chat', 
       onMessage,
       displayLines,
-      workspaceApiKey || undefined  // Pass workspace key or let it fall back to env
+      workspaceApiKey || undefined,  // Pass workspace key or let it fall back to env
+      deviceWorkspaceId  // Pass workspace ID for injection into kiosk prompts
     );
     
     // Notify the device that AI is connected
