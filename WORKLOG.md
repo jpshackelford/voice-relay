@@ -1048,31 +1048,57 @@ All three issues resolved with a single refactoring commit (`74adb47`):
 **PR Status:** Ready for review → Review feedback addressed → Ready for merge
 
 ---
-### 2026-05-10 08:04 UTC - Orchestrator
+### 2026-05-10 08:04 UTC - Merge Worker (`5143d33`)
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `5143d33` | merge | PR #110 - QR token refresh UI fix | **NEW** |
+✅ **Merged PR #110**
 
-🚀 **Spawned: Merge Worker**
 - PR: [#110 - fix: preserve device state during QR token refresh](https://github.com/jpshackelford/voice-relay/pull/110)
 - Issue: [#87 - QR code expiry shows full-screen QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
-- Conversation: [`5143d33`](https://app.all-hands.dev/conversations/5143d33e483c4ef9a1f66ede6f875698)
-- CI: ✅ All checks passed
-- Review: 3/3 threads resolved, bot says "Worth merging"
+- Merge Type: Squash merge
 
-**Previous Workers Completed:**
-- `75f2955` (implementation): ✅ Created PR #110
-- `b5306ea` (expansion): ✅ Expanded Issue #98
+**Pre-merge Verification:**
+- ✅ All CI checks pass (Build Client, Server Tests, E2E Tests, PR Lint, PR Review)
+- ✅ Review threads resolved - "Good taste" rating from second review
+- ✅ No database migrations (client-only change, safe for production)
 
-**Housekeeping:**
-- 📦 Archived 2 old entries to WORKLOG_ARCHIVE_2026-05-10.md
+**Root Cause:**
+When QR token refresh failed or during WebSocket reconnection, the devices array would temporarily become empty. This caused KioskMode to switch from mini QR (corner) to full-screen QR even though mobile devices were still connected.
+
+**Fix Applied:**
+1. **useQrToken.ts** - Retry logic with exponential backoff (max 3 retries, 30s cap), preserve last valid token during retry attempts
+2. **useWebSocket.ts** - Preserve device state across reconnections using ref (single source of truth)
+3. **KioskMode.tsx** - Simplified to consume device state without preservation logic
+
+**Review Evolution:**
+- First review: rated "Acceptable" - noted dual-layer state preservation complexity
+- Refactored to make useWebSocket the single source of truth
+- Second review: rated "Good taste" - confirmed complexity eliminated
+
+**Testing:**
+- 7 new tests (3 for retry logic, 4 for device preservation)
+- All 578 tests pass (159 client + 419 server)
+
+**Commit Summary:**
+```
+fix(client): preserve device state during QR token refresh
+
+Prevents kiosk mode from switching to full-screen QR when the corner
+QR expires. Root cause was that device array would temporarily empty
+during WebSocket reconnection, triggering wrong UI state.
+
+Fixes #87
+PR: #110
+```
+
+**Impact:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- No breaking changes, no migrations, low risk
+- Corner QR now refreshes in place during token expiry
 
 **Current State:**
-- [PR #110](https://github.com/jpshackelford/voice-relay/pull/110): CI green, ready for merge → being merged
+- No open PRs
 - Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), #98 (unprioritized), #103 (unprioritized)
 - No issues need expansion 🎉
-- PR slot: Occupied (merge worker)
+- PR slot: Available
 - Expansion slot: Available
 
