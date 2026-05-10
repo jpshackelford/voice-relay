@@ -849,3 +849,41 @@ When a device is removed:
 - No issues need expansion 🎉
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 14:44 UTC - Implementation Worker (`ec5332f`)
+
+✅ **Created PR #116 for Issue #91**
+
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91) (priority:low)
+- PR: [#116 - fix(client): add missing CSS styles for mobile mode input layout](https://github.com/jpshackelford/voice-relay/pull/116)
+- Status: **Ready for review** ✅
+
+**Root Cause:**
+The `MobileMode.tsx` component referenced CSS classes that were never defined in `App.css`:
+- `.mobile-mode`
+- `.mobile-participants`
+- `.mobile-messages`
+- `.mobile-input-area`
+- `.mobile-input-row`
+
+Without these CSS definitions, the flexbox layout doesn't apply, causing elements to stack vertically using default block behavior instead of displaying in a horizontal input row.
+
+**Fix Applied:**
+Added 82 lines of CSS following established patterns from `.kiosk-input-row` and `.chat-input-row`:
+- `.mobile-mode`: Full viewport flex container with `100dvh` for Safari
+- `.mobile-participants`: Horizontal flex row for participant count badges
+- `.mobile-messages`: Scrollable messages with `-webkit-overflow-scrolling: touch`
+- `.mobile-input-area`: Bottom input section with `env(safe-area-inset-bottom)` for iPhone notch
+- `.mobile-input-row`: Horizontal flex row (`display: flex; gap: 0.5rem; align-items: center`)
+- Input spans available width via `flex: 1; min-width: 0`
+- Scoped button sizes for touch-friendly tap targets (40-44px)
+
+**Acceptance Criteria Met:**
+- ✅ Action buttons (AI toggle, microphone, auto-submit) in horizontal row
+- ✅ Text input spans most of the width with `flex: 1`
+- ✅ Send button inline with input (right side)
+- ✅ `env(safe-area-inset-bottom)` for iPhone notch/home indicator
+- ✅ Build succeeds, all 174 client tests pass
+
+**CI Status:** ✅ All checks pass (Build Client, Server Tests, E2E Tests, PR Lint)
