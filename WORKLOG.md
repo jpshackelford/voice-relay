@@ -762,3 +762,38 @@ Fixes #91
 - No issues need expansion 🎉
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 16:18 UTC - Implementation Worker (`357c8a8`)
+
+✅ **PR CREATED: #117**
+
+- PR: [#117 - feat: archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/pull/117) → **READY FOR REVIEW**
+- Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+
+**Implementation Summary:**
+- Added `renameSession` and `archiveSession` methods to `useSessions` hook
+- Added `EditableSessionName` component for inline session renaming
+- Added `SessionKebabMenu` with ⋮ button and Rename/Archive options
+- Added archive confirmation modal and toast notification
+- Session list now fetches `?status=active` to exclude archived sessions
+- Added 6 E2E tests for rename and archive flows
+
+**CI Status:**
+- Build Client: ✅ PASSED
+- Server Tests: ✅ PASSED
+- E2E Tests: ✅ PASSED
+- lint-pr-title: ✅ PASSED
+
+**Acceptance Criteria Met:**
+- ✅ Kebab menu with Archive option on each session row
+- ✅ Archived sessions hidden from default list
+- ✅ Session data preserved in database
+- ✅ Toast message confirms archive
+- ✅ Session name editable via inline edit
+- ✅ Pencil icon visible on hover
+- ✅ Edit mode: save on Enter/blur, cancel on Escape
+- ✅ Empty names revert to original
+
+**Follow-up Items:**
+- Session name display in SessionView.tsx header (noted as future enhancement in technical approach)
