@@ -756,3 +756,31 @@ Fixes #91
 - No issues need expansion 🎉
 - PR slot: Occupied (review worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 16:44 UTC - Review Worker (`74eebca`)
+
+✅ **PR FEEDBACK ADDRESSED: #117**
+
+- PR: [#117 - feat: archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/pull/117) → **READY FOR REVIEW**
+- Commit: `9e656c9`
+
+**Review Feedback Addressed (5/5 threads resolved):**
+
+1. **Dual state management** (Important) - Fixed by making `EditableSessionName` a controlled component with `isEditing`, `onEditStart`, and `onEditEnd` props. Parent manages single source of truth.
+
+2. **Memory leak with error timeout** (Important) - Fixed by using `useEffect` with cleanup function for the error timeout. Prevents state updates on unmounted components.
+
+3. **Redundant state management** (Important) - Same fix as #1 - component is now fully controlled by parent via props.
+
+4. **Document behavior change** (Suggestion) - Enhanced comment in `useSessions.ts` explaining the `?status=active` filter and how it can be extended for a future "view archived" feature.
+
+5. **Accessibility label** (Suggestion) - Added `aria-label="More options"` and `aria-expanded={isOpen}` to the kebab menu button for screen reader support.
+
+**CI Status:**
+- Build Client: ✅ PASSED
+- Server Tests: ✅ PASSED
+- E2E Tests: ✅ PASSED
+- lint-pr-title: ✅ PASSED
+
+**PR Status:** Ready for review ✅ (all review threads resolved)
