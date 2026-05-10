@@ -105,10 +105,15 @@ export function useAI({ deviceId, mode }: UseAIOptions) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to send message');
       }
+
+      // Clear any previous transient errors on success
+      if (error) {
+        setError(null);
+      }
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [deviceId, connected]);
+  }, [deviceId, connected, error]);
 
   const toggle = useCallback(async () => {
     console.log('[AI] toggle() called', { connected, connecting });
