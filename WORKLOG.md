@@ -505,3 +505,39 @@ Waiting for smoke test investigation to complete before spawning new implementat
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
 
+---
+### 2026-05-10 03:40 UTC - Expansion Worker (`b78ddf1`)
+
+✅ **Expanded Issue #89**
+
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89)
+- Type: Bug
+- Status: Ready for implementation
+- Conversation: [`b78ddf1`](https://app.all-hands.dev/conversations/b78ddf1ac5ea40dea0e3ea9eaf26a20d)
+
+**Root Cause Analysis:**
+
+Race condition involving 3 components:
+
+1. **Server-side async WebSocket**: `startSession()` in `server/src/openhands.ts` calls `connectWebSocket()` which creates the WebSocket **asynchronously** and returns immediately without waiting for `ws.on('open')`. The HTTP response goes to client before WebSocket is fully `OPEN`.
+
+2. **Client-side immediate forwarding**: In `KioskMode.tsx`, a `useEffect` on `ai.connected` immediately forwards existing utterances to the AI via `ai.sendMessage()` - often within milliseconds of the connect response.
+
+3. **Error never cleared on success**: `sendMessage()` in `useAI.ts` sets `setError()` on failure but **never clears it on success**. Any transient error persists forever.
+
+**The Race:**
+1. Client connects → Server creates session, starts WebSocket async, returns 200
+2. Client sets `ai.connected = true` → `useEffect` fires → calls `ai.sendMessage()`
+3. Server receives message POST → WebSocket still `CONNECTING` (not `OPEN`)
+4. Server throws `"WebSocket not connected"` → Client sets `ai.error`
+5. ~100ms later WebSocket connects, AI works perfectly
+6. Error persists forever (never cleared on subsequent successes)
+
+**Proposed Fix:**
+Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This is the simplest fix that makes errors self-healing.
+
+**Files to Modify:**
+- `client/src/hooks/useAI.ts` - `sendMessage()` function: add `setError(null)` on success
+
+**Complexity:** Low
+
