@@ -31,42 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-10 01:10 UTC - Expansion Worker (`988fb15`)
-
-✅ **Expanded Issue #84**
-
-- Issue: [#84 - feat: Display deployed commit hash in health endpoint and UI footer](https://github.com/jpshackelford/voice-relay/issues/84)
-- Type: Enhancement
-- Status: **Ready for implementation**
-- Approach: Generate `version.json` at deploy time, read in server, expose via `/health`, display in UI footer
-
-**Files affected:**
-- `.gitignore` - Add version.json
-- `.github/workflows/deploy.yml` - Generate version.json in deploy and rollback
-- `server/src/index.ts` - Read version.json, update /health endpoint
-- `client/src/pages/WorkspaceHome.tsx` - Add version footer
-- `client/src/App.css` - Footer styling
-
-**Complexity:** Low
-
----
-### 2026-05-10 01:15 UTC - Review Worker (PR #83)
-
-✅ **Addressed Review Feedback**
-
-- PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
-- Review Thread: Code duplication in drawer-opening logic
-
-**Changes Made:**
-- Moved `ensureDrawerOpen()` helper from inner `Kiosk AI Features` scope to outer `AI Assistant Integration` scope
-- Updated `AI Unavailable Scenarios` test to use the shared helper instead of duplicated code
-- Net result: -4 lines (removed duplicate logic, added 1 helper call)
-
-**CI Status:** ✅ All checks passed (Build, Server Tests, E2E Tests, PR Lint)
-
-**PR Status:** Ready for review → Review feedback addressed → Ready for merge
-
----
 ### 2026-05-10 01:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -1082,3 +1046,33 @@ All three issues resolved with a single refactoring commit (`74adb47`):
 **CI Status:** ✅ All checks passed (Build, Server Tests, E2E Tests, PR Lint)
 
 **PR Status:** Ready for review → Review feedback addressed → Ready for merge
+
+---
+### 2026-05-10 08:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5143d33` | merge | PR #110 - QR token refresh UI fix | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#110 - fix: preserve device state during QR token refresh](https://github.com/jpshackelford/voice-relay/pull/110)
+- Issue: [#87 - QR code expiry shows full-screen QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
+- Conversation: [`5143d33`](https://app.all-hands.dev/conversations/5143d33e483c4ef9a1f66ede6f875698)
+- CI: ✅ All checks passed
+- Review: 3/3 threads resolved, bot says "Worth merging"
+
+**Previous Workers Completed:**
+- `75f2955` (implementation): ✅ Created PR #110
+- `b5306ea` (expansion): ✅ Expanded Issue #98
+
+**Housekeeping:**
+- 📦 Archived 2 old entries to WORKLOG_ARCHIVE_2026-05-10.md
+
+**Current State:**
+- [PR #110](https://github.com/jpshackelford/voice-relay/pull/110): CI green, ready for merge → being merged
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), #98 (unprioritized), #103 (unprioritized)
+- No issues need expansion 🎉
+- PR slot: Occupied (merge worker)
+- Expansion slot: Available
+
