@@ -567,3 +567,104 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 - `client/src/types.ts` - Client-side message type
 
 **Complexity:** Low - all repository methods already exist
+
+---
+### 2026-05-10 04:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d08e81f` | implementation | Issue #85 - Device name reset bug | **NEW** |
+| `707f972` | expansion | Issue #91 - Mobile view input layout | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker**
+   - Issue: [#85 - Device name resets to random name after visiting kiosk view](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`d08e81f`](https://app.all-hands.dev/conversations/d08e81f4bacd48a2a1e4f065b1e3c0f2)
+   - Root cause: `useDeviceRestoration` ignores validated device name from server
+
+2. **Expansion Worker**
+   - Issue: [#91 - Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91)
+   - Conversation: [`707f972`](https://app.all-hands.dev/conversations/707f972512ac4fd8a694fb260526be9f)
+
+**Priority Assessment (inline):**
+- Applied `priority:medium` to #87 (QR code expiry bug)
+- Applied `priority:low` to #89 (AI websocket error cosmetic bug)
+- Applied `priority:low` to #90 (device removal feature)
+
+**Previous Workers Completed:**
+- `a9753bf` (merge): Merged PR #108 ✓ (Issue #86 closed)
+- `cdd226f` (expansion): Expanded #90 ✓
+
+**Current State:**
+- No open PRs (implementation starting for #85)
+- Ready issues: #84 (low), #85 (medium - being implemented), #87 (medium), #89 (low), #90 (low)
+- Issues needing expansion: #91 (in progress), #93, #95, #98, #103
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 04:36 UTC - Expansion Worker (`707f972`)
+
+✅ **Expanded Issue #91**
+
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91)
+- Type: Bug
+- Status: Ready for implementation
+- Conversation: [`707f972`](https://app.all-hands.dev/conversations/707f972512ac4fd8a694fb260526be9f)
+
+**Root Cause Analysis:**
+
+The `MobileMode.tsx` component references 5 CSS classes that **do not exist** in `App.css`:
+
+| Class Name | Used in MobileMode.tsx | Defined in App.css |
+|------------|------------------------|---------------------|
+| `mobile-mode` | Line 189 | ❌ Missing |
+| `mobile-participants` | Line 204 | ❌ Missing |
+| `mobile-messages` | Line 230 | ❌ Missing |
+| `mobile-input-area` | Line 253 | ❌ Missing |
+| `mobile-input-row` | Line 259 | ❌ Missing |
+
+Without these CSS definitions, no flexbox layout is applied. Browser defaults cause elements to stack vertically instead of horizontally.
+
+**Proposed Fix:**
+Add the missing CSS classes to `App.css`, following the established patterns from `.kiosk-input-row` and `.chat-input-row`.
+
+**Files to Modify:**
+- `client/src/App.css` - Add ~80-100 lines of mobile-specific styles
+
+**Complexity:** Low
+
+---
+### 2026-05-10 04:39 UTC - Implementation Worker (Issue #85)
+
+🚀 **Created: PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - bug: Device name resets to random name after visiting kiosk view](https://github.com/jpshackelford/voice-relay/issues/85)
+
+**Root Cause:**
+The `useDeviceRestoration` hook was not syncing the server-authoritative device name to local storage after token validation. When navigating to kiosk view:
+1. Server has correct name from `PATCH /api/devices/:id`
+2. But localStorage/sessionStorage still had old name
+3. `getInitialDisplayName()` read stale name from storage
+
+**Fix Applied:**
+After successful `validateDeviceToken()`, the hook now:
+1. Updates React state (`displayName`) with server-authoritative name
+2. Updates `sessionStorage` with the correct name
+3. Updates `localStorage` via `storeDeviceToken()` with the correct name
+
+**Files Changed:**
+- `client/src/hooks/useDeviceRestoration.ts` - Sync name from server validation response
+- `client/src/hooks/useDeviceRestoration.test.ts` - Add 12 new tests including issue #85 reproduction scenario
+
+**Test Results:**
+- ✅ 145 client tests pass (12 new)
+- ✅ 419 server tests pass
+- ✅ TypeScript type check passes
+
+**CI Status:** ✅ All 4 checks passed (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
