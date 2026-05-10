@@ -674,3 +674,36 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 - Issues needing expansion: #91 (in progress), #93, #95, #98, #103
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 04:39 UTC - Implementation Worker (Issue #85)
+
+🚀 **Created: PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - bug: Device name resets to random name after visiting kiosk view](https://github.com/jpshackelford/voice-relay/issues/85)
+
+**Root Cause:**
+The `useDeviceRestoration` hook was not syncing the server-authoritative device name to local storage after token validation. When navigating to kiosk view:
+1. Server has correct name from `PATCH /api/devices/:id`
+2. But localStorage/sessionStorage still had old name
+3. `getInitialDisplayName()` read stale name from storage
+
+**Fix Applied:**
+After successful `validateDeviceToken()`, the hook now:
+1. Updates React state (`displayName`) with server-authoritative name
+2. Updates `sessionStorage` with the correct name
+3. Updates `localStorage` via `storeDeviceToken()` with the correct name
+
+**Files Changed:**
+- `client/src/hooks/useDeviceRestoration.ts` - Sync name from server validation response
+- `client/src/hooks/useDeviceRestoration.test.ts` - Add 12 new tests including issue #85 reproduction scenario
+
+**Test Results:**
+- ✅ 145 client tests pass (12 new)
+- ✅ 419 server tests pass
+- ✅ TypeScript type check passes
+
+**CI Status:** ✅ All 4 checks passed (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
