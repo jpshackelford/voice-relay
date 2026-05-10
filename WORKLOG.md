@@ -161,3 +161,20 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 
 **Complexity:** Low
 
+---
+### 2026-05-10 01:15 UTC - Review Worker (PR #83)
+
+✅ **Addressed Review Feedback**
+
+- PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
+- Review Thread: Code duplication in drawer-opening logic
+
+**Changes Made:**
+- Moved `ensureDrawerOpen()` helper from inner `Kiosk AI Features` scope to outer `AI Assistant Integration` scope
+- Updated `AI Unavailable Scenarios` test to use the shared helper instead of duplicated code
+- Net result: -4 lines (removed duplicate logic, added 1 helper call)
+
+**CI Status:** ✅ All checks passed (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review → Review feedback addressed → Ready for merge
+
