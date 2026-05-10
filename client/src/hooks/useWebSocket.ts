@@ -218,5 +218,5 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
-  return { connected, devices, currentSession, wasRemoved, workspaceWasDeleted, sendText, updateDevice, sendJoinResponse };
+  return { connected, devices, currentSession, wasRemoved, sendText, updateDevice, sendJoinResponse };
 }
