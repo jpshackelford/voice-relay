@@ -237,6 +237,25 @@ export class WorkspaceRepository {
     stmt.run(id);
   }
 
+  /**
+   * Delete a workspace and all its messages atomically in a transaction.
+   * This ensures either both operations succeed or neither does, preventing
+   * inconsistent state where messages are deleted but workspace remains.
+   * @returns Number of messages deleted
+   */
+  deleteWorkspaceWithMessages(id: string): number {
+    const deleteMessagesStmt = this.db.prepare('DELETE FROM messages WHERE workspace_id = ?');
+    const deleteWorkspaceStmt = this.db.prepare('DELETE FROM workspaces WHERE id = ?');
+
+    const transaction = this.db.transaction(() => {
+      const messagesResult = deleteMessagesStmt.run(id);
+      deleteWorkspaceStmt.run(id);
+      return messagesResult.changes;
+    });
+
+    return transaction();
+  }
+
   regenerateJoinCode(id: string): string {
     const newCode = generateJoinCode();
     const now = new Date().toISOString();

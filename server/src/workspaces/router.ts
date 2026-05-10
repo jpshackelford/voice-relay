@@ -210,29 +210,35 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      // Disconnect active WebSocket connections before deletion
-      if (onWorkspaceDeleted) {
-        onWorkspaceDeleted(workspace.id);
-      }
-
-      // Delete messages explicitly (no CASCADE on messages table)
-      const deletedMessages = workspaceRepository.deleteMessages(workspace.id);
-
-      // Delete workspace (CASCADE handles settings, members, devices, sessions)
-      workspaceRepository.delete(workspace.id);
-
-      // Log for audit purposes
-      console.log('[Audit] Workspace deleted:', {
+      // Log deletion initiation before any changes
+      console.log('[Audit] Workspace deletion initiated:', {
         workspaceId: workspace.id,
         workspaceName: workspace.name,
         ownerId: workspace.ownerId,
         deletedBy: req.user!.id,
+      });
+
+      // Delete messages and workspace atomically in a transaction
+      const deletedMessages = workspaceRepository.deleteWorkspaceWithMessages(workspace.id);
+
+      // Disconnect active WebSocket connections AFTER successful DB transaction
+      // This ensures we only disconnect devices if the workspace was actually deleted
+      if (onWorkspaceDeleted) {
+        onWorkspaceDeleted(workspace.id);
+      }
+
+      // Log deletion completion
+      console.log('[Audit] Workspace deletion completed:', {
+        workspaceId: workspace.id,
         deletedMessages,
       });
 
       res.status(204).send();
     } catch (err) {
-      console.error('[Workspaces] Delete error:', err);
+      console.error('[Audit] Workspace deletion failed:', {
+        workspaceId: req.params.id,
+        error: err,
+      });
       res.status(500).json({ error: 'Failed to delete workspace' });
     }
   });
