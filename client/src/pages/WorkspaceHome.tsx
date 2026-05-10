@@ -131,7 +131,10 @@ export function WorkspaceHome() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
   const [apiKeyMessage, setApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
+
+  // Version info from health endpoint
+  const [version, setVersion] = useState<string | null>(null);
+
   // Workspace settings hook
   const { 
     settings, 
@@ -157,6 +160,14 @@ export function WorkspaceHome() {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showWorkspaceDropdown]);
+
+  // Fetch version info from health endpoint
+  useEffect(() => {
+    fetch('/health')
+      .then(res => res.json())
+      .then(data => setVersion(data.version || null))
+      .catch(() => setVersion(null));
+  }, []);
 
   // Find current workspace from list
   useEffect(() => {
@@ -499,6 +510,11 @@ export function WorkspaceHome() {
           </section>
         )}
       </main>
+      {version && (
+        <footer className="version-footer">
+          v. {version}
+        </footer>
+      )}
     </div>
   );
 }

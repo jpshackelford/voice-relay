@@ -47,6 +47,8 @@ jobs:
                 echo "=== Deploying latest code ==="
                 git fetch origin
                 git reset --hard origin/main
+                # Generate version.json (gitignored, not committed)
+                echo "{\"commit\": \"$(git rev-parse --short HEAD)\", \"deployedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > version.json
                 npm ci
                 npm run build
                 sudo systemctl restart voice-relay
@@ -312,6 +314,8 @@ jobs:
             echo "=== Rolling back to ${{ steps.find-good.outputs.commit }} ==="
             git fetch origin
             git checkout ${{ steps.find-good.outputs.commit }}
+            # Generate version.json for rollback commit
+            echo "{\"commit\": \"$(git rev-parse --short HEAD)\", \"deployedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > version.json
             npm ci
             npm run build
             sudo systemctl restart voice-relay

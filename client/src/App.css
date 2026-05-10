@@ -3290,3 +3290,14 @@ header {
   background: #dc2626;
   transform: scale(1.1);
 }
+
+/* Version footer */
+.version-footer {
+  position: fixed;
+  bottom: 8px;
+  right: 12px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #888);
+  opacity: 0.6;
+  pointer-events: none;
+}

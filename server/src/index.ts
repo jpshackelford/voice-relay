@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
+import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
@@ -42,6 +43,10 @@ function getNetworkAddresses(): string[] {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Version info loaded at startup from version.json (generated during deployment)
+const versionInfo = loadVersionInfo();
+console.log(`[Server] Version: ${versionInfo.commit}`);
 
 const app = express();
 const server = createServer(app);
@@ -190,7 +195,12 @@ app.use(express.static(clientDist));
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', devices: registry.getAllDevices().length });
+  res.json({
+    status: 'ok',
+    devices: registry.getAllDevices().length,
+    version: versionInfo.commit,
+    deployedAt: versionInfo.deployedAt,
+  });
 });
 
 // Server info endpoint (for QR code generation)
