@@ -310,3 +310,31 @@ if (validatedDevice.name) {
 - `server/src/index.ts` - Pass workspaceId to `startSession()`
 
 **Complexity:** Low
+
+---
+### 2026-05-10 02:32 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b8e572b` | investigation | Issue #88 - Smoke test failure | running |
+
+⏳ **Waiting** - Investigation worker active
+
+**Housekeeping:**
+- ✅ Closed #107 as duplicate of #88 (same smoke test failure, same rollback target)
+
+**Current State:**
+- No open PRs
+- Ready issues: #84, #85, #86
+- Issues needing expansion: #87, #89, #90, #91, #93, #95, #98, #103
+- Investigation in progress: #88 (smoke test failure being analyzed by `b8e572b`)
+
+**Decision:**
+Waiting for smoke test investigation to complete before spawning new implementation work. Deployments are failing, so any new PRs would also fail to deploy until the root cause is resolved.
+
+**Slots:**
+- Expansion slot: Occupied (investigation worker for #88)
+- PR slot: Available (but blocked by deployment failures)
+
+---
