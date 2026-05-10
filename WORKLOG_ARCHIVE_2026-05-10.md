@@ -668,3 +668,71 @@ After successful `validateDeviceToken()`, the hook now:
 **CI Status:** ✅ All 4 checks passed (Build, Server Tests, E2E Tests, PR Lint)
 
 **PR Status:** Ready for review
+
+---
+### 2026-05-10 05:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `25b77bb` | review | PR #109 - Device name persistence fix | **NEW** |
+| `9a33871` | expansion | Issue #93 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`25b77bb`](https://app.all-hands.dev/conversations/25b77bb54855497b8fc92bf070b4553c)
+   - Review feedback: 1 unresolved thread about defensive check
+
+2. **Expansion Worker**
+   - Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+   - Conversation: [`9a33871`](https://app.all-hands.dev/conversations/9a33871e94454940894acda05dbc0332)
+
+**Priority Assessed:**
+- Applied `priority:low` to #91 (Mobile view layout bug - CSS additions only)
+
+**Previous Workers Completed:**
+- `d08e81f` (implementation): Created PR #109 ✓
+- `707f972` (expansion): Expanded #91 ✓
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oR green ready 💬1` → review feedback being addressed
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low)
+- Issues needing expansion: #93 (in progress), #95, #98, #103
+- PR slot: Occupied (review worker)
+- Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 05:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a4ecf9b` | review | PR #109 - Device name persistence fix | **NEW** |
+| `d69eedc` | expansion | Issue #93 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`a4ecf9b`](https://app.all-hands.dev/conversations/a4ecf9b00e4d4bb8bded3e0db7c8efd9)
+   - Review feedback: 1 unresolved thread about defensive check (from `github-actions` bot)
+
+2. **Expansion Worker**
+   - Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+   - Conversation: [`d69eedc`](https://app.all-hands.dev/conversations/d69eedc7d698491493da25ca2944c60e)
+   - Type: Enhancement feature
+
+**Previous Workers (finished with incomplete tasks):**
+- `25b77bb` (review): PR #109 thread still unresolved
+- `9a33871` (expansion): Issue #93 still needs `ready` label
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oR green ready 💬1` → review feedback being addressed
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low)
+- Issues needing expansion: #93 (now being expanded), #95, #98, #103
+- PR slot: Occupied (review worker)
+- Expansion slot: Occupied (expansion worker)
