@@ -807,3 +807,37 @@ After successful `validateDeviceToken()`, the hook now:
 - Issues needing expansion: #93 (now being expanded), #95, #98, #103
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 06:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `140e5cb` | review | PR #109 - Device name persistence fix | **NEW** |
+| `e8f5c2b` | expansion | Issue #93 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`140e5cb`](https://app.all-hands.dev/conversations/140e5cb)
+   - Review feedback: 1 unresolved thread about defensive check for `validatedDevice.name`
+
+2. **Expansion Worker**
+   - Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+   - Conversation: [`e8f5c2b`](https://app.all-hands.dev/conversations/e8f5c2b)
+   - Type: Enhancement feature
+
+**Previous Workers (finished without completing tasks):**
+- `a4ecf9b` (review): PR #109 thread still unresolved
+- `d69eedc` (expansion): Issue #93 still missing `ready` label
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oR green ready 💬1` → review feedback being addressed
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low)
+- Issues needing expansion: #93 (in progress), #95, #98, #103
+- PR slot: Occupied (review worker)
+- Expansion slot: Occupied (expansion worker)
+
