@@ -24,7 +24,6 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
   const [wasRemoved, setWasRemoved] = useState(false);
-  const [workspaceWasDeleted, setWorkspaceWasDeleted] = useState(false);
   const registeredRef = useRef(false);
   const currentModeRef = useRef(mode);
   const onTextMessageRef = useRef(onTextMessage);
@@ -146,8 +145,6 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             console.log('[WS] Workspace was deleted:', message.reason);
             // Clear stored token since it's now invalid
             clearDeviceToken();
-            // Update state to indicate workspace was deleted
-            setWorkspaceWasDeleted(true);
             setConnected(false);
             // Clear devices since workspace no longer exists
             setDevices([]);
