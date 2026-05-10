@@ -31,64 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-10 10:03 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `1a8a178` | implementation | Issue #98 - AI mobile display API | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions in system prompt](https://github.com/jpshackelford/voice-relay/issues/98) (priority:medium)
-- Conversation: [`1a8a178`](https://app.all-hands.dev/conversations/1a8a178a0f674a65950fc6ca4bc5938f)
-
-**Current State:**
-- No open PRs ✅
-- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), **#98 (medium)** ← implementing
-- No issues need expansion 🎉
-- PR slot: Occupied (implementation worker)
-- Expansion slot: Available (nothing to expand)
-
----
-### 2026-05-10 10:10 UTC - Implementation Worker (`1a8a178`)
-
-✅ **Created: PR #112**
-
-- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112)
-- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions in system prompt](https://github.com/jpshackelford/voice-relay/issues/98)
-- Conversation: [`1a8a178`](https://app.all-hands.dev/conversations/1a8a178a0f674a65950fc6ca4bc5938f)
-
-**Root Cause:**
-- Mode-based prompt selection in `server/src/openhands.ts` loaded different prompts for kiosk vs. chat modes
-- Chat mode → `chat-system.md` (no display API instructions)
-- Kiosk mode → `kiosk-system.md` (has display API instructions)
-- Mobile devices connecting to AI in chat mode had no knowledge of the display API
-
-**Fix Applied:**
-1. Created unified `server/prompts/system-prompt.md` combining both prompts
-2. Simplified `loadPrompt()` call to always use `system-prompt` for all device modes
-3. All AI sessions now receive display API instructions regardless of device type
-4. `displayApiSecret` is now injected for all sessions (not just kiosk mode)
-5. Deleted obsolete `kiosk-system.md` and `chat-system.md`
-
-**Testing:**
-- ✅ Updated 16 tests for unified prompt behavior
-- ✅ All 441 server tests pass
-- ✅ 95% code coverage
-- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
-
-**Acceptance Criteria Met:**
-- [x] Single system prompt file used for all device modes
-- [x] Display API instructions included in all sessions
-- [x] `loadPrompt()` simplified to always load the unified prompt
-- [x] Mode-based conditional logic removed from prompt selection
-- [x] Tests updated for new prompt behavior
-- [x] Both `displayLines` and `workspaceId` injected for all sessions
-
-**PR Status:** Ready for review ✅
-
----
 ### 2026-05-10 10:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -814,3 +756,33 @@ Fixes #91
 - Expansion slot: Available (nothing to expand)
 
 ---
+### 2026-05-10 17:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8ddb37d` | review | PR #117 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#117 - feat: archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/pull/117)
+- Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+- Review Status: `oRCFR` (2 unresolved review threads)
+- Conversation: [`8ddb37d`](https://app.all-hands.dev/conversations/8ddb37d7ee534e79b57c17edec496737)
+
+**Unresolved Threads (2):**
+1. Stale state - `name` state in `EditableSessionName` needs to sync when `session` prop changes
+2. Memory leak - `setTimeout` for `archiveToast` in `WorkspaceHome` needs cleanup `useEffect`
+
+**Previous Worker Completed:**
+- `f4b0656` (review): Finished ✓
+
+**Housekeeping:**
+- 📦 Archived 2 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md (worklog was 816 lines)
+
+**Current State:**
+- PR #117 open with 2 unresolved review threads (addressing feedback)
+- Ready issues: #93 (PR in review), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (review worker)
+- Expansion slot: Available (nothing to expand)
