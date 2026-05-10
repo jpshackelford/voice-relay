@@ -43,6 +43,19 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync name state when device prop changes
+  useEffect(() => {
+    setName(device.name);
+  }, [device.name]);
+
+  // Clear error after 3 seconds to prevent memory leak if component unmounts
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const handleSave = async () => {
     if (name.trim() === device.name || !name.trim()) {
       setIsEditing(false);
@@ -60,8 +73,7 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
       console.error('Failed to rename device:', err);
       setName(device.name);
       setError('Failed to rename device');
-      // Clear error after 3 seconds
-      setTimeout(() => setError(null), 3000);
+      // Error will be cleared by useEffect when error changes
     } finally {
       setSaving(false);
     }
@@ -118,6 +130,11 @@ function EditableSessionName({ session, onRename, isEditing = false, onEditStart
   const [error, setError] = useState<string | null>(null);
 
   const displayName = session.name || `Session ${session.id.slice(0, 8)}`;
+
+  // Sync name state when session prop changes
+  useEffect(() => {
+    setName(session.name || '');
+  }, [session.name]);
 
   // Clear error after 3 seconds to prevent memory leak if component unmounts
   useEffect(() => {
@@ -333,6 +350,37 @@ export function WorkspaceHome() {
       .catch(() => setVersion(null));
   }, []);
 
+  // Clear archive toast after 3 seconds (with cleanup to prevent memory leak)
+  useEffect(() => {
+    if (archiveToast) {
+      const timer = setTimeout(() => setArchiveToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [archiveToast]);
+
+  // Clear remove device message after 3 seconds (with cleanup to prevent memory leak)
+  useEffect(() => {
+    if (removeDeviceMessage?.type === 'success') {
+      const timer = setTimeout(() => setRemoveDeviceMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [removeDeviceMessage]);
+
+  // Clear invite link copy states (with cleanup to prevent memory leak)
+  useEffect(() => {
+    if (inviteLinkCopied) {
+      const timer = setTimeout(() => setInviteLinkCopied(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [inviteLinkCopied]);
+
+  useEffect(() => {
+    if (inviteLinkError) {
+      const timer = setTimeout(() => setInviteLinkError(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [inviteLinkError]);
+
   // Find current workspace from list
   useEffect(() => {
     if (workspaces.length > 0 && workspaceId) {
@@ -403,8 +451,7 @@ export function WorkspaceHome() {
       await removeDevice(deviceToRemove.id);
       setDeviceToRemove(null);
       setRemoveDeviceMessage({ type: 'success', text: `Device "${deviceName}" removed successfully` });
-      // Clear success message after 3 seconds
-      setTimeout(() => setRemoveDeviceMessage(null), 3000);
+      // Message will be cleared by useEffect when removeDeviceMessage changes
     } catch (err) {
       setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
     } finally {
@@ -431,12 +478,11 @@ export function WorkspaceHome() {
       await archiveSession(sessionToArchive.id);
       setSessionToArchive(null);
       setArchiveToast(`Session "${sessionName}" archived`);
-      // Clear toast after 3 seconds
-      setTimeout(() => setArchiveToast(null), 3000);
+      // Toast will be cleared by useEffect when archiveToast changes
     } catch (err) {
       console.error('Failed to archive session:', err);
       setArchiveToast(`Failed to archive: ${(err as Error).message}`);
-      setTimeout(() => setArchiveToast(null), 3000);
+      // Toast will be cleared by useEffect when archiveToast changes
     } finally {
       setArchivingSession(false);
     }
@@ -506,12 +552,12 @@ export function WorkspaceHome() {
       await navigator.clipboard.writeText(inviteLink);
       setInviteLinkError(false);
       setInviteLinkCopied(true);
-      setTimeout(() => setInviteLinkCopied(false), 2000);
+      // Will be cleared by useEffect when inviteLinkCopied changes
     } catch (err) {
       console.error('Failed to copy invite link:', err);
       setInviteLinkCopied(false);
       setInviteLinkError(true);
-      setTimeout(() => setInviteLinkError(false), 3000);
+      // Will be cleared by useEffect when inviteLinkError changes
     }
   };
 
