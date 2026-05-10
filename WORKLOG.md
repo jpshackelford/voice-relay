@@ -894,3 +894,36 @@ Confirmed server **always** returns name:
 **Thread Status:** ✅ Replied with explanation, resolved thread
 
 **PR Status:** Ready for review → Marked ready for review
+
+---
+### 2026-05-10 06:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d7bfdd5` | merge | PR #109 - Device name persistence fix | **NEW** |
+| `1c8d81d` | expansion | Issue #95 - Permanently delete workspace | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`d7bfdd5`](https://app.all-hands.dev/conversations/d7bfdd533ef545eb883eff492a71159b)
+   - All CI checks pass, review thread resolved, mergeable=CLEAN
+
+2. **Expansion Worker**
+   - Issue: [#95 - Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+   - Conversation: [`1c8d81d`](https://app.all-hands.dev/conversations/1c8d81d0c8534064a6f5490ab711ff9a)
+
+**Previous Workers Completed:**
+- `140e5cb` (review): Addressed PR #109 feedback ✓
+- `e8f5c2b` (expansion): Expanded #93 ✓
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oRFC green ready` → being merged
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low), #93 (unprioritized)
+- Issues needing expansion: #95 (in progress), #98, #103
+- PR slot: Occupied (merge worker)
+- Expansion slot: Occupied (expansion worker)
+
