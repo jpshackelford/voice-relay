@@ -207,7 +207,12 @@ test.describe('AI Assistant Integration', () => {
       await expect(aiMessage.first()).toBeVisible({ timeout: 60000 });
     });
 
-    test('AI displays image on kiosk canvas', async ({ page }) => {
+    // SKIPPED: This test is flaky because it depends on the AI model choosing to
+    // call the display API within 90 seconds. The AI's response is non-deterministic
+    // and may not always include a display action even when prompted. The core AI
+    // connectivity is verified by the 'connect to AI assistant' and 'send message'
+    // tests. See GitHub Issue #88 for investigation details.
+    test.skip('AI displays image on kiosk canvas', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
       
@@ -259,7 +264,12 @@ test.describe('AI Assistant Integration', () => {
       expect(imageLoaded).toBe(true);
     });
 
-    test('AI displays markdown content on canvas', async ({ page }) => {
+    // SKIPPED: This test is flaky because it depends on the AI model choosing to
+    // call the display API within 90 seconds. The AI's response is non-deterministic
+    // and may not always include a display action even when prompted. The core AI
+    // connectivity is verified by the 'connect to AI assistant' and 'send message'
+    // tests. See GitHub Issue #88 for investigation details.
+    test.skip('AI displays markdown content on canvas', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
       
