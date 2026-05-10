@@ -866,3 +866,31 @@ After successful `validateDeviceToken()`, the hook now:
 **Complexity:** Medium
 
 **Labels added:** `ready`
+
+---
+### 2026-05-10 06:14 UTC - Review Worker (PR #109)
+
+✅ **Addressed Review Feedback - PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+- Review Thread: Defensive check for `validatedDevice.name`
+
+**Review Question:** "When would `validatedDevice.name` be falsy?"
+
+**Investigation:**
+Confirmed server **always** returns name:
+- Database schema: `name TEXT NOT NULL` (required)
+- TypeScript types: `PersistedDevice.name: string` (not optional)
+- API endpoint: `/api/devices/validate` returns `device.name` from validated device row
+
+**Action Taken:**
+- Removed unnecessary `if (validatedDevice.name)` defensive check
+- Added inline comment: "Server always returns name (required NOT NULL in DB, enforced by API types)"
+- Commit: `75c1e86` - fix(client): remove unnecessary defensive check for device name
+
+**CI Status:** ✅ All 4 checks passed
+
+**Thread Status:** ✅ Replied with explanation, resolved thread
+
+**PR Status:** Ready for review → Marked ready for review
