@@ -438,3 +438,37 @@ Waiting for smoke test investigation to complete before spawning new implementat
 **PR Status:** Ready for review
 
 ---
+### 2026-05-10 03:35 UTC - Expansion Worker (`acafe10`)
+
+✅ **Expanded Issue #87**
+
+- Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR instead of refreshing corner QR](https://github.com/jpshackelford/voice-relay/issues/87)
+- Type: Bug
+- Status: Ready for implementation
+- Conversation: [`acafe10`](https://app.all-hands.dev/conversations/acafe1011a3d42c0b5bfa98494cfde93)
+
+**Root Cause Analysis:**
+- The kiosk display switches between mini QR (corner) and full-screen QR based on `mobileDevices.length > 0`
+- `devices` array comes from `useWebSocket` hook which depends on `workspaceId` and `sessionId` props
+- When QR token refresh triggers auth state changes, workspace/session could become `undefined` momentarily
+- This causes `useWebSocket` to reconnect, resetting `devices` to `[]`
+- Empty devices array causes UI to switch to full-screen QR mode
+
+**Additional Issue Found:**
+- In `useQrToken.ts`, when token refresh fails, no retry is scheduled
+- Token stays null permanently until component remounts
+
+**Proposed Fix (3 parts):**
+1. **Primary:** Preserve `devices` state in `useWebSocket` during reconnection
+2. **Secondary:** Add retry logic to `useQrToken` for failed refreshes
+3. **Tertiary:** Stabilize `workspaceId`/`sessionId` refs in `SessionView.tsx`
+
+**Files to Modify:**
+- `client/src/hooks/useWebSocket.ts`
+- `client/src/hooks/useQrToken.ts`
+- `client/src/pages/SessionView.tsx`
+- `client/src/components/KioskMode.tsx` (optional)
+
+**Complexity:** Medium
+
+---
