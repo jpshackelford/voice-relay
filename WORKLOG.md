@@ -1031,3 +1031,31 @@ updated from the server's validate response, ensuring all storage layers
 - PR slot: Occupied (implementation worker - Issue #87)
 - Expansion slot: Occupied (expansion worker - Issue #98)
 
+---
+### 2026-05-10 07:10 UTC - Expansion Worker (`b5306ea`)
+
+✅ **Expanded Issue #98**
+
+- Issue: [#98 - AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98)
+- Type: Bug
+- Status: **Ready for implementation** ✅
+
+**Root Cause:**
+- System uses separate prompts for kiosk (`kiosk-system.md`) vs chat (`chat-system.md`) modes
+- `chat-system.md` lacks display API documentation
+- Prompt selection in `server/src/openhands.ts` lines 360-364 chooses based on mode
+
+**Proposed Fix:**
+Create unified `system-prompt.md` combining both prompts, remove mode-based selection logic
+
+**Files to modify:**
+- `server/prompts/system-prompt.md` - **CREATE** unified prompt
+- `server/prompts/kiosk-system.md` - **DELETE**
+- `server/prompts/chat-system.md` - **DELETE**
+- `server/src/openhands.ts` - Simplify to always load `system-prompt`
+- `server/src/openhands.test.ts` - Update tests
+
+**Complexity:** Low
+
+**Labels added:** `ready`
+
