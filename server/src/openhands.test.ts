@@ -43,71 +43,71 @@ describe('loadPrompt', () => {
     });
   });
 
-  describe('workspaceId injection', () => {
-    test('replaces {{WORKSPACE_ID}} placeholder when workspaceId provided', () => {
-      const testWorkspaceId = 'ws_test_12345_abcde';
-      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
+  describe('sessionId injection', () => {
+    test('replaces {{SESSION_ID}} placeholder when sessionId provided', () => {
+      const testSessionId = 'session_test_12345_abcde';
+      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
       
-      // Should contain the actual workspace ID, not the placeholder
-      expect(prompt).toContain(`"workspaceId": "${testWorkspaceId}"`);
-      expect(prompt).not.toContain('{{WORKSPACE_ID}}');
+      // Should contain the actual session ID, not the placeholder
+      expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
+      expect(prompt).not.toContain('{{SESSION_ID}}');
       
       // Verify it appears in all curl examples
-      const workspaceIdMatches = prompt.match(new RegExp(testWorkspaceId, 'g'));
-      expect(workspaceIdMatches).toBeTruthy();
+      const sessionIdMatches = prompt.match(new RegExp(testSessionId, 'g'));
+      expect(sessionIdMatches).toBeTruthy();
       // Should appear 3 times (markdown, image, clear commands)
-      expect(workspaceIdMatches!.length).toBe(3);
+      expect(sessionIdMatches!.length).toBe(3);
     });
 
-    test('keeps {{WORKSPACE_ID}} placeholder when workspaceId not provided', () => {
+    test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {
       const prompt = loadPrompt('kiosk-system');
-      expect(prompt).toContain('{{WORKSPACE_ID}}');
+      expect(prompt).toContain('{{SESSION_ID}}');
     });
 
-    test('combines displayLines and workspaceId injection', () => {
-      const testWorkspaceId = 'ws_combined_test';
+    test('combines displayLines and sessionId injection', () => {
+      const testSessionId = 'session_combined_test';
       const displayLines = 20;
-      const prompt = loadPrompt('kiosk-system', displayLines, testWorkspaceId);
+      const prompt = loadPrompt('kiosk-system', displayLines, undefined, testSessionId);
       
       // Both should be injected
-      expect(prompt).toContain(`"workspaceId": "${testWorkspaceId}"`);
+      expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
       expect(prompt).toContain('Maximum 20 lines of body text');
-      expect(prompt).not.toContain('{{WORKSPACE_ID}}');
+      expect(prompt).not.toContain('{{SESSION_ID}}');
     });
 
-    test('handles special characters in workspaceId', () => {
-      const testWorkspaceId = 'ws-special_chars.123';
-      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
-      expect(prompt).toContain(`"workspaceId": "${testWorkspaceId}"`);
+    test('handles special characters in sessionId', () => {
+      const testSessionId = 'session-special_chars.123';
+      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
+      expect(prompt).toContain(`"sessionId": "${testSessionId}"`);
     });
 
-    test('escapes JSON-breaking characters in workspaceId', () => {
+    test('escapes JSON-breaking characters in sessionId', () => {
       // Test that quotes are properly escaped to prevent broken JSON
-      const testWorkspaceId = 'ws"test';
-      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
+      const testSessionId = 'session"test';
+      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
 
       // Should contain escaped version in JSON context
-      expect(prompt).toContain('"workspaceId": "ws\\"test"');
-      expect(prompt).not.toContain('{{WORKSPACE_ID}}');
+      expect(prompt).toContain('"sessionId": "session\\"test"');
+      expect(prompt).not.toContain('{{SESSION_ID}}');
 
       // Verify the escaped JSON is valid by extracting and parsing
-      const jsonMatch = prompt.match(/"workspaceId":\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+      const jsonMatch = prompt.match(/"sessionId":\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
       expect(jsonMatch).toBeTruthy();
     });
 
-    test('escapes backslashes in workspaceId', () => {
+    test('escapes backslashes in sessionId', () => {
       // Test that backslashes are properly escaped
-      const testWorkspaceId = 'ws\\test';
-      const prompt = loadPrompt('kiosk-system', undefined, testWorkspaceId);
+      const testSessionId = 'session\\test';
+      const prompt = loadPrompt('kiosk-system', undefined, undefined, testSessionId);
 
       // Should contain escaped backslash
-      expect(prompt).toContain('"workspaceId": "ws\\\\test"');
+      expect(prompt).toContain('"sessionId": "session\\\\test"');
     });
 
-    test('handles empty string workspaceId (no replacement)', () => {
+    test('handles empty string sessionId (no replacement)', () => {
       // Empty string is falsy, so no replacement should occur
-      const prompt = loadPrompt('kiosk-system', undefined, '');
-      expect(prompt).toContain('{{WORKSPACE_ID}}');
+      const prompt = loadPrompt('kiosk-system', undefined, undefined, '');
+      expect(prompt).toContain('{{SESSION_ID}}');
     });
   });
 });

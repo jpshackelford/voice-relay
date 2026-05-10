@@ -30,6 +30,8 @@ interface InitialMessage {
 interface StartConversationRequest {
   initial_message: InitialMessage;
   title?: string;
+  /** Environment variable secrets to inject into the conversation sandbox */
+  secrets?: Record<string, string>;
 }
 
 interface StartTaskResponse {
@@ -116,8 +118,15 @@ export class OpenHandsClient {
 
   /**
    * Start a new OpenHands conversation
+   * @param initialMessage - The initial message to send to the AI
+   * @param title - Optional title for the conversation
+   * @param secrets - Optional map of environment variable secrets to inject
    */
-  async startConversation(initialMessage: string, title?: string): Promise<StartTaskResponse> {
+  async startConversation(
+    initialMessage: string,
+    title?: string,
+    secrets?: Record<string, string>
+  ): Promise<StartTaskResponse> {
     const payload: StartConversationRequest = {
       initial_message: {
         role: 'user',
@@ -127,6 +136,9 @@ export class OpenHandsClient {
     };
     if (title) {
       payload.title = title;
+    }
+    if (secrets && Object.keys(secrets).length > 0) {
+      payload.secrets = secrets;
     }
 
     return this.request<StartTaskResponse>('POST', '/app-conversations', payload, 120000);
@@ -224,8 +236,14 @@ export class OpenHandsClient {
  * @param promptName - Name of the prompt file (without .md extension)
  * @param displayLines - Optional number of display lines to inject into the prompt
  * @param workspaceId - Optional workspace ID to inject into the prompt for display API calls
+ * @param sessionId - Optional session ID to inject into the prompt for display API calls
  */
-export function loadPrompt(promptName: string, displayLines?: number, workspaceId?: string): string {
+export function loadPrompt(
+  promptName: string,
+  displayLines?: number,
+  workspaceId?: string,
+  sessionId?: string
+): string {
   const promptsDir = path.join(__dirname, '..', 'prompts');
   const promptPath = path.join(promptsDir, `${promptName}.md`);
   
@@ -253,6 +271,12 @@ export function loadPrompt(promptName: string, displayLines?: number, workspaceI
   if (workspaceId) {
     const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     prompt = prompt.replace(/{{WORKSPACE_ID}}/g, escapedId);
+  }
+
+  // Replace session ID placeholder if provided
+  if (sessionId) {
+    const escapedId = sessionId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    prompt = prompt.replace(/{{SESSION_ID}}/g, escapedId);
   }
   
   return prompt;
@@ -442,6 +466,8 @@ export class AISessionManager {
    * @param displayLines - Optional max display lines for kiosk (from device screen size)
    * @param apiKey - Optional workspace-specific API key (falls back to env var)
    * @param workspaceId - Optional workspace ID to inject into kiosk prompts for display API calls
+   * @param sessionId - Optional session ID for display API calls
+   * @param displayApiSecret - Optional display API secret for authenticating display API calls
    */
   async startSession(
     deviceId: string,
@@ -449,7 +475,9 @@ export class AISessionManager {
     onMessage: (message: string) => void,
     displayLines?: number,
     apiKey?: string,
-    workspaceId?: string
+    workspaceId?: string,
+    sessionId?: string,
+    displayApiSecret?: string
   ): Promise<AISession> {
     // Create a client with the provided API key or use the default
     const client = apiKey ? new OpenHandsClient(apiKey) : this.client;
@@ -457,26 +485,34 @@ export class AISessionManager {
       throw new Error('OpenHands API not configured');
     }
 
-    console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}${workspaceId ? ` (workspace: ${workspaceId})` : ''}`);
+    console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}${workspaceId ? ` (workspace: ${workspaceId})` : ''}${sessionId ? ` (session: ${sessionId})` : ''}`);
 
     // End existing session if any
     if (this.sessions.has(deviceId)) {
       await this.endSession(deviceId);
     }
 
-    // Load appropriate system prompt with display line info and workspace ID
+    // Load appropriate system prompt with display line info, workspace ID, and session ID
     const systemPrompt = loadPrompt(
       mode === 'kiosk' ? 'kiosk-system' : 'chat-system',
       mode === 'kiosk' ? displayLines : undefined,
-      mode === 'kiosk' ? workspaceId : undefined
+      mode === 'kiosk' ? workspaceId : undefined,
+      mode === 'kiosk' ? sessionId : undefined
     );
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
+
+    // Build secrets map for OpenHands
+    const secrets: Record<string, string> = {};
+    if (mode === 'kiosk' && displayApiSecret) {
+      secrets['DISPLAY_API_SECRET'] = displayApiSecret;
+    }
 
     // Start conversation
     console.log(`[AI] Creating OpenHands conversation...`);
     const startResponse = await client.startConversation(
       systemPrompt,
-      `Voice Relay ${mode} session`
+      `Voice Relay ${mode} session`,
+      Object.keys(secrets).length > 0 ? secrets : undefined
     );
     console.log(`[AI] Conversation started, task id: ${startResponse.id}`);
 

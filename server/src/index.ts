@@ -13,6 +13,7 @@ import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decr
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
+import { authenticateDisplayRequest } from './display-api/index.js';
 import type { 
   ClientMessage, 
   RegisteredMessage, 
@@ -218,31 +219,37 @@ app.get('/api/server-info', (req, res) => {
 // Display API for AI agents to send content to kiosk displays
 app.use(express.json());
 
-app.post('/api/display', (req, res) => {
-  const { type, content, title, workspaceId } = req.body as DisplayRequest;
-  
+app.post('/api/display', async (req, res) => {
+  const { type, content, title, sessionId } = req.body as DisplayRequest;
+
+  // Validate display type
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
     return;
   }
-  
+
   if (type !== 'clear' && !content) {
     res.status(400).json({ error: 'Content required for markdown and image types.' });
     return;
   }
 
-  if (!workspaceId) {
-    res.status(400).json({ error: 'workspaceId is required.' });
+  // Authenticate the request
+  const authResult = await authenticateDisplayRequest(
+    req.headers.authorization,
+    sessionId,
+    sessionRepository
+  );
+
+  if (!authResult.authenticated) {
+    res.status(authResult.statusCode).json({ error: authResult.error });
     return;
   }
 
-  // NOTE: Workspace validation deferred to Phase 4 with user authentication
-  // See: https://github.com/jpshackelford/voice-relay/issues/6
-  
+  // Broadcast to kiosks
   const displayContent: DisplayContent = { type, content, title };
-  registry.broadcastToKiosks(displayContent, workspaceId);
-  
-  const kioskCount = registry.getKioskDevices(workspaceId).length;
+  registry.broadcastToKiosks(displayContent, authResult.workspaceId);
+
+  const kioskCount = registry.getKioskDevices(authResult.workspaceId).length;
   res.json({ success: true, kioskCount });
 });
 
@@ -293,12 +300,26 @@ app.post('/api/ai/connect', async (req, res) => {
       return;
     }
 
+    // Create or get session with display API secret for kiosk mode
+    let vrSessionId: string | undefined;
+    let displayApiSecret: string | undefined;
+
+    if (mode === 'kiosk' && sessionRepository) {
+      // Create a new session with display API secret
+      const { session: vrSession, displayApiSecret: secret } = 
+        sessionRepository.createWithDisplaySecret({ workspaceId: deviceWorkspaceId });
+      vrSessionId = vrSession.id;
+      displayApiSecret = secret;
+      console.log(`[AI] Created session ${vrSessionId} with display API secret`);
+    }
+
     // Callback to send AI responses as chat messages
     const onMessage = (text: string) => {
       const aiMessage: RelayedTextMessage = {
         type: 'text',
         utteranceId: `ai-${Date.now()}`,
         workspaceId: deviceWorkspaceId,
+        sessionId: vrSessionId,
         senderId: 'openhands-ai',
         senderName: '✨ AI',
         text,
@@ -313,25 +334,28 @@ app.post('/api/ai/connect', async (req, res) => {
     // Get the minimum display lines across kiosk devices in the workspace
     const displayLines = registry.getMinKioskDisplayLines(deviceWorkspaceId);
     
-    const session = await aiSessionManager.startSession(
+    const aiSession = await aiSessionManager.startSession(
       deviceId, 
       mode || 'chat', 
       onMessage,
       displayLines,
       workspaceApiKey || undefined,  // Pass workspace key or let it fall back to env
-      deviceWorkspaceId  // Pass workspace ID for injection into kiosk prompts
+      deviceWorkspaceId,  // Pass workspace ID for injection into kiosk prompts
+      vrSessionId,  // Pass session ID for display API calls
+      displayApiSecret  // Pass display API secret for authentication
     );
     
     // Notify the device that AI is connected
     registry.sendToDevice(deviceId, {
       type: 'ai-status',
       connected: true,
-      conversationId: session.conversationId,
+      conversationId: aiSession.conversationId,
     });
     
     res.json({ 
       success: true, 
-      conversationId: session.conversationId,
+      conversationId: aiSession.conversationId,
+      sessionId: vrSessionId,
       displayLines,
       message: 'AI connected'
     });

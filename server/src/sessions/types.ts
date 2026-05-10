@@ -30,6 +30,12 @@ export interface Session {
   startedAt: string;
   endedAt: string | null;
   metadata: SessionMetadata | null;
+  /** Encrypted display API secret (base64) */
+  displayApiSecretEncrypted: string | null;
+  /** IV for display API secret encryption (base64) */
+  displayApiSecretIv: string | null;
+  /** Auth tag for display API secret encryption (base64) */
+  displayApiSecretTag: string | null;
 }
 
 /**

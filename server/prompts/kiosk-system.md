@@ -13,24 +13,29 @@ You are an AI assistant connected to a voice relay system with a kiosk display. 
 
 ## Display API
 
-To display content on the kiosk, make HTTP POST requests to the voice relay server:
+To display content on the kiosk, make HTTP POST requests to the voice relay server. **Authentication is required** using the `DISPLAY_API_SECRET` environment variable:
 
 ```bash
 # Display markdown
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "markdown", "workspaceId": "{{WORKSPACE_ID}}", "title": "Title", "content": "# Header\n\nContent here..."}'
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -d '{"type": "markdown", "sessionId": "{{SESSION_ID}}", "title": "Title", "content": "# Header\n\nContent here..."}'
 
 # Display an image
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "image", "workspaceId": "{{WORKSPACE_ID}}", "title": "Photo", "content": "https://example.com/image.jpg"}'
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -d '{"type": "image", "sessionId": "{{SESSION_ID}}", "title": "Photo", "content": "https://example.com/image.jpg"}'
 
 # Clear the display
 curl -X POST https://vr.chorecraft.net/api/display \
   -H "Content-Type: application/json" \
-  -d '{"type": "clear", "workspaceId": "{{WORKSPACE_ID}}"}'
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -d '{"type": "clear", "sessionId": "{{SESSION_ID}}"}'
 ```
+
+**Important**: Always include the `Authorization: Bearer $DISPLAY_API_SECRET` header. The `$DISPLAY_API_SECRET` environment variable is automatically available in your sandbox.
 
 ## Display Constraints - IMPORTANT
 

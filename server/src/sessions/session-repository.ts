@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import type Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import type {
@@ -9,6 +10,10 @@ import type {
   SessionMetadata,
   SessionSummary,
 } from './types.js';
+import { encryptApiKey, decryptApiKey, type EncryptedKey } from '../workspaces/encryption.js';
+
+/** Length of display API secret in bytes (256 bits) */
+const DISPLAY_API_SECRET_LENGTH = 32;
 
 interface SessionRow {
   id: string;
@@ -18,6 +23,9 @@ interface SessionRow {
   started_at: string;
   ended_at: string | null;
   metadata: string | null;
+  display_api_secret_encrypted: string | null;
+  display_api_secret_iv: string | null;
+  display_api_secret_tag: string | null;
 }
 
 interface SessionDeviceRow {
@@ -35,6 +43,9 @@ function rowToSession(row: SessionRow): Session {
     startedAt: row.started_at,
     endedAt: row.ended_at,
     metadata: row.metadata ? JSON.parse(row.metadata) : null,
+    displayApiSecretEncrypted: row.display_api_secret_encrypted,
+    displayApiSecretIv: row.display_api_secret_iv,
+    displayApiSecretTag: row.display_api_secret_tag,
   };
 }
 
@@ -55,7 +66,8 @@ export class SessionRepository {
 
   findById(id: string): Session | null {
     const stmt = this.db.prepare<[string], SessionRow>(`
-      SELECT id, workspace_id, name, status, started_at, ended_at, metadata
+      SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
       FROM sessions WHERE id = ?
     `);
     const row = stmt.get(id);
@@ -65,7 +77,8 @@ export class SessionRepository {
   findByWorkspace(workspaceId: string, status?: SessionStatus): Session[] {
     if (status) {
       const stmt = this.db.prepare<[string, string], SessionRow>(`
-        SELECT id, workspace_id, name, status, started_at, ended_at, metadata
+        SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+               display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
         FROM sessions WHERE workspace_id = ? AND status = ?
         ORDER BY started_at DESC
       `);
@@ -73,7 +86,8 @@ export class SessionRepository {
     }
 
     const stmt = this.db.prepare<[string], SessionRow>(`
-      SELECT id, workspace_id, name, status, started_at, ended_at, metadata
+      SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
       FROM sessions WHERE workspace_id = ?
       ORDER BY started_at DESC
     `);
@@ -154,6 +168,101 @@ export class SessionRepository {
       throw new Error('Session not found after creation');
     }
     return session;
+  }
+
+  /**
+   * Create a session with a display API secret for authenticating display API calls.
+   * @returns Object containing the session and the plaintext secret (to pass to OpenHands)
+   */
+  createWithDisplaySecret(input: SessionCreateInput): { session: Session; displayApiSecret: string } {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const name = input.name || `Session ${now.split('T')[0]}`;
+
+    // Generate cryptographically secure random secret
+    const secretBytes = crypto.randomBytes(DISPLAY_API_SECRET_LENGTH);
+    const displayApiSecret = secretBytes.toString('base64url');
+
+    // Encrypt the secret for storage
+    const encrypted = encryptApiKey(displayApiSecret);
+
+    const stmt = this.db.prepare(`
+      INSERT INTO sessions (
+        id, workspace_id, name, status, started_at,
+        display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+      )
+      VALUES (?, ?, ?, 'active', ?, ?, ?, ?)
+    `);
+    stmt.run(
+      id,
+      input.workspaceId,
+      name,
+      now,
+      encrypted.encrypted,
+      encrypted.iv,
+      encrypted.tag
+    );
+
+    const session = this.findById(id);
+    if (!session) {
+      throw new Error('Session not found after creation');
+    }
+
+    return { session, displayApiSecret };
+  }
+
+  /**
+   * Get the decrypted display API secret for a session.
+   * @returns The plaintext secret, or null if not set
+   */
+  getDisplaySecret(sessionId: string): string | null {
+    const session = this.findById(sessionId);
+    if (!session) return null;
+
+    if (!session.displayApiSecretEncrypted || 
+        !session.displayApiSecretIv || 
+        !session.displayApiSecretTag) {
+      return null;
+    }
+
+    try {
+      return decryptApiKey({
+        encrypted: session.displayApiSecretEncrypted,
+        iv: session.displayApiSecretIv,
+        tag: session.displayApiSecretTag,
+      });
+    } catch (err) {
+      console.error('[Session] Failed to decrypt display API secret:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Update an existing session to add a display API secret.
+   * Used for migrating existing sessions that don't have a secret.
+   * @returns The plaintext secret, or null if session not found
+   */
+  setDisplaySecret(sessionId: string): string | null {
+    const session = this.findById(sessionId);
+    if (!session) return null;
+
+    // Generate cryptographically secure random secret
+    const secretBytes = crypto.randomBytes(DISPLAY_API_SECRET_LENGTH);
+    const displayApiSecret = secretBytes.toString('base64url');
+
+    // Encrypt the secret for storage
+    const encrypted = encryptApiKey(displayApiSecret);
+
+    const stmt = this.db.prepare(`
+      UPDATE sessions
+      SET display_api_secret_encrypted = ?,
+          display_api_secret_iv = ?,
+          display_api_secret_tag = ?
+      WHERE id = ?
+    `);
+    stmt.run(encrypted.encrypted, encrypted.iv, encrypted.tag, sessionId);
+
+    return displayApiSecret;
   }
 
   update(id: string, input: SessionUpdateInput): Session | null {
@@ -254,7 +363,8 @@ export class SessionRepository {
    */
   getDeviceSession(deviceId: string): Session | null {
     const stmt = this.db.prepare<[string], SessionRow>(`
-      SELECT s.id, s.workspace_id, s.name, s.status, s.started_at, s.ended_at, s.metadata
+      SELECT s.id, s.workspace_id, s.name, s.status, s.started_at, s.ended_at, s.metadata,
+             s.display_api_secret_encrypted, s.display_api_secret_iv, s.display_api_secret_tag
       FROM sessions s
       JOIN session_devices sd ON s.id = sd.session_id
       WHERE sd.device_id = ? AND s.status = 'active'

@@ -1,9 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { SessionRepository } from './session-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
+import { migration as displayApiSecretsMigration } from '../storage/migrations/010_display_api_secrets.js';
+
+// Mock encryption functions to avoid needing ENCRYPTION_SECRET env var
+vi.mock('../workspaces/encryption.js', () => ({
+  encryptApiKey: vi.fn((secret: string) => ({
+    encrypted: Buffer.from(secret).toString('base64'),
+    iv: 'test-iv',
+    tag: 'test-tag',
+  })),
+  decryptApiKey: vi.fn((encrypted: { encrypted: string }) => {
+    return Buffer.from(encrypted.encrypted, 'base64').toString('utf-8');
+  }),
+}));
 
 describe('SessionRepository', () => {
   let db: Database.Database;
@@ -40,6 +53,9 @@ describe('SessionRepository', () => {
         started_at TEXT NOT NULL DEFAULT (datetime('now')),
         ended_at TEXT,
         metadata TEXT,
+        display_api_secret_encrypted TEXT,
+        display_api_secret_iv TEXT,
+        display_api_secret_tag TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
       
@@ -394,6 +410,104 @@ describe('SessionRepository', () => {
       repo.delete(session.id);
       
       expect(repo.findById(session.id)).toBeNull();
+    });
+  });
+
+  describe('display API secrets', () => {
+    describe('createWithDisplaySecret', () => {
+      it('creates a session with encrypted display API secret', () => {
+        const { session, displayApiSecret } = repo.createWithDisplaySecret({ 
+          workspaceId: testWorkspaceId 
+        });
+
+        expect(session.id).toBeDefined();
+        expect(session.workspaceId).toBe(testWorkspaceId);
+        expect(session.status).toBe('active');
+        
+        // Secret should be returned
+        expect(displayApiSecret).toBeDefined();
+        expect(displayApiSecret.length).toBeGreaterThan(0);
+        
+        // Encrypted fields should be stored
+        expect(session.displayApiSecretEncrypted).toBeDefined();
+        expect(session.displayApiSecretIv).toBeDefined();
+        expect(session.displayApiSecretTag).toBeDefined();
+      });
+
+      it('creates unique secrets for each session', () => {
+        const { displayApiSecret: secret1 } = repo.createWithDisplaySecret({ 
+          workspaceId: testWorkspaceId 
+        });
+        const { displayApiSecret: secret2 } = repo.createWithDisplaySecret({ 
+          workspaceId: testWorkspaceId 
+        });
+
+        expect(secret1).not.toBe(secret2);
+      });
+    });
+
+    describe('getDisplaySecret', () => {
+      it('returns the decrypted display API secret', () => {
+        const { session, displayApiSecret } = repo.createWithDisplaySecret({ 
+          workspaceId: testWorkspaceId 
+        });
+
+        const retrieved = repo.getDisplaySecret(session.id);
+        expect(retrieved).toBe(displayApiSecret);
+      });
+
+      it('returns null for non-existent session', () => {
+        const secret = repo.getDisplaySecret('non-existent-id');
+        expect(secret).toBeNull();
+      });
+
+      it('returns null for session without display secret', () => {
+        const session = repo.create({ workspaceId: testWorkspaceId });
+        const secret = repo.getDisplaySecret(session.id);
+        expect(secret).toBeNull();
+      });
+    });
+
+    describe('setDisplaySecret', () => {
+      it('adds a display API secret to an existing session', () => {
+        // Create session without secret
+        const session = repo.create({ workspaceId: testWorkspaceId });
+        expect(repo.getDisplaySecret(session.id)).toBeNull();
+
+        // Set secret
+        const secret = repo.setDisplaySecret(session.id);
+        expect(secret).toBeDefined();
+        expect(secret!.length).toBeGreaterThan(0);
+
+        // Verify it can be retrieved
+        const retrieved = repo.getDisplaySecret(session.id);
+        expect(retrieved).toBe(secret);
+      });
+
+      it('returns null for non-existent session', () => {
+        const secret = repo.setDisplaySecret('non-existent-id');
+        expect(secret).toBeNull();
+      });
+
+      it('generates unique secrets on each call', () => {
+        const session = repo.create({ workspaceId: testWorkspaceId });
+        
+        const secret1 = repo.setDisplaySecret(session.id);
+        const secret2 = repo.setDisplaySecret(session.id);
+        
+        // Each call should generate a new secret
+        expect(secret1).not.toBe(secret2);
+      });
+    });
+
+    describe('regular create does not include display secret', () => {
+      it('session created with create() has no display secret', () => {
+        const session = repo.create({ workspaceId: testWorkspaceId });
+
+        expect(session.displayApiSecretEncrypted).toBeNull();
+        expect(session.displayApiSecretIv).toBeNull();
+        expect(session.displayApiSecretTag).toBeNull();
+      });
     });
   });
 });
