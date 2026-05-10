@@ -603,3 +603,38 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 - Issues needing expansion: #90 (in progress), #91, #93, #95, #98, #103
 - PR slot: Occupied (merge worker)
 - Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 04:10 UTC - Expansion Worker (`cdd226f`)
+
+✅ **Expanded Issue #90**
+
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
+- Type: Enhancement
+- Status: Ready for implementation
+- Conversation: [`cdd226f`](https://app.all-hands.dev/conversations/cdd226f579ee4fa2916c5bb95f139456)
+
+**Problem:** No way to remove devices from a workspace once they join. Workspace owners cannot revoke access to lost, unauthorized, or stale devices.
+
+**Solution:** Add `DELETE /api/workspaces/:workspaceId/devices/:deviceId` endpoint and UI button with confirmation dialog. When removed:
+1. Device deleted from workspace device list
+2. Device removed from all active sessions
+3. WebSocket connection terminated with `device-removed` message
+4. Device token invalidated (implicitly via deletion)
+
+**Technical Approach:**
+- Leverage existing `DeviceRepository.delete()` and `SessionRepository.removeDeviceFromAll()`
+- Add `onDeviceRemoved` callback to workspace router for WebSocket coordination
+- Add `removeDevice()` function to `useDevices.ts` hook
+- Handle `device-removed` message in `useWebSocket.ts` for graceful client disconnect
+
+**Files Affected:**
+- `server/src/types.ts` - Add `DeviceRemovedMessage` type
+- `server/src/workspaces/router.ts` - Add DELETE endpoint
+- `server/src/index.ts` - Wire up `onDeviceRemoved` callback
+- `client/src/hooks/useDevices.ts` - Add `removeDevice` function
+- `client/src/hooks/useWebSocket.ts` - Handle `device-removed` message
+- `client/src/pages/Workspace.tsx` or component - Add remove button + confirmation dialog
+- `client/src/types.ts` - Client-side message type
+
+**Complexity:** Low - all repository methods already exist
