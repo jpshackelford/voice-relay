@@ -107,22 +107,32 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
 interface EditableSessionNameProps {
   session: SessionSummary;
   onRename: (id: string, name: string) => Promise<void>;
+  isEditing?: boolean;
+  onEditStart?: () => void;
+  onEditEnd?: () => void;
 }
 
-function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
-  const [isEditing, setIsEditing] = useState(false);
+function EditableSessionName({ session, onRename, isEditing = false, onEditStart, onEditEnd }: EditableSessionNameProps) {
   const [name, setName] = useState(session.name || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const displayName = session.name || `Session ${session.id.slice(0, 8)}`;
 
+  // Clear error after 3 seconds to prevent memory leak if component unmounts
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const handleSave = async () => {
     const trimmedName = name.trim();
     
     // Empty name reverts to original (no error)
     if (!trimmedName) {
-      setIsEditing(false);
+      onEditEnd?.();
       setName(session.name || '');
       setError(null);
       return;
@@ -130,7 +140,7 @@ function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
     
     // No change, just close
     if (trimmedName === session.name) {
-      setIsEditing(false);
+      onEditEnd?.();
       return;
     }
     
@@ -138,12 +148,11 @@ function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
     setError(null);
     try {
       await onRename(session.id, trimmedName);
-      setIsEditing(false);
+      onEditEnd?.();
     } catch (err) {
       console.error('Failed to rename session:', err);
       setName(session.name || '');
       setError('Failed to rename');
-      setTimeout(() => setError(null), 3000);
     } finally {
       setSaving(false);
     }
@@ -153,7 +162,7 @@ function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
     if (e.key === 'Enter') {
       handleSave();
     } else if (e.key === 'Escape') {
-      setIsEditing(false);
+      onEditEnd?.();
       setName(session.name || '');
       setError(null);
     }
@@ -179,9 +188,9 @@ function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
   }
 
   return (
-    <span className="session-name-text" onClick={() => setIsEditing(true)}>
+    <span className="session-name-text" onClick={() => onEditStart?.()}>
       {displayName}
-      <button className="rename-btn" title="Rename session">✏️</button>
+      <button className="rename-btn" title="Rename session" onClick={(e) => { e.stopPropagation(); onEditStart?.(); }}>✏️</button>
       {error && <span className="rename-error">{error}</span>}
     </span>
   );
@@ -215,6 +224,8 @@ function SessionKebabMenu({ onArchive, onRenameClick }: SessionKebabMenuProps) {
         className="session-kebab-btn"
         onClick={() => setIsOpen(!isOpen)}
         title="More options"
+        aria-label="More options"
+        aria-expanded={isOpen}
       >
         ⋮
       </button>
@@ -669,20 +680,13 @@ export function WorkspaceHome() {
               sessions.map(session => (
                 <div key={session.id} className={`session-row ${session.status}`}>
                   <div className="session-info">
-                    {editingSessionId === session.id ? (
-                      <EditableSessionName 
-                        session={session} 
-                        onRename={async (id, name) => {
-                          await renameSession(id, name);
-                          setEditingSessionId(null);
-                        }} 
-                      />
-                    ) : (
-                      <span className="session-name-text" onClick={() => setEditingSessionId(session.id)}>
-                        {session.name || `Session ${session.id.slice(0, 8)}`}
-                        <button className="rename-btn" title="Rename session">✏️</button>
-                      </span>
-                    )}
+                    <EditableSessionName 
+                      session={session} 
+                      onRename={renameSession}
+                      isEditing={editingSessionId === session.id}
+                      onEditStart={() => setEditingSessionId(session.id)}
+                      onEditEnd={() => setEditingSessionId(null)}
+                    />
                     <span className="session-meta">
                       Created {formatTime(session.startedAt)}
                     </span>

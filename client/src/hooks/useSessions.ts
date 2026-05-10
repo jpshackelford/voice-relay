@@ -38,7 +38,9 @@ export function useSessions(workspaceId: string | undefined): UseSessionsReturn 
     setError(null);
 
     try {
-      // Fetch only active sessions by default (excludes archived)
+      // Fetch only active sessions by default (excludes archived).
+      // This can be extended with a status parameter if we need to fetch archived sessions
+      // in the future (e.g., for a "view archived" feature).
       const res = await fetch(`/api/workspaces/${workspaceId}/sessions?status=active`, {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
