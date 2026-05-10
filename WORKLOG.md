@@ -927,3 +927,38 @@ Confirmed server **always** returns name:
 - PR slot: Occupied (merge worker)
 - Expansion slot: Occupied (expansion worker)
 
+---
+### 2026-05-10 06:37 UTC - Merge Worker (PR #109)
+
+✅ **Merged PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+- Merge Type: Squash merge
+
+**Pre-merge Verification:**
+- ✅ All CI checks pass (Server Tests, Build Client, E2E Tests, PR Lint, PR Review)
+- ✅ Review thread resolved (removed unnecessary defensive check per reviewer feedback)
+- ✅ No database migrations (client-only change, safe for production)
+- ✅ `mergeable: CLEAN`
+
+**Actions:**
+1. Updated PR description with final state and review history
+2. Squash-merged with conventional commit message
+3. Issue #85 auto-closed via `Fixes #85` in commit message
+
+**Commit Summary:**
+```
+fix(client): device name persists correctly across kiosk navigation
+
+Sync device name from server-authoritative source on token validation.
+When navigating between workspace and kiosk views, the display name is now
+updated from the server's validate response, ensuring all storage layers
+(React state, sessionStorage, localStorage) stay in sync with the database.
+```
+
+**Impact:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- No breaking changes, no migrations, low risk
+- Device names now persist correctly across all views
+
