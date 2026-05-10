@@ -13,6 +13,7 @@ import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decr
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
+import { authenticateDisplayRequest } from './display-api/index.js';
 import type { 
   ClientMessage, 
   RegisteredMessage, 
@@ -219,93 +220,37 @@ app.get('/api/server-info', (req, res) => {
 app.use(express.json());
 
 app.post('/api/display', async (req, res) => {
-  const { type, content, title, sessionId, workspaceId } = req.body as DisplayRequest;
-  
+  const { type, content, title, sessionId } = req.body as DisplayRequest;
+
+  // Validate display type
   if (!type || !['markdown', 'image', 'clear'].includes(type)) {
     res.status(400).json({ error: 'Invalid display type. Must be markdown, image, or clear.' });
     return;
   }
-  
+
   if (type !== 'clear' && !content) {
     res.status(400).json({ error: 'Content required for markdown and image types.' });
     return;
   }
 
-  // Require sessionId (preferred) or workspaceId (deprecated)
-  if (!sessionId && !workspaceId) {
-    res.status(400).json({ error: 'sessionId is required.' });
+  // Authenticate the request
+  const authResult = await authenticateDisplayRequest(
+    req.headers.authorization,
+    sessionId,
+    sessionRepository
+  );
+
+  if (!authResult.authenticated) {
+    res.status(authResult.statusCode).json({ error: authResult.error });
     return;
   }
 
-  // Authentication: validate Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authorization header required. Format: Bearer <secret>' });
-    return;
-  }
+  // Broadcast to kiosks
+  const displayContent: DisplayContent = { type, content, title };
+  registry.broadcastToKiosks(displayContent, authResult.workspaceId);
 
-  const providedSecret = authHeader.slice(7); // Remove 'Bearer ' prefix
-
-  // If sessionId is provided, validate the secret against the session
-  if (sessionId) {
-    if (!sessionRepository) {
-      res.status(500).json({ error: 'Session repository not available' });
-      return;
-    }
-
-    const session = sessionRepository.findById(sessionId);
-    if (!session) {
-      res.status(401).json({ error: 'Invalid session' });
-      return;
-    }
-
-    // Get the stored secret and compare using timing-safe comparison
-    const storedSecret = sessionRepository.getDisplaySecret(sessionId);
-    if (!storedSecret) {
-      res.status(401).json({ error: 'Session has no display API secret' });
-      return;
-    }
-
-    // Timing-safe comparison to prevent timing attacks
-    const providedBuffer = Buffer.from(providedSecret);
-    const storedBuffer = Buffer.from(storedSecret);
-    
-    // Ensure buffers are same length before comparison to avoid timing leaks
-    if (providedBuffer.length !== storedBuffer.length) {
-      res.status(401).json({ error: 'Invalid secret' });
-      return;
-    }
-
-    const { timingSafeEqual } = await import('crypto');
-    if (!timingSafeEqual(providedBuffer, storedBuffer)) {
-      res.status(401).json({ error: 'Invalid secret' });
-      return;
-    }
-
-    // Broadcast to kiosks using the session's workspace
-    const displayContent: DisplayContent = { type, content, title };
-    registry.broadcastToKiosks(displayContent, session.workspaceId);
-    
-    const kioskCount = registry.getKioskDevices(session.workspaceId).length;
-    res.json({ success: true, kioskCount });
-  } else {
-    // Deprecated: workspaceId-based access (no secret validation)
-    // This path exists for backward compatibility but logs a deprecation warning
-    console.warn('[Display API] DEPRECATED: Using workspaceId instead of sessionId. This will be removed in a future version.');
-    
-    // For now, we still require auth but cannot validate it without a session
-    // We accept any non-empty secret for backward compatibility but log the issue
-    if (!providedSecret) {
-      res.status(401).json({ error: 'Invalid secret' });
-      return;
-    }
-
-    const displayContent: DisplayContent = { type, content, title };
-    registry.broadcastToKiosks(displayContent, workspaceId!);
-    
-    const kioskCount = registry.getKioskDevices(workspaceId!).length;
-    res.json({ success: true, kioskCount, deprecated: 'workspaceId is deprecated. Use sessionId instead.' });
-  }
+  const kioskCount = registry.getKioskDevices(authResult.workspaceId).length;
+  res.json({ success: true, kioskCount });
 });
 
 // AI conversation management endpoints
