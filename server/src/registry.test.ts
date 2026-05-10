@@ -513,4 +513,106 @@ describe('DeviceRegistry', () => {
       expect(emptySession).toHaveLength(0);
     });
   });
+
+  describe('disconnectWorkspaceDevices', () => {
+    it('should disconnect all devices in a workspace', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'kiosk');
+
+      const count = registry.disconnectWorkspaceDevices('workspace-1');
+
+      expect(count).toBe(2);
+      expect(ws1.send).toHaveBeenCalledWith(JSON.stringify({ type: 'workspace-deleted', reason: undefined }));
+      expect(ws1.close).toHaveBeenCalledWith(1000, 'Workspace deleted');
+      expect(ws2.send).toHaveBeenCalledWith(JSON.stringify({ type: 'workspace-deleted', reason: undefined }));
+      expect(ws2.close).toHaveBeenCalledWith(1000, 'Workspace deleted');
+      expect(registry.getDevice('device-1')).toBeUndefined();
+      expect(registry.getDevice('device-2')).toBeUndefined();
+    });
+
+    it('should include reason in the disconnect message', () => {
+      const ws = createMockWebSocket();
+      registry.register('device-1', 'workspace-1', ws, 'Device 1', 'mobile');
+
+      registry.disconnectWorkspaceDevices('workspace-1', 'Owner deleted the workspace');
+
+      expect(ws.send).toHaveBeenCalledWith(JSON.stringify({
+        type: 'workspace-deleted',
+        reason: 'Owner deleted the workspace',
+      }));
+    });
+
+    it('should handle devices with closed WebSockets', () => {
+      const wsOpen = createMockWebSocket(1); // OPEN
+      const wsClosed = createMockWebSocket(3); // CLOSED
+      
+      registry.register('device-1', 'workspace-1', wsOpen, 'Open Device', 'mobile');
+      registry.register('device-2', 'workspace-1', wsClosed, 'Closed Device', 'mobile');
+
+      const count = registry.disconnectWorkspaceDevices('workspace-1');
+
+      // Both devices should be removed from registry
+      expect(count).toBe(2);
+      expect(registry.getDevice('device-1')).toBeUndefined();
+      expect(registry.getDevice('device-2')).toBeUndefined();
+      
+      // Only the open socket should have received messages
+      expect(wsOpen.send).toHaveBeenCalled();
+      expect(wsOpen.close).toHaveBeenCalled();
+      expect(wsClosed.send).not.toHaveBeenCalled();
+      expect(wsClosed.close).not.toHaveBeenCalled();
+    });
+
+    it('should continue on per-device errors', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      // Make the first device's send throw
+      (ws1.send as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error('Network error');
+      });
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Broken Device', 'mobile');
+      registry.register('device-2', 'workspace-1', ws2, 'Good Device', 'mobile');
+
+      // Should not throw, and should still process the second device
+      const count = registry.disconnectWorkspaceDevices('workspace-1');
+
+      // Only the successful device is counted (error handling keeps broken device in registry)
+      expect(count).toBe(1);
+      expect(registry.getDevice('device-1')).toBeDefined(); // stays in registry on error
+      expect(registry.getDevice('device-2')).toBeUndefined();
+      
+      // Second device should have received the message
+      expect(ws2.send).toHaveBeenCalled();
+      expect(ws2.close).toHaveBeenCalled();
+    });
+
+    it('should return 0 for workspace with no devices', () => {
+      const count = registry.disconnectWorkspaceDevices('empty-workspace');
+      expect(count).toBe(0);
+    });
+
+    it('should not affect devices in other workspaces', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'WS1 Device', 'mobile');
+      registry.register('device-2', 'workspace-2', ws2, 'WS2 Device', 'mobile');
+
+      registry.disconnectWorkspaceDevices('workspace-1');
+
+      // workspace-1 device should be gone
+      expect(registry.getDevice('device-1')).toBeUndefined();
+      expect(ws1.close).toHaveBeenCalled();
+      
+      // workspace-2 device should still exist
+      expect(registry.getDevice('device-2')).toBeDefined();
+      expect(ws2.send).not.toHaveBeenCalled();
+      expect(ws2.close).not.toHaveBeenCalled();
+    });
+  });
 });
