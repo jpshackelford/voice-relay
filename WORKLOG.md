@@ -31,109 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-10 19:20 UTC - Review Worker
-
-✅ **Addressed Review Feedback - PR #118**
-
-- PR: [#118 - feat: add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/pull/118)
-- Issue: [#95 - Add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
-
-**Review Feedback (5 threads - all addressed):**
-
-| Thread | Priority | Issue | Resolution |
-|--------|----------|-------|------------|
-| 🟠 Atomic deletion | Important | Deletion not atomic - could leave inconsistent state | ✅ Wrapped in transaction via `deleteWorkspaceWithMessages()` |
-| 🟡 Audit logging | Suggestion | Audit happens after deletion | ✅ Added before/after logging |
-| 🟡 Unused return | Suggestion | `workspaceWasDeleted` returned but unused | ✅ Removed state variable entirely |
-| 🟠 Missing tests | Important | `disconnectWorkspaceDevices()` has no tests | ✅ Added 6 comprehensive test cases |
-| 🟡 Modal tests | Suggestion | `DeleteWorkspaceModal` has no tests | ✅ Added 11 test cases |
-
-**Commits (5 total addressing feedback):**
-- `f30243d` - feat: atomic workspace deletion with transaction and improved audit logging
-- `01126cb` - refactor: remove unused workspaceWasDeleted return value from useWebSocket
-- `bb0984a` - test: add comprehensive tests for disconnectWorkspaceDevices
-- `adc9943` - test: add tests for DeleteWorkspaceModal component
-- `9a73361` - fix: remove unused imports and state variables
-
-**Testing:**
-- ✅ All 480 server tests pass (including 6 new disconnectWorkspaceDevices tests)
-- ✅ All 185 client tests pass (including 11 new DeleteWorkspaceModal tests)
-- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
-
-**PR Status:** Ready for review ✅ (converted from draft → ready)
-
----
-
-### 2026-05-10 12:38 UTC - Review Worker (`7687506`)
-
-✅ **Addressed Review Feedback - PR #114**
-
-- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
-- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
-- Conversation: [`7687506`](https://app.all-hands.dev/conversations/7687506ad0b542b09b9e5a34e151645d)
-
-**Review Feedback (3 threads - all addressed):**
-
-| Thread | Issue | Resolution |
-|--------|-------|------------|
-| 🟠 Dependency array | Adding `error` to deps causes unnecessary re-renders | ✅ Removed `error` from `useCallback` dependency array |
-| 🟡 Conditional check | `if (error)` is unnecessary defensive programming | ✅ Changed to unconditional `setError(null)` |
-| 🟡 Test impl details | Test verifies conditional behavior rather than observable outcome | ✅ Removed the test entirely |
-
-**Changes Made:**
-- Simplified `sendMessage()` in `useAI.ts` by removing the `if (error)` check
-- React's state batching means `setError(null)` when error is already null won't trigger re-render
-- Removed `error` from useCallback dependencies to prevent function reference changes
-- Deleted implementation-detail test that would fail after simplification
-
-**Commit:** `e491c15` - refactor: simplify error clearing in sendMessage per review feedback
-
-**Testing:**
-- ✅ All 174 client tests pass (15 tests after removing 1 implementation-detail test)
-- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
-
-**PR Status:** Ready for review ✅ (converted from draft → ready)
-
-**Current State:**
-- [PR #114](https://github.com/jpshackelford/voice-relay/pull/114): `oR green ready` → all review feedback addressed
-- Ready issues: #89 (has PR), #90 (low), #91 (low), #93 (low), #95 (low)
-- PR slot: Occupied (awaiting merge)
-- Expansion slot: Available (nothing to expand)
-
----
-### 2026-05-10 13:00 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `e21c013` | merge | PR #114 - Clear AI error state on success | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
-- Linked Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89)
-- Conversation: [`e21c013`](https://app.all-hands.dev/conversations/e21c0130fcf84b00b0fc5f9e521df4c4)
-
-**Merge Criteria Met:**
-- ✅ CI green
-- ✅ All 3 review threads resolved
-- ✅ PR is mergeable
-
-**Housekeeping:**
-- 📦 Archived 4 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md
-
-**Previous Workers Completed:**
-- `7687506` (review): Addressed review feedback ✓
-- `cc3f13f` (implementation): Created PR #114 ✓
-
-**Current State:**
-- [PR #114](https://github.com/jpshackelford/voice-relay/pull/114): `oRFC green ready --` → merge worker spawned
-- Ready issues: #89 (has PR), #90 (low), #91 (low), #93 (low), #95 (low)
-- No issues need expansion 🎉
-- PR slot: Occupied (merge worker)
-- Expansion slot: Available (nothing to expand)
-
----
 ### 2026-05-10 13:05 UTC - Merge Worker (`e21c013`)
 
 ✅ **Merged PR #114**
@@ -764,6 +661,72 @@ Tests added:
 
 **Current State:**
 - PR #118 open with 5 unresolved review threads (addressing feedback)
+- Ready issues: #95 (PR in review)
+- No issues need expansion 🎉
+- PR slot: Occupied (review worker)
+- Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 19:20 UTC - Review Worker
+
+✅ **Addressed Review Feedback - PR #118**
+
+- PR: [#118 - feat: add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/pull/118)
+- Issue: [#95 - Add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+
+**Review Feedback (5 threads - all addressed):**
+
+| Thread | Priority | Issue | Resolution |
+|--------|----------|-------|------------|
+| 🟠 Atomic deletion | Important | Deletion not atomic - could leave inconsistent state | ✅ Wrapped in transaction via `deleteWorkspaceWithMessages()` |
+| 🟡 Audit logging | Suggestion | Audit happens after deletion | ✅ Added before/after logging |
+| 🟡 Unused return | Suggestion | `workspaceWasDeleted` returned but unused | ✅ Removed state variable entirely |
+| 🟠 Missing tests | Important | `disconnectWorkspaceDevices()` has no tests | ✅ Added 6 comprehensive test cases |
+| 🟡 Modal tests | Suggestion | `DeleteWorkspaceModal` has no tests | ✅ Added 11 test cases |
+
+**Commits (5 total addressing feedback):**
+- `f30243d` - feat: atomic workspace deletion with transaction and improved audit logging
+- `01126cb` - refactor: remove unused workspaceWasDeleted return value from useWebSocket
+- `bb0984a` - test: add comprehensive tests for disconnectWorkspaceDevices
+- `adc9943` - test: add tests for DeleteWorkspaceModal component
+- `9a73361` - fix: remove unused imports and state variables
+
+**Testing:**
+- ✅ All 480 server tests pass (including 6 new disconnectWorkspaceDevices tests)
+- ✅ All 185 client tests pass (including 11 new DeleteWorkspaceModal tests)
+- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review ✅ (converted from draft → ready)
+
+---
+### 2026-05-10 19:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6e4fc19` | review | PR #118 - Delete workspace | finished ✓ |
+| `49d37ae` | review | PR #118 - Delete workspace (Round 2) | **NEW** |
+
+🚀 **Spawned: Review Worker (Round 2)**
+
+- PR: [#118 - feat: add UI to permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/pull/118)
+- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+- Review Status: `oRCFRC` (3 unresolved review threads - second round)
+- Conversation: [`49d37ae`](https://app.all-hands.dev/conversations/49d37ae07c734b90ad6ab2458f92658c)
+
+**Unresolved Threads (3):**
+1. 🟠 Important: onWorkspaceDeleted callback exception handling
+2. 🟡 Suggestion: Member count display wording
+3. 🟡 Suggestion: devices.delete() call placement for cleanup
+
+**Housekeeping:**
+- 📦 Archived 2 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md
+
+**Previous Worker Completed:**
+- `6e4fc19` (review): Addressed 5 threads, but 3 new threads from second review ✓
+
+**Current State:**
+- PR #118 open with 3 unresolved review threads (addressing feedback)
 - Ready issues: #95 (PR in review)
 - No issues need expansion 🎉
 - PR slot: Occupied (review worker)
