@@ -3427,6 +3427,88 @@ header {
   transform: scale(1.1);
 }
 
+/* ========================================
+   Mobile Mode
+   ======================================== */
+
+.mobile-mode {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile Safari */
+}
+
+.mobile-participants {
+  padding: 0.5rem 1rem;
+  background: #16213e;
+  border-bottom: 1px solid #333;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.mobile-messages {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-input-area {
+  background: #16213e;
+  border-top: 1px solid #333;
+  padding: 0.75rem;
+  flex-shrink: 0;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.mobile-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mobile-input-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #fff;
+  outline: none;
+}
+
+.mobile-input-row input:focus {
+  border-color: #3282b8;
+}
+
+.mobile-input-row input::placeholder {
+  color: #666;
+}
+
+.mobile-input-row .stt-btn-small,
+.mobile-input-row .send-btn-small {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.mobile-input-row .ai-toggle,
+.mobile-input-row .auto-submit-toggle {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.mobile-input-area .interim-text {
+  padding: 0.25rem 0.5rem 0.5rem;
+  color: #888;
+  font-size: 0.875rem;
+}
+
 /* Version footer */
 .version-footer {
   position: fixed;
