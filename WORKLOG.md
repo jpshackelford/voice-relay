@@ -472,3 +472,36 @@ Waiting for smoke test investigation to complete before spawning new implementat
 **Complexity:** Medium
 
 ---
+
+---
+### 2026-05-10 03:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4bab751` | review | PR #108 - workspaceId injection | **NEW** |
+| `b78ddf1` | expansion | Issue #89 - AI websocket error | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
+   - Issue: [#86 - Kiosk canvas does not update](https://github.com/jpshackelford/voice-relay/issues/86)
+   - Review threads: 2 unresolved
+   - Conversation: [`4bab751`](https://app.all-hands.dev/conversations/4bab75175f6f41da9cd1514b0bbb98dd)
+
+2. **Expansion Worker**
+   - Issue: [#89 - AI websocket connection error shown incorrectly](https://github.com/jpshackelford/voice-relay/issues/89)
+   - Conversation: [`b78ddf1`](https://app.all-hands.dev/conversations/b78ddf1ac5ea40dea0e3ea9eaf26a20d)
+
+**Previous Workers Completed:**
+- `2858a29` (implementation): Created PR #108 ✓
+- `acafe10` (expansion): Expanded #87 ✓
+
+**Current State:**
+- [PR #108](https://github.com/jpshackelford/voice-relay/pull/108): `oR green ready 💬2` → review in progress
+- Ready issues: #84 (low), #85 (medium), #86 (high - linked to PR #108), #87
+- Issues needing expansion: #89 (in progress), #90, #91, #93, #95, #98, #103
+- PR slot: Occupied (review worker)
+- Expansion slot: Occupied (expansion worker)
+
