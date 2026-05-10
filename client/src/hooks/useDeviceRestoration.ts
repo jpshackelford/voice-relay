@@ -5,6 +5,7 @@ import {
   clearDeviceToken,
   storeSessionDeviceId,
   getSessionDeviceId,
+  storeDeviceToken,
 } from '../utils/deviceToken';
 import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
@@ -116,7 +117,19 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
           setDeviceToken(storedDevice.deviceToken);
           setWasRestored(true);
           
-          // Restore mode from validated device if available and not already set
+          // Use server-authoritative name (fixes name sync on navigation)
+          if (validatedDevice.name) {
+            setDisplayName(validatedDevice.name);
+            sessionStorage.setItem('displayName', validatedDevice.name);
+            
+            // Update localStorage with server-authoritative name
+            storeDeviceToken({
+              ...storedDevice,
+              name: validatedDevice.name,
+            });
+          }
+          
+          // Restore mode from validated device if available
           if (validatedDevice.mode) {
             setRestoredMode(validatedDevice.mode);
           }
