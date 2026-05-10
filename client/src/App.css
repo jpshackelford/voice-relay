@@ -2502,6 +2502,26 @@ header {
   transform: scale(1.1);
 }
 
+/* Device removal success/error message */
+.device-message {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.device-message.success {
+  background: rgba(0, 200, 83, 0.15);
+  border: 1px solid #00c853;
+  color: #00c853;
+}
+
+.device-message.error {
+  background: rgba(255, 68, 68, 0.15);
+  border: 1px solid #ff6b6b;
+  color: #ff6b6b;
+}
+
 /* Device Removal Confirmation Modal */
 .modal-overlay {
   position: fixed;

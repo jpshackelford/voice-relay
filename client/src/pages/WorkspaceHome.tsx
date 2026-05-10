@@ -126,7 +126,7 @@ export function WorkspaceHome() {
   // Device removal state
   const [deviceToRemove, setDeviceToRemove] = useState<DeviceInfo | null>(null);
   const [removingDevice, setRemovingDevice] = useState(false);
-  const [removeDeviceError, setRemoveDeviceError] = useState<string | null>(null);
+  const [removeDeviceMessage, setRemoveDeviceMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Invite link copy state
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
@@ -225,25 +225,29 @@ export function WorkspaceHome() {
   // Device removal handlers
   const handleRemoveDeviceClick = (device: DeviceInfo) => {
     setDeviceToRemove(device);
-    setRemoveDeviceError(null);
+    setRemoveDeviceMessage(null);
   };
 
   const handleCancelRemoveDevice = () => {
     setDeviceToRemove(null);
-    setRemoveDeviceError(null);
+    setRemoveDeviceMessage(null);
   };
 
   const handleConfirmRemoveDevice = async () => {
     if (!deviceToRemove) return;
 
     setRemovingDevice(true);
-    setRemoveDeviceError(null);
+    setRemoveDeviceMessage(null);
 
     try {
+      const deviceName = deviceToRemove.name;
       await removeDevice(deviceToRemove.id);
       setDeviceToRemove(null);
+      setRemoveDeviceMessage({ type: 'success', text: `Device "${deviceName}" removed successfully` });
+      // Clear success message after 3 seconds
+      setTimeout(() => setRemoveDeviceMessage(null), 3000);
     } catch (err) {
-      setRemoveDeviceError((err as Error).message);
+      setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
     } finally {
       setRemovingDevice(false);
     }
@@ -393,6 +397,12 @@ export function WorkspaceHome() {
             Devices ({devices.length})
           </h2>
           
+          {removeDeviceMessage?.type === 'success' && (
+            <div className="device-message success">
+              {removeDeviceMessage.text}
+            </div>
+          )}
+          
           <div className="devices-list">
             {devices.length === 0 ? (
               <p className="empty-message">No devices connected yet. Open this workspace on another device to connect.</p>
@@ -435,8 +445,8 @@ export function WorkspaceHome() {
               <p className="modal-warning">
                 The device will be disconnected immediately and must rejoin via QR code or invite link.
               </p>
-              {removeDeviceError && (
-                <p className="modal-error">{removeDeviceError}</p>
+              {removeDeviceMessage?.type === 'error' && (
+                <p className="modal-error">{removeDeviceMessage.text}</p>
               )}
               <div className="modal-actions">
                 <button 
