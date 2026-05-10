@@ -941,3 +941,27 @@ Changes:
 - No issues need expansion 🎉
 - PR slot: Available
 - Expansion slot: Available
+
+### 2026-05-10 13:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `16c5256` | implementation | Issue #90 - Allow removing device | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#90 - feat: Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90) (priority:low)
+- Conversation: [`16c5256`](https://app.all-hands.dev/conversations/16c52569f7724ab880fd7ab471622d4a)
+
+**Previous Workers Completed:**
+- `e21c013` (merge): Merged PR #114 ✓ - Issue #89 closed
+
+**Current State:**
+- No open PRs (PR #114 merged successfully)
+- Ready issues: #90 (now being implemented), #91 (low), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Available (nothing to expand)
+
+---
