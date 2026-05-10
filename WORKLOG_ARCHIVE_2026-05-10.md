@@ -736,3 +736,121 @@ After successful `validateDeviceToken()`, the hook now:
 - Issues needing expansion: #93 (now being expanded), #95, #98, #103
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 06:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `140e5cb` | review | PR #109 - Device name persistence fix | **NEW** |
+| `e8f5c2b` | expansion | Issue #93 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`140e5cb`](https://app.all-hands.dev/conversations/140e5cb)
+   - Review feedback: 1 unresolved thread about defensive check for `validatedDevice.name`
+
+2. **Expansion Worker**
+   - Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+   - Conversation: [`e8f5c2b`](https://app.all-hands.dev/conversations/e8f5c2b)
+   - Type: Enhancement feature
+
+**Previous Workers (finished without completing tasks):**
+- `a4ecf9b` (review): PR #109 thread still unresolved
+- `d69eedc` (expansion): Issue #93 still missing `ready` label
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oR green ready 💬1` → review feedback being addressed
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low)
+- Issues needing expansion: #93 (in progress), #95, #98, #103
+- PR slot: Occupied (review worker)
+- Expansion slot: Occupied (expansion worker)
+
+---
+### 2026-05-10 06:14 UTC - Expansion Worker (`e8f5c2b`)
+
+✅ **Expanded Issue #93**
+
+- Issue: [#93 - Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Technical Summary:**
+- Backend APIs already exist (`POST /archive`, `PATCH` for rename)
+- Repository methods exist (`archiveSession()`, `update()`)
+- Pattern to follow: `EditableDeviceName` component in `WorkspaceHome.tsx`
+- Main work: Client-side UI (kebab menu, inline rename, CSS styles)
+
+**Files to modify:**
+- `client/src/hooks/useSessions.ts` - Add `archiveSession`, `renameSession`
+- `client/src/pages/WorkspaceHome.tsx` - `EditableSessionName`, `SessionKebabMenu` components
+- `client/src/App.css` - Session editing/menu styles
+- `tests/session-management.spec.ts` - E2E tests
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
+
+---
+### 2026-05-10 06:14 UTC - Review Worker (PR #109)
+
+✅ **Addressed Review Feedback - PR #109**
+
+- PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+- Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+- Review Thread: Defensive check for `validatedDevice.name`
+
+**Review Question:** "When would `validatedDevice.name` be falsy?"
+
+**Investigation:**
+Confirmed server **always** returns name:
+- Database schema: `name TEXT NOT NULL` (required)
+- TypeScript types: `PersistedDevice.name: string` (not optional)
+- API endpoint: `/api/devices/validate` returns `device.name` from validated device row
+
+**Action Taken:**
+- Removed unnecessary `if (validatedDevice.name)` defensive check
+- Added inline comment: "Server always returns name (required NOT NULL in DB, enforced by API types)"
+- Commit: `75c1e86` - fix(client): remove unnecessary defensive check for device name
+
+**CI Status:** ✅ All 4 checks passed
+
+**Thread Status:** ✅ Replied with explanation, resolved thread
+
+**PR Status:** Ready for review → Marked ready for review
+
+---
+### 2026-05-10 06:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d7bfdd5` | merge | PR #109 - Device name persistence fix | **NEW** |
+| `1c8d81d` | expansion | Issue #95 - Permanently delete workspace | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#109 - fix(client): device name persists correctly across kiosk navigation](https://github.com/jpshackelford/voice-relay/pull/109)
+   - Issue: [#85 - Device name reset bug](https://github.com/jpshackelford/voice-relay/issues/85) (priority:medium)
+   - Conversation: [`d7bfdd5`](https://app.all-hands.dev/conversations/d7bfdd533ef545eb883eff492a71159b)
+   - All CI checks pass, review thread resolved, mergeable=CLEAN
+
+2. **Expansion Worker**
+   - Issue: [#95 - Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+   - Conversation: [`1c8d81d`](https://app.all-hands.dev/conversations/1c8d81d0c8534064a6f5490ab711ff9a)
+
+**Previous Workers Completed:**
+- `140e5cb` (review): Addressed PR #109 feedback ✓
+- `e8f5c2b` (expansion): Expanded #93 ✓
+
+**Current State:**
+- [PR #109](https://github.com/jpshackelford/voice-relay/pull/109): `oRFC green ready` → being merged
+- Ready issues: #84 (low), #85 (medium - has PR), #87 (medium), #89 (low), #90 (low), #91 (low), #93 (unprioritized)
+- Issues needing expansion: #95 (in progress), #98, #103
+- PR slot: Occupied (merge worker)
+- Expansion slot: Occupied (expansion worker)
