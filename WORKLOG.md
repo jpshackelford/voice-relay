@@ -259,6 +259,8 @@ if (validatedDevice.name) {
 - `client/src/hooks/useDeviceRestoration.ts` - Use server name from validate response
 
 **Complexity:** Low
+
+---
 ### 2026-05-10 02:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -282,3 +284,29 @@ if (validatedDevice.name) {
 - Expansion slot: Occupied (expansion worker for #86)
 
 ---
+### 2026-05-10 02:05 UTC - Expansion Worker (`92f0f3b`)
+
+✅ **Expanded Issue #86**
+
+- Issue: [#86 - bug: Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
+- Type: Bug
+- Status: **Ready for implementation**
+
+**Root Cause:**
+- The `/api/display` endpoint requires `workspaceId` to route content to the correct kiosk devices
+- The kiosk system prompt (`server/prompts/kiosk-system.md`) contains curl examples without `workspaceId`
+- The AI session startup does not inject `workspaceId` into the prompt
+- Result: AI calls `/api/display` without `workspaceId` → server returns 400 error → canvas never updates
+
+**Proposed Fix:**
+1. Update `loadPrompt()` to accept and inject `workspaceId` via `{{WORKSPACE_ID}}` placeholder
+2. Update `server/prompts/kiosk-system.md` to include `workspaceId` in curl examples
+3. Update `startSession()` to accept `workspaceId` parameter
+4. Update `/api/ai/connect` endpoint to pass `deviceWorkspaceId` through to session
+
+**Files to modify:**
+- `server/src/openhands.ts` - Add workspaceId to `loadPrompt()` and `startSession()`
+- `server/prompts/kiosk-system.md` - Add `{{WORKSPACE_ID}}` placeholder to curl examples
+- `server/src/index.ts` - Pass workspaceId to `startSession()`
+
+**Complexity:** Low
