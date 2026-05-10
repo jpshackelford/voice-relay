@@ -31,6 +31,7 @@ interface UseDevicesReturn {
   error: string | null;
   refresh: () => Promise<void>;
   renameDevice: (deviceId: string, newName: string) => Promise<void>;
+  removeDevice: (deviceId: string) => Promise<void>;
 }
 
 export function useDevices(workspaceId: string | undefined): UseDevicesReturn {
@@ -100,11 +101,31 @@ export function useDevices(workspaceId: string | undefined): UseDevicesReturn {
     ));
   }, []);
 
+  const removeDevice = useCallback(async (deviceId: string): Promise<void> => {
+    if (!workspaceId) {
+      throw new Error('Workspace ID is required');
+    }
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/devices/${deviceId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to remove device');
+    }
+
+    // Remove from local state
+    setDevices(prev => prev.filter(d => d.id !== deviceId));
+  }, [workspaceId]);
+
   return {
     devices,
     loading,
     error,
     refresh,
     renameDevice,
+    removeDevice,
   };
 }

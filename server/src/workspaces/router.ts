@@ -39,6 +39,7 @@ export interface WorkspaceRouterConfig {
   joinRequestRepository?: JoinRequestRepository;
   deviceRepository?: DeviceRepository;
   qrTokenRepository?: QrTokenRepository;
+  sessionRepository?: import('../sessions/session-repository.js').SessionRepository;
   authConfig: AuthMiddlewareConfig;
   /** Callback to broadcast join request to owner's kiosk devices */
   onJoinRequest?: (workspaceId: string, request: {
@@ -53,6 +54,8 @@ export interface WorkspaceRouterConfig {
     name: string;
     slug: string;
   }, error?: string) => void;
+  /** Callback to handle device removal (send notification, disconnect WebSocket, broadcast device list) */
+  onDeviceRemoved?: (deviceId: string, workspaceId: string) => void;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
@@ -60,11 +63,13 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   const { 
     workspaceRepository, 
     joinRequestRepository, 
-    deviceRepository, 
+    deviceRepository,
+    sessionRepository,
     qrTokenRepository, 
     authConfig,
     onJoinRequest,
     onJoinResolved,
+    onDeviceRemoved,
   } = config;
   const auth = requireAuth(authConfig);
 
@@ -689,6 +694,59 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     } catch (err) {
       console.error('[Workspaces] List devices error:', err);
       res.status(500).json({ error: 'Failed to list devices' });
+    }
+  });
+
+  // Remove device from workspace (owner only)
+  router.delete('/:id/devices/:deviceId', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      // Only owner can remove devices
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can remove devices' });
+        return;
+      }
+
+      if (!deviceRepository) {
+        res.status(503).json({ error: 'Device repository not available' });
+        return;
+      }
+
+      const device = deviceRepository.findById(req.params.deviceId);
+      if (!device || device.workspaceId !== workspace.id) {
+        res.status(404).json({ error: 'Device not found in workspace' });
+        return;
+      }
+
+      // 1. Remove from all sessions (if session repository available)
+      if (sessionRepository) {
+        sessionRepository.removeDeviceFromAll(req.params.deviceId);
+      }
+
+      // 2. Notify device via WebSocket before deleting (if callback provided)
+      // The callback sends the removal notification, disconnects WebSocket, and broadcasts device list
+      if (onDeviceRemoved) {
+        onDeviceRemoved(req.params.deviceId, workspace.id);
+      }
+
+      // 3. Delete device record (implicitly revokes token)
+      deviceRepository.delete(req.params.deviceId);
+
+      console.log('[Workspaces] Device removed:', {
+        deviceId: req.params.deviceId,
+        workspaceId: workspace.id,
+        removedBy: req.user!.id,
+      });
+
+      res.status(204).send();
+    } catch (err) {
+      console.error('[Workspaces] Remove device error:', err);
+      res.status(500).json({ error: 'Failed to remove device' });
     }
   });
 

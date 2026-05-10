@@ -123,6 +123,13 @@ export interface JoinResolvedMessage {
   error?: string;
 }
 
+/** Server → Device: This device was removed from the workspace */
+export interface DeviceRemovedMessage {
+  type: 'device-removed';
+  deviceId: string;
+  reason: 'removed-from-workspace';
+}
+
 export type ServerMessage = 
   | RegisteredMessage 
   | DeviceListMessage 
@@ -131,7 +138,8 @@ export type ServerMessage =
   | DisplayMessage 
   | AIStatusMessage
   | JoinRequestMessage
-  | JoinResolvedMessage;
+  | JoinResolvedMessage
+  | DeviceRemovedMessage;
 
 export interface Utterance {
   id: string;

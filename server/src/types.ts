@@ -78,6 +78,16 @@ export interface JoinResponseMessage {
   approved: boolean;
 }
 
+/**
+ * Server → Device: Notification that this device was removed from the workspace.
+ * Sent immediately before disconnecting the WebSocket.
+ */
+export interface DeviceRemovedMessage {
+  type: 'device-removed';
+  deviceId: string;
+  reason: 'removed-from-workspace';
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -86,7 +96,8 @@ export type ServerMessage =
   | HistoryMessage
   | DisplayMessage
   | JoinRequestMessage
-  | JoinResolvedMessage;
+  | JoinResolvedMessage
+  | DeviceRemovedMessage;
 
 export interface DisplayMessage {
   type: 'display';

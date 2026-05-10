@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, JoinResponseMessage } from '../types';
-import { storeDeviceToken } from '../utils/deviceToken';
+import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
   deviceId: string;
@@ -14,13 +14,15 @@ interface UseWebSocketOptions {
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
   onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
+  onDeviceRemovedMessage?: (message: ServerMessage & { type: 'device-removed' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
+  const [wasRemoved, setWasRemoved] = useState(false);
   const registeredRef = useRef(false);
   const currentModeRef = useRef(mode);
   const onTextMessageRef = useRef(onTextMessage);
@@ -29,6 +31,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
+  const onDeviceRemovedMessageRef = useRef(onDeviceRemovedMessage);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -41,6 +44,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onAIStatusMessageRef.current = onAIStatusMessage;
   onJoinRequestMessageRef.current = onJoinRequestMessage;
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
+  onDeviceRemovedMessageRef.current = onDeviceRemovedMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -124,6 +128,16 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'join-resolved':
             onJoinResolvedMessageRef.current?.(message);
             break;
+          case 'device-removed':
+            console.log('[WS] Device removed from workspace:', message.deviceId);
+            // Clear stored token since it's now invalid
+            clearDeviceToken();
+            // Update state to indicate removal
+            setWasRemoved(true);
+            setConnected(false);
+            // Notify callback if provided
+            onDeviceRemovedMessageRef.current?.(message);
+            break;
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err);
@@ -187,5 +201,5 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
-  return { connected, devices, currentSession, sendText, updateDevice, sendJoinResponse };
+  return { connected, devices, currentSession, wasRemoved, sendText, updateDevice, sendJoinResponse };
 }

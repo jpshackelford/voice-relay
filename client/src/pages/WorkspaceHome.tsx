@@ -111,7 +111,7 @@ export function WorkspaceHome() {
   const { user, logout } = useAuth();
   const { workspaces, loading: workspacesLoading } = useWorkspaces();
   const { sessions, loading: sessionsLoading, createSession } = useSessions(workspaceId);
-  const { devices, loading: devicesLoading, renameDevice } = useDevices(workspaceId);
+  const { devices, loading: devicesLoading, renameDevice, removeDevice } = useDevices(workspaceId);
 
   // Redirect legacy bookmarks: /workspace/:id?session=X -> /workspace/:id/session/X
   const sessionParam = searchParams.get('session');
@@ -122,6 +122,11 @@ export function WorkspaceHome() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [showWorkspaceDropdown, setShowWorkspaceDropdown] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
+  
+  // Device removal state
+  const [deviceToRemove, setDeviceToRemove] = useState<DeviceInfo | null>(null);
+  const [removingDevice, setRemovingDevice] = useState(false);
+  const [removeDeviceMessage, setRemoveDeviceMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Invite link copy state
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
@@ -215,6 +220,37 @@ export function WorkspaceHome() {
   const handleSwitchWorkspace = (ws: Workspace) => {
     setShowWorkspaceDropdown(false);
     navigate(`/workspace/${ws.id}`);
+  };
+
+  // Device removal handlers
+  const handleRemoveDeviceClick = (device: DeviceInfo) => {
+    setDeviceToRemove(device);
+    setRemoveDeviceMessage(null);
+  };
+
+  const handleCancelRemoveDevice = () => {
+    setDeviceToRemove(null);
+    setRemoveDeviceMessage(null);
+  };
+
+  const handleConfirmRemoveDevice = async () => {
+    if (!deviceToRemove) return;
+
+    setRemovingDevice(true);
+    setRemoveDeviceMessage(null);
+
+    try {
+      const deviceName = deviceToRemove.name;
+      await removeDevice(deviceToRemove.id);
+      setDeviceToRemove(null);
+      setRemoveDeviceMessage({ type: 'success', text: `Device "${deviceName}" removed successfully` });
+      // Clear success message after 3 seconds
+      setTimeout(() => setRemoveDeviceMessage(null), 3000);
+    } catch (err) {
+      setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
+    } finally {
+      setRemovingDevice(false);
+    }
   };
 
   // API key handlers
@@ -361,6 +397,12 @@ export function WorkspaceHome() {
             Devices ({devices.length})
           </h2>
           
+          {removeDeviceMessage?.type === 'success' && (
+            <div className="device-message success">
+              {removeDeviceMessage.text}
+            </div>
+          )}
+          
           <div className="devices-list">
             {devices.length === 0 ? (
               <p className="empty-message">No devices connected yet. Open this workspace on another device to connect.</p>
@@ -377,11 +419,54 @@ export function WorkspaceHome() {
                   <span className="device-last-seen">
                     {device.lastSeenAt ? formatRelativeTime(device.lastSeenAt) : 'never'}
                   </span>
+                  {workspace?.isOwner && !device.isCurrentDevice && (
+                    <button 
+                      className="remove-device-btn" 
+                      onClick={() => handleRemoveDeviceClick(device)}
+                      title="Remove device from workspace"
+                    >
+                      🗑️
+                    </button>
+                  )}
                 </div>
               ))
             )}
           </div>
         </section>
+
+        {/* Device Removal Confirmation Dialog */}
+        {deviceToRemove && (
+          <div className="modal-overlay" onClick={handleCancelRemoveDevice}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Remove Device</h3>
+              <p>
+                Are you sure you want to remove <strong>{deviceToRemove.name}</strong> from this workspace?
+              </p>
+              <p className="modal-warning">
+                The device will be disconnected immediately and must rejoin via QR code or invite link.
+              </p>
+              {removeDeviceMessage?.type === 'error' && (
+                <p className="modal-error">{removeDeviceMessage.text}</p>
+              )}
+              <div className="modal-actions">
+                <button 
+                  className="modal-btn cancel"
+                  onClick={handleCancelRemoveDevice}
+                  disabled={removingDevice}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="modal-btn danger"
+                  onClick={handleConfirmRemoveDevice}
+                  disabled={removingDevice}
+                >
+                  {removingDevice ? 'Removing...' : 'Remove Device'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sessions Section */}
         <section className="sessions-section">
