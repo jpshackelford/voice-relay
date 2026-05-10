@@ -981,31 +981,78 @@ The issue involved three contributing factors:
 
 **PR Status:** Ready for review
 
-### 2026-05-10 07:31 UTC - Orchestrator
+---
+### 2026-05-10 07:33 UTC - Expansion Worker
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `54f45d3` | expansion | Issue #103 - Display API auth | **NEW** |
-| `97ab009` | review | PR #110 - QR token refresh fix | **NEW** |
+✅ **Expanded Issue #103**
 
-🚀 **Spawned: 2 Workers (parallel)**
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103)
+- Type: Security Bug
+- Status: **Ready for implementation** ✅
 
-1. **Expansion Worker**
-   - Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103)
-   - Conversation: [`54f45d3`](https://app.all-hands.dev/conversations/54f45d358b504779bad907b4f280f51e)
+**Vulnerability Verified:**
+Unauthenticated POST to `/api/display` successfully returns `{"success":true,"kioskCount":0}`. Anyone who knows or guesses a workspace ID can send arbitrary content to kiosk displays.
 
-2. **Review Worker**  
-   - PR: [#110 - fix: preserve device state during QR token refresh](https://github.com/jpshackelford/voice-relay/pull/110) (💬3 unresolved)
-   - Conversation: [`97ab009`](https://app.all-hands.dev/conversations/97ab009ca56e402e9599978d2c176fd8)
+**Root Cause:**
+- `server/src/index.ts` lines 221-247
+- The `/api/display` handler performs input validation but has **no authentication check**
+- Comment in code acknowledges this: "Workspace validation deferred to Phase 4"
 
-**Current State:**
-- PR #110: `oRC green ready 💬3` - review feedback pending
-- Issues needing expansion: #103 (now being expanded)
-- Ready issues (with priority): #84, #89, #90, #91, #93, #95 (all low), #98 (unprioritized)
-- Note: Issue #98 needs priority assessment
+**Proposed Fix: Per-Session Display API Secret**
+1. New migration: Add `display_api_secret_encrypted/iv/tag` columns to sessions table
+2. Generate 32-byte random secret on session creation, encrypt using existing `encryptApiKey()`
+3. Pass secret to OpenHands via `secrets` parameter in StartConversationRequest
+4. Update system prompt with `Authorization: Bearer $DISPLAY_API_SECRET` header
+5. Validate Authorization header in `/api/display` using `crypto.timingSafeEqual()`
+6. Change request body from `workspaceId` to `sessionId` (secrets are per-session)
 
-**Housekeeping:**
-- Archived 3 old worklog entries to WORKLOG_ARCHIVE_2026-05-08.md and WORKLOG_ARCHIVE_2026-05-10.md
+**Files to modify:**
+- `server/src/storage/migrations/010_display_api_secrets.ts` - New migration
+- `server/src/sessions/types.ts` - Add secret fields to Session interface
+- `server/src/sessions/session-repository.ts` - Secret generation/retrieval
+- `server/src/openhands.ts` - Add secrets param to StartConversationRequest
+- `server/src/index.ts` - Add auth check to `/api/display`
+- `server/prompts/kiosk-system.md` - Update curl examples with Authorization header
+- `server/src/types.ts` - Update DisplayRequest to use sessionId
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
 
 ---
+### 2026-05-10 07:33 UTC - Expansion Worker
+
+✅ **Expanded Issue #103**
+
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103)
+- Type: Security Bug
+- Status: **Ready for implementation** ✅
+
+**Vulnerability Verified:**
+Unauthenticated POST to `/api/display` successfully returns `{"success":true,"kioskCount":0}`. Anyone who knows or guesses a workspace ID can send arbitrary content to kiosk displays.
+
+**Root Cause:**
+- `server/src/index.ts` lines 221-247
+- The `/api/display` handler performs input validation but has **no authentication check**
+- Comment in code acknowledges this: "Workspace validation deferred to Phase 4"
+
+**Proposed Fix: Per-Session Display API Secret**
+1. New migration: Add `display_api_secret_encrypted/iv/tag` columns to sessions table
+2. Generate 32-byte random secret on session creation, encrypt using existing `encryptApiKey()`
+3. Pass secret to OpenHands via `secrets` parameter in StartConversationRequest
+4. Update system prompt with `Authorization: Bearer $DISPLAY_API_SECRET` header
+5. Validate Authorization header in `/api/display` using `crypto.timingSafeEqual()`
+6. Change request body from `workspaceId` to `sessionId` (secrets are per-session)
+
+**Files to modify:**
+- `server/src/storage/migrations/010_display_api_secrets.ts` - New migration
+- `server/src/sessions/types.ts` - Add secret fields to Session interface
+- `server/src/sessions/session-repository.ts` - Secret generation/retrieval
+- `server/src/openhands.ts` - Add secrets param to StartConversationRequest
+- `server/src/index.ts` - Add auth check to `/api/display`
+- `server/prompts/kiosk-system.md` - Update curl examples with Authorization header
+- `server/src/types.ts` - Update DisplayRequest to use sessionId
+
+**Complexity:** Medium
+
+**Labels added:** `ready`
