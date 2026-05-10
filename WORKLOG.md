@@ -1059,3 +1059,43 @@ Create unified `system-prompt.md` combining both prompts, remove mode-based sele
 
 **Labels added:** `ready`
 
+---
+### 2026-05-10 07:18 UTC - Implementation Worker (`75f2955`)
+
+✅ **Created PR #110**
+
+- PR: [#110 - fix: preserve device state during QR token refresh to prevent UI flicker](https://github.com/jpshackelford/voice-relay/pull/110)
+- Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR instead of refreshing corner QR](https://github.com/jpshackelford/voice-relay/issues/87) (priority:medium)
+
+**Root Cause Analysis:**
+The issue involved three contributing factors:
+1. `useQrToken.ts`: No retry logic when token refresh failed - token was cleared immediately
+2. `useWebSocket.ts`: Device state was not preserved during reconnection, causing UI flicker
+3. `KioskMode.tsx`: Display logic depended directly on `mobileDevices.length > 0` without defensive fallback
+
+**Implementation:**
+
+1. **useQrToken.ts** - Added retry logic with exponential backoff:
+   - Configurable `maxRetries` (default 3) and `baseRetryDelayMs` (default 5s)
+   - Preserves last valid token during retry attempts
+   - Resets retry count on 503 (unsupported feature)
+
+2. **useWebSocket.ts** - Preserves device state during reconnection:
+   - Added `lastKnownDevicesRef` to track devices across reconnections
+   - Restores devices immediately on reconnection to prevent UI flicker
+
+3. **KioskMode.tsx** - Defensive device count tracking:
+   - Added `lastMobileCountRef` to preserve last known mobile count
+   - Uses placeholder devices when disconnected to maintain UI state
+   - Properly clears count when connected and devices explicitly become empty
+
+**Testing:**
+- 3 new tests for useQrToken retry logic
+- 4 new tests for useWebSocket device preservation
+- All 159 client tests pass
+- All 419 server tests pass
+
+**CI Status:** ✅ All checks passed (Build Client, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review
+
