@@ -31,197 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-10 03:15 UTC - Implementation Worker (`2858a29`)
-
-✅ **Created: PR #108**
-
-- PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
-- Issue: [#86 - Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
-- Conversation: [`2858a29`](https://app.all-hands.dev/conversations/2858a29eb6c64e00af12cc1a3133e617)
-
-**Root Cause:**
-- `/api/display` endpoint requires `workspaceId` to route content to correct kiosk devices
-- The kiosk system prompt (`kiosk-system.md`) had curl examples **without** workspaceId
-- AI-generated display calls returned 400 errors, canvas never updated
-
-**Fix Applied:**
-1. Added `{{WORKSPACE_ID}}` placeholder to `server/prompts/kiosk-system.md` curl examples
-2. Extended `loadPrompt()` to accept optional `workspaceId` and replace placeholder
-3. Extended `startSession()` to accept `workspaceId` parameter
-4. Updated `/api/ai/connect` endpoint to pass `deviceWorkspaceId` to session
-
-**Testing:**
-- ✅ Added 11 unit tests for `loadPrompt()` function
-- ✅ All 417 server tests pass
-- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
-
-**PR Status:** Ready for review
-
----
-### 2026-05-10 03:35 UTC - Expansion Worker (`acafe10`)
-
-✅ **Expanded Issue #87**
-
-- Issue: [#87 - QR code expiry in kiosk mode displays full-screen QR instead of refreshing corner QR](https://github.com/jpshackelford/voice-relay/issues/87)
-- Type: Bug
-- Status: Ready for implementation
-- Conversation: [`acafe10`](https://app.all-hands.dev/conversations/acafe1011a3d42c0b5bfa98494cfde93)
-
-**Root Cause Analysis:**
-- The kiosk display switches between mini QR (corner) and full-screen QR based on `mobileDevices.length > 0`
-- `devices` array comes from `useWebSocket` hook which depends on `workspaceId` and `sessionId` props
-- When QR token refresh triggers auth state changes, workspace/session could become `undefined` momentarily
-- This causes `useWebSocket` to reconnect, resetting `devices` to `[]`
-- Empty devices array causes UI to switch to full-screen QR mode
-
-**Additional Issue Found:**
-- In `useQrToken.ts`, when token refresh fails, no retry is scheduled
-- Token stays null permanently until component remounts
-
-**Proposed Fix (3 parts):**
-1. **Primary:** Preserve `devices` state in `useWebSocket` during reconnection
-2. **Secondary:** Add retry logic to `useQrToken` for failed refreshes
-3. **Tertiary:** Stabilize `workspaceId`/`sessionId` refs in `SessionView.tsx`
-
-**Files to Modify:**
-- `client/src/hooks/useWebSocket.ts`
-- `client/src/hooks/useQrToken.ts`
-- `client/src/pages/SessionView.tsx`
-- `client/src/components/KioskMode.tsx` (optional)
-
-**Complexity:** Medium
-
----
-### 2026-05-10 03:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `4bab751` | review | PR #108 - workspaceId injection | **NEW** |
-| `b78ddf1` | expansion | Issue #89 - AI websocket error | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Review Worker**
-   - PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
-   - Issue: [#86 - Kiosk canvas does not update](https://github.com/jpshackelford/voice-relay/issues/86)
-   - Review threads: 2 unresolved
-   - Conversation: [`4bab751`](https://app.all-hands.dev/conversations/4bab75175f6f41da9cd1514b0bbb98dd)
-
-2. **Expansion Worker**
-   - Issue: [#89 - AI websocket connection error shown incorrectly](https://github.com/jpshackelford/voice-relay/issues/89)
-   - Conversation: [`b78ddf1`](https://app.all-hands.dev/conversations/b78ddf1ac5ea40dea0e3ea9eaf26a20d)
-
-**Previous Workers Completed:**
-- `2858a29` (implementation): Created PR #108 ✓
-- `acafe10` (expansion): Expanded #87 ✓
-
-**Current State:**
-- [PR #108](https://github.com/jpshackelford/voice-relay/pull/108): `oR green ready 💬2` → review in progress
-- Ready issues: #84 (low), #85 (medium), #86 (high - linked to PR #108), #87
-- Issues needing expansion: #89 (in progress), #90, #91, #93, #95, #98, #103
-- PR slot: Occupied (review worker)
-- Expansion slot: Occupied (expansion worker)
-
----
-### 2026-05-10 03:40 UTC - Expansion Worker (`b78ddf1`)
-
-✅ **Expanded Issue #89**
-
-- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89)
-- Type: Bug
-- Status: Ready for implementation
-- Conversation: [`b78ddf1`](https://app.all-hands.dev/conversations/b78ddf1ac5ea40dea0e3ea9eaf26a20d)
-
-**Root Cause Analysis:**
-
-Race condition involving 3 components:
-
-1. **Server-side async WebSocket**: `startSession()` in `server/src/openhands.ts` calls `connectWebSocket()` which creates the WebSocket **asynchronously** and returns immediately without waiting for `ws.on('open')`. The HTTP response goes to client before WebSocket is fully `OPEN`.
-
-2. **Client-side immediate forwarding**: In `KioskMode.tsx`, a `useEffect` on `ai.connected` immediately forwards existing utterances to the AI via `ai.sendMessage()` - often within milliseconds of the connect response.
-
-3. **Error never cleared on success**: `sendMessage()` in `useAI.ts` sets `setError()` on failure but **never clears it on success**. Any transient error persists forever.
-
-**The Race:**
-1. Client connects → Server creates session, starts WebSocket async, returns 200
-2. Client sets `ai.connected = true` → `useEffect` fires → calls `ai.sendMessage()`
-3. Server receives message POST → WebSocket still `CONNECTING` (not `OPEN`)
-4. Server throws `"WebSocket not connected"` → Client sets `ai.error`
-5. ~100ms later WebSocket connects, AI works perfectly
-6. Error persists forever (never cleared on subsequent successes)
-
-**Proposed Fix:**
-Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This is the simplest fix that makes errors self-healing.
-
-**Files to Modify:**
-- `client/src/hooks/useAI.ts` - `sendMessage()` function: add `setError(null)` on success
-
-**Complexity:** Low
-
----
-### 2026-05-10 03:45 UTC - Review Worker (`4bab751`)
-
-✅ **Addressed Review Feedback on PR #108**
-
-- PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
-- Issue: [#86 - Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86)
-
-**Review Feedback Addressed:**
-
-1. **JSON Escaping (inline thread - openhands.ts:253)**
-   - Suggestion: Escape quotes/backslashes in workspaceId before injection
-   - Action: ✅ Implemented in commit `dde8204`
-   - Added escaping for `"` and `\` to prevent malformed curl examples
-
-2. **Test for JSON-breaking chars (inline thread - openhands.test.ts:78)**
-   - Suggestion: Add test for quote/backslash handling
-   - Action: ✅ Added 2 new tests in commit `dde8204`
-     - `escapes JSON-breaking characters in workspaceId` (quotes)
-     - `escapes backslashes in workspaceId`
-
-3. **E2E Evidence (PR comment)**
-   - Suggestion: Add screenshots/logs showing fix works
-   - Action: 📝 Acknowledged - unit tests verify prompt injection logic; E2E testing appropriate for manual verification before merge
-
-**CI Status:** ✅ All 4 checks passed (Build, Server Tests, E2E Tests, PR Lint)
-**Test Count:** 419 total (was 417, +2 new tests)
-
-**PR Status:** Ready for review → All threads resolved → Marked ready for review
-
----
-### 2026-05-10 04:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a9753bf` | merge | PR #108 - workspaceId injection | **NEW** |
-| `cdd226f` | expansion | Issue #90 - Remove device from workspace | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Merge Worker**
-   - PR: [#108 - fix(server): inject workspaceId into AI display API calls](https://github.com/jpshackelford/voice-relay/pull/108)
-   - Issue: [#86 - Kiosk canvas does not update](https://github.com/jpshackelford/voice-relay/issues/86)
-   - Conversation: [`a9753bf`](https://app.all-hands.dev/conversations/a9753bfd37c549b0a0c8aa151d689dd0)
-   - All review threads resolved, CI green, mergeable=CLEAN
-
-2. **Expansion Worker**
-   - Issue: [#90 - Allow removing a device from a workspace](https://github.com/jpshackelford/voice-relay/issues/90)
-   - Conversation: [`cdd226f`](https://app.all-hands.dev/conversations/cdd226f579ee4fa2916c5bb95f139456)
-
-**Previous Workers Completed:**
-- `4bab751` (review): Addressed PR #108 feedback ✓
-- `b78ddf1` (expansion): Expanded #89 ✓
-
-**Current State:**
-- [PR #108](https://github.com/jpshackelford/voice-relay/pull/108): `oRFc green ready` → being merged
-- Ready issues: #84 (low), #85 (medium), #86 (high - linked to PR), #87 (unprioritized), #89 (unprioritized)
-- Issues needing expansion: #90 (in progress), #91, #93, #95, #98, #103
-- PR slot: Occupied (merge worker)
-- Expansion slot: Occupied (expansion worker)
-
----
 ### 2026-05-10 04:10 UTC - Expansion Worker (`cdd226f`)
 
 ✅ **Expanded Issue #90**
@@ -1134,3 +943,36 @@ with proper secret authentication is supported.
 - [x] Both `displayLines` and `workspaceId` injected for all sessions
 
 **PR Status:** Ready for review ✅
+
+---
+### 2026-05-10 10:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `368aab1` | merge | PR #112 - unify system prompt | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112)
+- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions](https://github.com/jpshackelford/voice-relay/issues/98) (priority:medium)
+- Conversation: [`368aab1`](https://app.all-hands.dev/conversations/368aab1cf77c4f978c8c007da0e085dd)
+
+**Pre-merge Status:**
+- All CI checks: ✅ PASSED (Build, Server Tests, E2E Tests, PR Lint)
+- Review: ✅ Bot approved - "Elegant simplification that eliminates mode-based conditionals"
+- No unresolved review threads
+- Mergeable: ✅ CLEAN
+
+**Previous Worker Completed:**
+- `1a8a178` (implementation): Created PR #112 ✓
+
+**Housekeeping:**
+- 📦 Archived 6 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md
+
+**Current State:**
+- [PR #112](https://github.com/jpshackelford/voice-relay/pull/112): Ready for merge
+- Ready issues: #84 (low), #89 (low), #90 (low), #91 (low), #93 (low), #95 (low), **#98 (medium)** ← linked to PR #112
+- No issues need expansion 🎉
+- PR slot: Occupied (merge worker)
+- Expansion slot: Available (nothing to expand)
