@@ -199,4 +199,139 @@ describe('useQrToken hook', () => {
       expect(result.current.token).toBeNull();
     });
   });
+
+  describe('retry logic', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('retries on fetch failure with exponential backoff', async () => {
+      const mockToken = {
+        token: 'retry-success-token-123456789012',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        url: 'http://localhost/workspace/ws1/session/sess1?qr=retry-success',
+        workspaceId: 'ws1',
+        sessionId: 'sess1',
+      };
+
+      // First call fails, second succeeds
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('Network error');
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockToken,
+        };
+      });
+
+      const { result } = renderHook(() => 
+        useQrToken({ 
+          workspaceId: 'ws1', 
+          sessionId: 'sess1', 
+          enabled: true,
+          baseRetryDelayMs: 100, // Short delay for testing
+        })
+      );
+
+      // Wait for first fetch to fail
+      await vi.waitFor(() => {
+        expect(result.current.error).toBe('Network error');
+      });
+      expect(callCount).toBe(1);
+
+      // Advance timer to trigger retry (100ms * 2^0 = 100ms)
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Wait for second fetch to succeed
+      await vi.waitFor(() => {
+        expect(result.current.token).not.toBeNull();
+      });
+      expect(callCount).toBe(2);
+      expect(result.current.error).toBeNull();
+    });
+
+    it('schedules retry after fetch failure', async () => {
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        throw new Error('Persistent error');
+      });
+
+      renderHook(() => 
+        useQrToken({ 
+          workspaceId: 'ws1', 
+          sessionId: 'sess1', 
+          enabled: true,
+          maxRetries: 2,
+          baseRetryDelayMs: 50,
+        })
+      );
+
+      // Initial fetch is called
+      await vi.waitFor(() => {
+        expect(callCount).toBeGreaterThanOrEqual(1);
+      });
+      const initialCount = callCount;
+
+      // Advance to first retry
+      await vi.advanceTimersByTimeAsync(50);
+      await vi.waitFor(() => {
+        expect(callCount).toBe(initialCount + 1);
+      });
+
+      // Advance to second retry
+      await vi.advanceTimersByTimeAsync(100);
+      await vi.waitFor(() => {
+        expect(callCount).toBe(initialCount + 2);
+      });
+
+      // No more retries after max exceeded
+      const countAfterMaxRetries = callCount;
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(callCount).toBe(countAfterMaxRetries);
+    });
+
+    it('does not retry on 503 (unsupported feature)', async () => {
+      let callCount = 0;
+      global.fetch = vi.fn().mockImplementation(async () => {
+        callCount++;
+        return {
+          ok: false,
+          status: 503,
+          json: async () => ({ error: 'QR token generation not available' }),
+        };
+      });
+
+      const { result } = renderHook(() => 
+        useQrToken({ 
+          workspaceId: 'ws1', 
+          sessionId: 'sess1', 
+          enabled: true,
+          maxRetries: 3,
+          baseRetryDelayMs: 50,
+        })
+      );
+
+      await vi.waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // 503 should not trigger retry
+      expect(callCount).toBe(1);
+      expect(result.current.supported).toBe(false);
+      expect(result.current.error).toBeNull(); // Graceful degradation
+
+      // Advance time - no retry should happen
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(callCount).toBe(1); // Still 1, no retry
+    });
+  });
 });

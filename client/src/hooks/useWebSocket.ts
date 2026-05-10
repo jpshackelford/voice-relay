@@ -29,6 +29,10 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
+  
+  // Track last known device state to preserve during reconnection
+  // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
+  const lastKnownDevicesRef = useRef<DeviceInfo[]>([]);
 
   // Keep refs up to date
   onTextMessageRef.current = onTextMessage;
@@ -47,6 +51,15 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
     registeredRef.current = false;
+    
+    // Preserve last known devices during reconnection to prevent UI flicker.
+    // This is critical for kiosk mode where mobileDevices.length > 0 controls
+    // the display state between mini QR and full-screen QR.
+    // We restore devices immediately and let the server update them once connected.
+    if (lastKnownDevicesRef.current.length > 0) {
+      console.log('[WS] Preserving', lastKnownDevicesRef.current.length, 'devices during reconnection');
+      setDevices(lastKnownDevicesRef.current);
+    }
 
     ws.onopen = () => {
       console.log('[WS] Connected');
@@ -89,7 +102,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             }
             break;
           case 'device-list':
+            // Update both state and ref to preserve across reconnections
             setDevices(message.devices);
+            lastKnownDevicesRef.current = message.devices;
             break;
           case 'text':
             onTextMessageRef.current?.(message);

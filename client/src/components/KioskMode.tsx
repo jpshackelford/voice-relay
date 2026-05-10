@@ -68,6 +68,11 @@ export function KioskMode({
   const aiForwardedRef = useRef(new Set<string>());  // Track utterances sent to AI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Track last known mobile device count to prevent UI flicker during reconnection.
+  // If devices temporarily becomes empty (e.g., during WebSocket reconnect),
+  // we preserve the last known count to prevent switching from mini QR to full-screen QR.
+  const lastMobileCountRef = useRef(0);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ deviceId, mode: 'kiosk' });
@@ -222,7 +227,34 @@ export function KioskMode({
   );
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
-  const mobileDevices = devices.filter(d => d.mode === 'mobile');
+  const currentMobileDevices = devices.filter(d => d.mode === 'mobile');
+  
+  // Update last known mobile count when we receive authoritative device data.
+  // This prevents UI flicker when devices temporarily becomes empty during reconnection.
+  // 
+  // We update the ref (trust the new count) when:
+  // - We have mobile devices (always trust positive counts)
+  // - We're connected and have device data (explicit state from server, even if 0 mobiles)
+  // 
+  // We preserve the last known count when:
+  // - devices array is empty and we're disconnected (likely reconnecting, preserve UI)
+  const hasAuthoritativeDeviceData = currentMobileDevices.length > 0 || connected;
+  if (hasAuthoritativeDeviceData) {
+    lastMobileCountRef.current = currentMobileDevices.length;
+  }
+  
+  // Use the stable mobile device count: prefer current data, fall back to last known during reconnection
+  // Only use placeholder devices when disconnected AND we had mobile devices before
+  const mobileDevices = currentMobileDevices.length > 0 
+    ? currentMobileDevices 
+    : (!connected && lastMobileCountRef.current > 0 
+        // Create placeholder devices to maintain the count during reconnection
+        ? Array.from({ length: lastMobileCountRef.current }, (_, i): DeviceInfo => ({
+            id: `placeholder-${i}`,
+            displayName: 'Reconnecting...',
+            mode: 'mobile',
+          }))
+        : []);
 
   // On mobile, render a simplified conversation-only view
   if (isMobile) {
