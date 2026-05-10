@@ -25,6 +25,18 @@ const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('AI Assistant Integration', () => {
   
+  // Helper to ensure the kiosk drawer is open
+  // The drawer starts collapsed (per F3 requirement), so we need to open it
+  // before interacting with elements inside (like .ai-toggle button)
+  async function ensureDrawerOpen(page: import('@playwright/test').Page) {
+    const drawerOpenBtn = page.locator('.drawer-open-btn');
+    if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      await drawerOpenBtn.click();
+      // Wait for drawer to animate open
+      await page.waitForTimeout(300);
+    }
+  }
+
   test.describe('AI Status API', () => {
     test.use({ storageState: AUTH_FILE });
 
@@ -75,18 +87,6 @@ test.describe('AI Assistant Integration', () => {
 
       // Wait for session to be created and kiosk mode to load
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
-    }
-
-    // Helper to ensure the kiosk drawer is open
-    // The drawer starts collapsed (per F3 requirement), so we need to open it
-    // before interacting with elements inside (like .ai-toggle button)
-    async function ensureDrawerOpen(page: import('@playwright/test').Page) {
-      const drawerOpenBtn = page.locator('.drawer-open-btn');
-      if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-        await drawerOpenBtn.click();
-        // Wait for drawer to animate open
-        await page.waitForTimeout(300);
-      }
     }
 
     // Helper to wait for AI availability check to complete
@@ -427,11 +427,7 @@ test.describe('AI Assistant Integration', () => {
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
 
       // Open the drawer first to ensure .ai-toggle would be visible if it existed
-      const drawerOpenBtn = page.locator('.drawer-open-btn');
-      if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-        await drawerOpenBtn.click();
-        await page.waitForTimeout(300);
-      }
+      await ensureDrawerOpen(page);
 
       // Wait for AI availability check to complete - button should remain hidden
       // Use expect.poll to wait for the UI to settle
