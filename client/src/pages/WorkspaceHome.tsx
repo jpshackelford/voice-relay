@@ -104,13 +104,153 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
   );
 }
 
+interface EditableSessionNameProps {
+  session: SessionSummary;
+  onRename: (id: string, name: string) => Promise<void>;
+}
+
+function EditableSessionName({ session, onRename }: EditableSessionNameProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [name, setName] = useState(session.name || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const displayName = session.name || `Session ${session.id.slice(0, 8)}`;
+
+  const handleSave = async () => {
+    const trimmedName = name.trim();
+    
+    // Empty name reverts to original (no error)
+    if (!trimmedName) {
+      setIsEditing(false);
+      setName(session.name || '');
+      setError(null);
+      return;
+    }
+    
+    // No change, just close
+    if (trimmedName === session.name) {
+      setIsEditing(false);
+      return;
+    }
+    
+    setSaving(true);
+    setError(null);
+    try {
+      await onRename(session.id, trimmedName);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to rename session:', err);
+      setName(session.name || '');
+      setError('Failed to rename');
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setName(session.name || '');
+      setError(null);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <span className="session-name-editing">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          disabled={saving}
+          className="session-name-input"
+          placeholder={`Session ${session.id.slice(0, 8)}`}
+        />
+        {error && <span className="rename-error">{error}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <span className="session-name-text" onClick={() => setIsEditing(true)}>
+      {displayName}
+      <button className="rename-btn" title="Rename session">✏️</button>
+      {error && <span className="rename-error">{error}</span>}
+    </span>
+  );
+}
+
+interface SessionKebabMenuProps {
+  onArchive: () => void;
+  onRenameClick: () => void;
+}
+
+function SessionKebabMenu({ onArchive, onRenameClick }: SessionKebabMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="session-kebab-menu" ref={menuRef}>
+      <button
+        className="session-kebab-btn"
+        onClick={() => setIsOpen(!isOpen)}
+        title="More options"
+      >
+        ⋮
+      </button>
+      {isOpen && (
+        <div className="session-dropdown">
+          <button
+            className="session-dropdown-item"
+            onClick={() => {
+              setIsOpen(false);
+              onRenameClick();
+            }}
+          >
+            ✏️ Rename
+          </button>
+          <button
+            className="session-dropdown-item archive"
+            onClick={() => {
+              setIsOpen(false);
+              onArchive();
+            }}
+          >
+            📦 Archive
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function WorkspaceHome() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { workspaces, loading: workspacesLoading } = useWorkspaces();
-  const { sessions, loading: sessionsLoading, createSession } = useSessions(workspaceId);
+  const { sessions, loading: sessionsLoading, createSession, renameSession, archiveSession } = useSessions(workspaceId);
   const { devices, loading: devicesLoading, renameDevice, removeDevice } = useDevices(workspaceId);
 
   // Redirect legacy bookmarks: /workspace/:id?session=X -> /workspace/:id/session/X
@@ -127,6 +267,14 @@ export function WorkspaceHome() {
   const [deviceToRemove, setDeviceToRemove] = useState<DeviceInfo | null>(null);
   const [removingDevice, setRemovingDevice] = useState(false);
   const [removeDeviceMessage, setRemoveDeviceMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Session archive state
+  const [sessionToArchive, setSessionToArchive] = useState<SessionSummary | null>(null);
+  const [archivingSession, setArchivingSession] = useState(false);
+  const [archiveToast, setArchiveToast] = useState<string | null>(null);
+
+  // Session edit mode tracking (for triggering edit from kebab menu)
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   
   // Invite link copy state
   const [inviteLinkCopied, setInviteLinkCopied] = useState(false);
@@ -250,6 +398,36 @@ export function WorkspaceHome() {
       setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
     } finally {
       setRemovingDevice(false);
+    }
+  };
+
+  // Session archive handlers
+  const handleArchiveClick = (session: SessionSummary) => {
+    setSessionToArchive(session);
+  };
+
+  const handleCancelArchive = () => {
+    setSessionToArchive(null);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!sessionToArchive) return;
+
+    setArchivingSession(true);
+
+    try {
+      const sessionName = sessionToArchive.name || `Session ${sessionToArchive.id.slice(0, 8)}`;
+      await archiveSession(sessionToArchive.id);
+      setSessionToArchive(null);
+      setArchiveToast(`Session "${sessionName}" archived`);
+      // Clear toast after 3 seconds
+      setTimeout(() => setArchiveToast(null), 3000);
+    } catch (err) {
+      console.error('Failed to archive session:', err);
+      setArchiveToast(`Failed to archive: ${(err as Error).message}`);
+      setTimeout(() => setArchiveToast(null), 3000);
+    } finally {
+      setArchivingSession(false);
     }
   };
 
@@ -491,7 +669,20 @@ export function WorkspaceHome() {
               sessions.map(session => (
                 <div key={session.id} className={`session-row ${session.status}`}>
                   <div className="session-info">
-                    <span className="session-name">{session.name || `Session ${session.id.slice(0, 8)}`}</span>
+                    {editingSessionId === session.id ? (
+                      <EditableSessionName 
+                        session={session} 
+                        onRename={async (id, name) => {
+                          await renameSession(id, name);
+                          setEditingSessionId(null);
+                        }} 
+                      />
+                    ) : (
+                      <span className="session-name-text" onClick={() => setEditingSessionId(session.id)}>
+                        {session.name || `Session ${session.id.slice(0, 8)}`}
+                        <button className="rename-btn" title="Rename session">✏️</button>
+                      </span>
+                    )}
                     <span className="session-meta">
                       Created {formatTime(session.startedAt)}
                     </span>
@@ -499,6 +690,10 @@ export function WorkspaceHome() {
                   <span className="session-last-active">
                     {formatRelativeTime(session.lastActiveAt)}
                   </span>
+                  <SessionKebabMenu 
+                    onArchive={() => handleArchiveClick(session)}
+                    onRenameClick={() => setEditingSessionId(session.id)}
+                  />
                   <button 
                     className="view-session-btn"
                     onClick={() => handleViewSession(session)}
@@ -509,7 +704,45 @@ export function WorkspaceHome() {
               ))
             )}
           </div>
+
+          {/* Archive toast notification */}
+          {archiveToast && (
+            <div className="archive-toast">
+              {archiveToast}
+            </div>
+          )}
         </section>
+
+        {/* Session Archive Confirmation Dialog */}
+        {sessionToArchive && (
+          <div className="modal-overlay" onClick={handleCancelArchive}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>Archive Session</h3>
+              <p>
+                Archive <strong>{sessionToArchive.name || `Session ${sessionToArchive.id.slice(0, 8)}`}</strong>?
+              </p>
+              <p className="modal-hint">
+                The session will be hidden from your session list. Session data will be preserved.
+              </p>
+              <div className="modal-actions">
+                <button
+                  className="modal-btn cancel"
+                  onClick={handleCancelArchive}
+                  disabled={archivingSession}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="modal-btn primary"
+                  onClick={handleConfirmArchive}
+                  disabled={archivingSession}
+                >
+                  {archivingSession ? 'Archiving...' : 'Archive'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Settings Section (for owners) */}
         {workspace.isOwner && (

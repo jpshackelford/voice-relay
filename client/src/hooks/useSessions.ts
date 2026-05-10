@@ -17,6 +17,8 @@ interface UseSessionsReturn {
   error: string | null;
   refresh: () => Promise<void>;
   createSession: (name?: string) => Promise<SessionSummary>;
+  renameSession: (sessionId: string, name: string) => Promise<void>;
+  archiveSession: (sessionId: string) => Promise<void>;
 }
 
 export function useSessions(workspaceId: string | undefined): UseSessionsReturn {
@@ -36,7 +38,8 @@ export function useSessions(workspaceId: string | undefined): UseSessionsReturn 
     setError(null);
 
     try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/sessions`, {
+      // Fetch only active sessions by default (excludes archived)
+      const res = await fetch(`/api/workspaces/${workspaceId}/sessions?status=active`, {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -88,11 +91,56 @@ export function useSessions(workspaceId: string | undefined): UseSessionsReturn 
     return newSession;
   }, [workspaceId]);
 
+  const renameSession = useCallback(async (sessionId: string, name: string): Promise<void> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/sessions/${sessionId}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to rename session');
+    }
+
+    // Update session name in local state
+    setSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, name } : s
+    ));
+  }, [workspaceId]);
+
+  const archiveSession = useCallback(async (sessionId: string): Promise<void> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/sessions/${sessionId}/archive`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to archive session');
+    }
+
+    // Remove session from local state (it's now archived and shouldn't show)
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+  }, [workspaceId]);
+
   return {
     sessions,
     loading,
     error,
     refresh,
     createSession,
+    renameSession,
+    archiveSession,
   };
 }

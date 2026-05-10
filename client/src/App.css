@@ -2702,6 +2702,147 @@ header {
   color: #fff;
 }
 
+/* Session Name Editing */
+.session-name-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #fff;
+}
+
+.session-name-text:hover .rename-btn {
+  opacity: 1;
+}
+
+.session-name-editing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.session-name-input {
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  background: #1a1a2e;
+  border: 1px solid #3282b8;
+  border-radius: 4px;
+  color: #fff;
+  outline: none;
+  width: 200px;
+}
+
+.session-name-input:focus {
+  border-color: #4f94d4;
+  box-shadow: 0 0 0 2px rgba(79, 148, 212, 0.3);
+}
+
+/* Session Kebab Menu */
+.session-kebab-menu {
+  position: relative;
+}
+
+.session-kebab-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.session-kebab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.session-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #1f1f3a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.session-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.session-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.session-dropdown-item.archive {
+  color: #ffc107;
+}
+
+.session-dropdown-item.archive:hover {
+  background: rgba(255, 193, 7, 0.15);
+}
+
+/* Archive Toast */
+.archive-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f1f3a;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid #333;
+  z-index: 1000;
+  animation: toast-fade-in 0.3s ease;
+}
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Modal hint (for archive modal) */
+.modal-hint {
+  font-size: 0.9rem;
+  color: #888;
+  margin-bottom: 1rem;
+}
+
+/* Primary button style */
+.modal-btn.primary {
+  background: #3282b8;
+  border-color: #3282b8;
+}
+
+.modal-btn.primary:hover:not(:disabled) {
+  background: #2a6f9f;
+}
+
 /* Settings Section */
 .settings-content {
   display: flex;
