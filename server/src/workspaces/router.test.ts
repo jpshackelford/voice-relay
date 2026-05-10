@@ -1539,4 +1539,26 @@ describe('Workspace Router - DELETE /:id (enhanced)', () => {
     expect(callbackCalled).toBe(true);
     expect(callbackWorkspaceId).toBe(testWorkspaceId);
   });
+
+  it('returns 204 even if onWorkspaceDeleted callback throws', async () => {
+    const customApp = express();
+    customApp.use(express.json());
+
+    const router = createWorkspaceRouter({
+      workspaceRepository,
+      authConfig: { jwtService, userRepository },
+      onWorkspaceDeleted: () => {
+        throw new Error('Device disconnection failed');
+      },
+    });
+    customApp.use('/api/workspaces', router);
+
+    await request(customApp)
+      .delete(`/api/workspaces/${testWorkspaceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(204);
+
+    // Workspace should still be deleted despite callback error
+    expect(workspaceRepository.findById(testWorkspaceId)).toBeNull();
+  });
 });
