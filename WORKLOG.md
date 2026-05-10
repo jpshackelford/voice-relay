@@ -1096,3 +1096,41 @@ with proper secret authentication is supported.
 - No issues need expansion 🎉
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 10:10 UTC - Implementation Worker (`1a8a178`)
+
+✅ **Created: PR #112**
+
+- PR: [#112 - fix: unify system prompt for all device modes](https://github.com/jpshackelford/voice-relay/pull/112)
+- Issue: [#98 - bug: AI on mobile devices doesn't receive display API instructions in system prompt](https://github.com/jpshackelford/voice-relay/issues/98)
+- Conversation: [`1a8a178`](https://app.all-hands.dev/conversations/1a8a178a0f674a65950fc6ca4bc5938f)
+
+**Root Cause:**
+- Mode-based prompt selection in `server/src/openhands.ts` loaded different prompts for kiosk vs. chat modes
+- Chat mode → `chat-system.md` (no display API instructions)
+- Kiosk mode → `kiosk-system.md` (has display API instructions)
+- Mobile devices connecting to AI in chat mode had no knowledge of the display API
+
+**Fix Applied:**
+1. Created unified `server/prompts/system-prompt.md` combining both prompts
+2. Simplified `loadPrompt()` call to always use `system-prompt` for all device modes
+3. All AI sessions now receive display API instructions regardless of device type
+4. `displayApiSecret` is now injected for all sessions (not just kiosk mode)
+5. Deleted obsolete `kiosk-system.md` and `chat-system.md`
+
+**Testing:**
+- ✅ Updated 16 tests for unified prompt behavior
+- ✅ All 441 server tests pass
+- ✅ 95% code coverage
+- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
+
+**Acceptance Criteria Met:**
+- [x] Single system prompt file used for all device modes
+- [x] Display API instructions included in all sessions
+- [x] `loadPrompt()` simplified to always load the unified prompt
+- [x] Mode-based conditional logic removed from prompt selection
+- [x] Tests updated for new prompt behavior
+- [x] Both `displayLines` and `workspaceId` injected for all sessions
+
+**PR Status:** Ready for review ✅
