@@ -22,6 +22,10 @@ interface UseQrTokenOptions {
   enabled?: boolean;
   /** Buffer time before expiration to auto-refresh (ms, default: 30s) */
   refreshBufferMs?: number;
+  /** Maximum number of retry attempts on failure (default: 3) */
+  maxRetries?: number;
+  /** Base retry delay in ms (default: 5000). Actual delay = baseRetryDelayMs * 2^retryCount */
+  baseRetryDelayMs?: number;
 }
 
 interface UseQrTokenReturn {
@@ -40,6 +44,9 @@ interface UseQrTokenReturn {
 }
 
 const DEFAULT_REFRESH_BUFFER_MS = 30 * 1000; // 30 seconds
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_BASE_RETRY_DELAY_MS = 5000; // 5 seconds
+const MAX_RETRY_DELAY_MS = 30000; // 30 seconds cap
 
 /**
  * Hook for managing signed, time-limited QR tokens.
@@ -59,6 +66,8 @@ export function useQrToken({
   sessionId,
   enabled = false,
   refreshBufferMs = DEFAULT_REFRESH_BUFFER_MS,
+  maxRetries = DEFAULT_MAX_RETRIES,
+  baseRetryDelayMs = DEFAULT_BASE_RETRY_DELAY_MS,
 }: UseQrTokenOptions): UseQrTokenReturn {
   const { isAuthenticated } = useAuth();
   const [token, setToken] = useState<QrTokenInfo | null>(null);
@@ -66,6 +75,7 @@ export function useQrToken({
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
 
   const clearRefreshTimer = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -97,6 +107,7 @@ export function useQrToken({
         setSupported(false);
         setToken(null);
         setError(null);
+        retryCountRef.current = 0; // Reset retry count on 503 (not a transient error)
         return;
       }
 
@@ -109,6 +120,7 @@ export function useQrToken({
       setToken(data);
       setSupported(true);
       setError(null);
+      retryCountRef.current = 0; // Reset retry count on success
 
       // Schedule refresh before expiration
       const expiresAt = new Date(data.expiresAt).getTime();
@@ -121,21 +133,45 @@ export function useQrToken({
       }, timeUntilRefresh);
 
     } catch (err) {
-      setError((err as Error).message);
-      setToken(null);
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      
+      // Schedule retry with exponential backoff if we haven't exceeded max retries
+      // Don't clear the existing token on retry - preserve the last good token
+      if (retryCountRef.current < maxRetries) {
+        const retryDelay = Math.min(
+          baseRetryDelayMs * Math.pow(2, retryCountRef.current),
+          MAX_RETRY_DELAY_MS
+        );
+        retryCountRef.current++;
+        
+        console.log(`[useQrToken] Retry ${retryCountRef.current}/${maxRetries} in ${retryDelay}ms`);
+        
+        clearRefreshTimer();
+        refreshTimerRef.current = setTimeout(() => {
+          setError(null); // Clear error before retry
+          fetchToken();
+        }, retryDelay);
+      } else {
+        // Max retries exceeded - clear token and give up
+        console.log('[useQrToken] Max retries exceeded, giving up');
+        setToken(null);
+      }
     } finally {
       setLoading(false);
     }
-  }, [workspaceId, sessionId, isAuthenticated, refreshBufferMs, clearRefreshTimer]);
+  }, [workspaceId, sessionId, isAuthenticated, refreshBufferMs, maxRetries, baseRetryDelayMs, clearRefreshTimer]);
 
   // Fetch token when enabled
   useEffect(() => {
     if (enabled && workspaceId && sessionId && isAuthenticated) {
+      retryCountRef.current = 0; // Reset retry count when re-enabling
       fetchToken();
     } else {
       setToken(null);
       setError(null);
       clearRefreshTimer();
+      retryCountRef.current = 0;
     }
 
     return () => {

@@ -222,6 +222,8 @@ export function KioskMode({
   );
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
+  // useWebSocket preserves devices during reconnection, so we can simply filter here
+  // without needing additional state preservation logic in KioskMode
   const mobileDevices = devices.filter(d => d.mode === 'mobile');
 
   // On mobile, render a simplified conversation-only view
