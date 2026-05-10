@@ -1047,3 +1047,46 @@ PR: #110
 - No issues need expansion 🎉
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 08:48 UTC - Implementation Worker (`baca18d`)
+
+✅ **Created: PR #111**
+
+- PR: [#111 - fix(server): add display API authentication](https://github.com/jpshackelford/voice-relay/pull/111)
+- Issue: [#103 - security: Display API endpoint requires authentication](https://github.com/jpshackelford/voice-relay/issues/103) (priority:high)
+- CI Status: ✅ All checks pass (Build Client, Server Tests, E2E Tests, Conventional Commits)
+
+**Implementation Summary:**
+
+This PR addresses a security vulnerability where the `/api/display` endpoint had no authentication, allowing unauthorized content injection into kiosk displays.
+
+**Changes Made:**
+1. **Migration** - `010_display_api_secrets.ts` adds encrypted secret columns to sessions table
+2. **Session Repository** - Added `createWithDisplaySecret()`, `getDisplaySecret()`, `setDisplaySecret()`
+3. **OpenHands Integration** - `StartConversationRequest` now supports `secrets` parameter, passed as `DISPLAY_API_SECRET` env var
+4. **System Prompt** - Updated `kiosk-system.md` with `Authorization: Bearer $DISPLAY_API_SECRET` header
+5. **Display Endpoint** - Added auth check with timing-safe comparison, supports `sessionId` (preferred) and `workspaceId` (deprecated)
+
+**Security Features:**
+- 32-byte (256-bit) cryptographically secure random secrets
+- Encrypted at rest using AES-256-GCM
+- Per-session scope limits blast radius
+- Timing-safe comparison prevents timing attacks
+- Unauthenticated requests return 401
+
+**Tests:**
+- 9 new tests for display API secret methods
+- All 428 server tests pass
+
+**Acceptance Criteria:**
+- [x] Display API secret generated when session is created
+- [x] Secret encrypted at rest using existing encryption module
+- [x] Secret passed to OpenHands via `secrets` parameter
+- [x] System prompt updated to include secret in curl examples
+- [x] `/api/display` validates Authorization header
+- [x] Unauthenticated requests return 401
+- [x] Timing-safe comparison used for secret validation
+- [x] Change from `workspaceId` to `sessionId` in request body
+
+**PR Status:** Ready for review ✅
