@@ -379,3 +379,35 @@ Waiting for smoke test investigation to complete before spawning new implementat
 - Tests depending on AI model behavior are inherently flaky; test connectivity separately from content
 
 ---
+### 2026-05-10 03:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2858a29` | implementation | Issue #86 - Kiosk canvas not updating | **NEW** |
+| `acafe10` | expansion | Issue #87 - QR code expiry | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker**
+   - Issue: [#86 - Kiosk canvas does not update when AI sends image to display](https://github.com/jpshackelford/voice-relay/issues/86) (priority:high)
+   - Root cause: AI lacks workspaceId context when calling /api/display
+   - Conversation: [`2858a29`](https://app.all-hands.dev/conversations/2858a29eb6c64e00af12cc1a3133e617)
+
+2. **Expansion Worker**
+   - Issue: [#87 - QR code expiry displays full-screen instead of refreshing corner](https://github.com/jpshackelford/voice-relay/issues/87)
+   - Conversation: [`acafe10`](https://app.all-hands.dev/conversations/acafe1011a3d42c0b5bfa98494cfde93)
+
+**Priority Assessment Applied:**
+- #86 → `priority:high` (core kiosk AI functionality broken)
+- #85 → `priority:medium` (UX bug, device naming)
+- #84 → `priority:low` (nice-to-have feature)
+
+**Current State:**
+- No open PRs (implementation in progress for #86)
+- Ready issues: #84 (low), #85 (medium), #86 (high - being implemented)
+- Issues needing expansion: #87 (in progress), #89, #90, #91, #93, #95, #98, #103
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Occupied (expansion worker)
+
+---
