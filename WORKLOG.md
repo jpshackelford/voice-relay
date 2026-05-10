@@ -958,3 +958,32 @@ Spawned merge worker to finalize description and squash-merge.
 - PR slot: Occupied (implementation worker)
 - Expansion slot: Available (nothing to expand)
 
+---
+### 2026-05-10 12:10 UTC - Implementation Worker (`cc3f13f`)
+
+✅ **Created: PR #114**
+
+- PR: [#114 - fix: clear AI error state on successful message send](https://github.com/jpshackelford/voice-relay/pull/114)
+- Issue: [#89 - bug: AI websocket connection error shown even when AI is connected and working](https://github.com/jpshackelford/voice-relay/issues/89) (priority:low)
+- Conversation: [`cc3f13f`](https://app.all-hands.dev/conversations/cc3f13f8f910412aac0ee38d7d3bfaa1)
+
+**Root Cause:**
+Race condition between client and server:
+1. Client sends connect request → server returns success before WebSocket is fully OPEN
+2. Client immediately forwards messages → server returns "WebSocket not connected" error
+3. WebSocket connects ~100ms later → AI works perfectly
+4. **Error display persists forever** because `sendMessage()` never cleared errors on success
+
+**Fix Applied:**
+- Added error clearing in `sendMessage()` function in `client/src/hooks/useAI.ts`
+- After successful message send, clear any previous transient errors: `if (error) setError(null)`
+- Self-healing: any transient error during connection will be cleared by the next successful operation
+
+**Testing:**
+- ✅ Created comprehensive test suite for `useAI` hook (16 tests)
+- ✅ All 175 client tests pass
+- ✅ TypeScript compilation successful
+- ✅ CI green (Build, Server Tests, E2E Tests, PR Lint)
+
+**PR Status:** Ready for review ✅
+
