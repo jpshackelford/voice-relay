@@ -378,4 +378,167 @@ describe('WorkspaceRepository', () => {
       expect(repo.isOwner(workspace.id, 'other-user')).toBe(false);
     });
   });
+
+  describe('getDeletionCounts', () => {
+    beforeEach(() => {
+      // Create additional tables for deletion counts
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS devices (
+          id TEXT PRIMARY KEY,
+          workspace_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          mode TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          utterance_id TEXT NOT NULL,
+          workspace_id TEXT,
+          sender_id TEXT NOT NULL,
+          sender_name TEXT NOT NULL,
+          text TEXT NOT NULL,
+          partial INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+    });
+
+    it('returns zero counts for empty workspace', () => {
+      const workspace = repo.create(testUserId, { name: 'Empty Workspace' });
+      const counts = repo.getDeletionCounts(workspace.id);
+
+      expect(counts.sessions).toBe(0);
+      expect(counts.devices).toBe(0);
+      expect(counts.messages).toBe(0);
+      expect(counts.members).toBe(1); // just the owner
+    });
+
+    it('returns correct counts for workspace with data', () => {
+      const workspace = repo.create(testUserId, { name: 'Test Workspace' });
+
+      // Add another member
+      const memberId = 'member-456';
+      db.prepare(`INSERT INTO users (id, github_id, username, created_at, last_login_at) VALUES (?, ?, ?, datetime('now'), datetime('now'))`).run(memberId, 67890, 'member');
+      repo.addMember(workspace.id, memberId);
+
+      // Add sessions
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-1', workspace.id, 'Session 1');
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-2', workspace.id, 'Session 2');
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-3', workspace.id, 'Session 3');
+
+      // Add devices
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-1', workspace.id, 'Device 1', 'kiosk');
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-2', workspace.id, 'Device 2', 'mobile');
+
+      // Add messages
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', workspace.id, 'user-1', 'User', 'Hello', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', workspace.id, 'user-2', 'User2', 'World', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u3', workspace.id, 'user-1', 'User', 'Test', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u4', workspace.id, 'user-2', 'User2', 'Message', 0);
+
+      const counts = repo.getDeletionCounts(workspace.id);
+
+      expect(counts.sessions).toBe(3);
+      expect(counts.devices).toBe(2);
+      expect(counts.messages).toBe(4);
+      expect(counts.members).toBe(2); // owner + member
+    });
+
+    it('does not count data from other workspaces', () => {
+      const workspace1 = repo.create(testUserId, { name: 'Workspace 1' });
+      const workspace2 = repo.create(testUserId, { name: 'Workspace 2' });
+
+      // Add data to workspace 1
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-1', workspace1.id, 'Session 1');
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-1', workspace1.id, 'Device 1', 'kiosk');
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', workspace1.id, 'user-1', 'User', 'Hello', 0);
+
+      // Add data to workspace 2
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-2', workspace2.id, 'Session 2');
+      db.prepare(`INSERT INTO sessions (id, workspace_id, name) VALUES (?, ?, ?)`).run('session-3', workspace2.id, 'Session 3');
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-2', workspace2.id, 'Device 2', 'mobile');
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-3', workspace2.id, 'Device 3', 'mobile');
+      db.prepare(`INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`).run('device-4', workspace2.id, 'Device 4', 'mobile');
+
+      // Counts for workspace 1 should only include workspace 1 data
+      const counts1 = repo.getDeletionCounts(workspace1.id);
+      expect(counts1.sessions).toBe(1);
+      expect(counts1.devices).toBe(1);
+      expect(counts1.messages).toBe(1);
+      expect(counts1.members).toBe(1);
+
+      // Counts for workspace 2 should only include workspace 2 data
+      const counts2 = repo.getDeletionCounts(workspace2.id);
+      expect(counts2.sessions).toBe(2);
+      expect(counts2.devices).toBe(3);
+      expect(counts2.messages).toBe(0);
+      expect(counts2.members).toBe(1);
+    });
+  });
+
+  describe('deleteMessages', () => {
+    beforeEach(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          utterance_id TEXT NOT NULL,
+          workspace_id TEXT,
+          sender_id TEXT NOT NULL,
+          sender_name TEXT NOT NULL,
+          text TEXT NOT NULL,
+          partial INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+    });
+
+    it('deletes all messages for a workspace', () => {
+      const workspace = repo.create(testUserId, { name: 'Test Workspace' });
+
+      // Add messages
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', workspace.id, 'user-1', 'User', 'Hello', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', workspace.id, 'user-2', 'User2', 'World', 0);
+
+      // Verify messages exist
+      const countBefore = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(workspace.id) as { count: number } | undefined;
+      expect(countBefore?.count).toBe(2);
+
+      // Delete messages
+      const deletedCount = repo.deleteMessages(workspace.id);
+      expect(deletedCount).toBe(2);
+
+      // Verify messages are deleted
+      const countAfter = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(workspace.id) as { count: number } | undefined;
+      expect(countAfter?.count).toBe(0);
+    });
+
+    it('returns zero when no messages to delete', () => {
+      const workspace = repo.create(testUserId, { name: 'Empty Workspace' });
+      const deletedCount = repo.deleteMessages(workspace.id);
+      expect(deletedCount).toBe(0);
+    });
+
+    it('only deletes messages from specified workspace', () => {
+      const workspace1 = repo.create(testUserId, { name: 'Workspace 1' });
+      const workspace2 = repo.create(testUserId, { name: 'Workspace 2' });
+
+      // Add messages to both workspaces
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u1', workspace1.id, 'user-1', 'User', 'Hello', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u2', workspace2.id, 'user-2', 'User2', 'World', 0);
+      db.prepare(`INSERT INTO messages (utterance_id, workspace_id, sender_id, sender_name, text, partial) VALUES (?, ?, ?, ?, ?, ?)`).run('u3', workspace2.id, 'user-2', 'User2', 'Test', 0);
+
+      // Delete messages from workspace 1 only
+      repo.deleteMessages(workspace1.id);
+
+      // Verify only workspace 1 messages are deleted
+      const count1 = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(workspace1.id) as { count: number } | undefined;
+      const count2 = db.prepare('SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?').get(workspace2.id) as { count: number } | undefined;
+
+      expect(count1?.count).toBe(0);
+      expect(count2?.count).toBe(2);
+    });
+  });
 });

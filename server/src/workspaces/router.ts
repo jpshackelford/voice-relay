@@ -56,6 +56,8 @@ export interface WorkspaceRouterConfig {
   }, error?: string) => void;
   /** Callback to handle device removal (send notification, disconnect WebSocket, broadcast device list) */
   onDeviceRemoved?: (deviceId: string, workspaceId: string) => void;
+  /** Callback to disconnect all devices when a workspace is deleted */
+  onWorkspaceDeleted?: (workspaceId: string) => void;
 }
 
 export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
@@ -70,6 +72,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     onJoinRequest,
     onJoinResolved,
     onDeviceRemoved,
+    onWorkspaceDeleted,
   } = config;
   const auth = requireAuth(authConfig);
 
@@ -169,6 +172,29 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Get deletion preview (counts of items to be deleted)
+  router.get('/:id/deletion-preview', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can view deletion preview' });
+        return;
+      }
+
+      const counts = workspaceRepository.getDeletionCounts(workspace.id);
+      res.json(counts);
+    } catch (err) {
+      console.error('[Workspaces] Deletion preview error:', err);
+      res.status(500).json({ error: 'Failed to get deletion preview' });
+    }
+  });
+
   // Delete workspace
   router.delete('/:id', auth, async (req: Request, res: Response) => {
     try {
@@ -184,10 +210,43 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      workspaceRepository.delete(workspace.id);
+      // Log deletion initiation before any changes
+      console.log('[Audit] Workspace deletion initiated:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        ownerId: workspace.ownerId,
+        deletedBy: req.user!.id,
+      });
+
+      // Delete messages and workspace atomically in a transaction
+      const deletedMessages = workspaceRepository.deleteWorkspaceWithMessages(workspace.id);
+
+      // Disconnect active WebSocket connections AFTER successful DB transaction
+      // This ensures we only disconnect devices if the workspace was actually deleted
+      if (onWorkspaceDeleted) {
+        try {
+          onWorkspaceDeleted(workspace.id);
+        } catch (err) {
+          // Log but don't fail the request - workspace is already deleted
+          console.error('[Audit] Error disconnecting workspace devices:', {
+            workspaceId: workspace.id,
+            error: err,
+          });
+        }
+      }
+
+      // Log deletion completion
+      console.log('[Audit] Workspace deletion completed:', {
+        workspaceId: workspace.id,
+        deletedMessages,
+      });
+
       res.status(204).send();
     } catch (err) {
-      console.error('[Workspaces] Delete error:', err);
+      console.error('[Audit] Workspace deletion failed:', {
+        workspaceId: req.params.id,
+        error: err,
+      });
       res.status(500).json({ error: 'Failed to delete workspace' });
     }
   });

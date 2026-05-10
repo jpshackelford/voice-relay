@@ -237,6 +237,25 @@ export class WorkspaceRepository {
     stmt.run(id);
   }
 
+  /**
+   * Delete a workspace and all its messages atomically in a transaction.
+   * This ensures either both operations succeed or neither does, preventing
+   * inconsistent state where messages are deleted but workspace remains.
+   * @returns Number of messages deleted
+   */
+  deleteWorkspaceWithMessages(id: string): number {
+    const deleteMessagesStmt = this.db.prepare('DELETE FROM messages WHERE workspace_id = ?');
+    const deleteWorkspaceStmt = this.db.prepare('DELETE FROM workspaces WHERE id = ?');
+
+    const transaction = this.db.transaction(() => {
+      const messagesResult = deleteMessagesStmt.run(id);
+      deleteWorkspaceStmt.run(id);
+      return messagesResult.changes;
+    });
+
+    return transaction();
+  }
+
   regenerateJoinCode(id: string): string {
     const newCode = generateJoinCode();
     const now = new Date().toISOString();
@@ -400,5 +419,46 @@ export class WorkspaceRepository {
    */
   canAccess(workspaceId: string, userId: string): boolean {
     return this.isOwner(workspaceId, userId) || this.isMember(workspaceId, userId);
+  }
+
+  /**
+   * Get counts of records that will be deleted when a workspace is deleted.
+   * Used to show user what will be affected before deletion.
+   */
+  getDeletionCounts(workspaceId: string): {
+    sessions: number;
+    devices: number;
+    messages: number;
+    members: number;
+  } {
+    const sessionsStmt = this.db.prepare<[string], { count: number }>(
+      'SELECT COUNT(*) as count FROM sessions WHERE workspace_id = ?'
+    );
+    const devicesStmt = this.db.prepare<[string], { count: number }>(
+      'SELECT COUNT(*) as count FROM devices WHERE workspace_id = ?'
+    );
+    const messagesStmt = this.db.prepare<[string], { count: number }>(
+      'SELECT COUNT(*) as count FROM messages WHERE workspace_id = ?'
+    );
+    const membersStmt = this.db.prepare<[string], { count: number }>(
+      'SELECT COUNT(*) as count FROM workspace_members WHERE workspace_id = ?'
+    );
+
+    return {
+      sessions: sessionsStmt.get(workspaceId)?.count ?? 0,
+      devices: devicesStmt.get(workspaceId)?.count ?? 0,
+      messages: messagesStmt.get(workspaceId)?.count ?? 0,
+      members: membersStmt.get(workspaceId)?.count ?? 0,
+    };
+  }
+
+  /**
+   * Delete all messages for a workspace.
+   * Messages don't have CASCADE delete, so we need to delete them explicitly.
+   */
+  deleteMessages(workspaceId: string): number {
+    const stmt = this.db.prepare('DELETE FROM messages WHERE workspace_id = ?');
+    const result = stmt.run(workspaceId);
+    return result.changes;
   }
 }

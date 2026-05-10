@@ -88,6 +88,15 @@ export interface DeviceRemovedMessage {
   reason: 'removed-from-workspace';
 }
 
+/**
+ * Server → All devices in workspace: Workspace has been deleted.
+ * Sent to all devices before disconnecting their WebSockets.
+ */
+export interface WorkspaceDeletedMessage {
+  type: 'workspace-deleted';
+  reason?: string;
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -97,7 +106,8 @@ export type ServerMessage =
   | DisplayMessage
   | JoinRequestMessage
   | JoinResolvedMessage
-  | DeviceRemovedMessage;
+  | DeviceRemovedMessage
+  | WorkspaceDeletedMessage;
 
 export interface DisplayMessage {
   type: 'display';

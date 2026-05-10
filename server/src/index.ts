@@ -798,6 +798,17 @@ async function start() {
             wasConnected: !!device,
           });
         },
+        // Callback to disconnect all devices when a workspace is deleted
+        onWorkspaceDeleted: (workspaceId) => {
+          const disconnectedCount = registry.disconnectWorkspaceDevices(
+            workspaceId, 
+            'This workspace has been deleted'
+          );
+          console.log('[WorkspaceDeletion] Disconnected devices:', {
+            workspaceId,
+            disconnectedCount,
+          });
+        },
         // Callback to broadcast join request to owner's kiosk devices
         onJoinRequest: (workspaceId, request) => {
           // Track the pending request for later resolution (requestId -> userId)

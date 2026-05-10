@@ -15,9 +15,10 @@ interface UseWebSocketOptions {
   onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
   onDeviceRemovedMessage?: (message: ServerMessage & { type: 'device-removed' }) => void;
+  onWorkspaceDeletedMessage?: (message: ServerMessage & { type: 'workspace-deleted' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -32,6 +33,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
   const onDeviceRemovedMessageRef = useRef(onDeviceRemovedMessage);
+  const onWorkspaceDeletedMessageRef = useRef(onWorkspaceDeletedMessage);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -45,6 +47,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onJoinRequestMessageRef.current = onJoinRequestMessage;
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
   onDeviceRemovedMessageRef.current = onDeviceRemovedMessage;
+  onWorkspaceDeletedMessageRef.current = onWorkspaceDeletedMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -137,6 +140,17 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             setConnected(false);
             // Notify callback if provided
             onDeviceRemovedMessageRef.current?.(message);
+            break;
+          case 'workspace-deleted':
+            console.log('[WS] Workspace was deleted:', message.reason);
+            // Clear stored token since it's now invalid
+            clearDeviceToken();
+            setConnected(false);
+            // Clear devices since workspace no longer exists
+            setDevices([]);
+            lastKnownDevicesRef.current = [];
+            // Notify callback if provided
+            onWorkspaceDeletedMessageRef.current?.(message);
             break;
         }
       } catch (err) {

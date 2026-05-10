@@ -130,6 +130,12 @@ export interface DeviceRemovedMessage {
   reason: 'removed-from-workspace';
 }
 
+/** Server → All devices in workspace: Workspace has been deleted */
+export interface WorkspaceDeletedMessage {
+  type: 'workspace-deleted';
+  reason?: string;
+}
+
 export type ServerMessage = 
   | RegisteredMessage 
   | DeviceListMessage 
@@ -139,7 +145,8 @@ export type ServerMessage =
   | AIStatusMessage
   | JoinRequestMessage
   | JoinResolvedMessage
-  | DeviceRemovedMessage;
+  | DeviceRemovedMessage
+  | WorkspaceDeletedMessage;
 
 export interface Utterance {
   id: string;
