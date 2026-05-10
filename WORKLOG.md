@@ -676,6 +676,38 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 - Expansion slot: Occupied (expansion worker)
 
 ---
+### 2026-05-10 04:36 UTC - Expansion Worker (`707f972`)
+
+✅ **Expanded Issue #91**
+
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91)
+- Type: Bug
+- Status: Ready for implementation
+- Conversation: [`707f972`](https://app.all-hands.dev/conversations/707f972512ac4fd8a694fb260526be9f)
+
+**Root Cause Analysis:**
+
+The `MobileMode.tsx` component references 5 CSS classes that **do not exist** in `App.css`:
+
+| Class Name | Used in MobileMode.tsx | Defined in App.css |
+|------------|------------------------|---------------------|
+| `mobile-mode` | Line 189 | ❌ Missing |
+| `mobile-participants` | Line 204 | ❌ Missing |
+| `mobile-messages` | Line 230 | ❌ Missing |
+| `mobile-input-area` | Line 253 | ❌ Missing |
+| `mobile-input-row` | Line 259 | ❌ Missing |
+
+Without these CSS definitions, no flexbox layout is applied. Browser defaults cause elements to stack vertically instead of horizontally.
+
+**Proposed Fix:**
+Add the missing CSS classes to `App.css`, following the established patterns from `.kiosk-input-row` and `.chat-input-row`.
+
+**Files to Modify:**
+- `client/src/App.css` - Add ~80-100 lines of mobile-specific styles
+
+**Complexity:** Low
+
+---
 ### 2026-05-10 04:39 UTC - Implementation Worker (Issue #85)
 
 🚀 **Created: PR #109**
