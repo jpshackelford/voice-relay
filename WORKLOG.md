@@ -142,3 +142,22 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
 
+---
+### 2026-05-10 01:10 UTC - Expansion Worker (`988fb15`)
+
+✅ **Expanded Issue #84**
+
+- Issue: [#84 - feat: Display deployed commit hash in health endpoint and UI footer](https://github.com/jpshackelford/voice-relay/issues/84)
+- Type: Enhancement
+- Status: **Ready for implementation**
+- Approach: Generate `version.json` at deploy time, read in server, expose via `/health`, display in UI footer
+
+**Files affected:**
+- `.gitignore` - Add version.json
+- `.github/workflows/deploy.yml` - Generate version.json in deploy and rollback
+- `server/src/index.ts` - Read version.json, update /health endpoint
+- `client/src/pages/WorkspaceHome.tsx` - Add version footer
+- `client/src/App.css` - Footer styling
+
+**Complexity:** Low
+
