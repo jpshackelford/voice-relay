@@ -31,118 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-08 14:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | - | - | - |
-
-🔒 **Auto-disabled due to extended waiting period**
-
-**Housekeeping:**
-- ✅ Closed #81 as duplicate of #74 (same root cause)
-
-**Current State:**
-- No open PRs
-- Open issues: #74 (critical, infrastructure)
-- Ready issues: None
-- 5+ consecutive "Waiting" entries for infrastructure issue
-
-**Reason for Disable:**
-The only open issue (#74) requires **manual SSH intervention** to fix:
-- Node.js version upgrade (20.18.3 → 20.19+)
-- Corrupted node_modules cleanup
-
-This is NOT a code bug - CI tests pass successfully. Automation cannot help until server is manually fixed.
-
-**To re-enable after fixing the server:**
-1. SSH to vr.chorecraft.net and run the fix commands from #74
-2. Verify the app is healthy: `curl -s http://localhost:3000/api/health`
-3. Close issue #74
-4. Re-enable automation:
-   - OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator" → Enable
-   - Or via API:
-     ```bash
-     curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
-       -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
-       -H "Content-Type: application/json" \
-       -d '{"enabled": true}'
-     ```
-
----
-### 2026-05-10 00:43 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (this) | implementation | Issue #82 - AI toggle visibility | in-progress |
-
-🚀 **Created: PR #83**
-- PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
-- Issue: [#82 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/82)
-
-**Root Cause Analysis:**
-- The `.ai-toggle` button is inside the kiosk drawer
-- Per F3 requirement, the drawer starts **collapsed** by default
-- Tests tried to click the button without opening the drawer first
-- PR #68's CSS fix works, but only when the drawer is open
-
-**Fix Applied:**
-- Added `ensureDrawerOpen()` helper to open the collapsed drawer
-- Updated `waitForAIAvailabilityCheck()` to call `ensureDrawerOpen()` first
-- Updated AI Unavailable test to also open drawer before checking
-
-**CI Status:**
-- Build Client: ✅ Pass
-- Server Tests: ✅ Pass
-- E2E Tests: ✅ Pass  
-- PR Title Lint: ✅ Pass
-
-**PR Status:** Ready for review
-
-**Housekeeping:**
-- ✅ Added root cause analysis comment to Issue #82
-- ✅ Added `ready` and `priority:high` labels to Issue #82
-- ✅ Archived 8 worklog entries from 2026-05-08
-
-**Current State:**
-- PR #83: CI green ✅, ready for review
-- Open issues: #82 (linked to PR #83)
-- Automation was re-enabled (manually by this orchestrator run)
-
----
-### 2026-05-10 01:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `d67d968` | review | PR #83 - AI toggle visibility | **NEW** |
-| `988fb15` | expansion | Issue #84 - commit hash feature | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Review Worker**
-   - PR: [#83 - fix(tests): open drawer before clicking AI toggle button](https://github.com/jpshackelford/voice-relay/pull/83)
-   - Issue: [#82 - Smoke test failure](https://github.com/jpshackelford/voice-relay/issues/82)
-   - Conversation: [`d67d968`](https://app.all-hands.dev/conversations/d67d968b8a6f41a8ac4d3d256e03764b)
-   - Review thread: Use `ensureDrawerOpen()` helper instead of duplicated logic
-
-2. **Expansion Worker**
-   - Issue: [#84 - feat: Display deployed commit hash in health endpoint and UI footer](https://github.com/jpshackelford/voice-relay/issues/84)
-   - Conversation: [`988fb15`](https://app.all-hands.dev/conversations/988fb15581684299b700f84192b59234)
-
-**Housekeeping:**
-- ✅ Truncated WORKLOG.md: archived 15 entries to WORKLOG_ARCHIVE_2026-05-08.md
-
-**Current State:**
-- [PR #83](https://github.com/jpshackelford/voice-relay/pull/83): `oR green ready 💬1` → review in progress
-- Ready issues: #82 (linked to PR #83)
-- Issues needing expansion: #84, #85, #86, #87, #88, #89 (6 total, #84 being expanded)
-- PR slot: Occupied (review worker)
-- Expansion slot: Occupied (expansion worker)
-
----
 ### 2026-05-10 01:10 UTC - Expansion Worker (`988fb15`)
 
 ✅ **Expanded Issue #84**
@@ -205,7 +93,6 @@ This is NOT a code bug - CI tests pass successfully. Automation cannot help unti
 - Issues needing expansion: #85 (now being expanded), #86, #87, #88, #89, #90, #91 + more
 - PR slot: Occupied (merge worker)
 - Expansion slot: Occupied (expansion worker)
-
 
 ---
 ### 2026-05-10 01:35 UTC - Merge Agent
@@ -472,8 +359,6 @@ Waiting for smoke test investigation to complete before spawning new implementat
 **Complexity:** Medium
 
 ---
-
----
 ### 2026-05-10 03:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -570,7 +455,6 @@ Add `setError(null)` in `useAI.ts` `sendMessage()` on successful response. This 
 **Test Count:** 419 total (was 417, +2 new tests)
 
 **PR Status:** Ready for review → All threads resolved → Marked ready for review
-
 
 ---
 ### 2026-05-10 04:05 UTC - Orchestrator
@@ -841,7 +725,6 @@ After successful `validateDeviceToken()`, the hook now:
 - PR slot: Occupied (review worker)
 - Expansion slot: Occupied (expansion worker)
 
-
 ---
 ### 2026-05-10 06:14 UTC - Expansion Worker (`e8f5c2b`)
 
@@ -928,6 +811,40 @@ Confirmed server **always** returns name:
 - Expansion slot: Occupied (expansion worker)
 
 ---
+### 2026-05-10 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #95**
+
+- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Technical Summary:**
+- Backend DELETE endpoint exists but needs enhancement for messages cleanup and WebSocket disconnection
+- Need new deletion-preview endpoint for showing counts before deletion
+- Client needs DeleteWorkspaceModal component and danger zone section
+
+**Key Findings:**
+- CASCADE deletion works for most tables (workspace_settings, workspace_members, devices, sessions, qr_tokens, join_requests)
+- Messages table does NOT cascade - requires explicit `DELETE FROM messages WHERE workspace_id = ?`
+- DeviceRegistry needs `disconnectWorkspaceDevices()` method for graceful socket cleanup
+
+**Files to create:**
+- `client/src/components/DeleteWorkspaceModal.tsx` - Confirmation modal with name typing
+- `client/src/hooks/useDeletionPreview.ts` - Hook to fetch deletion counts
+
+**Files to modify:**
+- `server/src/workspaces/router.ts` - Add deletion-preview endpoint, enhance DELETE
+- `server/src/workspaces/workspace-repository.ts` - Add getDeletionCounts, deleteMessages methods
+- `server/src/registry.ts` - Add disconnectWorkspaceDevices method
+- `client/src/pages/WorkspaceHome.tsx` - Add danger zone section
+- `client/src/App.css` - Danger zone styling
+
+**Complexity:** Medium-High (~10 hours estimated)
+
+**Labels added:** `ready`
+
+---
 ### 2026-05-10 06:37 UTC - Merge Worker (PR #109)
 
 ✅ **Merged PR #109**
@@ -961,41 +878,6 @@ updated from the server's validate response, ensuring all storage layers
 - App auto-deploys to vr.chorecraft.net on merge to main
 - No breaking changes, no migrations, low risk
 - Device names now persist correctly across all views
-
-
----
-### 2026-05-10 06:36 UTC - Expansion Worker
-
-✅ **Expanded Issue #95**
-
-- Issue: [#95 - feat: Permanently delete workspace from workspace home](https://github.com/jpshackelford/voice-relay/issues/95)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Technical Summary:**
-- Backend DELETE endpoint exists but needs enhancement for messages cleanup and WebSocket disconnection
-- Need new deletion-preview endpoint for showing counts before deletion
-- Client needs DeleteWorkspaceModal component and danger zone section
-
-**Key Findings:**
-- CASCADE deletion works for most tables (workspace_settings, workspace_members, devices, sessions, qr_tokens, join_requests)
-- Messages table does NOT cascade - requires explicit `DELETE FROM messages WHERE workspace_id = ?`
-- DeviceRegistry needs `disconnectWorkspaceDevices()` method for graceful socket cleanup
-
-**Files to create:**
-- `client/src/components/DeleteWorkspaceModal.tsx` - Confirmation modal with name typing
-- `client/src/hooks/useDeletionPreview.ts` - Hook to fetch deletion counts
-
-**Files to modify:**
-- `server/src/workspaces/router.ts` - Add deletion-preview endpoint, enhance DELETE
-- `server/src/workspaces/workspace-repository.ts` - Add getDeletionCounts, deleteMessages methods
-- `server/src/registry.ts` - Add disconnectWorkspaceDevices method
-- `client/src/pages/WorkspaceHome.tsx` - Add danger zone section
-- `client/src/App.css` - Danger zone styling
-
-**Complexity:** Medium-High (~10 hours estimated)
-
-**Labels added:** `ready`
 
 ---
 ### 2026-05-10 07:05 UTC - Orchestrator
@@ -1098,4 +980,3 @@ The issue involved three contributing factors:
 **CI Status:** ✅ All checks passed (Build Client, Server Tests, E2E Tests, PR Lint)
 
 **PR Status:** Ready for review
-
