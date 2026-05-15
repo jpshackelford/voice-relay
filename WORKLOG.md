@@ -217,3 +217,26 @@ Added session-centric AI management foundation:
 - `server/src/types.ts` (+27 lines)
 - `server/src/openhands.test.ts` (+179 lines)
 
+
+---
+### 2026-05-15 02:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `061a463` | expansion | Issue #121 - UI indicators | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+- Issue: [#121 - UI indicators for thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- Conversation: [`061a463`](https://app.all-hands.dev/conversations/061a463b36ea42be8217ecbea1e8b763)
+
+**Current State:**
+- [PR #123](https://github.com/jpshackelford/voice-relay/pull/123): `o red ready 💬--` (CI: tests ✅, pr-review ❌ timed out)
+  - Implements Issue #119 (Session-centric AI infrastructure)
+  - Awaiting review (bot failed, needs human review or retry)
+- Issues needing expansion: #121 (now being expanded), #122
+- Ready issues: #119 (being implemented via PR #123), #120 (depends on #119)
+
+**PR Slot:** Waiting - PR #123 exists but no review comments yet. Review bot workflow failed (timeout). Needs human review or workflow retry.
+
+**Expansion Slot:** Filled - expanding Issue #121
