@@ -4,15 +4,7 @@ import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
-
-interface AIState {
-  connected: boolean;
-  connecting: boolean;
-  thinking: boolean;
-  conversationId: string | null;
-  error: string | null;
-  checkAvailability: () => Promise<{ available: boolean; message: string }>;
-}
+import type { AIState } from '../hooks/useAI';
 
 interface KioskModeProps {
   deviceId: string;
