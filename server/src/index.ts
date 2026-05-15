@@ -15,6 +15,7 @@ import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
+import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import type { 
   ClientMessage, 
   RegisteredMessage, 
@@ -103,112 +104,6 @@ function cleanupOrphanedPendingRequests() {
 
 // Start periodic cleanup
 setInterval(cleanupOrphanedPendingRequests, PENDING_REQUEST_CLEANUP_INTERVAL_MS);
-
-/**
- * Auto-connect AI when first device joins a session.
- * Creates an AI conversation for the session and broadcasts status to all devices.
- */
-async function autoConnectAI(
-  sessionId: string,
-  workspaceId: string,
-  sessionRepository: SessionRepository,
-  workspaceRepository: WorkspaceRepository | null,
-  store: MessageStore
-): Promise<void> {
-  console.log(`[AI] Auto-connecting AI for session ${sessionId}`);
-
-  // Broadcast connecting status to all devices in session
-  const connectingStatus: SessionAIStatusMessage = {
-    type: 'session-ai-status',
-    sessionId,
-    connecting: true,
-    connected: false,
-  };
-  registry.broadcastMessageToSession(sessionId, connectingStatus);
-
-  try {
-    // Get workspace API key (if configured)
-    const apiKey = workspaceRepository
-      ? await getWorkspaceApiKey(
-          workspaceId,
-          (id) => workspaceRepository?.getSettings(id) ?? null,
-          decryptApiKey
-        )
-      : null;
-
-    // Check if AI is available (workspace key or env key)
-    if (!apiKey && !aiSessionManager.isAvailable()) {
-      console.log(`[AI] Auto-connect skipped for session ${sessionId}: No API key available`);
-      const unavailableStatus: SessionAIStatusMessage = {
-        type: 'session-ai-status',
-        sessionId,
-        connecting: false,
-        connected: false,
-        error: 'OpenHands API not configured',
-      };
-      registry.broadcastMessageToSession(sessionId, unavailableStatus);
-      return;
-    }
-
-    // Get or create display secret for the session
-    let displayApiSecret = sessionRepository.getDisplaySecret(sessionId);
-    if (!displayApiSecret) {
-      displayApiSecret = sessionRepository.setDisplaySecret(sessionId);
-    }
-
-    // Get min display lines from connected kiosks
-    const displayLines = registry.getMinKioskDisplayLines(workspaceId);
-
-    // Create AI session using session-centric method
-    const aiSession = await aiSessionManager.getOrCreateForSession(
-      sessionId,
-      workspaceId,
-      (text: string) => {
-        // Relay AI responses to all devices in session
-        const aiMessage: RelayedTextMessage = {
-          type: 'text',
-          utteranceId: `ai-${Date.now()}`,
-          workspaceId,
-          sessionId,
-          senderId: 'ai',
-          senderName: 'AI Assistant',
-          text,
-          partial: false,
-        };
-        store.append(aiMessage);
-        registry.broadcastToSession(aiMessage, sessionId);
-      },
-      {
-        displayLines,
-        apiKey: apiKey || undefined,
-        displayApiSecret: displayApiSecret || undefined,
-      }
-    );
-
-    // Broadcast connected status
-    const connectedStatus: SessionAIStatusMessage = {
-      type: 'session-ai-status',
-      sessionId,
-      connecting: false,
-      connected: true,
-      conversationId: aiSession.conversationId,
-    };
-    registry.broadcastMessageToSession(sessionId, connectedStatus);
-    console.log(`[AI] Auto-connected AI for session ${sessionId}, conversation: ${aiSession.conversationId}`);
-  } catch (err) {
-    // Log full error server-side for debugging
-    console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err);
-    // Sanitize error message for clients to avoid leaking internal details
-    const errorStatus: SessionAIStatusMessage = {
-      type: 'session-ai-status',
-      sessionId,
-      connecting: false,
-      connected: false,
-      error: 'Failed to connect AI assistant',
-    };
-    registry.broadcastMessageToSession(sessionId, errorStatus);
-  }
-}
 
 // Auth configuration from environment variables
 
@@ -640,21 +535,23 @@ wss.on('connection', (ws: WebSocket) => {
           ws.send(JSON.stringify(historyMessage));
 
           // Auto-connect AI when first device joins session
-          // Check if this is the first device and no AI session exists
-          if (sessionRepository && sessionId && sessionId !== 'default') {
-            const devicesInSession = sessionRepository.getDevices(sessionId);
-            const isFirstDevice = devicesInSession.length === 1;
-
-            if (isFirstDevice && !aiSessionManager.hasSessionAI(sessionId)) {
-              // Start AI connection asynchronously (don't block registration)
-              autoConnectAI(
-                sessionId,
-                requestedWorkspaceId,
-                sessionRepository,
-                workspaceRepository,
-                store
-              ).catch(err => console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err));
-            }
+          if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, aiSessionManager)) {
+            // Start AI connection asynchronously (don't block registration)
+            autoConnectAI(sessionId, requestedWorkspaceId, {
+              registry,
+              sessionRepository,
+              workspaceRepository,
+              aiSessionManager,
+              store,
+              getWorkspaceApiKey: async (wsId) => 
+                workspaceRepository
+                  ? await getWorkspaceApiKey(
+                      wsId,
+                      (id) => workspaceRepository?.getSettings(id) ?? null,
+                      decryptApiKey
+                    )
+                  : null,
+            }).catch(err => console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err));
           }
           break;
         }
