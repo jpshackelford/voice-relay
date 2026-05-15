@@ -673,3 +673,34 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Callers already handle AI unavailability via status check and `test.skip()` - the error suppression was redundant
 
 All 1 review thread resolved. CI passing. PR marked ready for review.
+
+---
+### 2026-05-15 19:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ecce820` | review | PR #128 - Smoke test fixes (Round 2) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Conversation: [`ecce820`](https://app.all-hands.dev/conversations/ecce82028d1b44c1891a6b94770a20c2)
+
+**Review Issues to Address:**
+1. 🟠 Test name misleading - "transitions through connecting states" only tests final state
+2. 🟡 Redundant assertion - waitForAIAutoConnect already verifies visibility
+3. 🟡 Same redundancy - waitForAIAutoConnect already verified visibility  
+4. 🟡 Redundant CSS class inspection - toHaveClass assertion already confirms active
+
+**Current State:**
+- PR #128: `oRFRC green ready 💬4` (CI green, 4 unresolved threads)
+- Issue #127 (critical) linked to PR #128 - smoke test failure
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `333b79f` (review #128 round 1), `9fe0274` (implementation #127)
+- `e2559ce` (expansion #127), `3f0a24b` (merge #126), `8002e73` (review #126)
+
