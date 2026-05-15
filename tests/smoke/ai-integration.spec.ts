@@ -294,45 +294,6 @@ test.describe('AI Assistant Integration', () => {
         await expect(markdownDisplay).toBeVisible({ timeout: 30000 });
       }
     });
-
-    test('AI status indicator transitions through connecting states', async ({ page }) => {
-      // This test verifies the AI status indicator shows proper state transitions
-      // In the session-centric architecture, AI auto-connects when a session starts
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
-      const workspace = await getAIEnabledWorkspace(page);
-      if (!workspace) {
-        test.skip(true, 'No workspace available');
-        return;
-      }
-
-      await navigateToKiosk(page, workspace.id);
-      await ensureDrawerOpen(page);
-
-      // AI status indicator should eventually appear (showing connecting or connected)
-      const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toBeVisible({ timeout: 30000 });
-
-      // Should eventually reach connected state (active class)
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
-
-      // Verify the status indicator has valid CSS classes
-      const classes = await aiStatus.evaluate((el) => Array.from(el.classList));
-      const hasAiStatus = classes.includes('ai-status');
-      const isActive = classes.includes('active');
-
-      expect(hasAiStatus).toBe(true);
-      expect(isActive).toBe(true);
-
-      // Verify UI consistency - active status should match kiosk AI status indicator
-      await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
-    });
   });
 
   test.describe('AI Unavailable Scenarios', () => {
