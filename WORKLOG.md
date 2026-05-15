@@ -767,3 +767,38 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 **Previous Workers (all finished):**
 - `4f3a5c4` (implementation #122), `9de89cb` (merge #125), `316a714` (implementation #121)
 - `a321264` (merge #124), and previous review workers for PR #124
+
+---
+### 2026-05-15 17:10 UTC - Review Worker (`8002e73`)
+
+✅ **Review Feedback Addressed: PR #126**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Missing `.ai-status` CSS class | 🔴 Critical | ✅ Fixed in `e3ead79` |
+| `sessionId` prop not passed to MobileMode | 🔴 Critical | ✅ Fixed in `ca8a948` |
+| Guard against undefined `device.sessionId` | 🟡 Suggestion | ✅ Fixed in `244d54a` |
+
+**Commits:**
+1. `e3ead79` - fix: add missing .ai-status CSS class for AI status indicator
+2. `ca8a948` - fix: pass sessionId prop to MobileMode in SessionView
+3. `244d54a` - refactor: make sessionId guard explicit in AI forwarding logic
+
+**Technical Details:**
+- Added `.ai-status` CSS class based on `.ai-toggle` but without interactive states
+- SessionView.tsx now passes `sessionId` to MobileMode for consistency with KioskMode
+- Workspace.tsx intentionally does NOT pass `sessionId` (operates without sessions - AI disabled)
+- Flattened nested conditional structure in server forwarding logic for clarity
+
+All 3 review threads resolved. CI passing. PR marked ready for review.
+
+**Session-centric AI Migration:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR MERGE
