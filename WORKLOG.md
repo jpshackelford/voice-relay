@@ -458,3 +458,31 @@ PR #123 meets merge criteria - spawning merge worker to squash-merge and close I
 **CI Status:** All checks passed ✅
 
 ---
+### 2026-05-15 10:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `26bf0d8` | review | PR #124 - Auto-connect AI | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Conversation: [`26bf0d8`](https://app.all-hands.dev/conversations/26bf0d8638594172a211beb20e9996b1)
+
+**Review Issues to Address:**
+1. 🔴 Critical: Hardcoded production URLs in system prompt
+2. 🟠 Important: Raw error messages exposed to clients
+3. 🟡 Minor: Race condition, redundant null coalescing, unused parameter
+
+**Current State:**
+- PR #124: `oRC green ready 💬5` (CI green, has 5 unresolved review comments)
+- Issues awaiting implementation: #121 (priority:medium), #122 (priority:low - blocked)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `e597152` (implementation #120) - finished ✓
+
+---
