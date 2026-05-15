@@ -31,37 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 03:38 UTC - Expansion Worker (`2476742`)
-
-✅ **Expanded Issue #122: Remove legacy device-centric AI code**
-
-- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
-- Type: Chore/Cleanup
-- Status: **Ready for implementation** ✅
-- Label: `ready`
-
-**Technical Analysis Completed:**
-
-Identified **~350 lines** of legacy device-centric AI code to remove across 7 files:
-
-| Category | Files | Lines |
-|----------|-------|-------|
-| Server endpoints | `server/src/index.ts` | ~150 |
-| AISessionManager | `server/src/openhands.ts` | ~100 |
-| Client hook | `client/src/hooks/useAI.ts` | ~60 |
-| UI components | `KioskMode.tsx`, `MobileMode.tsx` | ~40 |
-| Tests | Multiple | Update required |
-
-**Dependencies (BLOCKING):**
-- Issue #119 (PR #123) - Session-centric AI infrastructure - **OPEN**
-- Issue #120 - Auto-connect AI - **OPEN**
-- Issue #121 - UI indicators - **OPEN**
-
-All three must be merged and validated in production before this cleanup can proceed.
-
-**Risk Assessment:** Medium complexity, Low risk (simple deletions once deps are working)
-
----
 ### 2026-05-15 04:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -235,7 +204,6 @@ PR #123 meets merge criteria - spawning merge worker to squash-merge and close I
 All 5 review threads resolved. CI passing. PR marked ready for review.
 
 ---
-
 ### 2026-05-15 10:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -359,5 +327,3 @@ All review threads resolved. CI passing. PR marked ready for review.
 - System prompt now instructs AI to continue if display API fails (voice-only users still hear responses)
 
 All 4 review threads resolved. CI passing. PR marked ready for review.
-
----
