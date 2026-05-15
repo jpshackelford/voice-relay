@@ -68,8 +68,8 @@ describe('loadPrompt', () => {
       // Verify it appears in all curl examples
       const sessionIdMatches = prompt.match(new RegExp(testSessionId, 'g'));
       expect(sessionIdMatches).toBeTruthy();
-      // Should appear 3 times (markdown, image, clear commands)
-      expect(sessionIdMatches!.length).toBe(3);
+      // Should appear 4 times (greeting, markdown, image, clear commands)
+      expect(sessionIdMatches!.length).toBe(4);
     });
 
     test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {

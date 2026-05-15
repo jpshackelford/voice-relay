@@ -222,6 +222,21 @@ export class DeviceRegistry {
   }
 
   /**
+   * Broadcast any server message to all devices in a session.
+   * Use for status messages, AI updates, etc.
+   */
+  broadcastMessageToSession(sessionId: string, message: object, excludeId?: string): void {
+    const receivers = this.getDevicesBySession(sessionId);
+    const payload = JSON.stringify(message);
+
+    for (const device of receivers) {
+      if (device.id !== excludeId && device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
+  }
+
+  /**
    * Broadcast the device list to all devices in a workspace.
    * Each device only sees devices in their own workspace.
    */
