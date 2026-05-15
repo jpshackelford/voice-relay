@@ -826,3 +826,34 @@ Spawning fresh review worker to continue addressing feedback.
 **Previous Workers (finished):**
 - `a95245a` (review #130 - incomplete), `2ac2fd2` (implementation #129 ✓)
 - `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
+
+---
+
+### 2026-05-15 22:07 UTC - Review Worker (`20b3fc9`)
+
+✅ **Review Feedback Addressed: PR #130**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
+- Status: **Ready for review** ✅
+
+**Review Feedback Implemented:**
+
+| Thread | Feedback | Action |
+|--------|----------|--------|
+| `KioskMode.tsx:8` | Type duplication suggestion - export `AIState` from `useAI.ts` | ✅ Implemented in `a68f375` |
+
+**Changes Made:**
+- Exported `AIState` interface from `client/src/hooks/useAI.ts`
+- Imported `AIState` type in `client/src/components/KioskMode.tsx` (removed duplicate interface)
+
+**CI Status:**
+- All checks passing ✅ (Build Client, Server Tests, E2E Tests, PR lint)
+
+**Resolved Threads:** 1/1
+
+**PR Status Update:**
+- Unresolved threads: 0 ✅
+- State: Ready (not draft) ✅
+- CI: All green ✅
+- Bot verdict: "✅ Worth merging" (Risk: LOW)
