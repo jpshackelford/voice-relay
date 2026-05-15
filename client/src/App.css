@@ -386,22 +386,41 @@ header {
   z-index: 1000;
 }
 
+.ai-status-indicator.connecting {
+  animation: ai-connecting 1.5s ease-in-out infinite;
+  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.2);
+}
+
 .ai-status-indicator.thinking {
-  animation: ai-thinking 1s ease-in-out infinite;
+  animation: ai-thinking 0.8s ease-in-out infinite;
 }
 
 .ai-status-indicator.connected {
   box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+  opacity: 0.8;
+}
+
+@keyframes ai-connecting {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
 }
 
 @keyframes ai-thinking {
-  0%, 100% { 
-    transform: scale(1); 
-    opacity: 1;
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
   }
-  50% { 
-    transform: scale(1.1); 
-    opacity: 0.7;
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    filter: brightness(1.2);
   }
 }
 
@@ -668,6 +687,11 @@ header {
   animation: pulse 1s ease-in-out infinite;
 }
 
+.ai-toggle.thinking {
+  border-color: #e74c3c;
+  animation: thinking-pulse 0.6s ease-in-out infinite;
+}
+
 .ai-toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -681,6 +705,11 @@ header {
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
+}
+
+@keyframes thinking-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
 }
 
 /* Kiosk Mode */
@@ -1162,12 +1191,19 @@ header {
   z-index: 10;
 }
 
+.kiosk-ai-status.connecting {
+  animation: ai-connecting 1.5s ease-in-out infinite;
+  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.2);
+}
+
 .kiosk-ai-status.thinking {
-  animation: ai-thinking 1s ease-in-out infinite;
+  animation: ai-thinking 0.8s ease-in-out infinite;
 }
 
 .kiosk-ai-status.connected {
   box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+  opacity: 0.8;
 }
 
 /* QR Modal */
