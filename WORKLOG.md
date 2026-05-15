@@ -935,3 +935,34 @@ This may indicate the fix was incomplete or there's a different issue.
 **Previous Workers (all finished):**
 - `be21f55` (merge #130 ✓), `20b3fc9` (review #130 ✓)
 - `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
+
+### 2026-05-15 23:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f98f320` | implementation | Issue #131 - Smoke test failure (senderName fix) | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- Priority: `priority:high` (CI failure bug)
+- Conversation: [`f98f320`](https://app.all-hands.dev/conversations/f98f3201a95a4946b14b7dec25674a71)
+
+**Root Cause (from expansion worker `101768f`):**
+When the AI architecture changed from device-centric to session-centric (PRs #123, #124), the `senderName` for AI messages was inadvertently changed from `'✨ AI'` to `'AI Assistant'` in `server/src/auto-connect.ts:95`. The smoke test still expects the original `'✨ AI'` format.
+
+**Expected Fix:**
+Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavior and smoke test expectation.
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- Issue #131 is the only open issue
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Previous Workers (all finished):**
+- `101768f` (expansion #131 ✓), `be21f55` (merge #130 ✓)
+- `20b3fc9` (review #130 ✓), `2ac2fd2` (implementation #129 ✓)
+
+---
