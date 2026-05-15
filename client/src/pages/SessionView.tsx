@@ -461,6 +461,7 @@ export function SessionView() {
         utterances={utterances}
         sendText={sendText}
         onModeChange={handleModeChange}
+        sessionId={sessionId}
       />
     </>
   );

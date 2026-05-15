@@ -14,6 +14,7 @@ interface MobileModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
+  sessionId?: string;  // VR session ID for session-centric AI
 }
 
 export function MobileMode({ 
@@ -24,7 +25,8 @@ export function MobileMode({
   utterances,
   sendText, 
   onModeChange,
-  onAIStatusChange 
+  onAIStatusChange,
+  sessionId
 }: MobileModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -36,12 +38,11 @@ export function MobileMode({
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenUtterancesRef = useRef(new Set<string>());
-  const aiForwardedRef = useRef(new Set<string>());  // Track utterances sent to AI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const ai = useAI({ deviceId, mode: 'mobile' });  // Note: No sessionId for mobile (session-centric coming later)
+  const ai = useAI({ sessionId });
 
   // Check AI availability on mount
   useEffect(() => {
@@ -89,10 +90,7 @@ export function MobileMode({
   const handleSend = () => {
     if (text.trim()) {
       sendText(utteranceIdRef.current, text, false);
-      // Forward to AI if connected
-      if (ai.connected) {
-        ai.sendMessage(text);
-      }
+      // AI messages are forwarded server-side via session WebSocket
       setText('');
       generateNewUtteranceId();
     }
@@ -145,23 +143,8 @@ export function MobileMode({
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
 
-  // Forward new messages from other devices to AI (if connected)
-  useEffect(() => {
-    if (!ai.connected) return;
-
-    for (const [id, utterance] of utterances) {
-      // Forward final messages from other devices (not from AI itself, not from this device)
-      if (
-        utterance.senderId !== deviceId && 
-        utterance.senderId !== 'openhands-ai' &&
-        !utterance.partial && 
-        !aiForwardedRef.current.has(id)
-      ) {
-        aiForwardedRef.current.add(id);
-        ai.sendMessage(utterance.text);
-      }
-    }
-  }, [utterances, ai.connected, ai.sendMessage, deviceId]);
+  // Note: AI message forwarding is now handled server-side
+  // When a text message is received via WebSocket, the server forwards it to the session's AI
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -257,15 +240,14 @@ export function MobileMode({
           </div>
         )}
         <div className="mobile-input-row">
-          {aiAvailable && (
-            <button
-              className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
-              onClick={ai.toggle}
-              disabled={ai.connecting}
-              title={ai.connected ? 'Disconnect AI' : ai.connecting ? 'Connecting...' : 'Connect AI assistant'}
+          {/* AI status indicator (display only - AI auto-connects to session) */}
+          {aiAvailable && (ai.connecting || ai.connected) && (
+            <div
+              className={`ai-status ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
+              title={ai.connecting ? 'AI connecting...' : ai.thinking ? 'AI thinking...' : 'AI connected'}
             >
               {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
-            </button>
+            </div>
           )}
           <button 
             className={`stt-btn-small ${isListening ? 'listening' : ''}`}
