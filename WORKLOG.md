@@ -802,3 +802,31 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
 - ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
 - 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR MERGE
+### 2026-05-15 17:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3f0a24b` | merge | PR #126 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Conversation: [`3f0a24b`](https://app.all-hands.dev/conversations/3f0a24ba65524eabaac710e97da01e5b)
+
+**PR Status:**
+- CI: ✅ All checks passed
+- Review threads: ✅ All 3 resolved
+- Mergeable: ✅ CLEAN
+- Latest review: ✅ "Worth merging"
+
+**Current State:**
+- PR #126 ready for final merge preparation
+- Issue #122 will auto-close when PR merges
+- This is the **LAST ISSUE** in the session-centric AI migration! 🎉
+- After this merge, all 4 issues (#119, #120, #121, #122) will be complete
+
+**Previous Workers (all finished):**
+- `8002e73` (review #126), `4f3a5c4` (implementation #122), `9de89cb` (merge #125)
+
+---
