@@ -308,3 +308,35 @@ Add distinct visual indicators to the UI to distinguish between AI "connecting" 
 - No priority labels assigned to ready issues
 
 ---
+
+### 2026-05-15 03:38 UTC - Expansion Worker (`2476742`)
+
+✅ **Expanded Issue #122: Remove legacy device-centric AI code**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Type: Chore/Cleanup
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Technical Analysis Completed:**
+
+Identified **~350 lines** of legacy device-centric AI code to remove across 7 files:
+
+| Category | Files | Lines |
+|----------|-------|-------|
+| Server endpoints | `server/src/index.ts` | ~150 |
+| AISessionManager | `server/src/openhands.ts` | ~100 |
+| Client hook | `client/src/hooks/useAI.ts` | ~60 |
+| UI components | `KioskMode.tsx`, `MobileMode.tsx` | ~40 |
+| Tests | Multiple | Update required |
+
+**Dependencies (BLOCKING):**
+- Issue #119 (PR #123) - Session-centric AI infrastructure - **OPEN**
+- Issue #120 - Auto-connect AI - **OPEN**
+- Issue #121 - UI indicators - **OPEN**
+
+All three must be merged and validated in production before this cleanup can proceed.
+
+**Risk Assessment:** Medium complexity, Low risk (simple deletions once deps are working)
+
+---
