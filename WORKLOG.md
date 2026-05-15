@@ -633,3 +633,34 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - CI: All checks green ✅
 
 ---
+
+---
+### 2026-05-15 15:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9de89cb` | merge | PR #125 - UI indicators | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
+- Conversation: [`9de89cb`](https://app.all-hands.dev/conversations/9de89cbed75e4131bb5bc00d520fb507)
+- Issue: [#121 - UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+
+**PR Merge Criteria Met:**
+- ✅ CI: All checks passing (green)
+- ✅ State: Ready (not draft)
+- ✅ Unresolved threads: 0
+- ✅ Bot verdict: "✅ Worth merging" (Risk: LOW)
+- ✅ Mergeable: MERGEABLE
+
+**Previous Worker Completed:**
+- `316a714` (implementation #121) - finished, created PR #125
+
+**Current State:**
+- Issues needing expansion: None 🎉
+- Ready issues after #121 closes: #122 (priority:low)
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (merge worker)
+
