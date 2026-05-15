@@ -426,3 +426,35 @@ PR #123 meets merge criteria - spawning merge worker to squash-merge and close I
 - `d4eeeb3` (implementation #119), `00a4651` (expansion #120), `6fe0138` (expansion #119)
 
 ---
+### 2026-05-15 09:45 UTC - Implementation Worker (`e597152`)
+
+✅ **PR Created: Issue #120**
+
+- Issue: [#120 - feat: Auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/issues/120)
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+1. Auto-connect logic in `server/src/index.ts`:
+   - Added `autoConnectAI()` helper function
+   - Triggers when first device joins session (lazy initialization)
+   - Broadcasts `session-ai-status` messages to all devices
+   
+2. Registry enhancement in `server/src/registry.ts`:
+   - Added `broadcastMessageToSession()` for any server message type
+   
+3. System prompt updates in `server/prompts/system-prompt.md`:
+   - Added Display-First Communication model
+   - AI instructed to send greeting immediately on connect
+   - Updated guidelines with DO/DON'T best practices
+
+**Acceptance Criteria Status:**
+- [x] First device joining triggers AI creation
+- [x] All devices see AI status (connecting → connected)
+- [x] System prompt updated with display-first model
+- [x] AI instructed to send greeting on connect
+- [ ] E2E test (requires live OpenHands API - deferred to smoke tests)
+
+**CI Status:** All checks passed ✅
+
+---
