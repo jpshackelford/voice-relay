@@ -6,6 +6,7 @@ import { KioskMode } from '../components/KioskMode';
 import { WaitingForApproval } from '../components/WaitingForApproval';
 import { JoinRequestStack } from '../components/JoinRequestNotification';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useAI } from '../hooks/useAI';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
@@ -75,6 +76,10 @@ export function SessionView() {
   const [mode, setMode] = useState<DeviceMode>(autoMode);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+
+  // AI status - lifted from KioskMode for WebSocket wiring
+  // Session ID is available from URL params; used to filter AI status messages
+  const ai = useAI({ sessionId });
 
   // Memoize extractors to avoid unnecessary re-fetches
   const extractWorkspace = useCallback((data: unknown) => data as WorkspaceInfo, []);
@@ -235,6 +240,7 @@ export function SessionView() {
   }, [workspace?.isOwner]);
 
   // Connect WebSocket with specific session ID
+  // Wire AI status handlers to receive session-centric AI status updates
   const { connected, devices, sendText, updateDevice, sendJoinResponse } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
@@ -246,6 +252,8 @@ export function SessionView() {
     onDisplayMessage: handleDisplayMessage,
     onJoinResolvedMessage: handleJoinResolvedMessage,
     onJoinRequestMessage: handleJoinRequestMessage,
+    onSessionAIStatusMessage: ai.handleSessionAIStatus,
+    onAIThinkingMessage: ai.handleAIThinking,
   });
 
   // Helper to clear timeout for a request
@@ -443,6 +451,7 @@ export function SessionView() {
           onExit={handleExit}
           workspaceId={workspaceId}
           sessionId={sessionId}
+          ai={ai}
         />
       </>
     );

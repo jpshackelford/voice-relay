@@ -1,10 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
-import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
+
+interface AIState {
+  connected: boolean;
+  connecting: boolean;
+  thinking: boolean;
+  conversationId: string | null;
+  error: string | null;
+  checkAvailability: () => Promise<{ available: boolean; message: string }>;
+}
 
 interface KioskModeProps {
   deviceId: string;
@@ -19,6 +27,7 @@ interface KioskModeProps {
   onExit?: () => void;  // Navigate back to workspace home
   workspaceId?: string;
   sessionId?: string;
+  ai?: AIState;  // AI state from parent (via useAI hook)
 }
 
 // Hook to detect mobile devices
@@ -49,7 +58,8 @@ export function KioskMode({
   onAIStatusChange,
   onExit,
   workspaceId,
-  sessionId
+  sessionId,
+  ai
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -69,17 +79,17 @@ export function KioskMode({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const ai = useAI({ sessionId });
+  // AI state is now passed from parent via props (wired to WebSocket in SessionView)
 
   // Check AI availability on mount
   useEffect(() => {
-    ai.checkAvailability().then(status => setAiAvailable(status.available));
-  }, [ai.checkAvailability]);
+    ai?.checkAvailability().then(status => setAiAvailable(status.available));
+  }, [ai]);
 
   // Notify parent of AI status changes
   useEffect(() => {
-    onAIStatusChange?.(ai.connected);
-  }, [ai.connected, onAIStatusChange]);
+    onAIStatusChange?.(ai?.connected ?? false);
+  }, [ai?.connected, onAIStatusChange]);
 
   const generateNewUtteranceId = useCallback(() => {
     utteranceIdRef.current = generateUUID();
@@ -242,12 +252,12 @@ export function KioskMode({
           )}
           <div className="kiosk-input-row">
             {/* AI status indicator (display only - AI auto-connects to session) */}
-            {aiAvailable && (ai.connecting || ai.connected) && (
+            {aiAvailable && (ai?.connecting || ai?.connected) && (
               <div
-                className={`ai-status ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
-                title={ai.connecting ? 'AI connecting...' : ai.thinking ? 'AI thinking...' : 'AI connected'}
+                className={`ai-status ${ai?.connected ? 'active' : ''} ${ai?.connecting ? 'connecting' : ''} ${ai?.thinking ? 'thinking' : ''}`}
+                title={ai?.connecting ? 'AI connecting...' : ai?.thinking ? 'AI thinking...' : 'AI connected'}
               >
-                {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
+                {ai?.connecting ? '🔗' : ai?.thinking ? '🤔' : '✨'}
               </div>
             )}
             <button 
@@ -264,7 +274,7 @@ export function KioskMode({
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder={ai.connected ? "Ask AI..." : "Type..."}
+              placeholder={ai?.connected ? "Ask AI..." : "Type..."}
             />
             <button 
               className="send-btn-small"
@@ -277,16 +287,16 @@ export function KioskMode({
         </div>
 
         {sttError && <div className="stt-error">⚠️ {sttError}</div>}
-        {ai.error && <div className="ai-error">⚠️ AI: {ai.error}</div>}
+        {ai?.error && <div className="ai-error">⚠️ AI: {ai?.error}</div>}
 
         {/* Mobile AI status indicator */}
-        {(ai.connecting || ai.connected || ai.thinking) && (
+        {(ai?.connecting || ai?.connected || ai?.thinking) && (
           <div className={`ai-status-indicator ${
-            ai.connecting ? 'connecting' :
-            ai.thinking ? 'thinking' :
+            ai?.connecting ? 'connecting' :
+            ai?.thinking ? 'thinking' :
             'connected'
           }`}>
-            {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
+            {ai?.connecting ? '🔗' : ai?.thinking ? '🤔' : '✨'}
           </div>
         )}
       </div>
@@ -362,12 +372,12 @@ export function KioskMode({
           )}
           <div className="kiosk-input-row">
             {/* AI status indicator (display only - AI auto-connects to session) */}
-            {aiAvailable && (ai.connecting || ai.connected) && (
+            {aiAvailable && (ai?.connecting || ai?.connected) && (
               <div
-                className={`ai-status ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
-                title={ai.connecting ? 'AI connecting...' : ai.thinking ? 'AI thinking...' : 'AI connected'}
+                className={`ai-status ${ai?.connected ? 'active' : ''} ${ai?.connecting ? 'connecting' : ''} ${ai?.thinking ? 'thinking' : ''}`}
+                title={ai?.connecting ? 'AI connecting...' : ai?.thinking ? 'AI thinking...' : 'AI connected'}
               >
-                {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
+                {ai?.connecting ? '🔗' : ai?.thinking ? '🤔' : '✨'}
               </div>
             )}
             <button 
@@ -391,7 +401,7 @@ export function KioskMode({
               value={text}
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
-              placeholder={ai.connected ? "Ask AI..." : "Type..."}
+              placeholder={ai?.connected ? "Ask AI..." : "Type..."}
             />
             <button 
               className="send-btn-small"
@@ -407,8 +417,8 @@ export function KioskMode({
           <div className="stt-error">⚠️ {sttError}</div>
         )}
 
-        {ai.error && (
-          <div className="ai-error">⚠️ AI: {ai.error}</div>
+        {ai?.error && (
+          <div className="ai-error">⚠️ AI: {ai?.error}</div>
         )}
       </aside>
 
@@ -480,13 +490,13 @@ export function KioskMode({
         </div>
 
         {/* AI status indicator (above connection indicator when active) */}
-        {(ai.connecting || ai.connected || ai.thinking) && (
+        {(ai?.connecting || ai?.connected || ai?.thinking) && (
           <div className={`kiosk-ai-status ${
-            ai.connecting ? 'connecting' :
-            ai.thinking ? 'thinking' :
+            ai?.connecting ? 'connecting' :
+            ai?.thinking ? 'thinking' :
             'connected'
           }`}>
-            {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
+            {ai?.connecting ? '🔗' : ai?.thinking ? '🤔' : '✨'}
           </div>
         )}
       </main>

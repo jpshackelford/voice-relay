@@ -21,17 +21,7 @@ vi.mock('../hooks/useSpeechSynthesis', () => ({
   }),
 }));
 
-vi.mock('../hooks/useAI', () => ({
-  useAI: () => ({
-    connected: false,
-    connecting: false,
-    error: null,
-    toggle: vi.fn(),
-    sendMessage: vi.fn(),
-    // Mock checkAvailability to return immediately
-    checkAvailability: vi.fn().mockImplementation(() => Promise.resolve({ available: false })),
-  }),
-}));
+// AI state is now passed as props, no need to mock useAI
 
 vi.mock('./QRCode', () => ({
   QRCodeDisplay: ({ size }: { size?: number }) => (
@@ -40,6 +30,16 @@ vi.mock('./QRCode', () => ({
 }));
 
 describe('KioskMode', () => {
+  // Mock AI state passed from parent (via useAI hook in SessionView)
+  const mockAiState = {
+    connected: false,
+    connecting: false,
+    thinking: false,
+    conversationId: null,
+    error: null,
+    checkAvailability: vi.fn().mockResolvedValue({ available: false, message: 'Not configured' }),
+  };
+
   const defaultProps = {
     deviceId: 'test-device-123',
     displayName: 'Test Device',
@@ -53,6 +53,7 @@ describe('KioskMode', () => {
     onExit: vi.fn(),
     workspaceId: 'test-workspace',
     sessionId: 'test-session',
+    ai: mockAiState,
   };
 
   // Helper to create a mobile device
