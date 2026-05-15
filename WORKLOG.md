@@ -757,3 +757,32 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 **CI Status:** ✅ All checks passing (E2E Tests, Build Client, Server Tests, lint-pr-title)
 
 ---
+
+### 2026-05-15 19:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `333b79f` | review | PR #128 - Smoke test fixes | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Conversation: [`333b79f`](https://app.all-hands.dev/conversations/333b79f65b604864a8b1520470dd4858)
+
+**Review Issue to Address:**
+1. 🟡 Suggestion: Helper function has flawed error handling logic - catches and swallows connection failures, making it always succeed
+
+**Current State:**
+- PR #128: `oR green ready 💬1` (CI green, 1 unresolved thread)
+- Issue #127 (critical) linked to PR #128 - smoke test failure
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `9fe0274` (implementation #127), `e2559ce` (expansion #127)
+- `3f0a24b` (merge #126), `8002e73` (review #126)
+- Session-centric AI migration completed (#119, #120, #121, #122 all merged)
+
+---
