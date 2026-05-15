@@ -265,3 +265,39 @@ All 5 review threads resolved. CI passing. PR marked ready for review.
 **Housekeeping:**
 - Archived worklog entries older than 6hr productive window
 - Created WORKLOG_ARCHIVE_2026-05-15.md (7 entries) and WORKLOG_ARCHIVE_2026-05-10.md (1 entry)
+
+---
+### 2026-05-15 10:39 UTC - Review Worker (`a8b5c5b`)
+
+✅ **Review Feedback Addressed: PR #124 (Round 2)**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Missing test coverage for auto-connect logic | 🟠 Important | ✅ Fixed in `044c260` |
+| Unnecessary null-to-undefined conversions | 🟡 Suggestion | ✅ Fixed in `044c260` |
+
+**Commits:**
+- `044c260` - Add test coverage for auto-connect AI logic
+
+**Technical Details:**
+- Extracted `autoConnectAI` to dedicated `auto-connect.ts` module for testability
+- Added `shouldAutoConnect` helper function for first-device detection
+- Created comprehensive test suite (`auto-connect.test.ts`) with 20 tests covering:
+  - Successful connection flow with status broadcasts
+  - API key availability (workspace/env fallback)
+  - Error handling with sanitized client messages
+  - Display secret creation/reuse
+  - AI message relay to session devices
+  - Second device doesn't trigger auto-connect
+- Used cleaner spread syntax pattern for optional properties
+
+All review threads resolved. CI passing. PR marked ready for review.
+
+**Learnings:**
+- Extracting complex async functions to separate modules significantly improves testability
+- Dependency injection pattern enables comprehensive unit testing without needing live APIs
