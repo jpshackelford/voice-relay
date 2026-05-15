@@ -31,221 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 09:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `e597152` | implementation | Issue #120 - Auto-connect AI | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#120 - feat: Auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/issues/120)
-- Priority: `priority:high`
-- Conversation: [`e597152`](https://app.all-hands.dev/conversations/e597152721f9466b8598ca6a10db9033)
-
-**Priority Assessment Completed:**
-- Issue #120: `priority:high` - Enables auto-connect, needed for #122
-- Issue #121: `priority:medium` - UI indicators, needed for #122  
-- Issue #122: `priority:low` - Cleanup, blocked on #120 and #121
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- All issues expanded and ready
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (implementation worker)
-
-**Previous Workers (all finished):**
-- `5c27fea` (merge #123), `2476742` (expansion #122), `061a463` (expansion #121)
-- `d4eeeb3` (implementation #119), `00a4651` (expansion #120), `6fe0138` (expansion #119)
-
----
-### 2026-05-15 09:45 UTC - Implementation Worker (`e597152`)
-
-✅ **PR Created: Issue #120**
-
-- Issue: [#120 - feat: Auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/issues/120)
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Status: **Ready for review** ✅
-
-**Changes Implemented:**
-1. Auto-connect logic in `server/src/index.ts`:
-   - Added `autoConnectAI()` helper function
-   - Triggers when first device joins session (lazy initialization)
-   - Broadcasts `session-ai-status` messages to all devices
-   
-2. Registry enhancement in `server/src/registry.ts`:
-   - Added `broadcastMessageToSession()` for any server message type
-   
-3. System prompt updates in `server/prompts/system-prompt.md`:
-   - Added Display-First Communication model
-   - AI instructed to send greeting immediately on connect
-   - Updated guidelines with DO/DON'T best practices
-
-**Acceptance Criteria Status:**
-- [x] First device joining triggers AI creation
-- [x] All devices see AI status (connecting → connected)
-- [x] System prompt updated with display-first model
-- [x] AI instructed to send greeting on connect
-- [ ] E2E test (requires live OpenHands API - deferred to smoke tests)
-
-**CI Status:** All checks passed ✅
-
----
-### 2026-05-15 10:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `26bf0d8` | review | PR #124 - Auto-connect AI | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Conversation: [`26bf0d8`](https://app.all-hands.dev/conversations/26bf0d8638594172a211beb20e9996b1)
-
-**Review Issues to Address:**
-1. 🔴 Critical: Hardcoded production URLs in system prompt
-2. 🟠 Important: Raw error messages exposed to clients
-3. 🟡 Minor: Race condition, redundant null coalescing, unused parameter
-
-**Current State:**
-- PR #124: `oRC green ready 💬5` (CI green, has 5 unresolved review comments)
-- Issues awaiting implementation: #121 (priority:medium), #122 (priority:low - blocked)
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `e597152` (implementation #120) - finished ✓
-
----
-### 2026-05-15 10:17 UTC - Review Worker (`26bf0d8`)
-
-✅ **Review Feedback Addressed: PR #124**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Status: **Ready for merge** ✅
-
-**Fixes Applied:**
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Hardcoded production URLs in system prompt | 🔴 Critical | ✅ Fixed in `7ca4da9` |
-| Raw error messages exposed to clients | 🟠 Important | ✅ Fixed in `d3b2117` |
-| Redundant null coalescing | 🟡 Suggestion | ✅ Fixed in `d3b2117` |
-| Unused `deviceRepository` parameter | 🟡 Suggestion | ✅ Fixed in `d3b2117` |
-| Race condition on simultaneous joins | 🟡 Suggestion | ⏸️ Deferred (low impact, downstream deduplication handles it) |
-
-**Commits:**
-1. `7ca4da9` - fix: use template variable for server URL in system prompt
-2. `d3b2117` - refactor(autoConnectAI): sanitize errors and cleanup code
-
-**Technical Details:**
-- Added `{{SERVER_URL}}` template variable to system prompt, populated from `BASE_URL` env var
-- Error messages now sanitized to generic "Failed to connect AI assistant" for clients
-- Full errors still logged server-side for debugging
-- Simplified null coalescing and removed unused parameter for cleaner code
-
-All 5 review threads resolved. CI passing. PR marked ready for review.
-
----
-### 2026-05-15 10:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a8b5c5b` | review | PR #124 - Auto-connect AI | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Conversation: [`a8b5c5b`](https://app.all-hands.dev/conversations/a8b5c5b0799445e5b498ab8d9c69ffbe)
-
-**Review Issues to Address:**
-1. 🟠 Important: Missing test coverage for auto-connect logic
-2. 🟡 Suggestion: Unnecessary null-to-undefined conversions
-
-**Current State:**
-- PR #124: `oRCFR green ready 💬2` (CI green, has 2 unresolved review comments)
-- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low - blocked)
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `26bf0d8` (review #124), `e597152` (implementation #120), `5c27fea` (merge #123)
-
-**Housekeeping:**
-- Archived worklog entries older than 6hr productive window
-- Created WORKLOG_ARCHIVE_2026-05-15.md (7 entries) and WORKLOG_ARCHIVE_2026-05-10.md (1 entry)
-
----
-### 2026-05-15 10:39 UTC - Review Worker (`a8b5c5b`)
-
-✅ **Review Feedback Addressed: PR #124 (Round 2)**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Status: **Ready for merge** ✅
-
-**Fixes Applied:**
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Missing test coverage for auto-connect logic | 🟠 Important | ✅ Fixed in `044c260` |
-| Unnecessary null-to-undefined conversions | 🟡 Suggestion | ✅ Fixed in `044c260` |
-
-**Commits:**
-- `044c260` - Add test coverage for auto-connect AI logic
-
-**Technical Details:**
-- Extracted `autoConnectAI` to dedicated `auto-connect.ts` module for testability
-- Added `shouldAutoConnect` helper function for first-device detection
-- Created comprehensive test suite (`auto-connect.test.ts`) with 20 tests covering:
-  - Successful connection flow with status broadcasts
-  - API key availability (workspace/env fallback)
-  - Error handling with sanitized client messages
-  - Display secret creation/reuse
-  - AI message relay to session devices
-  - Second device doesn't trigger auto-connect
-- Used cleaner spread syntax pattern for optional properties
-
-All review threads resolved. CI passing. PR marked ready for review.
-
-**Learnings:**
-- Extracting complex async functions to separate modules significantly improves testability
-- Dependency injection pattern enables comprehensive unit testing without needing live APIs
-
-### 2026-05-15 11:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `f0d1dfe` | review | PR #124 - Auto-connect AI | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Conversation: [`f0d1dfe`](https://app.all-hands.dev/conversations/f0d1dfeca355422e966f12e57f66bf37)
-
-**Review Issues to Address:**
-1. 🟡 Suggestion: Potential utterance ID collision with `Date.now()`
-2. 🟡 Suggestion: Redundant error logging
-3. 🟡 Suggestion: Document known race condition limitation
-4. 🟡 Suggestion: Add guidance for greeting failure
-
-**Current State:**
-- PR #124: `oRCFRFRC green ready 💬4` (CI green, has 4 unresolved review comments)
-- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low - blocked)
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `a8b5c5b` (review #124), `26bf0d8` (review #124), `e597152` (implementation #120)
-- `5c27fea` (merge #123), `2476742` (expansion #122), `061a463` (expansion #121)
-
----
 ### 2026-05-15 11:09 UTC - Review Worker (`f0d1dfe`)
 
 ✅ **Review Feedback Addressed: PR #124 (Round 3)**
@@ -669,6 +454,37 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
 
 ---
+### 2026-05-15 16:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4f3a5c4` | implementation | Issue #122 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Priority: `priority:low`
+- Conversation: [`4f3a5c4`](https://app.all-hands.dev/conversations/4f3a5c4cdbde48fb8dc6d973b3074039)
+
+**Note:** Previous worker `1db132a` was stalled (PAUSED status, never executed). Spawned new worker.
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Ready Issues:**
+- #122 (priority:low) - being implemented now
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
+
+---
 ### 2026-05-15 16:47 UTC - Implementation Worker (`4f3a5c4`)
 
 ✅ **PR Created: Issue #122**
@@ -706,38 +522,6 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
 - ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
 - 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR REVIEW
-
----
-### 2026-05-15 16:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `4f3a5c4` | implementation | Issue #122 - Remove legacy AI code | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
-- Priority: `priority:low`
-- Conversation: [`4f3a5c4`](https://app.all-hands.dev/conversations/4f3a5c4cdbde48fb8dc6d973b3074039)
-
-**Note:** Previous worker `1db132a` was stalled (PAUSED status, never executed). Spawned new worker.
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (implementation worker)
-
-**Ready Issues:**
-- #122 (priority:low) - being implemented now
-
-**Migration Status (Session-centric AI):**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
-- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
-- 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
-
 
 ---
 ### 2026-05-15 17:06 UTC - Orchestrator
@@ -860,5 +644,3 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 | #122 | Remove legacy device-centric code | ✅ MERGED (PR #126) |
 
 **No remaining open issues.** Orchestrator workflow complete for session-centric AI migration.
-
----
