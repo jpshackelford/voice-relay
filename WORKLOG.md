@@ -368,3 +368,30 @@ All three must be merged and validated in production before this cleanup can pro
 **Action Taken:**
 PR #123 meets merge criteria - spawning merge worker to squash-merge and close Issue #119.
 
+
+### 2026-05-15 04:08 UTC - Merge Worker (`5c27fea`)
+
+✅ **Merged PR #123 → Issue #119 Closed**
+
+- PR: [#123 - feat: session-centric AI infrastructure](https://github.com/jpshackelford/voice-relay/pull/123)
+- Issue: [#119](https://github.com/jpshackelford/voice-relay/issues/119) - **CLOSED** (auto-closed via "Fixes #119")
+- Merge type: Squash merge
+
+**What was shipped:**
+- Session-centric AI infrastructure for sharing conversations across all devices in a VR session
+- New `AISessionManager` methods: `getOrCreateForSession`, `hasSessionAI`, `getSessionAI`, `sendSessionMessage`, `endSessionAI`
+- New WebSocket message types: `AIThinkingMessage`, `SessionAIStatusMessage`
+- Thinking state tracking with callback for broadcasting
+- Full backward compatibility - legacy device-centric code preserved
+
+**Migration status:**
+- ✅ Issue #119 (foundation infrastructure) - **MERGED**
+- 🔜 Issue #120 (auto-connect AI when first device joins) - Ready
+- 🔜 Issue #121 (UI indicators for thinking/connecting) - Ready
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready, blocked on #120+#121
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- No database changes - safe for production
+- No breaking changes to existing functionality
+
