@@ -830,3 +830,35 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - `8002e73` (review #126), `4f3a5c4` (implementation #122), `9de89cb` (merge #125)
 
 ---
+### 2026-05-15 17:36 UTC - Merge Worker (`3f0a24b`)
+
+✅ **PR #126 MERGED - Session-centric AI Migration COMPLETE! 🎉**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Status: **MERGED** ✅
+
+**Merge Details:**
+- Squash-merged with conventional commit message
+- Issue #122 auto-closed via "Fixes #122" keyword
+- No database migrations (code-only cleanup)
+- Auto-deploying to vr.chorecraft.net
+
+**Final PR Summary:**
+- Removed ~820 lines of deprecated device-centric AI code
+- Deprecated endpoints now return 410 Gone with migration guidance
+- AI session lifecycle now tied to VR session lifecycle
+- Client useAI hook simplified from 116→72 lines
+- Review evolution: 2 rounds, all issues addressed, final rating "Good taste"
+
+**Session-centric AI Migration - ALL COMPLETE:**
+| Issue | Description | Status |
+|-------|-------------|--------|
+| #119 | Session-centric AI infrastructure | ✅ MERGED (PR #123) |
+| #120 | Auto-connect AI when first device joins | ✅ MERGED (PR #124) |
+| #121 | UI indicators for thinking/connecting | ✅ MERGED (PR #125) |
+| #122 | Remove legacy device-centric code | ✅ MERGED (PR #126) |
+
+**No remaining open issues.** Orchestrator workflow complete for session-centric AI migration.
+
+---
