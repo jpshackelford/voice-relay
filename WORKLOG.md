@@ -704,3 +704,34 @@ All 1 review thread resolved. CI passing. PR marked ready for review.
 - `333b79f` (review #128 round 1), `9fe0274` (implementation #127)
 - `e2559ce` (expansion #127), `3f0a24b` (merge #126), `8002e73` (review #126)
 
+---
+### 2026-05-15 19:38 UTC - Review Worker (`ecce820`)
+
+✅ **Review Feedback Addressed: PR #128 (Round 2)**
+
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Test name misleading - "transitions through states" only tests final state | 🟠 Important | ✅ Removed duplicative test in `b87587c` |
+| Redundant assertion - waitForAIAutoConnect already verifies visibility | 🟡 Suggestion | ✅ Fixed in `62467dc` |
+| Same redundancy at another location | 🟡 Suggestion | ✅ Fixed in `62467dc` |
+| Redundant CSS class inspection | 🟡 Suggestion | ✅ Resolved by test removal in `b87587c` |
+
+**Commits:**
+- `62467dc` - refactor(tests): remove redundant visibility assertions
+- `b87587c` - refactor(tests): remove duplicative 'transitions through states' test
+
+**Technical Details:**
+- Removed redundant `await expect(aiStatus).toBeVisible()` calls after `waitForAIAutoConnect()` which already verifies visibility
+- Removed entire "AI status indicator transitions through connecting states" test because:
+  1. Name was misleading (only tested final state, not transitions)
+  2. Duplicated the "AI status shows connected state after auto-connect" test
+  3. Had redundant CSS class inspection (toHaveClass already confirms active)
+
+All 4 review threads resolved. CI passing. PR marked ready for review.
+
