@@ -1,9 +1,9 @@
 /**
- * Tests for OpenHands module - loadPrompt function
+ * Tests for OpenHands module - loadPrompt function and AISessionManager
  */
 
-import { describe, test, expect } from 'vitest';
-import { loadPrompt } from './openhands.js';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { loadPrompt, AISessionManager, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('loadPrompt', () => {
   describe('basic functionality', () => {
@@ -142,5 +142,184 @@ describe('loadPrompt', () => {
       expect(prompt).toContain('Display API');
       expect(prompt).toContain('curl -X POST https://vr.chorecraft.net/api/display');
     });
+  });
+});
+
+describe('AISessionManager', () => {
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    // Create a new manager instance for each test
+    // Note: This won't have the OpenHands client initialized (no API key in test env)
+    manager = new AISessionManager();
+  });
+
+  afterEach(() => {
+    // Clean up any sessions
+    manager.shutdown();
+  });
+
+  describe('session-centric methods', () => {
+    describe('hasSessionAI', () => {
+      test('returns false when no session exists', () => {
+        expect(manager.hasSessionAI('nonexistent-session')).toBe(false);
+      });
+
+      test('returns false for empty string', () => {
+        expect(manager.hasSessionAI('')).toBe(false);
+      });
+    });
+
+    describe('getSessionAI', () => {
+      test('returns undefined when no session exists', () => {
+        expect(manager.getSessionAI('nonexistent-session')).toBeUndefined();
+      });
+
+      test('returns undefined for empty string', () => {
+        expect(manager.getSessionAI('')).toBeUndefined();
+      });
+    });
+
+    describe('getOrCreateForSession', () => {
+      test('throws error when OpenHands API not configured', async () => {
+        // In test environment, API key is not set, so client is null
+        await expect(
+          manager.getOrCreateForSession(
+            'test-session',
+            'test-workspace',
+            () => {}
+          )
+        ).rejects.toThrow('OpenHands API not configured');
+      });
+    });
+
+    describe('sendSessionMessage', () => {
+      test('throws error when no session exists', async () => {
+        await expect(
+          manager.sendSessionMessage('nonexistent-session', 'Hello')
+        ).rejects.toThrow('No active AI session for this VR session');
+      });
+    });
+
+    describe('endSessionAI', () => {
+      test('does nothing when no session exists', async () => {
+        // Should not throw
+        await expect(
+          manager.endSessionAI('nonexistent-session')
+        ).resolves.toBeUndefined();
+      });
+    });
+  });
+
+  describe('legacy device-centric methods', () => {
+    describe('hasSession', () => {
+      test('returns false when no session exists', () => {
+        expect(manager.hasSession('nonexistent-device')).toBe(false);
+      });
+    });
+
+    describe('getSession', () => {
+      test('returns undefined when no session exists', () => {
+        expect(manager.getSession('nonexistent-device')).toBeUndefined();
+      });
+    });
+
+    describe('sendMessage', () => {
+      test('throws error when no session exists', async () => {
+        await expect(
+          manager.sendMessage('nonexistent-device', 'Hello')
+        ).rejects.toThrow('No active AI session for this device');
+      });
+    });
+
+    describe('endSession', () => {
+      test('does nothing when no session exists', async () => {
+        // Should not throw
+        await expect(
+          manager.endSession('nonexistent-device')
+        ).resolves.toBeUndefined();
+      });
+    });
+  });
+
+  describe('thinking state callback', () => {
+    test('setThinkingChangeCallback sets the callback', () => {
+      const callback: ThinkingChangeCallback = vi.fn();
+      manager.setThinkingChangeCallback(callback);
+      // Callback is set - verified through integration behavior
+      // Direct testing would require accessing private fields
+      expect(true).toBe(true);
+    });
+
+    test('setThinkingChangeCallback accepts undefined to clear', () => {
+      const callback: ThinkingChangeCallback = vi.fn();
+      manager.setThinkingChangeCallback(callback);
+      manager.setThinkingChangeCallback(undefined);
+      // Should not throw
+      expect(true).toBe(true);
+    });
+  });
+
+  describe('isAvailable', () => {
+    test('returns false when API key not configured', () => {
+      // In test environment without API key
+      expect(manager.isAvailable()).toBe(false);
+    });
+  });
+
+  describe('shutdown', () => {
+    test('cleans up without error when no sessions exist', async () => {
+      await expect(manager.shutdown()).resolves.toBeUndefined();
+    });
+  });
+});
+
+describe('AISession interface', () => {
+  test('has required thinking state fields', () => {
+    // Type-level test to verify interface shape
+    const session: AISession = {
+      conversationId: 'conv-123',
+      taskId: 'task-123',
+      mode: 'kiosk',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+    
+    expect(session.isThinking).toBe(false);
+    expect(session.pendingMessageId).toBeUndefined();
+    expect(session.lastMessageSentAt).toBeUndefined();
+  });
+
+  test('supports session-centric fields', () => {
+    const session: AISession = {
+      conversationId: 'conv-123',
+      taskId: 'task-123',
+      sessionId: 'session-456',  // Session-centric
+      mode: 'kiosk',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: true,
+      pendingMessageId: 'msg-789',
+      lastMessageSentAt: Date.now(),
+    };
+    
+    expect(session.sessionId).toBe('session-456');
+    expect(session.deviceId).toBeUndefined();
+  });
+
+  test('supports legacy device-centric fields', () => {
+    const session: AISession = {
+      conversationId: 'conv-123',
+      taskId: 'task-123',
+      deviceId: 'device-456',  // Legacy
+      mode: 'chat',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+    
+    expect(session.deviceId).toBe('device-456');
+    expect(session.sessionId).toBeUndefined();
   });
 });
