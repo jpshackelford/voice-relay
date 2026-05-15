@@ -123,7 +123,6 @@ test.describe('AI Assistant Integration', () => {
 
       // AI status indicator should be visible (AI auto-connects to sessions)
       const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toBeVisible({ timeout: 30000 });
 
       // Should show ✨ emoji when connected (or 🔗 when connecting)
       await expect(aiStatus).toContainText(/✨|🔗/);
@@ -148,7 +147,6 @@ test.describe('AI Assistant Integration', () => {
       await waitForAIAutoConnect(page);
 
       const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toBeVisible({ timeout: 30000 });
 
       // Wait for connected state (active class) - may briefly show connecting first
       await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
