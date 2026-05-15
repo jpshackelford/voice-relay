@@ -734,3 +734,26 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+
+### 2026-05-15 18:42 UTC - Implementation Worker (`9fe0274`)
+
+✅ **PR Created: Issue #127**
+
+- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| Category | Change |
+|----------|--------|
+| UI selectors | `.ai-toggle` → `.ai-status` |
+| Test behavior | Manual toggle tests → Auto-connect verification tests |
+| API tests | Expect 410 Gone for deprecated endpoints |
+| Removed tests | `disconnect from AI clears state`, `rapid connect/disconnect` |
+
+**Test Count:** 11 AI tests (was 14; removed 3 obsolete toggle tests)
+
+**CI Status:** ✅ All checks passing (E2E Tests, Build Client, Server Tests, lint-pr-title)
+
+---
