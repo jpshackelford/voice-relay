@@ -376,37 +376,6 @@ describe('AISessionManager', () => {
     });
   });
 
-  describe('legacy device-centric methods', () => {
-    describe('hasSession', () => {
-      test('returns false when no session exists', () => {
-        expect(manager.hasSession('nonexistent-device')).toBe(false);
-      });
-    });
-
-    describe('getSession', () => {
-      test('returns undefined when no session exists', () => {
-        expect(manager.getSession('nonexistent-device')).toBeUndefined();
-      });
-    });
-
-    describe('sendMessage', () => {
-      test('throws error when no session exists', async () => {
-        await expect(
-          manager.sendMessage('nonexistent-device', 'Hello')
-        ).rejects.toThrow('No active AI session for this device');
-      });
-    });
-
-    describe('endSession', () => {
-      test('does nothing when no session exists', async () => {
-        // Should not throw
-        await expect(
-          manager.endSession('nonexistent-device')
-        ).resolves.toBeUndefined();
-      });
-    });
-  });
-
   describe('thinking state callback', () => {
     test('setThinkingChangeCallback sets the callback', () => {
       const callback: ThinkingChangeCallback = vi.fn();
@@ -470,21 +439,5 @@ describe('AISession interface', () => {
     };
     
     expect(session.sessionId).toBe('session-456');
-    expect(session.deviceId).toBeUndefined();
-  });
-
-  test('supports legacy device-centric fields', () => {
-    const session: AISession = {
-      conversationId: 'conv-123',
-      taskId: 'task-123',
-      deviceId: 'device-456',  // Legacy
-      mode: 'chat',
-      reconnectAttempts: 0,
-      maxReconnectAttempts: 5,
-      isThinking: false,
-    };
-    
-    expect(session.deviceId).toBe('device-456');
-    expect(session.sessionId).toBeUndefined();
   });
 });

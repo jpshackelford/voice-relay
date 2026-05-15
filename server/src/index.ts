@@ -276,152 +276,27 @@ app.get('/api/ai/status', (_req, res) => {
   });
 });
 
-app.post('/api/ai/connect', async (req, res) => {
-  const { deviceId, mode } = req.body as { deviceId: string; mode: 'chat' | 'kiosk' };
-  
-  if (!deviceId) {
-    res.status(400).json({ error: 'deviceId required' });
-    return;
-  }
-  
-  try {
-    const device = registry.getDevice(deviceId);
-    if (!device) {
-      res.status(404).json({ error: 'Device not found' });
-      return;
-    }
-
-    // Device's workspaceId is the one it registered with.
-    const deviceWorkspaceId = device.workspaceId;
-
-    // Try to get workspace-specific API key using the helper
-    const workspaceApiKey = workspaceRepository
-      ? await getWorkspaceApiKey(
-          deviceWorkspaceId,
-          (id) => workspaceRepository?.getSettings(id) ?? null,
-          decryptApiKey
-        )
-      : null;
-
-    if (workspaceApiKey) {
-      console.log(`[AI] Using workspace-specific API key for workspace ${deviceWorkspaceId}`);
-    }
-
-    // Check if we have any API key available (workspace or env)
-    if (!workspaceApiKey && !aiSessionManager.isAvailable()) {
-      res.status(503).json({ error: 'OpenHands API not configured' });
-      return;
-    }
-
-    // Create or get session with display API secret for kiosk mode
-    let vrSessionId: string | undefined;
-    let displayApiSecret: string | undefined;
-
-    if (mode === 'kiosk' && sessionRepository) {
-      // Create a new session with display API secret
-      const { session: vrSession, displayApiSecret: secret } = 
-        sessionRepository.createWithDisplaySecret({ workspaceId: deviceWorkspaceId });
-      vrSessionId = vrSession.id;
-      displayApiSecret = secret;
-      console.log(`[AI] Created session ${vrSessionId} with display API secret`);
-    }
-
-    // Callback to send AI responses as chat messages
-    const onMessage = (text: string) => {
-      const aiMessage: RelayedTextMessage = {
-        type: 'text',
-        utteranceId: `ai-${Date.now()}`,
-        workspaceId: deviceWorkspaceId,
-        sessionId: vrSessionId,
-        senderId: 'openhands-ai',
-        senderName: '✨ AI',
-        text,
-        partial: false,
-      };
-      
-      // Store and broadcast the AI response (scoped to workspace)
-      store.append(aiMessage).catch(err => console.error('Failed to store AI message:', err));
-      registry.broadcastToOutputs(aiMessage, deviceWorkspaceId);
-    };
-
-    // Get the minimum display lines across kiosk devices in the workspace
-    const displayLines = registry.getMinKioskDisplayLines(deviceWorkspaceId);
-    
-    const aiSession = await aiSessionManager.startSession(
-      deviceId, 
-      mode || 'chat', 
-      onMessage,
-      displayLines,
-      workspaceApiKey || undefined,  // Pass workspace key or let it fall back to env
-      deviceWorkspaceId,  // Pass workspace ID for injection into kiosk prompts
-      vrSessionId,  // Pass session ID for display API calls
-      displayApiSecret  // Pass display API secret for authentication
-    );
-    
-    // Notify the device that AI is connected
-    registry.sendToDevice(deviceId, {
-      type: 'ai-status',
-      connected: true,
-      conversationId: aiSession.conversationId,
-    });
-    
-    res.json({ 
-      success: true, 
-      conversationId: aiSession.conversationId,
-      sessionId: vrSessionId,
-      displayLines,
-      message: 'AI connected'
-    });
-  } catch (err) {
-    console.error('Failed to connect AI:', err);
-    res.status(500).json({ error: (err as Error).message });
-  }
+// Legacy device-centric AI endpoints - deprecated in favor of session-centric auto-connect
+// These endpoints now return 410 Gone to guide clients to the new architecture
+app.post('/api/ai/connect', (_req, res) => {
+  res.status(410).json({
+    error: 'Deprecated: AI now auto-connects to sessions when the first device joins',
+    see: 'https://github.com/jpshackelford/voice-relay/issues/120'
+  });
 });
 
-app.post('/api/ai/message', async (req, res) => {
-  const { deviceId, message } = req.body as { deviceId: string; message: string };
-  
-  if (!deviceId || !message) {
-    res.status(400).json({ error: 'deviceId and message required' });
-    return;
-  }
-  
-  if (!aiSessionManager.hasSession(deviceId)) {
-    res.status(404).json({ error: 'No active AI session for this device' });
-    return;
-  }
-  
-  try {
-    await aiSessionManager.sendMessage(deviceId, message);
-    res.json({ success: true });
-  } catch (err) {
-    console.error('Failed to send AI message:', err);
-    res.status(500).json({ error: (err as Error).message });
-  }
+app.post('/api/ai/message', (_req, res) => {
+  res.status(410).json({
+    error: 'Deprecated: Messages are now forwarded to AI via session WebSocket',
+    see: 'https://github.com/jpshackelford/voice-relay/issues/119'
+  });
 });
 
-app.delete('/api/ai/disconnect', async (req, res) => {
-  const { deviceId } = req.body as { deviceId: string };
-  
-  if (!deviceId) {
-    res.status(400).json({ error: 'deviceId required' });
-    return;
-  }
-  
-  try {
-    await aiSessionManager.endSession(deviceId);
-    
-    // Notify the device that AI is disconnected
-    registry.sendToDevice(deviceId, {
-      type: 'ai-status',
-      connected: false,
-    });
-    
-    res.json({ success: true, message: 'AI disconnected' });
-  } catch (err) {
-    console.error('Failed to disconnect AI:', err);
-    res.status(500).json({ error: (err as Error).message });
-  }
+app.delete('/api/ai/disconnect', (_req, res) => {
+  res.status(410).json({
+    error: 'Deprecated: AI sessions are managed per-session, not per-device',
+    see: 'https://github.com/jpshackelford/voice-relay/issues/119'
+  });
 });
 
 // NOTE: 404 fallback handlers are registered at the end of start() 
@@ -600,6 +475,16 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast to devices in the same session (or workspace if no session)
           if (device.sessionId && device.sessionId !== 'default') {
             registry.broadcastToSession(relayMessage, device.sessionId);
+            
+            // Forward final messages to session AI if connected
+            if (!message.partial && aiSessionManager.hasSessionAI(device.sessionId)) {
+              try {
+                await aiSessionManager.sendSessionMessage(device.sessionId, message.text);
+                console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
+              } catch (err) {
+                console.error(`[AI] Failed to forward message to session AI:`, err);
+              }
+            }
           } else {
             registry.broadcastToOutputs(relayMessage, device.workspaceId);
           }
