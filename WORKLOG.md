@@ -740,3 +740,40 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - `ecce820` (review #128 round 2), `333b79f` (review #128 round 1)
 - `9fe0274` (implementation #127), `e2559ce` (expansion #127)
 - `3f0a24b` (merge #126), `8002e73` (review #126)
+
+---
+### 2026-05-15 20:05 UTC - Merge Worker (`dd65be6`)
+
+✅ **Merged PR #128 → Issue #127 Closed**
+
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Issue: [#127](https://github.com/jpshackelford/voice-relay/issues/127) - **CLOSED** (auto-closed via "Fixes #127")
+- Merge type: Squash merge
+
+**What was fixed:**
+- Smoke tests now match session-centric AI architecture from PR #126
+- UI selectors updated: `.ai-toggle` → `.ai-status`
+- Tests verify AI auto-connect behavior (not manual toggle)
+- Deprecated endpoint tests expect 410 Gone status
+- Removed obsolete manual connect/disconnect tests
+
+**Review journey (2 rounds):**
+1. Round 1: Fixed flawed `.catch()` in helper (swallowed failures)
+2. Round 2: Removed redundant assertions and duplicative test
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Test-only changes - no production code impact
+- No database migrations
+
+**CI Resolution:**
+- This resolves the smoke test failures that caused automatic rollback
+- Smoke tests now pass against the session-centric AI architecture
+
+**Session-centric AI Migration: COMPLETE** 🎉
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED  
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- ✅ Issue #122 (remove legacy device-centric code) - MERGED
+- ✅ Issue #127 (fix smoke tests) - **MERGED**
+
