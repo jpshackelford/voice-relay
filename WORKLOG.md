@@ -278,3 +278,33 @@ Add distinct visual indicators to the UI to distinguish between AI "connecting" 
 - Issue body was already well-structured, added technical implementation comment
 - Can begin client-side work once #119 is merged (defines server types)
 - Full functionality requires #120 (broadcasts the messages)
+
+### 2026-05-15 03:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2476742` | expansion | Issue #122 - Remove legacy AI code | **NEW** |
+
+**Previous workers completed:**
+- `00a4651` (expansion) - finished
+- `061a463` (expansion) - finished  
+- `6fe0138` (expansion) - finished
+- `d4eeeb3` (implementation) - finished
+
+🚀 **Spawned: Expansion Worker**
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Conversation: [`2476742`](https://app.all-hands.dev/conversations/2476742c6c384321a39bfc8b948a4889)
+
+**PR Slot Action:**
+- [PR #123](https://github.com/jpshackelford/voice-relay/pull/123): `o red ready 💬--`
+- CI: tests ✅, pr-review ❌ (timed out)
+- ✅ Triggered rerun of failed pr-review workflow (run ID: 25896488692)
+- Waiting for review bot to post feedback
+
+**Current State:**
+- Issues needing expansion: #122 (now being expanded)
+- Ready issues: #119 (linked to PR #123), #120, #121
+- No priority labels assigned to ready issues
+
+---
