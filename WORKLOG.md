@@ -966,3 +966,31 @@ Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavi
 - `20b3fc9` (review #130 ✓), `2ac2fd2` (implementation #129 ✓)
 
 ---
+
+### 2026-05-15 23:37 UTC - Implementation Worker (`f98f320`)
+
+✅ **PR Created: Issue #131**
+
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| File | Change |
+|------|--------|
+| `server/src/auto-connect.ts` | Changed `senderName: 'AI Assistant'` → `senderName: '✨ AI'` |
+| `server/src/auto-connect.test.ts` | Updated test assertion to expect `'✨ AI'` |
+
+**Root Cause Fixed:**
+The session-centric AI refactor (PRs #123, #124) inadvertently changed the `senderName` for AI messages from `'✨ AI'` to `'AI Assistant'`. The smoke test at `tests/smoke/ai-integration.spec.ts:188` expects messages containing `'✨ AI'`, causing test failures after deployment.
+
+**CI Status:**
+- ✅ Build Client: Passed
+- ✅ Server Tests: Passed (all 525 tests)
+- ✅ E2E Tests: Passed
+- ✅ Conventional Commits: Passed
+
+**Risk Assessment:** Low - simple string change restoring original behavior.
+
+---
