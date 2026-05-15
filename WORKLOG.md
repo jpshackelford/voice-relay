@@ -31,39 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 14:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a321264` | merge | PR #124 - Auto-connect AI | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Conversation: [`a321264`](https://app.all-hands.dev/conversations/a321264c1fa847de9de4a0fa46ad1624)
-- Issue: [#120 - Auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/issues/120)
-
-**PR Merge Criteria Met:**
-- ✅ CI: All checks passing (green)
-- ✅ State: Ready (not draft)
-- ✅ Unresolved threads: 0 (all 14 threads resolved)
-- ✅ Bot verdict: "Worth merging" (Risk: LOW)
-- ✅ Mergeable: MERGEABLE
-
-**Previous Workers (all finished):**
-- `73f4a19` (review #124 round 6), `66226b2` (review #124 round 5)
-- `a207351` (review #124 round 4), `f0d1dfe` (review #124 round 3)
-- `a8b5c5b` (review #124 round 2), `26bf0d8` (review #124 round 1)
-- `e597152` (implementation #120), `5c27fea` (merge #123)
-
-**Current State:**
-- Issues needing expansion: None 🎉
-- Ready issues after #120 closes: #121 (priority:medium), #122 (priority:low)
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (merge worker)
-
----
 ### 2026-05-15 14:37 UTC - Merge Worker (`a321264`)
 
 ✅ **Merged PR #124 → Issue #120 Closed**
@@ -877,3 +844,35 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 - CI: All checks green ✅
 
 ---
+### 2026-05-15 21:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a95245a` | review | PR #130 - wire session AI status | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
+- Conversation: [`a95245a`](https://app.all-hands.dev/conversations/a95245a0a5454ec1a023cef71b122ca8)
+
+**PR Status:**
+- CI: All checks passing (green) ✅
+- State: Ready (not draft) ✅
+- Unresolved threads: 1 (bot suggestion about type export)
+- History: `oR` (opened, reviewed)
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
+
+**Current State:**
+- Issue #129 will auto-close when PR #130 merges
+- No other open issues after #129 is resolved
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
+- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
+
