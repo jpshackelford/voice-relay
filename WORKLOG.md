@@ -31,37 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 15:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `9de89cb` | merge | PR #125 - UI indicators | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
-- Conversation: [`9de89cb`](https://app.all-hands.dev/conversations/9de89cbed75e4131bb5bc00d520fb507)
-- Issue: [#121 - UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
-
-**PR Merge Criteria Met:**
-- ✅ CI: All checks passing (green)
-- ✅ State: Ready (not draft)
-- ✅ Unresolved threads: 0
-- ✅ Bot verdict: "✅ Worth merging" (Risk: LOW)
-- ✅ Mergeable: MERGEABLE
-
-**Previous Worker Completed:**
-- `316a714` (implementation #121) - finished, created PR #125
-
-**Current State:**
-- Issues needing expansion: None 🎉
-- Ready issues after #121 closes: #122 (priority:low)
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (merge worker)
-
----
-
 ### 2026-05-15 15:35 UTC - Merge Worker (`9de89cb`)
 
 ✅ **Merged PR #125 → Issue #121 Closed**
@@ -125,7 +94,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
 
 ---
-
 ### 2026-05-15 16:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -157,7 +125,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
 
 ---
-
 ### 2026-05-15 16:47 UTC - Implementation Worker (`4f3a5c4`)
 
 ✅ **PR Created: Issue #122**
@@ -197,7 +164,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR REVIEW
 
 ---
-
 ### 2026-05-15 17:06 UTC - Orchestrator
 
 **Active Workers:**
@@ -227,7 +193,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - `a321264` (merge #124), and previous review workers for PR #124
 
 ---
-
 ### 2026-05-15 17:10 UTC - Review Worker (`8002e73`)
 
 ✅ **Review Feedback Addressed: PR #126**
@@ -289,7 +254,6 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - `8002e73` (review #126), `4f3a5c4` (implementation #122), `9de89cb` (merge #125)
 
 ---
-
 ### 2026-05-15 17:36 UTC - Merge Worker (`3f0a24b`)
 
 ✅ **PR #126 MERGED - Session-centric AI Migration COMPLETE! 🎉**
@@ -353,7 +317,6 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
-
 ### 2026-05-15 18:10 UTC - Expansion Worker
 
 ✅ **Expanded Issue #127: Smoke test failure after deployment**
@@ -380,7 +343,6 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 **Complexity:** Medium
 
 ---
-
 ### 2026-05-15 18:30 UTC - Orchestrator
 
 **Active Workers:**
@@ -411,7 +373,6 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
-
 ### 2026-05-15 18:42 UTC - Implementation Worker (`9fe0274`)
 
 ✅ **PR Created: Issue #127**
@@ -434,7 +395,6 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 **CI Status:** ✅ All checks passing (E2E Tests, Build Client, Server Tests, lint-pr-title)
 
 ---
-
 ### 2026-05-15 19:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -463,7 +423,6 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
-
 ### 2026-05-15 19:05 UTC - Review Worker (`333b79f`)
 
 ✅ **Review Feedback Addressed: PR #128**
@@ -489,7 +448,6 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 All 1 review thread resolved. CI passing. PR marked ready for review.
 
 ---
-
 ### 2026-05-15 19:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -520,7 +478,6 @@ All 1 review thread resolved. CI passing. PR marked ready for review.
 - `e2559ce` (expansion #127), `3f0a24b` (merge #126), `8002e73` (review #126)
 
 ---
-
 ### 2026-05-15 19:38 UTC - Review Worker (`ecce820`)
 
 ✅ **Review Feedback Addressed: PR #128 (Round 2)**
@@ -552,7 +509,6 @@ All 1 review thread resolved. CI passing. PR marked ready for review.
 All 4 review threads resolved. CI passing. PR marked ready for review.
 
 ---
-
 ### 2026-05-15 20:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -589,7 +545,6 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - `3f0a24b` (merge #126), `8002e73` (review #126)
 
 ---
-
 ### 2026-05-15 20:05 UTC - Merge Worker (`dd65be6`)
 
 ✅ **Merged PR #128 → Issue #127 Closed**
@@ -626,7 +581,6 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - ✅ Issue #127 (fix smoke tests) - **MERGED**
 
 ---
-
 ### 2026-05-15 20:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -653,7 +607,6 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - `333b79f` (review #128 round 1 ✓), `9fe0274` (implementation #127 ✓)
 
 ---
-
 ### 2026-05-15 20:36 UTC - Expansion Worker (`8347c92`)
 
 ✅ **Expanded Issue #129**
@@ -727,7 +680,6 @@ Client-side wiring for session-centric AI status is incomplete:
 - `ecce820` (review #128 round 2 ✓), `333b79f` (review #128 round 1 ✓)
 
 ---
-
 ### 2026-05-15 21:10 UTC - Implementation Worker
 
 ✅ **PR Created: Issue #129 (smoke test failure)**
@@ -756,7 +708,6 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 - CI: All checks green ✅
 
 ---
-
 ### 2026-05-15 21:33 UTC - Orchestrator
 
 **Active Workers:**
@@ -790,7 +741,6 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
 
 ---
-
 ### 2026-05-15 22:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -828,7 +778,6 @@ Spawning fresh review worker to continue addressing feedback.
 - `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
 
 ---
-
 ### 2026-05-15 22:07 UTC - Review Worker (`20b3fc9`)
 
 ✅ **Review Feedback Addressed: PR #130**
@@ -859,7 +808,6 @@ Spawning fresh review worker to continue addressing feedback.
 - Bot verdict: "✅ Worth merging" (Risk: LOW)
 
 ---
-
 ### 2026-05-15 22:33 UTC - Orchestrator
 
 **Active Workers:**
@@ -893,7 +841,6 @@ Spawning fresh review worker to continue addressing feedback.
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
 
 ---
-
 ### 2026-05-15 22:34 UTC - Merge Worker (`be21f55`)
 
 ✅ **Merged PR #130 → Issue #129 Closed**
@@ -939,3 +886,33 @@ PR #126 (session-centric AI) added WebSocket message types and handlers, but the
 - No open PRs
 - Smoke tests should now pass (`.ai-status` indicator wiring complete)
 
+---
+
+### 2026-05-15 23:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `101768f` | expansion | Issue #131 - Smoke test failure | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- Conversation: [`101768f`](https://app.all-hands.dev/conversations/101768f41ec74b35bdd54b2175d629e3)
+
+**Current State:**
+- No open PRs
+- Issue #131 needs expansion (ci-failure label only)
+- Expansion slot: Occupied (expansion worker)
+- PR slot: Idle (no ready issues to implement yet)
+
+**Note:** Issue #131 is a new smoke test failure created ~25 minutes ago after PR #130 merged.
+PR #130 fixed issue #129 (previous smoke test failure), but a new failure occurred.
+This may indicate the fix was incomplete or there's a different issue.
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
+
+**Previous Workers (all finished):**
+- `be21f55` (merge #130 ✓), `20b3fc9` (review #130 ✓)
+- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
