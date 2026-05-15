@@ -551,7 +551,9 @@ wss.on('connection', (ws: WebSocket) => {
                       decryptApiKey
                     )
                   : null,
-            }).catch(() => {}); // Error already logged in autoConnectAI
+            }).catch((err) => {
+              console.warn('[AI] Auto-connect async operation failed:', err);
+            });
           }
           break;
         }
