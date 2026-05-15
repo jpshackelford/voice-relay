@@ -111,7 +111,6 @@ setInterval(cleanupOrphanedPendingRequests, PENDING_REQUEST_CLEANUP_INTERVAL_MS)
 async function autoConnectAI(
   sessionId: string,
   workspaceId: string,
-  deviceRepository: DeviceRepository | null,
   sessionRepository: SessionRepository,
   workspaceRepository: WorkspaceRepository | null,
   store: MessageStore
@@ -152,9 +151,9 @@ async function autoConnectAI(
     }
 
     // Get or create display secret for the session
-    let displayApiSecret: string | undefined = sessionRepository.getDisplaySecret(sessionId) ?? undefined;
+    let displayApiSecret = sessionRepository.getDisplaySecret(sessionId);
     if (!displayApiSecret) {
-      displayApiSecret = sessionRepository.setDisplaySecret(sessionId) ?? undefined;
+      displayApiSecret = sessionRepository.setDisplaySecret(sessionId);
     }
 
     // Get min display lines from connected kiosks
@@ -182,7 +181,7 @@ async function autoConnectAI(
       {
         displayLines,
         apiKey: apiKey || undefined,
-        displayApiSecret,
+        displayApiSecret: displayApiSecret || undefined,
       }
     );
 
@@ -197,13 +196,15 @@ async function autoConnectAI(
     registry.broadcastMessageToSession(sessionId, connectedStatus);
     console.log(`[AI] Auto-connected AI for session ${sessionId}, conversation: ${aiSession.conversationId}`);
   } catch (err) {
+    // Log full error server-side for debugging
     console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err);
+    // Sanitize error message for clients to avoid leaking internal details
     const errorStatus: SessionAIStatusMessage = {
       type: 'session-ai-status',
       sessionId,
       connecting: false,
       connected: false,
-      error: err instanceof Error ? err.message : 'Unknown error',
+      error: 'Failed to connect AI assistant',
     };
     registry.broadcastMessageToSession(sessionId, errorStatus);
   }
@@ -649,7 +650,6 @@ wss.on('connection', (ws: WebSocket) => {
               autoConnectAI(
                 sessionId,
                 requestedWorkspaceId,
-                deviceRepository,
                 sessionRepository,
                 workspaceRepository,
                 store
