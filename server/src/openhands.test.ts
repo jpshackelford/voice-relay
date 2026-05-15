@@ -124,6 +124,64 @@ describe('loadPrompt', () => {
     });
   });
 
+  describe('serverUrl injection', () => {
+    test('replaces {{SERVER_URL}} with BASE_URL env var when set', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      process.env.BASE_URL = 'https://test.example.com';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        expect(prompt).toContain('curl -X POST https://test.example.com/api/display');
+        expect(prompt).not.toContain('{{SERVER_URL}}');
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        } else {
+          delete process.env.BASE_URL;
+        }
+      }
+    });
+
+    test('replaces {{SERVER_URL}} with localhost fallback when BASE_URL not set', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      const originalPort = process.env.PORT;
+      delete process.env.BASE_URL;
+      process.env.PORT = '3001';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        expect(prompt).toContain('curl -X POST http://localhost:3001/api/display');
+        expect(prompt).not.toContain('{{SERVER_URL}}');
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        }
+        if (originalPort) {
+          process.env.PORT = originalPort;
+        } else {
+          delete process.env.PORT;
+        }
+      }
+    });
+
+    test('SERVER_URL appears in all display API examples', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      process.env.BASE_URL = 'https://vr.chorecraft.net';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        // Count occurrences of the URL in curl commands
+        const urlMatches = prompt.match(/https:\/\/vr\.chorecraft\.net\/api\/display/g);
+        expect(urlMatches).toBeTruthy();
+        // Should appear 4 times (greeting, markdown, image, clear commands)
+        expect(urlMatches!.length).toBe(4);
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        } else {
+          delete process.env.BASE_URL;
+        }
+      }
+    });
+  });
+
   describe('unified prompt for all device modes', () => {
     test('same prompt is used regardless of device mode', () => {
       // This test verifies the unified prompt approach - all sessions get the same prompt
@@ -140,7 +198,9 @@ describe('loadPrompt', () => {
       // Mobile/chat sessions should still have display API knowledge
       const prompt = loadPrompt('system-prompt');
       expect(prompt).toContain('Display API');
-      expect(prompt).toContain('curl -X POST https://vr.chorecraft.net/api/display');
+      // URL should be templated from BASE_URL env var (defaults to localhost)
+      expect(prompt).toContain('curl -X POST');
+      expect(prompt).toContain('/api/display');
     });
   });
 });

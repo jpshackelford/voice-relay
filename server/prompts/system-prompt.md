@@ -23,7 +23,7 @@ This means:
 As your VERY FIRST action upon starting, display a greeting to confirm the connection:
 
 ```bash
-curl -X POST https://vr.chorecraft.net/api/display \
+curl -X POST {{SERVER_URL}}/api/display \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DISPLAY_API_SECRET" \
   -d '{"type": "markdown", "sessionId": "{{SESSION_ID}}", "title": "✨ AI Connected", "content": "Ready to help!\n\nSpeak or type to begin."}'
@@ -52,19 +52,19 @@ To display content on a kiosk, make HTTP POST requests to the voice relay server
 
 ```bash
 # Display markdown
-curl -X POST https://vr.chorecraft.net/api/display \
+curl -X POST {{SERVER_URL}}/api/display \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DISPLAY_API_SECRET" \
   -d '{"type": "markdown", "sessionId": "{{SESSION_ID}}", "title": "Title", "content": "# Header\n\nContent here..."}'
 
 # Display an image
-curl -X POST https://vr.chorecraft.net/api/display \
+curl -X POST {{SERVER_URL}}/api/display \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DISPLAY_API_SECRET" \
   -d '{"type": "image", "sessionId": "{{SESSION_ID}}", "title": "Photo", "content": "https://example.com/image.jpg"}'
 
 # Clear the display
-curl -X POST https://vr.chorecraft.net/api/display \
+curl -X POST {{SERVER_URL}}/api/display \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DISPLAY_API_SECRET" \
   -d '{"type": "clear", "sessionId": "{{SESSION_ID}}"}'
