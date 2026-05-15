@@ -774,3 +774,111 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - Ready issues after #120 closes: #121 (priority:medium), #122 (priority:low)
 - Expansion slot: Idle (nothing to expand)
 - PR slot: Occupied (merge worker)
+
+---
+
+### 2026-05-15 14:37 UTC - Merge Worker (`a321264`)
+
+✅ **Merged PR #124 → Issue #120 Closed**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Issue: [#120](https://github.com/jpshackelford/voice-relay/issues/120) - **CLOSED** (auto-closed via "Fixes #120")
+- Merge type: Squash merge
+- Commit: `feat: auto-connect AI when first device joins session`
+
+**What was shipped:**
+- Automatic AI conversation creation when first device joins a session
+- Display-first communication model in AI prompt (kiosk display is primary visual channel)
+- AI sends greeting to display immediately on connection
+- Error messages sanitized before broadcasting to clients
+- Production safety: fail-fast if `BASE_URL` not set in production
+- 438 lines of unit tests for auto-connect logic
+
+**Migration status:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - **MERGED**
+- 🔜 Issue #121 (UI indicators for thinking/connecting) - Ready
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready (unblocked now)
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- No database changes - safe for production
+- No breaking changes to existing functionality
+
+**Review journey (6 rounds):**
+1. Round 1: Fixed hardcoded URLs, error sanitization
+2. Round 2-3: Added comprehensive unit tests (438 lines)
+3. Round 4: Replaced deprecated `.substr()` with `.slice()`
+4. Round 5: Added defensive warning logging
+5. Round 6: Production safety - fail-fast if BASE_URL not set
+
+
+### 2026-05-15 15:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `316a714` | implementation | Issue #121 - UI indicators | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- Priority: `priority:medium`
+- Conversation: [`316a714`](https://app.all-hands.dev/conversations/316a714dfcea49e7ad616ce5fbe37c5e)
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded and ready
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Ready Issues:**
+- #121 (priority:medium) - being implemented now
+- #122 (priority:low) - chore: Remove legacy device-centric AI code
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- 🔄 Issue #121 (UI indicators for thinking/connecting) - IN PROGRESS
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready, waiting
+
+**Previous Workers (all finished):**
+- `a321264` (merge #124), `73f4a19` (review #124 round 6)
+- `66226b2` (review #124 round 5), `a207351` (review #124 round 4)
+
+---
+
+### 2026-05-15 15:15 UTC - Implementation Worker (`316a714`)
+
+✅ **PR Created: Issue #121**
+
+- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| File | Changes |
+|------|---------|
+| `client/src/types.ts` | Added `AIThinkingMessage`, `SessionAIStatusMessage` types |
+| `client/src/hooks/useAI.ts` | Added `thinking` state, `handleSessionAIStatus`, `handleAIThinking` handlers |
+| `client/src/hooks/useWebSocket.ts` | Handle `ai-thinking` and `session-ai-status` message types |
+| `client/src/components/KioskMode.tsx` | Updated indicators: 🔗 connecting, 🤔 thinking, ✨ connected |
+| `client/src/components/MobileMode.tsx` | Same indicator updates as KioskMode |
+| `client/src/App.css` | Added `ai-connecting` animation, updated `ai-thinking` animation |
+
+**Acceptance Criteria Status:**
+- [x] `useAI` hook exposes `thinking` state alongside `connecting` and `connected`
+- [x] Client handles `ai-thinking` WebSocket messages to update state
+- [x] Client handles `session-ai-status` WebSocket messages for session-level AI state
+- [x] KioskMode shows 🔗 (animated) when connecting
+- [x] KioskMode shows 🤔 (pulsing) when AI is thinking
+- [x] KioskMode shows ✨ when connected and idle
+- [x] MobileMode shows same indicators
+- [x] CSS animations are smooth and not distracting
+
+**Tests:**
+- Added 8 new tests for `handleAIThinking`, `handleSessionAIStatus`, session filtering
+- All 193 client tests passing
+- All 530 server tests passing
+- CI: All checks green ✅

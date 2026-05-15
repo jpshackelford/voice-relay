@@ -31,112 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 14:37 UTC - Merge Worker (`a321264`)
-
-✅ **Merged PR #124 → Issue #120 Closed**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Issue: [#120](https://github.com/jpshackelford/voice-relay/issues/120) - **CLOSED** (auto-closed via "Fixes #120")
-- Merge type: Squash merge
-- Commit: `feat: auto-connect AI when first device joins session`
-
-**What was shipped:**
-- Automatic AI conversation creation when first device joins a session
-- Display-first communication model in AI prompt (kiosk display is primary visual channel)
-- AI sends greeting to display immediately on connection
-- Error messages sanitized before broadcasting to clients
-- Production safety: fail-fast if `BASE_URL` not set in production
-- 438 lines of unit tests for auto-connect logic
-
-**Migration status:**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - **MERGED**
-- 🔜 Issue #121 (UI indicators for thinking/connecting) - Ready
-- 🔜 Issue #122 (remove legacy device-centric code) - Ready (unblocked now)
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- No database changes - safe for production
-- No breaking changes to existing functionality
-
-**Review journey (6 rounds):**
-1. Round 1: Fixed hardcoded URLs, error sanitization
-2. Round 2-3: Added comprehensive unit tests (438 lines)
-3. Round 4: Replaced deprecated `.substr()` with `.slice()`
-4. Round 5: Added defensive warning logging
-5. Round 6: Production safety - fail-fast if BASE_URL not set
-
-
-### 2026-05-15 15:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `316a714` | implementation | Issue #121 - UI indicators | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
-- Priority: `priority:medium`
-- Conversation: [`316a714`](https://app.all-hands.dev/conversations/316a714dfcea49e7ad616ce5fbe37c5e)
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- All issues expanded and ready
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (implementation worker)
-
-**Ready Issues:**
-- #121 (priority:medium) - being implemented now
-- #122 (priority:low) - chore: Remove legacy device-centric AI code
-
-**Migration Status (Session-centric AI):**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
-- 🔄 Issue #121 (UI indicators for thinking/connecting) - IN PROGRESS
-- 🔜 Issue #122 (remove legacy device-centric code) - Ready, waiting
-
-**Previous Workers (all finished):**
-- `a321264` (merge #124), `73f4a19` (review #124 round 6)
-- `66226b2` (review #124 round 5), `a207351` (review #124 round 4)
-
----
-### 2026-05-15 15:15 UTC - Implementation Worker (`316a714`)
-
-✅ **PR Created: Issue #121**
-
-- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
-- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
-- Status: **Ready for review** ✅
-
-**Changes Implemented:**
-
-| File | Changes |
-|------|---------|
-| `client/src/types.ts` | Added `AIThinkingMessage`, `SessionAIStatusMessage` types |
-| `client/src/hooks/useAI.ts` | Added `thinking` state, `handleSessionAIStatus`, `handleAIThinking` handlers |
-| `client/src/hooks/useWebSocket.ts` | Handle `ai-thinking` and `session-ai-status` message types |
-| `client/src/components/KioskMode.tsx` | Updated indicators: 🔗 connecting, 🤔 thinking, ✨ connected |
-| `client/src/components/MobileMode.tsx` | Same indicator updates as KioskMode |
-| `client/src/App.css` | Added `ai-connecting` animation, updated `ai-thinking` animation |
-
-**Acceptance Criteria Status:**
-- [x] `useAI` hook exposes `thinking` state alongside `connecting` and `connected`
-- [x] Client handles `ai-thinking` WebSocket messages to update state
-- [x] Client handles `session-ai-status` WebSocket messages for session-level AI state
-- [x] KioskMode shows 🔗 (animated) when connecting
-- [x] KioskMode shows 🤔 (pulsing) when AI is thinking
-- [x] KioskMode shows ✨ when connected and idle
-- [x] MobileMode shows same indicators
-- [x] CSS animations are smooth and not distracting
-
-**Tests:**
-- Added 8 new tests for `handleAIThinking`, `handleSessionAIStatus`, session filtering
-- All 193 client tests passing
-- All 530 server tests passing
-- CI: All checks green ✅
-
----
 ### 2026-05-15 15:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -167,6 +61,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - PR slot: Occupied (merge worker)
 
 ---
+
 ### 2026-05-15 15:35 UTC - Merge Worker (`9de89cb`)
 
 ✅ **Merged PR #125 → Issue #121 Closed**
@@ -230,6 +125,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
 
 ---
+
 ### 2026-05-15 16:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -261,6 +157,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
 
 ---
+
 ### 2026-05-15 16:47 UTC - Implementation Worker (`4f3a5c4`)
 
 ✅ **PR Created: Issue #122**
@@ -300,6 +197,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR REVIEW
 
 ---
+
 ### 2026-05-15 17:06 UTC - Orchestrator
 
 **Active Workers:**
@@ -329,6 +227,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - `a321264` (merge #124), and previous review workers for PR #124
 
 ---
+
 ### 2026-05-15 17:10 UTC - Review Worker (`8002e73`)
 
 ✅ **Review Feedback Addressed: PR #126**
@@ -390,6 +289,7 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - `8002e73` (review #126), `4f3a5c4` (implementation #122), `9de89cb` (merge #125)
 
 ---
+
 ### 2026-05-15 17:36 UTC - Merge Worker (`3f0a24b`)
 
 ✅ **PR #126 MERGED - Session-centric AI Migration COMPLETE! 🎉**
@@ -453,6 +353,7 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+
 ### 2026-05-15 18:10 UTC - Expansion Worker
 
 ✅ **Expanded Issue #127: Smoke test failure after deployment**
@@ -479,6 +380,7 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 **Complexity:** Medium
 
 ---
+
 ### 2026-05-15 18:30 UTC - Orchestrator
 
 **Active Workers:**
@@ -509,6 +411,7 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+
 ### 2026-05-15 18:42 UTC - Implementation Worker (`9fe0274`)
 
 ✅ **PR Created: Issue #127**
@@ -531,6 +434,7 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 **CI Status:** ✅ All checks passing (E2E Tests, Build Client, Server Tests, lint-pr-title)
 
 ---
+
 ### 2026-05-15 19:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -559,6 +463,7 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+
 ### 2026-05-15 19:05 UTC - Review Worker (`333b79f`)
 
 ✅ **Review Feedback Addressed: PR #128**
@@ -584,6 +489,7 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 All 1 review thread resolved. CI passing. PR marked ready for review.
 
 ---
+
 ### 2026-05-15 19:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -614,6 +520,7 @@ All 1 review thread resolved. CI passing. PR marked ready for review.
 - `e2559ce` (expansion #127), `3f0a24b` (merge #126), `8002e73` (review #126)
 
 ---
+
 ### 2026-05-15 19:38 UTC - Review Worker (`ecce820`)
 
 ✅ **Review Feedback Addressed: PR #128 (Round 2)**
@@ -645,6 +552,7 @@ All 1 review thread resolved. CI passing. PR marked ready for review.
 All 4 review threads resolved. CI passing. PR marked ready for review.
 
 ---
+
 ### 2026-05-15 20:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -681,6 +589,7 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - `3f0a24b` (merge #126), `8002e73` (review #126)
 
 ---
+
 ### 2026-05-15 20:05 UTC - Merge Worker (`dd65be6`)
 
 ✅ **Merged PR #128 → Issue #127 Closed**
@@ -717,6 +626,7 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - ✅ Issue #127 (fix smoke tests) - **MERGED**
 
 ---
+
 ### 2026-05-15 20:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -743,6 +653,7 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - `333b79f` (review #128 round 1 ✓), `9fe0274` (implementation #127 ✓)
 
 ---
+
 ### 2026-05-15 20:36 UTC - Expansion Worker (`8347c92`)
 
 ✅ **Expanded Issue #129**
@@ -816,6 +727,7 @@ Client-side wiring for session-centric AI status is incomplete:
 - `ecce820` (review #128 round 2 ✓), `333b79f` (review #128 round 1 ✓)
 
 ---
+
 ### 2026-05-15 21:10 UTC - Implementation Worker
 
 ✅ **PR Created: Issue #129 (smoke test failure)**
@@ -844,6 +756,7 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 - CI: All checks green ✅
 
 ---
+
 ### 2026-05-15 21:33 UTC - Orchestrator
 
 **Active Workers:**
@@ -875,4 +788,3 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 **Previous Workers (all finished):**
 - `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
-
