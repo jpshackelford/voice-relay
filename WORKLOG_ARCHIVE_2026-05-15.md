@@ -550,3 +550,136 @@ All review threads resolved. CI passing. PR marked ready for review.
 **Previous Workers (all finished):**
 - `a8b5c5b` (review #124), `26bf0d8` (review #124), `e597152` (implementation #120)
 - `5c27fea` (merge #123), `2476742` (expansion #122), `061a463` (expansion #121)
+
+---
+### 2026-05-15 11:09 UTC - Review Worker (`f0d1dfe`)
+
+✅ **Review Feedback Addressed: PR #124 (Round 3)**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Utterance ID collision with `Date.now()` | 🟡 Suggestion | ✅ Fixed in `1f8b995` |
+| Redundant error logging | 🟡 Suggestion | ✅ Fixed in `1f8b995` |
+| Document race condition limitation | 🟡 Suggestion | ✅ Fixed in `1f8b995` |
+| Add guidance for greeting failure | 🟡 Suggestion | ✅ Fixed in `c3bf97f` |
+
+**Commits:**
+- `1f8b995` - refactor: address code review feedback on auto-connect
+- `c3bf97f` - docs: add guidance for greeting failure in system prompt
+
+**Technical Details:**
+- Added random suffix to utterance IDs: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+- Removed redundant `.catch()` error logging since `autoConnectAI` already handles errors internally
+- Added comment documenting known race condition (handled by downstream deduplication)
+- System prompt now instructs AI to continue if display API fails (voice-only users still hear responses)
+
+All 4 review threads resolved. CI passing. PR marked ready for review.
+### 2026-05-15 12:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a207351` | review | PR #124 - Auto-connect AI (Round 4) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Conversation: [`a207351`](https://app.all-hands.dev/conversations/a2073518aa964a58a9ae6104194dad55)
+
+**Review Issue to Address:**
+1. 🟡 Minor: Replace deprecated `.substr()` with `.slice()` in auto-connect.ts
+
+**Current State:**
+- PR #124: `oRCFRFRCFR green ready 💬1` (CI green, 1 unresolved thread)
+- Bot review: "✅ Worth merging" - just needs trivial fix
+- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `f0d1dfe` (review #124 round 3), `a8b5c5b` (review #124 round 2), `26bf0d8` (review #124 round 1)
+- `e597152` (implementation #120), `5c27fea` (merge #123)
+
+---
+### 2026-05-15 12:08 UTC - Review Worker (`a207351`)
+
+✅ **Final Review Feedback Addressed: PR #124 (Round 4)**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Deprecated `.substr()` usage | 🟡 Minor | ✅ Fixed in `dba990b` |
+
+**Commits:**
+- `dba990b` - refactor: replace deprecated .substr() with .slice()
+
+**Technical Details:**
+- Replaced `.substr(2, 9)` with `.slice(2, 11)` in auto-connect.ts (line 91)
+- `.substr()` is deprecated; `.slice()` is the modern equivalent
+- Note: `.slice()` uses end index (2+9=11), not length like `.substr()`
+
+All review threads resolved. CI passing. PR marked ready for review.
+Bot review verdict: "✅ Worth merging" - PR is ready for merge.
+
+---
+### 2026-05-15 12:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `66226b2` | review | PR #124 - Auto-connect AI (Round 5) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Conversation: [`66226b2`](https://app.all-hands.dev/conversations/66226b2aa8084f199b19915515640601)
+
+**Review Issue to Address:**
+1. 🟡 Suggestion: Add defensive console.warn in .catch() handler (defense-in-depth)
+
+**Current State:**
+- PR #124: `oRCFRFRCFRFRC green ready 💬1` (CI green, 1 unresolved thread)
+- Bot verdict: "✅ Worth merging" - just needs trivial fix
+- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `a207351` (review #124 round 4), `f0d1dfe` (review #124 round 3), `a8b5c5b` (review #124 round 2)
+- `26bf0d8` (review #124 round 1), `e597152` (implementation #120), `5c27fea` (merge #123)
+
+---
+### 2026-05-15 12:37 UTC - Review Worker (`66226b2`)
+
+✅ **Final Review Feedback Addressed: PR #124 (Round 5)**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Silent error suppression in .catch() | 🟡 Suggestion | ✅ Fixed in `5b2477b` |
+
+**Commits:**
+- `5b2477b` - chore: add defensive warning logging in auto-connect catch handler
+
+**Technical Details:**
+- Added `console.warn('[AI] Auto-connect async operation failed:', err)` in the .catch() handler
+- Provides defense-in-depth logging at the call site
+- If `autoConnectAI` internal logging is removed in future refactors, errors will still be visible
+
+All review threads resolved. CI passing. PR marked ready for review.
+Bot review verdict: "✅ Worth merging" - PR is ready for merge.
