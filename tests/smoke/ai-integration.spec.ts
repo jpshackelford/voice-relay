@@ -3,19 +3,20 @@ import * as path from 'path';
 
 /**
  * E2E Smoke tests for AI Assistant Integration.
- * 
- * Tests validate the human-to-agent communication flow:
+ *
+ * Tests validate the session-centric AI architecture:
  * 1. AI availability check based on workspace API key configuration
- * 2. Sparkle button visibility and state management
- * 3. Connecting to and disconnecting from AI assistant
- * 4. Sending messages and receiving AI responses
+ * 2. AI auto-connects to sessions when first device joins
+ * 3. AI status indicator (.ai-status) shows connecting/connected states
+ * 4. Sending messages and receiving AI responses via WebSocket
  * 5. AI displaying images on kiosk canvas
  * 6. AI displaying markdown content on kiosk canvas
- * 
+ * 7. Deprecated device-centric endpoints return 410 Gone
+ *
  * Prerequisites:
  * - TEST_AUTH_SECRET env var set for automated auth
  * - Test workspace with OPENHANDS_API_KEY configured
- * 
+ *
  * Usage:
  *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
  */
@@ -24,10 +25,10 @@ const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
 const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('AI Assistant Integration', () => {
-  
+
   // Helper to ensure the kiosk drawer is open
   // The drawer starts collapsed (per F3 requirement), so we need to open it
-  // before interacting with elements inside (like .ai-toggle button)
+  // before interacting with elements inside (like .ai-status indicator)
   async function ensureDrawerOpen(page: import('@playwright/test').Page) {
     const drawerOpenBtn = page.locator('.drawer-open-btn');
     if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
@@ -43,7 +44,7 @@ test.describe('AI Assistant Integration', () => {
     test('AI status endpoint returns availability info', async ({ request }) => {
       const response = await request.get(`${BASE_URL}/api/ai/status`);
       expect(response.ok()).toBeTruthy();
-      
+
       const data = await response.json();
       expect(data).toHaveProperty('available');
       expect(data).toHaveProperty('message');
@@ -61,9 +62,9 @@ test.describe('AI Assistant Integration', () => {
     async function getAIEnabledWorkspace(page: import('@playwright/test').Page): Promise<{ id: string; name: string } | null> {
       const response = await page.request.get(`${BASE_URL}/api/workspaces`);
       if (!response.ok()) return null;
-      
+
       const workspaces = await response.json();
-      
+
       // Find workspace where current user is owner (likely to have AI configured)
       const ownedWorkspace = workspaces.find((ws: { isOwner: boolean }) => ws.isOwner);
       return ownedWorkspace || null;
@@ -73,7 +74,7 @@ test.describe('AI Assistant Integration', () => {
     async function navigateToKiosk(page: import('@playwright/test').Page, workspaceId: string) {
       // Create a new session and enter kiosk mode
       await page.goto(`${BASE_URL}/workspace/${workspaceId}`);
-      
+
       // Wait for workspace page to load
       await expect(
         page.getByRole('heading', { name: /devices/i })
@@ -89,36 +90,26 @@ test.describe('AI Assistant Integration', () => {
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
     }
 
-    // Helper to wait for AI availability check to complete
-    // Opens drawer first, then checks if button appears
-    async function waitForAIAvailabilityCheck(page: import('@playwright/test').Page) {
-      // First ensure the drawer is open so the AI toggle button is accessible
+    // Helper to wait for AI to auto-connect after session starts
+    // AI now automatically connects to sessions when first device joins
+    async function waitForAIAutoConnect(page: import('@playwright/test').Page) {
+      // First ensure the drawer is open so the AI status indicator is accessible
       await ensureDrawerOpen(page);
-      
-      const sparkleButton = page.locator('.ai-toggle');
-      // Wait for either button to appear (AI available) or timeout (AI unavailable)
-      await expect(sparkleButton).toBeVisible({ timeout: 10000 })
+
+      // AI status indicator only appears when connecting or connected
+      const aiStatus = page.locator('.ai-status');
+      // Wait for AI to auto-connect (status indicator appears)
+      await expect(aiStatus).toBeVisible({ timeout: 30000 })
         .catch(() => {
-          // Expected when AI not available - button won't render
+          // AI may not connect if unavailable - that's OK
         });
     }
 
-    // Cleanup: disconnect from AI if connected to avoid leaving sessions open
-    test.afterEach(async ({ page }) => {
-      const sparkleButton = page.locator('.ai-toggle');
-      if (await sparkleButton.isVisible().catch(() => false)) {
-        const isActive = await sparkleButton.evaluate(el => el.classList.contains('active')).catch(() => false);
-        if (isActive) {
-          await sparkleButton.click();
-        }
-      }
-    });
-
-    test('sparkle button visible when AI is available', async ({ page }) => {
+    test('AI auto-connects to session and shows status indicator', async ({ page }) => {
       // Check if AI is available
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available - no OPENHANDS_API_KEY configured');
         return;
@@ -131,20 +122,20 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await waitForAIAutoConnect(page);
 
-      // Sparkle button should be visible
-      const sparkleButton = page.locator('.ai-toggle');
-      await expect(sparkleButton).toBeVisible({ timeout: 10000 });
-      
-      // Should show ✨ emoji when not connecting
-      await expect(sparkleButton).toContainText('✨');
+      // AI status indicator should be visible (AI auto-connects to sessions)
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toBeVisible({ timeout: 30000 });
+
+      // Should show ✨ emoji when connected (or 🔗 when connecting)
+      await expect(aiStatus).toContainText(/✨|🔗/);
     });
 
-    test('connect to AI assistant', async ({ page }) => {
+    test('AI status shows connected state after auto-connect', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available');
         return;
@@ -157,26 +148,22 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await waitForAIAutoConnect(page);
 
-      const sparkleButton = page.locator('.ai-toggle');
-      await expect(sparkleButton).toBeVisible({ timeout: 10000 });
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toBeVisible({ timeout: 30000 });
 
-      // Click to connect
-      await sparkleButton.click();
+      // Wait for connected state (active class) - may briefly show connecting first
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
 
-      // Should show connecting state (⏳) then connected state (active class)
-      // The connecting class may appear briefly
-      await expect(sparkleButton).toHaveClass(/active/, { timeout: 30000 });
-      
-      // AI status indicator should be visible
+      // Kiosk AI status indicator should also be visible
       await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
     });
 
     test('send message to AI and receive response', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available');
         return;
@@ -189,12 +176,11 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await waitForAIAutoConnect(page);
 
-      // Connect to AI
-      const sparkleButton = page.locator('.ai-toggle');
-      await sparkleButton.click();
-      await expect(sparkleButton).toHaveClass(/active/, { timeout: 30000 });
+      // Wait for AI to auto-connect
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
 
       // Send a simple message
       const input = page.locator('input[type="text"]');
@@ -210,12 +196,12 @@ test.describe('AI Assistant Integration', () => {
     // SKIPPED: This test is flaky because it depends on the AI model choosing to
     // call the display API within 90 seconds. The AI's response is non-deterministic
     // and may not always include a display action even when prompted. The core AI
-    // connectivity is verified by the 'connect to AI assistant' and 'send message'
-    // tests. See GitHub Issue #88 for investigation details.
+    // connectivity is verified by the auto-connect and 'send message' tests.
+    // See GitHub Issue #88 for investigation details.
     test.skip('AI displays image on kiosk canvas', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available');
         return;
@@ -228,12 +214,11 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await waitForAIAutoConnect(page);
 
-      // Connect to AI
-      const sparkleButton = page.locator('.ai-toggle');
-      await sparkleButton.click();
-      await expect(sparkleButton).toHaveClass(/active/, { timeout: 30000 });
+      // Wait for AI to auto-connect
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
 
       // Intercept display API call to verify AI uses it
       const displayApiPromise = page.waitForRequest(
@@ -267,12 +252,12 @@ test.describe('AI Assistant Integration', () => {
     // SKIPPED: This test is flaky because it depends on the AI model choosing to
     // call the display API within 90 seconds. The AI's response is non-deterministic
     // and may not always include a display action even when prompted. The core AI
-    // connectivity is verified by the 'connect to AI assistant' and 'send message'
-    // tests. See GitHub Issue #88 for investigation details.
+    // connectivity is verified by the auto-connect and 'send message' tests.
+    // See GitHub Issue #88 for investigation details.
     test.skip('AI displays markdown content on canvas', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available');
         return;
@@ -285,12 +270,11 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await waitForAIAutoConnect(page);
 
-      // Connect to AI
-      const sparkleButton = page.locator('.ai-toggle');
-      await sparkleButton.click();
-      await expect(sparkleButton).toHaveClass(/active/, { timeout: 30000 });
+      // Wait for AI to auto-connect
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
 
       // Intercept display API
       const displayApiPromise = page.waitForRequest(
@@ -316,10 +300,12 @@ test.describe('AI Assistant Integration', () => {
       }
     });
 
-    test('disconnect from AI clears state', async ({ page }) => {
+    test('AI status indicator transitions through connecting states', async ({ page }) => {
+      // This test verifies the AI status indicator shows proper state transitions
+      // In the session-centric architecture, AI auto-connects when a session starts
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (!status.available) {
         test.skip(true, 'AI not available');
         return;
@@ -332,82 +318,36 @@ test.describe('AI Assistant Integration', () => {
       }
 
       await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
+      await ensureDrawerOpen(page);
 
-      // Connect to AI
-      const sparkleButton = page.locator('.ai-toggle');
-      await sparkleButton.click();
-      await expect(sparkleButton).toHaveClass(/active/, { timeout: 30000 });
+      // AI status indicator should eventually appear (showing connecting or connected)
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toBeVisible({ timeout: 30000 });
 
-      // Click again to disconnect
-      await sparkleButton.click();
+      // Should eventually reach connected state (active class)
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
 
-      // Should return to inactive state
-      await expect(sparkleButton).not.toHaveClass(/active/, { timeout: 10000 });
-      
-      // AI status indicator should be hidden
-      await expect(page.locator('.kiosk-ai-status')).toBeHidden({ timeout: 5000 });
-    });
-
-    test('rapid connect/disconnect does not corrupt state', async ({ page }) => {
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-      
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
-      const workspace = await getAIEnabledWorkspace(page);
-      if (!workspace) {
-        test.skip(true, 'No workspace available');
-        return;
-      }
-
-      await navigateToKiosk(page, workspace.id);
-      await waitForAIAvailabilityCheck(page);
-
-      const sparkleButton = page.locator('.ai-toggle');
-      await expect(sparkleButton).toBeVisible({ timeout: 10000 });
-
-      // Rapid toggle sequence - use minimal waits to simulate rapid clicks
-      await sparkleButton.click();
-      await sparkleButton.click();
-      await sparkleButton.click();
-
-      // Wait for state to stabilize by checking button has settled into a valid state
-      // (not in transient 'connecting' state)
-      await expect(async () => {
-        const isConnecting = await sparkleButton.evaluate((el) => el.classList.contains('connecting'));
-        expect(isConnecting).toBe(false);
-      }).toPass({ timeout: 10000 });
-
-      // Button should be in exactly one valid state (active OR inactive, not both/neither)
-      const classes = await sparkleButton.evaluate((el) => Array.from(el.classList));
+      // Verify the status indicator has valid CSS classes
+      const classes = await aiStatus.evaluate((el) => Array.from(el.classList));
+      const hasAiStatus = classes.includes('ai-status');
       const isActive = classes.includes('active');
-      const hasAiToggle = classes.includes('ai-toggle');
-      
-      expect(hasAiToggle).toBe(true);
-      // Verify it's in a definite state (connected or disconnected)
-      expect(isActive).toBeDefined();
-      
-      // Verify UI consistency - active state should match visible status indicator
-      const statusVisible = await page.locator('.kiosk-ai-status').isVisible();
-      expect(statusVisible).toBe(isActive);
-      
-      // Should still be functional - can click without error
-      await expect(sparkleButton).toBeEnabled();
+
+      expect(hasAiStatus).toBe(true);
+      expect(isActive).toBe(true);
+
+      // Verify UI consistency - active status should match kiosk AI status indicator
+      await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
     });
   });
 
   test.describe('AI Unavailable Scenarios', () => {
     test.use({ storageState: AUTH_FILE });
 
-    test('sparkle button not visible when AI unavailable', async ({ page }) => {
+    test('AI status indicator not visible when AI unavailable', async ({ page }) => {
       // First check if AI is actually unavailable - if available, skip
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
-      
+
       if (status.available) {
         test.skip(true, 'AI is available - cannot test unavailable scenario');
         return;
@@ -417,7 +357,7 @@ test.describe('AI Assistant Integration', () => {
       const wsResponse = await page.request.get(`${BASE_URL}/api/workspaces`);
       const workspaces = await wsResponse.json();
       const workspace = workspaces[0];
-      
+
       if (!workspace) {
         test.skip(true, 'No workspace available');
         return;
@@ -436,65 +376,61 @@ test.describe('AI Assistant Integration', () => {
 
       await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: 15000 });
 
-      // Open the drawer first to ensure .ai-toggle would be visible if it existed
+      // Open the drawer first to ensure .ai-status would be visible if it existed
       await ensureDrawerOpen(page);
 
-      // Wait for AI availability check to complete - button should remain hidden
-      // Use expect.poll to wait for the UI to settle
-      const sparkleButton = page.locator('.ai-toggle');
-      await expect(sparkleButton).toBeHidden({ timeout: 10000 });
+      // Wait for any availability check to complete - AI status should remain hidden
+      // since AI only renders .ai-status when connecting or connected
+      const aiStatus = page.locator('.ai-status');
+      await expect(aiStatus).toBeHidden({ timeout: 10000 });
     });
   });
 
-  test.describe('AI API Error Handling', () => {
+  test.describe('Deprecated AI API Endpoints', () => {
+    // Tests for legacy device-centric AI endpoints that now return 410 Gone
+    // These endpoints were deprecated in favor of session-centric auto-connect
     test.use({ storageState: AUTH_FILE });
 
-    test('connect with invalid device ID returns error', async ({ request }) => {
+    test('POST /api/ai/connect returns 410 Gone (deprecated)', async ({ request }) => {
       const response = await request.post(`${BASE_URL}/api/ai/connect`, {
         data: {
-          deviceId: 'non-existent-device-id-12345',
+          deviceId: 'any-device-id',
           mode: 'kiosk'
         }
       });
-      
-      expect(response.status()).toBe(404);
+
+      expect(response.status()).toBe(410);
       const data = await response.json();
       expect(data).toHaveProperty('error');
+      expect(data.error).toContain('Deprecated');
     });
 
-    test('send message without active session returns error', async ({ request }) => {
+    test('POST /api/ai/message returns 410 Gone (deprecated)', async ({ request }) => {
       const response = await request.post(`${BASE_URL}/api/ai/message`, {
         data: {
-          deviceId: 'non-existent-device-id-12345',
+          deviceId: 'any-device-id',
           message: 'Hello'
         }
       });
-      
-      expect(response.status()).toBe(404);
+
+      expect(response.status()).toBe(410);
       const data = await response.json();
       expect(data).toHaveProperty('error');
+      expect(data.error).toContain('Deprecated');
     });
 
-    test('connect without deviceId returns 400', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/ai/connect`, {
-        data: { mode: 'kiosk' }
+    test('DELETE /api/ai/disconnect returns 410 Gone (deprecated)', async ({ request }) => {
+      const response = await request.delete(`${BASE_URL}/api/ai/disconnect`, {
+        data: {
+          deviceId: 'any-device-id'
+        }
       });
-      
-      expect(response.status()).toBe(400);
-      const data = await response.json();
-      expect(data.error).toContain('deviceId');
-    });
 
-    test('send message without deviceId returns 400', async ({ request }) => {
-      const response = await request.post(`${BASE_URL}/api/ai/message`, {
-        data: { message: 'Hello' }
-      });
-      
-      expect(response.status()).toBe(400);
+      expect(response.status()).toBe(410);
       const data = await response.json();
-      expect(data.error).toContain('deviceId');
+      expect(data).toHaveProperty('error');
+      expect(data.error).toContain('Deprecated');
     });
   });
 
 });
-
