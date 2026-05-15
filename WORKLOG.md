@@ -562,3 +562,38 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 4. Round 5: Added defensive warning logging
 5. Round 6: Production safety - fail-fast if BASE_URL not set
 
+
+### 2026-05-15 15:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `316a714` | implementation | Issue #121 - UI indicators | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- Priority: `priority:medium`
+- Conversation: [`316a714`](https://app.all-hands.dev/conversations/316a714dfcea49e7ad616ce5fbe37c5e)
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded and ready
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Ready Issues:**
+- #121 (priority:medium) - being implemented now
+- #122 (priority:low) - chore: Remove legacy device-centric AI code
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- 🔄 Issue #121 (UI indicators for thinking/connecting) - IN PROGRESS
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready, waiting
+
+**Previous Workers (all finished):**
+- `a321264` (merge #124), `73f4a19` (review #124 round 6)
+- `66226b2` (review #124 round 5), `a207351` (review #124 round 4)
+
+---
