@@ -3,7 +3,105 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadPrompt, AISessionManager, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, type AISession, type ThinkingChangeCallback } from './openhands.js';
+
+describe('getServerUrl', () => {
+  test('returns BASE_URL when set', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    process.env.BASE_URL = 'https://vr.chorecraft.net';
+    try {
+      expect(getServerUrl()).toBe('https://vr.chorecraft.net');
+    } finally {
+      if (originalBaseUrl) {
+        process.env.BASE_URL = originalBaseUrl;
+      } else {
+        delete process.env.BASE_URL;
+      }
+    }
+  });
+
+  test('returns localhost fallback in development environment', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    const originalPort = process.env.PORT;
+    const originalNodeEnv = process.env.NODE_ENV;
+    delete process.env.BASE_URL;
+    process.env.PORT = '4000';
+    process.env.NODE_ENV = 'development';
+    try {
+      expect(getServerUrl()).toBe('http://localhost:4000');
+    } finally {
+      if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
+      if (originalPort) process.env.PORT = originalPort;
+      else delete process.env.PORT;
+      if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+      else delete process.env.NODE_ENV;
+    }
+  });
+
+  test('returns localhost fallback in test environment', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    const originalPort = process.env.PORT;
+    const originalNodeEnv = process.env.NODE_ENV;
+    delete process.env.BASE_URL;
+    process.env.PORT = '3001';
+    process.env.NODE_ENV = 'test';
+    try {
+      expect(getServerUrl()).toBe('http://localhost:3001');
+    } finally {
+      if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
+      if (originalPort) process.env.PORT = originalPort;
+      else delete process.env.PORT;
+      if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+      else delete process.env.NODE_ENV;
+    }
+  });
+
+  test('uses default port 3001 when PORT not set', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    const originalPort = process.env.PORT;
+    const originalNodeEnv = process.env.NODE_ENV;
+    delete process.env.BASE_URL;
+    delete process.env.PORT;
+    process.env.NODE_ENV = 'development';
+    try {
+      expect(getServerUrl()).toBe('http://localhost:3001');
+    } finally {
+      if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
+      if (originalPort) process.env.PORT = originalPort;
+      if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+      else delete process.env.NODE_ENV;
+    }
+  });
+
+  test('throws error in production when BASE_URL not set', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    const originalNodeEnv = process.env.NODE_ENV;
+    delete process.env.BASE_URL;
+    process.env.NODE_ENV = 'production';
+    try {
+      expect(() => getServerUrl()).toThrow('BASE_URL environment variable is required in production for display API');
+    } finally {
+      if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
+      if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+      else delete process.env.NODE_ENV;
+    }
+  });
+
+  test('works in production when BASE_URL is set', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.BASE_URL = 'https://production.example.com';
+    process.env.NODE_ENV = 'production';
+    try {
+      expect(getServerUrl()).toBe('https://production.example.com');
+    } finally {
+      if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
+      else delete process.env.BASE_URL;
+      if (originalNodeEnv) process.env.NODE_ENV = originalNodeEnv;
+      else delete process.env.NODE_ENV;
+    }
+  });
+});
 
 describe('loadPrompt', () => {
   describe('basic functionality', () => {
@@ -68,8 +166,8 @@ describe('loadPrompt', () => {
       // Verify it appears in all curl examples
       const sessionIdMatches = prompt.match(new RegExp(testSessionId, 'g'));
       expect(sessionIdMatches).toBeTruthy();
-      // Should appear 3 times (markdown, image, clear commands)
-      expect(sessionIdMatches!.length).toBe(3);
+      // Should appear 4 times (greeting, markdown, image, clear commands)
+      expect(sessionIdMatches!.length).toBe(4);
     });
 
     test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {
@@ -124,6 +222,71 @@ describe('loadPrompt', () => {
     });
   });
 
+  describe('serverUrl injection', () => {
+    test('replaces {{SERVER_URL}} with BASE_URL env var when set', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      process.env.BASE_URL = 'https://test.example.com';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        expect(prompt).toContain('curl -X POST https://test.example.com/api/display');
+        expect(prompt).not.toContain('{{SERVER_URL}}');
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        } else {
+          delete process.env.BASE_URL;
+        }
+      }
+    });
+
+    test('replaces {{SERVER_URL}} with localhost fallback when BASE_URL not set in non-production', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      const originalPort = process.env.PORT;
+      const originalNodeEnv = process.env.NODE_ENV;
+      delete process.env.BASE_URL;
+      process.env.PORT = '3001';
+      process.env.NODE_ENV = 'development';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        expect(prompt).toContain('curl -X POST http://localhost:3001/api/display');
+        expect(prompt).not.toContain('{{SERVER_URL}}');
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        }
+        if (originalPort) {
+          process.env.PORT = originalPort;
+        } else {
+          delete process.env.PORT;
+        }
+        if (originalNodeEnv) {
+          process.env.NODE_ENV = originalNodeEnv;
+        } else {
+          delete process.env.NODE_ENV;
+        }
+      }
+    });
+
+    test('SERVER_URL appears in all display API examples', () => {
+      const originalBaseUrl = process.env.BASE_URL;
+      process.env.BASE_URL = 'https://vr.chorecraft.net';
+      try {
+        const prompt = loadPrompt('system-prompt');
+        // Count occurrences of the URL in curl commands
+        const urlMatches = prompt.match(/https:\/\/vr\.chorecraft\.net\/api\/display/g);
+        expect(urlMatches).toBeTruthy();
+        // Should appear 4 times (greeting, markdown, image, clear commands)
+        expect(urlMatches!.length).toBe(4);
+      } finally {
+        if (originalBaseUrl) {
+          process.env.BASE_URL = originalBaseUrl;
+        } else {
+          delete process.env.BASE_URL;
+        }
+      }
+    });
+  });
+
   describe('unified prompt for all device modes', () => {
     test('same prompt is used regardless of device mode', () => {
       // This test verifies the unified prompt approach - all sessions get the same prompt
@@ -140,7 +303,9 @@ describe('loadPrompt', () => {
       // Mobile/chat sessions should still have display API knowledge
       const prompt = loadPrompt('system-prompt');
       expect(prompt).toContain('Display API');
-      expect(prompt).toContain('curl -X POST https://vr.chorecraft.net/api/display');
+      // URL should be templated from BASE_URL env var (defaults to localhost)
+      expect(prompt).toContain('curl -X POST');
+      expect(prompt).toContain('/api/display');
     });
   });
 });

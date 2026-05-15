@@ -512,6 +512,53 @@ describe('DeviceRegistry', () => {
       const emptySession = registry.getDevicesBySession('session-999');
       expect(emptySession).toHaveLength(0);
     });
+
+    it('should broadcast any message type to session using broadcastMessageToSession', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      const ws3 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-3', 'workspace-1', ws3, 'Device 3', 'mobile', undefined, undefined, 'session-b');
+
+      const statusMessage = {
+        type: 'session-ai-status',
+        sessionId: 'session-a',
+        connecting: true,
+        connected: false,
+      };
+
+      registry.broadcastMessageToSession('session-a', statusMessage);
+
+      // Both devices in session-a should receive the message
+      expect(ws1.send).toHaveBeenCalledTimes(1);
+      expect(ws2.send).toHaveBeenCalledTimes(1);
+      expect(ws1.send).toHaveBeenCalledWith(JSON.stringify(statusMessage));
+      // Device in session-b should not receive
+      expect(ws3.send).not.toHaveBeenCalled();
+    });
+
+    it('should exclude specified device in broadcastMessageToSession', () => {
+      const ws1 = createMockWebSocket();
+      const ws2 = createMockWebSocket();
+      
+      registry.register('device-1', 'workspace-1', ws1, 'Device 1', 'mobile', undefined, undefined, 'session-a');
+      registry.register('device-2', 'workspace-1', ws2, 'Device 2', 'mobile', undefined, undefined, 'session-a');
+
+      const statusMessage = {
+        type: 'session-ai-status',
+        sessionId: 'session-a',
+        connected: true,
+      };
+
+      registry.broadcastMessageToSession('session-a', statusMessage, 'device-1');
+
+      // device-1 should be excluded
+      expect(ws1.send).not.toHaveBeenCalled();
+      // device-2 should receive
+      expect(ws2.send).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('disconnectWorkspaceDevices', () => {

@@ -15,6 +15,7 @@ import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
+import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import type { 
   ClientMessage, 
   RegisteredMessage, 
@@ -25,6 +26,7 @@ import type {
   JoinRequestMessage,
   JoinResolvedMessage,
   DeviceRemovedMessage,
+  SessionAIStatusMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -531,6 +533,28 @@ wss.on('connection', (ws: WebSocket) => {
             messages: history,
           };
           ws.send(JSON.stringify(historyMessage));
+
+          // Auto-connect AI when first device joins session
+          if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, aiSessionManager)) {
+            // Start AI connection asynchronously (don't block registration)
+            autoConnectAI(sessionId, requestedWorkspaceId, {
+              registry,
+              sessionRepository,
+              workspaceRepository,
+              aiSessionManager,
+              store,
+              getWorkspaceApiKey: async (wsId) => 
+                workspaceRepository
+                  ? await getWorkspaceApiKey(
+                      wsId,
+                      (id) => workspaceRepository?.getSettings(id) ?? null,
+                      decryptApiKey
+                    )
+                  : null,
+            }).catch((err) => {
+              console.warn('[AI] Auto-connect async operation failed:', err);
+            });
+          }
           break;
         }
 

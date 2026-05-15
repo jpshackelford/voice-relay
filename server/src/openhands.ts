@@ -232,6 +232,24 @@ export class OpenHandsClient {
 }
 
 /**
+ * Get the server URL for API calls in prompts
+ * Uses BASE_URL env var if set, otherwise falls back to localhost in dev/test.
+ * Throws in production if BASE_URL is not set to prevent silent failures.
+ */
+export function getServerUrl(): string {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL;
+  }
+  
+  // Only use localhost fallback in dev/test environments
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('BASE_URL environment variable is required in production for display API');
+  }
+  
+  return `http://localhost:${process.env.PORT || 3001}`;
+}
+
+/**
  * Load a prompt from the prompts directory
  * @param promptName - Name of the prompt file (without .md extension)
  * @param displayLines - Optional number of display lines to inject into the prompt
@@ -265,6 +283,10 @@ export function loadPrompt(
       `content beyond ${displayLines} lines will be invisible`
     );
   }
+  
+  // Replace server URL placeholder for display API calls
+  // This ensures prompts work in any environment (dev, test, production)
+  prompt = prompt.replace(/{{SERVER_URL}}/g, getServerUrl());
   
   // Replace workspace ID placeholder if provided
   // Escape JSON-breaking characters to prevent malformed curl examples in prompts
