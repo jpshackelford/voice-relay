@@ -812,3 +812,40 @@ The client-side wiring for session-centric AI status is incomplete:
 - `client/src/components/KioskMode.tsx`
 
 **Labels:** `ready`, `bug`
+
+### 2026-05-15 21:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2ac2fd2` | implementation | Issue #129 - Smoke test failure | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- Priority: `priority:high` (CI failure bug)
+- Conversation: [`2ac2fd2`](https://app.all-hands.dev/conversations/2ac2fd2389224a98b22dbbcbf1c594fb)
+
+**Root Cause (from expansion worker `8347c92`):**
+Client-side wiring for session-centric AI status is incomplete:
+- `useWebSocket.ts` has `onSessionAIStatusMessage` callback ✓
+- `useAI.ts` has `handleSessionAIStatus` handler ✓
+- `SessionView.tsx` NOT passing `onSessionAIStatusMessage` to WebSocket ✗
+- `KioskMode.tsx` NOT receiving AI status from WebSocket ✗
+
+**Expected Fix:**
+1. Wire `onSessionAIStatusMessage` from `SessionView.tsx` to `useWebSocket`
+2. Connect to `KioskMode` via props or lifted state
+3. Also wire `onAIThinkingMessage` for thinking indicator
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded and ready
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Previous Workers (all finished):**
+- `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
+- `ecce820` (review #128 round 2 ✓), `333b79f` (review #128 round 1 ✓)
+
+---
