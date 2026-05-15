@@ -233,10 +233,20 @@ export class OpenHandsClient {
 
 /**
  * Get the server URL for API calls in prompts
- * Uses BASE_URL env var if set, otherwise falls back to localhost
+ * Uses BASE_URL env var if set, otherwise falls back to localhost in dev/test.
+ * Throws in production if BASE_URL is not set to prevent silent failures.
  */
-function getServerUrl(): string {
-  return process.env.BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+export function getServerUrl(): string {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL;
+  }
+  
+  // Only use localhost fallback in dev/test environments
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('BASE_URL environment variable is required in production for display API');
+  }
+  
+  return `http://localhost:${process.env.PORT || 3001}`;
 }
 
 /**
