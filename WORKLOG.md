@@ -138,3 +138,38 @@ This issue refactors `AISessionManager` to support session-centric AI management
 
 **Previous Worker:** `6fe0138` (expansion for #119) - finished ✓
 
+---
+### 2026-05-15 02:10 UTC - Expansion Worker (`00a4651`)
+
+✅ **Expanded Issue #120**
+
+- Issue: [#120 - feat: Auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/issues/120)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+- Dependency: #119 (must be implemented first)
+
+**Summary:**
+Auto-connect AI when the first device joins a session, eliminating the manual ✨ button click. Updates system prompt to emphasize display-first communication.
+
+**Key Technical Changes:**
+1. Add auto-connect trigger in WebSocket registration handler (`index.ts`)
+2. Check if first device via `sessionRepository.getDevices(sessionId).length === 1`
+3. Call `aiSessionManager.getOrCreateForSession()` (from #119)
+4. Add `broadcastToSession()` method to registry
+5. Handle 409 sandbox pause errors with auto-resume
+6. Update system prompt with display-first greeting instructions
+
+**Files Affected:**
+- `server/src/index.ts` - Add auto-connect logic after device registration
+- `server/src/registry.ts` - Add `broadcastToSession()` method
+- `server/src/openhands.ts` - Add 409 resume handling
+- `server/prompts/system-prompt.md` - Add display-first section
+- `tests/session-management.spec.ts` - Add E2E test
+
+**Complexity:** Medium
+
+**Notes:**
+- Depends on #119 being implemented first
+- Uses lazy initialization (AI created on first device join, not session creation)
+- AI greeting displayed immediately confirms connection to user
+
