@@ -597,3 +597,39 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - `66226b2` (review #124 round 5), `a207351` (review #124 round 4)
 
 ---
+### 2026-05-15 15:15 UTC - Implementation Worker (`316a714`)
+
+✅ **PR Created: Issue #121**
+
+- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| File | Changes |
+|------|---------|
+| `client/src/types.ts` | Added `AIThinkingMessage`, `SessionAIStatusMessage` types |
+| `client/src/hooks/useAI.ts` | Added `thinking` state, `handleSessionAIStatus`, `handleAIThinking` handlers |
+| `client/src/hooks/useWebSocket.ts` | Handle `ai-thinking` and `session-ai-status` message types |
+| `client/src/components/KioskMode.tsx` | Updated indicators: 🔗 connecting, 🤔 thinking, ✨ connected |
+| `client/src/components/MobileMode.tsx` | Same indicator updates as KioskMode |
+| `client/src/App.css` | Added `ai-connecting` animation, updated `ai-thinking` animation |
+
+**Acceptance Criteria Status:**
+- [x] `useAI` hook exposes `thinking` state alongside `connecting` and `connected`
+- [x] Client handles `ai-thinking` WebSocket messages to update state
+- [x] Client handles `session-ai-status` WebSocket messages for session-level AI state
+- [x] KioskMode shows 🔗 (animated) when connecting
+- [x] KioskMode shows 🤔 (pulsing) when AI is thinking
+- [x] KioskMode shows ✨ when connected and idle
+- [x] MobileMode shows same indicators
+- [x] CSS animations are smooth and not distracting
+
+**Tests:**
+- Added 8 new tests for `handleAIThinking`, `handleSessionAIStatus`, session filtering
+- All 193 client tests passing
+- All 530 server tests passing
+- CI: All checks green ✅
+
+---
