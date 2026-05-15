@@ -551,7 +551,7 @@ wss.on('connection', (ws: WebSocket) => {
                       decryptApiKey
                     )
                   : null,
-            }).catch(err => console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err));
+            }).catch(() => {}); // Error already logged in autoConnectAI
           }
           break;
         }

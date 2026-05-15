@@ -88,7 +88,7 @@ export async function autoConnectAI(
         // Relay AI responses to all devices in session
         const aiMessage: RelayedTextMessage = {
           type: 'text',
-          utteranceId: `ai-${Date.now()}`,
+          utteranceId: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           workspaceId,
           sessionId,
           senderId: 'ai',
@@ -150,6 +150,8 @@ export function shouldAutoConnect(
   
   const devicesInSession = sessionRepository.getDevices(sessionId);
   const isFirstDevice = devicesInSession.length === 1;
+  // Note: Race condition possible if two devices join simultaneously.
+  // Both might trigger auto-connect, but getOrCreateForSession() deduplicates.
   
   return isFirstDevice && !aiSessionManager.hasSessionAI(sessionId);
 }
