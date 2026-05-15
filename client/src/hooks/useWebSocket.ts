@@ -12,13 +12,15 @@ interface UseWebSocketOptions {
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
+  onAIThinkingMessage?: (message: ServerMessage & { type: 'ai-thinking' }) => void;
+  onSessionAIStatusMessage?: (message: ServerMessage & { type: 'session-ai-status' }) => void;
   onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
   onDeviceRemovedMessage?: (message: ServerMessage & { type: 'device-removed' }) => void;
   onWorkspaceDeletedMessage?: (message: ServerMessage & { type: 'workspace-deleted' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -30,6 +32,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onHistoryMessageRef = useRef(onHistoryMessage);
   const onDisplayMessageRef = useRef(onDisplayMessage);
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
+  const onAIThinkingMessageRef = useRef(onAIThinkingMessage);
+  const onSessionAIStatusMessageRef = useRef(onSessionAIStatusMessage);
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
   const onDeviceRemovedMessageRef = useRef(onDeviceRemovedMessage);
@@ -44,6 +48,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onHistoryMessageRef.current = onHistoryMessage;
   onDisplayMessageRef.current = onDisplayMessage;
   onAIStatusMessageRef.current = onAIStatusMessage;
+  onAIThinkingMessageRef.current = onAIThinkingMessage;
+  onSessionAIStatusMessageRef.current = onSessionAIStatusMessage;
   onJoinRequestMessageRef.current = onJoinRequestMessage;
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
   onDeviceRemovedMessageRef.current = onDeviceRemovedMessage;
@@ -124,6 +130,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             break;
           case 'ai-status':
             onAIStatusMessageRef.current?.(message);
+            break;
+          case 'ai-thinking':
+            onAIThinkingMessageRef.current?.(message);
+            break;
+          case 'session-ai-status':
+            onSessionAIStatusMessageRef.current?.(message);
             break;
           case 'join-request':
             onJoinRequestMessageRef.current?.(message);

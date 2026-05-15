@@ -94,6 +94,23 @@ export interface AIStatusMessage {
   conversationId?: string;
 }
 
+/** Server → All devices in session: AI is processing a response */
+export interface AIThinkingMessage {
+  type: 'ai-thinking';
+  sessionId: string;
+  thinking: boolean;
+}
+
+/** Server → All devices in session: Session-level AI connection status */
+export interface SessionAIStatusMessage {
+  type: 'session-ai-status';
+  sessionId: string;
+  connected: boolean;
+  connecting?: boolean;
+  conversationId?: string;
+  error?: string;
+}
+
 /** Server → Owner's kiosk devices: New join request notification */
 export interface JoinRequestMessage {
   type: 'join-request';
@@ -143,6 +160,8 @@ export type ServerMessage =
   | HistoryMessage 
   | DisplayMessage 
   | AIStatusMessage
+  | AIThinkingMessage
+  | SessionAIStatusMessage
   | JoinRequestMessage
   | JoinResolvedMessage
   | DeviceRemovedMessage

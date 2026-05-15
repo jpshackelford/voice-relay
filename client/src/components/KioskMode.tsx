@@ -70,7 +70,7 @@ export function KioskMode({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
-  const ai = useAI({ deviceId, mode: 'kiosk' });
+  const ai = useAI({ deviceId, mode: 'kiosk', sessionId });
 
   // Check AI availability on mount
   useEffect(() => {
@@ -277,12 +277,12 @@ export function KioskMode({
           <div className="kiosk-input-row">
             {aiAvailable && (
               <button
-                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''}`}
+                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
                 onClick={ai.toggle}
                 disabled={ai.connecting}
                 title={ai.connected ? 'Disconnect AI' : ai.connecting ? 'Connecting...' : 'Connect AI assistant'}
               >
-                {ai.connecting ? '⏳' : '✨'}
+                {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
               </button>
             )}
             <button 
@@ -313,6 +313,17 @@ export function KioskMode({
 
         {sttError && <div className="stt-error">⚠️ {sttError}</div>}
         {ai.error && <div className="ai-error">⚠️ AI: {ai.error}</div>}
+
+        {/* Mobile AI status indicator */}
+        {(ai.connecting || ai.connected || ai.thinking) && (
+          <div className={`ai-status-indicator ${
+            ai.connecting ? 'connecting' :
+            ai.thinking ? 'thinking' :
+            'connected'
+          }`}>
+            {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
+          </div>
+        )}
       </div>
     );
   }
@@ -387,12 +398,12 @@ export function KioskMode({
           <div className="kiosk-input-row">
             {aiAvailable && (
               <button
-                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''}`}
+                className={`ai-toggle ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
                 onClick={ai.toggle}
                 disabled={ai.connecting}
                 title={ai.connected ? 'Disconnect AI' : ai.connecting ? 'Connecting...' : 'Connect AI assistant'}
               >
-                {ai.connecting ? '⏳' : '✨'}
+                {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
               </button>
             )}
             <button 
@@ -505,9 +516,13 @@ export function KioskMode({
         </div>
 
         {/* AI status indicator (above connection indicator when active) */}
-        {(ai.connecting || ai.connected) && (
-          <div className={`kiosk-ai-status ${ai.connecting ? 'thinking' : 'connected'}`}>
-            {ai.connecting ? '🤔' : '✨'}
+        {(ai.connecting || ai.connected || ai.thinking) && (
+          <div className={`kiosk-ai-status ${
+            ai.connecting ? 'connecting' :
+            ai.thinking ? 'thinking' :
+            'connected'
+          }`}>
+            {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
           </div>
         )}
       </main>

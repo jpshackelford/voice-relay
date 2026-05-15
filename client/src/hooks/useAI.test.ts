@@ -375,5 +375,158 @@ describe('useAI hook', () => {
       expect(result.current.connecting).toBe(false);
       expect(result.current.connected).toBe(false);
     });
+
+    it('clears thinking state when disconnected', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+
+      // Set up connected + thinking state
+      await act(async () => {
+        result.current.handleAIStatus({ connected: true, conversationId: 'conv-123' });
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'session-1', thinking: true });
+      });
+
+      expect(result.current.thinking).toBe(true);
+
+      // Disconnect should clear thinking
+      await act(async () => {
+        result.current.handleAIStatus({ connected: false });
+      });
+
+      expect(result.current.thinking).toBe(false);
+    });
+  });
+
+  describe('handleAIThinking', () => {
+    it('updates thinking state from WebSocket message', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+
+      expect(result.current.thinking).toBe(false);
+
+      await act(async () => {
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'session-1', thinking: true });
+      });
+
+      expect(result.current.thinking).toBe(true);
+
+      await act(async () => {
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'session-1', thinking: false });
+      });
+
+      expect(result.current.thinking).toBe(false);
+    });
+
+    it('filters messages for wrong session when sessionId is set', async () => {
+      const optionsWithSession = { ...defaultOptions, sessionId: 'my-session' };
+      const { result } = renderHook(() => useAI(optionsWithSession));
+
+      expect(result.current.thinking).toBe(false);
+
+      // Message for different session should be ignored
+      await act(async () => {
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'other-session', thinking: true });
+      });
+
+      expect(result.current.thinking).toBe(false);
+
+      // Message for correct session should be processed
+      await act(async () => {
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'my-session', thinking: true });
+      });
+
+      expect(result.current.thinking).toBe(true);
+    });
+  });
+
+  describe('handleSessionAIStatus', () => {
+    it('updates connection state from session status message', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+
+      expect(result.current.connected).toBe(false);
+      expect(result.current.connecting).toBe(false);
+
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'session-1',
+          connected: true,
+          connecting: false,
+          conversationId: 'conv-session-123',
+        });
+      });
+
+      expect(result.current.connected).toBe(true);
+      expect(result.current.connecting).toBe(false);
+      expect(result.current.conversationId).toBe('conv-session-123');
+    });
+
+    it('sets error from session status message', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'session-1',
+          connected: false,
+          error: 'Sandbox startup failed',
+        });
+      });
+
+      expect(result.current.connected).toBe(false);
+      expect(result.current.error).toBe('Sandbox startup failed');
+    });
+
+    it('filters messages for wrong session when sessionId is set', async () => {
+      const optionsWithSession = { ...defaultOptions, sessionId: 'my-session' };
+      const { result } = renderHook(() => useAI(optionsWithSession));
+
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'other-session',
+          connected: true,
+          conversationId: 'wrong-conv',
+        });
+      });
+
+      // Should be ignored - not our session
+      expect(result.current.connected).toBe(false);
+      expect(result.current.conversationId).toBeNull();
+    });
+
+    it('clears thinking state when session disconnects', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+
+      // Set up connected + thinking
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'session-1',
+          connected: true,
+          conversationId: 'conv-123',
+        });
+        result.current.handleAIThinking({ type: 'ai-thinking', sessionId: 'session-1', thinking: true });
+      });
+
+      expect(result.current.thinking).toBe(true);
+
+      // Session disconnect should clear thinking
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'session-1',
+          connected: false,
+        });
+      });
+
+      expect(result.current.thinking).toBe(false);
+      expect(result.current.connected).toBe(false);
+    });
+  });
+
+  describe('thinking state', () => {
+    it('returns thinking state', () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      expect(result.current.thinking).toBe(false);
+    });
   });
 });
