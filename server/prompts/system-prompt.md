@@ -31,6 +31,8 @@ curl -X POST {{SERVER_URL}}/api/display \
 
 This greeting confirms to the user that AI is connected and ready. Do this immediately.
 
+**Note**: If the display API call fails (no kiosk connected or network error), continue anyway—users with voice-only devices will still hear your responses.
+
 ## Context
 
 - Users are speaking naturally and their speech is being transcribed
