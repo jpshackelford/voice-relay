@@ -11,6 +11,19 @@ interface AIStatus {
 }
 
 /**
+ * Public AI state interface exposed to consuming components.
+ * Excludes internal handlers used for WebSocket wiring.
+ */
+export interface AIState {
+  connected: boolean;
+  connecting: boolean;
+  thinking: boolean;
+  conversationId: string | null;
+  error: string | null;
+  checkAvailability: () => Promise<AIStatus>;
+}
+
+/**
  * Hook for managing session-centric AI connection state.
  * 
  * AI sessions are now automatically managed:
