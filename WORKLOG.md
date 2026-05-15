@@ -673,3 +673,35 @@ Automation has been disabled to prevent unnecessary runs.
 - Expansion slot: Occupied (expansion worker)
 
 **Note:** Workflow was re-enabled after being auto-disabled on 2026-05-10. Four new issues (#119-#122) have been filed since then.
+
+---
+### 2026-05-15 01:52 UTC - Expansion Worker (`6fe0138`)
+
+✅ **Expanded Issue #119**
+
+- Issue: [#119 - feat: Session-centric AI infrastructure (foundation for auto-connect)](https://github.com/jpshackelford/voice-relay/issues/119)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+This issue refactors `AISessionManager` to support session-centric AI management alongside existing device-centric code. It enables sharing a single AI conversation across all devices in a VR session.
+
+**Key Technical Changes:**
+1. Add `sessionId → AISession` map alongside existing `deviceId` map
+2. Add session-centric methods: `getOrCreateForSession()`, `hasSessionAI()`, `getSessionAI()`, `endSessionAI()`
+3. Add WebSocket message types: `AIThinkingMessage`, `SessionAIStatusMessage`
+4. Track thinking state with `isThinking`, `pendingMessageId`, `lastMessageSentAt` fields
+
+**Files Affected:**
+- `server/src/openhands.ts` - Add session-centric methods and thinking state
+- `server/src/types.ts` - Add new WebSocket message types
+- `server/src/openhands.test.ts` - Add tests for new methods
+
+**Complexity:** Medium
+
+**Notes:**
+- Non-breaking change - existing device-centric code continues to work
+- Foundation for #120 (auto-connect), #121 (UI indicators), #122 (cleanup)
+- Issue body updated with proper acceptance criteria checkboxes
+- Added supplementary implementation notes with code references
+
