@@ -664,3 +664,34 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - Expansion slot: Idle (nothing to expand)
 - PR slot: Occupied (merge worker)
 
+---
+### 2026-05-15 15:35 UTC - Merge Worker (`9de89cb`)
+
+✅ **Merged PR #125 → Issue #121 Closed**
+
+- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
+- Issue: [#121](https://github.com/jpshackelford/voice-relay/issues/121) - **CLOSED** (auto-closed via "Fixes #121")
+- Merge type: Squash merge
+- Commit: `feat(client): distinguish connecting vs thinking AI states`
+
+**What was shipped:**
+- Distinct visual indicators for AI connection states:
+  - 🔗 Connecting (1.5s pulse animation) - sandbox starting up
+  - 🤔 Thinking (0.8s glow animation) - AI processing response
+  - ✨ Connected (subtle glow) - AI ready and idle
+- `thinking` state in useAI hook with handlers for session-centric AI
+- Session filtering for KioskMode (ignores messages from other sessions)
+- 8 new tests for state management and session filtering
+- CSS animations for smooth, non-distracting visual feedback
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - **MERGED**
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready, unblocked
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Client-only changes - no database/migration impact
+- No breaking changes
+
