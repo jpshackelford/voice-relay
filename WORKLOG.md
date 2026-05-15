@@ -891,3 +891,51 @@ Spawning fresh review worker to continue addressing feedback.
 - `20b3fc9` (review #130 ✓), `a95245a` (review #130 incomplete)
 - `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
+
+---
+
+### 2026-05-15 22:34 UTC - Merge Worker (`be21f55`)
+
+✅ **Merged PR #130 → Issue #129 Closed**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) - **CLOSED** (auto-closed via "Fixes #129")
+- Merge type: Squash merge
+- Commit: `552eca6`
+
+**What was shipped:**
+- Complete client-side wiring for session-centric AI status WebSocket messages
+- `SessionView.tsx`: Initialize `useAI` hook, wire handlers to `useWebSocket`
+- `KioskMode.tsx`: Accept AI state via props with optional chaining
+- `useAI.ts`: Export `AIState` interface for type-safe prop passing
+- Tests updated to use prop-based AI state
+
+**Root Cause Fixed:**
+PR #126 (session-centric AI) added WebSocket message types and handlers, but the React component wiring in `SessionView.tsx` was never completed. This fix connects:
+1. Server broadcasts `session-ai-status` messages
+2. `useWebSocket` receives and forwards to callback
+3. `useAI.handleSessionAIStatus` updates state
+4. `KioskMode` renders `.ai-status` indicator
+
+**Review Evolution:**
+- Initial implementation: 🟢 Good taste - addressed core wiring issue
+- Feedback: Export `AIState` type to avoid drift
+- Final: Type-safe implementation with exported interface
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Client-only changes - no database/migration impact
+- No breaking changes (ai prop is optional)
+
+**Session-centric AI Migration Complete:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED  
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- ✅ Issue #122 (remove legacy device-centric code) - MERGED
+- ✅ Issue #129 (smoke test wiring fix) - **MERGED**
+
+**Current State:**
+- No open issues 🎉
+- No open PRs
+- Smoke tests should now pass (`.ai-status` indicator wiring complete)
+
