@@ -327,3 +327,31 @@ All review threads resolved. CI passing. PR marked ready for review.
 - System prompt now instructs AI to continue if display API fails (voice-only users still hear responses)
 
 All 4 review threads resolved. CI passing. PR marked ready for review.
+### 2026-05-15 12:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a207351` | review | PR #124 - Auto-connect AI (Round 4) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Conversation: [`a207351`](https://app.all-hands.dev/conversations/a2073518aa964a58a9ae6104194dad55)
+
+**Review Issue to Address:**
+1. 🟡 Minor: Replace deprecated `.substr()` with `.slice()` in auto-connect.ts
+
+**Current State:**
+- PR #124: `oRCFRFRCFR green ready 💬1` (CI green, 1 unresolved thread)
+- Bot review: "✅ Worth merging" - just needs trivial fix
+- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `f0d1dfe` (review #124 round 3), `a8b5c5b` (review #124 round 2), `26bf0d8` (review #124 round 1)
+- `e597152` (implementation #120), `5c27fea` (merge #123)
+
+---
