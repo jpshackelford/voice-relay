@@ -738,3 +738,32 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
 - 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
 
+
+---
+### 2026-05-15 17:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8002e73` | review | PR #126 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Conversation: [`8002e73`](https://app.all-hands.dev/conversations/8002e733d97240b6a3fa88cc86f46387)
+
+**Review Issues to Address:**
+1. 🔴 Critical: Missing `.ai-status` CSS class (button changed to div without CSS)
+2. 🔴 Critical: Incomplete interface change (`sessionId` prop not passed from call sites)
+3. 🟡 Suggestion: Guard against undefined `device.sessionId` in forwarding logic
+
+**Current State:**
+- PR #126: `oRC green ready 💬3` (CI green, 3 unresolved review threads)
+- Issues after #122 closes: None (this is the last issue!)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `4f3a5c4` (implementation #122), `9de89cb` (merge #125), `316a714` (implementation #121)
+- `a321264` (merge #124), and previous review workers for PR #124
