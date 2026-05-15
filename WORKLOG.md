@@ -669,6 +669,45 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
 
 ---
+### 2026-05-15 16:47 UTC - Implementation Worker (`4f3a5c4`)
+
+✅ **PR Created: Issue #122**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| Component | Removal |
+|-----------|---------|
+| Server endpoints | `/api/ai/connect`, `/api/ai/message`, `/api/ai/disconnect` |
+| `openhands.ts` | `deviceSessions` Map, `startSession`, `sendMessage`, `endSession`, `getSession`, `hasSession` |
+| `useAI.ts` | `connect()`, `disconnect()`, `toggle()`, `deviceId`/`mode` params |
+| UI components | Toggle buttons (now status-only indicators) |
+
+**Acceptance Criteria Status:**
+- [x] `/api/ai/connect` endpoint removed
+- [x] `/api/ai/disconnect` endpoint removed  
+- [x] ✨ button no longer toggles (shows status only)
+- [x] `AISessionManager` uses only `sessionId` keys
+- [x] Legacy `startSession(deviceId, ...)` method removed
+- [x] All tests updated to use session-centric APIs
+- [x] No TypeScript errors
+- [x] E2E tests pass
+
+**Stats:**
+- Net removal: ~820 lines of deprecated code
+- Files modified: 7
+- CI: All checks green ✅
+
+**Session-centric AI Migration Completed:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR REVIEW
+
+---
 ### 2026-05-15 16:34 UTC - Orchestrator
 
 **Active Workers:**
