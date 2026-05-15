@@ -1895,3 +1895,135 @@ When a device is removed:
 - WebSocket notification sent before disconnect
 - Device token is invalidated (record deleted)
 ```
+
+---
+### 2026-05-10 14:30 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ec5332f` | implementation | Issue #91 - Mobile view input area layout | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91) (priority:low)
+- Conversation: [`ec5332f`](https://app.all-hands.dev/conversations/ec5332ff92ec4ec4855998b3e649f508)
+
+**Housekeeping:**
+- 📦 Archived 5 old worklog entries to WORKLOG_ARCHIVE_2026-05-10.md (worklog was >1000 lines)
+
+**Previous Worker Completed:**
+- `b0d4389` (merge): Merged PR #115 ✓ (Issue #90 closed)
+
+**Current State:**
+- No open PRs (PR #115 merged successfully)
+- Ready issues: #91 (now being implemented), #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Available (nothing to expand)
+
+---
+### 2026-05-10 14:44 UTC - Implementation Worker (`ec5332f`)
+
+✅ **Created PR #116 for Issue #91**
+
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91) (priority:low)
+- PR: [#116 - fix(client): add missing CSS styles for mobile mode input layout](https://github.com/jpshackelford/voice-relay/pull/116)
+- Status: **Ready for review** ✅
+
+**Root Cause:**
+The `MobileMode.tsx` component referenced CSS classes that were never defined in `App.css`:
+- `.mobile-mode`
+- `.mobile-participants`
+- `.mobile-messages`
+- `.mobile-input-area`
+- `.mobile-input-row`
+
+Without these CSS definitions, the flexbox layout doesn't apply, causing elements to stack vertically using default block behavior instead of displaying in a horizontal input row.
+
+**Fix Applied:**
+Added 82 lines of CSS following established patterns from `.kiosk-input-row` and `.chat-input-row`:
+- `.mobile-mode`: Full viewport flex container with `100dvh` for Safari
+- `.mobile-participants`: Horizontal flex row for participant count badges
+- `.mobile-messages`: Scrollable messages with `-webkit-overflow-scrolling: touch`
+- `.mobile-input-area`: Bottom input section with `env(safe-area-inset-bottom)` for iPhone notch
+- `.mobile-input-row`: Horizontal flex row (`display: flex; gap: 0.5rem; align-items: center`)
+- Input spans available width via `flex: 1; min-width: 0`
+- Scoped button sizes for touch-friendly tap targets (40-44px)
+
+**Acceptance Criteria Met:**
+- ✅ Action buttons (AI toggle, microphone, auto-submit) in horizontal row
+- ✅ Text input spans most of the width with `flex: 1`
+- ✅ Send button inline with input (right side)
+- ✅ `env(safe-area-inset-bottom)` for iPhone notch/home indicator
+- ✅ Build succeeds, all 174 client tests pass
+
+**CI Status:** ✅ All checks pass (Build Client, Server Tests, E2E Tests, PR Lint)
+
+---
+### 2026-05-10 15:04 UTC - Merge Worker (`8e2f72f`)
+
+✅ **Merged PR #116**
+
+- PR: [#116 - fix(client): add missing CSS styles for mobile mode input layout](https://github.com/jpshackelford/voice-relay/pull/116)
+- Issue: [#91 - bug: Mobile view input area layout is broken on iPhone](https://github.com/jpshackelford/voice-relay/issues/91) (auto-closed)
+- Merge Type: Squash merge
+- Commit: `96c4673`
+
+**Pre-merge Verification:**
+- ✅ All CI checks pass (Build Client, Server Tests, E2E Tests, PR Lint, PR Review)
+- ✅ No unresolved review threads
+- ✅ PR review bot: "✅ Worth merging" with LOW risk assessment
+- ✅ No database migrations (CSS-only change, safe for production)
+
+**Root Cause:**
+The `MobileMode.tsx` component referenced CSS classes (`.mobile-mode`, `.mobile-input-area`, `.mobile-input-row`) that were never defined in `App.css`, causing the flexbox layout to not apply and elements to stack vertically.
+
+**Fix Applied:**
+Added 82 lines of CSS following established patterns from `.kiosk-input-row`:
+- `.mobile-mode`: Full viewport flex container with `100dvh` for Safari
+- `.mobile-input-row`: Horizontal flex row for buttons and input
+- Touch-friendly button sizes (40-44px per iOS HIG)
+- `env(safe-area-inset-bottom)` for iPhone notch/home indicator
+
+**Commit Summary:**
+```
+fix(client): add missing CSS styles for mobile mode input layout
+
+Fixes #91
+```
+
+**Impact:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- No breaking changes, no migrations, low risk
+- Mobile input area now displays buttons and input in horizontal row
+
+**Current State:**
+- No open PRs
+- Ready issues: #93 (low), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Available
+- Expansion slot: Available
+
+---
+### 2026-05-10 15:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9bc7e97` | implementation | Issue #93 - Archive and rename sessions | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#93 - feat: Archive and rename sessions from workspace home](https://github.com/jpshackelford/voice-relay/issues/93) (priority:low)
+- Conversation: [`9bc7e97`](https://app.all-hands.dev/conversations/9bc7e97fd50a4317a96e1ed1936c7049)
+
+**Previous Worker Completed:**
+- `8e2f72f` (merge): Merged PR #116 ✓ (Issue #91 closed)
+
+**Current State:**
+- No open PRs
+- Ready issues: #93 (now being implemented), #95 (low)
+- No issues need expansion 🎉
+- PR slot: Occupied (implementation worker)
+- Expansion slot: Available (nothing to expand)
