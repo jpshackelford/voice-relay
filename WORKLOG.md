@@ -173,3 +173,47 @@ Auto-connect AI when the first device joins a session, eliminating the manual �
 - Uses lazy initialization (AI created on first device join, not session creation)
 - AI greeting displayed immediately confirms connection to user
 
+---
+### 2026-05-15 02:13 UTC - Implementation Worker (`d4eeeb3`)
+
+✅ **Completed Issue #119**
+
+- Issue: [#119 - feat: Session-centric AI infrastructure](https://github.com/jpshackelford/voice-relay/issues/119)
+- PR: [#123](https://github.com/jpshackelford/voice-relay/pull/123) - Ready for review
+- Type: Enhancement
+- Status: **PR Created & CI Green** ✅
+
+**Implementation Summary:**
+
+Added session-centric AI management foundation:
+
+1. **AISession Interface Updates:**
+   - Added `sessionId` field (deviceId now optional/deprecated)
+   - Added thinking state: `isThinking`, `pendingMessageId`, `lastMessageSentAt`
+
+2. **New Session-Centric Methods:**
+   - `hasSessionAI(sessionId)` - check if session has active AI
+   - `getSessionAI(sessionId)` - get AI session for VR session
+   - `getOrCreateForSession()` - get/create AI for session
+   - `sendSessionMessage()` - send with thinking state tracking
+   - `endSessionAI()` - cleanup session AI
+   - `setThinkingChangeCallback()` - for thinking state broadcasts
+
+3. **New WebSocket Message Types:**
+   - `AIThinkingMessage` - broadcast AI processing state
+   - `SessionAIStatusMessage` - session-level AI status
+
+4. **Backward Compatibility:**
+   - All legacy device-centric methods preserved
+   - Internal map renamed `sessions` → `deviceSessions`
+   - Methods marked `@deprecated` with pointers to alternatives
+
+**Test Coverage:**
+- 18 new tests added
+- All 499 tests passing
+
+**Files Changed:**
+- `server/src/openhands.ts` (+350 lines)
+- `server/src/types.ts` (+27 lines)
+- `server/src/openhands.test.ts` (+179 lines)
+
