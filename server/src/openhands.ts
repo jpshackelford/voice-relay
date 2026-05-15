@@ -288,7 +288,10 @@ export function loadPrompt(
 export interface AISession {
   conversationId: string;
   taskId: string;
-  deviceId: string;
+  /** VR session ID (for session-centric AI) */
+  sessionId?: string;
+  /** @deprecated Use sessionId instead. Device ID (for legacy device-centric AI) */
+  deviceId?: string;
   mode: 'chat' | 'kiosk';
   ws?: WebSocket;
   agentServerUrl?: string;
@@ -297,6 +300,12 @@ export interface AISession {
   onMessage?: (message: string) => void;
   reconnectAttempts: number;
   maxReconnectAttempts: number;
+  /** Whether AI is currently processing a response */
+  isThinking: boolean;
+  /** ID of the pending message being processed */
+  pendingMessageId?: string;
+  /** Timestamp when the last message was sent */
+  lastMessageSentAt?: number;
 }
 
 // V1 Event type interfaces
@@ -316,12 +325,20 @@ interface V1ConversationStateUpdateEvent {
   value: Record<string, unknown>;
 }
 
+/** Callback type for thinking state changes */
+export type ThinkingChangeCallback = (sessionId: string, isThinking: boolean) => void;
+
 /**
  * Manager for AI sessions using WebSocket
  */
 export class AISessionManager {
-  private sessions: Map<string, AISession> = new Map();
+  /** @deprecated Legacy: deviceId → AISession (kept for backward compatibility) */
+  private deviceSessions: Map<string, AISession> = new Map();
+  /** Session-centric: VR sessionId → AISession */
+  private sessionAI: Map<string, AISession> = new Map();
   private client: OpenHandsClient | null = null;
+  /** Callback invoked when AI thinking state changes */
+  private onThinkingChange?: ThinkingChangeCallback;
 
   constructor() {
     try {
@@ -335,12 +352,186 @@ export class AISessionManager {
     return this.client !== null;
   }
 
-  getSession(deviceId: string): AISession | undefined {
-    return this.sessions.get(deviceId);
+  /**
+   * Set callback for thinking state changes
+   * Used by the server to broadcast ai-thinking messages
+   */
+  setThinkingChangeCallback(callback: ThinkingChangeCallback | undefined): void {
+    this.onThinkingChange = callback;
   }
 
+  // ==================== Session-Centric Methods (NEW) ====================
+
+  /**
+   * Check if a VR session has an active AI session
+   */
+  hasSessionAI(sessionId: string): boolean {
+    return this.sessionAI.has(sessionId);
+  }
+
+  /**
+   * Get the AI session for a VR session
+   */
+  getSessionAI(sessionId: string): AISession | undefined {
+    return this.sessionAI.get(sessionId);
+  }
+
+  /**
+   * Get or create an AI session for a VR session
+   * @param sessionId - VR session ID
+   * @param workspaceId - Workspace ID for context
+   * @param onMessage - Callback for agent responses
+   * @param options - Optional configuration
+   */
+  async getOrCreateForSession(
+    sessionId: string,
+    workspaceId: string,
+    onMessage: (message: string) => void,
+    options: {
+      displayLines?: number;
+      apiKey?: string;
+      displayApiSecret?: string;
+    } = {}
+  ): Promise<AISession> {
+    // Return existing if available
+    const existing = this.sessionAI.get(sessionId);
+    if (existing) {
+      console.log(`[AI] Returning existing session AI for session ${sessionId}`);
+      return existing;
+    }
+
+    // Create new AI session
+    const client = options.apiKey ? new OpenHandsClient(options.apiKey) : this.client;
+    if (!client) {
+      throw new Error('OpenHands API not configured');
+    }
+
+    console.log(`[AI] Creating new session AI for session ${sessionId}${options.displayLines ? ` (${options.displayLines} display lines)` : ''}`);
+
+    // Load system prompt with session context
+    const systemPrompt = loadPrompt('system-prompt', options.displayLines, workspaceId, sessionId);
+    console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
+
+    // Build secrets map
+    const secrets: Record<string, string> = {};
+    if (options.displayApiSecret) {
+      secrets['DISPLAY_API_SECRET'] = options.displayApiSecret;
+    }
+
+    // Start conversation
+    console.log(`[AI] Creating OpenHands conversation for session ${sessionId}...`);
+    const startResponse = await client.startConversation(
+      systemPrompt,
+      `Voice Relay session: ${sessionId}`,
+      Object.keys(secrets).length > 0 ? secrets : undefined
+    );
+    console.log(`[AI] Conversation started, task id: ${startResponse.id}`);
+
+    // Wait for conversation to be ready
+    console.log(`[AI] Waiting for conversation to be ready...`);
+    const readyTask = await client.pollUntilReady(
+      startResponse.id,
+      60000,
+      2000
+    );
+    console.log(`[AI] Conversation ready:`, readyTask);
+
+    const conversationId = readyTask.app_conversation_id || startResponse.id;
+    console.log(`[AI] Using conversation ID: ${conversationId}`);
+
+    // Get conversation details for WebSocket connection
+    const convInfo = await client.getConversation(conversationId);
+    if (!convInfo) {
+      throw new Error('Failed to get conversation info');
+    }
+
+    const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
+    if (!agentServerUrl || !convInfo.session_api_key) {
+      throw new Error('Missing agent server URL or session API key');
+    }
+
+    console.log(`[AI] Agent server: ${agentServerUrl}`);
+
+    const session: AISession = {
+      conversationId,
+      taskId: startResponse.id,
+      sessionId,  // Key by session, not device
+      mode: 'kiosk',
+      agentServerUrl,
+      sessionApiKey: convInfo.session_api_key,
+      onMessage,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+
+    this.sessionAI.set(sessionId, session);
+
+    // Connect WebSocket with session-centric handling
+    this.connectWebSocket(session, true);
+
+    console.log(`[AI] Session AI started successfully for session ${sessionId}`);
+    return session;
+  }
+
+  /**
+   * Send a message to the AI for a VR session
+   */
+  async sendSessionMessage(sessionId: string, message: string): Promise<void> {
+    const session = this.sessionAI.get(sessionId);
+    if (!session) {
+      throw new Error('No active AI session for this VR session');
+    }
+
+    if (!session.ws || session.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket not connected');
+    }
+
+    // Track thinking state
+    session.isThinking = true;
+    session.lastMessageSentAt = Date.now();
+
+    // Notify via callback
+    if (this.onThinkingChange && session.sessionId) {
+      this.onThinkingChange(session.sessionId, true);
+    }
+
+    console.log(`[AI] Sending session message via WebSocket: "${message.substring(0, 50)}..."`);
+    
+    session.ws.send(JSON.stringify({
+      role: 'user',
+      content: [{ type: 'text', text: message }],
+      run: true,
+    }));
+  }
+
+  /**
+   * End the AI session for a VR session
+   */
+  async endSessionAI(sessionId: string): Promise<void> {
+    const session = this.sessionAI.get(sessionId);
+    if (!session) return;
+
+    console.log(`[AI] Ending session AI for session ${sessionId}`);
+
+    if (session.ws) {
+      session.ws.close();
+      session.ws = undefined;
+    }
+
+    this.sessionAI.delete(sessionId);
+  }
+
+  // ==================== Legacy Device-Centric Methods ====================
+
+  /** @deprecated Use getSessionAI instead */
+  getSession(deviceId: string): AISession | undefined {
+    return this.deviceSessions.get(deviceId);
+  }
+
+  /** @deprecated Use hasSessionAI instead */
   hasSession(deviceId: string): boolean {
-    return this.sessions.has(deviceId);
+    return this.deviceSessions.has(deviceId);
   }
 
   /**
@@ -373,8 +564,10 @@ export class AISessionManager {
   /**
    * Connect WebSocket to agent server (V1 API)
    * Authentication is done via query parameters, not a separate auth message
+   * @param session - The AI session to connect
+   * @param isSessionCentric - True if using session-centric storage (sessionAI map)
    */
-  private connectWebSocket(session: AISession): void {
+  private connectWebSocket(session: AISession, isSessionCentric: boolean = false): void {
     if (!session.agentServerUrl || !session.sessionApiKey) {
       console.error('[AI] Missing agent server URL or session API key');
       return;
@@ -404,6 +597,17 @@ export class AISessionManager {
         
         // V1 MessageEvent - agent messages have llm_message with role/content
         if (this.isV1MessageEvent(event) && event.source === 'agent') {
+          // Update thinking state when agent responds
+          if (session.isThinking) {
+            session.isThinking = false;
+            session.pendingMessageId = undefined;
+            
+            // Notify via callback for session-centric sessions
+            if (this.onThinkingChange && session.sessionId) {
+              this.onThinkingChange(session.sessionId, false);
+            }
+          }
+
           const text = event.llm_message?.content
             ?.filter((p: ContentPart) => p.type === 'text')
             ?.map((p: ContentPart) => p.text)
@@ -443,15 +647,22 @@ export class AISessionManager {
       console.log(`[AI] WebSocket closed: ${code} - ${reason.toString()}`);
       session.ws = undefined;
 
+      // Determine which map to check for reconnection
+      const sessionExists = isSessionCentric
+        ? (session.sessionId && this.sessionAI.has(session.sessionId))
+        : (session.deviceId && this.deviceSessions.has(session.deviceId));
+
       // Attempt reconnect if session still exists and not max attempts
-      if (this.sessions.has(session.deviceId) && 
-          session.reconnectAttempts < session.maxReconnectAttempts) {
+      if (sessionExists && session.reconnectAttempts < session.maxReconnectAttempts) {
         session.reconnectAttempts++;
         const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 30000);
         console.log(`[AI] Reconnecting in ${delay}ms (attempt ${session.reconnectAttempts}/${session.maxReconnectAttempts})`);
         setTimeout(() => {
-          if (this.sessions.has(session.deviceId)) {
-            this.connectWebSocket(session);
+          const stillExists = isSessionCentric
+            ? (session.sessionId && this.sessionAI.has(session.sessionId))
+            : (session.deviceId && this.deviceSessions.has(session.deviceId));
+          if (stillExists) {
+            this.connectWebSocket(session, isSessionCentric);
           }
         }, delay);
       }
@@ -488,7 +699,7 @@ export class AISessionManager {
     console.log(`[AI] Starting ${mode} session for device ${deviceId}${displayLines ? ` (${displayLines} display lines)` : ''}${workspaceId ? ` (workspace: ${workspaceId})` : ''}${sessionId ? ` (session: ${sessionId})` : ''}`);
 
     // End existing session if any
-    if (this.sessions.has(deviceId)) {
+    if (this.deviceSessions.has(deviceId)) {
       await this.endSession(deviceId);
     }
 
@@ -549,9 +760,10 @@ export class AISessionManager {
       onMessage,
       reconnectAttempts: 0,
       maxReconnectAttempts: 5,
+      isThinking: false,
     };
 
-    this.sessions.set(deviceId, session);
+    this.deviceSessions.set(deviceId, session);
 
     // Connect WebSocket
     this.connectWebSocket(session);
@@ -562,9 +774,10 @@ export class AISessionManager {
 
   /**
    * Send a message from the user to the AI via WebSocket
+   * @deprecated Use sendSessionMessage for session-centric AI
    */
   async sendMessage(deviceId: string, message: string): Promise<void> {
-    const session = this.sessions.get(deviceId);
+    const session = this.deviceSessions.get(deviceId);
     if (!session) {
       throw new Error('No active AI session for this device');
     }
@@ -584,9 +797,10 @@ export class AISessionManager {
 
   /**
    * End an AI session
+   * @deprecated Use endSessionAI for session-centric AI
    */
   async endSession(deviceId: string): Promise<void> {
-    const session = this.sessions.get(deviceId);
+    const session = this.deviceSessions.get(deviceId);
     if (!session) return;
 
     console.log(`[AI] Ending session for device ${deviceId}`);
@@ -597,14 +811,19 @@ export class AISessionManager {
       session.ws = undefined;
     }
 
-    this.sessions.delete(deviceId);
+    this.deviceSessions.delete(deviceId);
   }
 
   /**
-   * End all sessions
+   * End all sessions (both session-centric and device-centric)
    */
   async shutdown(): Promise<void> {
-    for (const deviceId of this.sessions.keys()) {
+    // End all session-centric AI sessions
+    for (const sessionId of this.sessionAI.keys()) {
+      await this.endSessionAI(sessionId);
+    }
+    // End all legacy device-centric sessions
+    for (const deviceId of this.deviceSessions.keys()) {
       await this.endSession(deviceId);
     }
   }

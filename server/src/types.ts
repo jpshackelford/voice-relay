@@ -107,7 +107,9 @@ export type ServerMessage =
   | JoinRequestMessage
   | JoinResolvedMessage
   | DeviceRemovedMessage
-  | WorkspaceDeletedMessage;
+  | WorkspaceDeletedMessage
+  | AIThinkingMessage
+  | SessionAIStatusMessage;
 
 export interface DisplayMessage {
   type: 'display';
@@ -191,5 +193,28 @@ export interface JoinResolvedMessage {
     slug: string;
   };
   /** Error message, only if denied/expired */
+  error?: string;
+}
+
+/**
+ * Server → All devices in session: AI is processing a response.
+ * Broadcast when the AI starts or finishes processing a message.
+ */
+export interface AIThinkingMessage {
+  type: 'ai-thinking';
+  sessionId: string;
+  thinking: boolean;
+}
+
+/**
+ * Server → All devices in session: Session-level AI connection status.
+ * Broadcast when the session AI connects, disconnects, or encounters an error.
+ */
+export interface SessionAIStatusMessage {
+  type: 'session-ai-status';
+  sessionId: string;
+  connected: boolean;
+  connecting?: boolean;
+  conversationId?: string;
   error?: string;
 }
