@@ -677,3 +677,30 @@ All 3 review threads resolved. CI passing. PR marked ready for review.
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+
+### 2026-05-15 18:10 UTC - Expansion Worker
+
+✅ **Expanded Issue #127: Smoke test failure after deployment**
+
+- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
+- Type: Bug (CI failure / test-code mismatch)
+- Status: **Ready for implementation** ✅
+
+**Root Cause:**
+Smoke tests were not updated when PR #126 migrated from device-centric to session-centric AI architecture:
+1. UI tests look for `.ai-toggle` button (removed), should use `.ai-status` indicator
+2. API tests expect 400/404 from deprecated endpoints now returning 410 Gone
+3. Tests assume manual AI connect/disconnect (now auto-connects per session)
+
+**Failed Tests:** 9 of 28
+- 5 UI element tests (selector `.ai-toggle` no longer exists)
+- 4 API error handling tests (deprecated endpoints return 410)
+
+**Proposed Fix:**
+- Update `tests/smoke/ai-integration.spec.ts` selectors and expectations
+- Remove/adapt manual toggle tests for session-centric auto-connect
+- Update API tests to expect 410 for deprecated endpoints
+
+**Complexity:** Medium
+
+---
