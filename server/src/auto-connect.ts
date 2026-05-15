@@ -88,7 +88,7 @@ export async function autoConnectAI(
         // Relay AI responses to all devices in session
         const aiMessage: RelayedTextMessage = {
           type: 'text',
-          utteranceId: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          utteranceId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
           workspaceId,
           sessionId,
           senderId: 'ai',
