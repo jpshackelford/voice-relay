@@ -857,3 +857,37 @@ Spawning fresh review worker to continue addressing feedback.
 - State: Ready (not draft) ✅
 - CI: All green ✅
 - Bot verdict: "✅ Worth merging" (Risk: LOW)
+
+---
+
+### 2026-05-15 22:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be21f55` | merge | PR #130 - wire session AI status | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Conversation: [`be21f55`](https://app.all-hands.dev/conversations/be21f5541f4b421bafbd86d8c2b10be0)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
+
+**PR Merge Criteria Met:**
+- ✅ CI: All checks passing (green)
+- ✅ State: Ready (not draft)
+- ✅ Unresolved threads: 0 (all threads resolved)
+- ✅ Mergeable: MERGEABLE
+- ✅ Bot verdict: "Good taste" - Clean fix following React best practices
+
+**Current State:**
+- Issue #129 will auto-close when PR #130 merges
+- No other open issues after #129 closes
+- All issues expanded (none need expansion)
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (merge worker)
+
+**Previous Workers (finished):**
+- `20b3fc9` (review #130 ✓), `a95245a` (review #130 incomplete)
+- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
+- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
