@@ -31,34 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 13:08 UTC - Review Worker (`73f4a19`)
-
-✅ **Final Review Feedback Addressed: PR #124 (Round 6)**
-
-- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
-- Status: **Ready for merge** ✅
-
-**Fixes Applied:**
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Localhost fallback fails silently in production | 🟠 Important | ✅ Fixed in `39dd520` |
-
-**Commits:**
-- `39dd520` - fix: fail fast in production if BASE_URL not set
-
-**Technical Details:**
-- Implemented "smart fallback" per review suggestion (Option 2):
-  - `getServerUrl()` returns `BASE_URL` when set
-  - Falls back to `http://localhost:PORT` only in dev/test (`NODE_ENV !== 'production'`)
-  - Throws descriptive error in production: `BASE_URL environment variable is required in production for display API`
-- Added 6 new tests covering all scenarios
-- Prevents silent failures when AI tries to call display API with localhost URL in production
-
-All review threads resolved (14/14). PR marked ready for review.
-Bot review verdict: "✅ Worth merging" - PR is ready for merge.
-
----
 ### 2026-05-15 14:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -777,3 +749,28 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 - ✅ Issue #122 (remove legacy device-centric code) - MERGED
 - ✅ Issue #127 (fix smoke tests) - **MERGED**
 
+---
+### 2026-05-15 20:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8347c92` | expansion | Issue #129 - Smoke test failure | **NEW** |
+
+🚀 **Spawned: Expansion Worker**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- Conversation: [`8347c92`](https://app.all-hands.dev/conversations/8347c9244b1447be98256734d8e9240a)
+
+**Current State:**
+- No open PRs
+- Issue #129 needs expansion (ci-failure label only)
+- Expansion slot: Occupied (expansion worker)
+- PR slot: Idle (no ready issues to implement yet)
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
+
+**Previous Workers (all finished):**
+- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
+- `333b79f` (review #128 round 1 ✓), `9fe0274` (implementation #127 ✓)
