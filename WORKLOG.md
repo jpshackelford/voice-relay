@@ -525,3 +525,40 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 - Ready issues after #120 closes: #121 (priority:medium), #122 (priority:low)
 - Expansion slot: Idle (nothing to expand)
 - PR slot: Occupied (merge worker)
+
+---
+### 2026-05-15 14:37 UTC - Merge Worker (`a321264`)
+
+✅ **Merged PR #124 → Issue #120 Closed**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Issue: [#120](https://github.com/jpshackelford/voice-relay/issues/120) - **CLOSED** (auto-closed via "Fixes #120")
+- Merge type: Squash merge
+- Commit: `feat: auto-connect AI when first device joins session`
+
+**What was shipped:**
+- Automatic AI conversation creation when first device joins a session
+- Display-first communication model in AI prompt (kiosk display is primary visual channel)
+- AI sends greeting to display immediately on connection
+- Error messages sanitized before broadcasting to clients
+- Production safety: fail-fast if `BASE_URL` not set in production
+- 438 lines of unit tests for auto-connect logic
+
+**Migration status:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - **MERGED**
+- 🔜 Issue #121 (UI indicators for thinking/connecting) - Ready
+- 🔜 Issue #122 (remove legacy device-centric code) - Ready (unblocked now)
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- No database changes - safe for production
+- No breaking changes to existing functionality
+
+**Review journey (6 rounds):**
+1. Round 1: Fixed hardcoded URLs, error sanitization
+2. Round 2-3: Added comprehensive unit tests (438 lines)
+3. Round 4: Replaced deprecated `.substr()` with `.slice()`
+4. Round 5: Added defensive warning logging
+5. Round 6: Production safety - fail-fast if BASE_URL not set
+
