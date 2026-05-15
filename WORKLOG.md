@@ -849,3 +849,31 @@ Client-side wiring for session-centric AI status is incomplete:
 - `ecce820` (review #128 round 2 ✓), `333b79f` (review #128 round 1 ✓)
 
 ---
+### 2026-05-15 21:10 UTC - Implementation Worker
+
+✅ **PR Created: Issue #129 (smoke test failure)**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| File | Changes |
+|------|---------|
+| `client/src/pages/SessionView.tsx` | Added `useAI` hook, wired handlers to `useWebSocket`, passed `ai` prop to `KioskMode` |
+| `client/src/components/KioskMode.tsx` | Accept optional `ai` prop, removed internal `useAI` call, added optional chaining |
+| `client/src/components/KioskMode.test.tsx` | Updated tests to pass `ai` as prop |
+
+**Root Cause:**
+The session-centric AI architecture (PR #126) added WebSocket message types and handlers, but the React component wiring in `SessionView.tsx` was never completed. The fix connects:
+1. Server broadcasts `session-ai-status` messages
+2. `useWebSocket` receives and forwards to callback
+3. `useAI.handleSessionAIStatus` updates state
+4. `KioskMode` renders `.ai-status` indicator
+
+**Tests:**
+- All 180 client tests passing ✅
+- CI: All checks green ✅
+
+---
