@@ -301,3 +301,34 @@ All review threads resolved. CI passing. PR marked ready for review.
 **Learnings:**
 - Extracting complex async functions to separate modules significantly improves testability
 - Dependency injection pattern enables comprehensive unit testing without needing live APIs
+
+### 2026-05-15 11:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f0d1dfe` | review | PR #124 - Auto-connect AI | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Conversation: [`f0d1dfe`](https://app.all-hands.dev/conversations/f0d1dfeca355422e966f12e57f66bf37)
+
+**Review Issues to Address:**
+1. 🟡 Suggestion: Potential utterance ID collision with `Date.now()`
+2. 🟡 Suggestion: Redundant error logging
+3. 🟡 Suggestion: Document known race condition limitation
+4. 🟡 Suggestion: Add guidance for greeting failure
+
+**Current State:**
+- PR #124: `oRCFRFRC green ready 💬4` (CI green, has 4 unresolved review comments)
+- Issues awaiting implementation after #120 is closed: #121 (priority:medium), #122 (priority:low - blocked)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `a8b5c5b` (review #124), `26bf0d8` (review #124), `e597152` (implementation #120)
+- `5c27fea` (merge #123), `2476742` (expansion #122), `061a463` (expansion #121)
+
+---
