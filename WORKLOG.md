@@ -31,6 +31,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-15T23:03 UTC - Expansion Worker
+
+✅ **Expanded Issue #131**
+
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- Type: Bug (CI failure)
+- Status: Ready for implementation
+- Labels: `ready`, `priority:high`, `bug`, `ci-failure`
+
+**Root Cause:** When AI architecture changed from device-centric to session-centric (PRs #123, #124), the `senderName` for AI messages was inadvertently changed from `'✨ AI'` to `'AI Assistant'` in `server/src/auto-connect.ts:95`. The smoke test still expects the original `'✨ AI'` format.
+
+**Proposed Fix:** Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavior and smoke test expectation.
+
+**Files to modify:**
+- `server/src/auto-connect.ts` - Change line 95
+- `server/src/auto-connect.test.ts` - Update test assertion
+
+---
+
 ### 2026-05-15 15:35 UTC - Merge Worker (`9de89cb`)
 
 ✅ **Merged PR #125 → Issue #121 Closed**
