@@ -240,3 +240,41 @@ Added session-centric AI management foundation:
 **PR Slot:** Waiting - PR #123 exists but no review comments yet. Review bot workflow failed (timeout). Needs human review or workflow retry.
 
 **Expansion Slot:** Filled - expanding Issue #121
+
+---
+### 2026-05-15 02:35 UTC - Expansion Worker (`061a463`)
+
+✅ **Expanded Issue #121**
+
+- Issue: [#121 - feat: UI indicators - distinguish connecting vs thinking states](https://github.com/jpshackelford/voice-relay/issues/121)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+- Dependencies: #119 (message types), #120 (broadcasts messages)
+
+**Summary:**
+Add distinct visual indicators to the UI to distinguish between AI "connecting" (sandbox boot, 30-60s) and "thinking" (processing message, 2-15s) states.
+
+**Key Technical Changes:**
+1. Add `AIThinkingMessage` and `SessionAIStatusMessage` types to client
+2. Handle new message types in `useWebSocket.ts`
+3. Add `thinking` state to `useAI.ts` hook
+4. Update KioskMode and MobileMode with distinct indicators:
+   - 🔗 (pulse animation) for connecting
+   - 🤔 (pulsing glow) for thinking
+   - ✨ (subtle shimmer) for connected/idle
+5. Update CSS animations for each state
+
+**Files Affected:**
+- `client/src/types.ts` - Add new message types
+- `client/src/hooks/useWebSocket.ts` - Handle new messages
+- `client/src/hooks/useAI.ts` - Add thinking state
+- `client/src/components/KioskMode.tsx` - Update indicators
+- `client/src/components/MobileMode.tsx` - Update indicators
+- `client/src/App.css` - New animations
+
+**Complexity:** Medium
+
+**Notes:**
+- Issue body was already well-structured, added technical implementation comment
+- Can begin client-side work once #119 is merged (defines server types)
+- Full functionality requires #120 (broadcasts the messages)
