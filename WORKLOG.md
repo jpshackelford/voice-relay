@@ -667,3 +667,35 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 **Previous Workers (all finished):**
 - `9de89cb` (merge #125), `316a714` (implementation #121)
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
+
+---
+### 2026-05-15 16:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4f3a5c4` | implementation | Issue #122 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Priority: `priority:low`
+- Conversation: [`4f3a5c4`](https://app.all-hands.dev/conversations/4f3a5c4cdbde48fb8dc6d973b3074039)
+
+**Note:** Previous worker `1db132a` was stalled (PAUSED status, never executed). Spawned new worker.
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Ready Issues:**
+- #122 (priority:low) - being implemented now
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
+
