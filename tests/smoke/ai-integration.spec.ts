@@ -99,10 +99,7 @@ test.describe('AI Assistant Integration', () => {
       // AI status indicator only appears when connecting or connected
       const aiStatus = page.locator('.ai-status');
       // Wait for AI to auto-connect (status indicator appears)
-      await expect(aiStatus).toBeVisible({ timeout: 30000 })
-        .catch(() => {
-          // AI may not connect if unavailable - that's OK
-        });
+      await expect(aiStatus).toBeVisible({ timeout: 30000 });
     }
 
     test('AI auto-connects to session and shows status indicator', async ({ page }) => {
