@@ -788,3 +788,41 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 **Previous Workers (all finished):**
 - `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
+
+---
+
+### 2026-05-15 22:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `20b3fc9` | review | PR #130 - wire session AI status (Round 2) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
+- Conversation: [`20b3fc9`](https://app.all-hands.dev/conversations/20b3fc9f0e584af59c11555769db8f10)
+
+**PR Status:**
+- CI: All checks passing (green) ✅
+- State: Draft (review worker will set back to draft, address feedback, then mark ready)
+- Unresolved threads: 1 (type export suggestion)
+- History: `oR` (opened, reviewed)
+
+**Why spawned:**
+Previous review worker `a95245a` finished (PAUSED status at 21:36) but PR is still draft with 1 unresolved thread.
+Spawning fresh review worker to continue addressing feedback.
+
+**Housekeeping:**
+- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md (worklog reduced from 878 to ~400 lines)
+
+**Current State:**
+- Issue #129 will auto-close when PR #130 merges
+- No other open issues after #129 is resolved
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker `20b3fc9`)
+
+**Previous Workers (finished):**
+- `a95245a` (review #130 - incomplete), `2ac2fd2` (implementation #129 ✓)
+- `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
