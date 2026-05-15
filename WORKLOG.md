@@ -486,3 +486,33 @@ PR #123 meets merge criteria - spawning merge worker to squash-merge and close I
 - `e597152` (implementation #120) - finished ✓
 
 ---
+### 2026-05-15 10:17 UTC - Review Worker (`26bf0d8`)
+
+✅ **Review Feedback Addressed: PR #124**
+
+- PR: [#124 - feat: auto-connect AI when first device joins session](https://github.com/jpshackelford/voice-relay/pull/124)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Hardcoded production URLs in system prompt | 🔴 Critical | ✅ Fixed in `7ca4da9` |
+| Raw error messages exposed to clients | 🟠 Important | ✅ Fixed in `d3b2117` |
+| Redundant null coalescing | 🟡 Suggestion | ✅ Fixed in `d3b2117` |
+| Unused `deviceRepository` parameter | 🟡 Suggestion | ✅ Fixed in `d3b2117` |
+| Race condition on simultaneous joins | 🟡 Suggestion | ⏸️ Deferred (low impact, downstream deduplication handles it) |
+
+**Commits:**
+1. `7ca4da9` - fix: use template variable for server URL in system prompt
+2. `d3b2117` - refactor(autoConnectAI): sanitize errors and cleanup code
+
+**Technical Details:**
+- Added `{{SERVER_URL}}` template variable to system prompt, populated from `BASE_URL` env var
+- Error messages now sanitized to generic "Failed to connect AI assistant" for clients
+- Full errors still logged server-side for debugging
+- Simplified null coalescing and removed unused parameter for cleaner code
+
+All 5 review threads resolved. CI passing. PR marked ready for review.
+
+---
