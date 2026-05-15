@@ -786,3 +786,28 @@ Smoke tests were not updated when PR #126 migrated from device-centric to sessio
 - Session-centric AI migration completed (#119, #120, #121, #122 all merged)
 
 ---
+### 2026-05-15 19:05 UTC - Review Worker (`333b79f`)
+
+✅ **Review Feedback Addressed: PR #128**
+
+- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
+- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| `waitForAIAutoConnect` has flawed `.catch()` | 🟡 Suggestion | ✅ Fixed in `8916d3b` |
+
+**Commits:**
+- `8916d3b` - fix(tests): remove flawed .catch() from waitForAIAutoConnect helper
+
+**Technical Details:**
+- The `.catch()` block silently swallowed connection failures, making the helper always succeed
+- Removed the `.catch()` so the helper properly fails when AI doesn't connect within timeout
+- Callers already handle AI unavailability via status check and `test.skip()` - the error suppression was redundant
+
+All 1 review thread resolved. CI passing. PR marked ready for review.
+
+---
