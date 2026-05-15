@@ -475,18 +475,18 @@ wss.on('connection', (ws: WebSocket) => {
           // Broadcast to devices in the same session (or workspace if no session)
           if (device.sessionId && device.sessionId !== 'default') {
             registry.broadcastToSession(relayMessage, device.sessionId);
-            
-            // Forward final messages to session AI if connected
-            if (!message.partial && aiSessionManager.hasSessionAI(device.sessionId)) {
-              try {
-                await aiSessionManager.sendSessionMessage(device.sessionId, message.text);
-                console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
-              } catch (err) {
-                console.error(`[AI] Failed to forward message to session AI:`, err);
-              }
-            }
           } else {
             registry.broadcastToOutputs(relayMessage, device.workspaceId);
+          }
+
+          // Forward final messages to session AI if connected
+          if (device.sessionId && !message.partial && aiSessionManager.hasSessionAI(device.sessionId)) {
+            try {
+              await aiSessionManager.sendSessionMessage(device.sessionId, message.text);
+              console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
+            } catch (err) {
+              console.error(`[AI] Failed to forward message to session AI:`, err);
+            }
           }
           break;
         }
