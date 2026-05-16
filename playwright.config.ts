@@ -1,4 +1,5 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 /**
  * Playwright configuration for parallel E2E tests.
@@ -36,6 +37,9 @@ import { defineConfig } from '@playwright/test';
 // Determine worker count from environment or default to 4
 // Must match the default in global-setup.ts to ensure worker count consistency
 const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '4', 10);
+
+// Audio fixtures for mobile voice tests (from oh-local-speech)
+const AUDIO_FIXTURES_DIR = path.resolve(__dirname, 'tests/fixtures/audio');
 
 export default defineConfig({
   testDir: './tests',
@@ -78,6 +82,29 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { browserName: 'chromium' },
+    },
+    {
+      name: 'mobile-chrome',
+      use: {
+        ...devices['Pixel 5'],
+        launchOptions: {
+          args: [
+            // Use fake audio/video devices for testing
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+            // Use short_hello.wav as default fake audio input
+            `--use-file-for-fake-audio-capture=${path.join(AUDIO_FIXTURES_DIR, 'short_hello.wav')}`,
+          ],
+        },
+      },
+    },
+    {
+      name: 'mobile-safari',
+      use: {
+        ...devices['iPhone 13'],
+        // Note: Safari/WebKit doesn't support --use-fake-device-for-media-stream
+        // These tests will use mocked APIs instead
+      },
     },
   ],
 });
