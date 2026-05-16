@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 
 interface UseAudioAnalyserOptions {
   fftSize?: number;
@@ -68,9 +68,12 @@ export function useAudioAnalyser({
     setIsActive(true); // Set immediately to prevent race condition with rapid start() calls
     isActiveRef.current = true; // Keep ref in sync
     
+    // Track resources for cleanup on error - fixes resource leak if error occurs before refs are set
+    let audioCtx: AudioContext | null = null;
+    let stream: MediaStream | null = null;
+    
     try {
       // Use existing stream or request microphone access
-      let stream: MediaStream;
       if (existingStream) {
         stream = existingStream;
         ownsStreamRef.current = false;
@@ -93,7 +96,7 @@ export function useAudioAnalyser({
       
       // Create audio context and nodes
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const audioCtx = new AudioContextClass();
+      audioCtx = new AudioContextClass();
       await audioCtx.resume();
       
       // Check if cancelled during async operation
@@ -125,6 +128,15 @@ export function useAudioAnalyser({
       // isActive already set to true at start of this function
       return stream;
     } catch (err) {
+      // Clean up resources created before the error
+      if (audioCtx) {
+        audioCtx.close();
+      }
+      if (stream && ownsStreamRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      streamRef.current = null;
+      
       if (cancelledRef.current) return undefined;
       console.error('[AudioAnalyser] Error:', err);
       const message = err instanceof Error ? err.message : 'Failed to access microphone';
@@ -172,12 +184,13 @@ export function useAudioAnalyser({
     };
   }, [stop]);
 
-  return {
+  // Memoize return object to prevent unnecessary re-renders in consumers
+  return useMemo(() => ({
     isActive,
     analyser: analyserRef.current,
     dataArray: dataArrayRef.current,
     start,
     stop,
     error,
-  };
+  }), [isActive, start, stop, error]);
 }
