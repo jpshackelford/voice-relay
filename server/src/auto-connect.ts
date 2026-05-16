@@ -10,7 +10,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
 import type { AISessionManager } from './openhands.js';
 import type { RelayedTextMessage, SessionAIStatusMessage } from './types.js';
-import { isAnonymousMode } from './constants.js';
+import { isAnonymousSession } from './constants.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -145,7 +145,7 @@ export function shouldAutoConnect(
   sessionRepository: SessionRepository,
   aiSessionManager: AISessionManager
 ): boolean {
-  if (!sessionId || isAnonymousMode(sessionId)) {
+  if (isAnonymousSession(sessionId)) {
     return false;
   }
   

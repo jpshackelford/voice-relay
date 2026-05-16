@@ -383,30 +383,32 @@ wss.on('connection', (ws: WebSocket) => {
               }
             }
             
-            // Determine session for this device
-            session = { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME }; // fallback
+            // Determine session for this device (null until resolved from DB)
+            let resolvedSession: { id: string; name: string | null } | null = null;
             
             if (sessionRepository) {
               // If client provided sessionId, try to use it
               if (message.sessionId) {
                 const requestedSession = sessionRepository.findById(message.sessionId);
                 if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
-                  session = { id: requestedSession.id, name: requestedSession.name };
+                  resolvedSession = { id: requestedSession.id, name: requestedSession.name };
                 } else {
                   console.warn(`[WS] Invalid session ${message.sessionId} requested by ${message.deviceId}, using active session`);
                 }
               }
               
               // If no valid session from client request, get or create active session
-              if (session.id === ANONYMOUS_SESSION_ID) {
+              if (!resolvedSession) {
                 const activeSession = sessionRepository.getOrCreateActiveSession(requestedWorkspaceId);
-                session = { id: activeSession.id, name: activeSession.name };
+                resolvedSession = { id: activeSession.id, name: activeSession.name };
               }
               
               // Track device in session_devices table (device must exist for FK constraint)
-              sessionRepository.addDevice(session.id, message.deviceId);
+              sessionRepository.addDevice(resolvedSession.id, message.deviceId);
             }
             
+            // Use resolved session or fall back to anonymous for edge cases
+            session = resolvedSession ?? { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME };
             sessionId = session.id;
           }
           

@@ -34,3 +34,11 @@ export const ANONYMOUS_SESSION_NAME = 'Default Session';
 export function isAnonymousMode(workspaceId: string | undefined | null): boolean {
   return !workspaceId || workspaceId === ANONYMOUS_WORKSPACE_ID;
 }
+
+/**
+ * Check if a session ID represents anonymous/unauthenticated mode.
+ * Use this for session-level checks to avoid semantic confusion with isAnonymousMode().
+ */
+export function isAnonymousSession(sessionId: string | undefined | null): boolean {
+  return !sessionId || sessionId === ANONYMOUS_SESSION_ID;
+}
