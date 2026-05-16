@@ -733,3 +733,19 @@ This PR has 6 failing E2E tests related to messaging/relay functionality. The hu
 - `913a925` (review #146 - addressed 1 suggestion thread)
 - `8ca5da6` (review #146 - addressed 4 threads)
 
+
+---
+## INSTRUCTION: Active conversation on PR #148 - Do NOT fill PR slot
+
+**Conversation in Progress:** PR #148 (fix(e2e): update stale test selectors) is being actively worked on in conversation `pddmamfroebgulmb`.
+
+**Status:** 2 E2E test failures remaining (down from 6). Currently debugging onboarding-flow.spec.ts message count issues.
+
+**Action Required:**
+1. **Do NOT assign this PR to the PR review slot** - it is being handled by an existing human conversation
+2. **Pick a different issue/PR for the PR slot** - treat PR #148 as occupied/in-progress
+3. Continue with other available work (e.g., PR #146 review, ready issues #135, #136, etc.)
+
+**PR Link:** https://github.com/jpshackelford/voice-relay/pull/148
+**Active Conversation:** https://app.all-hands.dev/conversations/pddmamfroebgulmb
+
