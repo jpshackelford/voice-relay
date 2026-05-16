@@ -757,3 +757,33 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
 **Previous Workers (all finished):**
 - `d033c26` (implementation #133 ✓), `d10e3cd` (expansion #134 ✓)
 - `95a754f` (merge #132 ✓), `f98f320` (implementation #131 ✓)
+
+---
+### 2026-05-16 03:08 UTC - Review Worker (`8a59d2f`)
+
+✅ **Addressed Review Feedback: PR #140**
+
+- PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
+- Review feedback: Bot suggested adding integration test for callback wiring
+- Status: **Ready for review** ✅
+
+**Changes Made:**
+
+| Commit | Description |
+|--------|-------------|
+| `b557972` | Added integration test `thinking-callback.integration.test.ts` |
+
+**Integration Test Coverage:**
+- Verifies end-to-end flow: thinking state → callback → broadcast
+- Tests message format matches client expectations
+- Tests session isolation (devices in different sessions don't receive)
+- Tests graceful handling of empty sessions
+
+**Testing:**
+- ✅ All 529 server tests pass (4 new tests added)
+- ✅ CI green (4/4 checks passing)
+- ✅ Review thread resolved
+
+**Next Steps:**
+- PR ready for final review/merge
+- Closes issue #133 on merge
