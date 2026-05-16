@@ -1290,3 +1290,87 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - Issues needing expansion: None (all expanded ✓)
 - Expansion slot: Empty (nothing to expand)
 - PR slot: Occupied (review worker)
+
+---
+### 2026-05-16 09:43 UTC - Review Worker
+
+✅ **Addressed review feedback on PR #143**
+
+**PR:** [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+
+**Review threads addressed (2):**
+
+1. **Stale closure optimization issue** (🟡 Suggestion)
+   - Removed `isActive` from useCallback dependency array
+   - Added `isActiveRef` to track active state for guard check
+   - Fixed in: a24af5f
+
+2. **Dual microphone stream issue** (🟠 Important)
+   - Implemented mutually exclusive input modes
+   - Voice mode (default): Web Speech API only, no oscilloscope
+   - Visualizer mode: getUserMedia for oscilloscope only, no STT
+   - This eliminates dual mic streams entirely
+   - Added input mode selector in Settings
+   - Fixed in: 16f9d95
+
+**All 9 review threads now resolved.**
+
+PR status: Ready for review (moved from draft)
+
+### 2026-05-16 10:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f1afddf` | review | PR #143 - Mobile UI (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`f1afddf`](https://app.all-hands.dev/conversations/f1afddfce59245729c07940a32ccd152)
+- Task: Address 2 unresolved review threads:
+  - 🔴 Critical: Missing cleanup when inputMode changes
+  - 🟠 Important: Misleading comment - stream is NOT shared
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬2 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `ed8b266` (review #143 - addressed 2 threads from previous round)
+- `9b0f50e` (review #143)
+- `ffff2f1` (review #143)
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-16.md
+
+---
+### 2026-05-16 10:09 UTC - Review Worker
+
+✅ **Addressed review feedback on PR #143**
+
+**PR:** [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+
+**Review threads addressed (2):**
+
+1. **Missing cleanup when inputMode changes** (🔴 Critical)
+   - Added `useEffect` that triggers when `inputMode` changes
+   - Stops speech recognition, audio analyser, and cleans up shared stream
+   - Prevents resource leak when switching modes while recording
+   - Fixed in: 16ba45f
+
+2. **Misleading comment - stream is NOT shared** (🟠 Important)
+   - Updated comment in useAudioAnalyser.ts
+   - Old: "MobileMode creates one stream for both visualizer and STT"
+   - New: "MobileMode passes its visualizer stream to avoid duplicate getUserMedia"
+   - Accurately reflects mutually exclusive inputMode design
+   - Fixed in: 16ba45f
+
+**All 11 review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
