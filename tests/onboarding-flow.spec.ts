@@ -119,9 +119,14 @@ test.describe('User Onboarding Flow', () => {
     // Use helper to find input across kiosk/mobile modes
     const { input, sendBtn } = await findMessageInput(page);
 
-    // Fill in the message and click send button
+    // Fill in the message
     await input.fill('Hello world!');
+    // Wait for send button to be enabled (disabled when input is empty)
+    await expect(sendBtn).toBeEnabled({ timeout: 2000 });
+    // Click send button
     await sendBtn.click();
+    // Small wait for message to be processed
+    await page.waitForTimeout(500);
 
     // =====================
     // STEP 12: Verify message appears
@@ -216,7 +221,11 @@ test.describe('User Onboarding Flow', () => {
     // Send message
     const { input, sendBtn } = await findMessageInput(page);
     await input.fill('Test message');
+    // Wait for send button to be enabled
+    await expect(sendBtn).toBeEnabled({ timeout: 2000 });
     await sendBtn.click();
+    // Small wait for message to be processed
+    await page.waitForTimeout(500);
 
     // Ensure drawer is open in kiosk mode to see messages
     await ensureKioskDrawerOpen(page);

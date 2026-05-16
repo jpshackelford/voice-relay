@@ -353,15 +353,18 @@ test.describe('Session Management', () => {
     // Return to Session A by navigating directly to its URL
     await page.goto(`/workspace/${workspaceId}/session/${sessionAId}`);
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
-    
+
     // Wait for messages to load from server (history messages)
     await page.waitForTimeout(1000);
-    
+
+    // Open drawer after page navigation (drawer state resets on new page load)
+    await ensureKioskDrawerOpen(page);
+
     // Verify message A is still in Session A
     const msgALocator = page.locator('.kiosk-message.final, .message.final')
       .filter({ hasText: msgA });
     await expect(msgALocator.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
-    
+
     // Verify message B is NOT in Session A
     expect(await isMessageVisible(page, msgB)).toBe(false);
   });

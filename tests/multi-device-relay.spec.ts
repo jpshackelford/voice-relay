@@ -127,6 +127,9 @@ test.describe('Multi-Device Real-Time Relay', () => {
       // Wait for debounce (100ms in the app) plus a buffer
       await mobilePage.waitForTimeout(300);
 
+      // Open kiosk drawer to see messages
+      await ensureKioskDrawerOpen(kioskPage);
+
       // Check for partial message indicator on kiosk
       const partialMessage = kioskPage.locator('.kiosk-message.partial');
       const hasPartial = await partialMessage.isVisible({ timeout: 2000 }).catch(() => false);
