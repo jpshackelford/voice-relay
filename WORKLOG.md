@@ -31,6 +31,40 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 07:06 UTC - Expansion Worker
+
+✅ **Expanded Issue #142** - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope
+
+- Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
+- Type: Enhancement
+- Status: **Ready for implementation**
+- Related PR: [#143](https://github.com/jpshackelford/voice-relay/pull/143) (has issues, needs fixes)
+
+**Analysis Summary:**
+- Issue proposes simplifying mobile UI to "walkie-talkie" style experience
+- PR #143 exists but has CI failures and code review issues
+- CI failure: `lint-pr-title` - scope "mobile" not in allowed list (should be "client")
+- Code review: Duplicate mic streams, unstable useEffect deps, unread count never resets, resource leaks
+
+**Issue Expansion:**
+- Added clear Problem Statement (cognitive overload on mobile)
+- Added Proposed Solution with ASCII wireframe and design specs
+- Added comprehensive Acceptance Criteria (11 items)
+- Documented Lessons Learned from PR #143 (CI issues, code review issues, testing gaps)
+
+**Technical Comment Added:**
+- Architecture overview (audio pipeline, speech recognition, UI state machine)
+- Shared MediaStream pattern to fix duplicate mic access
+- Hook modification requirements
+- Component architecture diagram
+- Phased implementation plan (fix PR → add tests → mobile verification)
+- Files affected listing
+- Recommendation: Fix existing PR #143 rather than start fresh
+
+**Labels added:** `ready`
+
+---
+
 ### 2026-05-16 06:44 UTC - Review Feedback Worker
 
 ✅ **Addressed PR #145 review feedback** - tvOS server-side authentication
