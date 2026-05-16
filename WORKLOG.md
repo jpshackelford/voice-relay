@@ -619,3 +619,42 @@ PR state: Ready for review (moved from draft)
 - `b880a5e` (merge #146 - ElevenLabs TTS integration merged)
 
 ---
+### 2026-05-16 20:47 UTC - Implementation Worker (`7d39c3e`)
+
+✅ **Created PR #153 - Display Result Feedback Mechanism**
+
+- PR: [#153 - feat: add display-result feedback mechanism for image load events](https://github.com/jpshackelford/voice-relay/pull/153)
+- Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
+- Status: **Ready for review** ✅
+
+**Implementation Summary:**
+Implements client-to-server feedback loop for display results when the AI sends image URLs to the kiosk display.
+
+**Changes:**
+| File | Changes |
+|------|---------|
+| `client/src/types.ts` | Added `DisplayResultMessage` type |
+| `client/src/hooks/useWebSocket.ts` | Added `sendDisplayResult()` function |
+| `client/src/components/KioskMode.tsx` | Added `onLoad`/`onError` handlers, 10s timeout, error indicators |
+| `client/src/pages/SessionView.tsx` | Wired `sendDisplayResult` to KioskMode |
+| `server/src/types.ts` | Added `DisplayResultMessage` type |
+| `server/src/index.ts` | Added `display-result` WebSocket handler, forwards to AI session |
+
+**Testing:**
+- 4 new tests in `useWebSocket.test.ts` for `sendDisplayResult`
+- 8 new tests in `KioskMode.test.tsx` for image feedback (load, error, timeout, duplicates)
+- All 810 tests pass (212 client + 598 server)
+
+**Acceptance Criteria (all met):**
+- [x] Image load failures detected via `onError` handler
+- [x] Image load successes detected via `onLoad` handler
+- [x] Kiosk sends `display-result` message to server
+- [x] Server forwards failure notifications to AI session
+- [x] AI receives actionable feedback
+- [x] Timeout handling (10s default)
+- [x] Multiple kiosks: first result reported (duplicates ignored)
+
+CI: ✅ All checks passed (5/5)
+PR state: Ready for review
+
+---
