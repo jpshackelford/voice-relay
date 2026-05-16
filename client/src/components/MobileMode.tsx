@@ -105,6 +105,18 @@ export function MobileMode({
     onError: handleSttError,
   });
 
+  // Start speech recognition with error handling.
+  // Separated to flatten nested try-catch and improve readability.
+  const startSpeechRecognition = useCallback(() => {
+    try {
+      startListening();
+    } catch (err) {
+      // Speech recognition failed but analyser is still working
+      console.error('[MobileMode] Speech recognition error:', err);
+      setSttError('Speech recognition unavailable, but audio visualizer is active');
+    }
+  }, [startListening]);
+
   // Handle microphone toggle for both audio visualization and speech recognition.
   //
   // DUAL STREAM NOTE: The Web Speech Recognition API creates its own internal
@@ -129,37 +141,31 @@ export function MobileMode({
         sharedStreamRef.current.getTracks().forEach(track => track.stop());
         sharedStreamRef.current = null;
       }
-    } else {
-      // Request mic for visualizer first (this caches the permission grant)
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        sharedStreamRef.current = stream;
-        
-        // Start audio analyser for oscilloscope visualization
-        await audioAnalyser.start(stream);
-        
-        // Start speech recognition - this creates its own internal stream but
-        // the browser should reuse the cached permission from getUserMedia above.
-        // If speech recognition fails, we still have the visualizer working.
-        try {
-          startListening();
-        } catch (sttErr) {
-          // Speech recognition failed but analyser is still working
-          console.error('[MobileMode] Speech recognition error:', sttErr);
-          setSttError('Speech recognition unavailable, but audio visualizer is active');
-        }
-      } catch (err) {
-        console.error('[MobileMode] Mic access error:', err);
-        setSttError(err instanceof Error ? err.message : 'Microphone access denied');
-        // Ensure cleanup if mic access failed
-        audioAnalyser.stop();
-        if (sharedStreamRef.current) {
-          sharedStreamRef.current.getTracks().forEach(track => track.stop());
-          sharedStreamRef.current = null;
-        }
+      return;
+    }
+
+    // Request mic for visualizer first (this caches the permission grant)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      sharedStreamRef.current = stream;
+      
+      // Start audio analyser for oscilloscope visualization
+      await audioAnalyser.start(stream);
+      
+      // Start speech recognition - this creates its own internal stream but
+      // the browser should reuse the cached permission from getUserMedia above.
+      startSpeechRecognition();
+    } catch (err) {
+      console.error('[MobileMode] Mic access error:', err);
+      setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+      // Ensure cleanup if mic access failed
+      audioAnalyser.stop();
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
       }
     }
-  }, [isListening, startListening, stopListening, audioAnalyser]);
+  }, [isListening, startListening, stopListening, audioAnalyser, startSpeechRecognition]);
 
   // Speak new final utterances when TTS is enabled (only from others)
   useEffect(() => {

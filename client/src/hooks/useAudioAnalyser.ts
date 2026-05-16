@@ -17,8 +17,24 @@ interface UseAudioAnalyserReturn {
  * Hook to capture microphone audio and provide analyser data for visualization.
  * Returns an AnalyserNode and Uint8Array for drawing oscilloscope/waveform.
  * 
- * Supports sharing a MediaStream: pass an existing stream to start(), or let it create one.
- * Returns the MediaStream so it can be shared with other consumers (e.g., speech recognition).
+ * ## Stream Ownership Model
+ * 
+ * This hook supports two modes:
+ * 
+ * 1. **External stream (borrowed)** - `start(existingStream)`:
+ *    - The caller owns and manages the MediaStream lifecycle
+ *    - Hook will NOT stop tracks on `stop()` - caller is responsible
+ *    - Use when sharing a stream across multiple consumers
+ *    - Example: MobileMode creates one stream for both visualizer and STT
+ * 
+ * 2. **Internal stream (owned)** - `start()` with no args:
+ *    - Hook requests getUserMedia and owns the resulting stream
+ *    - Hook WILL stop tracks on `stop()` or unmount
+ *    - Use when this hook is the only stream consumer
+ * 
+ * The `ownsStreamRef` internal flag tracks which mode is active to ensure
+ * proper cleanup behavior. This dual-ownership design enables stream sharing
+ * while maintaining correct resource cleanup in simpler use cases.
  */
 export function useAudioAnalyser({
   fftSize = 2048,
@@ -31,6 +47,7 @@ export function useAudioAnalyser({
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  // Track ownership: true = we created the stream and must stop it; false = caller owns it
   const ownsStreamRef = useRef<boolean>(false);
   const cancelledRef = useRef<boolean>(false);
 
