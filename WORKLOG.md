@@ -31,6 +31,27 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 05:40 UTC - Expansion Worker
+
+✅ **Research Completed: Issue #138**
+
+- Issue: [[Research] Evaluate Marp for kiosk display rendering](https://github.com/jpshackelford/voice-relay/issues/138)
+- Type: Research
+- Status: **Closed as "won't do"**
+
+**Research Summary:**
+Investigated whether Marp (markdown-to-presentation ecosystem) would be better for kiosk display rendering than the current approach.
+
+**Findings:**
+- Marp is designed for **static slide presentations** with multiple slides and navigation
+- Voice-relay needs **real-time, single-screen, AI-generated content**
+- Current `parseMarkdown()` function already handles needed formatting
+- Integration would add significant complexity without solving any real problem
+
+**Recommendation:** Do not implement. If enhanced formatting is needed (tables, layouts), improve the existing simple renderer instead of adopting a full presentation framework.
+
+---
+
 ### 2026-05-15 22:04 UTC - Orchestrator
 
 **Active Workers:**
