@@ -1069,3 +1069,46 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - `faacf30` (merge #145 ✓)
 
 ---
+### 2026-05-16 08:47 UTC - Review Feedback Worker (`ffff2f1`)
+
+✅ **Addressed all 4 review threads on PR #143**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Status: **Ready for review** (all 4 threads resolved, CI green ✅)
+
+**Fixes Applied:**
+
+1. **🔴 Critical: Duplicate Microphone Access** - Addressed in `6c7bed4`
+   - Implemented Option C: Document limitation and improve error handling
+   - Added detailed comment explaining Web Speech API creates its own internal stream
+   - Improved error handling: if speech recognition fails, oscilloscope continues
+   - Documented future improvement path (custom STT service)
+
+2. **🟠 Race Condition in rapid start() calls** - Fixed in `753d7dd`
+   - Set `isActive` immediately when `start()` is called
+   - Prevents two rapid calls from both passing initial check
+   - Added proper state reset on cancellation and error paths
+
+3. **🟠 Missing ARIA labels** - Fixed in `5946e60`
+   - Added `aria-label` to settings button ("Open settings")
+   - Added dynamic `aria-label` to conversation button (includes unread count)
+   - Added `aria-label` and `aria-pressed` to mic button
+   - Added `role="status"` and `aria-label` to connection indicator
+   - Added `aria-hidden="true"` to decorative emoji icons
+
+4. **🟡 Tests only cover error paths** - Addressed in `f63ce25`
+   - Added tests for: external stream skips getUserMedia, stop() is safe to call anytime
+   - Added tests for: stop() can be called multiple times safely
+   - Improved test setup with proper mock cleanup
+   - Note: Full AudioContext integration tests would require more complete browser mock
+
+**CI Status:** All 4 checks passing ✅
+
+**Commits pushed:**
+- `753d7dd` - fix(audio): prevent race condition in rapid start() calls
+- `5946e60` - a11y(mobile): add ARIA labels for screen reader accessibility
+- `6c7bed4` - docs(audio): document dual microphone stream limitation
+- `f63ce25` - test(audio): expand useAudioAnalyser tests beyond error scenarios
+
+---
+
