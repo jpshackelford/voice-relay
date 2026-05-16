@@ -975,3 +975,163 @@ Bot review verdict: "✅ Worth merging" - PR is ready for merge.
 **Previous Workers (all finished):**
 - `9de89cb` (merge #125), `316a714` (implementation #121)
 - `a321264` (merge #124), `73f4a19` (review #124 round 6)
+
+---
+### 2026-05-15 16:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4f3a5c4` | implementation | Issue #122 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- Priority: `priority:low`
+- Conversation: [`4f3a5c4`](https://app.all-hands.dev/conversations/4f3a5c4cdbde48fb8dc6d973b3074039)
+
+**Note:** Previous worker `1db132a` was stalled (PAUSED status, never executed). Spawned new worker.
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Ready Issues:**
+- #122 (priority:low) - being implemented now
+
+**Migration Status (Session-centric AI):**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
+
+---
+### 2026-05-15 16:47 UTC - Implementation Worker (`4f3a5c4`)
+
+✅ **PR Created: Issue #122**
+
+- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| Component | Removal |
+|-----------|---------|
+| Server endpoints | `/api/ai/connect`, `/api/ai/message`, `/api/ai/disconnect` |
+| `openhands.ts` | `deviceSessions` Map, `startSession`, `sendMessage`, `endSession`, `getSession`, `hasSession` |
+| `useAI.ts` | `connect()`, `disconnect()`, `toggle()`, `deviceId`/`mode` params |
+| UI components | Toggle buttons (now status-only indicators) |
+
+**Acceptance Criteria Status:**
+- [x] `/api/ai/connect` endpoint removed
+- [x] `/api/ai/disconnect` endpoint removed  
+- [x] ✨ button no longer toggles (shows status only)
+- [x] `AISessionManager` uses only `sessionId` keys
+- [x] Legacy `startSession(deviceId, ...)` method removed
+- [x] All tests updated to use session-centric APIs
+- [x] No TypeScript errors
+- [x] E2E tests pass
+
+**Stats:**
+- Net removal: ~820 lines of deprecated code
+- Files modified: 7
+- CI: All checks green ✅
+
+**Session-centric AI Migration Completed:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR REVIEW
+
+---
+### 2026-05-15 17:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8002e73` | review | PR #126 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Conversation: [`8002e73`](https://app.all-hands.dev/conversations/8002e733d97240b6a3fa88cc86f46387)
+
+**Review Issues to Address:**
+1. 🔴 Critical: Missing `.ai-status` CSS class (button changed to div without CSS)
+2. 🔴 Critical: Incomplete interface change (`sessionId` prop not passed from call sites)
+3. 🟡 Suggestion: Guard against undefined `device.sessionId` in forwarding logic
+
+**Current State:**
+- PR #126: `oRC green ready 💬3` (CI green, 3 unresolved review threads)
+- Issues after #122 closes: None (this is the last issue!)
+- All issues expanded
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `4f3a5c4` (implementation #122), `9de89cb` (merge #125), `316a714` (implementation #121)
+- `a321264` (merge #124), and previous review workers for PR #124
+
+---
+### 2026-05-15 17:10 UTC - Review Worker (`8002e73`)
+
+✅ **Review Feedback Addressed: PR #126**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Status: **Ready for merge** ✅
+
+**Fixes Applied:**
+
+| Issue | Severity | Status |
+|-------|----------|--------|
+| Missing `.ai-status` CSS class | 🔴 Critical | ✅ Fixed in `e3ead79` |
+| `sessionId` prop not passed to MobileMode | 🔴 Critical | ✅ Fixed in `ca8a948` |
+| Guard against undefined `device.sessionId` | 🟡 Suggestion | ✅ Fixed in `244d54a` |
+
+**Commits:**
+1. `e3ead79` - fix: add missing .ai-status CSS class for AI status indicator
+2. `ca8a948` - fix: pass sessionId prop to MobileMode in SessionView
+3. `244d54a` - refactor: make sessionId guard explicit in AI forwarding logic
+
+**Technical Details:**
+- Added `.ai-status` CSS class based on `.ai-toggle` but without interactive states
+- SessionView.tsx now passes `sessionId` to MobileMode for consistency with KioskMode
+- Workspace.tsx intentionally does NOT pass `sessionId` (operates without sessions - AI disabled)
+- Flattened nested conditional structure in server forwarding logic for clarity
+
+All 3 review threads resolved. CI passing. PR marked ready for review.
+
+**Session-centric AI Migration:**
+- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
+- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
+- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
+- 🔄 Issue #122 (remove legacy device-centric code) - PR #126 READY FOR MERGE
+### 2026-05-15 17:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3f0a24b` | merge | PR #126 - Remove legacy AI code | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#126 - chore: remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/pull/126)
+- Conversation: [`3f0a24b`](https://app.all-hands.dev/conversations/3f0a24ba65524eabaac710e97da01e5b)
+
+**PR Status:**
+- CI: ✅ All checks passed
+- Review threads: ✅ All 3 resolved
+- Mergeable: ✅ CLEAN
+- Latest review: ✅ "Worth merging"
+
+**Current State:**
+- PR #126 ready for final merge preparation
+- Issue #122 will auto-close when PR merges
+- This is the **LAST ISSUE** in the session-centric AI migration! 🎉
+- After this merge, all 4 issues (#119, #120, #121, #122) will be complete
+
+**Previous Workers (all finished):**
+- `8002e73` (review #126), `4f3a5c4` (implementation #122), `9de89cb` (merge #125)
