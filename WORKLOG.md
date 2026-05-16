@@ -869,3 +869,40 @@ aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
 - `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
 
 ---
+### 2026-05-16 02:38 UTC - Implementation Worker (`d033c26`)
+
+✅ **PR Created: Issue #133**
+
+- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133)
+- PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
+- Status: **Ready for review** ✅
+
+**Implementation Details:**
+
+Added the missing callback wiring in `server/src/index.ts` after registry creation:
+```typescript
+aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+  const message: AIThinkingMessage = {
+    type: 'ai-thinking',
+    sessionId,
+    thinking,
+  };
+  registry.broadcastMessageToSession(sessionId, message);
+});
+```
+
+**Files modified:**
+- `server/src/index.ts` - Added `AIThinkingMessage` import and callback wiring
+
+**Testing:**
+- ✅ All 525 server tests pass
+- ✅ TypeScript compilation succeeds
+- ✅ Client build succeeds
+- ✅ CI green (4/4 checks passing)
+
+**What this enables:**
+- Kiosk displays 🤔 with pulsing animation while AI processes user messages
+- Indicator returns to ✨ when AI response is received
+- Client-side implementation was already complete; this just wires the server-side broadcast
+
+---
