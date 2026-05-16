@@ -756,24 +756,63 @@ Automation has been disabled to prevent unnecessary runs.
   ```
 
 ---
+### 2026-05-16 02:18 UTC - Expansion Worker
 
-### 2026-05-16 02:18 UTC - Orchestrator
+✅ **Expanded Issue #133**
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `7e6a480` | expansion | Issue #133 - Add thinking/waiting indicator to kiosk display | **NEW** |
-
-🚀 **Spawned: Expansion Worker**
 - Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133)
-- Conversation: [`7e6a480`](https://app.all-hands.dev/conversations/7e6a480ff87243ce9ffb25955caf9565)
+- Type: Bug (regression from #121)
+- Status: **Ready for implementation** ✅
+- Label: `ready`
 
-**Current State:**
-- No open PRs
-- Issues needing expansion: #133 (now being expanded), #134, #135, #136, #137, #138
-- Ready issues: None (waiting for expansion)
-- PR slot: Available (no ready issues to implement)
+**Root Cause:**
+Server never calls `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages. Client-side implementation is complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but server never sends the message.
 
-**Housekeeping:**
-- Archived 4 old entries to WORKLOG_ARCHIVE_2026-05-15.md (truncation ran)
+**Proposed Fix:**
+Add callback wiring in `server/src/index.ts` after registry creation:
+```typescript
+aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
+  registry.broadcastMessageToSession(sessionId, {
+    type: 'ai-thinking',
+    sessionId,
+    thinking,
+  });
+});
+```
 
+**Files to modify:**
+- `server/src/index.ts` - Add thinking callback wiring
+
+**Complexity:** Low - single location change, follows existing patterns
+
+---
+### 2026-05-16 02:22 UTC - Expansion Worker (`7e6a480`)
+
+✅ **Expanded Issue #133**
+
+- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133)
+- Type: Bug (regression from #121)
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Root Cause:**
+Server never calls `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages. Client-side implementation is complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but server never sends the message.
+
+**Proposed Fix:**
+Add callback wiring in `server/src/index.ts` after registry creation:
+```typescript
+aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
+  registry.broadcastMessageToSession(sessionId, {
+    type: 'ai-thinking',
+    sessionId,
+    thinking,
+  });
+});
+```
+
+**Files to modify:**
+- `server/src/index.ts` - Add thinking callback wiring
+
+**Complexity:** Low - single location change, follows existing patterns
+
+---
