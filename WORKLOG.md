@@ -851,3 +851,38 @@ Server never called `aiSessionManager.setThinkingChangeCallback()` to wire the c
 - Server-side change - no database/migration impact
 
 ---
+### 2026-05-16 03:34 UTC - Expansion Worker (`477524c`)
+
+✅ **Expanded Issue #136**
+
+- Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
+- Type: Enhancement (Research/Investigation)
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Problem Identified:**
+When AI displays images via `/api/display`, there's no feedback if the image fails to load on the kiosk. The API returns `{ success: true }` immediately after broadcasting, but the kiosk may fail to render the image (404, CORS, timeout, etc.).
+
+**Root Cause:**
+- `KioskMode.tsx` line 430: `<img>` element has no `onError` or `onLoad` handlers
+- No WebSocket message type exists for reporting display results back to server
+
+**Proposed Solution:**
+Implement client-to-server feedback loop:
+1. Add `onError`/`onLoad` handlers to `<img>` element in `KioskMode.tsx`
+2. Create new `DisplayResultMessage` type for WebSocket communication
+3. Server routes failures to AI session so it can respond appropriately
+
+**Files Affected:**
+| File | Changes |
+|------|---------|
+| `client/src/components/KioskMode.tsx` | Add onLoad/onError handlers, timeout logic |
+| `client/src/types.ts` | Add `DisplayResultMessage` interface |
+| `client/src/hooks/useWebSocket.ts` | Add `sendDisplayResult` function |
+| `server/src/types.ts` | Add `DisplayResultRequest` interface |
+| `server/src/index.ts` | Handle `display-result` WebSocket message |
+| `server/src/openhands.ts` | Forward failures to AI (optional) |
+
+**Complexity:** Medium (2-3 hours implementation, 1-2 hours testing)
+
+---
