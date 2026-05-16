@@ -31,57 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 12:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `670745f` | review | PR #143 - Mobile UI (1 thread) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Conversation: [`670745f`](https://app.all-hands.dev/conversations/670745fae91c431d9811e2c2aec732c0)
-- Task: Address 1 unresolved review thread:
-  - 🟠 ConversationPane.tsx:26 - Performance: sorting utterances on every render instead of memoizing
-- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
-
-**Current State:**
-- Open PRs: #143 (green, 💬1 - now being reviewed)
-- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142 (has PR)
-- Issues needing expansion: None (all expanded ✓)
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (finished):**
-- `79f4bd5` (review #143 - addressed 3 threads: text input, status text, effect deps)
-
-**Housekeeping:**
-- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md
-
----
-### 2026-05-16 12:38 UTC - Review Worker (`670745f`)
-
-✅ **Addressed PR #143 Review Feedback (Final)**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Fixes: b010f94
-
-**Review thread addressed (1):**
-
-1. **Performance - sorting utterances on every render** (🟠 Important)
-   - Problem: Creating new sorted array on every render wastes CPU for 100+ messages
-   - Fix: Memoized sorted array with `useMemo` and `[utterances]` dependency
-   - Added `useMemo` to React import
-   - Sort now only runs when utterances Map actually changes
-   - Fixed in: b010f94
-
-**All review threads now resolved.**
-
-CI: ✅ All checks passed
-PR status: Ready for review (moved from draft)
-
----
 ### 2026-05-16 13:00 UTC - Orchestrator
 
 **Active Workers:**
@@ -581,33 +530,6 @@ PR state: Ready for review
 - `8ca5da6` (review #146 - addressed 4 threads)
 
 ---
-## INSTRUCTION: Conversation in progress for PR #148
-
-A human conversation is already in progress addressing issues on PR #148 (fix(e2e): update stale test selectors). 
-
-**Do NOT treat this as filling the PR slot** - pick another issue/PR for the slot instead.
-
-PR: https://github.com/jpshackelford/voice-relay/pull/148
-Conversation: https://app.all-hands.dev/conversations/pddmamfroebgulmb
-
-This PR has 6 failing E2E tests related to messaging/relay functionality. The human will continue working on fixes.
-
----
-## INSTRUCTION: Active conversation on PR #148 - Do NOT fill PR slot
-
-**Conversation in Progress:** PR #148 (fix(e2e): update stale test selectors) is being actively worked on in conversation `pddmamfroebgulmb`.
-
-**Status:** 2 E2E test failures remaining (down from 6). Currently debugging onboarding-flow.spec.ts message count issues.
-
-**Action Required:**
-1. **Do NOT assign this PR to the PR review slot** - it is being handled by an existing human conversation
-2. **Pick a different issue/PR for the PR slot** - treat PR #148 as occupied/in-progress
-3. Continue with other available work (e.g., PR #146 review, ready issues #135, #136, etc.)
-
-**PR Link:** https://github.com/jpshackelford/voice-relay/pull/148
-**Active Conversation:** https://app.all-hands.dev/conversations/pddmamfroebgulmb
-
----
 ### 2026-05-16 19:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -638,4 +560,3 @@ This PR has 6 failing E2E tests related to messaging/relay functionality. The hu
 
 **Housekeeping:**
 - 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
