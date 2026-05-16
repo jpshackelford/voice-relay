@@ -736,3 +736,28 @@ All review threads replied to and resolved. PR marked ready for review.
 - Production uses workspace isolation (not affected by this)
 
 ---
+### 2026-05-16 23:36 UTC - Review Worker (`c015f29`)
+
+✅ **Addressed PR #148 Review Feedback - Final 2 Threads**
+
+- PR: [#148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
+- Commit: cd7829d
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `auto-connect.ts:148` | 🔴 Critical | `isAnonymousMode()` expects workspaceId but called with sessionId - semantic bug | ✅ Added `isAnonymousSession()` helper in constants.ts, updated shouldAutoConnect() to use it |
+| `index.ts:387` | 🟡 Suggestion | `ANONYMOUS_SESSION_ID` as sentinel in auth mode is confusing | ✅ Refactored to use `null` as sentinel (`resolvedSession`), clearer semantics |
+
+**Changes:**
+- `server/src/constants.ts`: Added `isAnonymousSession()` function for session-level checks
+- `server/src/auto-connect.ts`: Use `isAnonymousSession(sessionId)` instead of `isAnonymousMode(sessionId)`
+- `server/src/index.ts`: Use `null` sentinel with `resolvedSession` variable in authenticated mode
+
+**Test Results:** ✅ 570 server tests passing
+
+All 6 review threads now resolved. PR marked ready for review.
+
+---
