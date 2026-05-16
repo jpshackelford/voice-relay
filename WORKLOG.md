@@ -816,3 +816,34 @@ aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
 **Complexity:** Low - single location change, follows existing patterns
 
 ---
+### 2026-05-16 02:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d033c26` | implementation | Issue #133 - thinking indicator | **NEW** |
+| `d10e3cd` | expansion | Issue #134 - markdown image tables | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker**
+   - Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133) (priority:high)
+   - Conversation: [`d033c26`](https://app.all-hands.dev/conversations/d033c266927e439cb7bfc8977df33d3f)
+   - Root cause: Server never wires `aiSessionManager.setThinkingChangeCallback()` to broadcast `ai-thinking` messages
+
+2. **Expansion Worker**
+   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134)
+   - Conversation: [`d10e3cd`](https://app.all-hands.dev/conversations/d10e3cdb1ba04d8f8b5c07ed32b1d314)
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- Ready issues: #133 (priority:high) - being implemented
+- Issues needing expansion: #134 (being expanded), #135, #136, #137, #138, #139
+- Expansion slot: Occupied (expansion worker)
+- PR slot: Occupied (implementation worker)
+
+**Previous Workers (all finished):**
+- `7e6a480` (expansion #133 ✓), `95a754f` (merge #132 ✓)
+- `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
+
+---
