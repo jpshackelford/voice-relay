@@ -25,6 +25,9 @@ export default defineConfig({
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
   retries: 0,
+  // Run tests serially to avoid race conditions with shared SQLite database
+  // All tests share the same test user/workspace created by /auth/test-session
+  workers: 1,
   use: {
     baseURL: `http://localhost:${TEST_CLIENT_PORT}`,
     headless: true,
