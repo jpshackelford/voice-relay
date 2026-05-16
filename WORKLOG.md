@@ -676,3 +676,26 @@ PR state: Ready for review (moved from draft)
 - PR slot: Occupied by implementation worker `525d740`
 
 ---
+### 2026-05-16 22:09 UTC - Implementation Worker (`525d740` → `fnuzjly`)
+
+✅ **PR #148 Fixed and Ready for Review**
+
+- PR: [#148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
+- Issue: [#147 - Fix Stale E2E Test Selectors](https://github.com/jpshackelford/voice-relay/issues/147)
+- Status: **Ready for review** ✅
+
+**Root Cause:**
+The `message sender attribution is correct` test in `tests/multi-device-relay.spec.ts` was failing because the kiosk sidebar drawer was closed by default in desktop kiosk mode. The test was trying to assert message visibility without first opening the drawer.
+
+**Fix:**
+Added `ensureKioskDrawerOpen(kioskPage)` call before asserting message visibility, consistent with other passing tests in the same file.
+
+**CI:** ✅ All 4 checks passed
+- CI/Build Client ✅
+- CI/Server Tests ✅
+- CI/E2E Tests ✅ (58 tests: 19 passed, 39 skipped in CI environment)
+- Conventional Commits ✅
+
+**PR Status:** Moved from draft to ready for review
+
+---
