@@ -31,96 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 04:05 UTC - Expansion Worker (`38d82b0`)
-
-✅ **Expanded Issue #137 (Research)**
-
-- Issue: [#137 - [Research] Apple TV application for kiosk display](https://github.com/jpshackelford/voice-relay/issues/137)
-- Type: Research/Investigation
-- Status: **Research complete, ready for decision** ✅
-- Label: `ready`
-
-**Research Question:** What would be involved in building an Apple TV application to render the kiosk display?
-
-**Key Findings:**
-
-| Topic | Answer |
-|-------|--------|
-| WKWebView on tvOS? | ❌ **Not available** - tvOS has no WebView component |
-| TVML alternative? | ⚠️ Deprecated in tvOS 18 - not recommended |
-| Markdown rendering? | ✅ Native SwiftUI + MarkdownUI library |
-| Image display? | ✅ Fully supported with parallax effects |
-| WebSocket support? | ✅ URLSessionWebSocketTask available |
-| App Store compatible? | ✅ Yes, native SwiftUI app follows guidelines |
-
-**Proposed Solution:**
-Build a **native SwiftUI tvOS application** that:
-1. Authenticates via device authorization code flow
-2. Connects to voice-relay server via WebSocket
-3. Renders markdown using SwiftUI + MarkdownUI library
-4. Displays QR code for mobile devices to join
-5. Navigates entirely via Siri Remote
-
-**Complexity Estimate:**
-- Total: 10-13 developer days
-- Phase 1 (WebSocket client): 2-3 days
-- Phase 2 (Auth): 2-3 days
-- Phase 3 (Kiosk UI): 3-4 days
-- Phase 4 (Polish/Testing): 2-3 days
-
-**Prerequisites:**
-- macOS with Xcode 15+ for tvOS development
-- Apple Developer account for App Store submission
-- Apple TV (4th gen or later) for device testing
-
-**Next Steps:**
-Decision needed: Should we proceed with implementation? If yes, create implementation issues for each phase.
-
----
-### 2026-05-16 04:14 UTC - Implementation Worker (`0898e70`)
-
-✅ **Created PR #144 for Issue #134**
-
-- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
-- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-- Status: **Ready for review** ✅
-
-**Problem Fixed:**
-The custom `parseMarkdown` function had two critical bugs:
-1. **No table parsing** - GFM table syntax was unsupported
-2. **Image syntax bug** - Link regex captured `![alt](url)` incorrectly, leaving `!` prefix
-
-| Input | Expected | Before Fix |
-|-------|----------|------------|
-| `![img](url)` | `<img src="url">` | `!<a href="url">img</a>` |
-| `\| A \| B \|` | `<table>` | Raw text |
-
-**Solution:**
-Replaced custom regex parser with:
-- `marked` (v18.0.3) - Full GFM support (tables, images, etc.)
-- `DOMPurify` (v3.4.3) - XSS protection for `dangerouslySetInnerHTML`
-
-**Files Changed:**
-| File | Change |
-|------|--------|
-| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` function |
-| `client/src/components/KioskMode.test.tsx` | Add 17 new tests |
-| `client/package.json` | Add `marked` and `dompurify` deps |
-| `tests/markdown-rendering.spec.ts` | Add Playwright E2E tests |
-
-**Test Coverage:**
-- 17 new unit tests for parseMarkdown (image, table, XSS, existing features)
-- All 200 client tests pass ✅
-- All 529 server tests pass ✅
-- CI: All checks green ✅
-
-**Bundle Impact:** ~1 MB (marked 449KB + DOMPurify 644KB)
-
-**Next Steps:**
-- PR ready for review/merge
-- Closes issue #134 on merge
-
----
 ### 2026-05-16 05:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -1015,7 +925,6 @@ PR status: Ready for review (moved from draft)
 - `908ce5f` (review #143 - addressed unstable dependency issue)
 - `f5e04d6` (review #143 - addressed memory leak + effect dependency)
 
-
 ---
 ### 2026-05-16 11:37 UTC - Review Worker (`81ad48a`)
 
@@ -1042,3 +951,35 @@ PR status: Ready for review (moved from draft)
 
 CI: ✅ All checks passed
 PR status: Ready for review (moved from draft)
+
+---
+### 2026-05-16 12:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `79f4bd5` | review | PR #143 - Mobile UI (3 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`79f4bd5`](https://app.all-hands.dev/conversations/79f4bd513e554a52ac910355bee0fd1e)
+- Task: Address 3 unresolved review threads:
+  - 🔴 Critical: MobileSettings.tsx:116 - UX bug: hint says "manual text entry" but no text input exists
+  - 🔴 Critical: MobileMode.tsx:270 - Misleading status says "type to send" but no text input exists
+  - 🟡 Suggestion: MobileMode.tsx:124 - Effect dependency optimization
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬3 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `81ad48a` (review #143 - addressed AudioContext leak + useMemo)
+
+**Housekeeping:**
+- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1044→~800 lines)
+
