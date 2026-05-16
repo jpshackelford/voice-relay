@@ -861,3 +861,38 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - Auto-deploying to vr.chorecraft.net
 - Client-only change, no database/migration impact
 - Risk: LOW
+
+---
+### 2026-05-16 06:37 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `36deff6` | review | PR #145 - tvOS authentication | **NEW** |
+| `2ffab46` | expansion | Issue #141 - README.md | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#145 - Add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+   - Conversation: [`36deff6`](https://app.all-hands.dev/conversations/36deff67d1d04190b21699e6e017f1f4)
+   - 6 unresolved review threads (including 2 critical XSS vulnerabilities)
+   - Failing CI: Server Tests, lint-pr-title
+
+2. **Expansion Worker**
+   - Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+   - Conversation: [`2ffab46`](https://app.all-hands.dev/conversations/2ffab46681594784b3f17585d91d0787)
+
+**Current State:**
+- Open PRs: #145 (red, 💬6 - being reviewed), #143 (red, needs title fix)
+- Ready issues: #135, #136, #137, #139 (all need priority assignment or implementation)
+- Issues needing expansion: #141 (being expanded), #142
+- Expansion slot: Occupied (expansion worker)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `932b5a0` (merge #144 ✓), `f73e146` (expansion #139 ✓)
+- `08277c4` (review #144 ✓), `8044587` (expansion #138 ✓)
+
+**Housekeeping:**
+- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md (950→863 lines)
