@@ -1024,3 +1024,35 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 **Housekeeping:**
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1114→~200 lines)
 
+---
+### 2026-05-16 09:10 UTC - Review Feedback Worker (`9b0f50e`)
+
+✅ **Addressed all 3 review threads on PR #143**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Status: **Ready for review** (all threads resolved, CI green ✅)
+
+**Feedback Addressed:**
+
+1. **🟠 Duplicate microphone access creates resource waste** - DECLINED
+   - Suggestion to replace Web Speech API with custom STT service (MediaRecorder + Whisper)
+   - Would significantly increase scope: backend integration, API costs, latency management
+   - Already addressed in prior round (Option C: document limitation, handle errors gracefully)
+   - Will revisit if users report actual issues on mobile
+
+2. **🟡 Nested try-catch adds complexity** - Fixed in `e58a00a`
+   - Extracted `startSpeechRecognition()` helper function
+   - Added early return pattern for cleaner flow
+   - Code is now flat: one try-catch for mic/analyser, STT errors handled in helper
+
+3. **🟡 Dual ownership tracking is confusing** - Clarified in `e58a00a`
+   - Added comprehensive JSDoc explaining Stream Ownership Model
+   - Documents two modes: external stream (borrowed) vs internal stream (owned)
+   - Explains why `ownsStreamRef` exists even if MobileMode always uses borrowed mode
+   - Preserves flexibility for future use cases
+
+**CI Status:** All checks passing ✅
+
+**Commits pushed:**
+- `e58a00a` - refactor: flatten nested try-catch and clarify ownership model
+
