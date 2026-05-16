@@ -141,14 +141,8 @@ export function synthesize(text: string, options: ElevenLabsTtsOptions): Promise
             return;
           }
 
-          // Handle completion
-          if (message.isFinal === true) {
-            cleanup();
-            onComplete();
-            return;
-          }
-
-          // Handle audio chunk
+          // Handle audio chunk BEFORE checking isFinal
+          // ElevenLabs may send final audio in the same message as isFinal:true
           if (message.audio) {
             // Resolve on first chunk - streaming has started successfully
             if (!resolved) {
@@ -156,6 +150,13 @@ export function synthesize(text: string, options: ElevenLabsTtsOptions): Promise
               resolve();
             }
             onAudioChunk(message.audio);
+          }
+
+          // Handle completion (after processing any audio in this message)
+          if (message.isFinal === true) {
+            cleanup();
+            onComplete();
+            return;
           }
         } catch (err) {
           // Not JSON - might be raw audio or other data
