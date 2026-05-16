@@ -1201,3 +1201,92 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - `5946e60` - a11y(mobile): add ARIA labels for screen reader accessibility
 - `6c7bed4` - docs(audio): document dual microphone stream limitation
 - `f63ce25` - test(audio): expand useAudioAnalyser tests beyond error scenarios
+
+---
+### 2026-05-16 09:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9b0f50e` | review | PR #143 - Mobile UI (3 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`9b0f50e`](https://app.all-hands.dev/conversations/9b0f50e0325f4a3a9bf7c2af47c2320b)
+- Task: Address 3 unresolved review threads
+  - 🟠 Duplicate microphone access creates resource waste on mobile
+  - 🟡 Nested try-catch adds unnecessary complexity  
+  - 🟡 Dual ownership tracking is confusing
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬3 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `ffff2f1` (review #143 - addressed 4 threads)
+- `80fa8cb` (review #143 - first round)
+- `faacf30` (merge #145 ✓)
+
+**Housekeeping:**
+- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1114→~200 lines)
+
+---
+### 2026-05-16 09:10 UTC - Review Feedback Worker (`9b0f50e`)
+
+✅ **Addressed all 3 review threads on PR #143**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Status: **Ready for review** (all threads resolved, CI green ✅)
+
+**Feedback Addressed:**
+
+1. **🟠 Duplicate microphone access creates resource waste** - DECLINED
+   - Suggestion to replace Web Speech API with custom STT service (MediaRecorder + Whisper)
+   - Would significantly increase scope: backend integration, API costs, latency management
+   - Already addressed in prior round (Option C: document limitation, handle errors gracefully)
+   - Will revisit if users report actual issues on mobile
+
+2. **🟡 Nested try-catch adds complexity** - Fixed in `e58a00a`
+   - Extracted `startSpeechRecognition()` helper function
+   - Added early return pattern for cleaner flow
+   - Code is now flat: one try-catch for mic/analyser, STT errors handled in helper
+
+3. **🟡 Dual ownership tracking is confusing** - Clarified in `e58a00a`
+   - Added comprehensive JSDoc explaining Stream Ownership Model
+   - Documents two modes: external stream (borrowed) vs internal stream (owned)
+   - Explains why `ownsStreamRef` exists even if MobileMode always uses borrowed mode
+   - Preserves flexibility for future use cases
+
+**CI Status:** All checks passing ✅
+
+**Commits pushed:**
+- `e58a00a` - refactor: flatten nested try-catch and clarify ownership model
+
+---
+### 2026-05-16 09:30 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ed8b266` | review | PR #143 - Mobile UI (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`ed8b266`](https://app.all-hands.dev/conversations/ed8b266d573045e19fdef6966a1f5dc7)
+- Task: Address 2 unresolved review threads
+  - 🟡 Stale closure optimization issue (isActive in dependency array)
+  - 🟠 Dual microphone stream issue (resource waste on mobile)
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬2 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
