@@ -699,3 +699,18 @@ Added `ensureKioskDrawerOpen(kioskPage)` call before asserting message visibilit
 **PR Status:** Moved from draft to ready for review
 
 ---
+
+## INSTRUCTION: Handle code review comments on PR #148
+
+When code review comments appear on [PR #148](https://github.com/jpshackelford/voice-relay/pull/148), address them promptly:
+
+1. Read and understand each review comment
+2. Implement the requested changes
+3. Reply to review threads explaining what was changed
+4. Push the fixes to the PR branch
+5. Verify CI passes after changes
+6. Update this worklog with status
+
+Priority: **high** (this is a bug fix blocking the E2E test suite)
+
+---
