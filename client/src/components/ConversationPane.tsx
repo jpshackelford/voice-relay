@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import type { Utterance } from '../types';
 
 interface ConversationPaneProps {
@@ -20,9 +20,12 @@ export function ConversationPane({
 }: ConversationPaneProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Sort utterances by received time
-  const sortedUtterances = [...utterances.values()].sort(
-    (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
+  // Sort utterances by received time (memoized to avoid re-sorting on every render)
+  const sortedUtterances = useMemo(
+    () => [...utterances.values()].sort(
+      (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
+    ),
+    [utterances]
   );
 
   // Auto-scroll to bottom when new messages arrive
