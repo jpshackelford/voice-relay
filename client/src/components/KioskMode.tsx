@@ -1,10 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
 import type { AIState } from '../hooks/useAI';
+
+// Configure marked for GitHub Flavored Markdown with line breaks
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 
 interface KioskModeProps {
   deviceId: string;
@@ -507,26 +515,12 @@ export function KioskMode({
   );
 }
 
-// Simple markdown parser for basic formatting
-function parseMarkdown(text: string): string {
-  return text
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Code blocks
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    // Inline code
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    // Links
-    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>')
-    // Line breaks
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>')
-    // Wrap in paragraph
-    .replace(/^(.+)$/, '<p>$1</p>');
+/**
+ * Parse markdown to sanitized HTML using marked + DOMPurify.
+ * Supports GFM tables, images, headers, bold/italic, code blocks, and links.
+ * All output is sanitized to prevent XSS attacks.
+ */
+export function parseMarkdown(text: string): string {
+  const rawHtml = marked.parse(text) as string;
+  return DOMPurify.sanitize(rawHtml);
 }

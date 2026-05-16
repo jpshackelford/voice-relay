@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { KioskMode } from './KioskMode';
+import { KioskMode, parseMarkdown } from './KioskMode';
 import type { DeviceInfo, Utterance, DisplayContent } from '../types';
 
 // Mock hooks that KioskMode uses
@@ -364,6 +364,170 @@ describe('KioskMode', () => {
         // Should show custom content, not greeting
         expect(screen.getByText('AI Response')).toBeDefined();
         expect(screen.queryByText('Session Ready')).toBeNull();
+      });
+    });
+  });
+
+  describe('parseMarkdown', () => {
+    describe('image rendering', () => {
+      it('renders standalone images correctly', () => {
+        const input = '![apple](https://example.com/apple.png)';
+        const output = parseMarkdown(input);
+        expect(output).toContain('<img');
+        expect(output).toContain('src="https://example.com/apple.png"');
+        expect(output).toContain('alt="apple"');
+        // Should NOT have leftover exclamation mark
+        expect(output).not.toMatch(/!\s*<a/);
+      });
+
+      it('renders images with empty alt text', () => {
+        const input = '![](https://example.com/image.png)';
+        const output = parseMarkdown(input);
+        expect(output).toContain('<img');
+        expect(output).toContain('src="https://example.com/image.png"');
+      });
+
+      it('renders multiple images', () => {
+        const input = '![a](a.png) ![b](b.png)';
+        const output = parseMarkdown(input);
+        const imgMatches = output.match(/<img/g);
+        expect(imgMatches?.length).toBe(2);
+      });
+    });
+
+    describe('table rendering', () => {
+      it('renders simple tables', () => {
+        const input = `| A | B |
+|---|---|
+| 1 | 2 |`;
+        const output = parseMarkdown(input);
+        expect(output).toContain('<table>');
+        expect(output).toContain('<th>');
+        expect(output).toContain('<td>');
+      });
+
+      it('renders tables with images inside cells', () => {
+        const input = `| Icon | Name |
+|------|------|
+| ![x](x.png) | Apple |`;
+        const output = parseMarkdown(input);
+        expect(output).toContain('<table>');
+        expect(output).toContain('<img');
+        expect(output).toContain('src="x.png"');
+      });
+
+      it('renders tables with multiple rows', () => {
+        const input = `| Col1 | Col2 |
+|------|------|
+| a | b |
+| c | d |
+| e | f |`;
+        const output = parseMarkdown(input);
+        expect(output).toContain('<table>');
+        // 3 data rows = 3 <tr> in tbody
+        const trMatches = output.match(/<tr>/g);
+        expect(trMatches?.length).toBeGreaterThanOrEqual(4); // 1 header + 3 data rows
+      });
+    });
+
+    describe('existing features preserved', () => {
+      it('renders headers correctly', () => {
+        expect(parseMarkdown('# Heading 1')).toContain('<h1>');
+        expect(parseMarkdown('## Heading 2')).toContain('<h2>');
+        expect(parseMarkdown('### Heading 3')).toContain('<h3>');
+      });
+
+      it('renders bold text', () => {
+        const output = parseMarkdown('**bold text**');
+        expect(output).toContain('<strong>bold text</strong>');
+      });
+
+      it('renders italic text', () => {
+        const output = parseMarkdown('*italic text*');
+        expect(output).toContain('<em>italic text</em>');
+      });
+
+      it('renders code blocks', () => {
+        const output = parseMarkdown('```js\nconsole.log("hi")\n```');
+        expect(output).toContain('<pre>');
+        expect(output).toContain('<code');
+      });
+
+      it('renders inline code', () => {
+        const output = parseMarkdown('Use `npm install`');
+        expect(output).toContain('<code>npm install</code>');
+      });
+
+      it('renders links correctly', () => {
+        const output = parseMarkdown('[Click here](https://example.com)');
+        expect(output).toContain('<a href="https://example.com"');
+        expect(output).toContain('>Click here</a>');
+      });
+
+      it('renders line breaks', () => {
+        const output = parseMarkdown('Line 1\nLine 2');
+        expect(output).toContain('<br');
+      });
+    });
+
+    describe('XSS protection', () => {
+      it('strips script tags', () => {
+        const input = '<script>alert("xss")</script>';
+        const output = parseMarkdown(input);
+        expect(output).not.toContain('<script>');
+        expect(output).not.toContain('alert');
+      });
+
+      it('strips onerror attributes from images', () => {
+        const input = '<img src=x onerror=alert(1)>';
+        const output = parseMarkdown(input);
+        expect(output).not.toContain('onerror');
+      });
+
+      it('strips javascript: URLs from links', () => {
+        const input = '[click](javascript:alert(1))';
+        const output = parseMarkdown(input);
+        expect(output).not.toContain('javascript:');
+      });
+
+      it('strips onclick attributes', () => {
+        const input = '<div onclick="alert(1)">test</div>';
+        const output = parseMarkdown(input);
+        expect(output).not.toContain('onclick');
+      });
+
+      it('preserves safe HTML content', () => {
+        const input = '<strong>Bold HTML</strong>';
+        const output = parseMarkdown(input);
+        expect(output).toContain('<strong>Bold HTML</strong>');
+      });
+    });
+
+    describe('complex markdown scenarios', () => {
+      it('renders mixed content: headers, tables, and images', () => {
+        const input = `# Recipe
+
+| Ingredient | Amount |
+|------------|--------|
+| ![apple](apple.png) Apple | 2 cups |
+
+## Instructions
+**Step 1**: Prepare ingredients`;
+        const output = parseMarkdown(input);
+        expect(output).toContain('<h1>');
+        expect(output).toContain('<table>');
+        expect(output).toContain('<img');
+        expect(output).toContain('<h2>');
+        expect(output).toContain('<strong>');
+      });
+
+      it('handles HTML tables (passthrough)', () => {
+        const input = `<table>
+<tr><td><img src="icon.png" alt="Icon"></td></tr>
+</table>`;
+        const output = parseMarkdown(input);
+        expect(output).toContain('<table>');
+        expect(output).toContain('<img');
       });
     });
   });
