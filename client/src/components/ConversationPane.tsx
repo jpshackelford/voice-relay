@@ -26,11 +26,13 @@ export function ConversationPane({
   );
 
   // Auto-scroll to bottom when new messages arrive
+  // Note: Depend on utterances.size rather than the Map object to avoid
+  // excessive re-renders (Map reference changes on every render)
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [utterances, isOpen]);
+  }, [utterances.size, isOpen]);
 
   return (
     <>
