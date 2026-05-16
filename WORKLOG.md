@@ -25,6 +25,34 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 22:42 UTC - Review Feedback Handler
+
+**PR #148 Review Feedback Addressed**
+
+Addressed all review feedback on [PR #148](https://github.com/jpshackelford/voice-relay/pull/148):
+
+1. ✅ **Critical: `workers: 1` band-aid** (playwright.config.ts:28)
+   - Added detailed documentation explaining architectural rationale
+   - Serial execution is intentional: tests share workspace context
+   - Production handles concurrency via workspace isolation
+   - Created [#155](https://github.com/jpshackelford/voice-relay/issues/155) to track proper per-worker isolation
+
+2. ✅ **Suggestion: Repeated `isLegacyMode` checks** (server/src/index.ts:350)
+   - Created `server/src/constants.ts` with `isAnonymousMode()` helper
+   - Restructured register handler with clear anonymous vs authenticated branches
+   - Renamed "legacy mode" to "anonymous mode" (more descriptive)
+
+3. ✅ **Suggestion: Magic string `'default'`** (server/src/index.ts:337)
+   - Extracted to `ANONYMOUS_WORKSPACE_ID`, `ANONYMOUS_SESSION_ID`, `ANONYMOUS_SESSION_NAME` constants
+   - All usages updated across index.ts, auto-connect.ts, and tests
+
+4. ✅ **Positive feedback** (tests/utils/auth-helper.ts:382)
+   - Acknowledged
+
+All review threads replied to and resolved. PR marked ready for review.
+
+---
+
 ### 2026-05-16 15:01 UTC - Orchestrator
 
 **Active Workers:**
