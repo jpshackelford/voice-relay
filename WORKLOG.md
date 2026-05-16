@@ -976,3 +976,66 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 
 **Housekeeping:**
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1074→947 lines)
+
+---
+### 2026-05-16 08:14 UTC - Review Feedback Worker (`80fa8cb`)
+
+✅ **Addressed PR #143 review feedback** - Mobile UI Redesign
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Issue: [#142](https://github.com/jpshackelford/voice-relay/issues/142)
+- Status: **Ready for review** (all CI checks passing ✅, moved back from draft)
+
+**Fixes Applied:**
+
+1. **PR Title Scope** - Fixed via `gh pr edit`
+   - Changed from `feat(mobile): ...` to `feat(client): ...` (allowed scope)
+   - Changed "Redesign" to "redesign" (lowercase subject required)
+
+2. **Duplicate Microphone Access** - Fixed in `47e45dc`
+   - Share single MediaStream between audio analyser and speech recognition
+   - `MobileMode.tsx` now requests mic once, passes stream to `audioAnalyser.start(stream)`
+   - Browser caches permission, so speech recognition doesn't re-prompt
+
+3. **Unstable useEffect Dependency** - Fixed in `47e45dc`
+   - Extract `ai.checkAvailability` into stable `checkAvailability` reference
+   - Use stable reference as useEffect dependency
+
+4. **Unread Count Never Resets** - Fixed in `47e45dc`
+   - Track `lastViewedCountRef` to remember how many messages were seen
+   - Reset count when conversation pane opens via `handleConversationOpen`
+   - Badge shows only NEW messages since last view
+
+5. **Resource Leak on Unmount** - Fixed in `47e45dc`
+   - Added `cancelledRef` flag for async operations in `useAudioAnalyser`
+   - Check `cancelled` after each `await` to prevent state updates on unmounted component
+   - Added cleanup effect to stop shared stream on unmount
+
+6. **Missing Tests** - Added in `47e45dc`
+   - `MobileSettings.test.tsx` - 14 tests for settings modal behavior
+   - `ConversationPane.test.tsx` - 12 tests for message display and sorting
+   - `Oscilloscope.test.tsx` - 12 tests for canvas rendering and animation
+   - `useAudioAnalyser.test.ts` - 9 tests for hook error handling and cleanup
+
+7. **TypeScript Fix** - Fixed in `ade41b1`
+   - Fixed `Uint8Array` type mismatch in Oscilloscope test
+
+**CI Status:**
+- ✅ Conventional Commits/lint-pr-title - Passing
+- ✅ CI/Build Client - Passing
+- ✅ CI/Server Tests - Passing
+- ✅ CI/E2E Tests - Passing
+
+**Files Modified:**
+- `client/src/components/MobileMode.tsx`
+- `client/src/hooks/useAudioAnalyser.ts`
+- `client/src/components/MobileSettings.test.tsx` (new)
+- `client/src/components/ConversationPane.test.tsx` (new)
+- `client/src/components/Oscilloscope.test.tsx` (new)
+- `client/src/hooks/useAudioAnalyser.test.ts` (new)
+
+**Test Results:**
+- Client: 231 tests passing
+- Server: 529 tests passing
+
+---
