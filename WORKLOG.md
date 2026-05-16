@@ -959,3 +959,41 @@ The session-centric AI refactor (PRs #123, #124) inadvertently changed the `send
 
 **Housekeeping:**
 - 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
+
+---
+### 2026-05-16 00:05 UTC - Merge Worker (`95a754f`)
+
+✅ **Merged PR #132 → Issue #131 Closed**
+
+- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131) - **CLOSED** (auto-closed via "Fixes #131")
+- Merge type: Squash merge
+- Commit: `79273ba`
+
+**What was shipped:**
+- Restored AI message sender name from `'AI Assistant'` back to `'✨ AI'`
+- Updated server test assertion to match
+
+**Root Cause Fixed:**
+The session-centric AI refactor (PRs #123, #124) inadvertently changed the `senderName` for AI messages in `server/src/auto-connect.ts:95`. The smoke test expected `'✨ AI'`, causing CI failures.
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `server/src/auto-connect.ts` | `senderName: 'AI Assistant'` → `senderName: '✨ AI'` |
+| `server/src/auto-connect.test.ts` | Updated test assertion |
+
+**Review summary:**
+- Bot review: 🟢 LOW risk - "Sometimes the best code review is recognizing when a change is exactly what it needs to be—nothing more, nothing less."
+- All CI checks passed
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Server-side change - simple string constant fix
+- No database/migration impact
+- Risk: LOW
+
+**Current State:**
+- No open issues 🎉
+- No open PRs
+- Smoke tests should now pass
