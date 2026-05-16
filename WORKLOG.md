@@ -1011,3 +1011,31 @@ PR status: Ready for review (moved from draft)
 - `9b0f50e` (review #143)
 
 ---
+### 2026-05-16 10:40 UTC - Review Worker (`f5e04d6`)
+
+✅ **Addressed PR #143 Review Feedback (Round 4)**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Fixes: 26c1746
+
+**Review threads addressed (2):**
+
+1. **Memory leak - spokenUtterancesRef Set grows unbounded** (🔴 Critical)
+   - Added size-based pruning to cap the Set at 100 entries
+   - When exceeded, prunes to keep only the most recent 50 IDs
+   - Prevents unbounded memory growth in long-running sessions
+   - Fixed in: 26c1746
+
+2. **Effect runs on every render due to unstable audioAnalyser dependency** (🟡 Suggestion)
+   - Changed dependency array to use specific properties instead of whole object
+   - Old: `[inputMode, isListening, audioAnalyser, stopListening]`
+   - New: `[inputMode, isListening, audioAnalyser.isActive, audioAnalyser.stop, stopListening]`
+   - Prevents unnecessary effect executions since `useAudioAnalyser()` returns new object each render
+   - Fixed in: 26c1746
+
+**All review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
+
+---
