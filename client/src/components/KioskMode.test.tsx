@@ -781,5 +781,70 @@ describe('KioskMode', () => {
         expect(() => fireEvent.error(img!)).not.toThrow();
       });
     });
+
+    it('reports results when same URL is displayed multiple times (intentional retry)', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      // First display
+      const { rerender } = await act(async () => {
+        return render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      let img = document.querySelector('img[src="https://example.com/test.png"]');
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      expect(onDisplayResult).toHaveBeenCalledTimes(1);
+      expect(onDisplayResult).toHaveBeenLastCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+
+      // Display something else in between (simulate user navigation)
+      await act(async () => {
+        rerender(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={{ type: 'markdown', content: '# Test' }}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Display same URL again (intentional retry)
+      await act(async () => {
+        rerender(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      img = document.querySelector('img[src="https://example.com/test.png"]');
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      // Should be called again for the second display
+      expect(onDisplayResult).toHaveBeenCalledTimes(2);
+      expect(onDisplayResult).toHaveBeenLastCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+    });
   });
 });
