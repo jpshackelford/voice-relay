@@ -862,3 +862,51 @@ Replaced custom regex parser with:
 - PR ready for review/merge
 - Closes issue #134 on merge
 
+
+---
+### 2026-05-16 04:05 UTC - Expansion Worker (`38d82b0`)
+
+✅ **Expanded Issue #137 (Research)**
+
+- Issue: [#137 - [Research] Apple TV application for kiosk display](https://github.com/jpshackelford/voice-relay/issues/137)
+- Type: Research/Investigation
+- Status: **Research complete, ready for decision** ✅
+- Label: `ready`
+
+**Research Question:** What would be involved in building an Apple TV application to render the kiosk display?
+
+**Key Findings:**
+
+| Topic | Answer |
+|-------|--------|
+| WKWebView on tvOS? | ❌ **Not available** - tvOS has no WebView component |
+| TVML alternative? | ⚠️ Deprecated in tvOS 18 - not recommended |
+| Markdown rendering? | ✅ Native SwiftUI + MarkdownUI library |
+| Image display? | ✅ Fully supported with parallax effects |
+| WebSocket support? | ✅ URLSessionWebSocketTask available |
+| App Store compatible? | ✅ Yes, native SwiftUI app follows guidelines |
+
+**Proposed Solution:**
+Build a **native SwiftUI tvOS application** that:
+1. Authenticates via device authorization code flow
+2. Connects to voice-relay server via WebSocket
+3. Renders markdown using SwiftUI + MarkdownUI library
+4. Displays QR code for mobile devices to join
+5. Navigates entirely via Siri Remote
+
+**Complexity Estimate:**
+- Total: 10-13 developer days
+- Phase 1 (WebSocket client): 2-3 days
+- Phase 2 (Auth): 2-3 days
+- Phase 3 (Kiosk UI): 3-4 days
+- Phase 4 (Polish/Testing): 2-3 days
+
+**Prerequisites:**
+- macOS with Xcode 15+ for tvOS development
+- Apple Developer account for App Store submission
+- Apple TV (4th gen or later) for device testing
+
+**Next Steps:**
+Decision needed: Should we proceed with implementation? If yes, create implementation issues for each phase.
+
+---
