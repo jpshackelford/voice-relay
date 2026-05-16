@@ -862,3 +862,45 @@ Investigated whether Marp (markdown-to-presentation ecosystem) would be better f
 **Housekeeping:**
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
 
+---
+### 2026-05-16 06:07 UTC - Merge Worker (`932b5a0`)
+
+✅ **Merged PR #144 → Issue #134 Closed**
+
+- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high) - **CLOSED**
+- Merge type: Squash merge
+- Commit: `7ad7574`
+
+**What was shipped:**
+Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
+- `marked` v18.0.3 for full GFM support (tables, images, code blocks)
+- `DOMPurify` v3.4.3 for XSS sanitization before `dangerouslySetInnerHTML`
+
+**Bugs fixed:**
+| Input | Before | After |
+|-------|--------|-------|
+| `![img](url)` | `!<a href="url">img</a>` | `<img src="url" alt="img">` |
+| `| A | B |` table | Raw text with `<br>` | `<table>...</table>` |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` (25 lines regex → 3 lines library) |
+| `client/src/components/KioskMode.test.tsx` | Add 17 tests (image, table, XSS, existing features) |
+| `client/package.json` | Add `marked` + `dompurify` dependencies |
+| `tests/markdown-rendering.spec.ts` | Add E2E smoke test |
+
+**Review Summary:**
+- 🟢 LOW risk - "Elegant solution that eliminates regex special cases"
+- Supply chain verified: Both deps have matching GitHub releases and signatures
+- All 729 tests passed (200 client + 529 server)
+- 5/5 review threads resolved before merge
+
+**Bundle impact:** ~1 MB (acceptable for kiosk use case)
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Client-only change, no database/migration impact
+- Risk: LOW
+
