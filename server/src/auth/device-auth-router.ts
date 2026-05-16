@@ -20,6 +20,19 @@ import type { DeviceRepository } from '../devices/device-repository.js';
 import { requireAuth, type AuthMiddlewareConfig } from './middleware.js';
 import { generateDeviceName } from '../devices/device-utils.js';
 
+/**
+ * Escape HTML special characters to prevent XSS attacks.
+ * Must be used for any user input inserted into HTML responses.
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export interface DeviceAuthRouterConfig {
   deviceAuthManager: DeviceAuthManager;
   jwtService: JWTService;
@@ -154,8 +167,9 @@ export function createDeviceAuthRouter(config: DeviceAuthRouterConfig): Router {
    * a proper frontend route with React.
    */
   router.get('/verify', (req: Request, res: Response) => {
-    const prefilledCode = typeof req.query.code === 'string' ? req.query.code : '';
-    const error = typeof req.query.error === 'string' ? req.query.error : '';
+    // SECURITY: Escape all user input to prevent XSS attacks
+    const prefilledCode = escapeHtml(typeof req.query.code === 'string' ? req.query.code : '');
+    const error = escapeHtml(typeof req.query.error === 'string' ? req.query.error : '');
     
     // Simple HTML verification page
     // In production, this could redirect to a React route
