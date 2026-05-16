@@ -31,139 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 05:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `08277c4` | review | PR #144 - markdown parser fix | **NEW** |
-| `8044587` | expansion | Issue #138 - Marp evaluation | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Review Worker**
-   - PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
-   - Conversation: [`08277c4`](https://app.all-hands.dev/conversations/08277c4)
-   - PR Status: `oRC` (opened, Reviewed, Changes requested), CI green, 5 unresolved threads
-
-2. **Expansion Worker**
-   - Issue: [#138 - [Research] Evaluate Marp for kiosk display rendering](https://github.com/jpshackelford/voice-relay/issues/138)
-   - Conversation: [`8044587`](https://app.all-hands.dev/conversations/8044587)
-
-**Why spawned:**
-- Review worker: PR #144 has 5 unresolved review threads (supply chain verification, dead code, E2E test improvements)
-- Expansion worker: Issue #138 needs technical analysis before implementation
-
-**Current State:**
-- Open PRs: #144 (green, oRC 💬5), #145 (red, tvOS), #143 (red, mobile UI)
-- Ready issues: #134 (has PR), #135, #136, #137 (all prioritized)
-- Issues needing expansion: #138 (being expanded), #139, #141, #142 (has PR)
-- Expansion slot: Occupied (`8044587`)
-- PR slot: Occupied (`08277c4`)
-
-**Previous Workers (finished):**
-- `0898e70` (implementation #134 → PR #144 ✓), `38d82b0` (expansion #137 ✓)
-- `26affde` (merge #140 ✓), `477524c` (expansion #136 ✓)
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
----
-### 2026-05-16 05:40 UTC - Expansion Worker
-
-✅ **Research Completed: Issue #138**
-
-- Issue: [[Research] Evaluate Marp for kiosk display rendering](https://github.com/jpshackelford/voice-relay/issues/138)
-- Type: Research
-- Status: **Closed as "won't do"**
-
-**Research Summary:**
-Investigated whether Marp (markdown-to-presentation ecosystem) would be better for kiosk display rendering than the current approach.
-
-**Findings:**
-- Marp is designed for **static slide presentations** with multiple slides and navigation
-- Voice-relay needs **real-time, single-screen, AI-generated content**
-- Current `parseMarkdown()` function already handles needed formatting
-- Integration would add significant complexity without solving any real problem
-
-**Recommendation:** Do not implement. If enhanced formatting is needed (tables, layouts), improve the existing simple renderer instead of adopting a full presentation framework.
-
----
-### 2026-05-16 05:47 UTC - Review Worker (`08277c4`)
-
-✅ **Review Feedback Addressed: PR #144**
-
-- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed:**
-
-| Thread | Feedback | Action |
-|--------|----------|--------|
-| `package.json:14` | Supply chain risk - verify DOMPurify 3.4.3 provenance | ✅ Verified: GitHub release, git tag, npm signature, and release notes all check out. Published by Cure53 maintainer. |
-| `markdown-rendering.spec.ts:89` | Dead code - displayMarkdownContent helper unused | ✅ Removed in `f92fef2` |
-| `markdown-rendering.spec.ts:121` | E2E test only checks display exists | ✅ Renamed to "smoke test" for clarity in `f92fef2` |
-| `markdown-rendering.spec.ts:142` | Visual regression test screenshots empty state | ✅ Removed in `f92fef2` |
-| `markdown-rendering.spec.ts:235` | E2E test duplicates unit tests | ✅ Removed in `f92fef2` |
-
-**Changes Made (commit `f92fef2`):**
-- Removed unused `displayMarkdownContent` helper
-- Removed empty-state visual regression test
-- Removed duplicative parseMarkdown integration test
-- Renamed test file description to "Kiosk Display Smoke Test" for clarity
-- E2E file reduced from 237 to 82 lines
-
-**Resolved Threads:** 5/5 ✅
-
-**CI Status:**
-- All checks passing ✅ (Build Client, Server Tests, E2E Tests, PR lint)
-
-**PR Status Update:**
-- Unresolved threads: 0 ✅
-- State: Ready (not draft) ✅
-- CI: All green ✅
-- Ready for merge
-
----
-### 2026-05-16 06:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `932b5a0` | merge | PR #144 - markdown parser fix | **NEW** |
-| `f73e146` | expansion | Issue #139 - AI-generated JS apps | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Merge Worker**
-   - PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
-   - Conversation: [`932b5a0`](https://app.all-hands.dev/conversations/932b5a0)
-   - Merge criteria met: CI green ✅, 0 unresolved threads ✅, MERGEABLE ✅
-
-2. **Expansion Worker**
-   - Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
-   - Conversation: [`f73e146`](https://app.all-hands.dev/conversations/f73e146)
-
-**Why spawned:**
-- Merge worker: PR #144 addressed all review feedback, CI green, ready for squash merge
-- Expansion worker: Issue #139 is oldest unexpanded issue (no `ready` label)
-
-**Previous Workers (finished):**
-- `08277c4` (review #144 ✓) - addressed 5/5 review threads
-- `8044587` (expansion #138 ✓) - closed as "won't do" (Marp not suitable)
-
-**Current State:**
-- Open PRs: #144 (green, merge in progress), #145 (red), #143 (red)
-- Ready issues: #134 (has PR #144), #135, #136, #137
-- Issues needing expansion: #139 (being expanded), #141, #142
-
-**Housekeeping:**
-- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
-
----
 ### 2026-05-16 06:05 UTC - Expansion Worker
 
 ✅ **Research Completed: Issue #139**
@@ -1015,3 +882,31 @@ PR status: Ready for review (moved from draft)
 **Resolved Threads:** 3/3 ✅
 **PR State:** Ready for review (not draft) ✅
 
+---
+### 2026-05-16 12:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `670745f` | review | PR #143 - Mobile UI (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`670745f`](https://app.all-hands.dev/conversations/670745fae91c431d9811e2c2aec732c0)
+- Task: Address 1 unresolved review thread:
+  - 🟠 ConversationPane.tsx:26 - Performance: sorting utterances on every render instead of memoizing
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬1 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142 (has PR)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `79f4bd5` (review #143 - addressed 3 threads: text input, status text, effect deps)
+
+**Housekeeping:**
+- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md
