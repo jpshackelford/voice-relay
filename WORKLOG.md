@@ -31,6 +31,38 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 03:04 UTC - Expansion Worker
+
+✅ **Expanded Issue #135**
+
+- Issue: [#135 - Investigate ElevenLabs integration for text-to-speech](https://github.com/jpshackelford/voice-relay/issues/135)
+- Type: Enhancement (Research/Investigation)
+- Status: **Ready for implementation** ✅
+
+**Research Findings:**
+
+| Topic | Finding |
+|-------|---------|
+| API Approach | ElevenLabs WebSocket API recommended for streaming (`wss://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream-input`) |
+| Model | `eleven_flash_v2_5` - optimized for low latency |
+| Audio Format | `mp3_44100_128` - good quality, reasonable size |
+| Pricing | Creator plan ($22/mo) for 100K chars, Flash models are 50% cheaper |
+
+**Key Technical Decisions:**
+
+1. **Server-side TTS** - API key stays secure, audio routing controlled
+2. **AI-only speaking** - Filter by `senderName === '✨ AI'`
+3. **Kiosk-only playback** - Only send audio to `mode === 'kiosk'` devices
+4. **WebSocket streaming** - Lowest latency via chunked audio delivery
+
+**Implementation Phases:**
+1. Database & configuration (ElevenLabs API key storage)
+2. Server TTS service (`server/src/tts/elevenlabs.ts`)
+3. Audio streaming to kiosk (new message types: `audio-chunk`, `audio-end`)
+4. Integration & UI (workspace settings for TTS)
+
+---
+
 ### 2026-05-15 20:36 UTC - Expansion Worker (`8347c92`)
 
 ✅ **Expanded Issue #129**
