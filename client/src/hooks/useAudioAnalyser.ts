@@ -35,10 +35,11 @@ export function useAudioAnalyser({
   const cancelledRef = useRef<boolean>(false);
 
   const start = useCallback(async (existingStream?: MediaStream): Promise<MediaStream | undefined> => {
-    if (isActive) return streamRef.current ?? undefined;
+    if (isActive || cancelledRef.current) return streamRef.current ?? undefined;
     
     cancelledRef.current = false;
     setError(null);
+    setIsActive(true); // Set immediately to prevent race condition with rapid start() calls
     
     try {
       // Use existing stream or request microphone access
@@ -56,6 +57,7 @@ export function useAudioAnalyser({
         if (ownsStreamRef.current) {
           stream.getTracks().forEach(track => track.stop());
         }
+        setIsActive(false);
         return undefined;
       }
       
@@ -72,6 +74,7 @@ export function useAudioAnalyser({
         if (ownsStreamRef.current) {
           stream.getTracks().forEach(track => track.stop());
         }
+        setIsActive(false);
         return undefined;
       }
       
@@ -90,13 +93,14 @@ export function useAudioAnalyser({
       sourceRef.current = source;
       dataArrayRef.current = dataArray;
       
-      setIsActive(true);
+      // isActive already set to true at start of this function
       return stream;
     } catch (err) {
       if (cancelledRef.current) return undefined;
       console.error('[AudioAnalyser] Error:', err);
       const message = err instanceof Error ? err.message : 'Failed to access microphone';
       setError(message);
+      setIsActive(false); // Reset state on error since we set it immediately at start
       return undefined;
     }
   }, [isActive, fftSize]);
