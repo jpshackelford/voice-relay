@@ -27,6 +27,7 @@ import type {
   JoinResolvedMessage,
   DeviceRemovedMessage,
   SessionAIStatusMessage,
+  AIThinkingMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -57,6 +58,17 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
+
+// Wire AI thinking state to broadcast to session devices
+// This enables the kiosk display to show 🤔 while AI is processing
+aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+  const message: AIThinkingMessage = {
+    type: 'ai-thinking',
+    sessionId,
+    thinking,
+  };
+  registry.broadcastMessageToSession(sessionId, message);
+});
 
 // Repositories for database access (set up later if SQLite is used)
 let workspaceRepository: WorkspaceRepository | null = null;
