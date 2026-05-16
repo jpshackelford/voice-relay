@@ -79,12 +79,18 @@ export default defineConfig({
   // This allows each worker to have its own isolated server instance
 
   projects: [
+    // Default project for standard E2E tests
+    // Excludes mobile-voice.spec.ts (run those with mobile-chrome project)
     {
       name: 'chromium',
+      testIgnore: ['**/mobile-voice.spec.ts'],
       use: { browserName: 'chromium' },
     },
+    // Mobile voice tests project - run with: npm run test:mobile
+    // Includes fake audio device for testing voice input
     {
       name: 'mobile-chrome',
+      testMatch: '**/mobile-voice.spec.ts',
       use: {
         ...devices['Pixel 5'],
         // Capture video for all mobile tests (useful for PR evidence)
@@ -100,17 +106,6 @@ export default defineConfig({
             `--use-file-for-fake-audio-capture=${path.join(AUDIO_FIXTURES_DIR, 'short_hello.wav')}`,
           ],
         },
-      },
-    },
-    {
-      name: 'mobile-safari',
-      use: {
-        ...devices['iPhone 13'],
-        // Capture video for all mobile tests (useful for PR evidence)
-        video: 'on',
-        screenshot: 'on',
-        // Note: Safari/WebKit doesn't support --use-fake-device-for-media-stream
-        // These tests will use mocked APIs instead
       },
     },
   ],

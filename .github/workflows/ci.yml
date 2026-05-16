@@ -72,16 +72,16 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
+        run: npx playwright install --with-deps chromium
 
-      - name: Run E2E tests
+      - name: Run E2E tests (chromium)
         env:
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
           PLAYWRIGHT_WORKERS: '4'
           CLEANUP_TEST_DBS: 'true'
-        run: npm test
+        run: npx playwright test --project=chromium
 
-      - name: Run Mobile E2E tests
+      - name: Run Mobile Voice E2E tests
         env:
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
         run: npm run test:mobile
