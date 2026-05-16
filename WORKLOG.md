@@ -824,3 +824,41 @@ Investigated whether Marp (markdown-to-presentation ecosystem) would be better f
 - State: Ready (not draft) ✅
 - CI: All green ✅
 - Ready for merge
+
+---
+### 2026-05-16 06:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `932b5a0` | merge | PR #144 - markdown parser fix | **NEW** |
+| `f73e146` | expansion | Issue #139 - AI-generated JS apps | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
+   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
+   - Conversation: [`932b5a0`](https://app.all-hands.dev/conversations/932b5a0)
+   - Merge criteria met: CI green ✅, 0 unresolved threads ✅, MERGEABLE ✅
+
+2. **Expansion Worker**
+   - Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+   - Conversation: [`f73e146`](https://app.all-hands.dev/conversations/f73e146)
+
+**Why spawned:**
+- Merge worker: PR #144 addressed all review feedback, CI green, ready for squash merge
+- Expansion worker: Issue #139 is oldest unexpanded issue (no `ready` label)
+
+**Previous Workers (finished):**
+- `08277c4` (review #144 ✓) - addressed 5/5 review threads
+- `8044587` (expansion #138 ✓) - closed as "won't do" (Marp not suitable)
+
+**Current State:**
+- Open PRs: #144 (green, merge in progress), #145 (red), #143 (red)
+- Ready issues: #134 (has PR #144), #135, #136, #137
+- Issues needing expansion: #139 (being expanded), #141, #142
+
+**Housekeeping:**
+- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
+
