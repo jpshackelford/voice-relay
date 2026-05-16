@@ -373,9 +373,10 @@ wss.on('connection', (ws: WebSocket) => {
           }
 
           // Determine session for this device
+          // Skip database session tracking for legacy mode (no valid workspace FK)
           let session: { id: string; name: string | null } | null = null;
           
-          if (sessionRepository) {
+          if (sessionRepository && !isLegacyMode) {
             // If client provided sessionId, try to use it
             if (message.sessionId) {
               const requestedSession = sessionRepository.findById(message.sessionId);
@@ -396,7 +397,7 @@ wss.on('connection', (ws: WebSocket) => {
             sessionRepository.addDevice(session.id, deviceId);
             sessionId = session.id;
           } else {
-            // Fallback for non-SQLite stores: no session tracking
+            // Fallback for legacy mode or non-SQLite stores: no session tracking
             session = { id: 'default', name: 'Default Session' };
             sessionId = 'default';
           }
