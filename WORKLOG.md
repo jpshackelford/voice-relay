@@ -699,3 +699,29 @@ PR state: Ready for review (moved from draft)
 **Housekeeping:**
 - 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md
 
+---
+### 2026-05-16 17:12 UTC - Review Worker (`8ca5da6`)
+
+✅ **Addressed PR #146 Review Feedback - All 4 Critical Issues**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Commits: fb689df, 82d80d2, ee104a3
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (4 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `KioskMode.tsx:174` | 🔴 Critical | Duplicate audio: AI messages not excluded from browser TTS | ✅ Added `&& utterance.senderId !== 'ai'` to filter (fb689df) |
+| `elevenlabs.ts:145` | 🔴 Critical | Final audio dropped: Early return on isFinal | ✅ Reordered to process audio BEFORE checking isFinal (82d80d2) |
+| `elevenlabs.test.ts` | 🔴 Critical | No tests for core synthesize() function | ✅ Added 14 comprehensive tests with mock WebSocket (ee104a3) |
+| `useAudioPlayback.ts:126` | 🟠 Important | Misleading "streaming" claim | ✅ Updated PR description to accurately describe buffered playback |
+
+**Test coverage:**
+- 598 server tests passing (14 new synthesize() tests)
+- Tests cover: WebSocket lifecycle, audio streaming, error handling, timeouts, cleanup, final message handling
+
+CI: ✅ All checks passed (4/4)
+All review threads: Replied and resolved via GraphQL API
+PR state: Ready for review
+
