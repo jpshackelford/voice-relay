@@ -122,6 +122,11 @@ export class DeviceAuthManager {
       pollingIntervalSeconds: config.pollingIntervalSeconds ?? DEFAULT_POLLING_INTERVAL_SECONDS,
     };
 
+    // LIMITATION: In-memory storage is not suitable for multi-server deployments.
+    // Device auth requests are not shared across instances, and server restart clears all pending auth flows.
+    // TODO: Consider using Redis for production multi-server deployments.
+    console.warn('[DeviceAuth] Using in-memory storage. Not suitable for multi-server production deployments.');
+
     // Cleanup expired requests every minute
     this.cleanupInterval = setInterval(() => this.cleanup(), 60 * 1000);
   }
