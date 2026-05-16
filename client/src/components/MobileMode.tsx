@@ -1,8 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
+import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
+import { Oscilloscope } from './Oscilloscope';
+import { MobileSettings } from './MobileSettings';
+import { ConversationPane } from './ConversationPane';
 import type { DeviceInfo, DeviceMode, Utterance } from '../types';
 
 interface MobileModeProps {
@@ -14,7 +18,7 @@ interface MobileModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
-  sessionId?: string;  // VR session ID for session-centric AI
+  sessionId?: string;
 }
 
 export function MobileMode({ 
@@ -34,15 +38,15 @@ export function MobileMode({
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
   
   const utteranceIdRef = useRef(generateUUID());
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenUtterancesRef = useRef(new Set<string>());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const { speak, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ sessionId });
+  const audioAnalyser = useAudioAnalyser();
 
   // Check AI availability on mount
   useEffect(() => {
@@ -53,48 +57,6 @@ export function MobileMode({
   useEffect(() => {
     onAIStatusChange?.(ai.connected);
   }, [ai.connected, onAIStatusChange]);
-
-  const generateNewUtteranceId = useCallback(() => {
-    utteranceIdRef.current = generateUUID();
-  }, []);
-
-  // Debounced send for typing
-  const sendDebounced = useCallback((currentText: string, partial: boolean) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (!partial) {
-      sendText(utteranceIdRef.current, currentText, false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(() => {
-      sendText(utteranceIdRef.current, currentText, true);
-    }, 100);
-  }, [sendText]);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setText(newText);
-    sendDebounced(newText, true);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleSend = () => {
-    if (text.trim()) {
-      sendText(utteranceIdRef.current, text, false);
-      // AI messages are forwarded server-side via session WebSocket
-      setText('');
-      generateNewUtteranceId();
-    }
-  };
 
   // Speech recognition handlers
   const handleInterimResult = useCallback((transcript: string) => {
@@ -107,12 +69,10 @@ export function MobileMode({
     setInterimText('');
     
     if (autoSubmit) {
-      // Auto-submit: send as final and reset
       sendText(utteranceIdRef.current, newText.trim(), false);
       setText('');
       utteranceIdRef.current = generateUUID();
     } else {
-      // Manual mode: append to text with space, send as partial
       setText(newText + ' ');
       sendText(utteranceIdRef.current, newText + ' ', true);
     }
@@ -130,12 +90,22 @@ export function MobileMode({
     onError: handleSttError,
   });
 
+  // Sync audio analyser with speech recognition state
+  const handleMicToggle = useCallback(async () => {
+    if (isListening) {
+      stopListening();
+      audioAnalyser.stop();
+    } else {
+      await audioAnalyser.start();
+      startListening();
+    }
+  }, [isListening, startListening, stopListening, audioAnalyser]);
+
   // Speak new final utterances when TTS is enabled (only from others)
   useEffect(() => {
     if (!ttsEnabled) return;
 
     for (const [id, utterance] of utterances) {
-      // Only speak messages from others
       if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
         spokenUtterancesRef.current.add(id);
         speak(utterance.text);
@@ -143,164 +113,116 @@ export function MobileMode({
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
 
-  // Note: AI message forwarding is now handled server-side
-  // When a text message is received via WebSocket, the server forwards it to the session's AI
+  // Connection status indicator
+  const connectionStatus = connected ? 'connected' : 'disconnected';
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [utterances]);
+  // Count unread messages (messages from others since last view)
+  const unreadCount = [...utterances.values()].filter(
+    u => u.senderId !== deviceId && !u.partial
+  ).length;
 
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  // Sort utterances by received time
-  const sortedUtterances = [...utterances.values()].sort(
-    (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
-  );
-
-  const mobileDevices = devices.filter(d => d.mode === 'mobile');
-  const kioskDevices = devices.filter(d => d.mode === 'kiosk');
+  // Device counts for settings
+  const mobileCount = devices.filter(d => d.mode === 'mobile').length;
+  const kioskCount = devices.filter(d => d.mode === 'kiosk').length;
 
   return (
-    <div className="mobile-mode">
-      <header>
-        <div className="device-info">
-          <span className="device-name">📱 {displayName}</span>
-          <span className={`connection-status ${connected ? 'connected' : ''}`}>
-            {connected ? '● Connected' : '○ Disconnected'}
-          </span>
-        </div>
-        <div className="mode-buttons">
-          <button className="mode-switch" onClick={() => onModeChange('kiosk')}>
-            🖥️ Kiosk
-          </button>
-        </div>
+    <div className="mobile-mode mobile-walkie">
+      {/* Minimal Header */}
+      <header className="walkie-header">
+        <div className={`connection-dot ${connectionStatus}`} title={connected ? 'Connected' : 'Disconnected'} />
+        <div className="walkie-header-spacer" />
+        <button 
+          className="walkie-header-btn" 
+          onClick={() => setSettingsOpen(true)}
+          title="Settings"
+        >
+          ⚙️
+        </button>
+        <button 
+          className="walkie-header-btn conversation-btn" 
+          onClick={() => setConversationOpen(true)}
+          title="View conversation"
+        >
+          💬
+          {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
+        </button>
       </header>
 
-      <div className="mobile-participants">
-        {mobileDevices.length > 0 && (
-          <span className="participant-group">
-            📱 {mobileDevices.length} mobile{mobileDevices.length !== 1 ? 's' : ''}
-          </span>
-        )}
-        {kioskDevices.length > 0 && (
-          <span className="participant-group">
-            🖥️ {kioskDevices.length} kiosk{kioskDevices.length !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
-
-      <div className="tts-toggle">
-        <label>
-          <input
-            type="checkbox"
-            checked={ttsEnabled}
-            onChange={(e) => setTtsEnabled(e.target.checked)}
-            disabled={!ttsSupported}
+      {/* Main Content */}
+      <div className="walkie-content">
+        {/* Oscilloscope */}
+        <div className="walkie-oscilloscope">
+          <Oscilloscope
+            analyser={audioAnalyser.analyser}
+            dataArray={audioAnalyser.dataArray}
+            isActive={audioAnalyser.isActive}
+            width={280}
+            height={100}
           />
-          🔊 Read messages aloud {isSpeaking && '(speaking...)'}
-        </label>
-        {!ttsSupported && <span className="not-supported">(not supported)</span>}
-      </div>
+        </div>
 
-      <div className="messages mobile-messages">
-        {sortedUtterances.length === 0 ? (
-          <div className="no-messages">
-            No messages yet. Start the conversation!
-          </div>
-        ) : (
-          sortedUtterances.map((utterance) => {
-            const isOwnMessage = utterance.senderId === deviceId;
-            return (
-              <div 
-                key={utterance.id} 
-                className={`message ${utterance.partial ? 'partial' : 'final'} ${isOwnMessage ? 'own-message' : ''}`}
-              >
-                <span className="sender">{isOwnMessage ? 'You' : utterance.senderName}:</span>
-                <span className="text">{utterance.text}</span>
-                {utterance.partial && <span className="typing-indicator">...</span>}
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="mobile-input-area">
-        {interimText && (
-          <div className="interim-text">
-            <em>{interimText}</em>
-          </div>
-        )}
-        <div className="mobile-input-row">
-          {/* AI status indicator (display only - AI auto-connects to session) */}
-          {aiAvailable && (ai.connecting || ai.connected) && (
-            <div
-              className={`ai-status ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
-              title={ai.connecting ? 'AI connecting...' : ai.thinking ? 'AI thinking...' : 'AI connected'}
-            >
-              {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
-            </div>
+        {/* Status Text */}
+        <div className="walkie-status">
+          {sttError ? (
+            <span className="walkie-error">⚠️ {sttError}</span>
+          ) : interimText ? (
+            <span className="walkie-interim">"{interimText}"</span>
+          ) : isListening ? (
+            <span className="walkie-listening">Listening...</span>
+          ) : (
+            <span className="walkie-ready">Tap to speak</span>
           )}
-          <button 
-            className={`stt-btn-small ${isListening ? 'listening' : ''}`}
-            onClick={isListening ? stopListening : startListening}
-            disabled={!sttSupported}
-            title={sttSupported ? (isListening ? 'Stop listening' : 'Start speech-to-text') : 'Speech recognition not supported'}
-          >
-            {isListening ? '🔴' : '🎤'}
-          </button>
-          <button
-            className={`auto-submit-toggle ${autoSubmit ? 'active' : ''}`}
-            onClick={() => setAutoSubmit(!autoSubmit)}
-            title={autoSubmit ? 'Auto-send on: speech sends immediately' : 'Auto-send off: edit before sending'}
-          >
-            {autoSubmit ? '⚡' : '✏️'}
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder={ai.connected ? "Ask the AI..." : "Type a message..."}
-          />
-          <button 
-            className="send-btn-small"
-            onClick={handleSend}
-            disabled={!text.trim()}
-          >
-            ➤
-          </button>
+        </div>
+
+        {/* Large Mic Button */}
+        <button
+          className={`walkie-mic-btn ${isListening ? 'active' : ''}`}
+          onClick={handleMicToggle}
+          disabled={!sttSupported}
+          title={sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported'}
+        >
+          <span className="mic-icon">{isListening ? '🔴' : '🎤'}</span>
+        </button>
+
+        {/* AI Status Badge */}
+        {aiAvailable && (ai.connecting || ai.connected) && (
+          <div className={`walkie-ai-badge ${ai.thinking ? 'thinking' : ''}`}>
+            {ai.connecting ? '🔗 Connecting...' : ai.thinking ? '🤔 Thinking...' : '✨ AI Connected'}
+          </div>
+        )}
+
+        {/* Device counts (subtle) */}
+        <div className="walkie-devices">
+          {mobileCount > 0 && <span>📱 {mobileCount}</span>}
+          {kioskCount > 0 && <span>🖥️ {kioskCount}</span>}
         </div>
       </div>
 
-      {sttError && (
-        <div className="stt-error">
-          ⚠️ {sttError}
-        </div>
-      )}
+      {/* Settings Modal */}
+      <MobileSettings
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        displayName={displayName}
+        ttsEnabled={ttsEnabled}
+        ttsSupported={ttsSupported}
+        autoSubmit={autoSubmit}
+        onTtsChange={setTtsEnabled}
+        onAutoSubmitChange={setAutoSubmit}
+        onModeChange={onModeChange}
+      />
 
+      {/* Conversation Pane */}
+      <ConversationPane
+        isOpen={conversationOpen}
+        onClose={() => setConversationOpen(false)}
+        utterances={utterances}
+        deviceId={deviceId}
+      />
+
+      {/* AI Error Toast */}
       {ai.error && (
-        <div className="ai-error">
+        <div className="walkie-toast error">
           ⚠️ AI: {ai.error}
-        </div>
-      )}
-
-      {(ai.connecting || ai.connected || ai.thinking) && (
-        <div className={`ai-status-indicator ${
-          ai.connecting ? 'connecting' :
-          ai.thinking ? 'thinking' :
-          'connected'
-        }`}>
-          {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
         </div>
       )}
     </div>
