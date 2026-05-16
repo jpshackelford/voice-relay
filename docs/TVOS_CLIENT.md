@@ -78,7 +78,27 @@ Content-Type: application/json
 }
 ```
 
-Display `user_code` and `verification_uri` to the user. The `verification_uri_complete` can be encoded as a QR code for easy mobile access.
+Display to the user:
+1. **QR Code** - Encode `verification_uri_complete` as a QR code (recommended - users can scan with phone camera)
+2. **User Code** - Show `user_code` prominently (e.g., "ABCD-1234")
+3. **Fallback URL** - Show `verification_uri` as text for manual entry
+
+**Example tvOS UI:**
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│         Scan to Connect                 │
+│                                         │
+│          ┌─────────────┐                │
+│          │ [QR CODE]   │                │
+│          │             │                │
+│          └─────────────┘                │
+│                                         │
+│    Or visit: example.com/auth/device    │
+│    Enter code: ABCD-1234                │
+│                                         │
+└─────────────────────────────────────────┘
+```
 
 ##### POST /auth/device/token
 
@@ -419,6 +439,75 @@ Button("Approve") { /* action */ }
 
 // For custom focus handling
 @FocusState private var focusedField: Field?
+```
+
+---
+
+## QR Code Generation
+
+tvOS supports generating QR codes using Core Image. Display the `verification_uri_complete` as a QR code:
+
+```swift
+import CoreImage.CIFilterBuiltins
+import SwiftUI
+
+struct QRCodeView: View {
+    let url: String
+    
+    var body: some View {
+        if let image = generateQRCode(from: url) {
+            Image(uiImage: image)
+                .interpolation(.none)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 300, height: 300)
+        }
+    }
+    
+    private func generateQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+        
+        guard let outputImage = filter.outputImage else { return nil }
+        
+        // Scale up for TV display
+        let scale = 10.0
+        let scaledImage = outputImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        
+        guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else {
+            return nil
+        }
+        
+        return UIImage(cgImage: cgImage)
+    }
+}
+
+// Usage in device auth flow:
+struct DeviceAuthView: View {
+    let deviceCode: DeviceCodeResponse
+    
+    var body: some View {
+        VStack(spacing: 40) {
+            Text("Scan to Connect")
+                .font(.title)
+            
+            QRCodeView(url: deviceCode.verification_uri_complete)
+            
+            Text("Or enter code:")
+                .font(.headline)
+            
+            Text(deviceCode.user_code)
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
+            
+            Text("at \(deviceCode.verification_uri)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+    }
+}
 ```
 
 ---
