@@ -1488,3 +1488,104 @@ All 4 review threads resolved. CI passing. PR marked ready for review.
 **Previous Workers (all finished):**
 - `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
 - `333b79f` (review #128 round 1 ✓), `9fe0274` (implementation #127 ✓)
+
+---
+### 2026-05-15 20:36 UTC - Expansion Worker (`8347c92`)
+
+✅ **Expanded Issue #129**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- Type: Bug
+- Status: **Ready for implementation** ✅
+
+**Root Cause Identified:**
+
+The client-side wiring for session-centric AI status is incomplete:
+
+| Component | Has | Missing |
+|-----------|-----|---------|
+| `useWebSocket.ts` | `onSessionAIStatusMessage` callback | |
+| `useAI.ts` | `handleSessionAIStatus` handler | |
+| `SessionView.tsx` | | NOT passing `onSessionAIStatusMessage` to WebSocket |
+| `KioskMode.tsx` | `useAI({ sessionId })` | NOT receiving AI status from WebSocket |
+
+**Why `.ai-status` never appears:**
+1. Server broadcasts `session-ai-status` WebSocket messages ✓
+2. Client receives messages but callback is `undefined` ✗
+3. `ai.connecting` and `ai.connected` stay `false`
+4. Conditional `{aiAvailable && (ai.connecting || ai.connected) && ...}` is never true
+5. Element is never rendered
+
+**Proposed Fix:**
+- Wire `onSessionAIStatusMessage` from `SessionView.tsx` to `useWebSocket`
+- Connect to `KioskMode` via props or lifted state
+- Also wire `onAIThinkingMessage` for thinking indicator
+
+**Files to modify:**
+- `client/src/pages/SessionView.tsx`
+- `client/src/components/KioskMode.tsx`
+
+**Labels:** `ready`, `bug`
+
+### 2026-05-15 21:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2ac2fd2` | implementation | Issue #129 - Smoke test failure | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- Priority: `priority:high` (CI failure bug)
+- Conversation: [`2ac2fd2`](https://app.all-hands.dev/conversations/2ac2fd2389224a98b22dbbcbf1c594fb)
+
+**Root Cause (from expansion worker `8347c92`):**
+Client-side wiring for session-centric AI status is incomplete:
+- `useWebSocket.ts` has `onSessionAIStatusMessage` callback ✓
+- `useAI.ts` has `handleSessionAIStatus` handler ✓
+- `SessionView.tsx` NOT passing `onSessionAIStatusMessage` to WebSocket ✗
+- `KioskMode.tsx` NOT receiving AI status from WebSocket ✗
+
+**Expected Fix:**
+1. Wire `onSessionAIStatusMessage` from `SessionView.tsx` to `useWebSocket`
+2. Connect to `KioskMode` via props or lifted state
+3. Also wire `onAIThinkingMessage` for thinking indicator
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- All issues expanded and ready
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (implementation worker)
+
+**Previous Workers (all finished):**
+- `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
+- `ecce820` (review #128 round 2 ✓), `333b79f` (review #128 round 1 ✓)
+
+---
+### 2026-05-15 21:10 UTC - Implementation Worker
+
+✅ **PR Created: Issue #129 (smoke test failure)**
+
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Status: **Ready for review** ✅
+
+**Changes Implemented:**
+
+| File | Changes |
+|------|---------|
+| `client/src/pages/SessionView.tsx` | Added `useAI` hook, wired handlers to `useWebSocket`, passed `ai` prop to `KioskMode` |
+| `client/src/components/KioskMode.tsx` | Accept optional `ai` prop, removed internal `useAI` call, added optional chaining |
+| `client/src/components/KioskMode.test.tsx` | Updated tests to pass `ai` as prop |
+
+**Root Cause:**
+The session-centric AI architecture (PR #126) added WebSocket message types and handlers, but the React component wiring in `SessionView.tsx` was never completed. The fix connects:
+1. Server broadcasts `session-ai-status` messages
+2. `useWebSocket` receives and forwards to callback
+3. `useAI.handleSessionAIStatus` updates state
+4. `KioskMode` renders `.ai-status` indicator
+
+**Tests:**
+- All 180 client tests passing ✅
+- CI: All checks green ✅
