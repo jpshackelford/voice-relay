@@ -161,7 +161,7 @@ test.describe('Session Management', () => {
     await expect(sessionRow).toBeVisible();
     
     // Check for session name (or truncated ID)
-    const sessionName = sessionRow.locator('.session-name');
+    const sessionName = sessionRow.locator('.session-name-text');
     await expect(sessionName).toBeVisible();
     
     // Check for creation time
@@ -419,7 +419,7 @@ test.describe('Session Management', () => {
     await expect(sessionRow).toBeVisible();
     
     // Session name
-    await expect(sessionRow.locator('.session-name')).toBeVisible();
+    await expect(sessionRow.locator('.session-name-text')).toBeVisible();
     
     // Creation time
     await expect(sessionRow.locator('.session-meta')).toContainText(/Created/);
