@@ -187,10 +187,10 @@ test.describe('Multi-Device Real-Time Relay', () => {
       // Check for "1📱" (indicating at least 1 mobile) since format is "🖥️ 1📱 1"
       await expect(deviceIndicator).toContainText(/📱.*1|1.*📱/i, { timeout: 5000 });
 
-      // Mobile mode shows device count in header or status area
-      const mobileParticipants = mobilePage.locator('.mobile-participants, .participants, .device-count, .connection-status');
-      // Check that we're connected (mobile shows connection status, not device count breakdown)
-      await expect(mobileParticipants).toContainText(/connected|online|📱|🖥️/i, { timeout: 5000 });
+      // Mobile mode shows device count in mobile-participants element
+      const mobileParticipants = mobilePage.locator('.mobile-participants');
+      // Check for mobile device indicator (format: "📱 1 mobile🖥️ 1 kiosk")
+      await expect(mobileParticipants).toContainText(/📱|mobile|kiosk/i, { timeout: 5000 });
 
       console.log('Device count test passed - both views show 2 devices');
 
