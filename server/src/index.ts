@@ -16,18 +16,19 @@ import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
-import type { 
-  ClientMessage, 
-  RegisteredMessage, 
-  RelayedTextMessage, 
-  HistoryMessage, 
-  DisplayContent, 
-  DisplayRequest,
-  JoinRequestMessage,
-  JoinResolvedMessage,
-  DeviceRemovedMessage,
-  SessionAIStatusMessage,
-  AIThinkingMessage,
+import { 
+  isValidPlatform,
+  type ClientMessage, 
+  type RegisteredMessage, 
+  type RelayedTextMessage, 
+  type HistoryMessage, 
+  type DisplayContent, 
+  type DisplayRequest,
+  type JoinRequestMessage,
+  type JoinResolvedMessage,
+  type DeviceRemovedMessage,
+  type SessionAIStatusMessage,
+  type AIThinkingMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -388,6 +389,9 @@ wss.on('connection', (ws: WebSocket) => {
             sessionId = 'default';
           }
           
+          // SECURITY: Validate platform to prevent log injection attacks
+          const validatedPlatform = isValidPlatform(message.platform) ? message.platform : undefined;
+          
           registry.register(
             message.deviceId,
             requestedWorkspaceId,
@@ -397,7 +401,7 @@ wss.on('connection', (ws: WebSocket) => {
             message.screenWidth,
             message.screenHeight,
             sessionId,
-            message.platform
+            validatedPlatform
           );
           
           const response: RegisteredMessage = {
@@ -693,6 +697,16 @@ async function start() {
       });
       app.use('/auth/device', deviceAuthRouter);
       console.log('[Auth] Device Authorization Grant enabled (for tvOS/device auth)');
+      
+      // Graceful shutdown for DeviceAuthManager cleanup interval
+      process.on('SIGTERM', () => {
+        console.log('[DeviceAuth] Shutting down...');
+        deviceAuthManager.shutdown();
+      });
+      process.on('SIGINT', () => {
+        console.log('[DeviceAuth] Shutting down...');
+        deviceAuthManager.shutdown();
+      });
       
       // Set up workspace routes with WebSocket callbacks for join request flow
       const workspaceRouter = createWorkspaceRouter({

@@ -34,6 +34,17 @@ export type ClientMessage =
 /** Platform identifier for analytics and debugging */
 export type DevicePlatform = 'web' | 'ios' | 'android' | 'tvos' | 'macos' | 'windows' | 'linux';
 
+/** Valid platform values for runtime validation */
+export const VALID_PLATFORMS: readonly DevicePlatform[] = ['web', 'ios', 'android', 'tvos', 'macos', 'windows', 'linux'] as const;
+
+/**
+ * Validate that a value is a valid DevicePlatform.
+ * Use this to sanitize untrusted input before logging to prevent log injection.
+ */
+export function isValidPlatform(platform: unknown): platform is DevicePlatform {
+  return typeof platform === 'string' && VALID_PLATFORMS.includes(platform as DevicePlatform);
+}
+
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
