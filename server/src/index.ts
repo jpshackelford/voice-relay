@@ -9,7 +9,7 @@ import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
-import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
+import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
@@ -396,7 +396,8 @@ wss.on('connection', (ws: WebSocket) => {
             message.mode,
             message.screenWidth,
             message.screenHeight,
-            sessionId
+            sessionId,
+            message.platform
           );
           
           const response: RegisteredMessage = {
@@ -678,6 +679,20 @@ async function start() {
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');
+
+      // Set up Device Authorization Grant flow (RFC 8628) for tvOS/device authentication
+      const deviceAuthManager = new DeviceAuthManager({
+        baseUrl: authConfig.callbackUrl.replace('/auth/github/callback', ''),
+      });
+      const deviceAuthRouter = createDeviceAuthRouter({
+        deviceAuthManager,
+        jwtService,
+        userRepository,
+        workspaceRepository,
+        deviceRepository,
+      });
+      app.use('/auth/device', deviceAuthRouter);
+      console.log('[Auth] Device Authorization Grant enabled (for tvOS/device auth)');
       
       // Set up workspace routes with WebSocket callbacks for join request flow
       const workspaceRouter = createWorkspaceRouter({

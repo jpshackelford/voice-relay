@@ -14,6 +14,8 @@ export interface Device {
   screenWidth?: number;
   screenHeight?: number;
   displayLines?: number;  // Calculated max lines for kiosk display
+  /** Platform identifier (optional, for analytics/debugging) */
+  platform?: DevicePlatform;
 }
 
 export interface DisplayContent {
@@ -29,6 +31,9 @@ export type ClientMessage =
   | TextMessage
   | JoinResponseMessage;
 
+/** Platform identifier for analytics and debugging */
+export type DevicePlatform = 'web' | 'ios' | 'android' | 'tvos' | 'macos' | 'windows' | 'linux';
+
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
@@ -38,6 +43,8 @@ export interface RegisterMessage {
   mode: DeviceMode;
   screenWidth?: number;
   screenHeight?: number;
+  /** Platform identifier (optional, for analytics/debugging). Defaults to 'web' if not provided. */
+  platform?: DevicePlatform;
 }
 
 /**
