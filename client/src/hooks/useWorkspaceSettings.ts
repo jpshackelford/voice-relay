@@ -8,6 +8,9 @@ export interface WorkspaceSettings {
   sttLanguage: string | null;
   allowAutoJoin: boolean;
   requireQrToken: boolean;
+  hasElevenlabsApiKey: boolean;
+  elevenlabsVoiceId: string | null;
+  elevenlabsTtsEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -16,15 +19,25 @@ export interface ApiKeyTestResult {
   message: string;
 }
 
+export interface ElevenlabsVoice {
+  voice_id: string;
+  name: string;
+  labels?: Record<string, string>;
+}
+
 interface UseWorkspaceSettingsReturn {
   settings: WorkspaceSettings | null;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken'>>) => Promise<void>;
+  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled'>>) => Promise<void>;
   setApiKey: (apiKey: string) => Promise<void>;
   testApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
   removeApiKey: () => Promise<void>;
+  setElevenlabsApiKey: (apiKey: string) => Promise<void>;
+  testElevenlabsApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
+  removeElevenlabsApiKey: () => Promise<void>;
+  fetchElevenlabsVoices: () => Promise<ElevenlabsVoice[]>;
 }
 
 /**
@@ -174,6 +187,93 @@ export function useWorkspaceSettings(
     await refresh();
   }, [workspaceId, ensureValidToken, refresh]);
 
+  const setElevenlabsApiKey = useCallback(async (apiKey: string) => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/elevenlabs-api-key`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to set ElevenLabs API key');
+    }
+
+    // Refresh settings to get updated hasElevenlabsApiKey
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
+  const testElevenlabsApiKey = useCallback(async (apiKey?: string): Promise<ApiKeyTestResult> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/elevenlabs-api-key/test`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(apiKey ? { apiKey } : {}),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to test ElevenLabs API key');
+    }
+
+    return await res.json() as ApiKeyTestResult;
+  }, [workspaceId, ensureValidToken]);
+
+  const removeElevenlabsApiKey = useCallback(async () => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/elevenlabs-api-key`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!res.ok && res.status !== 204) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to remove ElevenLabs API key');
+    }
+
+    // Refresh settings to get updated hasElevenlabsApiKey
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
+  const fetchElevenlabsVoices = useCallback(async (): Promise<ElevenlabsVoice[]> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/elevenlabs-voices`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to fetch ElevenLabs voices');
+    }
+
+    const data = await res.json();
+    return data.voices as ElevenlabsVoice[];
+  }, [workspaceId, ensureValidToken]);
+
   return {
     settings,
     loading,
@@ -183,5 +283,9 @@ export function useWorkspaceSettings(
     setApiKey,
     testApiKey,
     removeApiKey,
+    setElevenlabsApiKey,
+    testElevenlabsApiKey,
+    removeElevenlabsApiKey,
+    fetchElevenlabsVoices,
   };
 }

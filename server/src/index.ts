@@ -16,6 +16,7 @@ import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
+import { TtsService } from './tts/index.js';
 import { 
   isValidPlatform,
   type ClientMessage, 
@@ -77,6 +78,9 @@ let joinRequestRepository: JoinRequestRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
+
+// TTS service for AI response speech synthesis (set up after workspace repository)
+let ttsService: TtsService | null = null;
 
 // Map requestId -> userId for tracking pending join requests
 // Used to send join-resolved messages back to the requesting user's devices.
@@ -435,6 +439,7 @@ wss.on('connection', (ws: WebSocket) => {
               workspaceRepository,
               aiSessionManager,
               store,
+              ttsService: ttsService ?? undefined,
               getWorkspaceApiKey: async (wsId) => 
                 workspaceRepository
                   ? await getWorkspaceApiKey(
@@ -664,6 +669,14 @@ async function start() {
       sessionRepository = new SessionRepository(db);
       qrTokenRepository = new QrTokenRepository(db);
       console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken repositories initialized');
+
+      // Initialize TTS service for AI response speech synthesis
+      ttsService = new TtsService({
+        registry,
+        getWorkspaceSettings: (id) => workspaceRepository!.getSettings(id),
+        decryptApiKey,
+      });
+      console.log('[TTS] Service initialized');
     }
   }
 

@@ -28,6 +28,8 @@ interface KioskModeProps {
   workspaceId?: string;
   sessionId?: string;
   ai?: AIState;  // AI state from parent (via useAI hook)
+  /** Whether server-side TTS audio is currently playing */
+  isAudioPlaying?: boolean;
 }
 
 // Hook to detect mobile devices
@@ -59,11 +61,12 @@ export function KioskMode({
   onExit,
   workspaceId,
   sessionId,
-  ai
+  ai,
+  isAudioPlaying = false,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
-  const [ttsEnabled, setTtsEnabled] = useState(false);  // TTS off by default
+  const [ttsEnabled, setTtsEnabled] = useState(false);  // Browser TTS off by default (server-side ElevenLabs TTS handles AI responses)
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
@@ -168,7 +171,9 @@ export function KioskMode({
     if (!ttsEnabled) return;
 
     for (const [id, utterance] of utterances) {
-      if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
+      // Browser TTS for user messages only - AI responses use ElevenLabs server-side TTS
+      // Exclude: own messages (deviceId), AI messages ('ai'), partial, already spoken
+      if (utterance.senderId !== deviceId && utterance.senderId !== 'ai' && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
         spokenUtterancesRef.current.add(id);
         speak(utterance.text);
       }
@@ -332,14 +337,14 @@ export function KioskMode({
         </div>
 
         <div className="kiosk-tts-toggle">
-          <label>
+          <label title="Browser TTS for user messages (AI responses use server-side TTS)">
             <input
               type="checkbox"
               checked={ttsEnabled}
               onChange={(e) => setTtsEnabled(e.target.checked)}
               disabled={!ttsSupported}
             />
-            🔊 {isSpeaking && '(speaking...)'}
+            🔊 {(isSpeaking || isAudioPlaying) && '(speaking...)'}
           </label>
         </div>
 

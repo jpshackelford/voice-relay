@@ -29,6 +29,14 @@ export interface WorkspaceSettings {
   allowAutoJoin: boolean;
   /** Whether to require signed QR tokens for auto-join (default: false for backward compat) */
   requireQrToken: boolean;
+  /** Encrypted ElevenLabs API key for TTS */
+  elevenlabsApiKeyEncrypted: string | null;
+  elevenlabsApiKeyIv: string | null;
+  elevenlabsApiKeyTag: string | null;
+  /** Selected ElevenLabs voice ID (default: Aria voice Xb7hH8MSUJpSbSDYk0k2) */
+  elevenlabsVoiceId: string | null;
+  /** Whether server-side TTS is enabled for this workspace */
+  elevenlabsTtsEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -38,6 +46,9 @@ export interface WorkspaceSettingsInput {
   sttLanguage?: string;
   allowAutoJoin?: boolean;
   requireQrToken?: boolean;
+  elevenlabsApiKey?: string; // Plain text - will be encrypted before storage
+  elevenlabsVoiceId?: string;
+  elevenlabsTtsEnabled?: boolean;
 }
 
 export interface WorkspaceMember {

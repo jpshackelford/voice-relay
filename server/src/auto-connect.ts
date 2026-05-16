@@ -9,6 +9,7 @@ import type { SessionRepository } from './sessions/index.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
 import type { AISessionManager } from './openhands.js';
+import type { TtsService } from './tts/index.js';
 import type { RelayedTextMessage, SessionAIStatusMessage } from './types.js';
 
 /**
@@ -23,6 +24,8 @@ export interface AutoConnectDependencies {
   store: MessageStore;
   /** Function to get workspace API key (handles decryption) */
   getWorkspaceApiKey: (workspaceId: string) => Promise<string | null>;
+  /** Optional TTS service for generating speech from AI responses */
+  ttsService?: TtsService;
 }
 
 /**
@@ -38,7 +41,7 @@ export async function autoConnectAI(
   workspaceId: string,
   deps: AutoConnectDependencies
 ): Promise<void> {
-  const { registry, sessionRepository, workspaceRepository, aiSessionManager, store, getWorkspaceApiKey } = deps;
+  const { registry, sessionRepository, workspaceRepository, aiSessionManager, store, getWorkspaceApiKey, ttsService } = deps;
   
   console.log(`[AI] Auto-connecting AI for session ${sessionId}`);
 
@@ -86,9 +89,10 @@ export async function autoConnectAI(
       workspaceId,
       (text: string) => {
         // Relay AI responses to all devices in session
+        const utteranceId = `ai-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         const aiMessage: RelayedTextMessage = {
           type: 'text',
-          utteranceId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+          utteranceId,
           workspaceId,
           sessionId,
           senderId: 'ai',
@@ -98,6 +102,13 @@ export async function autoConnectAI(
         };
         store.append(aiMessage);
         registry.broadcastToSession(aiMessage, sessionId);
+
+        // Generate TTS for AI response (only if TTS service is available and enabled)
+        if (ttsService && ttsService.isEnabled(workspaceId)) {
+          ttsService.synthesizeForSession(text, workspaceId, sessionId, utteranceId).catch(err => {
+            console.error(`[TTS] Failed to synthesize for session ${sessionId}:`, err);
+          });
+        }
       },
       {
         displayLines,

@@ -7,11 +7,12 @@ import { WaitingForApproval } from '../components/WaitingForApproval';
 import { JoinRequestStack } from '../components/JoinRequestNotification';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAI } from '../hooks/useAI';
+import { useAudioPlayback } from '../hooks/useAudioPlayback';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
-import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage } from '../types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage, AudioChunkMessage, AudioEndMessage } from '../types';
 
 interface WorkspaceInfo {
   id: string;
@@ -80,6 +81,9 @@ export function SessionView() {
   // AI status - lifted from KioskMode for WebSocket wiring
   // Session ID is available from URL params; used to filter AI status messages
   const ai = useAI({ sessionId });
+
+  // Audio playback for server-side TTS (ElevenLabs)
+  const audioPlayback = useAudioPlayback();
 
   // Memoize extractors to avoid unnecessary re-fetches
   const extractWorkspace = useCallback((data: unknown) => data as WorkspaceInfo, []);
@@ -241,6 +245,7 @@ export function SessionView() {
 
   // Connect WebSocket with specific session ID
   // Wire AI status handlers to receive session-centric AI status updates
+  // Wire audio handlers for server-side TTS (ElevenLabs)
   const { connected, devices, sendText, updateDevice, sendJoinResponse } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
@@ -254,6 +259,8 @@ export function SessionView() {
     onJoinRequestMessage: handleJoinRequestMessage,
     onSessionAIStatusMessage: ai.handleSessionAIStatus,
     onAIThinkingMessage: ai.handleAIThinking,
+    onAudioChunkMessage: (msg) => audioPlayback.handleAudioChunk(msg as AudioChunkMessage),
+    onAudioEndMessage: (msg) => audioPlayback.handleAudioEnd(msg as AudioEndMessage),
   });
 
   // Helper to clear timeout for a request
@@ -452,6 +459,7 @@ export function SessionView() {
           workspaceId={workspaceId}
           sessionId={sessionId}
           ai={ai}
+          isAudioPlaying={audioPlayback.isPlaying}
         />
       </>
     );

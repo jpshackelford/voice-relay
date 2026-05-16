@@ -434,7 +434,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
-  // Get workspace settings (owner only, API key masked)
+  // Get workspace settings (owner only, API keys masked)
   router.get('/:id/settings', auth, async (req: Request, res: Response) => {
     try {
       const workspace = workspaceRepository.findById(req.params.id);
@@ -451,7 +451,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
 
       const settings = workspaceRepository.getSettings(workspace.id);
       
-      // Return settings with API key presence indicator (but not the key itself)
+      // Return settings with API key presence indicators (but not the keys themselves)
       res.json({
         workspaceId: workspace.id,
         hasApiKey: !!settings?.openhandsApiKeyEncrypted,
@@ -459,6 +459,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         sttLanguage: settings?.sttLanguage ?? null,
         allowAutoJoin: settings?.allowAutoJoin ?? false,  // Default to false (security-first)
         requireQrToken: settings?.requireQrToken ?? false,  // Default to false (backward compat)
+        hasElevenlabsApiKey: !!settings?.elevenlabsApiKeyEncrypted,
+        elevenlabsVoiceId: settings?.elevenlabsVoiceId ?? null,
+        elevenlabsTtsEnabled: settings?.elevenlabsTtsEnabled ?? false,
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -482,20 +485,24 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken } = req.body as { 
+      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled } = req.body as { 
         ttsVoice?: string; 
         sttLanguage?: string;
         allowAutoJoin?: boolean;
         requireQrToken?: boolean;
+        elevenlabsVoiceId?: string;
+        elevenlabsTtsEnabled?: boolean;
       };
 
-      // Note: API key encryption would be handled by a service layer
-      // For now, we just update non-sensitive settings
+      // Note: API key encryption is handled by separate endpoints
+      // This updates non-sensitive settings
       const settings = workspaceRepository.updateSettings(workspace.id, {
         ttsVoice,
         sttLanguage,
         allowAutoJoin,
         requireQrToken,
+        elevenlabsVoiceId,
+        elevenlabsTtsEnabled,
       });
 
       res.json({
@@ -505,6 +512,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         sttLanguage: settings.sttLanguage,
         allowAutoJoin: settings.allowAutoJoin,
         requireQrToken: settings.requireQrToken,
+        hasElevenlabsApiKey: !!settings.elevenlabsApiKeyEncrypted,
+        elevenlabsVoiceId: settings.elevenlabsVoiceId,
+        elevenlabsTtsEnabled: settings.elevenlabsTtsEnabled,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {
@@ -665,6 +675,179 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     } catch (err) {
       console.error('[Workspaces] Remove API key error:', err);
       res.status(500).json({ error: 'Failed to remove API key' });
+    }
+  });
+
+  // Set ElevenLabs API key (encrypted storage)
+  router.put('/:id/settings/elevenlabs-api-key', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can set ElevenLabs API key' });
+        return;
+      }
+
+      const { apiKey } = req.body as { apiKey?: string };
+
+      if (!apiKey) {
+        res.status(400).json({ error: 'API key is required' });
+        return;
+      }
+
+      // Basic format validation (ElevenLabs keys are typically 32 characters)
+      if (apiKey.length < 20 || apiKey.length > 100) {
+        res.status(400).json({ error: 'Invalid ElevenLabs API key format' });
+        return;
+      }
+
+      // Encrypt and store the API key
+      const encrypted = encryptApiKey(apiKey);
+      workspaceRepository.updateSettings(workspace.id, {
+        elevenlabsApiKeyEncrypted: encrypted.encrypted,
+        elevenlabsApiKeyIv: encrypted.iv,
+        elevenlabsApiKeyTag: encrypted.tag,
+      });
+
+      // Audit log (don't log the actual key)
+      console.log('[Workspaces] ElevenLabs API key updated:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[Workspaces] Set ElevenLabs API key error:', err);
+      res.status(500).json({ error: 'Failed to set ElevenLabs API key' });
+    }
+  });
+
+  // Test ElevenLabs API key
+  router.post('/:id/settings/elevenlabs-api-key/test', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can test ElevenLabs API key' });
+        return;
+      }
+
+      const { apiKey } = req.body as { apiKey?: string };
+      let keyToTest: string | undefined = apiKey;
+
+      // If no key provided in request, use stored key
+      if (!keyToTest) {
+        const settings = workspaceRepository.getSettings(workspace.id);
+        if (settings?.elevenlabsApiKeyEncrypted && settings?.elevenlabsApiKeyIv && settings?.elevenlabsApiKeyTag) {
+          try {
+            keyToTest = decryptApiKey({
+              encrypted: settings.elevenlabsApiKeyEncrypted,
+              iv: settings.elevenlabsApiKeyIv,
+              tag: settings.elevenlabsApiKeyTag,
+            });
+          } catch (err) {
+            res.status(500).json({ valid: false, message: 'Failed to decrypt stored key' });
+            return;
+          }
+        }
+      }
+
+      if (!keyToTest) {
+        res.status(400).json({ valid: false, message: 'No ElevenLabs API key available to test' });
+        return;
+      }
+
+      // Import the test function from TTS module
+      const { testApiKey: testElevenlabsKey } = await import('../tts/elevenlabs.js');
+      const result = await testElevenlabsKey(keyToTest);
+
+      res.json(result);
+    } catch (err) {
+      console.error('[Workspaces] Test ElevenLabs API key error:', err);
+      res.status(500).json({ valid: false, message: 'Failed to test ElevenLabs API key' });
+    }
+  });
+
+  // Remove ElevenLabs API key
+  router.delete('/:id/settings/elevenlabs-api-key', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can remove ElevenLabs API key' });
+        return;
+      }
+
+      workspaceRepository.clearElevenlabsApiKey(workspace.id);
+
+      // Audit log
+      console.log('[Workspaces] ElevenLabs API key removed:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.status(204).send();
+    } catch (err) {
+      console.error('[Workspaces] Remove ElevenLabs API key error:', err);
+      res.status(500).json({ error: 'Failed to remove ElevenLabs API key' });
+    }
+  });
+
+  // Fetch available ElevenLabs voices
+  router.get('/:id/settings/elevenlabs-voices', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can view ElevenLabs voices' });
+        return;
+      }
+
+      // Get stored key
+      const settings = workspaceRepository.getSettings(workspace.id);
+      if (!settings?.elevenlabsApiKeyEncrypted || !settings?.elevenlabsApiKeyIv || !settings?.elevenlabsApiKeyTag) {
+        res.status(400).json({ error: 'ElevenLabs API key not configured' });
+        return;
+      }
+
+      const apiKey = decryptApiKey({
+        encrypted: settings.elevenlabsApiKeyEncrypted,
+        iv: settings.elevenlabsApiKeyIv,
+        tag: settings.elevenlabsApiKeyTag,
+      });
+
+      // Import and use the fetch voices function
+      const { fetchVoices } = await import('../tts/elevenlabs.js');
+      const voices = await fetchVoices(apiKey);
+
+      res.json({ voices });
+    } catch (err) {
+      console.error('[Workspaces] Fetch ElevenLabs voices error:', err);
+      res.status(500).json({ error: 'Failed to fetch ElevenLabs voices' });
     }
   });
 

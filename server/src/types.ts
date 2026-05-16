@@ -115,6 +115,32 @@ export interface WorkspaceDeletedMessage {
   reason?: string;
 }
 
+/**
+ * Server → Kiosk devices: Audio chunk for TTS playback.
+ * Base64-encoded audio data in MP3 format.
+ */
+export interface AudioChunkMessage {
+  type: 'audio-chunk';
+  sessionId: string;
+  utteranceId: string;
+  /** Base64-encoded audio data */
+  audio: string;
+  /** Audio format (always 'mp3' for ElevenLabs) */
+  format: 'mp3';
+}
+
+/**
+ * Server → Kiosk devices: Audio synthesis completed.
+ * Sent when TTS generation finishes (successfully or with error).
+ */
+export interface AudioEndMessage {
+  type: 'audio-end';
+  sessionId: string;
+  utteranceId: string;
+  /** Error message if synthesis failed */
+  error?: string;
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -127,7 +153,9 @@ export type ServerMessage =
   | DeviceRemovedMessage
   | WorkspaceDeletedMessage
   | AIThinkingMessage
-  | SessionAIStatusMessage;
+  | SessionAIStatusMessage
+  | AudioChunkMessage
+  | AudioEndMessage;
 
 export interface DisplayMessage {
   type: 'display';

@@ -28,6 +28,11 @@ interface WorkspaceSettingsRow {
   stt_language: string | null;
   allow_auto_join: number;
   require_qr_token: number;
+  elevenlabs_api_key_encrypted: string | null;
+  elevenlabs_api_key_iv: string | null;
+  elevenlabs_api_key_tag: string | null;
+  elevenlabs_voice_id: string | null;
+  elevenlabs_tts_enabled: number | null;
   updated_at: string | null;
 }
 
@@ -60,6 +65,11 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     sttLanguage: row.stt_language,
     allowAutoJoin: row.allow_auto_join === 1,
     requireQrToken: row.require_qr_token === 1,
+    elevenlabsApiKeyEncrypted: row.elevenlabs_api_key_encrypted,
+    elevenlabsApiKeyIv: row.elevenlabs_api_key_iv,
+    elevenlabsApiKeyTag: row.elevenlabs_api_key_tag,
+    elevenlabsVoiceId: row.elevenlabs_voice_id,
+    elevenlabsTtsEnabled: row.elevenlabs_tts_enabled === 1,
     updatedAt: row.updated_at,
   };
 }
@@ -274,7 +284,9 @@ export class WorkspaceRepository {
     const stmt = this.db.prepare<[string], WorkspaceSettingsRow>(`
       SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
              openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
-             require_qr_token, updated_at
+             require_qr_token, elevenlabs_api_key_encrypted, elevenlabs_api_key_iv,
+             elevenlabs_api_key_tag, elevenlabs_voice_id, elevenlabs_tts_enabled,
+             updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -291,6 +303,11 @@ export class WorkspaceRepository {
       sttLanguage?: string | null;
       allowAutoJoin?: boolean;
       requireQrToken?: boolean;
+      elevenlabsApiKeyEncrypted?: string | null;
+      elevenlabsApiKeyIv?: string | null;
+      elevenlabsApiKeyTag?: string | null;
+      elevenlabsVoiceId?: string | null;
+      elevenlabsTtsEnabled?: boolean;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
@@ -307,6 +324,11 @@ export class WorkspaceRepository {
             stt_language = COALESCE(?, stt_language),
             allow_auto_join = COALESCE(?, allow_auto_join),
             require_qr_token = COALESCE(?, require_qr_token),
+            elevenlabs_api_key_encrypted = COALESCE(?, elevenlabs_api_key_encrypted),
+            elevenlabs_api_key_iv = COALESCE(?, elevenlabs_api_key_iv),
+            elevenlabs_api_key_tag = COALESCE(?, elevenlabs_api_key_tag),
+            elevenlabs_voice_id = COALESCE(?, elevenlabs_voice_id),
+            elevenlabs_tts_enabled = COALESCE(?, elevenlabs_tts_enabled),
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -318,18 +340,23 @@ export class WorkspaceRepository {
         settings.sttLanguage ?? null,
         settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : null,
         settings.requireQrToken !== undefined ? (settings.requireQrToken ? 1 : 0) : null,
+        settings.elevenlabsApiKeyEncrypted ?? null,
+        settings.elevenlabsApiKeyIv ?? null,
+        settings.elevenlabsApiKeyTag ?? null,
+        settings.elevenlabsVoiceId ?? null,
+        settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : null,
         now,
         workspaceId
       );
     } else {
-      // Insert with default allowAutoJoin = false for new workspaces (security-first)
-      // Existing workspaces keep allowAutoJoin=true via migration default for backward compat
-      // requireQrToken defaults to false for backward compatibility
+      // Insert with defaults for new workspaces
       const stmt = this.db.prepare(`
         INSERT INTO workspace_settings 
         (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
-         openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token,
+         elevenlabs_api_key_encrypted, elevenlabs_api_key_iv, elevenlabs_api_key_tag,
+         elevenlabs_voice_id, elevenlabs_tts_enabled, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -340,6 +367,11 @@ export class WorkspaceRepository {
         settings.sttLanguage ?? null,
         settings.allowAutoJoin !== undefined ? (settings.allowAutoJoin ? 1 : 0) : 0,
         settings.requireQrToken !== undefined ? (settings.requireQrToken ? 1 : 0) : 0,
+        settings.elevenlabsApiKeyEncrypted ?? null,
+        settings.elevenlabsApiKeyIv ?? null,
+        settings.elevenlabsApiKeyTag ?? null,
+        settings.elevenlabsVoiceId ?? null,
+        settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : 0,
         now
       );
     }
@@ -358,6 +390,20 @@ export class WorkspaceRepository {
       SET openhands_api_key_encrypted = NULL,
           openhands_api_key_iv = NULL,
           openhands_api_key_tag = NULL,
+          updated_at = ?
+      WHERE workspace_id = ?
+    `);
+    stmt.run(now, workspaceId);
+  }
+
+  clearElevenlabsApiKey(workspaceId: string): void {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      UPDATE workspace_settings
+      SET elevenlabs_api_key_encrypted = NULL,
+          elevenlabs_api_key_iv = NULL,
+          elevenlabs_api_key_tag = NULL,
+          elevenlabs_tts_enabled = 0,
           updated_at = ?
       WHERE workspace_id = ?
     `);

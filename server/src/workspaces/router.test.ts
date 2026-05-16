@@ -12,6 +12,7 @@ import { migration as usersMigration } from '../storage/migrations/002_users.js'
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
+import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
 
 // Helper to set up test database and app
 function setupTestEnv() {
@@ -48,6 +49,7 @@ function setupTestEnv() {
     );
   `);
   db.exec(qrTokensMigration.up);
+  db.exec(elevenlabsMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);
@@ -549,6 +551,7 @@ describe('Workspace Router - GET /:id/devices', () => {
       );
     `);
     db.exec(qrTokensMigration.up);
+    db.exec(elevenlabsMigration.up);
 
     workspaceRepository = new WorkspaceRepository(db);
     deviceRepository = new DeviceRepository(db);
@@ -1238,6 +1241,7 @@ function setupDeletionTestEnv() {
     );
   `);
   db.exec(qrTokensMigration.up);
+  db.exec(elevenlabsMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);

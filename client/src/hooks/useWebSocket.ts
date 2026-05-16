@@ -18,9 +18,11 @@ interface UseWebSocketOptions {
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
   onDeviceRemovedMessage?: (message: ServerMessage & { type: 'device-removed' }) => void;
   onWorkspaceDeletedMessage?: (message: ServerMessage & { type: 'workspace-deleted' }) => void;
+  onAudioChunkMessage?: (message: ServerMessage & { type: 'audio-chunk' }) => void;
+  onAudioEndMessage?: (message: ServerMessage & { type: 'audio-end' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -38,6 +40,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
   const onDeviceRemovedMessageRef = useRef(onDeviceRemovedMessage);
   const onWorkspaceDeletedMessageRef = useRef(onWorkspaceDeletedMessage);
+  const onAudioChunkMessageRef = useRef(onAudioChunkMessage);
+  const onAudioEndMessageRef = useRef(onAudioEndMessage);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -54,6 +58,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
   onDeviceRemovedMessageRef.current = onDeviceRemovedMessage;
   onWorkspaceDeletedMessageRef.current = onWorkspaceDeletedMessage;
+  onAudioChunkMessageRef.current = onAudioChunkMessage;
+  onAudioEndMessageRef.current = onAudioEndMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -163,6 +169,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             lastKnownDevicesRef.current = [];
             // Notify callback if provided
             onWorkspaceDeletedMessageRef.current?.(message);
+            break;
+          case 'audio-chunk':
+            onAudioChunkMessageRef.current?.(message);
+            break;
+          case 'audio-end':
+            onAudioEndMessageRef.current?.(message);
             break;
         }
       } catch (err) {
