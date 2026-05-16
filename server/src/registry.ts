@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { Device, DeviceInfo, DeviceMode, DevicePlatform, RelayedTextMessage, DeviceListMessage, DisplayMessage, DisplayContent } from './types.js';
+import type { Device, DeviceInfo, DeviceMode, DevicePlatform, RelayedTextMessage, DeviceListMessage, DisplayMessage, DisplayContent, AudioChunkMessage, AudioEndMessage } from './types.js';
 
 // Display calculation constants (from CSS)
 const DISPLAY_PADDING_PX = 96;      // 3rem * 2 = 48px * 2
@@ -346,5 +346,21 @@ export class DeviceRegistry {
     }
 
     return disconnectedCount;
+  }
+
+  /**
+   * Broadcast audio message to all kiosk devices in a session.
+   * Used for TTS audio streaming - only kiosks play audio to avoid echo.
+   */
+  broadcastAudioToKiosks(sessionId: string, message: AudioChunkMessage | AudioEndMessage): void {
+    const devices = this.getDevicesBySession(sessionId);
+    const kioskDevices = devices.filter(d => d.mode === 'kiosk');
+    const payload = JSON.stringify(message);
+
+    for (const device of kioskDevices) {
+      if (device.ws.readyState === device.ws.OPEN) {
+        device.ws.send(payload);
+      }
+    }
   }
 }

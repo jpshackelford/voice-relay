@@ -153,6 +153,26 @@ export interface WorkspaceDeletedMessage {
   reason?: string;
 }
 
+/** Server → Kiosk devices: Audio chunk for TTS playback */
+export interface AudioChunkMessage {
+  type: 'audio-chunk';
+  sessionId: string;
+  utteranceId: string;
+  /** Base64-encoded audio data */
+  audio: string;
+  /** Audio format (always 'mp3' for ElevenLabs) */
+  format: 'mp3';
+}
+
+/** Server → Kiosk devices: Audio synthesis completed */
+export interface AudioEndMessage {
+  type: 'audio-end';
+  sessionId: string;
+  utteranceId: string;
+  /** Error message if synthesis failed */
+  error?: string;
+}
+
 export type ServerMessage = 
   | RegisteredMessage 
   | DeviceListMessage 
@@ -165,7 +185,9 @@ export type ServerMessage =
   | JoinRequestMessage
   | JoinResolvedMessage
   | DeviceRemovedMessage
-  | WorkspaceDeletedMessage;
+  | WorkspaceDeletedMessage
+  | AudioChunkMessage
+  | AudioEndMessage;
 
 export interface Utterance {
   id: string;

@@ -5,6 +5,7 @@ import { migration as usersMigration } from '../storage/migrations/002_users.js'
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
+import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
 
 describe('WorkspaceRepository', () => {
   let db: Database.Database;
@@ -32,6 +33,7 @@ describe('WorkspaceRepository', () => {
       );
     `);
     db.exec(qrTokensMigration.up);
+    db.exec(elevenlabsMigration.up);
     repo = new WorkspaceRepository(db);
 
     // Create a test user
