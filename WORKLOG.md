@@ -31,142 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 06:37 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `36deff6` | review | PR #145 - tvOS authentication | **NEW** |
-| `2ffab46` | expansion | Issue #141 - README.md | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Review Worker**
-   - PR: [#145 - Add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
-   - Conversation: [`36deff6`](https://app.all-hands.dev/conversations/36deff67d1d04190b21699e6e017f1f4)
-   - 6 unresolved review threads (including 2 critical XSS vulnerabilities)
-   - Failing CI: Server Tests, lint-pr-title
-
-2. **Expansion Worker**
-   - Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-   - Conversation: [`2ffab46`](https://app.all-hands.dev/conversations/2ffab46681594784b3f17585d91d0787)
-
-**Current State:**
-- Open PRs: #145 (red, 💬6 - being reviewed), #143 (red, needs title fix)
-- Ready issues: #135, #136, #137, #139 (all need priority assignment or implementation)
-- Issues needing expansion: #141 (being expanded), #142
-- Expansion slot: Occupied (expansion worker)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `932b5a0` (merge #144 ✓), `f73e146` (expansion #139 ✓)
-- `08277c4` (review #144 ✓), `8044587` (expansion #138 ✓)
-
-**Housekeeping:**
-- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md (950→863 lines)
-
-### 2026-05-16 07:06 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ffbeb96` | review | PR #145 - tvOS authentication (1 thread) | **NEW** |
-| `abddc75` | expansion | Issue #142 - Mobile UI Redesign | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Review Worker**
-   - PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
-   - Conversation: [`ffbeb96`](https://app.all-hands.dev/conversations/ffbeb968cb614d53a1bbe2dbf4d736cf)
-   - Task: Address 1 unresolved review thread (signal handler consolidation)
-   - PR Status: `oRFRC` CI green, MERGEABLE
-
-2. **Expansion Worker**
-   - Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
-   - Conversation: [`abddc75`](https://app.all-hands.dev/conversations/abddc75bce81417097b96331cd2167a3)
-   - Note: PR #143 exists for this issue but has CI failures
-
-**Current State:**
-- Open PRs: #145 (green, 💬1 - being reviewed), #143 (red - related to #142)
-- Ready issues: #135, #136, #137, #139, #141
-- Issues needing expansion: #142 (being expanded)
-- Expansion slot: Occupied (`abddc75`)
-- PR slot: Occupied (`ffbeb96`)
-
-**Previous Workers (finished):**
-- `36deff6` (review #145 ✓ - addressed 6 threads)
-- `2ffab46` (expansion #141 ✓ - README update ready)
-
----
-### 2026-05-16 06:44 UTC - Review Feedback Worker
-
-✅ **Addressed PR #145 review feedback** - tvOS server-side authentication
-
-- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
-- Status: **Ready for review** (all feedback resolved, CI green ✅)
-
-**Fixes Applied:**
-
-1. **🔴 XSS Vulnerabilities (Critical)** - Fixed in `1fb8be4`
-   - Added `escapeHtml()` utility function
-   - Applied HTML escaping to `error` and `code` query parameters
-   - Added XSS-specific tests to verify escaping works
-
-2. **🟠 Log Injection Risk (Important)** - Fixed in `9c40403`
-   - Added `isValidPlatform()` validator and `VALID_PLATFORMS` array
-   - Platform field validated before logging in device registration
-   - Invalid platforms silently rejected (set to undefined)
-
-3. **🟠 Missing Router Tests (Important)** - Fixed in `5da32c2`
-   - Added 18 integration tests for /auth/device/* endpoints
-   - Coverage increased from 76.56% to 83.59% (now passing 80% threshold)
-
-4. **🟡 In-memory Storage Warning** - Fixed in `e49cdb2`
-   - Added startup warning about multi-server deployment limitations
-   - Documented Redis consideration as TODO
-
-5. **🟡 Graceful Shutdown** - Fixed in `9c40403`
-   - Added SIGTERM/SIGINT handlers for DeviceAuthManager cleanup
-
-6. **PR Title Format** - Fixed via `gh pr edit`
-   - Changed to conventional commit format: `feat(auth): ...`
-
-**All 6 review threads resolved and marked complete.**
-
----
-### 2026-05-16 07:06 UTC - Expansion Worker
-
-✅ **Expanded Issue #142** - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope
-
-- Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
-- Type: Enhancement
-- Status: **Ready for implementation**
-- Related PR: [#143](https://github.com/jpshackelford/voice-relay/pull/143) (has issues, needs fixes)
-
-**Analysis Summary:**
-- Issue proposes simplifying mobile UI to "walkie-talkie" style experience
-- PR #143 exists but has CI failures and code review issues
-- CI failure: `lint-pr-title` - scope "mobile" not in allowed list (should be "client")
-- Code review: Duplicate mic streams, unstable useEffect deps, unread count never resets, resource leaks
-
-**Issue Expansion:**
-- Added clear Problem Statement (cognitive overload on mobile)
-- Added Proposed Solution with ASCII wireframe and design specs
-- Added comprehensive Acceptance Criteria (11 items)
-- Documented Lessons Learned from PR #143 (CI issues, code review issues, testing gaps)
-
-**Technical Comment Added:**
-- Architecture overview (audio pipeline, speech recognition, UI state machine)
-- Shared MediaStream pattern to fix duplicate mic access
-- Hook modification requirements
-- Component architecture diagram
-- Phased implementation plan (fix PR → add tests → mobile verification)
-- Files affected listing
-- Recommendation: Fix existing PR #143 rather than start fresh
-
-**Labels added:** `ready`
-
----
 ### 2026-05-16 07:07 UTC - Review Feedback Worker
 
 ✅ **Addressed final PR #145 review feedback** - Signal handler consolidation
@@ -977,3 +841,39 @@ Human needs to either:
 - `6dc5155` (review #143 - addressed unread count performance)
 
 ---
+### 2026-05-16 14:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+⏳ **Waiting on Human Evidence** (2nd consecutive)
+
+PR #143 has all review threads resolved and CI is green, but requires mobile device evidence before merge.
+
+**PR Status:**
+- [PR #143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- CI: ✅ All checks passing
+- Unresolved threads: 0 (all 23 resolved ✓)
+- Review decision: CHANGES_REQUESTED
+- Blocker: **Mobile device screenshots/video required**
+
+**This cannot be fulfilled by an agent** - requires real device testing by human.
+
+**Current State:**
+- Open PRs: #143 (green, waiting for human evidence)
+- Ready issues: #135, #136 (priority:medium), #139, #141, #142 (has PR)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Available but blocked on human evidence for #143
+
+**Next Steps (human action required):**
+1. Add mobile device screenshots/video to PR #143 description
+2. Or dismiss the evidence requirement via GitHub (if not required)
+3. Or add `## INSTRUCTION:` entry to proceed without evidence
+
+**Housekeeping:**
+- 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md
+
+**Note:** If next orchestrator run finds no progress, automation will auto-disable (3 consecutive waiting periods).
