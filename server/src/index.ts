@@ -333,7 +333,9 @@ wss.on('connection', (ws: WebSocket) => {
           const requestedWorkspaceId = message.workspaceId || 'default';
           
           // Validate workspace exists before creating device (FK constraint)
-          if (workspaceRepository && requestedWorkspaceId !== 'default') {
+          // Skip validation for 'default' workspace (legacy unauthenticated mode)
+          const isLegacyMode = requestedWorkspaceId === 'default';
+          if (workspaceRepository && !isLegacyMode) {
             const workspace = workspaceRepository.findById(requestedWorkspaceId);
             if (!workspace) {
               console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
@@ -352,9 +354,10 @@ wss.on('connection', (ws: WebSocket) => {
 
           // Persist device to database FIRST (required for session FK constraint)
           // This auto-registers devices with generated names when joining via QR code
+          // Skip persistence for 'default' workspace (no FK reference, legacy mode)
           let deviceToken: string | null = null;
           let tokenExpiresAt: string | null = null;
-          if (deviceRepository) {
+          if (deviceRepository && !isLegacyMode) {
             const result = deviceRepository.registerOrUpdate(
               message.deviceId,
               requestedWorkspaceId,
