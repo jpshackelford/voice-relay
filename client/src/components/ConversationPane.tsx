@@ -21,11 +21,14 @@ export function ConversationPane({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Sort utterances by received time (memoized to avoid re-sorting on every render)
+  // Note: Depend on utterances.size rather than the Map object to avoid
+  // re-sorting on every render (Map reference changes even when content is the same)
   const sortedUtterances = useMemo(
     () => [...utterances.values()].sort(
       (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
     ),
-    [utterances]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [utterances.size]
   );
 
   // Auto-scroll to bottom when new messages arrive
