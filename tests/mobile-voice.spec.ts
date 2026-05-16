@@ -27,11 +27,59 @@ import { getAuthState } from './utils/auth-helper';
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
 
+// Mock SpeechRecognition API for CI environments where it's not available
+async function mockSpeechRecognitionIfNeeded(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    // Only mock if SpeechRecognition is not available
+    if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+      class MockSpeechRecognition {
+        continuous = false;
+        interimResults = false;
+        lang = 'en-US';
+        onstart: (() => void) | null = null;
+        onend: (() => void) | null = null;
+        onresult: ((event: unknown) => void) | null = null;
+        onerror: ((event: unknown) => void) | null = null;
+        
+        start() {
+          setTimeout(() => this.onstart?.(), 10);
+          // Simulate a result after 500ms
+          setTimeout(() => {
+            if (this.onresult) {
+              this.onresult({
+                results: [{
+                  0: { transcript: 'Hello', confidence: 0.9 },
+                  isFinal: true,
+                  length: 1,
+                }],
+                resultIndex: 0,
+              });
+            }
+          }, 500);
+        }
+        
+        stop() {
+          setTimeout(() => this.onend?.(), 10);
+        }
+        
+        abort() {
+          this.stop();
+        }
+      }
+      
+      (window as unknown as { webkitSpeechRecognition: unknown }).webkitSpeechRecognition = MockSpeechRecognition;
+    }
+  });
+}
+
 // Helper to authenticate and navigate to a mobile session
 async function setupMobileSession(page: import('@playwright/test').Page, baseURL: string) {
   if (!TEST_AUTH_SECRET) {
     throw new Error('TEST_AUTH_SECRET not configured');
   }
+
+  // Mock SpeechRecognition for CI environments (headless Chromium doesn't support it)
+  await mockSpeechRecognitionIfNeeded(page);
 
   // Authenticate
   const storageState = await getAuthState(baseURL, TEST_AUTH_SECRET);
