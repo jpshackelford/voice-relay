@@ -423,3 +423,105 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
 **Previous Workers (all finished):**
 - `8a59d2f` (review #140 ✓), `61fe432` (expansion #135 ✓)
 - `d033c26` (implementation #133 ✓), `d10e3cd` (expansion #134 ✓)
+
+---
+### 2026-05-16 03:34 UTC - Expansion Worker (`477524c`)
+
+✅ **Expanded Issue #136**
+
+- Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
+- Type: Enhancement (Research/Investigation)
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Problem Identified:**
+When AI displays images via `/api/display`, there's no feedback if the image fails to load on the kiosk. The API returns `{ success: true }` immediately after broadcasting, but the kiosk may fail to render the image (404, CORS, timeout, etc.).
+
+**Root Cause:**
+- `KioskMode.tsx` line 430: `<img>` element has no `onError` or `onLoad` handlers
+- No WebSocket message type exists for reporting display results back to server
+
+**Proposed Solution:**
+Implement client-to-server feedback loop:
+1. Add `onError`/`onLoad` handlers to `<img>` element in `KioskMode.tsx`
+2. Create new `DisplayResultMessage` type for WebSocket communication
+3. Server routes failures to AI session so it can respond appropriately
+
+**Files Affected:**
+| File | Changes |
+|------|---------|
+| `client/src/components/KioskMode.tsx` | Add onLoad/onError handlers, timeout logic |
+| `client/src/types.ts` | Add `DisplayResultMessage` interface |
+| `client/src/hooks/useWebSocket.ts` | Add `sendDisplayResult` function |
+| `server/src/types.ts` | Add `DisplayResultRequest` interface |
+| `server/src/index.ts` | Handle `display-result` WebSocket message |
+| `server/src/openhands.ts` | Forward failures to AI (optional) |
+
+**Complexity:** Medium (2-3 hours implementation, 1-2 hours testing)
+
+---
+### 2026-05-16 03:35 UTC - Merge Worker (`26affde`)
+
+✅ **Merged PR #140 → Issue #133 Closed**
+
+- PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
+- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133) - **CLOSED** (auto-closed via "Fixes #133")
+- Merge type: Squash merge
+- Commit: `e4750b4`
+
+**What was shipped:**
+- Added callback wiring in `server/src/index.ts` to broadcast `ai-thinking` messages
+- Added integration test `thinking-callback.integration.test.ts` verifying end-to-end flow
+
+**Root Cause Fixed:**
+Server never called `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages to clients. The client-side implementation was already complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but the server-side wiring was missing.
+
+**Behavior Now:**
+- When AI starts processing: kiosk shows 🤔 with pulsing animation
+- When AI responds: kiosk returns to ✨ (connected/idle)
+
+**Review Evolution:**
+- Initial: 9 lines of production code wiring callback
+- Bot feedback: Add integration test
+- Final: Added 150-line integration test covering callback invocation, message format, session isolation, and graceful empty-session handling
+
+**Risk Assessment:** LOW - Additive-only change connecting two well-tested components. No database changes, no breaking APIs.
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Server-side change - no database/migration impact
+
+---
+### 2026-05-16 04:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0898e70` | implementation | Issue #134 - Image rendering in markdown tables | **NEW** |
+| `38d82b0` | expansion | Issue #137 - Apple TV kiosk research | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker**
+   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
+   - Conversation: [`0898e70`](https://app.all-hands.dev/conversations/0898e70d1f9a4b34a08e0c5edf14096a)
+   - Root cause: `parseMarkdown` function in KioskMode.tsx has no table parsing and a regex bug that converts `![alt](url)` to `!<a>` instead of `<img>`
+
+2. **Expansion Worker**
+   - Issue: [#137 - Apple TV application for kiosk display](https://github.com/jpshackelford/voice-relay/issues/137)
+   - Conversation: [`38d82b0`](https://app.all-hands.dev/conversations/38d82b051c884d19aa12e38ab5a182a4)
+
+**Current State:**
+- No open PRs (implementation worker will create one)
+- Ready issues: #134 (priority:high), #135 (priority:medium), #136 (priority:medium)
+- Issues needing expansion: #137 (being expanded), #138, #139, #141, #142
+- Expansion slot: Occupied (expansion worker)
+- PR slot: Occupied (implementation worker)
+
+**Housekeeping:**
+- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
+- 📊 Assigned priorities: #134 → high, #135 → medium, #136 → medium
+
+**Previous Workers (all finished):**
+- `26affde` (merge #140 ✓), `477524c` (expansion #136 ✓)
+- `8a59d2f` (review #140 ✓), `61fe432` (expansion #135 ✓)
