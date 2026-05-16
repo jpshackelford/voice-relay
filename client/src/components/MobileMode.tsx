@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type FormEvent } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
@@ -222,9 +222,12 @@ export function MobileMode({
   const connectionStatus = connected ? 'connected' : 'disconnected';
 
   // Count unread messages (messages from others since last view)
-  const totalOtherMessages = [...utterances.values()].filter(
-    u => u.senderId !== deviceId && !u.partial
-  ).length;
+  const totalOtherMessages = useMemo(() => 
+    [...utterances.values()].filter(
+      u => u.senderId !== deviceId && !u.partial
+    ).length,
+    [utterances.size, deviceId]
+  );
   const unreadCount = Math.max(0, totalOtherMessages - lastViewedCountRef.current);
 
   // Reset unread count when conversation pane opens
