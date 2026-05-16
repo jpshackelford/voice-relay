@@ -31,146 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 11:10 UTC - Review Worker (`908ce5f`)
-
-✅ **Addressed PR #143 Review Feedback (Final)**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Fixes: 2bdfb8e
-
-**Review thread addressed (1):**
-
-1. **Unstable dependency causes excessive re-renders** (🟠 Important)
-   - Changed `useEffect` dependency from `utterances` (Map object) to `utterances.size`
-   - Map reference changes on every render, triggering excessive scroll animations
-   - `utterances.size` is a stable primitive that only changes when messages are added/removed
-   - Added comment explaining the reasoning
-   - Fixed in: 2bdfb8e
-
-**All 14 review threads now resolved.**
-
-CI: ✅ All checks passed
-PR status: Ready for review (moved from draft)
-
----
-### 2026-05-16 11:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `81ad48a` | review | PR #143 - Mobile UI (2 threads) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Conversation: [`81ad48a`](https://app.all-hands.dev/conversations/81ad48abd629429cb0f6c8bc820fbe69)
-- Task: Address 2 unresolved review threads:
-  - 🟠 Important: AudioContext resource leak in error path
-  - 🟡 Suggestion: Return object recreated on every render causes unnecessary callback recreations
-- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
-
-**Current State:**
-- Open PRs: #143 (green, 💬2 - now being reviewed)
-- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
-- Issues needing expansion: None (all expanded ✓)
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (finished):**
-- `908ce5f` (review #143 - addressed unstable dependency issue)
-- `f5e04d6` (review #143 - addressed memory leak + effect dependency)
-
----
-### 2026-05-16 11:37 UTC - Review Worker (`81ad48a`)
-
-✅ **Addressed PR #143 Review Feedback**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Fixes: 238600d
-
-**Review threads addressed (2):**
-
-1. **AudioContext resource leak in error path** (🟠 Important)
-   - Fixed by tracking `audioCtx` and `stream` in local variables before the try block
-   - Added cleanup in catch block to close AudioContext if error occurs before refs are set
-   - Also properly cleans up MediaStream if owned by the hook
-   - Fixed in: 238600d
-
-2. **Return object recreated on every render** (🟡 Suggestion)
-   - Added `useMemo` to memoize the return object
-   - Dependencies: `[isActive, start, stop, error]`
-   - Prevents unnecessary callback recreations in consumers like `handleMicToggle`
-   - Fixed in: 238600d
-
-**All review threads now resolved.**
-
-CI: ✅ All checks passed
-PR status: Ready for review (moved from draft)
-
----
-### 2026-05-16 12:00 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `79f4bd5` | review | PR #143 - Mobile UI (3 threads) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Conversation: [`79f4bd5`](https://app.all-hands.dev/conversations/79f4bd513e554a52ac910355bee0fd1e)
-- Task: Address 3 unresolved review threads:
-  - 🔴 Critical: MobileSettings.tsx:116 - UX bug: hint says "manual text entry" but no text input exists
-  - 🔴 Critical: MobileMode.tsx:270 - Misleading status says "type to send" but no text input exists
-  - 🟡 Suggestion: MobileMode.tsx:124 - Effect dependency optimization
-- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
-
-**Current State:**
-- Open PRs: #143 (green, 💬3 - now being reviewed)
-- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
-- Issues needing expansion: None (all expanded ✓)
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (finished):**
-- `81ad48a` (review #143 - addressed AudioContext leak + useMemo)
-
-**Housekeeping:**
-- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1044→~800 lines)
-
----
-### 2026-05-16 12:13 UTC - Review Worker (`79f4bd5`)
-
-✅ **Addressed all 3 review threads on PR #143**
-
-- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed:**
-
-| Thread | Feedback | Action |
-|--------|----------|--------|
-| `MobileSettings.tsx:116` | 🔴 UX bug: hint says "manual text entry" but no text input | ✅ Added text input form in visualizer mode (commit `9ad2309`) |
-| `MobileMode.tsx:270` | 🔴 Misleading "type to send" status | ✅ Fixed status text, added actual text input (commit `9ad2309`) |
-| `MobileMode.tsx:124` | 🟡 Effect dependency optimization | ✅ Used ref pattern per suggestion (commit `9ad2309`) |
-
-**Changes Made (commit `9ad2309`):**
-1. Added text input form for visualizer mode:
-   - Text input with placeholder "Type message..."
-   - Send button (disabled when empty)
-   - Proper ARIA labels for accessibility
-   - CSS styling (.walkie-text-form, .walkie-text-input, .walkie-send-btn)
-2. Fixed misleading status: changed "Recording... (type to send)" → "Recording..."
-3. Optimized effect dependencies using refs pattern:
-   - Added `isListeningRef` and `audioAnalyserActiveRef` refs
-   - Effect now only re-runs when inputMode changes
-   - Prevents unnecessary cleanup cycles
-
-**CI Status:** All checks passing ✅
-**Resolved Threads:** 3/3 ✅
-**PR State:** Ready for review (not draft) ✅
-
----
 ### 2026-05-16 12:31 UTC - Orchestrator
 
 **Active Workers:**
@@ -693,19 +553,6 @@ All review threads: Resolved ✅
 PR state: Ready for review
 
 ---
-## INSTRUCTION: Conversation in progress for PR #148
-
-A human conversation is already in progress addressing issues on PR #148 (fix(e2e): update stale test selectors). 
-
-**Do NOT treat this as filling the PR slot** - pick another issue/PR for the slot instead.
-
-PR: https://github.com/jpshackelford/voice-relay/pull/148
-Conversation: https://app.all-hands.dev/conversations/pddmamfroebgulmb
-
-This PR has 6 failing E2E tests related to messaging/relay functionality. The human will continue working on fixes.
-
-
----
 ### 2026-05-16 18:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -733,6 +580,17 @@ This PR has 6 failing E2E tests related to messaging/relay functionality. The hu
 - `913a925` (review #146 - addressed 1 suggestion thread)
 - `8ca5da6` (review #146 - addressed 4 threads)
 
+---
+## INSTRUCTION: Conversation in progress for PR #148
+
+A human conversation is already in progress addressing issues on PR #148 (fix(e2e): update stale test selectors). 
+
+**Do NOT treat this as filling the PR slot** - pick another issue/PR for the slot instead.
+
+PR: https://github.com/jpshackelford/voice-relay/pull/148
+Conversation: https://app.all-hands.dev/conversations/pddmamfroebgulmb
+
+This PR has 6 failing E2E tests related to messaging/relay functionality. The human will continue working on fixes.
 
 ---
 ## INSTRUCTION: Active conversation on PR #148 - Do NOT fill PR slot
@@ -748,4 +606,3 @@ This PR has 6 failing E2E tests related to messaging/relay functionality. The hu
 
 **PR Link:** https://github.com/jpshackelford/voice-relay/pull/148
 **Active Conversation:** https://app.all-hands.dev/conversations/pddmamfroebgulmb
-
