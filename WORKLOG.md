@@ -559,3 +559,28 @@ PR state: Ready for review (moved from draft)
 **Housekeeping:**
 - 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
 
+---
+### 2026-05-16 20:07 UTC - Merge Worker (`b880a5e`)
+
+✅ **Merged PR #146 - ElevenLabs TTS Integration**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Issue: [#135 - Investigate ElevenLabs integration for text-to-speech](https://github.com/jpshackelford/voice-relay/issues/135)
+- Status: **MERGED** ✅
+- Issue #135: **AUTO-CLOSED** ✅
+
+**Merge Details:**
+- Squash-merged with conventional commit: `feat(tts): add ElevenLabs TTS integration for AI responses`
+- Migration 011 adds ElevenLabs columns to workspace_settings (additive, safe for SQLite)
+- TTS disabled by default - no production impact until workspace owner configures API key
+
+**Review History:**
+- 5 review rounds, all issues addressed
+- Final rating: 🟢 **Good taste**
+- Key fixes: TTS integration in index.ts, dual TTS bug, audio truncation, test coverage, memory leak
+
+**Production Notes:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- Migration runs automatically on server start
+- Existing workspaces unaffected (TTS disabled by default)
+
