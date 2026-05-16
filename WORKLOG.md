@@ -31,240 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 02:34 UTC - Expansion Worker
-
-✅ **Expanded Issue #134**
-
-- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134)
-- Type: Investigation/Research
-- Status: **Ready for implementation** ✅
-
-**Root Cause Identified:**
-The custom `parseMarkdown` function in `KioskMode.tsx` has two critical bugs:
-1. No table parsing support (GFM tables not handled)
-2. Image syntax `![alt](url)` incorrectly parsed as link, leaving `!` prefix
-
-**Recommendation:**
-Replace custom parser with `marked` + `DOMPurify` libraries for full GFM support and XSS protection.
-
-**Files Affected:**
-- `client/src/components/KioskMode.tsx` - Replace `parseMarkdown` function
-- `client/package.json` - Add `marked` and `dompurify` dependencies
-
----
-
-### 2026-05-15 19:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `333b79f` | review | PR #128 - Smoke test fixes | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Conversation: [`333b79f`](https://app.all-hands.dev/conversations/333b79f65b604864a8b1520470dd4858)
-
-**Review Issue to Address:**
-1. 🟡 Suggestion: Helper function has flawed error handling logic - catches and swallows connection failures, making it always succeed
-
-**Current State:**
-- PR #128: `oR green ready 💬1` (CI green, 1 unresolved thread)
-- Issue #127 (critical) linked to PR #128 - smoke test failure
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `9fe0274` (implementation #127), `e2559ce` (expansion #127)
-- `3f0a24b` (merge #126), `8002e73` (review #126)
-- Session-centric AI migration completed (#119, #120, #121, #122 all merged)
-
----
-### 2026-05-15 19:05 UTC - Review Worker (`333b79f`)
-
-✅ **Review Feedback Addressed: PR #128**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
-- Status: **Ready for merge** ✅
-
-**Fixes Applied:**
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| `waitForAIAutoConnect` has flawed `.catch()` | 🟡 Suggestion | ✅ Fixed in `8916d3b` |
-
-**Commits:**
-- `8916d3b` - fix(tests): remove flawed .catch() from waitForAIAutoConnect helper
-
-**Technical Details:**
-- The `.catch()` block silently swallowed connection failures, making the helper always succeed
-- Removed the `.catch()` so the helper properly fails when AI doesn't connect within timeout
-- Callers already handle AI unavailability via status check and `test.skip()` - the error suppression was redundant
-
-All 1 review thread resolved. CI passing. PR marked ready for review.
-
----
-### 2026-05-15 19:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ecce820` | review | PR #128 - Smoke test fixes (Round 2) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Conversation: [`ecce820`](https://app.all-hands.dev/conversations/ecce82028d1b44c1891a6b94770a20c2)
-
-**Review Issues to Address:**
-1. 🟠 Test name misleading - "transitions through connecting states" only tests final state
-2. 🟡 Redundant assertion - waitForAIAutoConnect already verifies visibility
-3. 🟡 Same redundancy - waitForAIAutoConnect already verified visibility  
-4. 🟡 Redundant CSS class inspection - toHaveClass assertion already confirms active
-
-**Current State:**
-- PR #128: `oRFRC green ready 💬4` (CI green, 4 unresolved threads)
-- Issue #127 (critical) linked to PR #128 - smoke test failure
-- All issues expanded
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `333b79f` (review #128 round 1), `9fe0274` (implementation #127)
-- `e2559ce` (expansion #127), `3f0a24b` (merge #126), `8002e73` (review #126)
-
----
-### 2026-05-15 19:38 UTC - Review Worker (`ecce820`)
-
-✅ **Review Feedback Addressed: PR #128 (Round 2)**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127)
-- Status: **Ready for merge** ✅
-
-**Fixes Applied:**
-
-| Issue | Severity | Status |
-|-------|----------|--------|
-| Test name misleading - "transitions through states" only tests final state | 🟠 Important | ✅ Removed duplicative test in `b87587c` |
-| Redundant assertion - waitForAIAutoConnect already verifies visibility | 🟡 Suggestion | ✅ Fixed in `62467dc` |
-| Same redundancy at another location | 🟡 Suggestion | ✅ Fixed in `62467dc` |
-| Redundant CSS class inspection | 🟡 Suggestion | ✅ Resolved by test removal in `b87587c` |
-
-**Commits:**
-- `62467dc` - refactor(tests): remove redundant visibility assertions
-- `b87587c` - refactor(tests): remove duplicative 'transitions through states' test
-
-**Technical Details:**
-- Removed redundant `await expect(aiStatus).toBeVisible()` calls after `waitForAIAutoConnect()` which already verifies visibility
-- Removed entire "AI status indicator transitions through connecting states" test because:
-  1. Name was misleading (only tested final state, not transitions)
-  2. Duplicated the "AI status shows connected state after auto-connect" test
-  3. Had redundant CSS class inspection (toHaveClass already confirms active)
-
-All 4 review threads resolved. CI passing. PR marked ready for review.
-
----
-### 2026-05-15 20:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `dd65be6` | merge | PR #128 - Smoke test fixes | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Conversation: [`dd65be6`](https://app.all-hands.dev/conversations/dd65be65eaa54446a7398e097a753308)
-- Issue: [#127 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/127) (critical)
-
-**PR Merge Criteria Met:**
-- ✅ CI: All checks passing (green)
-- ✅ State: Ready (not draft)
-- ✅ Unresolved threads: 0 (all 5 threads resolved)
-- ✅ Bot verdict: "Good taste" - "Worth merging" (Risk: LOW)
-- ✅ Mergeable: MERGEABLE
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
-**Current State:**
-- Issue #127 (critical) will auto-close when PR #128 merges
-- No other open issues after this
-- Session-centric AI migration complete (#119, #120, #121, #122 all merged)
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (merge worker)
-
-**Previous Workers (all finished):**
-- `ecce820` (review #128 round 2), `333b79f` (review #128 round 1)
-- `9fe0274` (implementation #127), `e2559ce` (expansion #127)
-- `3f0a24b` (merge #126), `8002e73` (review #126)
-
----
-### 2026-05-15 20:05 UTC - Merge Worker (`dd65be6`)
-
-✅ **Merged PR #128 → Issue #127 Closed**
-
-- PR: [#128 - fix(tests): update smoke tests for session-centric AI architecture](https://github.com/jpshackelford/voice-relay/pull/128)
-- Issue: [#127](https://github.com/jpshackelford/voice-relay/issues/127) - **CLOSED** (auto-closed via "Fixes #127")
-- Merge type: Squash merge
-
-**What was fixed:**
-- Smoke tests now match session-centric AI architecture from PR #126
-- UI selectors updated: `.ai-toggle` → `.ai-status`
-- Tests verify AI auto-connect behavior (not manual toggle)
-- Deprecated endpoint tests expect 410 Gone status
-- Removed obsolete manual connect/disconnect tests
-
-**Review journey (2 rounds):**
-1. Round 1: Fixed flawed `.catch()` in helper (swallowed failures)
-2. Round 2: Removed redundant assertions and duplicative test
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- Test-only changes - no production code impact
-- No database migrations
-
-**CI Resolution:**
-- This resolves the smoke test failures that caused automatic rollback
-- Smoke tests now pass against the session-centric AI architecture
-
-**Session-centric AI Migration: COMPLETE** 🎉
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED  
-- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
-- ✅ Issue #122 (remove legacy device-centric code) - MERGED
-- ✅ Issue #127 (fix smoke tests) - **MERGED**
-
----
-### 2026-05-15 20:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `8347c92` | expansion | Issue #129 - Smoke test failure | **NEW** |
-
-🚀 **Spawned: Expansion Worker**
-
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129)
-- Conversation: [`8347c92`](https://app.all-hands.dev/conversations/8347c9244b1447be98256734d8e9240a)
-
-**Current State:**
-- No open PRs
-- Issue #129 needs expansion (ci-failure label only)
-- Expansion slot: Occupied (expansion worker)
-- PR slot: Idle (no ready issues to implement yet)
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
-**Previous Workers (all finished):**
-- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
-- `333b79f` (review #128 round 1 ✓), `9fe0274` (implementation #127 ✓)
-
----
 ### 2026-05-15 20:36 UTC - Expansion Worker (`8347c92`)
 
 ✅ **Expanded Issue #129**
@@ -869,6 +635,27 @@ aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
 - `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
 
 ---
+### 2026-05-16 02:34 UTC - Expansion Worker
+
+✅ **Expanded Issue #134**
+
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134)
+- Type: Investigation/Research
+- Status: **Ready for implementation** ✅
+
+**Root Cause Identified:**
+The custom `parseMarkdown` function in `KioskMode.tsx` has two critical bugs:
+1. No table parsing support (GFM tables not handled)
+2. Image syntax `![alt](url)` incorrectly parsed as link, leaving `!` prefix
+
+**Recommendation:**
+Replace custom parser with `marked` + `DOMPurify` libraries for full GFM support and XSS protection.
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Replace `parseMarkdown` function
+- `client/package.json` - Add `marked` and `dompurify` dependencies
+
+---
 ### 2026-05-16 02:38 UTC - Implementation Worker (`d033c26`)
 
 ✅ **PR Created: Issue #133**
@@ -904,5 +691,3 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
 - Kiosk displays 🤔 with pulsing animation while AI processes user messages
 - Indicator returns to ✨ when AI response is received
 - Client-side implementation was already complete; this just wires the server-side broadcast
-
----
