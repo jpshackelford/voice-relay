@@ -43,20 +43,35 @@ export function MobileMode({
   
   const utteranceIdRef = useRef(generateUUID());
   const spokenUtterancesRef = useRef(new Set<string>());
+  const sharedStreamRef = useRef<MediaStream | null>(null);
+  const lastViewedCountRef = useRef(0);
 
   const { speak, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ sessionId });
   const audioAnalyser = useAudioAnalyser();
 
+  // Memoize checkAvailability to avoid unstable dependency
+  const checkAvailability = ai.checkAvailability;
+
   // Check AI availability on mount
   useEffect(() => {
-    ai.checkAvailability().then(status => setAiAvailable(status.available));
-  }, [ai.checkAvailability]);
+    checkAvailability().then(status => setAiAvailable(status.available));
+  }, [checkAvailability]);
 
   // Notify parent of AI status changes
   useEffect(() => {
     onAIStatusChange?.(ai.connected);
   }, [ai.connected, onAIStatusChange]);
+
+  // Cleanup shared stream on unmount
+  useEffect(() => {
+    return () => {
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
+    };
+  }, []);
 
   // Speech recognition handlers
   const handleInterimResult = useCallback((transcript: string) => {
@@ -91,13 +106,29 @@ export function MobileMode({
   });
 
   // Sync audio analyser with speech recognition state
+  // Share a single MediaStream between analyser and speech recognition
   const handleMicToggle = useCallback(async () => {
     if (isListening) {
       stopListening();
       audioAnalyser.stop();
+      // Stop shared stream tracks when done
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
     } else {
-      await audioAnalyser.start();
-      startListening();
+      // Request mic once and share the stream
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        sharedStreamRef.current = stream;
+        // Pass stream to analyser (it won't create its own)
+        await audioAnalyser.start(stream);
+        // Start speech recognition (browser caches mic permission)
+        startListening();
+      } catch (err) {
+        console.error('[MobileMode] Mic access error:', err);
+        setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+      }
     }
   }, [isListening, startListening, stopListening, audioAnalyser]);
 
@@ -117,9 +148,20 @@ export function MobileMode({
   const connectionStatus = connected ? 'connected' : 'disconnected';
 
   // Count unread messages (messages from others since last view)
-  const unreadCount = [...utterances.values()].filter(
+  const totalOtherMessages = [...utterances.values()].filter(
     u => u.senderId !== deviceId && !u.partial
   ).length;
+  const unreadCount = Math.max(0, totalOtherMessages - lastViewedCountRef.current);
+
+  // Reset unread count when conversation pane opens
+  const handleConversationOpen = useCallback(() => {
+    setConversationOpen(true);
+    lastViewedCountRef.current = totalOtherMessages;
+  }, [totalOtherMessages]);
+
+  const handleConversationClose = useCallback(() => {
+    setConversationOpen(false);
+  }, []);
 
   // Device counts for settings
   const mobileCount = devices.filter(d => d.mode === 'mobile').length;
@@ -140,7 +182,7 @@ export function MobileMode({
         </button>
         <button 
           className="walkie-header-btn conversation-btn" 
-          onClick={() => setConversationOpen(true)}
+          onClick={handleConversationOpen}
           title="View conversation"
         >
           💬
@@ -214,7 +256,7 @@ export function MobileMode({
       {/* Conversation Pane */}
       <ConversationPane
         isOpen={conversationOpen}
-        onClose={() => setConversationOpen(false)}
+        onClose={handleConversationClose}
         utterances={utterances}
         deviceId={deviceId}
       />
