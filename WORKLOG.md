@@ -31,66 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 03:08 UTC - Review Worker (`8a59d2f`)
-
-✅ **Addressed Review Feedback: PR #140**
-
-- PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
-- Review feedback: Bot suggested adding integration test for callback wiring
-- Status: **Ready for review** ✅
-
-**Changes Made:**
-
-| Commit | Description |
-|--------|-------------|
-| `b557972` | Added integration test `thinking-callback.integration.test.ts` |
-
-**Integration Test Coverage:**
-- Verifies end-to-end flow: thinking state → callback → broadcast
-- Tests message format matches client expectations
-- Tests session isolation (devices in different sessions don't receive)
-- Tests graceful handling of empty sessions
-
-**Testing:**
-- ✅ All 529 server tests pass (4 new tests added)
-- ✅ CI green (4/4 checks passing)
-- ✅ Review thread resolved
-
-**Next Steps:**
-- PR ready for final review/merge
-- Closes issue #133 on merge
-### 2026-05-16 03:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `26affde` | merge | PR #140 - wire AI thinking callback | **NEW** |
-| `477524c` | expansion | Issue #136 - feedback mechanism for failed images | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Merge Worker**
-   - PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
-   - Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133) (priority:high)
-   - Conversation: [`26affde`](https://app.all-hands.dev/conversations/26affdedfc2242dd810e827a46e760be)
-   - Merge criteria: CI green ✅, ready (not draft) ✅, all threads resolved ✅, mergeable ✅
-
-2. **Expansion Worker**
-   - Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
-   - Conversation: [`477524c`](https://app.all-hands.dev/conversations/477524cd96fd4e4997b091b75eb8feff)
-
-**Current State:**
-- PR #140: `oRCFC green ready --` → being merged
-- Ready issues: #133 (linked to PR), #134, #135 (unprioritized)
-- Issues needing expansion: #136 (being expanded), #137, #138, #139
-- Expansion slot: Occupied (expansion worker)
-- PR slot: Occupied (merge worker)
-
-**Previous Workers (all finished):**
-- `8a59d2f` (review #140 ✓), `61fe432` (expansion #135 ✓)
-- `d033c26` (implementation #133 ✓), `d10e3cd` (expansion #134 ✓)
-
----
 ### 2026-05-16 03:34 UTC - Expansion Worker (`477524c`)
 
 ✅ **Expanded Issue #136**
@@ -958,7 +898,6 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - PR slot: Occupied (review worker)
 
 ---
-
 ### 2026-05-16 09:43 UTC - Review Worker
 
 ✅ **Addressed review feedback on PR #143**
@@ -983,5 +922,3 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 **All 9 review threads now resolved.**
 
 PR status: Ready for review (moved from draft)
-
----
