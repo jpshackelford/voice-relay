@@ -748,3 +748,112 @@ Investigated whether Marp (markdown-to-presentation ecosystem) would be better f
 
 **Housekeeping:**
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
+
+---
+### 2026-05-16 06:05 UTC - Expansion Worker
+
+✅ **Research Completed: Issue #139**
+
+- Issue: [[Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Type: Research
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Research Question:** How can we safely sandbox AI-generated JavaScript apps on the kiosk without disrupting the display session?
+
+**Findings:**
+
+| Option | DOM Access | Isolation | Verdict |
+|--------|------------|-----------|---------|
+| **Sandboxed iframe + srcdoc** | ✅ Full | ✅ Strong | ✅ **Recommended** |
+| Web Worker | ❌ None | ✅ Strong | ❌ Can't render UI |
+| Blob URL + iframe | ✅ Full | ✅ Strong | ⚠️ Viable but more complex |
+| Separate-origin iframe | ✅ Full | ✅ Maximum | ❌ Requires infra |
+
+**Recommendation: ✅ YES - Implement iframe sandboxing**
+
+Use `<iframe sandbox="allow-scripts" srcdoc={htmlContent}>`:
+- Industry standard (CodePen, JSFiddle, CodeSandbox all use this)
+- Strong isolation: no access to parent DOM, WebSocket, localStorage
+- **Critical:** Never use `allow-scripts` + `allow-same-origin` together (allows sandbox escape)
+- Watchdog pattern detects frozen iframes → remove and show recovery message
+- Parent session state lives outside iframe → always responsive to new commands
+
+**Implementation Plan:**
+1. Add `type: 'app'` to DisplayContent
+2. Render apps in `<iframe sandbox="allow-scripts" srcdoc={...}>`
+3. Add heartbeat watchdog (1s ping, 5s timeout → destroy iframe)
+4. Update API validation to accept `app` type
+
+**Complexity:** 1-2 days
+
+**Files to modify:**
+- `client/src/types.ts`
+- `client/src/components/KioskMode.tsx`
+- `server/src/types.ts`
+- `server/src/index.ts`
+
+---
+### 2026-05-16 06:07 UTC - Merge Worker (`932b5a0`)
+
+✅ **Merged PR #144 → Issue #134 Closed**
+
+- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high) - **CLOSED**
+- Merge type: Squash merge
+- Commit: `7ad7574`
+
+**What was shipped:**
+Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
+- `marked` v18.0.3 for full GFM support (tables, images, code blocks)
+- `DOMPurify` v3.4.3 for XSS sanitization before `dangerouslySetInnerHTML`
+
+**Bugs fixed:**
+| Input | Before | After |
+|-------|--------|-------|
+| `![img](url)` | `!<a href="url">img</a>` | `<img src="url" alt="img">` |
+| `| A | B |` table | Raw text with `<br>` | `<table>...</table>` |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` (25 lines regex → 3 lines library) |
+| `client/src/components/KioskMode.test.tsx` | Add 17 tests (image, table, XSS, existing features) |
+| `client/package.json` | Add `marked` + `dompurify` dependencies |
+| `tests/markdown-rendering.spec.ts` | Add E2E smoke test |
+
+**Review Summary:**
+- 🟢 LOW risk - "Elegant solution that eliminates regex special cases"
+- Supply chain verified: Both deps have matching GitHub releases and signatures
+- All 729 tests passed (200 client + 529 server)
+- 5/5 review threads resolved before merge
+
+**Bundle impact:** ~1 MB (acceptable for kiosk use case)
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Client-only change, no database/migration impact
+- Risk: LOW
+
+---
+### 2026-05-16 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #141** - README.md is out-of-date and inaccurate
+
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Type: Documentation
+- Status: **Ready for implementation**
+
+**Analysis Summary:**
+- README documents `input`/`output` modes but actual codebase uses `mobile`/`kiosk` views
+- Missing workspace and session concepts (core architecture)
+- Auth section labeled "Phase 4" but auth is production-ready
+- Architecture diagram doesn't reflect multi-user model
+- Message protocol missing `workspaceId`, `sessionId` fields
+- QR join workflow undocumented
+
+**Scope:**
+- Full README rewrite to match current architecture
+- Cross-reference detailed docs (DESIGN.md, DEPLOYMENT.md, MIGRATION.md)
+
+**Labels added:** `ready`, `documentation`
