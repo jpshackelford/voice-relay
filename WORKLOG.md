@@ -12,12 +12,6 @@ The orchestrator works through **GitHub Issues** filed against this repository, 
 4. Move to next issue
 5. Repeat until all issues are complete
 
-**Current backlog:**
-- [#9 - F1: Scope messages to sessions](https://github.com/jpshackelford/voice-relay/issues/9)
-- [#10 - F2: Replace Dashboard with Workspace Home](https://github.com/jpshackelford/voice-relay/issues/10)
-- [#11 - F3: Session View (remove setup, auto-detect mode, QR idle state)](https://github.com/jpshackelford/voice-relay/issues/11)
-- [#12 - F4: Join session via QR code](https://github.com/jpshackelford/voice-relay/issues/12)
-
 ## How to Use
 
 **Human instructions:** Add an entry like this and the orchestrator will follow it:
