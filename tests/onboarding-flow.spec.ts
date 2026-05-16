@@ -294,7 +294,7 @@ test.describe('User Onboarding Flow', () => {
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
     // Verify QR code is present in kiosk mode
-    const qrCode = page.locator('.qr-code-container canvas, .qr-code');
+    const qrCode = page.locator('.qr-code-container img, .qr-code');
     await expect(qrCode).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
 });
