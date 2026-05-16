@@ -5,7 +5,7 @@ import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
 import { Oscilloscope } from './Oscilloscope';
-import { MobileSettings } from './MobileSettings';
+import { MobileSettings, type InputMode } from './MobileSettings';
 import { ConversationPane } from './ConversationPane';
 import type { DeviceInfo, DeviceMode, Utterance } from '../types';
 
@@ -40,6 +40,9 @@ export function MobileMode({
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [conversationOpen, setConversationOpen] = useState(false);
+  // Input mode: 'voice' uses Web Speech API only, 'visualizer' uses getUserMedia for oscilloscope only
+  // This eliminates the dual microphone stream issue by making them mutually exclusive
+  const [inputMode, setInputMode] = useState<InputMode>('voice');
   
   const utteranceIdRef = useRef(generateUUID());
   const spokenUtterancesRef = useRef(new Set<string>());
@@ -105,38 +108,26 @@ export function MobileMode({
     onError: handleSttError,
   });
 
-  // Start speech recognition with error handling.
-  // Separated to flatten nested try-catch and improve readability.
-  const startSpeechRecognition = useCallback(() => {
-    try {
-      startListening();
-    } catch (err) {
-      // Speech recognition failed but analyser is still working
-      console.error('[MobileMode] Speech recognition error:', err);
-      setSttError('Speech recognition unavailable, but audio visualizer is active');
-    }
-  }, [startListening]);
-
-  // Handle microphone toggle for both audio visualization and speech recognition.
+  // Handle microphone toggle based on input mode.
   //
-  // DUAL STREAM NOTE: The Web Speech Recognition API creates its own internal
-  // microphone stream - it cannot accept external MediaStream objects. This means
-  // we have two separate mic streams:
-  // 1. Our getUserMedia stream for the oscilloscope visualization
-  // 2. An implicit stream created by the Speech Recognition API
+  // INPUT MODE DESIGN: To eliminate the dual microphone stream issue, speech recognition
+  // and audio visualization are mutually exclusive:
   //
-  // This is a known limitation of the Web Speech API. We mitigate impact by:
-  // - Getting getUserMedia first so browser caches the permission grant
-  // - Handling the case where speech recognition might fail after analyser succeeds
-  // - Ensuring both streams are properly cleaned up on stop
+  // - 'voice' mode: Uses Web Speech API only (browser manages mic internally)
+  //   Benefit: Native speech-to-text, no explicit getUserMedia call
+  //   Tradeoff: No oscilloscope visualization
   //
-  // Future improvement: Use a custom speech-to-text service that accepts MediaStream
-  // to enable true single-stream operation.
+  // - 'visualizer' mode: Uses getUserMedia for oscilloscope only
+  //   Benefit: Real-time audio visualization
+  //   Tradeoff: No speech recognition, manual text input required
+  //
+  // This design ensures only ONE microphone stream is active at any time,
+  // eliminating resource waste and potential permission conflicts on mobile devices.
   const handleMicToggle = useCallback(async () => {
-    if (isListening) {
+    // Stop current activity
+    if (isListening || audioAnalyser.isActive) {
       stopListening();
       audioAnalyser.stop();
-      // Stop shared stream tracks when done
       if (sharedStreamRef.current) {
         sharedStreamRef.current.getTracks().forEach(track => track.stop());
         sharedStreamRef.current = null;
@@ -144,28 +135,31 @@ export function MobileMode({
       return;
     }
 
-    // Request mic for visualizer first (this caches the permission grant)
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      sharedStreamRef.current = stream;
-      
-      // Start audio analyser for oscilloscope visualization
-      await audioAnalyser.start(stream);
-      
-      // Start speech recognition - this creates its own internal stream but
-      // the browser should reuse the cached permission from getUserMedia above.
-      startSpeechRecognition();
-    } catch (err) {
-      console.error('[MobileMode] Mic access error:', err);
-      setSttError(err instanceof Error ? err.message : 'Microphone access denied');
-      // Ensure cleanup if mic access failed
-      audioAnalyser.stop();
-      if (sharedStreamRef.current) {
-        sharedStreamRef.current.getTracks().forEach(track => track.stop());
-        sharedStreamRef.current = null;
+    if (inputMode === 'voice') {
+      // Voice mode: Use Web Speech API only (browser manages mic internally)
+      try {
+        startListening();
+      } catch (err) {
+        console.error('[MobileMode] Speech recognition error:', err);
+        setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
+      }
+    } else {
+      // Visualizer mode: Use getUserMedia for oscilloscope only
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        sharedStreamRef.current = stream;
+        await audioAnalyser.start(stream);
+      } catch (err) {
+        console.error('[MobileMode] Mic access error:', err);
+        setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+        audioAnalyser.stop();
+        if (sharedStreamRef.current) {
+          sharedStreamRef.current.getTracks().forEach(track => track.stop());
+          sharedStreamRef.current = null;
+        }
       }
     }
-  }, [isListening, startListening, stopListening, audioAnalyser, startSpeechRecognition]);
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening]);
 
   // Speak new final utterances when TTS is enabled (only from others)
   useEffect(() => {
@@ -234,21 +228,29 @@ export function MobileMode({
 
       {/* Main Content */}
       <div className="walkie-content">
-        {/* Oscilloscope */}
-        <div className="walkie-oscilloscope">
-          <Oscilloscope
-            analyser={audioAnalyser.analyser}
-            dataArray={audioAnalyser.dataArray}
-            isActive={audioAnalyser.isActive}
-            width={280}
-            height={100}
-          />
-        </div>
+        {/* Oscilloscope - only shown in visualizer mode */}
+        {inputMode === 'visualizer' && (
+          <div className="walkie-oscilloscope">
+            <Oscilloscope
+              analyser={audioAnalyser.analyser}
+              dataArray={audioAnalyser.dataArray}
+              isActive={audioAnalyser.isActive}
+              width={280}
+              height={100}
+            />
+          </div>
+        )}
 
         {/* Status Text */}
         <div className="walkie-status">
           {sttError ? (
             <span className="walkie-error">⚠️ {sttError}</span>
+          ) : inputMode === 'visualizer' ? (
+            audioAnalyser.isActive ? (
+              <span className="walkie-listening">Recording... (type to send)</span>
+            ) : (
+              <span className="walkie-ready">Tap to record</span>
+            )
           ) : interimText ? (
             <span className="walkie-interim">"{interimText}"</span>
           ) : isListening ? (
@@ -260,14 +262,22 @@ export function MobileMode({
 
         {/* Large Mic Button */}
         <button
-          className={`walkie-mic-btn ${isListening ? 'active' : ''}`}
+          className={`walkie-mic-btn ${(isListening || audioAnalyser.isActive) ? 'active' : ''}`}
           onClick={handleMicToggle}
-          disabled={!sttSupported}
-          title={sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported'}
-          aria-label={sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported'}
-          aria-pressed={isListening}
+          disabled={inputMode === 'voice' && !sttSupported}
+          title={
+            inputMode === 'visualizer'
+              ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
+              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+          }
+          aria-label={
+            inputMode === 'visualizer'
+              ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
+              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+          }
+          aria-pressed={isListening || audioAnalyser.isActive}
         >
-          <span className="mic-icon" aria-hidden="true">{isListening ? '🔴' : '🎤'}</span>
+          <span className="mic-icon" aria-hidden="true">{(isListening || audioAnalyser.isActive) ? '🔴' : '🎤'}</span>
         </button>
 
         {/* AI Status Badge */}
@@ -292,8 +302,10 @@ export function MobileMode({
         ttsEnabled={ttsEnabled}
         ttsSupported={ttsSupported}
         autoSubmit={autoSubmit}
+        inputMode={inputMode}
         onTtsChange={setTtsEnabled}
         onAutoSubmitChange={setAutoSubmit}
+        onInputModeChange={setInputMode}
         onModeChange={onModeChange}
       />
 

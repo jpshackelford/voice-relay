@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { MobileSettings } from './MobileSettings';
+import { MobileSettings, type InputMode } from './MobileSettings';
 
 describe('MobileSettings', () => {
   const defaultProps = {
@@ -10,8 +10,10 @@ describe('MobileSettings', () => {
     ttsEnabled: false,
     ttsSupported: true,
     autoSubmit: true,
+    inputMode: 'voice' as InputMode,
     onTtsChange: vi.fn(),
     onAutoSubmitChange: vi.fn(),
+    onInputModeChange: vi.fn(),
     onModeChange: vi.fn(),
   };
 
@@ -160,6 +162,70 @@ describe('MobileSettings', () => {
       });
 
       expect(defaultProps.onClose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('input mode selector', () => {
+    it('shows input mode buttons', () => {
+      render(<MobileSettings {...defaultProps} />);
+      expect(screen.getByText('🗣️ Voice')).toBeDefined();
+      expect(screen.getByText('📊 Visualizer')).toBeDefined();
+    });
+
+    it('shows voice button as active when inputMode is voice', () => {
+      render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      const voiceBtn = screen.getByText('🗣️ Voice');
+      expect(voiceBtn.className).toContain('active');
+    });
+
+    it('shows visualizer button as active when inputMode is visualizer', () => {
+      render(<MobileSettings {...defaultProps} inputMode="visualizer" />);
+      const vizBtn = screen.getByText('📊 Visualizer');
+      expect(vizBtn.className).toContain('active');
+    });
+
+    it('calls onInputModeChange with voice when voice button clicked', async () => {
+      render(<MobileSettings {...defaultProps} inputMode="visualizer" />);
+      const voiceBtn = screen.getByText('🗣️ Voice');
+      
+      await act(async () => {
+        fireEvent.click(voiceBtn);
+      });
+
+      expect(defaultProps.onInputModeChange).toHaveBeenCalledWith('voice');
+    });
+
+    it('calls onInputModeChange with visualizer when visualizer button clicked', async () => {
+      render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      const vizBtn = screen.getByText('📊 Visualizer');
+      
+      await act(async () => {
+        fireEvent.click(vizBtn);
+      });
+
+      expect(defaultProps.onInputModeChange).toHaveBeenCalledWith('visualizer');
+    });
+
+    it('shows correct hint for voice mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      expect(screen.getByText('Voice recognition (no visualizer)')).toBeDefined();
+    });
+
+    it('shows correct hint for visualizer mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="visualizer" />);
+      expect(screen.getByText('Audio visualizer (manual text entry)')).toBeDefined();
+    });
+
+    it('disables auto-submit toggle in visualizer mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="visualizer" />);
+      const checkbox = screen.getByRole('checkbox', { name: /auto-send speech/i }) as HTMLInputElement;
+      expect(checkbox.disabled).toBe(true);
+    });
+
+    it('enables auto-submit toggle in voice mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      const checkbox = screen.getByRole('checkbox', { name: /auto-send speech/i }) as HTMLInputElement;
+      expect(checkbox.disabled).toBe(false);
     });
   });
 });

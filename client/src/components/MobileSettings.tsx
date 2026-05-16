@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { DeviceMode } from '../types';
 
+export type InputMode = 'voice' | 'visualizer';
+
 interface MobileSettingsProps {
   isOpen: boolean;
   onClose: () => void;
@@ -8,14 +10,16 @@ interface MobileSettingsProps {
   ttsEnabled: boolean;
   ttsSupported: boolean;
   autoSubmit: boolean;
+  inputMode: InputMode;
   onTtsChange: (enabled: boolean) => void;
   onAutoSubmitChange: (enabled: boolean) => void;
+  onInputModeChange: (mode: InputMode) => void;
   onModeChange: (mode: DeviceMode) => void;
 }
 
 /**
  * Settings modal for mobile mode.
- * Contains TTS toggle, auto-submit toggle, and mode switch.
+ * Contains TTS toggle, auto-submit toggle, input mode selector, and mode switch.
  */
 export function MobileSettings({
   isOpen,
@@ -24,8 +28,10 @@ export function MobileSettings({
   ttsEnabled,
   ttsSupported,
   autoSubmit,
+  inputMode,
   onTtsChange,
   onAutoSubmitChange,
+  onInputModeChange,
   onModeChange,
 }: MobileSettingsProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -92,9 +98,40 @@ export function MobileSettings({
                 type="checkbox"
                 checked={autoSubmit}
                 onChange={(e) => onAutoSubmitChange(e.target.checked)}
+                disabled={inputMode === 'visualizer'}
               />
               <span className="toggle-switch" />
             </label>
+          </div>
+
+          <div className="mobile-settings-divider" />
+
+          {/* Input Mode Selector - prevents dual microphone streams */}
+          <div className="mobile-settings-section">
+            <div className="mobile-settings-input-mode">
+              <span className="input-mode-label">🎤 Input Mode</span>
+              <span className="input-mode-hint">
+                {inputMode === 'voice' 
+                  ? 'Voice recognition (no visualizer)' 
+                  : 'Audio visualizer (manual text entry)'}
+              </span>
+              <div className="input-mode-buttons">
+                <button
+                  className={`input-mode-btn ${inputMode === 'voice' ? 'active' : ''}`}
+                  onClick={() => onInputModeChange('voice')}
+                  aria-pressed={inputMode === 'voice'}
+                >
+                  🗣️ Voice
+                </button>
+                <button
+                  className={`input-mode-btn ${inputMode === 'visualizer' ? 'active' : ''}`}
+                  onClick={() => onInputModeChange('visualizer')}
+                  aria-pressed={inputMode === 'visualizer'}
+                >
+                  📊 Visualizer
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="mobile-settings-divider" />

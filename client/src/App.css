@@ -4420,6 +4420,56 @@ header {
   color: #fff;
 }
 
+/* Input Mode Selector */
+.mobile-settings-input-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-settings-input-mode .input-mode-label {
+  color: #fff;
+  font-size: 1rem;
+}
+
+.mobile-settings-input-mode .input-mode-hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.mobile-settings-input-mode .input-mode-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-settings-input-mode .input-mode-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 8px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mobile-settings-input-mode .input-mode-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #555;
+}
+
+.mobile-settings-input-mode .input-mode-btn.active {
+  background: #3282b8;
+  border-color: #3282b8;
+  color: #fff;
+}
+
+.mobile-settings-input-mode .input-mode-btn.active:hover {
+  background: #2a6f9e;
+}
+
 /* ========================================
    Conversation Pane (Slide-in)
    ======================================== */
