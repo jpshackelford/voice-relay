@@ -231,6 +231,9 @@ test.describe('Multi-Device Real-Time Relay', () => {
       const mobileOwnSenderText = await mobileOwnSender.textContent();
       expect(mobileOwnSenderText).toContain('You');
 
+      // Open kiosk drawer to see messages (sidebar starts closed in desktop kiosk mode)
+      await ensureKioskDrawerOpen(kioskPage);
+
       // On kiosk, should see sender name (not "You:")
       const kioskReceivedMessage = kioskPage.locator(`.kiosk-message.final:has-text("${testMessage}")`);
       await expect(kioskReceivedMessage).toBeVisible({ timeout: 2000 });
