@@ -5,7 +5,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage } from '../types';
 import type { AIState } from '../hooks/useAI';
 
 // Configure marked for GitHub Flavored Markdown with line breaks
@@ -13,6 +13,9 @@ marked.setOptions({
   gfm: true,
   breaks: true,
 });
+
+/** Default timeout for image loading (10 seconds) */
+const IMAGE_LOAD_TIMEOUT_MS = 10000;
 
 interface KioskModeProps {
   deviceId: string;
@@ -30,6 +33,8 @@ interface KioskModeProps {
   ai?: AIState;  // AI state from parent (via useAI hook)
   /** Whether server-side TTS audio is currently playing */
   isAudioPlaying?: boolean;
+  /** Callback to report display result (success/failure) */
+  onDisplayResult?: (result: Omit<DisplayResultMessage, 'type'>) => void;
 }
 
 // Hook to detect mobile devices
@@ -63,6 +68,7 @@ export function KioskMode({
   sessionId,
   ai,
   isAudioPlaying = false,
+  onDisplayResult,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -72,6 +78,7 @@ export function KioskMode({
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);  // Start collapsed per F3
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState<string | null>(null);
   
   const isMobile = useIsMobile();
   
@@ -80,6 +87,9 @@ export function KioskMode({
   const spokenUtterancesRef = useRef(new Set<string>());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const imageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track the current display content URL to prevent duplicate result sends
+  const lastReportedDisplayRef = useRef<string | null>(null);
 
   const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
   // AI state is now passed from parent via props (wired to WebSocket in SessionView)
@@ -165,6 +175,90 @@ export function KioskMode({
     onFinalResult: handleFinalResult,
     onError: handleSttError,
   });
+
+  // Image load handlers for display feedback
+  const handleImageLoad = useCallback(() => {
+    // Clear timeout since image loaded successfully
+    if (imageTimeoutRef.current) {
+      clearTimeout(imageTimeoutRef.current);
+      imageTimeoutRef.current = null;
+    }
+    setImageLoadError(null);
+    
+    // Only send if this is a new display (prevent duplicates)
+    const currentUrl = displayContent?.content;
+    if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
+      lastReportedDisplayRef.current = currentUrl;
+      onDisplayResult?.({
+        success: true,
+        displayType: 'image',
+      });
+    }
+  }, [displayContent?.content, onDisplayResult]);
+
+  const handleImageError = useCallback(() => {
+    // Clear timeout since we're already reporting an error
+    if (imageTimeoutRef.current) {
+      clearTimeout(imageTimeoutRef.current);
+      imageTimeoutRef.current = null;
+    }
+    setImageLoadError('load-failed');
+    
+    // Only send if this is a new display (prevent duplicates)
+    const currentUrl = displayContent?.content;
+    if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
+      lastReportedDisplayRef.current = currentUrl;
+      onDisplayResult?.({
+        success: false,
+        error: 'load-failed',
+        displayType: 'image',
+      });
+    }
+  }, [displayContent?.content, onDisplayResult]);
+
+  // Set up timeout for slow-loading images
+  useEffect(() => {
+    // Only set timeout for image content
+    if (displayContent?.type === 'image' && displayContent.content) {
+      // Clear any existing timeout
+      if (imageTimeoutRef.current) {
+        clearTimeout(imageTimeoutRef.current);
+      }
+      
+      // Reset error state for new image
+      setImageLoadError(null);
+      
+      // Set timeout for image load
+      imageTimeoutRef.current = setTimeout(() => {
+        const currentUrl = displayContent.content;
+        // Only report timeout if we haven't already reported for this URL
+        if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
+          lastReportedDisplayRef.current = currentUrl;
+          setImageLoadError('timeout');
+          onDisplayResult?.({
+            success: false,
+            error: 'timeout',
+            displayType: 'image',
+          });
+        }
+      }, IMAGE_LOAD_TIMEOUT_MS);
+    } else {
+      // Clear timeout and reset tracking for non-image content
+      if (imageTimeoutRef.current) {
+        clearTimeout(imageTimeoutRef.current);
+        imageTimeoutRef.current = null;
+      }
+      lastReportedDisplayRef.current = null;
+    }
+    
+    // Cleanup on unmount or display change
+    return () => {
+      if (imageTimeoutRef.current) {
+        clearTimeout(imageTimeoutRef.current);
+        imageTimeoutRef.current = null;
+      }
+    };
+  }, [displayContent?.type, displayContent?.content, onDisplayResult]);
 
   // Speak new final utterances when TTS is enabled (only from others)
   useEffect(() => {
@@ -440,7 +534,17 @@ export function KioskMode({
           displayContent.type === 'image' ? (
             <div className="display-image">
               {displayContent.title && <h1 className="display-title">{displayContent.title}</h1>}
-              <img src={displayContent.content} alt={displayContent.title || 'Display'} />
+              <img 
+                src={displayContent.content} 
+                alt={displayContent.title || 'Display'} 
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+              />
+              {imageLoadError && (
+                <div className="image-error-indicator">
+                  {imageLoadError === 'timeout' ? '⏱️ Image loading slowly...' : '⚠️ Image failed to load'}
+                </div>
+              )}
             </div>
           ) : displayContent.type === 'markdown' ? (
             <div className="display-markdown">

@@ -310,4 +310,98 @@ describe('useWebSocket hook', () => {
 
     expect(closeSpy).toHaveBeenCalled();
   });
+
+  describe('sendDisplayResult', () => {
+    it('sends display-result message with success=true', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      // Clear the register message
+      ws.sentMessages = [];
+
+      act(() => {
+        result.current.sendDisplayResult({
+          success: true,
+          displayType: 'image',
+        });
+      });
+
+      expect(ws.sentMessages).toHaveLength(1);
+      const msg = JSON.parse(ws.sentMessages[0]);
+      expect(msg.type).toBe('display-result');
+      expect(msg.success).toBe(true);
+      expect(msg.displayType).toBe('image');
+      expect(msg.error).toBeUndefined();
+    });
+
+    it('sends display-result message with success=false and error', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      // Clear the register message
+      ws.sentMessages = [];
+
+      act(() => {
+        result.current.sendDisplayResult({
+          success: false,
+          error: 'load-failed',
+          displayType: 'image',
+        });
+      });
+
+      expect(ws.sentMessages).toHaveLength(1);
+      const msg = JSON.parse(ws.sentMessages[0]);
+      expect(msg.type).toBe('display-result');
+      expect(msg.success).toBe(false);
+      expect(msg.error).toBe('load-failed');
+      expect(msg.displayType).toBe('image');
+    });
+
+    it('sends display-result message with timeout error', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      // Clear the register message
+      ws.sentMessages = [];
+
+      act(() => {
+        result.current.sendDisplayResult({
+          success: false,
+          error: 'timeout',
+          displayType: 'image',
+        });
+      });
+
+      const msg = JSON.parse(ws.sentMessages[0]);
+      expect(msg.error).toBe('timeout');
+    });
+
+    it('does not send when WebSocket is closed', () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+
+      const ws = MockWebSocket.instances[0];
+      // Don't open the WebSocket
+
+      act(() => {
+        result.current.sendDisplayResult({
+          success: true,
+          displayType: 'image',
+        });
+      });
+
+      expect(ws.sentMessages).toHaveLength(0);
+    });
+  });
 });

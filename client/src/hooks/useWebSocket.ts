@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, JoinResponseMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, JoinResponseMessage, DisplayResultMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
@@ -239,5 +239,15 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
-  return { connected, devices, currentSession, wasRemoved, sendText, updateDevice, sendJoinResponse };
+  const sendDisplayResult = useCallback((result: Omit<DisplayResultMessage, 'type'>) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const message: DisplayResultMessage = {
+        type: 'display-result',
+        ...result,
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+
+  return { connected, devices, currentSession, wasRemoved, sendText, updateDevice, sendJoinResponse, sendDisplayResult };
 }
