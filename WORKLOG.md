@@ -31,240 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 07:07 UTC - Review Feedback Worker
-
-✅ **Addressed final PR #145 review feedback** - Signal handler consolidation
-
-- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
-- Status: **Ready for review** (all feedback resolved, CI green ✅)
-
-**Fix Applied:**
-
-6. **🟡 Signal Handler Consolidation** - Fixed in `812c4e8`
-   - Declared `deviceAuthManager` at `start()` function scope for shutdown handler access
-   - Removed duplicate SIGTERM/SIGINT handlers for DeviceAuthManager
-   - Added `deviceAuthManager?.shutdown()` to main shutdown handler
-   - Ensures single source of truth for shutdown orchestration with predictable cleanup order
-
-**All 7 review threads now resolved and marked complete.**
-
----
-
-### 2026-05-16 07:06 UTC - Expansion Worker
-
-✅ **Expanded Issue #142** - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope
-
-- Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
-- Type: Enhancement
-- Status: **Ready for implementation**
-- Related PR: [#143](https://github.com/jpshackelford/voice-relay/pull/143) (has issues, needs fixes)
-
-**Analysis Summary:**
-- Issue proposes simplifying mobile UI to "walkie-talkie" style experience
-- PR #143 exists but has CI failures and code review issues
-- CI failure: `lint-pr-title` - scope "mobile" not in allowed list (should be "client")
-- Code review: Duplicate mic streams, unstable useEffect deps, unread count never resets, resource leaks
-
-**Issue Expansion:**
-- Added clear Problem Statement (cognitive overload on mobile)
-- Added Proposed Solution with ASCII wireframe and design specs
-- Added comprehensive Acceptance Criteria (11 items)
-- Documented Lessons Learned from PR #143 (CI issues, code review issues, testing gaps)
-
-**Technical Comment Added:**
-- Architecture overview (audio pipeline, speech recognition, UI state machine)
-- Shared MediaStream pattern to fix duplicate mic access
-- Hook modification requirements
-- Component architecture diagram
-- Phased implementation plan (fix PR → add tests → mobile verification)
-- Files affected listing
-- Recommendation: Fix existing PR #143 rather than start fresh
-
-**Labels added:** `ready`
-
----
-
-### 2026-05-16 06:44 UTC - Review Feedback Worker
-
-✅ **Addressed PR #145 review feedback** - tvOS server-side authentication
-
-- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
-- Status: **Ready for review** (all feedback resolved, CI green ✅)
-
-**Fixes Applied:**
-
-1. **🔴 XSS Vulnerabilities (Critical)** - Fixed in `1fb8be4`
-   - Added `escapeHtml()` utility function
-   - Applied HTML escaping to `error` and `code` query parameters
-   - Added XSS-specific tests to verify escaping works
-
-2. **🟠 Log Injection Risk (Important)** - Fixed in `9c40403`
-   - Added `isValidPlatform()` validator and `VALID_PLATFORMS` array
-   - Platform field validated before logging in device registration
-   - Invalid platforms silently rejected (set to undefined)
-
-3. **🟠 Missing Router Tests (Important)** - Fixed in `5da32c2`
-   - Added 18 integration tests for /auth/device/* endpoints
-   - Coverage increased from 76.56% to 83.59% (now passing 80% threshold)
-
-4. **🟡 In-memory Storage Warning** - Fixed in `e49cdb2`
-   - Added startup warning about multi-server deployment limitations
-   - Documented Redis consideration as TODO
-
-5. **🟡 Graceful Shutdown** - Fixed in `9c40403`
-   - Added SIGTERM/SIGINT handlers for DeviceAuthManager cleanup
-
-6. **PR Title Format** - Fixed via `gh pr edit`
-   - Changed to conventional commit format: `feat(auth): ...`
-
-**All 6 review threads resolved and marked complete.**
-
----
-
-### 2026-05-16 06:36 UTC - Expansion Worker
-
-✅ **Expanded Issue #141** - README.md is out-of-date and inaccurate
-
-- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-- Type: Documentation
-- Status: **Ready for implementation**
-
-**Analysis Summary:**
-- README documents `input`/`output` modes but actual codebase uses `mobile`/`kiosk` views
-- Missing workspace and session concepts (core architecture)
-- Auth section labeled "Phase 4" but auth is production-ready
-- Architecture diagram doesn't reflect multi-user model
-- Message protocol missing `workspaceId`, `sessionId` fields
-- QR join workflow undocumented
-
-**Scope:**
-- Full README rewrite to match current architecture
-- Cross-reference detailed docs (DESIGN.md, DEPLOYMENT.md, MIGRATION.md)
-
-**Labels added:** `ready`, `documentation`
-
----
-
-### 2026-05-16 00:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `95a754f` | merge | PR #132 - fix: restore AI sender name | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
-- Conversation: [`95a754f`](https://app.all-hands.dev/conversations/95a754fed3ec4c34b5f8307285aee2af)
-
-**Current State:**
-- PR #132: ready (not draft), CI green ✅, mergeable state: clean
-- No unresolved review threads
-- No human reviews yet (only bot comment)
-- Issue #131 will auto-close on merge (PR has "Fixes #131")
-
-**Merge criteria met:**
-- ✅ CI passing (5 success, 1 skipped)
-- ✅ No review threads to address
-- ✅ Mergeable state: clean
-
-**Previous Workers (all finished):**
-- `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
-- `be21f55` (merge #130 ✓), `20b3fc9` (review #130 ✓)
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
----
-### 2026-05-16 00:05 UTC - Merge Worker (`95a754f`)
-
-✅ **Merged PR #132 → Issue #131 Closed**
-
-- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131) - **CLOSED** (auto-closed via "Fixes #131")
-- Merge type: Squash merge
-- Commit: `79273ba`
-
-**What was shipped:**
-- Restored AI message sender name from `'AI Assistant'` back to `'✨ AI'`
-- Updated server test assertion to match
-
-**Root Cause Fixed:**
-The session-centric AI refactor (PRs #123, #124) inadvertently changed the `senderName` for AI messages in `server/src/auto-connect.ts:95`. The smoke test expected `'✨ AI'`, causing CI failures.
-
-**Files changed:**
-| File | Change |
-|------|--------|
-| `server/src/auto-connect.ts` | `senderName: 'AI Assistant'` → `senderName: '✨ AI'` |
-| `server/src/auto-connect.test.ts` | Updated test assertion |
-
-**Review summary:**
-- Bot review: 🟢 LOW risk - "Sometimes the best code review is recognizing when a change is exactly what it needs to be—nothing more, nothing less."
-- All CI checks passed
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- Server-side change - simple string constant fix
-- No database/migration impact
-- Risk: LOW
-
-**Current State:**
-- No open issues 🎉
-- No open PRs
-- Smoke tests should now pass
-
----
-### 2026-05-16 00:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | - | - | - |
-
-✅ **All quiet** - No open issues or PRs
-
-**Current State:**
-- No open PRs
-- No open issues
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Idle (nothing to implement)
-
-🎉 **All Issues Complete!**
-
-The last merge (`95a754f` - PR #132 → Issue #131) completed successfully at 00:05 UTC.
-All tracked issues have been resolved.
-
-**Previous Workers (all finished):**
-- `95a754f` (merge #132 ✓), `f98f320` (implementation #131 ✓)
-- `101768f` (expansion #131 ✓), `be21f55` (merge #130 ✓)
-
-**Next check:** ~30 minutes (next cron trigger)
-
----
-### 2026-05-16 01:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | - | - | - |
-
-✅ **All quiet** - No open issues or PRs
-
-**Current State:**
-- No open PRs
-- No open issues  
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Idle (nothing to implement)
-
-**Previous Workers (all finished):**
-- `95a754f` (merge #132 ✓) - completed 00:05 UTC
-
-**Note:** This is the 2nd consecutive quiet period. If the next check also finds no work, the automation will be disabled.
-
-**Next check:** ~30 minutes (next cron trigger)
-
----
 ### 2026-05-16 01:31 UTC - Orchestrator
 
 🔒 **Auto-disabled due to inactivity**
@@ -977,6 +743,29 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - Risk: LOW
 
 ---
+### 2026-05-16 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #141** - README.md is out-of-date and inaccurate
+
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Type: Documentation
+- Status: **Ready for implementation**
+
+**Analysis Summary:**
+- README documents `input`/`output` modes but actual codebase uses `mobile`/`kiosk` views
+- Missing workspace and session concepts (core architecture)
+- Auth section labeled "Phase 4" but auth is production-ready
+- Architecture diagram doesn't reflect multi-user model
+- Message protocol missing `workspaceId`, `sessionId` fields
+- QR join workflow undocumented
+
+**Scope:**
+- Full README rewrite to match current architecture
+- Cross-reference detailed docs (DESIGN.md, DEPLOYMENT.md, MIGRATION.md)
+
+**Labels added:** `ready`, `documentation`
+
+---
 ### 2026-05-16 06:37 UTC - Orchestrator
 
 **Active Workers:**
@@ -1044,9 +833,93 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - `2ffab46` (expansion #141 ✓ - README update ready)
 
 ---
+### 2026-05-16 06:44 UTC - Review Feedback Worker
+
+✅ **Addressed PR #145 review feedback** - tvOS server-side authentication
+
+- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+- Status: **Ready for review** (all feedback resolved, CI green ✅)
+
+**Fixes Applied:**
+
+1. **🔴 XSS Vulnerabilities (Critical)** - Fixed in `1fb8be4`
+   - Added `escapeHtml()` utility function
+   - Applied HTML escaping to `error` and `code` query parameters
+   - Added XSS-specific tests to verify escaping works
+
+2. **🟠 Log Injection Risk (Important)** - Fixed in `9c40403`
+   - Added `isValidPlatform()` validator and `VALID_PLATFORMS` array
+   - Platform field validated before logging in device registration
+   - Invalid platforms silently rejected (set to undefined)
+
+3. **🟠 Missing Router Tests (Important)** - Fixed in `5da32c2`
+   - Added 18 integration tests for /auth/device/* endpoints
+   - Coverage increased from 76.56% to 83.59% (now passing 80% threshold)
+
+4. **🟡 In-memory Storage Warning** - Fixed in `e49cdb2`
+   - Added startup warning about multi-server deployment limitations
+   - Documented Redis consideration as TODO
+
+5. **🟡 Graceful Shutdown** - Fixed in `9c40403`
+   - Added SIGTERM/SIGINT handlers for DeviceAuthManager cleanup
+
+6. **PR Title Format** - Fixed via `gh pr edit`
+   - Changed to conventional commit format: `feat(auth): ...`
+
+**All 6 review threads resolved and marked complete.**
 
 ---
+### 2026-05-16 07:06 UTC - Expansion Worker
 
+✅ **Expanded Issue #142** - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope
+
+- Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
+- Type: Enhancement
+- Status: **Ready for implementation**
+- Related PR: [#143](https://github.com/jpshackelford/voice-relay/pull/143) (has issues, needs fixes)
+
+**Analysis Summary:**
+- Issue proposes simplifying mobile UI to "walkie-talkie" style experience
+- PR #143 exists but has CI failures and code review issues
+- CI failure: `lint-pr-title` - scope "mobile" not in allowed list (should be "client")
+- Code review: Duplicate mic streams, unstable useEffect deps, unread count never resets, resource leaks
+
+**Issue Expansion:**
+- Added clear Problem Statement (cognitive overload on mobile)
+- Added Proposed Solution with ASCII wireframe and design specs
+- Added comprehensive Acceptance Criteria (11 items)
+- Documented Lessons Learned from PR #143 (CI issues, code review issues, testing gaps)
+
+**Technical Comment Added:**
+- Architecture overview (audio pipeline, speech recognition, UI state machine)
+- Shared MediaStream pattern to fix duplicate mic access
+- Hook modification requirements
+- Component architecture diagram
+- Phased implementation plan (fix PR → add tests → mobile verification)
+- Files affected listing
+- Recommendation: Fix existing PR #143 rather than start fresh
+
+**Labels added:** `ready`
+
+---
+### 2026-05-16 07:07 UTC - Review Feedback Worker
+
+✅ **Addressed final PR #145 review feedback** - Signal handler consolidation
+
+- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+- Status: **Ready for review** (all feedback resolved, CI green ✅)
+
+**Fix Applied:**
+
+6. **🟡 Signal Handler Consolidation** - Fixed in `812c4e8`
+   - Declared `deviceAuthManager` at `start()` function scope for shutdown handler access
+   - Removed duplicate SIGTERM/SIGINT handlers for DeviceAuthManager
+   - Added `deviceAuthManager?.shutdown()` to main shutdown handler
+   - Ensures single source of truth for shutdown orchestration with predictable cleanup order
+
+**All 7 review threads now resolved and marked complete.**
+
+---
 ### 2026-05-16 07:36 UTC - Orchestrator
 
 **Active Workers:**
