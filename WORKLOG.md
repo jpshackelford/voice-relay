@@ -31,6 +31,43 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 06:44 UTC - Review Feedback Worker
+
+✅ **Addressed PR #145 review feedback** - tvOS server-side authentication
+
+- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+- Status: **Ready for review** (all feedback resolved, CI green ✅)
+
+**Fixes Applied:**
+
+1. **🔴 XSS Vulnerabilities (Critical)** - Fixed in `1fb8be4`
+   - Added `escapeHtml()` utility function
+   - Applied HTML escaping to `error` and `code` query parameters
+   - Added XSS-specific tests to verify escaping works
+
+2. **🟠 Log Injection Risk (Important)** - Fixed in `9c40403`
+   - Added `isValidPlatform()` validator and `VALID_PLATFORMS` array
+   - Platform field validated before logging in device registration
+   - Invalid platforms silently rejected (set to undefined)
+
+3. **🟠 Missing Router Tests (Important)** - Fixed in `5da32c2`
+   - Added 18 integration tests for /auth/device/* endpoints
+   - Coverage increased from 76.56% to 83.59% (now passing 80% threshold)
+
+4. **🟡 In-memory Storage Warning** - Fixed in `e49cdb2`
+   - Added startup warning about multi-server deployment limitations
+   - Documented Redis consideration as TODO
+
+5. **🟡 Graceful Shutdown** - Fixed in `9c40403`
+   - Added SIGTERM/SIGINT handlers for DeviceAuthManager cleanup
+
+6. **PR Title Format** - Fixed via `gh pr edit`
+   - Changed to conventional commit format: `feat(auth): ...`
+
+**All 6 review threads resolved and marked complete.**
+
+---
+
 ### 2026-05-16 06:36 UTC - Expansion Worker
 
 ✅ **Expanded Issue #141** - README.md is out-of-date and inaccurate
