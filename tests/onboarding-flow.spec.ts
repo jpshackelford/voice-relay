@@ -116,27 +116,29 @@ test.describe('User Onboarding Flow', () => {
     // =====================
     // STEP 11: Send first message
     // =====================
-    // Use helper to find input across kiosk/mobile modes
-    const { input, sendBtn } = await findMessageInput(page);
+    // Open drawer to access input (in desktop kiosk mode, input is in collapsible sidebar)
+    await ensureKioskDrawerOpen(page);
+
+    // Use kiosk-specific locators for more reliability
+    const kioskInput = page.locator('.kiosk-sidebar .kiosk-input-row input[type="text"]');
+    await expect(kioskInput).toBeVisible({ timeout: 3000 });
 
     // Fill in the message
-    await input.fill('Hello world!');
-    // Wait for send button to be enabled (disabled when input is empty)
-    await expect(sendBtn).toBeEnabled({ timeout: 2000 });
-    // Click send button
-    await sendBtn.click();
-    // Small wait for message to be processed
+    await kioskInput.fill('Hello world!');
+
+    // Click send button (explicitly target kiosk sidebar button)
+    const kioskSendBtn = page.locator('.kiosk-sidebar .send-btn-small');
+    await expect(kioskSendBtn).toBeEnabled({ timeout: 2000 });
+    await kioskSendBtn.click();
+
+    // Wait for message to be processed
     await page.waitForTimeout(500);
 
     // =====================
     // STEP 12: Verify message appears
     // =====================
-    // In desktop kiosk mode, messages are in the sidebar which findMessageInput already opened
-    // but let's ensure it's still open (defensive)
-    await ensureKioskDrawerOpen(page);
-
     // Verify message appears with "You:" prefix and content
-    const messageWithContent = page.locator('.kiosk-message.final, .message.final')
+    const messageWithContent = page.locator('.kiosk-message.final')
       .filter({ hasText: 'You: Hello world!' });
     await expect(messageWithContent.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
@@ -218,20 +220,24 @@ test.describe('User Onboarding Flow', () => {
     await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/, { timeout: ELEMENT_VISIBLE_TIMEOUT });
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
 
-    // Send message
-    const { input, sendBtn } = await findMessageInput(page);
-    await input.fill('Test message');
-    // Wait for send button to be enabled
-    await expect(sendBtn).toBeEnabled({ timeout: 2000 });
-    await sendBtn.click();
-    // Small wait for message to be processed
-    await page.waitForTimeout(500);
-
-    // Ensure drawer is open in kiosk mode to see messages
+    // Open drawer to access input (in desktop kiosk mode, input is in collapsible sidebar)
     await ensureKioskDrawerOpen(page);
 
+    // Use kiosk-specific locators for more reliability
+    const kioskInput = page.locator('.kiosk-sidebar .kiosk-input-row input[type="text"]');
+    await expect(kioskInput).toBeVisible({ timeout: 3000 });
+
+    // Fill and send message
+    await kioskInput.fill('Test message');
+    const kioskSendBtn = page.locator('.kiosk-sidebar .send-btn-small');
+    await expect(kioskSendBtn).toBeEnabled({ timeout: 2000 });
+    await kioskSendBtn.click();
+
+    // Wait for message to be processed
+    await page.waitForTimeout(500);
+
     // Verify message appears with content
-    const messageWithContent = page.locator('.kiosk-message.final, .message.final')
+    const messageWithContent = page.locator('.kiosk-message.final')
       .filter({ hasText: 'You: Test message' });
     await expect(messageWithContent.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
   });
