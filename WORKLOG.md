@@ -904,3 +904,47 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - Client-only change, no database/migration impact
 - Risk: LOW
 
+
+---
+### 2026-05-16 06:05 UTC - Expansion Worker
+
+✅ **Research Completed: Issue #139**
+
+- Issue: [[Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Type: Research
+- Status: **Ready for implementation** ✅
+- Label: `ready`
+
+**Research Question:** How can we safely sandbox AI-generated JavaScript apps on the kiosk without disrupting the display session?
+
+**Findings:**
+
+| Option | DOM Access | Isolation | Verdict |
+|--------|------------|-----------|---------|
+| **Sandboxed iframe + srcdoc** | ✅ Full | ✅ Strong | ✅ **Recommended** |
+| Web Worker | ❌ None | ✅ Strong | ❌ Can't render UI |
+| Blob URL + iframe | ✅ Full | ✅ Strong | ⚠️ Viable but more complex |
+| Separate-origin iframe | ✅ Full | ✅ Maximum | ❌ Requires infra |
+
+**Recommendation: ✅ YES - Implement iframe sandboxing**
+
+Use `<iframe sandbox="allow-scripts" srcdoc={htmlContent}>`:
+- Industry standard (CodePen, JSFiddle, CodeSandbox all use this)
+- Strong isolation: no access to parent DOM, WebSocket, localStorage
+- **Critical:** Never use `allow-scripts` + `allow-same-origin` together (allows sandbox escape)
+- Watchdog pattern detects frozen iframes → remove and show recovery message
+- Parent session state lives outside iframe → always responsive to new commands
+
+**Implementation Plan:**
+1. Add `type: 'app'` to DisplayContent
+2. Render apps in `<iframe sandbox="allow-scripts" srcdoc={...}>`
+3. Add heartbeat watchdog (1s ping, 5s timeout → destroy iframe)
+4. Update API validation to accept `app` type
+
+**Complexity:** 1-2 days
+
+**Files to modify:**
+- `client/src/types.ts`
+- `client/src/components/KioskMode.tsx`
+- `server/src/types.ts`
+- `server/src/index.ts`
