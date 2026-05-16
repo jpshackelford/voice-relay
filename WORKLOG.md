@@ -758,3 +758,34 @@ Human needs to either:
 **Action Taken:** None - waiting for implementation worker to complete
 
 ---
+### 2026-05-16 16:08 UTC - Implementation Worker (`dd9da38`)
+
+✅ **Created PR for Issue #135 - ElevenLabs TTS Integration**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Issue: [#135 - Investigate ElevenLabs integration for text-to-speech](https://github.com/jpshackelford/voice-relay/issues/135)
+- Status: **Ready for review** ✅
+- CI: ✅ All checks passing (4/4)
+
+**Implementation Summary:**
+- Server-side TTS using ElevenLabs WebSocket API for low latency streaming
+- Added migration 011 for ElevenLabs settings columns
+- Created TTS service (`server/src/tts/`) with synthesis and audio routing
+- Added API endpoints for API key management and voice selection
+- Client-side audio playback hook (`useAudioPlayback`) for buffering and playing audio
+- TTS speaks only AI responses, not user messages
+- Audio streams only to kiosk devices (not mobile)
+
+**Acceptance Criteria Met (8/8):**
+- [x] AI responses are spoken with natural-sounding ElevenLabs voices
+- [x] TTS plays ONLY on kiosk devices, not on mobile devices
+- [x] Only AI responses are spoken (user messages are NOT echoed)
+- [x] Audio streams with low latency (WebSocket + eleven_flash_v2_5 model)
+- [x] Workspace owners can configure their ElevenLabs API key
+- [x] Voice selection is configurable per workspace
+- [x] TTS toggle persists in workspace settings
+- [x] Graceful fallback: if no ElevenLabs key, TTS is disabled
+
+**Tests:** 584 passing (all server tests including new TTS tests)
+
+---
