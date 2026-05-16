@@ -17,6 +17,12 @@ import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import { 
+  ANONYMOUS_WORKSPACE_ID, 
+  ANONYMOUS_SESSION_ID, 
+  ANONYMOUS_SESSION_NAME, 
+  isAnonymousMode 
+} from './constants.js';
+import { 
   isValidPlatform,
   type ClientMessage, 
   type RegisteredMessage, 
@@ -329,78 +335,83 @@ wss.on('connection', (ws: WebSocket) => {
       
       switch (message.type) {
         case 'register': {
-          // Use provided workspaceId or default to 'default' for backward compatibility
-          const requestedWorkspaceId = message.workspaceId || 'default';
+          // Determine workspace: use provided ID or fall back to anonymous mode
+          const requestedWorkspaceId = message.workspaceId || ANONYMOUS_WORKSPACE_ID;
+          const isAnonymous = isAnonymousMode(requestedWorkspaceId);
           
-          // Validate workspace exists before creating device (FK constraint)
-          // Skip validation for 'default' workspace (legacy unauthenticated mode)
-          const isLegacyMode = requestedWorkspaceId === 'default';
-          if (workspaceRepository && !isLegacyMode) {
-            const workspace = workspaceRepository.findById(requestedWorkspaceId);
-            if (!workspace) {
-              console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
-              ws.send(JSON.stringify({
-                type: 'error',
-                code: 'WORKSPACE_NOT_FOUND',
-                message: 'Workspace does not exist',
-              }));
-              ws.close();
-              return;
-            }
-          }
-
-          deviceId = message.deviceId;
-          workspaceId = requestedWorkspaceId;
-
-          // Persist device to database FIRST (required for session FK constraint)
-          // This auto-registers devices with generated names when joining via QR code
-          // Skip persistence for 'default' workspace (no FK reference, legacy mode)
+          // Anonymous mode: Skip all database operations (no workspace FK to reference)
+          // Authenticated mode: Validate workspace, persist device, track sessions
+          
           let deviceToken: string | null = null;
           let tokenExpiresAt: string | null = null;
-          if (deviceRepository && !isLegacyMode) {
-            const result = deviceRepository.registerOrUpdate(
-              message.deviceId,
-              requestedWorkspaceId,
-              message.displayName,
-              message.mode
-            );
-            // Only send token if this is a new device registration
-            if (result.isNew && result.token) {
-              deviceToken = result.token;
-              tokenExpiresAt = result.expiresAt;
-              console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
-            }
-          }
-
-          // Determine session for this device
-          // Skip database session tracking for legacy mode (no valid workspace FK)
-          let session: { id: string; name: string | null } | null = null;
+          let session: { id: string; name: string | null };
           
-          if (sessionRepository && !isLegacyMode) {
-            // If client provided sessionId, try to use it
-            if (message.sessionId) {
-              const requestedSession = sessionRepository.findById(message.sessionId);
-              if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
-                session = { id: requestedSession.id, name: requestedSession.name };
-              } else {
-                console.warn(`[WS] Invalid session ${message.sessionId} requested by ${deviceId}, using active session`);
+          if (isAnonymous) {
+            // Anonymous mode: in-memory relay only, no persistence
+            session = { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME };
+            sessionId = ANONYMOUS_SESSION_ID;
+          } else {
+            // Authenticated mode: validate workspace exists (FK constraint)
+            if (workspaceRepository) {
+              const workspace = workspaceRepository.findById(requestedWorkspaceId);
+              if (!workspace) {
+                console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  code: 'WORKSPACE_NOT_FOUND',
+                  message: 'Workspace does not exist',
+                }));
+                ws.close();
+                return;
               }
             }
             
-            // If no valid session from client request, get or create active session
-            if (!session) {
-              const activeSession = sessionRepository.getOrCreateActiveSession(requestedWorkspaceId);
-              session = { id: activeSession.id, name: activeSession.name };
+            // Persist device to database (required for session FK constraint)
+            // This auto-registers devices with generated names when joining via QR code
+            if (deviceRepository) {
+              const result = deviceRepository.registerOrUpdate(
+                message.deviceId,
+                requestedWorkspaceId,
+                message.displayName,
+                message.mode
+              );
+              // Only send token if this is a new device registration
+              if (result.isNew && result.token) {
+                deviceToken = result.token;
+                tokenExpiresAt = result.expiresAt;
+                console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
+              }
             }
             
-            // Track device in session_devices table (device must exist for FK constraint)
-            sessionRepository.addDevice(session.id, deviceId);
+            // Determine session for this device
+            session = { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME }; // fallback
+            
+            if (sessionRepository) {
+              // If client provided sessionId, try to use it
+              if (message.sessionId) {
+                const requestedSession = sessionRepository.findById(message.sessionId);
+                if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
+                  session = { id: requestedSession.id, name: requestedSession.name };
+                } else {
+                  console.warn(`[WS] Invalid session ${message.sessionId} requested by ${message.deviceId}, using active session`);
+                }
+              }
+              
+              // If no valid session from client request, get or create active session
+              if (session.id === ANONYMOUS_SESSION_ID) {
+                const activeSession = sessionRepository.getOrCreateActiveSession(requestedWorkspaceId);
+                session = { id: activeSession.id, name: activeSession.name };
+              }
+              
+              // Track device in session_devices table (device must exist for FK constraint)
+              sessionRepository.addDevice(session.id, message.deviceId);
+            }
+            
             sessionId = session.id;
-          } else {
-            // Fallback for legacy mode or non-SQLite stores: no session tracking
-            session = { id: 'default', name: 'Default Session' };
-            sessionId = 'default';
           }
+          
+          deviceId = message.deviceId;
+          workspaceId = requestedWorkspaceId;
           
           // SECURITY: Validate platform to prevent log injection attacks
           const validatedPlatform = isValidPlatform(message.platform) ? message.platform : undefined;
@@ -430,7 +441,7 @@ wss.on('connection', (ws: WebSocket) => {
           registry.broadcastDeviceList(workspaceId);
 
           // Send session-scoped message history to this device
-          const history = sessionRepository && sessionId !== 'default'
+          const history = sessionRepository && sessionId !== ANONYMOUS_SESSION_ID
             ? await store.getRecentBySession(50, sessionId)
             : await store.getRecent(50, workspaceId);
           const historyMessage: HistoryMessage = {
@@ -503,7 +514,7 @@ wss.on('connection', (ws: WebSocket) => {
           }
 
           // Broadcast to devices in the same session (or workspace if no session)
-          if (device.sessionId && device.sessionId !== 'default') {
+          if (device.sessionId && device.sessionId !== ANONYMOUS_SESSION_ID) {
             registry.broadcastToSession(relayMessage, device.sessionId);
           } else {
             registry.broadcastToOutputs(relayMessage, device.workspaceId);
@@ -640,7 +651,7 @@ wss.on('connection', (ws: WebSocket) => {
       const deviceSessionId = device?.sessionId;
       
       // Remove device from session_devices table
-      if (sessionRepository && deviceSessionId && deviceSessionId !== 'default') {
+      if (sessionRepository && deviceSessionId && deviceSessionId !== ANONYMOUS_SESSION_ID) {
         sessionRepository.removeDevice(deviceSessionId, deviceId);
       }
       

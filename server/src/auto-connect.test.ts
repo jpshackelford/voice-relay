@@ -13,6 +13,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
 import type { AISessionManager, AISession } from './openhands.js';
 import type { SessionAIStatusMessage } from './types.js';
+import { ANONYMOUS_SESSION_ID } from './constants.js';
 
 // Mock factories for test dependencies
 function createMockRegistry(): DeviceRegistry {
@@ -418,11 +419,11 @@ describe('shouldAutoConnect', () => {
     expect(result).toBe(false);
   });
 
-  test('returns false for default session', () => {
+  test('returns false for anonymous session', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
     const aiManager = createMockAISessionManager({ hasSessionAI: false });
     
-    const result = shouldAutoConnect('default', sessionRepo, aiManager);
+    const result = shouldAutoConnect(ANONYMOUS_SESSION_ID, sessionRepo, aiManager);
     
     expect(result).toBe(false);
   });
