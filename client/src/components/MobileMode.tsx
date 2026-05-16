@@ -110,6 +110,8 @@ export function MobileMode({
 
   // Stop active mic when input mode changes
   // This ensures clean state transition when user switches modes in settings
+  // Note: Using specific properties (isActive, stop) instead of the whole audioAnalyser object
+  // to avoid re-running on every render (useAudioAnalyser returns a new object each render)
   useEffect(() => {
     if (isListening || audioAnalyser.isActive) {
       stopListening();
@@ -119,7 +121,7 @@ export function MobileMode({
         sharedStreamRef.current = null;
       }
     }
-  }, [inputMode, isListening, audioAnalyser, stopListening]);
+  }, [inputMode, isListening, audioAnalyser.isActive, audioAnalyser.stop, stopListening]);
 
   // Handle microphone toggle based on input mode.
   //
@@ -181,6 +183,11 @@ export function MobileMode({
     for (const [id, utterance] of utterances) {
       if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
         spokenUtterancesRef.current.add(id);
+        // Prevent unbounded growth: keep only recent IDs
+        if (spokenUtterancesRef.current.size > 100) {
+          const entries = Array.from(spokenUtterancesRef.current);
+          spokenUtterancesRef.current = new Set(entries.slice(-50));
+        }
         speak(utterance.text);
       }
     }
