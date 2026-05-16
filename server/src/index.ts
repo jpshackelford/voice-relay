@@ -332,11 +332,20 @@ wss.on('connection', (ws: WebSocket) => {
           // Use provided workspaceId or default to 'default' for backward compatibility
           const requestedWorkspaceId = message.workspaceId || 'default';
           
-          // NOTE: Workspace validation deferred to Phase 4 when proper user authentication
-          // is implemented. At that point, we'll validate:
-          // 1. The workspace exists in the database
-          // 2. The authenticated user has access to the workspace
-          // See: https://github.com/jpshackelford/voice-relay/issues/6
+          // Validate workspace exists before creating device (FK constraint)
+          if (workspaceRepository && requestedWorkspaceId !== 'default') {
+            const workspace = workspaceRepository.findById(requestedWorkspaceId);
+            if (!workspace) {
+              console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
+              ws.send(JSON.stringify({
+                type: 'error',
+                code: 'WORKSPACE_NOT_FOUND',
+                message: 'Workspace does not exist',
+              }));
+              ws.close();
+              return;
+            }
+          }
 
           deviceId = message.deviceId;
           workspaceId = requestedWorkspaceId;
