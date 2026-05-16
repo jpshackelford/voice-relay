@@ -31,92 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 23:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `101768f` | expansion | Issue #131 - Smoke test failure | **NEW** |
-
-🚀 **Spawned: Expansion Worker**
-
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
-- Conversation: [`101768f`](https://app.all-hands.dev/conversations/101768f41ec74b35bdd54b2175d629e3)
-
-**Current State:**
-- No open PRs
-- Issue #131 needs expansion (ci-failure label only)
-- Expansion slot: Occupied (expansion worker)
-- PR slot: Idle (no ready issues to implement yet)
-
-**Note:** Issue #131 is a new smoke test failure created ~25 minutes ago after PR #130 merged.
-PR #130 fixed issue #129 (previous smoke test failure), but a new failure occurred.
-This may indicate the fix was incomplete or there's a different issue.
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
-**Previous Workers (all finished):**
-- `be21f55` (merge #130 ✓), `20b3fc9` (review #130 ✓)
-- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
-
-### 2026-05-15 23:33 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `f98f320` | implementation | Issue #131 - Smoke test failure (senderName fix) | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
-- Priority: `priority:high` (CI failure bug)
-- Conversation: [`f98f320`](https://app.all-hands.dev/conversations/f98f3201a95a4946b14b7dec25674a71)
-
-**Root Cause (from expansion worker `101768f`):**
-When the AI architecture changed from device-centric to session-centric (PRs #123, #124), the `senderName` for AI messages was inadvertently changed from `'✨ AI'` to `'AI Assistant'` in `server/src/auto-connect.ts:95`. The smoke test still expects the original `'✨ AI'` format.
-
-**Expected Fix:**
-Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavior and smoke test expectation.
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- Issue #131 is the only open issue
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (implementation worker)
-
-**Previous Workers (all finished):**
-- `101768f` (expansion #131 ✓), `be21f55` (merge #130 ✓)
-- `20b3fc9` (review #130 ✓), `2ac2fd2` (implementation #129 ✓)
-
----
-### 2026-05-15 23:37 UTC - Implementation Worker (`f98f320`)
-
-✅ **PR Created: Issue #131**
-
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
-- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
-- Status: **Ready for review** ✅
-
-**Changes Implemented:**
-
-| File | Change |
-|------|--------|
-| `server/src/auto-connect.ts` | Changed `senderName: 'AI Assistant'` → `senderName: '✨ AI'` |
-| `server/src/auto-connect.test.ts` | Updated test assertion to expect `'✨ AI'` |
-
-**Root Cause Fixed:**
-The session-centric AI refactor (PRs #123, #124) inadvertently changed the `senderName` for AI messages from `'✨ AI'` to `'AI Assistant'`. The smoke test at `tests/smoke/ai-integration.spec.ts:188` expects messages containing `'✨ AI'`, causing test failures after deployment.
-
-**CI Status:**
-- ✅ Build Client: Passed
-- ✅ Server Tests: Passed (all 525 tests)
-- ✅ E2E Tests: Passed
-- ✅ Conventional Commits: Passed
-
-**Risk Assessment:** Low - simple string change restoring original behavior.
-
----
 ### 2026-05-16 00:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -863,49 +777,6 @@ Investigated whether Marp (markdown-to-presentation ecosystem) would be better f
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md
 
 ---
-### 2026-05-16 06:07 UTC - Merge Worker (`932b5a0`)
-
-✅ **Merged PR #144 → Issue #134 Closed**
-
-- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high) - **CLOSED**
-- Merge type: Squash merge
-- Commit: `7ad7574`
-
-**What was shipped:**
-Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
-- `marked` v18.0.3 for full GFM support (tables, images, code blocks)
-- `DOMPurify` v3.4.3 for XSS sanitization before `dangerouslySetInnerHTML`
-
-**Bugs fixed:**
-| Input | Before | After |
-|-------|--------|-------|
-| `![img](url)` | `!<a href="url">img</a>` | `<img src="url" alt="img">` |
-| `| A | B |` table | Raw text with `<br>` | `<table>...</table>` |
-
-**Files changed:**
-| File | Change |
-|------|--------|
-| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` (25 lines regex → 3 lines library) |
-| `client/src/components/KioskMode.test.tsx` | Add 17 tests (image, table, XSS, existing features) |
-| `client/package.json` | Add `marked` + `dompurify` dependencies |
-| `tests/markdown-rendering.spec.ts` | Add E2E smoke test |
-
-**Review Summary:**
-- 🟢 LOW risk - "Elegant solution that eliminates regex special cases"
-- Supply chain verified: Both deps have matching GitHub releases and signatures
-- All 729 tests passed (200 client + 529 server)
-- 5/5 review threads resolved before merge
-
-**Bundle impact:** ~1 MB (acceptable for kiosk use case)
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- Client-only change, no database/migration impact
-- Risk: LOW
-
-
----
 ### 2026-05-16 06:05 UTC - Expansion Worker
 
 ✅ **Research Completed: Issue #139**
@@ -948,3 +819,45 @@ Use `<iframe sandbox="allow-scripts" srcdoc={htmlContent}>`:
 - `client/src/components/KioskMode.tsx`
 - `server/src/types.ts`
 - `server/src/index.ts`
+
+---
+### 2026-05-16 06:07 UTC - Merge Worker (`932b5a0`)
+
+✅ **Merged PR #144 → Issue #134 Closed**
+
+- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high) - **CLOSED**
+- Merge type: Squash merge
+- Commit: `7ad7574`
+
+**What was shipped:**
+Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
+- `marked` v18.0.3 for full GFM support (tables, images, code blocks)
+- `DOMPurify` v3.4.3 for XSS sanitization before `dangerouslySetInnerHTML`
+
+**Bugs fixed:**
+| Input | Before | After |
+|-------|--------|-------|
+| `![img](url)` | `!<a href="url">img</a>` | `<img src="url" alt="img">` |
+| `| A | B |` table | Raw text with `<br>` | `<table>...</table>` |
+
+**Files changed:**
+| File | Change |
+|------|--------|
+| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` (25 lines regex → 3 lines library) |
+| `client/src/components/KioskMode.test.tsx` | Add 17 tests (image, table, XSS, existing features) |
+| `client/package.json` | Add `marked` + `dompurify` dependencies |
+| `tests/markdown-rendering.spec.ts` | Add E2E smoke test |
+
+**Review Summary:**
+- 🟢 LOW risk - "Elegant solution that eliminates regex special cases"
+- Supply chain verified: Both deps have matching GitHub releases and signatures
+- All 729 tests passed (200 client + 529 server)
+- 5/5 review threads resolved before merge
+
+**Bundle impact:** ~1 MB (acceptable for kiosk use case)
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Client-only change, no database/migration impact
+- Risk: LOW
