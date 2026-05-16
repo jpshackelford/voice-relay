@@ -31,88 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15T23:03 UTC - Expansion Worker
-
-✅ **Expanded Issue #131**
-
-- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
-- Type: Bug (CI failure)
-- Status: Ready for implementation
-- Labels: `ready`, `priority:high`, `bug`, `ci-failure`
-
-**Root Cause:** When AI architecture changed from device-centric to session-centric (PRs #123, #124), the `senderName` for AI messages was inadvertently changed from `'✨ AI'` to `'AI Assistant'` in `server/src/auto-connect.ts:95`. The smoke test still expects the original `'✨ AI'` format.
-
-**Proposed Fix:** Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavior and smoke test expectation.
-
-**Files to modify:**
-- `server/src/auto-connect.ts` - Change line 95
-- `server/src/auto-connect.test.ts` - Update test assertion
-
----
-
-### 2026-05-15 15:35 UTC - Merge Worker (`9de89cb`)
-
-✅ **Merged PR #125 → Issue #121 Closed**
-
-- PR: [#125 - feat(client): distinguish connecting vs thinking AI states](https://github.com/jpshackelford/voice-relay/pull/125)
-- Issue: [#121](https://github.com/jpshackelford/voice-relay/issues/121) - **CLOSED** (auto-closed via "Fixes #121")
-- Merge type: Squash merge
-- Commit: `feat(client): distinguish connecting vs thinking AI states`
-
-**What was shipped:**
-- Distinct visual indicators for AI connection states:
-  - 🔗 Connecting (1.5s pulse animation) - sandbox starting up
-  - 🤔 Thinking (0.8s glow animation) - AI processing response
-  - ✨ Connected (subtle glow) - AI ready and idle
-- `thinking` state in useAI hook with handlers for session-centric AI
-- Session filtering for KioskMode (ignores messages from other sessions)
-- 8 new tests for state management and session filtering
-- CSS animations for smooth, non-distracting visual feedback
-
-**Migration Status (Session-centric AI):**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
-- ✅ Issue #121 (UI indicators for thinking/connecting) - **MERGED**
-- 🔜 Issue #122 (remove legacy device-centric code) - Ready, unblocked
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- Client-only changes - no database/migration impact
-- No breaking changes
-
-### 2026-05-15 16:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `1db132a` | implementation | Issue #122 - Remove legacy AI code | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#122 - chore: Remove legacy device-centric AI code](https://github.com/jpshackelford/voice-relay/issues/122)
-- Priority: `priority:low`
-- Conversation: [`1db132a`](https://app.all-hands.dev/conversations/1db132af7c2040818c8488ccd2c87cd3)
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- All issues expanded and ready
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (implementation worker)
-
-**Ready Issues:**
-- #122 (priority:low) - being implemented now
-
-**Migration Status (Session-centric AI):**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED
-- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
-- 🔄 Issue #122 (remove legacy device-centric code) - IN PROGRESS
-
-**Previous Workers (all finished):**
-- `9de89cb` (merge #125), `316a714` (implementation #121)
-- `a321264` (merge #124), `73f4a19` (review #124 round 6)
-
----
 ### 2026-05-15 16:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -906,7 +824,24 @@ PR #126 (session-centric AI) added WebSocket message types and handlers, but the
 - Smoke tests should now pass (`.ai-status` indicator wiring complete)
 
 ---
+### 2026-05-15T23:03 UTC - Expansion Worker
 
+✅ **Expanded Issue #131**
+
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- Type: Bug (CI failure)
+- Status: Ready for implementation
+- Labels: `ready`, `priority:high`, `bug`, `ci-failure`
+
+**Root Cause:** When AI architecture changed from device-centric to session-centric (PRs #123, #124), the `senderName` for AI messages was inadvertently changed from `'✨ AI'` to `'AI Assistant'` in `server/src/auto-connect.ts:95`. The smoke test still expects the original `'✨ AI'` format.
+
+**Proposed Fix:** Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavior and smoke test expectation.
+
+**Files to modify:**
+- `server/src/auto-connect.ts` - Change line 95
+- `server/src/auto-connect.test.ts` - Update test assertion
+
+---
 ### 2026-05-15 23:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -966,7 +901,6 @@ Restore `senderName: '✨ AI'` in `auto-connect.ts` to match the original behavi
 - `20b3fc9` (review #130 ✓), `2ac2fd2` (implementation #129 ✓)
 
 ---
-
 ### 2026-05-15 23:37 UTC - Implementation Worker (`f98f320`)
 
 ✅ **PR Created: Issue #131**
@@ -994,3 +928,34 @@ The session-centric AI refactor (PRs #123, #124) inadvertently changed the `send
 **Risk Assessment:** Low - simple string change restoring original behavior.
 
 ---
+
+### 2026-05-16 00:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `95a754f` | merge | PR #132 - fix: restore AI sender name | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#132 - fix: restore AI sender name to '✨ AI' for smoke test compatibility](https://github.com/jpshackelford/voice-relay/pull/132)
+- Issue: [#131 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/131)
+- Conversation: [`95a754f`](https://app.all-hands.dev/conversations/95a754fed3ec4c34b5f8307285aee2af)
+
+**Current State:**
+- PR #132: ready (not draft), CI green ✅, mergeable state: clean
+- No unresolved review threads
+- No human reviews yet (only bot comment)
+- Issue #131 will auto-close on merge (PR has "Fixes #131")
+
+**Merge criteria met:**
+- ✅ CI passing (5 success, 1 skipped)
+- ✅ No review threads to address
+- ✅ Mergeable state: clean
+
+**Previous Workers (all finished):**
+- `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
+- `be21f55` (merge #130 ✓), `20b3fc9` (review #130 ✓)
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
