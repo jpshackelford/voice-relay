@@ -51,12 +51,22 @@ export function useAudioAnalyser({
   const ownsStreamRef = useRef<boolean>(false);
   const cancelledRef = useRef<boolean>(false);
 
+  // Ref to track active state for the guard check - avoids stale closure issue
+  const isActiveRef = useRef(false);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+
   const start = useCallback(async (existingStream?: MediaStream): Promise<MediaStream | undefined> => {
-    if (isActive || cancelledRef.current) return streamRef.current ?? undefined;
+    // Use ref for guard check to avoid stale closure - state is set immediately below
+    if (isActiveRef.current || cancelledRef.current) return streamRef.current ?? undefined;
     
     cancelledRef.current = false;
     setError(null);
     setIsActive(true); // Set immediately to prevent race condition with rapid start() calls
+    isActiveRef.current = true; // Keep ref in sync
     
     try {
       // Use existing stream or request microphone access
@@ -75,6 +85,7 @@ export function useAudioAnalyser({
           stream.getTracks().forEach(track => track.stop());
         }
         setIsActive(false);
+        isActiveRef.current = false;
         return undefined;
       }
       
@@ -92,6 +103,7 @@ export function useAudioAnalyser({
           stream.getTracks().forEach(track => track.stop());
         }
         setIsActive(false);
+        isActiveRef.current = false;
         return undefined;
       }
       
@@ -118,9 +130,10 @@ export function useAudioAnalyser({
       const message = err instanceof Error ? err.message : 'Failed to access microphone';
       setError(message);
       setIsActive(false); // Reset state on error since we set it immediately at start
+      isActiveRef.current = false;
       return undefined;
     }
-  }, [isActive, fftSize]);
+  }, [fftSize]); // Removed isActive - using isActiveRef to avoid stale closure
 
   const stop = useCallback(() => {
     // Set cancellation flag for any in-flight async operations
@@ -148,6 +161,7 @@ export function useAudioAnalyser({
     analyserRef.current = null;
     dataArrayRef.current = null;
     setIsActive(false);
+    isActiveRef.current = false;
   }, []);
 
   // Cleanup on unmount
