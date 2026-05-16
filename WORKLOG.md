@@ -31,6 +31,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 02:34 UTC - Expansion Worker
+
+✅ **Expanded Issue #134**
+
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134)
+- Type: Investigation/Research
+- Status: **Ready for implementation** ✅
+
+**Root Cause Identified:**
+The custom `parseMarkdown` function in `KioskMode.tsx` has two critical bugs:
+1. No table parsing support (GFM tables not handled)
+2. Image syntax `![alt](url)` incorrectly parsed as link, leaving `!` prefix
+
+**Recommendation:**
+Replace custom parser with `marked` + `DOMPurify` libraries for full GFM support and XSS protection.
+
+**Files Affected:**
+- `client/src/components/KioskMode.tsx` - Replace `parseMarkdown` function
+- `client/package.json` - Add `marked` and `dompurify` dependencies
+
+---
+
 ### 2026-05-15 19:04 UTC - Orchestrator
 
 **Active Workers:**
