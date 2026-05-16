@@ -25,7 +25,7 @@ interface UseAudioAnalyserReturn {
  *    - The caller owns and manages the MediaStream lifecycle
  *    - Hook will NOT stop tracks on `stop()` - caller is responsible
  *    - Use when sharing a stream across multiple consumers
- *    - Example: MobileMode creates one stream for both visualizer and STT
+ *    - Example: MobileMode passes its visualizer stream to avoid duplicate getUserMedia
  * 
  * 2. **Internal stream (owned)** - `start()` with no args:
  *    - Hook requests getUserMedia and owns the resulting stream

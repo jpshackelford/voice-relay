@@ -108,6 +108,19 @@ export function MobileMode({
     onError: handleSttError,
   });
 
+  // Stop active mic when input mode changes
+  // This ensures clean state transition when user switches modes in settings
+  useEffect(() => {
+    if (isListening || audioAnalyser.isActive) {
+      stopListening();
+      audioAnalyser.stop();
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
+    }
+  }, [inputMode, isListening, audioAnalyser, stopListening]);
+
   // Handle microphone toggle based on input mode.
   //
   // INPUT MODE DESIGN: To eliminate the dual microphone stream issue, speech recognition
