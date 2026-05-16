@@ -649,6 +649,9 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 async function start() {
+  // Declare deviceAuthManager at function scope for access in shutdown handler
+  let deviceAuthManager: DeviceAuthManager | null = null;
+  
   await store.connect();
 
   // Set up repositories for API routes (requires SQLite)
@@ -685,7 +688,7 @@ async function start() {
       console.log('[Auth] GitHub OAuth enabled');
 
       // Set up Device Authorization Grant flow (RFC 8628) for tvOS/device authentication
-      const deviceAuthManager = new DeviceAuthManager({
+      deviceAuthManager = new DeviceAuthManager({
         baseUrl: authConfig.callbackUrl.replace('/auth/github/callback', ''),
       });
       const deviceAuthRouter = createDeviceAuthRouter({
@@ -697,16 +700,6 @@ async function start() {
       });
       app.use('/auth/device', deviceAuthRouter);
       console.log('[Auth] Device Authorization Grant enabled (for tvOS/device auth)');
-      
-      // Graceful shutdown for DeviceAuthManager cleanup interval
-      process.on('SIGTERM', () => {
-        console.log('[DeviceAuth] Shutting down...');
-        deviceAuthManager.shutdown();
-      });
-      process.on('SIGINT', () => {
-        console.log('[DeviceAuth] Shutting down...');
-        deviceAuthManager.shutdown();
-      });
       
       // Set up workspace routes with WebSocket callbacks for join request flow
       const workspaceRouter = createWorkspaceRouter({
@@ -923,6 +916,7 @@ async function start() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Server] Shutting down...');
+    deviceAuthManager?.shutdown();
     await aiSessionManager.shutdown();
     await store.disconnect();
     server.close();
