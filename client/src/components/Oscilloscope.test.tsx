@@ -21,7 +21,7 @@ describe('Oscilloscope', () => {
   let mockAnalyser: {
     getByteTimeDomainData: ReturnType<typeof vi.fn>;
   };
-  let mockDataArray: Uint8Array;
+  let mockDataArray: Uint8Array<ArrayBuffer>;
   let originalRequestAnimationFrame: typeof requestAnimationFrame;
   let animationFrameCallback: FrameRequestCallback | null = null;
   let animationFrameId = 0;
@@ -44,7 +44,8 @@ describe('Oscilloscope', () => {
     mockAnalyser = {
       getByteTimeDomainData: vi.fn(),
     };
-    mockDataArray = new Uint8Array(1024);
+    const buffer = new ArrayBuffer(1024);
+    mockDataArray = new Uint8Array(buffer);
     // Fill with center value (silence)
     mockDataArray.fill(128);
   });
