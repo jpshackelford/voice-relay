@@ -688,3 +688,27 @@ PR state: Ready for review
 - `7d39c3e` (implementation #136 → created PR #153)
 
 ---
+### 2026-05-16 21:09 UTC - Review Worker (`cfbf474`)
+
+✅ **Addressed PR #153 Review Feedback - Deduplication Bug + Test**
+
+- PR: [#153 - feat: add display-result feedback mechanism for image load events](https://github.com/jpshackelford/voice-relay/pull/153)
+- Commits: 9dc8f9f, 6406b17
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `KioskMode.tsx:244` | 🔴 Critical | `lastReportedDisplayRef` never reset when new image displayed, breaks retry scenarios | ✅ Reset ref when new image content starts |
+| `KioskMode.test.tsx:783` | 🟡 Suggestion | Missing test for same URL displayed multiple times (intentional retry) | ✅ Added test verifying display→clear→re-display reports twice |
+
+**Changes:**
+- Added `lastReportedDisplayRef.current = null` at start of image useEffect
+- New test "reports results when same URL is displayed multiple times (intentional retry)"
+
+CI: ✅ All checks passed (3/3)
+Review Threads: Both replied and resolved via GraphQL API
+PR state: Ready for review (moved from draft)
+
+---
