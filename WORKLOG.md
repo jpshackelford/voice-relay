@@ -1015,3 +1015,30 @@ PR status: Ready for review (moved from draft)
 - `908ce5f` (review #143 - addressed unstable dependency issue)
 - `f5e04d6` (review #143 - addressed memory leak + effect dependency)
 
+
+---
+### 2026-05-16 11:37 UTC - Review Worker (`81ad48a`)
+
+✅ **Addressed PR #143 Review Feedback**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Fixes: 238600d
+
+**Review threads addressed (2):**
+
+1. **AudioContext resource leak in error path** (🟠 Important)
+   - Fixed by tracking `audioCtx` and `stream` in local variables before the try block
+   - Added cleanup in catch block to close AudioContext if error occurs before refs are set
+   - Also properly cleans up MediaStream if owned by the hook
+   - Fixed in: 238600d
+
+2. **Return object recreated on every render** (🟡 Suggestion)
+   - Added `useMemo` to memoize the return object
+   - Dependencies: `[isActive, start, stop, error]`
+   - Prevents unnecessary callback recreations in consumers like `handleMicToggle`
+   - Fixed in: 238600d
+
+**All review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
