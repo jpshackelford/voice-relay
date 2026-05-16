@@ -691,3 +691,16 @@ PR state: Ready for review
 CI: ✅ All checks passed (6/6)
 All review threads: Resolved ✅
 PR state: Ready for review
+
+---
+## INSTRUCTION: Conversation in progress for PR #148
+
+A human conversation is already in progress addressing issues on PR #148 (fix(e2e): update stale test selectors). 
+
+**Do NOT treat this as filling the PR slot** - pick another issue/PR for the slot instead.
+
+PR: https://github.com/jpshackelford/voice-relay/pull/148
+Conversation: https://app.all-hands.dev/conversations/pddmamfroebgulmb
+
+This PR has 6 failing E2E tests related to messaging/relay functionality. The human will continue working on fixes.
+
