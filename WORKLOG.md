@@ -910,3 +910,25 @@ PR status: Ready for review (moved from draft)
 
 **Housekeeping:**
 - 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md
+
+---
+### 2026-05-16 12:38 UTC - Review Worker (`670745f`)
+
+✅ **Addressed PR #143 Review Feedback (Final)**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Fixes: b010f94
+
+**Review thread addressed (1):**
+
+1. **Performance - sorting utterances on every render** (🟠 Important)
+   - Problem: Creating new sorted array on every render wastes CPU for 100+ messages
+   - Fix: Memoized sorted array with `useMemo` and `[utterances]` dependency
+   - Added `useMemo` to React import
+   - Sort now only runs when utterances Map actually changes
+   - Fixed in: b010f94
+
+**All review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
