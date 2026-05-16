@@ -171,12 +171,18 @@ export function MobileMode({
     <div className="mobile-mode mobile-walkie">
       {/* Minimal Header */}
       <header className="walkie-header">
-        <div className={`connection-dot ${connectionStatus}`} title={connected ? 'Connected' : 'Disconnected'} />
+        <div 
+          className={`connection-dot ${connectionStatus}`} 
+          title={connected ? 'Connected' : 'Disconnected'}
+          role="status"
+          aria-label={connected ? 'Connected to server' : 'Disconnected from server'}
+        />
         <div className="walkie-header-spacer" />
         <button 
           className="walkie-header-btn" 
           onClick={() => setSettingsOpen(true)}
           title="Settings"
+          aria-label="Open settings"
         >
           ⚙️
         </button>
@@ -184,9 +190,10 @@ export function MobileMode({
           className="walkie-header-btn conversation-btn" 
           onClick={handleConversationOpen}
           title="View conversation"
+          aria-label={`View conversation${unreadCount > 0 ? `, ${unreadCount} unread messages` : ''}`}
         >
           💬
-          {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
+          {unreadCount > 0 && <span className="unread-badge" aria-hidden="true">{unreadCount}</span>}
         </button>
       </header>
 
@@ -222,8 +229,10 @@ export function MobileMode({
           onClick={handleMicToggle}
           disabled={!sttSupported}
           title={sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported'}
+          aria-label={sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported'}
+          aria-pressed={isListening}
         >
-          <span className="mic-icon">{isListening ? '🔴' : '🎤'}</span>
+          <span className="mic-icon" aria-hidden="true">{isListening ? '🔴' : '🎤'}</span>
         </button>
 
         {/* AI Status Badge */}
