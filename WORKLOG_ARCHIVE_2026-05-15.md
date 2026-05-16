@@ -1589,3 +1589,36 @@ The session-centric AI architecture (PR #126) added WebSocket message types and 
 **Tests:**
 - All 180 client tests passing ✅
 - CI: All checks green ✅
+
+---
+### 2026-05-15 21:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a95245a` | review | PR #130 - wire session AI status | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
+- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
+- Conversation: [`a95245a`](https://app.all-hands.dev/conversations/a95245a0a5454ec1a023cef71b122ca8)
+
+**PR Status:**
+- CI: All checks passing (green) ✅
+- State: Ready (not draft) ✅
+- Unresolved threads: 1 (bot suggestion about type export)
+- History: `oR` (opened, reviewed)
+
+**Housekeeping:**
+- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
+
+**Current State:**
+- Issue #129 will auto-close when PR #130 merges
+- No other open issues after #129 is resolved
+- Expansion slot: Idle (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (all finished):**
+- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
+- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)

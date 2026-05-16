@@ -31,39 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-15 21:33 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a95245a` | review | PR #130 - wire session AI status | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
-- Conversation: [`a95245a`](https://app.all-hands.dev/conversations/a95245a0a5454ec1a023cef71b122ca8)
-
-**PR Status:**
-- CI: All checks passing (green) ✅
-- State: Ready (not draft) ✅
-- Unresolved threads: 1 (bot suggestion about type export)
-- History: `oR` (opened, reviewed)
-
-**Housekeeping:**
-- 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
-
-**Current State:**
-- Issue #129 will auto-close when PR #130 merges
-- No other open issues after #129 is resolved
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker)
-
-**Previous Workers (all finished):**
-- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
-- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
-
----
 ### 2026-05-15 22:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -819,51 +786,6 @@ Server never called `aiSessionManager.setThinkingChangeCallback()` to wire the c
 - `8a59d2f` (review #140 ✓), `61fe432` (expansion #135 ✓)
 
 ---
-### 2026-05-16 04:14 UTC - Implementation Worker (`0898e70`)
-
-✅ **Created PR #144 for Issue #134**
-
-- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
-- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
-- Status: **Ready for review** ✅
-
-**Problem Fixed:**
-The custom `parseMarkdown` function had two critical bugs:
-1. **No table parsing** - GFM table syntax was unsupported
-2. **Image syntax bug** - Link regex captured `![alt](url)` incorrectly, leaving `!` prefix
-
-| Input | Expected | Before Fix |
-|-------|----------|------------|
-| `![img](url)` | `<img src="url">` | `!<a href="url">img</a>` |
-| `\| A \| B \|` | `<table>` | Raw text |
-
-**Solution:**
-Replaced custom regex parser with:
-- `marked` (v18.0.3) - Full GFM support (tables, images, etc.)
-- `DOMPurify` (v3.4.3) - XSS protection for `dangerouslySetInnerHTML`
-
-**Files Changed:**
-| File | Change |
-|------|--------|
-| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` function |
-| `client/src/components/KioskMode.test.tsx` | Add 17 new tests |
-| `client/package.json` | Add `marked` and `dompurify` deps |
-| `tests/markdown-rendering.spec.ts` | Add Playwright E2E tests |
-
-**Test Coverage:**
-- 17 new unit tests for parseMarkdown (image, table, XSS, existing features)
-- All 200 client tests pass ✅
-- All 529 server tests pass ✅
-- CI: All checks green ✅
-
-**Bundle Impact:** ~1 MB (marked 449KB + DOMPurify 644KB)
-
-**Next Steps:**
-- PR ready for review/merge
-- Closes issue #134 on merge
-
-
----
 ### 2026-05-16 04:05 UTC - Expansion Worker (`38d82b0`)
 
 ✅ **Expanded Issue #137 (Research)**
@@ -910,3 +832,45 @@ Build a **native SwiftUI tvOS application** that:
 Decision needed: Should we proceed with implementation? If yes, create implementation issues for each phase.
 
 ---
+### 2026-05-16 04:14 UTC - Implementation Worker (`0898e70`)
+
+✅ **Created PR #144 for Issue #134**
+
+- Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134) (priority:high)
+- PR: [#144 - fix(client): replace custom markdown parser with marked + DOMPurify](https://github.com/jpshackelford/voice-relay/pull/144)
+- Status: **Ready for review** ✅
+
+**Problem Fixed:**
+The custom `parseMarkdown` function had two critical bugs:
+1. **No table parsing** - GFM table syntax was unsupported
+2. **Image syntax bug** - Link regex captured `![alt](url)` incorrectly, leaving `!` prefix
+
+| Input | Expected | Before Fix |
+|-------|----------|------------|
+| `![img](url)` | `<img src="url">` | `!<a href="url">img</a>` |
+| `\| A \| B \|` | `<table>` | Raw text |
+
+**Solution:**
+Replaced custom regex parser with:
+- `marked` (v18.0.3) - Full GFM support (tables, images, etc.)
+- `DOMPurify` (v3.4.3) - XSS protection for `dangerouslySetInnerHTML`
+
+**Files Changed:**
+| File | Change |
+|------|--------|
+| `client/src/components/KioskMode.tsx` | Replace `parseMarkdown` function |
+| `client/src/components/KioskMode.test.tsx` | Add 17 new tests |
+| `client/package.json` | Add `marked` and `dompurify` deps |
+| `tests/markdown-rendering.spec.ts` | Add Playwright E2E tests |
+
+**Test Coverage:**
+- 17 new unit tests for parseMarkdown (image, table, XSS, existing features)
+- All 200 client tests pass ✅
+- All 529 server tests pass ✅
+- CI: All checks green ✅
+
+**Bundle Impact:** ~1 MB (marked 449KB + DOMPurify 644KB)
+
+**Next Steps:**
+- PR ready for review/merge
+- Closes issue #134 on merge
