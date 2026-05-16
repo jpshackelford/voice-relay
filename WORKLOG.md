@@ -31,6 +31,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 07:07 UTC - Review Feedback Worker
+
+✅ **Addressed final PR #145 review feedback** - Signal handler consolidation
+
+- PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+- Status: **Ready for review** (all feedback resolved, CI green ✅)
+
+**Fix Applied:**
+
+6. **🟡 Signal Handler Consolidation** - Fixed in `812c4e8`
+   - Declared `deviceAuthManager` at `start()` function scope for shutdown handler access
+   - Removed duplicate SIGTERM/SIGINT handlers for DeviceAuthManager
+   - Added `deviceAuthManager?.shutdown()` to main shutdown handler
+   - Ensures single source of truth for shutdown orchestration with predictable cleanup order
+
+**All 7 review threads now resolved and marked complete.**
+
+---
+
 ### 2026-05-16 07:06 UTC - Expansion Worker
 
 ✅ **Expanded Issue #142** - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope
