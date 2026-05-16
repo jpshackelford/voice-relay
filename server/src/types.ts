@@ -14,6 +14,8 @@ export interface Device {
   screenWidth?: number;
   screenHeight?: number;
   displayLines?: number;  // Calculated max lines for kiosk display
+  /** Platform identifier (optional, for analytics/debugging) */
+  platform?: DevicePlatform;
 }
 
 export interface DisplayContent {
@@ -29,6 +31,20 @@ export type ClientMessage =
   | TextMessage
   | JoinResponseMessage;
 
+/** Platform identifier for analytics and debugging */
+export type DevicePlatform = 'web' | 'ios' | 'android' | 'tvos' | 'macos' | 'windows' | 'linux';
+
+/** Valid platform values for runtime validation */
+export const VALID_PLATFORMS: readonly DevicePlatform[] = ['web', 'ios', 'android', 'tvos', 'macos', 'windows', 'linux'] as const;
+
+/**
+ * Validate that a value is a valid DevicePlatform.
+ * Use this to sanitize untrusted input before logging to prevent log injection.
+ */
+export function isValidPlatform(platform: unknown): platform is DevicePlatform {
+  return typeof platform === 'string' && VALID_PLATFORMS.includes(platform as DevicePlatform);
+}
+
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
@@ -38,6 +54,8 @@ export interface RegisterMessage {
   mode: DeviceMode;
   screenWidth?: number;
   screenHeight?: number;
+  /** Platform identifier (optional, for analytics/debugging). Defaults to 'web' if not provided. */
+  platform?: DevicePlatform;
 }
 
 /**

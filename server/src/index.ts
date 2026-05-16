@@ -9,25 +9,26 @@ import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
-import { createAuthRouter, UserRepository, JWTService, type AuthConfig } from './auth/index.js';
+import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
-import type { 
-  ClientMessage, 
-  RegisteredMessage, 
-  RelayedTextMessage, 
-  HistoryMessage, 
-  DisplayContent, 
-  DisplayRequest,
-  JoinRequestMessage,
-  JoinResolvedMessage,
-  DeviceRemovedMessage,
-  SessionAIStatusMessage,
-  AIThinkingMessage,
+import { 
+  isValidPlatform,
+  type ClientMessage, 
+  type RegisteredMessage, 
+  type RelayedTextMessage, 
+  type HistoryMessage, 
+  type DisplayContent, 
+  type DisplayRequest,
+  type JoinRequestMessage,
+  type JoinResolvedMessage,
+  type DeviceRemovedMessage,
+  type SessionAIStatusMessage,
+  type AIThinkingMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -388,6 +389,9 @@ wss.on('connection', (ws: WebSocket) => {
             sessionId = 'default';
           }
           
+          // SECURITY: Validate platform to prevent log injection attacks
+          const validatedPlatform = isValidPlatform(message.platform) ? message.platform : undefined;
+          
           registry.register(
             message.deviceId,
             requestedWorkspaceId,
@@ -396,7 +400,8 @@ wss.on('connection', (ws: WebSocket) => {
             message.mode,
             message.screenWidth,
             message.screenHeight,
-            sessionId
+            sessionId,
+            validatedPlatform
           );
           
           const response: RegisteredMessage = {
@@ -644,6 +649,9 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 async function start() {
+  // Declare deviceAuthManager at function scope for access in shutdown handler
+  let deviceAuthManager: DeviceAuthManager | null = null;
+  
   await store.connect();
 
   // Set up repositories for API routes (requires SQLite)
@@ -678,6 +686,20 @@ async function start() {
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');
+
+      // Set up Device Authorization Grant flow (RFC 8628) for tvOS/device authentication
+      deviceAuthManager = new DeviceAuthManager({
+        baseUrl: authConfig.callbackUrl.replace('/auth/github/callback', ''),
+      });
+      const deviceAuthRouter = createDeviceAuthRouter({
+        deviceAuthManager,
+        jwtService,
+        userRepository,
+        workspaceRepository,
+        deviceRepository,
+      });
+      app.use('/auth/device', deviceAuthRouter);
+      console.log('[Auth] Device Authorization Grant enabled (for tvOS/device auth)');
       
       // Set up workspace routes with WebSocket callbacks for join request flow
       const workspaceRouter = createWorkspaceRouter({
@@ -894,6 +916,7 @@ async function start() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Server] Shutting down...');
+    deviceAuthManager?.shutdown();
     await aiSessionManager.shutdown();
     await store.disconnect();
     server.close();

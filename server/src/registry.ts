@@ -1,5 +1,5 @@
 import type { WebSocket } from 'ws';
-import type { Device, DeviceInfo, DeviceMode, RelayedTextMessage, DeviceListMessage, DisplayMessage, DisplayContent } from './types.js';
+import type { Device, DeviceInfo, DeviceMode, DevicePlatform, RelayedTextMessage, DeviceListMessage, DisplayMessage, DisplayContent } from './types.js';
 
 // Display calculation constants (from CSS)
 const DISPLAY_PADDING_PX = 96;      // 3rem * 2 = 48px * 2
@@ -30,7 +30,8 @@ export class DeviceRegistry {
     mode: DeviceMode,
     screenWidth?: number,
     screenHeight?: number,
-    sessionId?: string
+    sessionId?: string,
+    platform?: DevicePlatform
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
@@ -40,6 +41,7 @@ export class DeviceRegistry {
       existing.sessionId = sessionId;
       existing.displayName = displayName;
       existing.mode = mode;
+      if (platform) existing.platform = platform;
       // Only track screen dimensions for kiosk devices (they have the display)
       if (mode === 'kiosk') {
         if (screenWidth) existing.screenWidth = screenWidth;
@@ -47,9 +49,11 @@ export class DeviceRegistry {
         if (screenWidth && screenHeight) {
           existing.displayLines = calculateDisplayLines(screenWidth, screenHeight);
         }
-        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id}) in workspace ${workspaceId}, session ${sessionId || 'none'}, ${existing.displayLines || '?'} display lines`);
+        const platformStr = platform ? ` [${platform}]` : '';
+        console.log(`[Registry] Kiosk reconnected: ${displayName} (${id})${platformStr} in workspace ${workspaceId}, session ${sessionId || 'none'}, ${existing.displayLines || '?'} display lines`);
       } else {
-        console.log(`[Registry] Device reconnected: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
+        const platformStr = platform ? ` [${platform}]` : '';
+        console.log(`[Registry] Device reconnected: ${displayName} (${id})${platformStr} as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
       }
       return existing;
     }
@@ -70,13 +74,16 @@ export class DeviceRegistry {
       screenWidth: mode === 'kiosk' ? screenWidth : undefined,
       screenHeight: mode === 'kiosk' ? screenHeight : undefined,
       displayLines,
+      platform,
     };
     this.devices.set(id, device);
     
     if (mode === 'kiosk') {
-      console.log(`[Registry] Kiosk registered: ${displayName} (${id}) in workspace ${workspaceId}, session ${sessionId || 'none'}, ${displayLines || '?'} display lines`);
+      const platformStr = platform ? ` [${platform}]` : '';
+      console.log(`[Registry] Kiosk registered: ${displayName} (${id})${platformStr} in workspace ${workspaceId}, session ${sessionId || 'none'}, ${displayLines || '?'} display lines`);
     } else {
-      console.log(`[Registry] Device registered: ${displayName} (${id}) as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
+      const platformStr = platform ? ` [${platform}]` : '';
+      console.log(`[Registry] Device registered: ${displayName} (${id})${platformStr} as ${mode} in workspace ${workspaceId}, session ${sessionId || 'none'}`);
     }
     return device;
   }
