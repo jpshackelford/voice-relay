@@ -31,6 +31,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-16 06:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #141** - README.md is out-of-date and inaccurate
+
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Type: Documentation
+- Status: **Ready for implementation**
+
+**Analysis Summary:**
+- README documents `input`/`output` modes but actual codebase uses `mobile`/`kiosk` views
+- Missing workspace and session concepts (core architecture)
+- Auth section labeled "Phase 4" but auth is production-ready
+- Architecture diagram doesn't reflect multi-user model
+- Message protocol missing `workspaceId`, `sessionId` fields
+- QR join workflow undocumented
+
+**Scope:**
+- Full README rewrite to match current architecture
+- Cross-reference detailed docs (DESIGN.md, DEPLOYMENT.md, MIGRATION.md)
+
+**Labels added:** `ready`, `documentation`
+
+---
+
 ### 2026-05-16 00:04 UTC - Orchestrator
 
 **Active Workers:**
