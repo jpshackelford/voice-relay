@@ -1374,3 +1374,89 @@ PR status: Ready for review (moved from draft)
 
 CI: ✅ All checks passed
 PR status: Ready for review (moved from draft)
+
+---
+### 2026-05-16 10:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f5e04d6` | review | PR #143 - Mobile UI (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`f5e04d6`](https://app.all-hands.dev/conversations/f5e04d6cbf9d4af285d3bc9347d9eee0)
+- Task: Address 2 unresolved review threads:
+  - 🔴 Critical: Memory leak - spokenUtterancesRef Set grows unbounded
+  - 🟡 Suggestion: Effect runs on every render due to unstable audioAnalyser dependency
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬2 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `f1afddf` (review #143 - addressed 2 threads)
+- `ed8b266` (review #143 - addressed 2 threads)
+- `9b0f50e` (review #143)
+
+---
+### 2026-05-16 10:40 UTC - Review Worker (`f5e04d6`)
+
+✅ **Addressed PR #143 Review Feedback (Round 4)**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Fixes: 26c1746
+
+**Review threads addressed (2):**
+
+1. **Memory leak - spokenUtterancesRef Set grows unbounded** (🔴 Critical)
+   - Added size-based pruning to cap the Set at 100 entries
+   - When exceeded, prunes to keep only the most recent 50 IDs
+   - Prevents unbounded memory growth in long-running sessions
+   - Fixed in: 26c1746
+
+2. **Effect runs on every render due to unstable audioAnalyser dependency** (🟡 Suggestion)
+   - Changed dependency array to use specific properties instead of whole object
+   - Old: `[inputMode, isListening, audioAnalyser, stopListening]`
+   - New: `[inputMode, isListening, audioAnalyser.isActive, audioAnalyser.stop, stopListening]`
+   - Prevents unnecessary effect executions since `useAudioAnalyser()` returns new object each render
+   - Fixed in: 26c1746
+
+**All review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
+
+---
+### 2026-05-16 11:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `908ce5f` | review | PR #143 - Mobile UI (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`908ce5f`](https://app.all-hands.dev/conversations/908ce5fb187844ceaefd2ec0b63ef243)
+- Task: Address 1 unresolved review thread:
+  - 🟠 ConversationPane.tsx:33 - Unstable dependency causes excessive re-renders
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬1 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142 (has PR)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `f5e04d6` (review #143 - addressed memory leak + effect dependency)
+
+**Housekeeping:**
+- 📦 Archived 3 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md
