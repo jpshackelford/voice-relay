@@ -87,6 +87,10 @@ export default defineConfig({
       name: 'mobile-chrome',
       use: {
         ...devices['Pixel 5'],
+        // Capture video for all mobile tests (useful for PR evidence)
+        video: 'on',
+        // Always capture screenshots (not just on failure)
+        screenshot: 'on',
         launchOptions: {
           args: [
             // Use fake audio/video devices for testing
@@ -102,6 +106,9 @@ export default defineConfig({
       name: 'mobile-safari',
       use: {
         ...devices['iPhone 13'],
+        // Capture video for all mobile tests (useful for PR evidence)
+        video: 'on',
+        screenshot: 'on',
         // Note: Safari/WebKit doesn't support --use-fake-device-for-media-stream
         // These tests will use mocked APIs instead
       },

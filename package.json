@@ -16,6 +16,7 @@
     "test:headed": "playwright test --headed",
     "test:mobile": "playwright test --project=mobile-chrome tests/mobile-voice.spec.ts",
     "test:mobile:headed": "playwright test --project=mobile-chrome tests/mobile-voice.spec.ts --headed",
+    "test:mobile:real": "RUN_REAL_SPEECH_TESTS=1 playwright test --project=mobile-chrome tests/mobile-voice.spec.ts --headed",
     "smoke": "playwright test --config=tests/smoke/playwright.config.ts",
     "smoke:auth": "playwright test --config=tests/smoke/playwright.config.ts --headed",
     "clean": "rm -rf node_modules server/node_modules server/dist client/node_modules client/dist"
