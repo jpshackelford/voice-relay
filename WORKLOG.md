@@ -915,3 +915,27 @@ PR state: Ready for review (moved from draft)
 - `02e70db` (review #143 - addressed 3 critical issues including memoization and tests)
 
 ---
+### 2026-05-16 13:35 UTC - Review Worker (`6dc5155`)
+
+✅ **Addressed PR #143 Review Feedback - Unread Count Performance**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Commit: d900d17
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Problem | Fix |
+|--------|---------|-----|
+| `MobileMode.tsx:228` | 🟠 Creating new array on every render to count unread messages | ✅ Wrapped in `useMemo` with `[utterances.size, deviceId]` deps |
+
+**Changes:**
+- Added `useMemo` to React imports
+- Memoized `totalOtherMessages` calculation to avoid re-filtering on every render
+- Dependency on `utterances.size` (not Map reference) ensures recalc only when messages added/removed
+
+CI: ✅ All checks passed (4/4)
+Review Thread: Replied and resolved via GraphQL API
+PR state: Ready for review (moved from draft)
+
+---
