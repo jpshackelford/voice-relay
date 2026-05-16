@@ -531,4 +531,320 @@ describe('KioskMode', () => {
       });
     });
   });
+
+  describe('image display feedback', () => {
+    beforeEach(() => {
+      setWindowWidth(1024); // Desktop width
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('calls onDisplayResult with success when image loads', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Find the img element and trigger onLoad
+      const img = document.querySelector('img[src="https://example.com/test.png"]');
+      expect(img).toBeDefined();
+      
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      expect(onDisplayResult).toHaveBeenCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+    });
+
+    it('calls onDisplayResult with error when image fails to load', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/broken.png',
+        title: 'Broken Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Find the img element and trigger onError
+      const img = document.querySelector('img[src="https://example.com/broken.png"]');
+      expect(img).toBeDefined();
+      
+      await act(async () => {
+        fireEvent.error(img!);
+      });
+
+      expect(onDisplayResult).toHaveBeenCalledWith({
+        success: false,
+        error: 'load-failed',
+        displayType: 'image',
+      });
+    });
+
+    it('calls onDisplayResult with timeout error after 10 seconds', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/slow.png',
+        title: 'Slow Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Fast-forward 10 seconds
+      await act(async () => {
+        vi.advanceTimersByTime(10000);
+      });
+
+      expect(onDisplayResult).toHaveBeenCalledWith({
+        success: false,
+        error: 'timeout',
+        displayType: 'image',
+      });
+    });
+
+    it('does not report timeout if image loads before timeout', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/fast.png',
+        title: 'Fast Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Image loads after 5 seconds (before timeout)
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      const img = document.querySelector('img[src="https://example.com/fast.png"]');
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      // Now advance past the timeout
+      await act(async () => {
+        vi.advanceTimersByTime(6000);
+      });
+
+      // Should only have called once with success
+      expect(onDisplayResult).toHaveBeenCalledTimes(1);
+      expect(onDisplayResult).toHaveBeenCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+    });
+
+    it('displays error indicator when image fails to load', async () => {
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/broken.png',
+        title: 'Broken Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+          />
+        );
+      });
+
+      const img = document.querySelector('img[src="https://example.com/broken.png"]');
+      await act(async () => {
+        fireEvent.error(img!);
+      });
+
+      expect(screen.getByText('⚠️ Image failed to load')).toBeDefined();
+    });
+
+    it('displays timeout indicator when image times out', async () => {
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/slow.png',
+        title: 'Slow Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+          />
+        );
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(10000);
+      });
+
+      expect(screen.getByText('⏱️ Image loading slowly...')).toBeDefined();
+    });
+
+    it('does not send duplicate results for same image URL', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      const img = document.querySelector('img[src="https://example.com/test.png"]');
+      
+      // Trigger load multiple times
+      await act(async () => {
+        fireEvent.load(img!);
+        fireEvent.load(img!);
+        fireEvent.load(img!);
+      });
+
+      // Should only be called once
+      expect(onDisplayResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles gracefully when onDisplayResult is not provided', async () => {
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      // Should not throw
+      await act(async () => {
+        render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            // onDisplayResult not provided
+          />
+        );
+      });
+
+      const img = document.querySelector('img[src="https://example.com/test.png"]');
+      
+      await act(async () => {
+        expect(() => fireEvent.load(img!)).not.toThrow();
+        expect(() => fireEvent.error(img!)).not.toThrow();
+      });
+    });
+
+    it('reports results when same URL is displayed multiple times (intentional retry)', async () => {
+      const onDisplayResult = vi.fn();
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      // First display
+      const { rerender } = await act(async () => {
+        return render(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      let img = document.querySelector('img[src="https://example.com/test.png"]');
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      expect(onDisplayResult).toHaveBeenCalledTimes(1);
+      expect(onDisplayResult).toHaveBeenLastCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+
+      // Display something else in between (simulate user navigation)
+      await act(async () => {
+        rerender(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={{ type: 'markdown', content: '# Test' }}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      // Display same URL again (intentional retry)
+      await act(async () => {
+        rerender(
+          <KioskMode 
+            {...defaultProps} 
+            displayContent={displayContent}
+            onDisplayResult={onDisplayResult}
+          />
+        );
+      });
+
+      img = document.querySelector('img[src="https://example.com/test.png"]');
+      await act(async () => {
+        fireEvent.load(img!);
+      });
+
+      // Should be called again for the second display
+      expect(onDisplayResult).toHaveBeenCalledTimes(2);
+      expect(onDisplayResult).toHaveBeenLastCalledWith({
+        success: true,
+        displayType: 'image',
+      });
+    });
+  });
 });

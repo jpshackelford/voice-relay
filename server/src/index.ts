@@ -30,6 +30,7 @@ import {
   type DeviceRemovedMessage,
   type SessionAIStatusMessage,
   type AIThinkingMessage,
+  type DisplayResultMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -617,6 +618,48 @@ wss.on('connection', (ws: WebSocket) => {
           // Remove from pending tracking
           pendingJoinRequests.delete(requestId);
           pendingRequestTimestamps.delete(requestId);
+          break;
+        }
+
+        case 'display-result': {
+          // Handle display result feedback from kiosk devices
+          if (!deviceId || !workspaceId) {
+            console.warn('[WS] Received display-result from unregistered device');
+            return;
+          }
+
+          const device = registry.getDevice(deviceId);
+          if (!device || device.mode !== 'kiosk') {
+            console.warn('[WS] display-result received from non-kiosk device');
+            return;
+          }
+
+          const { success, error, displayType } = message as DisplayResultMessage;
+          
+          // Log the display result
+          if (success) {
+            console.log(`[Display] ✓ ${displayType} loaded successfully`);
+          } else {
+            console.log(`[Display] ✗ ${displayType} failed: ${error || 'unknown error'}`);
+            
+            // Forward failure to AI session if connected
+            if (device.sessionId && aiSessionManager.hasSessionAI(device.sessionId)) {
+              const errorDescription = error === 'timeout' 
+                ? 'timed out while loading'
+                : error === 'cors'
+                ? 'failed due to CORS restrictions'
+                : 'failed to load';
+              
+              const feedbackMessage = `[Display Feedback] Image ${errorDescription}. Consider trying an alternative image URL or describing the content instead.`;
+              
+              try {
+                await aiSessionManager.sendSessionMessage(device.sessionId, feedbackMessage);
+                console.log(`[Display] Forwarded failure feedback to session AI: ${device.sessionId}`);
+              } catch (aiErr) {
+                console.error('[Display] Failed to forward feedback to AI:', aiErr);
+              }
+            }
+          }
           break;
         }
       }

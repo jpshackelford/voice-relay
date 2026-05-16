@@ -29,7 +29,19 @@ export type ClientMessage =
   | RegisterMessage
   | UpdateDeviceMessage
   | TextMessage
-  | JoinResponseMessage;
+  | JoinResponseMessage
+  | DisplayResultMessage;
+
+/**
+ * Kiosk → Server: Report display result (image load success/failure).
+ * Used to provide feedback when images fail to load on the kiosk display.
+ */
+export interface DisplayResultMessage {
+  type: 'display-result';
+  success: boolean;
+  error?: 'load-failed' | 'timeout' | 'cors';
+  displayType: 'image' | 'markdown';
+}
 
 /** Platform identifier for analytics and debugging */
 export type DevicePlatform = 'web' | 'ios' | 'android' | 'tvos' | 'macos' | 'windows' | 'linux';

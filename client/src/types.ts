@@ -45,7 +45,15 @@ export interface JoinResponseMessage {
   approved: boolean;
 }
 
-export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage;
+/** Kiosk → Server: Report display result (image load success/failure) */
+export interface DisplayResultMessage {
+  type: 'display-result';
+  success: boolean;
+  error?: 'load-failed' | 'timeout' | 'cors';
+  displayType: 'image' | 'markdown';
+}
+
+export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage | DisplayResultMessage;
 
 // Messages from server to client
 export interface SessionInfo {
