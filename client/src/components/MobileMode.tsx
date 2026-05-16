@@ -105,8 +105,21 @@ export function MobileMode({
     onError: handleSttError,
   });
 
-  // Sync audio analyser with speech recognition state
-  // Share a single MediaStream between analyser and speech recognition
+  // Handle microphone toggle for both audio visualization and speech recognition.
+  //
+  // DUAL STREAM NOTE: The Web Speech Recognition API creates its own internal
+  // microphone stream - it cannot accept external MediaStream objects. This means
+  // we have two separate mic streams:
+  // 1. Our getUserMedia stream for the oscilloscope visualization
+  // 2. An implicit stream created by the Speech Recognition API
+  //
+  // This is a known limitation of the Web Speech API. We mitigate impact by:
+  // - Getting getUserMedia first so browser caches the permission grant
+  // - Handling the case where speech recognition might fail after analyser succeeds
+  // - Ensuring both streams are properly cleaned up on stop
+  //
+  // Future improvement: Use a custom speech-to-text service that accepts MediaStream
+  // to enable true single-stream operation.
   const handleMicToggle = useCallback(async () => {
     if (isListening) {
       stopListening();
@@ -117,17 +130,33 @@ export function MobileMode({
         sharedStreamRef.current = null;
       }
     } else {
-      // Request mic once and share the stream
+      // Request mic for visualizer first (this caches the permission grant)
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         sharedStreamRef.current = stream;
-        // Pass stream to analyser (it won't create its own)
+        
+        // Start audio analyser for oscilloscope visualization
         await audioAnalyser.start(stream);
-        // Start speech recognition (browser caches mic permission)
-        startListening();
+        
+        // Start speech recognition - this creates its own internal stream but
+        // the browser should reuse the cached permission from getUserMedia above.
+        // If speech recognition fails, we still have the visualizer working.
+        try {
+          startListening();
+        } catch (sttErr) {
+          // Speech recognition failed but analyser is still working
+          console.error('[MobileMode] Speech recognition error:', sttErr);
+          setSttError('Speech recognition unavailable, but audio visualizer is active');
+        }
       } catch (err) {
         console.error('[MobileMode] Mic access error:', err);
         setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+        // Ensure cleanup if mic access failed
+        audioAnalyser.stop();
+        if (sharedStreamRef.current) {
+          sharedStreamRef.current.getTracks().forEach(track => track.stop());
+          sharedStreamRef.current = null;
+        }
       }
     }
   }, [isListening, startListening, stopListening, audioAnalyser]);
