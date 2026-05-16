@@ -8,6 +8,9 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import type { AudioChunkMessage, AudioEndMessage } from '../types';
 
+/** Timeout for cleaning up stale audio chunks if audio-end never arrives */
+const CHUNK_TIMEOUT_MS = 30000;
+
 interface UseAudioPlaybackReturn {
   /** Whether audio is currently playing */
   isPlaying: boolean;
@@ -33,6 +36,7 @@ interface AudioQueueItem {
  * 1. Decodes incoming chunks to ArrayBuffer
  * 2. Queues chunks for sequential playback
  * 3. Uses HTMLAudioElement for broad browser compatibility
+ * 4. Cleans up stale chunks after timeout to prevent memory leaks
  */
 export function useAudioPlayback(): UseAudioPlaybackReturn {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,6 +49,9 @@ export function useAudioPlayback(): UseAudioPlaybackReturn {
   
   // Buffer for accumulating chunks for the same utterance
   const chunkBufferRef = useRef<Map<string, Uint8Array[]>>(new Map());
+  
+  // Timeouts for cleaning up stale chunks (prevents memory leak if audio-end never arrives)
+  const chunkTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Cleanup on unmount
   useEffect(() => {
@@ -56,6 +63,11 @@ export function useAudioPlayback(): UseAudioPlaybackReturn {
         audioRef.current.pause();
         audioRef.current = null;
       }
+      // Clear all chunk timeouts
+      for (const timeout of chunkTimeoutsRef.current.values()) {
+        clearTimeout(timeout);
+      }
+      chunkTimeoutsRef.current.clear();
     };
   }, []);
 
@@ -111,6 +123,18 @@ export function useAudioPlayback(): UseAudioPlaybackReturn {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
+      // Reset timeout for this utterance (cleanup if audio-end never arrives)
+      const existingTimeout = chunkTimeoutsRef.current.get(utteranceId);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+      }
+      const timeout = setTimeout(() => {
+        console.warn('[AudioPlayback] Timeout waiting for audio-end:', utteranceId);
+        chunkBufferRef.current.delete(utteranceId);
+        chunkTimeoutsRef.current.delete(utteranceId);
+      }, CHUNK_TIMEOUT_MS);
+      chunkTimeoutsRef.current.set(utteranceId, timeout);
+
       // Accumulate chunks for this utterance
       let chunks = chunkBufferRef.current.get(utteranceId);
       if (!chunks) {
@@ -125,6 +149,13 @@ export function useAudioPlayback(): UseAudioPlaybackReturn {
 
   const handleAudioEnd = useCallback((message: AudioEndMessage) => {
     const { utteranceId, error } = message;
+
+    // Clear timeout for this utterance
+    const timeout = chunkTimeoutsRef.current.get(utteranceId);
+    if (timeout) {
+      clearTimeout(timeout);
+      chunkTimeoutsRef.current.delete(utteranceId);
+    }
 
     if (error) {
       console.error('[AudioPlayback] TTS error for utterance', utteranceId, ':', error);
@@ -170,9 +201,15 @@ export function useAudioPlayback(): UseAudioPlaybackReturn {
       audioRef.current = null;
     }
 
-    // Clear queue
+    // Clear queue and buffers
     queueRef.current = [];
     chunkBufferRef.current.clear();
+
+    // Clear all chunk timeouts
+    for (const timeout of chunkTimeoutsRef.current.values()) {
+      clearTimeout(timeout);
+    }
+    chunkTimeoutsRef.current.clear();
 
     // Clean up blob URL
     if (currentBlobUrlRef.current) {
