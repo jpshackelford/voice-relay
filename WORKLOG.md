@@ -964,3 +964,25 @@ PR status: Ready for review (moved from draft)
 
 **Housekeeping:**
 - 📦 Archived 3 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md
+
+---
+### 2026-05-16 11:10 UTC - Review Worker (`908ce5f`)
+
+✅ **Addressed PR #143 Review Feedback (Final)**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Fixes: 2bdfb8e
+
+**Review thread addressed (1):**
+
+1. **Unstable dependency causes excessive re-renders** (🟠 Important)
+   - Changed `useEffect` dependency from `utterances` (Map object) to `utterances.size`
+   - Map reference changes on every render, triggering excessive scroll animations
+   - `utterances.size` is a stable primitive that only changes when messages are added/removed
+   - Added comment explaining the reasoning
+   - Fixed in: 2bdfb8e
+
+**All 14 review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
