@@ -956,3 +956,32 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - Issues needing expansion: None (all expanded ✓)
 - Expansion slot: Empty (nothing to expand)
 - PR slot: Occupied (review worker)
+
+---
+
+### 2026-05-16 09:43 UTC - Review Worker
+
+✅ **Addressed review feedback on PR #143**
+
+**PR:** [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+
+**Review threads addressed (2):**
+
+1. **Stale closure optimization issue** (🟡 Suggestion)
+   - Removed `isActive` from useCallback dependency array
+   - Added `isActiveRef` to track active state for guard check
+   - Fixed in: a24af5f
+
+2. **Dual microphone stream issue** (🟠 Important)
+   - Implemented mutually exclusive input modes
+   - Voice mode (default): Web Speech API only, no oscilloscope
+   - Visualizer mode: getUserMedia for oscilloscope only, no STT
+   - This eliminates dual mic streams entirely
+   - Added input mode selector in Settings
+   - Fixed in: 16f9d95
+
+**All 9 review threads now resolved.**
+
+PR status: Ready for review (moved from draft)
+
+---
