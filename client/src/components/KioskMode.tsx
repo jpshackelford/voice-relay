@@ -171,7 +171,9 @@ export function KioskMode({
     if (!ttsEnabled) return;
 
     for (const [id, utterance] of utterances) {
-      if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
+      // Browser TTS for user messages only - AI responses use ElevenLabs server-side TTS
+      // Exclude: own messages (deviceId), AI messages ('ai'), partial, already spoken
+      if (utterance.senderId !== deviceId && utterance.senderId !== 'ai' && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
         spokenUtterancesRef.current.add(id);
         speak(utterance.text);
       }
