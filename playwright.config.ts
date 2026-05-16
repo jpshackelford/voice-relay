@@ -47,7 +47,8 @@ export default defineConfig({
   // auth state and target the deployed server. Run them separately with:
   // `SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke`
   // See tests/smoke/README.md for setup instructions.
-  testIgnore: ['**/smoke/**'],
+  // Use explicit path pattern to ensure exclusion works
+  testIgnore: ['**/smoke/*.ts', '**/smoke/*.spec.ts'],
 
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
@@ -80,10 +81,10 @@ export default defineConfig({
 
   projects: [
     // Default project for standard E2E tests
-    // Excludes mobile-voice.spec.ts (run those with mobile-chrome project)
+    // Excludes mobile-voice.spec.ts and smoke tests
     {
       name: 'chromium',
-      testIgnore: ['**/mobile-voice.spec.ts'],
+      testIgnore: ['**/mobile-voice.spec.ts', '**/smoke/**'],
       use: { browserName: 'chromium' },
     },
     // Mobile voice tests project - run with: npm run test:mobile
