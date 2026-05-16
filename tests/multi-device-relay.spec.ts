@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupTwoDeviceSession, ensureKioskInputVisible } from './utils/auth-helper';
+import { setupTwoDeviceSession, ensureKioskInputVisible, ensureKioskDrawerOpen } from './utils/auth-helper';
 
 /**
  * E2E Tests: Multi-Device Real-Time Text Relay
@@ -68,7 +68,10 @@ test.describe('Multi-Device Real-Time Relay', () => {
       // Verify message appears on mobile (with "You:" prefix)
       await expect(mobilePage.locator(`.message.final:has-text("${mobileMessage}")`)).toBeVisible({ timeout: 2000 });
 
-      // Verify message appears on kiosk within 1 second
+      // Open kiosk drawer to see messages (sidebar starts closed in desktop kiosk mode)
+      await ensureKioskDrawerOpen(kioskPage);
+
+      // Verify message appears on kiosk within 2 seconds
       await expect(kioskPage.locator(`.kiosk-message.final:has-text("${mobileMessage}")`)).toBeVisible({ timeout: 2000 });
 
       // On kiosk, the message should NOT have "You:" prefix (it's from another device)

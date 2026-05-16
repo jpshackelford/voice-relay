@@ -1,5 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
-import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput } from './utils/auth-helper';
+import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput, ensureKioskDrawerOpen } from './utils/auth-helper';
 
 /**
  * E2E Test: Complete User Onboarding Flow (First-Time Experience)
@@ -126,6 +126,10 @@ test.describe('User Onboarding Flow', () => {
     // =====================
     // STEP 12: Verify message appears
     // =====================
+    // In desktop kiosk mode, messages are in the sidebar which findMessageInput already opened
+    // but let's ensure it's still open (defensive)
+    await ensureKioskDrawerOpen(page);
+
     // Verify message appears with "You:" prefix and content
     const messageWithContent = page.locator('.kiosk-message.final, .message.final')
       .filter({ hasText: 'You: Hello world!' });
@@ -214,6 +218,9 @@ test.describe('User Onboarding Flow', () => {
     await input.fill('Test message');
     await sendBtn.click();
 
+    // Ensure drawer is open in kiosk mode to see messages
+    await ensureKioskDrawerOpen(page);
+
     // Verify message appears with content
     const messageWithContent = page.locator('.kiosk-message.final, .message.final')
       .filter({ hasText: 'You: Test message' });
@@ -288,7 +295,8 @@ test.describe('User Onboarding Flow', () => {
     await expect(page).toHaveURL(/\/workspace\/[a-f0-9-]+\/session\/[a-f0-9-]+$/);
 
     // Verify kiosk mode is active (check for kiosk-specific element)
-    await expect(page.locator('.kiosk-sidebar, .kiosk-input-row')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+    // Note: Use .first() since both .kiosk-sidebar and .kiosk-input-row exist in kiosk mode
+    await expect(page.locator('.kiosk-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
 
     // Wait for connection to stabilize
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);

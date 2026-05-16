@@ -3,6 +3,7 @@ import {
   getAuthState,
   waitForStableConnection,
   findMessageInput,
+  ensureKioskDrawerOpen,
 } from './utils/auth-helper';
 
 /**
@@ -112,7 +113,10 @@ async function sendMessage(page: Page, text: string): Promise<void> {
   const { input } = await findMessageInput(page);
   await input.fill(text);
   await input.press('Enter');
-  
+
+  // Ensure drawer is open in kiosk mode to see messages
+  await ensureKioskDrawerOpen(page);
+
   // Wait for message to appear
   const messageWithContent = page.locator('.kiosk-message.final, .message.final')
     .filter({ hasText: text });
@@ -123,6 +127,9 @@ async function sendMessage(page: Page, text: string): Promise<void> {
  * Helper: Check if a message is visible in session
  */
 async function isMessageVisible(page: Page, text: string): Promise<boolean> {
+  // Ensure drawer is open in kiosk mode to see messages
+  await ensureKioskDrawerOpen(page);
+
   const messageWithContent = page.locator('.kiosk-message.final, .message.final')
     .filter({ hasText: text });
   return await messageWithContent.isVisible({ timeout: 1000 }).catch(() => false);

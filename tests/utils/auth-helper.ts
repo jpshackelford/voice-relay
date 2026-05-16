@@ -371,6 +371,24 @@ export async function setupTwoDeviceSession(
 }
 
 /**
+ * Ensure kiosk sidebar drawer is open.
+ *
+ * In desktop kiosk mode (width >= 768px), messages and input are in a
+ * collapsible sidebar drawer that starts closed. This helper opens it
+ * so that messages can be seen and assertions can pass.
+ *
+ * @param page - The kiosk Playwright page
+ */
+export async function ensureKioskDrawerOpen(page: Page): Promise<void> {
+  const drawerOpenBtn = page.locator('.drawer-open-btn');
+  if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await drawerOpenBtn.click();
+    // Wait for drawer to animate open and visibility:visible to apply
+    await page.waitForTimeout(350);
+  }
+}
+
+/**
  * Ensure kiosk input is visible (opens drawer if needed).
  *
  * In desktop kiosk mode, the input is in a collapsible sidebar drawer
@@ -380,12 +398,7 @@ export async function setupTwoDeviceSession(
  * @returns Locator for the kiosk text input
  */
 export async function ensureKioskInputVisible(page: Page): Promise<import('@playwright/test').Locator> {
-  const drawerOpenBtn = page.locator('.drawer-open-btn');
-  if (await drawerOpenBtn.isVisible({ timeout: 500 }).catch(() => false)) {
-    await drawerOpenBtn.click();
-    // Wait for drawer to animate open
-    await page.waitForTimeout(300);
-  }
+  await ensureKioskDrawerOpen(page);
   return page.locator('.kiosk-sidebar .kiosk-input-row input[type="text"]');
 }
 
