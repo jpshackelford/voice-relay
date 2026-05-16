@@ -31,124 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 01:31 UTC - Orchestrator
-
-🔒 **Auto-disabled due to inactivity**
-
-Two consecutive quiet periods detected - no new work to pick up.
-Automation has been disabled to prevent unnecessary runs.
-
-**Current State:**
-- No open PRs
-- No open issues
-- Both slots idle
-
-**Previous productive work:**
-- `95a754f` (merge #132 ✓) at 00:05 UTC - last PR merged
-- All 132 issues resolved 🎉
-
-**To re-enable:**
-- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
-- Or via API:
-  ```bash
-  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
-    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"enabled": true}'
-  ```
-
----
-### 2026-05-16 02:18 UTC - Expansion Worker
-
-✅ **Expanded Issue #133**
-
-- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133)
-- Type: Bug (regression from #121)
-- Status: **Ready for implementation** ✅
-- Label: `ready`
-
-**Root Cause:**
-Server never calls `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages. Client-side implementation is complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but server never sends the message.
-
-**Proposed Fix:**
-Add callback wiring in `server/src/index.ts` after registry creation:
-```typescript
-aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
-  registry.broadcastMessageToSession(sessionId, {
-    type: 'ai-thinking',
-    sessionId,
-    thinking,
-  });
-});
-```
-
-**Files to modify:**
-- `server/src/index.ts` - Add thinking callback wiring
-
-**Complexity:** Low - single location change, follows existing patterns
-
----
-### 2026-05-16 02:22 UTC - Expansion Worker (`7e6a480`)
-
-✅ **Expanded Issue #133**
-
-- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133)
-- Type: Bug (regression from #121)
-- Status: **Ready for implementation** ✅
-- Label: `ready`
-
-**Root Cause:**
-Server never calls `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages. Client-side implementation is complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but server never sends the message.
-
-**Proposed Fix:**
-Add callback wiring in `server/src/index.ts` after registry creation:
-```typescript
-aiSessionManager.setThinkingChangeCallback((sessionId, thinking) => {
-  registry.broadcastMessageToSession(sessionId, {
-    type: 'ai-thinking',
-    sessionId,
-    thinking,
-  });
-});
-```
-
-**Files to modify:**
-- `server/src/index.ts` - Add thinking callback wiring
-
-**Complexity:** Low - single location change, follows existing patterns
-
----
-### 2026-05-16 02:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `d033c26` | implementation | Issue #133 - thinking indicator | **NEW** |
-| `d10e3cd` | expansion | Issue #134 - markdown image tables | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Implementation Worker**
-   - Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133) (priority:high)
-   - Conversation: [`d033c26`](https://app.all-hands.dev/conversations/d033c266927e439cb7bfc8977df33d3f)
-   - Root cause: Server never wires `aiSessionManager.setThinkingChangeCallback()` to broadcast `ai-thinking` messages
-
-2. **Expansion Worker**
-   - Issue: [#134 - Investigate image rendering in markdown tables](https://github.com/jpshackelford/voice-relay/issues/134)
-   - Conversation: [`d10e3cd`](https://app.all-hands.dev/conversations/d10e3cdb1ba04d8f8b5c07ed32b1d314)
-
-**Current State:**
-- No open PRs (implementation worker will create one)
-- Ready issues: #133 (priority:high) - being implemented
-- Issues needing expansion: #134 (being expanded), #135, #136, #137, #138, #139
-- Expansion slot: Occupied (expansion worker)
-- PR slot: Occupied (implementation worker)
-
-**Previous Workers (all finished):**
-- `7e6a480` (expansion #133 ✓), `95a754f` (merge #132 ✓)
-- `f98f320` (implementation #131 ✓), `101768f` (expansion #131 ✓)
-
----
 ### 2026-05-16 02:34 UTC - Expansion Worker
 
 ✅ **Expanded Issue #134**
@@ -947,7 +829,6 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - `abddc75` (expansion #142 ✓)
 
 ---
-
 ### 2026-05-16 08:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -1111,4 +992,35 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 - `f63ce25` - test(audio): expand useAudioAnalyser tests beyond error scenarios
 
 ---
+### 2026-05-16 09:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9b0f50e` | review | PR #143 - Mobile UI (3 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Conversation: [`9b0f50e`](https://app.all-hands.dev/conversations/9b0f50e0325f4a3a9bf7c2af47c2320b)
+- Task: Address 3 unresolved review threads
+  - 🟠 Duplicate microphone access creates resource waste on mobile
+  - 🟡 Nested try-catch adds unnecessary complexity  
+  - 🟡 Dual ownership tracking is confusing
+- PR Status: CI green, CHANGES_REQUESTED, MERGEABLE
+
+**Current State:**
+- Open PRs: #143 (green, 💬3 - now being reviewed)
+- Ready issues: #135 (priority:medium), #136 (priority:medium), #139, #141, #142
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker)
+
+**Previous Workers (finished):**
+- `ffff2f1` (review #143 - addressed 4 threads)
+- `80fa8cb` (review #143 - first round)
+- `faacf30` (merge #145 ✓)
+
+**Housekeeping:**
+- 📦 Archived 4 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1114→~200 lines)
 
