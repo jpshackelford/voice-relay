@@ -694,3 +694,45 @@ All review threads replied to and resolved. PR marked ready for review.
 - PR slot: Occupied (`c015f29`)
 
 ---
+### 2026-05-16 23:34 UTC - Expansion Worker (`301bf79`)
+
+✅ **Expanded Issue #155 - Parallel E2E Test Execution**
+
+- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
+- Status: **Ready for implementation** ✅
+- Label: `ready` added
+
+**Technical Approach Added:**
+
+1. **Problem Statement**: Tests currently share single server (ports 5174/3002), single SQLite database, and single test workspace, requiring serial execution
+
+2. **Proposed Solution**: Per-worker isolation
+   - Each Playwright worker gets unique server ports: `basePort + (workerIndex * 10)`
+   - Each worker gets unique SQLite database: `./data/test-worker-{n}.db`
+   - Each worker creates own test workspace via `/auth/test-session`
+
+3. **Implementation Plan** (5 phases):
+   - Phase 1: Create `tests/global-setup.ts`, `tests/global-teardown.ts`, `tests/fixtures.ts`
+   - Phase 2: Update `playwright.config.ts` to use global setup/teardown
+   - Phase 3: Migrate all test files to use new worker fixtures
+   - Phase 4: CI integration with PLAYWRIGHT_WORKERS env var
+   - Phase 5: Documentation and validation
+
+4. **Files Affected**:
+   - New: `tests/global-setup.ts`, `tests/global-teardown.ts`, `tests/fixtures.ts`, `tests/test-utils/server-manager.ts`
+   - Modified: `playwright.config.ts`, all 6 test spec files, `.github/workflows/test.yml`
+
+5. **Acceptance Criteria** (6 items):
+   - E2E tests run with workers:4 without flaky failures
+   - Each worker has isolated server/database
+   - No FK constraint violations or race conditions
+   - Server cleanup occurs reliably
+   - CI run time decreases by 50%+
+   - Test results remain deterministic
+
+**Context:**
+- Issue created as follow-up from PR #148 code review
+- Current `workers: 1` masks concurrency issues
+- Production uses workspace isolation (not affected by this)
+
+---
