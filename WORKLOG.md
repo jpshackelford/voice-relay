@@ -983,3 +983,35 @@ PR status: Ready for review (moved from draft)
 **Housekeeping:**
 - 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-16.md (1044→~800 lines)
 
+---
+### 2026-05-16 12:13 UTC - Review Worker (`79f4bd5`)
+
+✅ **Addressed all 3 review threads on PR #143**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed:**
+
+| Thread | Feedback | Action |
+|--------|----------|--------|
+| `MobileSettings.tsx:116` | 🔴 UX bug: hint says "manual text entry" but no text input | ✅ Added text input form in visualizer mode (commit `9ad2309`) |
+| `MobileMode.tsx:270` | 🔴 Misleading "type to send" status | ✅ Fixed status text, added actual text input (commit `9ad2309`) |
+| `MobileMode.tsx:124` | 🟡 Effect dependency optimization | ✅ Used ref pattern per suggestion (commit `9ad2309`) |
+
+**Changes Made (commit `9ad2309`):**
+1. Added text input form for visualizer mode:
+   - Text input with placeholder "Type message..."
+   - Send button (disabled when empty)
+   - Proper ARIA labels for accessibility
+   - CSS styling (.walkie-text-form, .walkie-text-input, .walkie-send-btn)
+2. Fixed misleading status: changed "Recording... (type to send)" → "Recording..."
+3. Optimized effect dependencies using refs pattern:
+   - Added `isListeningRef` and `audioAnalyserActiveRef` refs
+   - Effect now only re-runs when inputMode changes
+   - Prevents unnecessary cleanup cycles
+
+**CI Status:** All checks passing ✅
+**Resolved Threads:** 3/3 ✅
+**PR State:** Ready for review (not draft) ✅
+
