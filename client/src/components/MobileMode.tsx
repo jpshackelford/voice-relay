@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type FormEvent } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
@@ -48,6 +48,11 @@ export function MobileMode({
   const spokenUtterancesRef = useRef(new Set<string>());
   const sharedStreamRef = useRef<MediaStream | null>(null);
   const lastViewedCountRef = useRef(0);
+  // Separate text state for visualizer mode manual text entry
+  const [visualizerText, setVisualizerText] = useState('');
+  // Refs for effect optimization (issue #3) - avoid re-running on state changes
+  const isListeningRef = useRef(false);
+  const audioAnalyserActiveRef = useRef(false);
 
   const { speak, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ sessionId });
@@ -108,12 +113,21 @@ export function MobileMode({
     onError: handleSttError,
   });
 
+  // Keep refs in sync with state for effect optimization
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    audioAnalyserActiveRef.current = audioAnalyser.isActive;
+  }, [audioAnalyser.isActive]);
+
   // Stop active mic when input mode changes
   // This ensures clean state transition when user switches modes in settings
-  // Note: Using specific properties (isActive, stop) instead of the whole audioAnalyser object
-  // to avoid re-running on every render (useAudioAnalyser returns a new object each render)
+  // Uses refs to read current state inside the effect, only re-running when inputMode changes
+  // (Optimization: avoids unnecessary effect runs when isListening/isActive change)
   useEffect(() => {
-    if (isListening || audioAnalyser.isActive) {
+    if (isListeningRef.current || audioAnalyserActiveRef.current) {
       stopListening();
       audioAnalyser.stop();
       if (sharedStreamRef.current) {
@@ -121,7 +135,7 @@ export function MobileMode({
         sharedStreamRef.current = null;
       }
     }
-  }, [inputMode, isListening, audioAnalyser.isActive, audioAnalyser.stop, stopListening]);
+  }, [inputMode, audioAnalyser.stop, stopListening]);
 
   // Handle microphone toggle based on input mode.
   //
@@ -192,6 +206,17 @@ export function MobileMode({
       }
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
+
+  // Handle manual text submission in visualizer mode
+  const handleVisualizerSubmit = useCallback((e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = visualizerText.trim();
+    if (!trimmed) return;
+    
+    sendText(utteranceIdRef.current, trimmed, false);
+    setVisualizerText('');
+    utteranceIdRef.current = generateUUID();
+  }, [visualizerText, sendText]);
 
   // Connection status indicator
   const connectionStatus = connected ? 'connected' : 'disconnected';
@@ -267,7 +292,7 @@ export function MobileMode({
             <span className="walkie-error">⚠️ {sttError}</span>
           ) : inputMode === 'visualizer' ? (
             audioAnalyser.isActive ? (
-              <span className="walkie-listening">Recording... (type to send)</span>
+              <span className="walkie-listening">Recording...</span>
             ) : (
               <span className="walkie-ready">Tap to record</span>
             )
@@ -279,6 +304,28 @@ export function MobileMode({
             <span className="walkie-ready">Tap to speak</span>
           )}
         </div>
+
+        {/* Text input for visualizer mode (manual text entry) */}
+        {inputMode === 'visualizer' && (
+          <form className="walkie-text-form" onSubmit={handleVisualizerSubmit}>
+            <input
+              type="text"
+              className="walkie-text-input"
+              placeholder="Type message..."
+              value={visualizerText}
+              onChange={(e) => setVisualizerText(e.target.value)}
+              aria-label="Type message to send"
+            />
+            <button
+              type="submit"
+              className="walkie-send-btn"
+              disabled={!visualizerText.trim()}
+              aria-label="Send message"
+            >
+              ➤
+            </button>
+          </form>
+        )}
 
         {/* Large Mic Button */}
         <button
