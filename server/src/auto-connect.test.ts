@@ -218,7 +218,7 @@ describe('autoConnectAI', () => {
         sessionId: 'session-123',
         workspaceId: 'workspace-456',
         senderId: 'ai',
-        senderName: 'AI Assistant',
+        senderName: '✨ AI',
         text: 'Hello from AI',
         partial: false,
       }));

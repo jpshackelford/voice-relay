@@ -92,7 +92,7 @@ export async function autoConnectAI(
           workspaceId,
           sessionId,
           senderId: 'ai',
-          senderName: 'AI Assistant',
+          senderName: '✨ AI',
           text,
           partial: false,
         };
