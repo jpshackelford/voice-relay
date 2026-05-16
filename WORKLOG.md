@@ -957,3 +957,37 @@ Replaced fragile regex-based `parseMarkdown` with battle-tested libraries:
 
 **Housekeeping:**
 - 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md (950→863 lines)
+
+### 2026-05-16 07:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ffbeb96` | review | PR #145 - tvOS authentication (1 thread) | **NEW** |
+| `abddc75` | expansion | Issue #142 - Mobile UI Redesign | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#145 - feat(auth): add server-side support for tvOS client authentication](https://github.com/jpshackelford/voice-relay/pull/145)
+   - Conversation: [`ffbeb96`](https://app.all-hands.dev/conversations/ffbeb968cb614d53a1bbe2dbf4d736cf)
+   - Task: Address 1 unresolved review thread (signal handler consolidation)
+   - PR Status: `oRFRC` CI green, MERGEABLE
+
+2. **Expansion Worker**
+   - Issue: [#142 - Redesign Mobile UI: Walkie-Talkie Mode with Oscilloscope](https://github.com/jpshackelford/voice-relay/issues/142)
+   - Conversation: [`abddc75`](https://app.all-hands.dev/conversations/abddc75bce81417097b96331cd2167a3)
+   - Note: PR #143 exists for this issue but has CI failures
+
+**Current State:**
+- Open PRs: #145 (green, 💬1 - being reviewed), #143 (red - related to #142)
+- Ready issues: #135, #136, #137, #139, #141
+- Issues needing expansion: #142 (being expanded)
+- Expansion slot: Occupied (`abddc75`)
+- PR slot: Occupied (`ffbeb96`)
+
+**Previous Workers (finished):**
+- `36deff6` (review #145 ✓ - addressed 6 threads)
+- `2ffab46` (expansion #141 ✓ - README update ready)
+
+---
