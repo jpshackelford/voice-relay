@@ -2,7 +2,7 @@
  * Audio playback hook for server-side TTS audio streaming.
  * 
  * Buffers MP3 audio chunks received from the server and plays them
- * sequentially using Web Audio API for low-latency playback.
+ * sequentially using HTMLAudioElement for broad browser compatibility.
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';

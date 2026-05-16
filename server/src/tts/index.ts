@@ -87,6 +87,10 @@ export class TtsService {
 
     console.log(`[TTS] Synthesizing for session ${sessionId}: "${text.substring(0, 50)}..."`);
 
+    // Guard against duplicate audio-end messages: onComplete may fire and then
+    // the Promise can still reject, which would trigger the catch block.
+    let audioEndSent = false;
+
     try {
       await synthesize(text, {
         apiKey,
@@ -102,6 +106,9 @@ export class TtsService {
           this.registry.broadcastAudioToKiosks(sessionId, message);
         },
         onComplete: (error?: Error) => {
+          if (audioEndSent) return;
+          audioEndSent = true;
+
           if (error) {
             console.error(`[TTS] Synthesis error for session ${sessionId}:`, error.message);
           } else {
@@ -119,16 +126,19 @@ export class TtsService {
         },
       });
     } catch (err) {
-      console.error(`[TTS] Failed to start synthesis for session ${sessionId}:`, err);
-      
-      // Send error marker
-      const endMessage: AudioEndMessage = {
-        type: 'audio-end',
-        sessionId,
-        utteranceId,
-        error: (err as Error).message,
-      };
-      this.registry.broadcastAudioToKiosks(sessionId, endMessage);
+      if (!audioEndSent) {
+        audioEndSent = true;
+        console.error(`[TTS] Failed to start synthesis for session ${sessionId}:`, err);
+        
+        // Send error marker
+        const endMessage: AudioEndMessage = {
+          type: 'audio-end',
+          sessionId,
+          utteranceId,
+          error: (err as Error).message,
+        };
+        this.registry.broadcastAudioToKiosks(sessionId, endMessage);
+      }
     }
   }
 }

@@ -135,6 +135,19 @@ export function synthesize(text: string, options: ElevenLabsTtsOptions): Promise
         try {
           const message = JSON.parse(data.toString());
 
+          // Handle errors first - they supersede other message types
+          if (message.error) {
+            handleError(new Error(`ElevenLabs error: ${message.error}`));
+            return;
+          }
+
+          // Handle completion
+          if (message.isFinal === true) {
+            cleanup();
+            onComplete();
+            return;
+          }
+
           // Handle audio chunk
           if (message.audio) {
             // Resolve on first chunk - streaming has started successfully
@@ -143,17 +156,6 @@ export function synthesize(text: string, options: ElevenLabsTtsOptions): Promise
               resolve();
             }
             onAudioChunk(message.audio);
-          }
-
-          // Handle completion
-          if (message.isFinal === true) {
-            cleanup();
-            onComplete();
-          }
-
-          // Handle errors from ElevenLabs
-          if (message.error) {
-            handleError(new Error(`ElevenLabs error: ${message.error}`));
           }
         } catch (err) {
           // Not JSON - might be raw audio or other data
