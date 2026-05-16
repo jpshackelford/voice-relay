@@ -769,3 +769,29 @@ Received instruction:
 - Next check: ~30 minutes (next cron trigger)
 
 ---
+### 2026-05-16 22:36 UTC - Expansion Worker (`51a84fe`)
+
+✅ **Expanded Issue #154 - ElevenLabs API Key UI**
+
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Status: **Ready for implementation** ✅
+- Label: `ready` added
+
+**Technical Approach Added:**
+- Identified `WorkspaceHome.tsx` as the only file needing changes
+- Backend + hooks already complete from PR #146
+- Detailed acceptance criteria (16 checkboxes):
+  - API key input section (7 criteria)
+  - Voice selector dropdown (8 criteria)
+  - TTS enable/disable toggle (5 criteria)
+  - UI/UX requirements (4 criteria)
+- Implementation pattern with code snippets
+- Voice fetch effect pattern
+- Estimated effort: ~2-3 hours
+
+**Files Reviewed:**
+- `client/src/pages/WorkspaceHome.tsx` - Existing OpenHands API key UI pattern
+- `client/src/hooks/useWorkspaceSettings.ts` - All hooks already exported
+- PR #146 - Backend implementation context
+
+---
