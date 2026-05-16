@@ -228,6 +228,10 @@ export function KioskMode({
       // Reset error state for new image
       setImageLoadError(null);
       
+      // Reset tracking for new display - this allows the same URL to be reported
+      // again when retried (e.g., after a network issue or user navigation)
+      lastReportedDisplayRef.current = null;
+      
       // Set timeout for image load
       imageTimeoutRef.current = setTimeout(() => {
         const currentUrl = displayContent.content;
