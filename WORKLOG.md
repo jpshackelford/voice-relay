@@ -31,173 +31,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 05:40 UTC - Expansion Worker
-
-✅ **Research Completed: Issue #138**
-
-- Issue: [[Research] Evaluate Marp for kiosk display rendering](https://github.com/jpshackelford/voice-relay/issues/138)
-- Type: Research
-- Status: **Closed as "won't do"**
-
-**Research Summary:**
-Investigated whether Marp (markdown-to-presentation ecosystem) would be better for kiosk display rendering than the current approach.
-
-**Findings:**
-- Marp is designed for **static slide presentations** with multiple slides and navigation
-- Voice-relay needs **real-time, single-screen, AI-generated content**
-- Current `parseMarkdown()` function already handles needed formatting
-- Integration would add significant complexity without solving any real problem
-
-**Recommendation:** Do not implement. If enhanced formatting is needed (tables, layouts), improve the existing simple renderer instead of adopting a full presentation framework.
-
----
-
-### 2026-05-15 22:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `20b3fc9` | review | PR #130 - wire session AI status (Round 2) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
-- Conversation: [`20b3fc9`](https://app.all-hands.dev/conversations/20b3fc9f0e584af59c11555769db8f10)
-
-**PR Status:**
-- CI: All checks passing (green) ✅
-- State: Draft (review worker will set back to draft, address feedback, then mark ready)
-- Unresolved threads: 1 (type export suggestion)
-- History: `oR` (opened, reviewed)
-
-**Why spawned:**
-Previous review worker `a95245a` finished (PAUSED status at 21:36) but PR is still draft with 1 unresolved thread.
-Spawning fresh review worker to continue addressing feedback.
-
-**Housekeeping:**
-- 📦 Archived 2 worklog entries to WORKLOG_ARCHIVE_2026-05-15.md (worklog reduced from 878 to ~400 lines)
-
-**Current State:**
-- Issue #129 will auto-close when PR #130 merges
-- No other open issues after #129 is resolved
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (review worker `20b3fc9`)
-
-**Previous Workers (finished):**
-- `a95245a` (review #130 - incomplete), `2ac2fd2` (implementation #129 ✓)
-- `8347c92` (expansion #129 ✓), `dd65be6` (merge #128 ✓)
-
----
-### 2026-05-15 22:07 UTC - Review Worker (`20b3fc9`)
-
-✅ **Review Feedback Addressed: PR #130**
-
-- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
-- Status: **Ready for review** ✅
-
-**Review Feedback Implemented:**
-
-| Thread | Feedback | Action |
-|--------|----------|--------|
-| `KioskMode.tsx:8` | Type duplication suggestion - export `AIState` from `useAI.ts` | ✅ Implemented in `a68f375` |
-
-**Changes Made:**
-- Exported `AIState` interface from `client/src/hooks/useAI.ts`
-- Imported `AIState` type in `client/src/components/KioskMode.tsx` (removed duplicate interface)
-
-**CI Status:**
-- All checks passing ✅ (Build Client, Server Tests, E2E Tests, PR lint)
-
-**Resolved Threads:** 1/1
-
-**PR Status Update:**
-- Unresolved threads: 0 ✅
-- State: Ready (not draft) ✅
-- CI: All green ✅
-- Bot verdict: "✅ Worth merging" (Risk: LOW)
-
----
-### 2026-05-15 22:33 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `be21f55` | merge | PR #130 - wire session AI status | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
-- Conversation: [`be21f55`](https://app.all-hands.dev/conversations/be21f5541f4b421bafbd86d8c2b10be0)
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) (priority:high)
-
-**PR Merge Criteria Met:**
-- ✅ CI: All checks passing (green)
-- ✅ State: Ready (not draft)
-- ✅ Unresolved threads: 0 (all threads resolved)
-- ✅ Mergeable: MERGEABLE
-- ✅ Bot verdict: "Good taste" - Clean fix following React best practices
-
-**Current State:**
-- Issue #129 will auto-close when PR #130 merges
-- No other open issues after #129 closes
-- All issues expanded (none need expansion)
-- Expansion slot: Idle (nothing to expand)
-- PR slot: Occupied (merge worker)
-
-**Previous Workers (finished):**
-- `20b3fc9` (review #130 ✓), `a95245a` (review #130 incomplete)
-- `2ac2fd2` (implementation #129 ✓), `8347c92` (expansion #129 ✓)
-- `dd65be6` (merge #128 ✓), `ecce820` (review #128 round 2 ✓)
-
----
-### 2026-05-15 22:34 UTC - Merge Worker (`be21f55`)
-
-✅ **Merged PR #130 → Issue #129 Closed**
-
-- PR: [#130 - fix(client): wire session AI status from WebSocket to KioskMode](https://github.com/jpshackelford/voice-relay/pull/130)
-- Issue: [#129 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/129) - **CLOSED** (auto-closed via "Fixes #129")
-- Merge type: Squash merge
-- Commit: `552eca6`
-
-**What was shipped:**
-- Complete client-side wiring for session-centric AI status WebSocket messages
-- `SessionView.tsx`: Initialize `useAI` hook, wire handlers to `useWebSocket`
-- `KioskMode.tsx`: Accept AI state via props with optional chaining
-- `useAI.ts`: Export `AIState` interface for type-safe prop passing
-- Tests updated to use prop-based AI state
-
-**Root Cause Fixed:**
-PR #126 (session-centric AI) added WebSocket message types and handlers, but the React component wiring in `SessionView.tsx` was never completed. This fix connects:
-1. Server broadcasts `session-ai-status` messages
-2. `useWebSocket` receives and forwards to callback
-3. `useAI.handleSessionAIStatus` updates state
-4. `KioskMode` renders `.ai-status` indicator
-
-**Review Evolution:**
-- Initial implementation: 🟢 Good taste - addressed core wiring issue
-- Feedback: Export `AIState` type to avoid drift
-- Final: Type-safe implementation with exported interface
-
-**Deployment:**
-- Auto-deploying to vr.chorecraft.net
-- Client-only changes - no database/migration impact
-- No breaking changes (ai prop is optional)
-
-**Session-centric AI Migration Complete:**
-- ✅ Issue #119 (session-centric AI infrastructure) - MERGED
-- ✅ Issue #120 (auto-connect AI when first device joins) - MERGED  
-- ✅ Issue #121 (UI indicators for thinking/connecting) - MERGED
-- ✅ Issue #122 (remove legacy device-centric code) - MERGED
-- ✅ Issue #129 (smoke test wiring fix) - **MERGED**
-
-**Current State:**
-- No open issues 🎉
-- No open PRs
-- Smoke tests should now pass (`.ai-status` indicator wiring complete)
-
----
 ### 2026-05-15 23:04 UTC - Orchestrator
 
 **Active Workers:**
@@ -936,6 +769,26 @@ Replaced custom regex parser with:
 - 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-15.md
 
 ---
+### 2026-05-16 05:40 UTC - Expansion Worker
+
+✅ **Research Completed: Issue #138**
+
+- Issue: [[Research] Evaluate Marp for kiosk display rendering](https://github.com/jpshackelford/voice-relay/issues/138)
+- Type: Research
+- Status: **Closed as "won't do"**
+
+**Research Summary:**
+Investigated whether Marp (markdown-to-presentation ecosystem) would be better for kiosk display rendering than the current approach.
+
+**Findings:**
+- Marp is designed for **static slide presentations** with multiple slides and navigation
+- Voice-relay needs **real-time, single-screen, AI-generated content**
+- Current `parseMarkdown()` function already handles needed formatting
+- Integration would add significant complexity without solving any real problem
+
+**Recommendation:** Do not implement. If enhanced formatting is needed (tables, layouts), improve the existing simple renderer instead of adopting a full presentation framework.
+
+---
 ### 2026-05-16 05:47 UTC - Review Worker (`08277c4`)
 
 ✅ **Review Feedback Addressed: PR #144**
@@ -971,4 +824,3 @@ Replaced custom regex parser with:
 - State: Ready (not draft) ✅
 - CI: All green ✅
 - Ready for merge
-
