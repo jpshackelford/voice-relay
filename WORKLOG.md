@@ -819,3 +819,35 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
 - `d033c26` (implementation #133 ✓), `d10e3cd` (expansion #134 ✓)
 
 ---
+### 2026-05-16 03:35 UTC - Merge Worker (`26affde`)
+
+✅ **Merged PR #140 → Issue #133 Closed**
+
+- PR: [#140 - feat: wire AI thinking state callback to broadcast messages](https://github.com/jpshackelford/voice-relay/pull/140)
+- Issue: [#133 - Add thinking/waiting indicator to kiosk display](https://github.com/jpshackelford/voice-relay/issues/133) - **CLOSED** (auto-closed via "Fixes #133")
+- Merge type: Squash merge
+- Commit: `e4750b4`
+
+**What was shipped:**
+- Added callback wiring in `server/src/index.ts` to broadcast `ai-thinking` messages
+- Added integration test `thinking-callback.integration.test.ts` verifying end-to-end flow
+
+**Root Cause Fixed:**
+Server never called `aiSessionManager.setThinkingChangeCallback()` to wire the callback that broadcasts `ai-thinking` messages to clients. The client-side implementation was already complete (KioskMode.tsx, useAI.ts, useWebSocket.ts), but the server-side wiring was missing.
+
+**Behavior Now:**
+- When AI starts processing: kiosk shows 🤔 with pulsing animation
+- When AI responds: kiosk returns to ✨ (connected/idle)
+
+**Review Evolution:**
+- Initial: 9 lines of production code wiring callback
+- Bot feedback: Add integration test
+- Final: Added 150-line integration test covering callback invocation, message format, session isolation, and graceful empty-session handling
+
+**Risk Assessment:** LOW - Additive-only change connecting two well-tested components. No database changes, no breaking APIs.
+
+**Deployment:**
+- Auto-deploying to vr.chorecraft.net
+- Server-side change - no database/migration impact
+
+---
