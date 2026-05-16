@@ -955,3 +955,30 @@ PR status: Ready for review (moved from draft)
 - 📦 Archived 1 worklog entry to WORKLOG_ARCHIVE_2026-05-16.md
 
 ---
+### 2026-05-16 10:09 UTC - Review Worker
+
+✅ **Addressed review feedback on PR #143**
+
+**PR:** [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+
+**Review threads addressed (2):**
+
+1. **Missing cleanup when inputMode changes** (🔴 Critical)
+   - Added `useEffect` that triggers when `inputMode` changes
+   - Stops speech recognition, audio analyser, and cleans up shared stream
+   - Prevents resource leak when switching modes while recording
+   - Fixed in: 16ba45f
+
+2. **Misleading comment - stream is NOT shared** (🟠 Important)
+   - Updated comment in useAudioAnalyser.ts
+   - Old: "MobileMode creates one stream for both visualizer and STT"
+   - New: "MobileMode passes its visualizer stream to avoid duplicate getUserMedia"
+   - Accurately reflects mutually exclusive inputMode design
+   - Fixed in: 16ba45f
+
+**All 11 review threads now resolved.**
+
+CI: ✅ All checks passed
+PR status: Ready for review (moved from draft)
+
+---
