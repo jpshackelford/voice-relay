@@ -1741,3 +1741,103 @@ PR state: Ready for review (moved from draft)
 
 **Previous Workers (finished):**
 - `02e70db` (review #143 - addressed 3 critical issues including memoization and tests)
+
+---
+### 2026-05-16 13:35 UTC - Review Worker (`6dc5155`)
+
+✅ **Addressed PR #143 Review Feedback - Unread Count Performance**
+
+- PR: [#143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- Commit: d900d17
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Problem | Fix |
+|--------|---------|-----|
+| `MobileMode.tsx:228` | 🟠 Creating new array on every render to count unread messages | ✅ Wrapped in `useMemo` with `[utterances.size, deviceId]` deps |
+
+**Changes:**
+- Added `useMemo` to React imports
+- Memoized `totalOtherMessages` calculation to avoid re-filtering on every render
+- Dependency on `utterances.size` (not Map reference) ensures recalc only when messages added/removed
+
+CI: ✅ All checks passed (4/4)
+Review Thread: Replied and resolved via GraphQL API
+PR state: Ready for review (moved from draft)
+
+---
+### 2026-05-16 14:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+⏳ **Waiting on Human Evidence**
+
+PR #143 has all review threads resolved and CI is green, but requires mobile device evidence (screenshots/video) before merge.
+
+**PR Status:**
+- [PR #143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- History: `oRFRFRFRFRCFRCFRFRCFRFRFRcFRFC`
+- CI: ✅ All checks passing
+- Unresolved threads: 0
+- Review decision: CHANGES_REQUESTED
+- Reviewer requirement: **"Add an Evidence section with screenshots/video from iOS Safari and Android Chrome"**
+
+**This cannot be fulfilled by an agent** - requires real device testing by human.
+
+**Current State:**
+- Open PRs: #143 (green, waiting for human evidence)
+- Ready issues: #135, #136 (priority:medium), #139, #141, #142 (has PR)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Available but waiting for human evidence on #143
+
+**Next Steps:**
+Human needs to either:
+1. Add mobile device screenshots/video to PR #143 description
+2. Dismiss the review requirement via GitHub (if evidence not required)
+3. Add `## INSTRUCTION:` entry to proceed anyway
+
+**Previous Workers (finished):**
+- `6dc5155` (review #143 - addressed unread count performance)
+
+---
+### 2026-05-16 14:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+⏳ **Waiting on Human Evidence** (2nd consecutive)
+
+PR #143 has all review threads resolved and CI is green, but requires mobile device evidence before merge.
+
+**PR Status:**
+- [PR #143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+- CI: ✅ All checks passing
+- Unresolved threads: 0 (all 23 resolved ✓)
+- Review decision: CHANGES_REQUESTED
+- Blocker: **Mobile device screenshots/video required**
+
+**This cannot be fulfilled by an agent** - requires real device testing by human.
+
+**Current State:**
+- Open PRs: #143 (green, waiting for human evidence)
+- Ready issues: #135, #136 (priority:medium), #139, #141, #142 (has PR)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Available but blocked on human evidence for #143
+
+**Next Steps (human action required):**
+1. Add mobile device screenshots/video to PR #143 description
+2. Or dismiss the evidence requirement via GitHub (if not required)
+3. Or add `## INSTRUCTION:` entry to proceed without evidence
+
+**Housekeeping:**
+- 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md
+
+**Note:** If next orchestrator run finds no progress, automation will auto-disable (3 consecutive waiting periods).
