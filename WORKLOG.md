@@ -794,3 +794,36 @@ The AI successfully addressed all code review feedback:
 **Housekeeping:**
 - ✅ Truncated WORKLOG.md (790→762 lines)
 - 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
+
+---
+### 2026-05-17 20:49 UTC - Merge Worker (`441026f`)
+
+✅ **Merged PR #173 - AI Connection Timeout Fix**
+
+- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
+- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
+- Status: **MERGED** ✅
+- Issue #172: **CLOSED** (auto-closed via "Fixes #172")
+
+**Commit Message:**
+```
+fix(e2e): increase AI connection timeout from 30s to 60s
+
+Aligns test timeout with server-side pollUntilReady() timeout (60s).
+OpenHands Cloud API cold starts can take >30s during high load.
+
+Updates all AI status assertion timeouts in tests/smoke/ai-integration.spec.ts:
+- waitForAIAutoConnect() helper
+- Active tests: AI auto-connect, send message tests
+- Skipped tests: image display, markdown display (for consistency)
+
+Fixes #172
+```
+
+**Production Safety:** ⚠️ Test infrastructure only - No production code modified. Changes affect:
+- Test timeouts in `tests/smoke/ai-integration.spec.ts`
+- No server-side or client-side code changes
+
+**Risk:** 🟢 LOW - Test-only change, no production impact
+
+**Auto-deploy:** Production (vr.chorecraft.net) is unaffected - test file changes don't affect runtime
