@@ -1494,6 +1494,31 @@ Add ntfy.sh notifications to the `handle-failure` job in deploy.yml:
 
 ---
 
+### 2026-05-17 23:38 UTC - Expansion Worker (`597c41b`)
+
+✅ **Expanded Issue #186**
+
+- Issue: [#186 - feat: Allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/issues/186)
+- Type: Enhancement
+- Priority: **MEDIUM**
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+When kiosk displays large QR code for mobile pairing, there's no way to proceed without scanning. This blocks solo kiosk usage, development/testing, and accessibility scenarios.
+
+**Proposed Solution:**
+Add a "Skip →" button in the top-right corner of the QR display that dismisses the fullscreen QR and shows the "Session Ready" greeting state. Mini QR remains accessible in corner for later pairing.
+
+**Files to Modify:**
+- `client/src/components/KioskMode.tsx` - Add `qrDismissed` state and Skip button
+- `client/src/App.css` - Add `.qr-skip-button` styles
+- `client/src/components/KioskMode.test.tsx` - Add 4 unit tests
+- `tests/qr-join-flow.spec.ts` - Add E2E test for skip flow
+
+**Complexity:** Low - client-side only, localized state change
+**Estimated Time:** ~1-2 hours
+
+---
 
 ### 2026-05-17 23:36 UTC - Orchestrator
 
