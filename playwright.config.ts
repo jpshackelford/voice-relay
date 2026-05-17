@@ -34,8 +34,8 @@ import { defineConfig } from '@playwright/test';
  */
 
 // Determine worker count from environment or default to 4
-// In CI, this is set via environment; locally, auto-detect is used
-const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '', 10) || undefined;
+// Must match the default in global-setup.ts to ensure worker count consistency
+const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '4', 10);
 
 export default defineConfig({
   testDir: './tests',
@@ -51,7 +51,7 @@ export default defineConfig({
 
   // Parallel execution with per-worker isolation (GitHub Issue #155)
   // Each worker gets its own server instance and database
-  workers: WORKER_COUNT ?? (process.env.CI ? 4 : undefined),
+  workers: WORKER_COUNT,
 
   // Allow tests within a file to run in parallel
   // Tests that need sequential execution can use test.describe.configure({ mode: 'serial' })
