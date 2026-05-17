@@ -147,6 +147,18 @@ test.describe('Mobile Voice UI', () => {
     await expect(page.locator('.walkie-header')).toBeVisible();
   });
 
+  test('walkie header icons display horizontally not vertically (issue #162)', async ({ page }) => {
+    // Verify the walkie-header maintains horizontal layout on mobile viewports
+    const header = page.locator('.walkie-header');
+    await expect(header).toBeVisible();
+
+    // Check that flex-direction is row (horizontal), not column (vertical)
+    const flexDirection = await header.evaluate((el) =>
+      window.getComputedStyle(el).flexDirection
+    );
+    expect(flexDirection).toBe('row');
+  });
+
   test('mic button shows correct ARIA labels', async ({ page }) => {
     const micButton = page.locator('.walkie-mic-btn');
     await expect(micButton).toBeVisible();
