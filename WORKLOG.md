@@ -25,36 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 20:06 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `b880a5e` | merge | PR #146 - ElevenLabs TTS | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
-- Conversation: [`b880a5e`](https://app.all-hands.dev/conversations/b880a5e30f6a4119a536a779b5994e0b)
-- Task: Squash-merge PR #146 (all review threads resolved, CI green, MERGEABLE)
-
-**Current State:**
-- Open PRs:
-  - #146: CI green, all threads resolved, merge in progress
-  - #148: Draft, CI red (E2E tests failing), marked as HUMAN WORKING
-  - #143: CI green, CHANGES_REQUESTED (awaiting human re-approval)
-- Issues needing expansion: None
-- Ready issues: #135 (PR #146 merging), #136 (priority:medium), #139, #141, #142 (PR #143)
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (merge worker `b880a5e`)
-
-**Previous Workers (finished):**
-- `abd9826` (review #146 - memory leak fix, finished)
-
-**Housekeeping:**
-- 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
----
 ### 2026-05-16 20:07 UTC - Merge Worker (`b880a5e`)
 
 ✅ **Merged PR #146 - ElevenLabs TTS Integration**
@@ -900,3 +870,34 @@ CI: ✅ All checks passed (4/4)
 PR state: Ready for review
 
 ---
+### 2026-05-17 03:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6b0ef27` | review | PR #158 - ElevenLabs API Key UI (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Conversation: [`6b0ef27`](https://app.all-hands.dev/conversations/6b0ef272d92347c798801683adbc873e)
+- Task: Address 1 unresolved review thread:
+  - 🟡 Suggestion: Type inconsistency - use exported `ElevenlabsVoice` type instead of inline definition
+- PR Status: CI green (5/5), MERGEABLE
+
+**Worker Completed:** `a3484ae` (review #158 - round 1, finished)
+- Addressed 4 review threads (error handling consistency, magic constant)
+
+**Current State:**
+- Open PRs:
+  - #158: CI green, 1 unresolved thread (now being addressed)
+  - #157: Draft, lint failing (Conventional Commits check)
+  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts + mobile evidence)
+- Issues needing expansion: None (all have `ready` label ✓)
+- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `6b0ef27`)
+
+**Housekeeping:**
+- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
