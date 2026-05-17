@@ -555,3 +555,31 @@ Add a collapsible "Agent Actions" panel in the kiosk sidebar with a toggle to sh
 - `client/src/App.css` - Add panel styles
 
 **Complexity:** Medium
+
+---
+### 2026-05-17 19:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #168**
+
+- Issue: [#168 - Bug: Audio checkbox and display count on separate lines - combine to save space](https://github.com/jpshackelford/voice-relay/issues/168)
+- Type: Bug (UI Polish)
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+In the kiosk mode conversation sidebar, the device count indicators (🖥️/📱) and audio checkbox (🔊) are on separate lines, wasting vertical space.
+
+**Root Cause:**
+Two separate `<div>` elements at lines 428-447 in `KioskMode.tsx`:
+1. `.kiosk-participants` - Device counts with padding and border-bottom
+2. `.kiosk-tts-toggle` - Audio checkbox with padding and border-bottom
+
+Both are block-level elements that stack vertically.
+
+**Proposed Fix:**
+Wrap both in a single `.kiosk-status-row` container with `display: flex; justify-content: space-between;` to place participants on left and TTS toggle on right.
+
+**Files to Modify:**
+- `client/src/components/KioskMode.tsx` - Wrap in new container
+- `client/src/App.css` - Add `.kiosk-status-row` styles, update child styles
+
+**Complexity:** Low
