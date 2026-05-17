@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import type { DeviceMode } from '../types';
 
 export type InputMode = 'voice' | 'visualizer';
 
@@ -14,12 +13,11 @@ interface MobileSettingsProps {
   onTtsChange: (enabled: boolean) => void;
   onAutoSubmitChange: (enabled: boolean) => void;
   onInputModeChange: (mode: InputMode) => void;
-  onModeChange: (mode: DeviceMode) => void;
 }
 
 /**
  * Settings modal for mobile mode.
- * Contains TTS toggle, auto-submit toggle, input mode selector, and mode switch.
+ * Contains TTS toggle, auto-submit toggle, and input mode selector.
  */
 export function MobileSettings({
   isOpen,
@@ -32,7 +30,6 @@ export function MobileSettings({
   onTtsChange,
   onAutoSubmitChange,
   onInputModeChange,
-  onModeChange,
 }: MobileSettingsProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -132,17 +129,6 @@ export function MobileSettings({
                 </button>
               </div>
             </div>
-          </div>
-
-          <div className="mobile-settings-divider" />
-
-          <div className="mobile-settings-section">
-            <button 
-              className="mobile-settings-mode-switch"
-              onClick={() => onModeChange('kiosk')}
-            >
-              🖥️ Switch to Kiosk Mode
-            </button>
           </div>
         </div>
       </div>

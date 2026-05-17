@@ -28,7 +28,7 @@ export function MobileMode({
   devices, 
   utterances,
   sendText, 
-  onModeChange,
+  onModeChange: _onModeChange,
   onAIStatusChange,
   sessionId
 }: MobileModeProps) {
@@ -376,7 +376,6 @@ export function MobileMode({
         onTtsChange={setTtsEnabled}
         onAutoSubmitChange={setAutoSubmit}
         onInputModeChange={setInputMode}
-        onModeChange={onModeChange}
       />
 
       {/* Conversation Pane */}

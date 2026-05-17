@@ -14,7 +14,6 @@ describe('MobileSettings', () => {
     onTtsChange: vi.fn(),
     onAutoSubmitChange: vi.fn(),
     onInputModeChange: vi.fn(),
-    onModeChange: vi.fn(),
   };
 
   beforeEach(() => {
@@ -103,24 +102,6 @@ describe('MobileSettings', () => {
     it('shows hint for auto-submit disabled', () => {
       render(<MobileSettings {...defaultProps} autoSubmit={false} />);
       expect(screen.getByText('Edit before sending')).toBeDefined();
-    });
-  });
-
-  describe('mode switch', () => {
-    it('shows switch to kiosk button', () => {
-      render(<MobileSettings {...defaultProps} />);
-      expect(screen.getByText(/Switch to Kiosk Mode/)).toBeDefined();
-    });
-
-    it('calls onModeChange with kiosk when clicked', async () => {
-      render(<MobileSettings {...defaultProps} />);
-      const button = screen.getByText(/Switch to Kiosk Mode/);
-      
-      await act(async () => {
-        fireEvent.click(button);
-      });
-
-      expect(defaultProps.onModeChange).toHaveBeenCalledWith('kiosk');
     });
   });
 
