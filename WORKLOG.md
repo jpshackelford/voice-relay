@@ -774,3 +774,47 @@ Complete README.md rewrite to document Voice Relay's evolution from prototype to
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---
+
+### 2026-05-17 12:58 UTC - Implementation Worker (`54a02e1`)
+
+✅ **PR Submitted: Parallel E2E Test Execution**
+
+- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
+- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
+- Status: **CI green ✅, Ready for review**
+
+**Architecture:**
+Each Playwright worker gets isolated infrastructure:
+```
+Worker 0: client=5174, server=3002, db=test-worker-0.db
+Worker 1: client=5184, server=3012, db=test-worker-1.db
+Worker 2: client=5194, server=3022, db=test-worker-2.db
+Worker 3: client=5204, server=3032, db=test-worker-3.db
+```
+
+**New Files:**
+- `tests/global-setup.ts` - Spawns N server instances before tests
+- `tests/global-teardown.ts` - Graceful cleanup with SIGTERM + fallback
+- `tests/fixtures.ts` - Worker-scoped fixtures (workerBaseURL, ports)
+
+**Modified:**
+- `playwright.config.ts` - Removed webServer, added global setup/teardown, enabled fullyParallel
+- All 6 test files - Import from `./fixtures`, use workerBaseURL fixture
+- `tests/utils/auth-helper.ts` - Fixed navigation helpers to use explicit baseURL
+- `.github/workflows/ci.yml` - Added PLAYWRIGHT_WORKERS=4, cleanup step
+- `.gitignore` - Added test database patterns
+
+**CI Results (with 4 workers):**
+- 51 tests passed in 46.6s (E2E job: 1m13s including server startup)
+- No FK constraint violations or race conditions
+- Reliable server cleanup
+
+**Acceptance Criteria Met:**
+- ✅ E2E tests run with workers: 4 without flaky failures
+- ✅ Each worker has isolated server instance and database
+- ✅ No FK constraint violations or race conditions
+- ✅ Server cleanup occurs reliably
+- ✅ CI run time decreased (1m13s vs previous serial ~2-3min)
+- ✅ Test results remain deterministic
+
+---
