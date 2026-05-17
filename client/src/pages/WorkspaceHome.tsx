@@ -10,6 +10,11 @@ import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
 // Default ElevenLabs voice ID (Aria)
 const DEFAULT_ELEVENLABS_VOICE_ID = 'Xb7hH8MSUJpSbSDYk0k2';
 
+// Safe error message extraction - handles non-Error throws
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 // Format relative time (e.g., "2m ago", "1hr ago")
 function formatRelativeTime(date: string): string {
   const now = new Date();
@@ -426,20 +431,20 @@ export function WorkspaceHome() {
               try {
                 await updateSettings({ elevenlabsVoiceId: fetchedVoices[0].voice_id });
               } catch (err) {
-                setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to set fallback voice: ' + (err as Error).message });
+                setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to set fallback voice: ' + getErrorMessage(err) });
               }
             }
           }
         })
         .catch((err) => {
           console.error('Failed to fetch ElevenLabs voices:', err);
-          setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to load voices: ' + (err as Error).message });
+          setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to load voices: ' + getErrorMessage(err) });
         })
         .finally(() => setVoicesLoading(false));
     } else {
       setVoices([]);
     }
-  }, [settings?.hasElevenlabsApiKey, settings?.elevenlabsVoiceId, fetchElevenlabsVoices, updateSettings]);
+  }, [settings?.hasElevenlabsApiKey, fetchElevenlabsVoices, updateSettings]);
 
   // Find current workspace from list
   useEffect(() => {
@@ -513,7 +518,7 @@ export function WorkspaceHome() {
       setRemoveDeviceMessage({ type: 'success', text: `Device "${deviceName}" removed successfully` });
       // Message will be cleared by useEffect when removeDeviceMessage changes
     } catch (err) {
-      setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
+      setRemoveDeviceMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setRemovingDevice(false);
     }
@@ -541,7 +546,7 @@ export function WorkspaceHome() {
       // Toast will be cleared by useEffect when archiveToast changes
     } catch (err) {
       console.error('Failed to archive session:', err);
-      setArchiveToast(`Failed to archive: ${(err as Error).message}`);
+      setArchiveToast(`Failed to archive: ${getErrorMessage(err)}`);
       // Toast will be cleared by useEffect when archiveToast changes
     } finally {
       setArchivingSession(false);
@@ -560,7 +565,7 @@ export function WorkspaceHome() {
       setApiKeyInput('');
       setApiKeyMessage({ type: 'success', text: 'API key saved successfully' });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
     }
@@ -578,7 +583,7 @@ export function WorkspaceHome() {
         text: result.message 
       });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
     }
@@ -594,7 +599,7 @@ export function WorkspaceHome() {
       await removeApiKey();
       setApiKeyMessage({ type: 'success', text: 'API key removed' });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
     }
@@ -612,7 +617,7 @@ export function WorkspaceHome() {
       setElevenlabsApiKeyInput('');
       setElevenlabsApiKeyMessage({ type: 'success', text: 'ElevenLabs API key saved successfully' });
     } catch (err) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setElevenlabsApiKeyStatus('idle');
     }
@@ -630,7 +635,7 @@ export function WorkspaceHome() {
         text: result.message 
       });
     } catch (err) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setElevenlabsApiKeyStatus('idle');
     }
@@ -646,7 +651,7 @@ export function WorkspaceHome() {
       await removeElevenlabsApiKey();
       setElevenlabsApiKeyMessage({ type: 'success', text: 'ElevenLabs API key removed' });
     } catch (err) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setElevenlabsApiKeyStatus('idle');
     }
@@ -656,7 +661,7 @@ export function WorkspaceHome() {
     try {
       await updateSettings({ elevenlabsVoiceId: voiceId });
     } catch (err) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update voice: ' + (err as Error).message });
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update voice: ' + getErrorMessage(err) });
     }
   };
 
@@ -664,7 +669,7 @@ export function WorkspaceHome() {
     try {
       await updateSettings({ elevenlabsTtsEnabled: enabled });
     } catch (err) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update TTS setting: ' + (err as Error).message });
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update TTS setting: ' + getErrorMessage(err) });
     }
   };
 
