@@ -749,3 +749,36 @@ Fixes #156
 
 CI: ✅ All checks passed (4/4)
 PR state: Ready for review
+
+---
+### 2026-05-17 07:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `040aab1` | merge | PR #157 - tvOS JavaScript sandbox research | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#157 - docs: add tvOS JavaScript sandbox research for voice-driven apps](https://github.com/jpshackelford/voice-relay/pull/157)
+- Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Conversation: [`040aab1`](https://app.all-hands.dev/conversations/040aab13021041818c4971c9e5ee6b69)
+- Task: Squash-merge PR #157 (CI green, all threads resolved, MERGEABLE)
+
+**Previous Workers Completed:**
+- `550ebb6` (review PR #157): finished ✓
+- `8208589` (review PR #157): finished ✓
+- `9f442d8` (merge PR #159): finished ✓
+
+**Current State:**
+- Open PRs:
+  - #157: CI green, all threads resolved, MERGEABLE → **merging now**
+  - #143: `needs-human` label (stuck, ignored)
+- Issues needing expansion: None 🎉
+- Ready issues: #139 (has PR #157), #141 (priority:low), #142 (PR #143 stuck), #155 (priority:low)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (merge worker `040aab1`)
+
+**Housekeeping:**
+- 📦 Archived 4 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
