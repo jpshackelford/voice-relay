@@ -25,6 +25,52 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:18 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f401608` | implementation | Issue #168 - Audio checkbox layout | running |
+| `109b520` | review | PR #180 - Fix merge conflicts | **NEW** |
+| `9f2b75c` | expansion | Issue #182 - ntfy.sh notifications | **NEW** |
+| `77353f5` | expansion | Issue #183 - Uptime Kuma monitoring | **NEW** |
+
+🚀 **Spawned: 3 Workers (parallel)**
+
+1. **Review Worker** for [PR #180](https://github.com/jpshackelford/voice-relay/pull/180) - Fix merge conflicts
+   - Issue: [#165 - Mobile: Settings navigation consistency](https://github.com/jpshackelford/voice-relay/issues/165)
+   - Conversation: [`109b520`](https://app.all-hands.dev/conversations/109b520737de4654bc9c17fec6ac4ed6)
+
+2. **Expansion Worker** for [Issue #182](https://github.com/jpshackelford/voice-relay/issues/182)
+   - Add ntfy.sh push notifications for deployment failures
+   - Conversation: [`9f2b75c`](https://app.all-hands.dev/conversations/9f2b75cdd2ff475ea5de8046cd8975aa)
+
+3. **Expansion Worker** for [Issue #183](https://github.com/jpshackelford/voice-relay/issues/183)
+   - Set up Uptime Kuma for independent health monitoring
+   - Conversation: [`77353f5`](https://app.all-hands.dev/conversations/77353f5a7c114c75902c13dfb50f7d30)
+
+**Completed Workers (this cycle):**
+- `9452622` (review) → PR #180 still has conflicts after first attempt
+
+**Current State:**
+- Open PRs:
+  - [#180](https://github.com/jpshackelford/voice-relay/pull/180) - CONFLICTING (being fixed)
+  - [#181](https://github.com/jpshackelford/voice-relay/pull/181) - Draft (impl in progress)
+- Issues needing expansion: #182, #183 (now being expanded)
+- Ready issues:
+  - #168 (priority:medium) - implementation in progress
+  - #165 (priority:medium) - PR #180 exists
+  - #166, #167, #169 (priority:low)
+
+**Slot Status:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 2 | 2 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review | 1 | 1 | 2 |
+
+---
+
 ### 2026-05-17 23:20 UTC - Issue #168 Implementation
 
 **Issue:** #168 - Bug: Audio checkbox and display count on separate lines - combine to save space

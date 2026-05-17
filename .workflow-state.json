@@ -1,7 +1,18 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "9f2b75c",
+        "issue": 182,
+        "started": "2026-05-17T23:19:43.573867+00:00"
+      },
+      {
+        "conv_id": "77353f5",
+        "issue": 183,
+        "started": "2026-05-17T23:19:43.573867+00:00"
+      }
+    ],
     "implementation": [
       {
         "conv_id": "f401608",
@@ -11,9 +22,9 @@
     ],
     "review": [
       {
-        "conv_id": "9452622",
+        "conv_id": "109b520",
         "pr": 180,
-        "started": "2026-05-17T23:07:12.476988+00:00"
+        "started": "2026-05-17T23:19:43.573867+00:00"
       }
     ]
   },
@@ -22,7 +33,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T23:07:12.476988+00:00",
+  "last_updated": "2026-05-17T23:19:43.573867+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -131,6 +142,15 @@
       "finished": "2026-05-17T23:04:03.250643+00:00",
       "status": "success",
       "outcome": "Created PR #180 for Issue #165"
+    },
+    {
+      "conv_id": "9452622",
+      "type": "review",
+      "pr": 180,
+      "started": "2026-05-17T23:07:12.476988+00:00",
+      "finished": "2026-05-17T23:18:06.367644+00:00",
+      "status": "finished",
+      "outcome": "PR #180 still has conflicts - needs follow-up"
     }
   ]
 }
