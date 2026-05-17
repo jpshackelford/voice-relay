@@ -628,3 +628,31 @@ Implement server-side speech recognition using a single `getUserMedia` stream th
 
 **Complexity:** High - requires server infrastructure changes
 
+---
+### 2026-05-17 19:36 UTC - Expansion Worker (`79e83c8`)
+
+✅ **Expanded Issue #169**
+
+- Issue: [#169 - UI: Simplify kiosk mode connection indicator - replace icon with solid dot](https://github.com/jpshackelford/voice-relay/issues/169)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+The kiosk mode connection indicator uses a plug emoji (🔌) with a green/red circle border. This is visually complex for what it communicates and creates clutter in the minimalist kiosk UI.
+
+**Proposed Solution:**
+Replace the plug icon with a minimal solid-color dot:
+- Green solid dot = connected
+- Red solid dot (with pulse animation) = disconnected
+- Reposition to bottom-left corner for visual balance with AI indicator at bottom-right
+
+**Technical Approach:**
+1. Remove plug emoji from JSX (KioskMode.tsx, 2 locations)
+2. Update CSS to create solid dot styling and move position from `right: 1rem` to `left: 1rem`
+
+**Files to Modify:**
+- `client/src/components/KioskMode.tsx` - Remove 🔌 emoji from connection indicator divs (lines ~326, ~602)
+- `client/src/App.css` - Update `.connection-indicator` styles (~line 3077-3120)
+
+**Complexity:** Low
+
