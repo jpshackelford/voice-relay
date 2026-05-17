@@ -388,41 +388,55 @@ All 4 expansion slots now occupied, analyzing mobile UI issues:
 - 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---
-### 2026-05-17 19:20 UTC - Orchestrator
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `68159f9` | expansion | Issue #162 - Status icons stacking | **NEW** |
-| `398ccf9` | expansion | Issue #163 - Remove kiosk mode nav | **NEW** |
-| `f21d297` | expansion | Issue #164 - Visualizer toggle | **NEW** |
-| `c540bf0` | expansion | Issue #165 - Settings navigation | **NEW** |
+✅ **Expanded Issue #165**
 
-🚀 **Spawned: 4 Expansion Workers (parallel)**
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
 
-Previous expansion workers (from 19:05 UTC) were not found in API - likely finished without completing task (no `ready` labels added). Re-spawning expansion workers.
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
 
-1. **Issue #162** - [Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-   - Conv: [`68159f9`](https://app.all-hands.dev/conversations/68159f9)
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
 
-2. **Issue #163** - [Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
-   - Conv: [`398ccf9`](https://app.all-hands.dev/conversations/398ccf9)
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
 
-3. **Issue #164** - [Mobile: Visualizer toggle is hard to find in settings](https://github.com/jpshackelford/voice-relay/issues/164)
-   - Conv: [`f21d297`](https://app.all-hands.dev/conversations/f21d297)
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
 
-4. **Issue #165** - [Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
-   - Conv: [`c540bf0`](https://app.all-hands.dev/conversations/c540bf0)
+**Complexity:** Low
 
-**Current State:**
-- Open PRs: None 🎉
-- Issues needing expansion: #162, #163, #164, #165, #166, #167, #168, #169 (8 total)
-  - 4 now being expanded (above)
-  - 4 remaining (#166-#169) - queued for next cycle
-- Ready issues: None (waiting for expansion)
-- Expansion slots: 4/4 occupied ✅
-- Implementation slot: Available (waiting for ready issues)
-- Review slots: 0/2 (no PRs to review)
+---
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
 
-**Housekeeping:**
-- 📦 Archived 6 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+✅ **Expanded Issue #165**
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
+
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
+
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
+
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
+
+**Complexity:** Low
