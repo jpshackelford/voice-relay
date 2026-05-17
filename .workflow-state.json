@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "441026f",
-        "pr": 173,
-        "started": "2026-05-17T20:50:04.726094+00:00"
+        "conv_id": "03bed53",
+        "issue": 163,
+        "started": "2026-05-17T21:03:46.807307+00:00"
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T20:50:04.726094+00:00",
+  "last_updated": "2026-05-17T21:03:46.807307+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -26,6 +26,15 @@
       "finished": "2026-05-17T20:47:17.451605+00:00",
       "status": "success",
       "outcome": "Created PR #173 for issue #172"
+    },
+    {
+      "conv_id": "441026f",
+      "type": "review",
+      "pr": 173,
+      "started": "2026-05-17T20:50:04.726094+00:00",
+      "finished": "2026-05-17T21:01:51.144391+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #173"
     }
   ]
 }
