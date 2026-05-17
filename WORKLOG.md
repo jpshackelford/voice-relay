@@ -907,3 +907,53 @@ PR state: Ready for review (marked ready)
 - PR slot: Occupied (merge worker `b008e3b`)
 
 ---
+### 2026-05-17 14:07 UTC - Merge Worker (`b008e3b`)
+
+✅ **Merged PR #161 - Parallel E2E Test Execution**
+
+- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
+- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
+- Status: **MERGED** ✅
+- Issue #155: **CLOSED** (auto-closed via "Fixes #155")
+
+**Commit Message:**
+```
+test: enable parallel E2E test execution with per-worker isolation
+
+Enable parallel E2E test execution with per-worker isolation
+
+Implement per-worker test isolation where each Playwright worker gets its own
+server instance, SQLite database, and test workspace. This eliminates FK
+constraint violations and race conditions between tests.
+
+Architecture:
+- Worker 0: client=5174, server=3002, db=test-worker-0.db
+- Worker 1: client=5184, server=3012, db=test-worker-1.db
+- etc.
+
+Key Changes:
+- Add global-setup.ts: Spawns N server instances with unique ports/databases
+- Add global-teardown.ts: Graceful cleanup of server processes and temp files
+- Add fixtures.ts: Worker-scoped fixtures (workerBaseURL, workerClientPort, etc.)
+- Update playwright.config.ts: Remove webServer block, add globalSetup/Teardown
+- Update all test files: Import from ./fixtures, use workerBaseURL fixture
+- Update CI workflow: Add PLAYWRIGHT_WORKERS=4, process cleanup step
+
+Review Feedback Addressed:
+- Fixed worker count mismatch between config files (default to 4 consistently)
+- Use wildcard port patterns (51XX, 52XX) for scalable CI cleanup
+- Add process startup failure detection for faster debugging
+
+Fixes #155
+```
+
+**Production Safety:** ⚠️ Test infrastructure only - No production code modified. Changes affect:
+- Test configuration and fixtures
+- CI workflow (test environment only)
+- .gitignore patterns for test databases
+
+**Risk:** 🟢 LOW - Test infrastructure changes only, no production code impact
+
+**Auto-deploy:** Production (app.no-hands.dev) uses SQLite `sqlite.db` - this merge has no impact on production database or application code
+
+---
