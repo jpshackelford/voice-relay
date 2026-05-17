@@ -363,3 +363,337 @@ describe('useWorkspaceSettings hook - async behavior', () => {
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('useWorkspaceSettings hook - ElevenLabs API key operations', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mockAuthState = {
+      isAuthenticated: true,
+      ensureValidToken: vi.fn().mockResolvedValue(true),
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('provides setElevenlabsApiKey function', () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+    expect(typeof result.current.setElevenlabsApiKey).toBe('function');
+  });
+
+  it('provides testElevenlabsApiKey function', () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+    expect(typeof result.current.testElevenlabsApiKey).toBe('function');
+  });
+
+  it('provides removeElevenlabsApiKey function', () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+    expect(typeof result.current.removeElevenlabsApiKey).toBe('function');
+  });
+
+  it('provides fetchElevenlabsVoices function', () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+    expect(typeof result.current.fetchElevenlabsVoices).toBe('function');
+  });
+
+  it('setElevenlabsApiKey calls correct endpoint and refreshes settings', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: false,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedSettings = {
+      ...mockSettings,
+      hasElevenlabsApiKey: true,
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => updatedSettings,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    await act(async () => {
+      await result.current.setElevenlabsApiKey('test-api-key');
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/elevenlabs-api-key',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ apiKey: 'test-api-key' }),
+      })
+    );
+  });
+
+  it('testElevenlabsApiKey calls correct endpoint with provided key', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: false,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const testResult = { valid: true, message: 'API key is valid' };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => testResult,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let response;
+    await act(async () => {
+      response = await result.current.testElevenlabsApiKey('test-api-key');
+    });
+
+    expect(response).toEqual(testResult);
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/elevenlabs-api-key/test',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ apiKey: 'test-api-key' }),
+      })
+    );
+  });
+
+  it('testElevenlabsApiKey calls correct endpoint without key to test stored key', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const testResult = { valid: true, message: 'Stored API key is valid' };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => testResult,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let response;
+    await act(async () => {
+      response = await result.current.testElevenlabsApiKey();
+    });
+
+    expect(response).toEqual(testResult);
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/elevenlabs-api-key/test',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+    );
+  });
+
+  it('removeElevenlabsApiKey calls correct endpoint', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: 'voice-id',
+      elevenlabsTtsEnabled: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedSettings = {
+      ...mockSettings,
+      hasElevenlabsApiKey: false,
+      elevenlabsTtsEnabled: false,
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => updatedSettings,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    await act(async () => {
+      await result.current.removeElevenlabsApiKey();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/elevenlabs-api-key',
+      expect.objectContaining({
+        method: 'DELETE',
+      })
+    );
+  });
+
+  it('fetchElevenlabsVoices returns voices array', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockVoices = {
+      voices: [
+        { voice_id: 'voice1', name: 'Aria' },
+        { voice_id: 'voice2', name: 'Josh' },
+      ],
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockVoices,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let voices;
+    await act(async () => {
+      voices = await result.current.fetchElevenlabsVoices();
+    });
+
+    expect(voices).toEqual(mockVoices.voices);
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/elevenlabs-voices',
+      expect.objectContaining({
+        credentials: 'include',
+      })
+    );
+  });
+
+  it('throws error when ElevenLabs operations called without workspaceId', async () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings(undefined, true)
+    );
+
+    await expect(
+      result.current.setElevenlabsApiKey('test-key')
+    ).rejects.toThrow('No workspace selected');
+
+    await expect(
+      result.current.testElevenlabsApiKey('test-key')
+    ).rejects.toThrow('No workspace selected');
+
+    await expect(
+      result.current.removeElevenlabsApiKey()
+    ).rejects.toThrow('No workspace selected');
+
+    await expect(
+      result.current.fetchElevenlabsVoices()
+    ).rejects.toThrow('No workspace selected');
+  });
+});
