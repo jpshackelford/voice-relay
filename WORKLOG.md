@@ -25,61 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 05:13 UTC - OpenHands Agent
-
-**PR Submitted: Domain Update**
-- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
-- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
-- Status: CI green ✅, Ready for review
-
-**Changes Made:**
-- Updated .env.example with new production URL
-- Updated CI/CD workflow smoke test URLs
-- Updated all smoke test files with new default URL
-- Updated client/server test mocks with new domain
-- Added deprecation notes to DEPLOYMENT.md and server-inventory.md
-- Updated docs/DESIGN.md OAuth callback URL
-
-**Out of Scope (as noted in issue):**
-- Server-side infrastructure paths retained for legacy reference
-- GitHub OAuth re-registration (manual admin task)
-- DNS configuration (handled outside repo)
-
----
-
-### 2026-05-16 22:31 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `2c36051` | review | PR #148 - E2E Test Selectors (3 threads) | **NEW** |
-
-📋 **Following Human Instructions**
-
-Received instruction:
-> "Handle code review comments on PR #148"
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
-- Conversation: [`2c36051`](https://app.all-hands.dev/conversations/2c360510bf334bf6bf46687d32c07fff)
-- Task: Address 3 unresolved review threads:
-  - 🔴 Critical: `workers: 1` masks concurrency issues (playwright.config.ts)
-  - 🟡 Suggestion: `isLegacyMode` check repeated 3 times (server/src/index.ts)
-  - 🟡 Suggestion: `'default'` magic string (server/src/index.ts)
-
-**Current State:**
-- Open PRs:
-  - #148: CI green, 3 unresolved threads (now being addressed)
-  - #143: `needs-human` label, DIRTY (merge conflicts)
-- Issues needing expansion: #154 (ElevenLabs API key UI - no labels)
-- Ready issues: #139, #141, #142 (no priority labels)
-- Expansion slot: Available (Issue #154 needs expansion)
-- PR slot: Occupied (review worker `2c36051`)
-
-[ACKNOWLEDGED: ## INSTRUCTION: Handle code review comments on PR #148]
-
----
 ### 2026-05-16 22:36 UTC - Orchestrator (Update)
 
 **Active Workers:**
@@ -856,3 +801,58 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-17 05:13 UTC - OpenHands Agent
+
+**PR Submitted: Domain Update**
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
+- Status: CI green ✅, Ready for review
+
+**Changes Made:**
+- Updated .env.example with new production URL
+- Updated CI/CD workflow smoke test URLs
+- Updated all smoke test files with new default URL
+- Updated client/server test mocks with new domain
+- Added deprecation notes to DEPLOYMENT.md and server-inventory.md
+- Updated docs/DESIGN.md OAuth callback URL
+
+**Out of Scope (as noted in issue):**
+- Server-side infrastructure paths retained for legacy reference
+- GitHub OAuth re-registration (manual admin task)
+- DNS configuration (handled outside repo)
+
+---
+### 2026-05-17 05:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `bc67885` | review | PR #159 - replace domain references (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- Conversation: [`bc67885`](https://app.all-hands.dev/conversations/bc67885bd60841ee9963bb70931d22ed)
+- Task: Address 1 unresolved review thread:
+  - 🟡 Suggestion: Database filename inconsistency (.env.example vs code default)
+- PR Status: CI green (4/4), MERGEABLE
+
+**Worker Completed:** `fa5f178` (implementation #156, finished)
+- ✅ Created PR #159
+
+**Current State:**
+- Open PRs:
+  - #159: CI green, 1 unresolved thread (now being addressed)
+  - #157: Draft, tvOS research (in progress)
+  - #143: CHANGES_REQUESTED + `needs-human` (merge conflicts, stuck)
+- Issues needing expansion: None 🎉
+- Ready issues: #156 (has PR #159), #155 (priority:low), #142 (PR #143 stuck), #141 (priority:low), #139 (PR #157 draft)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `bc67885`)
+
+**Housekeeping:**
+- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
