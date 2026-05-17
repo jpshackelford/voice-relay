@@ -300,13 +300,14 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 // Device list update
 {
   type: 'device-list',
-  devices: [{ id, displayName, mode }]
+  devices: [{ id, workspaceId, displayName, mode }]
 }
 
 // Text message
 {
   type: 'text',
   utteranceId: string,
+  workspaceId: string,
   senderId: string,
   senderName: string,
   text: string,
