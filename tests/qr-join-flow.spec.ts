@@ -5,6 +5,7 @@ import {
   waitForStableConnection,
   navigateKioskToSession,
   extractQrUrl,
+  WS_STABLE_TIMEOUT,
 } from './utils/auth-helper';
 
 /**
@@ -27,7 +28,8 @@ import {
 // Timeout constants (in milliseconds)
 const ELEMENT_VISIBLE_TIMEOUT = 10000;
 const DEVICE_COUNT_UPDATE_TIMEOUT = 10000;
-const CONNECTION_STABLE_TIMEOUT = 20000;
+// Use CI-aware timeout for WebSocket stability (30s in CI, 20s locally)
+const CONNECTION_STABLE_TIMEOUT = WS_STABLE_TIMEOUT;
 const QR_URL_EXTRACT_TIMEOUT = 10000;
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;

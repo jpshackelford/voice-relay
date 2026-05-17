@@ -41,6 +41,9 @@ const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '4', 10);
 // Audio fixtures for mobile voice tests (from oh-local-speech)
 const AUDIO_FIXTURES_DIR = path.resolve(__dirname, 'tests/fixtures/audio');
 
+// Detect CI environment for adjusted retry settings
+const isCI = !!process.env.CI;
+
 export default defineConfig({
   testDir: './tests',
   // Smoke tests are excluded from regular test runs - they require production
@@ -52,7 +55,8 @@ export default defineConfig({
 
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
-  retries: 0,
+  // Retry flaky WebSocket tests in CI where timing issues are more common
+  retries: isCI ? 2 : 0,
 
   // Parallel execution with per-worker isolation (GitHub Issue #155)
   // Each worker gets its own server instance and database

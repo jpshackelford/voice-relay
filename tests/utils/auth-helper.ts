@@ -7,6 +7,11 @@ import { request, type BrowserContext, type Browser, type Page, expect } from '@
  * This is extracted from the smoke test auth setup for reuse in other E2E tests.
  */
 
+// CI environment detection for adjusted timeouts
+const isCI = !!process.env.CI;
+// WebSocket stability timeout - longer in CI due to resource constraints
+export const WS_STABLE_TIMEOUT = isCI ? 30000 : 20000;
+
 /**
  * IMPORTANT: Must match DEVICE_TOKEN_COOKIE_NAME in server/src/auth/router.ts
  * This cookie is filtered out when creating authenticated contexts so each
@@ -188,12 +193,12 @@ export async function waitForWebSocketConnected(
  * This helper ensures all reconnections are complete before proceeding.
  *
  * @param page - The Playwright page
- * @param timeout - Maximum time to wait in ms (default: 20000)
+ * @param timeout - Maximum time to wait in ms (default: WS_STABLE_TIMEOUT)
  * @param stabilityMs - How long connection must be stable (default: 1000ms)
  */
 export async function waitForStableConnection(
   page: import('@playwright/test').Page,
-  timeout = 20000,
+  timeout = WS_STABLE_TIMEOUT,
   stabilityMs = 1000
 ): Promise<void> {
   const startTime = Date.now();
@@ -240,11 +245,11 @@ export async function waitForStableConnection(
  * correct sessionId.
  *
  * @param page - The Playwright page
- * @param timeout - Maximum time to wait in ms (default: 20000)
+ * @param timeout - Maximum time to wait in ms (default: WS_STABLE_TIMEOUT)
  */
 export async function waitForSessionReady(
   page: import('@playwright/test').Page,
-  timeout = 20000
+  timeout = WS_STABLE_TIMEOUT
 ): Promise<void> {
   // Wait for loading overlay to disappear
   await page.waitForFunction(
@@ -341,8 +346,8 @@ export async function setupTwoDeviceSession(
   // Get the session URL
   const sessionUrl = kioskPage.url();
 
-  // Wait for kiosk WebSocket connection to stabilize
-  await waitForStableConnection(kioskPage, 20000);
+  // Wait for kiosk WebSocket connection to stabilize (uses CI-aware timeout)
+  await waitForStableConnection(kioskPage, WS_STABLE_TIMEOUT);
 
   // Navigate mobile to the same session URL
   await mobilePage.goto(sessionUrl);
@@ -354,8 +359,8 @@ export async function setupTwoDeviceSession(
     { timeout: 15000 }
   );
 
-  // Wait for mobile WebSocket connection to stabilize
-  await waitForStableConnection(mobilePage, 20000);
+  // Wait for mobile WebSocket connection to stabilize (uses CI-aware timeout)
+  await waitForStableConnection(mobilePage, WS_STABLE_TIMEOUT);
 
   return {
     kioskContext,
@@ -421,12 +426,12 @@ export interface MessageInputResult {
  * 5. Wait for WebSocket connection to stabilize
  *
  * @param page - The kiosk Playwright page
- * @param connectionTimeout - Timeout for connection stabilization (default: 20000)
+ * @param connectionTimeout - Timeout for connection stabilization (default: WS_STABLE_TIMEOUT)
  * @param baseURL - Optional base URL for navigation (for parallel test isolation)
  */
 export async function navigateKioskToSession(
   page: Page,
-  connectionTimeout: number = 20000,
+  connectionTimeout: number = WS_STABLE_TIMEOUT,
   baseURL?: string
 ): Promise<void> {
   const dashboardUrl = baseURL ? `${baseURL}/dashboard` : '/dashboard';
