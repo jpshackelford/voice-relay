@@ -1401,3 +1401,30 @@ Assigned priorities to unprioritized ready issues:
 **Status:** PR is ready for merge - all review feedback addressed
 
 ---
+### 2026-05-17 23:19 UTC - Expansion Worker
+
+✅ **Expanded Issue #182**
+
+- Issue: [#182 - feat: Add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/issues/182)
+- Type: Enhancement
+- Priority: **HIGH**
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+In incident #174, deployment failure was only visible via GitHub issue - no immediate push notification. Operators need real-time alerts for critical production failures.
+
+**Proposed Solution:**
+Add ntfy.sh notifications to the `handle-failure` job in deploy.yml:
+1. **Deployment failure notification** (priority: high) - sent after issue creation
+2. **Rollback failure notification** (priority: urgent) - sent when rollback health check fails
+
+**Files to Modify:**
+- `.github/workflows/deploy.yml` - Add 2 notification steps to `handle-failure` job
+- `docs/DEPLOYMENT.md` - Add ntfy subscription instructions
+- Repository Secrets - Add `NTFY_TOPIC` secret
+
+**Complexity:** Low - Workflow changes only, no application code affected
+
+**Estimated Time:** ~30 minutes
+
+---
