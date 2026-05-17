@@ -477,3 +477,83 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-17 04:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2e417a1` | review | PR #158 - ElevenLabs API Key UI (CI + 2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Conversation: [`2e417a1`](https://app.all-hands.dev/conversations/2e417a1eb8274343bf0e9b33c69b73a6)
+- Task: Fix CI failure + address 2 unresolved review threads:
+  - 🟠 Important: Unnecessary API calls on every voice change (useEffect dependency)
+  - 🟡 Suggestion: Fragile error handling pattern ((err as Error).message)
+- PR Status: CI red (Build Client), MERGEABLE
+
+**Worker Completed:** `c1d7cdd` (review #158 - round 3, finished)
+- Previous review threads addressed but CI broke and 2 new threads emerged
+
+**Current State:**
+- Open PRs:
+  - #158: CI red, 2 unresolved threads (now being addressed)
+  - #157: Draft, lint failing (Conventional Commits check)
+  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts + mobile evidence)
+- Issues needing expansion: None (all have `ready` label ✓)
+- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `2e417a1`)
+
+**Housekeeping:**
+- 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-17 04:08 UTC - Review Worker (`2e417a1`)
+
+✅ **Addressed PR #158 Review Feedback - Final Fixes**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Commits: b7dfa93, 821509d
+- Status: **Ready for review** ✅
+
+**Issues Fixed:**
+
+| Issue | Type | Fix | Commit |
+|-------|------|-----|--------|
+| TypeScript errors in test file | CI Fix | Added proper type annotations, imported ElevenlabsVoice, fixed non-null assertions | b7dfa93 |
+| Unnecessary API calls on voice change | 🟠 Important | Removed `settings?.elevenlabsVoiceId` from useEffect dependency array | 821509d |
+| Fragile error handling | 🟡 Suggestion | Added `getErrorMessage()` helper using `err instanceof Error` pattern | 821509d |
+
+**All 2 review threads resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
+### 2026-05-17 04:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f6d1549` | merge | PR #158 - feat: add UI for ElevenLabs API key configuration | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Conversation: [`f6d1549`](https://app.all-hands.dev/conversations/f6d1549f2a114337b97d9c416ff66956)
+- Task: Prepare and merge PR #158 (CI green, no unresolved threads, 🟢 "Good taste" review)
+
+**Current State:**
+- PR #158: `oRCFRCFRFRFC green ready` - **Merge criteria met!**
+- PR #157: `o red draft` - tvOS research (in progress)
+- PR #143: `oRFRFRFRFRCFRCFRFRCFRFRFRcFRFCFc green ready` - has merge conflicts + needs evidence
+- Issues needing expansion: None 🎉
+- Ready issues: #156 (no priority), #155 (priority:low), #154 (has PR), #142 (has PR #143), #141, #139 (has PR #157)
+- Expansion slot: Available (nothing to expand)
+- PR slot: Occupied (merge worker `f6d1549`)
