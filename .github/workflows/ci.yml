@@ -77,7 +77,19 @@ jobs:
       - name: Run E2E tests
         env:
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+          PLAYWRIGHT_WORKERS: '4'
+          CLEANUP_TEST_DBS: 'true'
         run: npm test
+
+      - name: Cleanup test processes
+        if: always()
+        run: |
+          # Kill any orphan test server processes
+          pkill -f "tsx watch src/index.ts" || true
+          pkill -f "vite --port 517" || true
+          pkill -f "vite --port 518" || true
+          pkill -f "vite --port 519" || true
+          pkill -f "vite --port 520" || true
 
       - name: Upload test results
         if: always()

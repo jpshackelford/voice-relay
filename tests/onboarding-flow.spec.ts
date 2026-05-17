@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import { Page } from '@playwright/test';
 import { getAuthState, waitForWebSocketConnected, waitForStableConnection, findMessageInput, ensureKioskDrawerOpen } from './utils/auth-helper';
 
 /**
@@ -43,8 +44,9 @@ test.describe('User Onboarding Flow', () => {
 
   let baseURL: string;
 
-  test.beforeEach(async ({ page }) => {
-    baseURL = page.context().baseURL || 'http://localhost:5174';
+  test.beforeEach(async ({ workerBaseURL }) => {
+    // Get base URL from worker fixture (set by global setup)
+    baseURL = workerBaseURL;
   });
 
   test('complete onboarding flow - new user to first message', async ({ page, request }) => {

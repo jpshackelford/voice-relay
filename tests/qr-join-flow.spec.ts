@@ -1,4 +1,5 @@
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Browser, BrowserContext, Page } from '@playwright/test';
 import { 
   createAuthenticatedContext, 
   waitForStableConnection,
@@ -45,9 +46,9 @@ test.describe('QR Code Join Flow', () => {
 
   let baseURL: string;
 
-  test.beforeEach(async ({ page }) => {
-    // Get base URL from page context (set by webServer config)
-    baseURL = page.context().baseURL || 'http://localhost:5174';
+  test.beforeEach(async ({ workerBaseURL }) => {
+    // Get base URL from worker fixture (set by global setup)
+    baseURL = workerBaseURL;
   });
 
   test('mobile device joins session via QR code URL', async ({ browser }) => {

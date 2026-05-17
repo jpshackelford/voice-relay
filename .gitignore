@@ -10,3 +10,8 @@ coverage/
 .env
 tests/smoke/.auth-state.json
 version.json
+# Test databases
+data/test-worker-*.db
+data/test-worker-*.db-wal
+data/test-worker-*.db-shm
+data/test-worker-ports.json

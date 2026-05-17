@@ -1,4 +1,5 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import { Page } from '@playwright/test';
 import {
   getAuthState,
   waitForStableConnection,
@@ -141,8 +142,9 @@ test.describe('Session Management', () => {
 
   let baseURL: string;
 
-  test.beforeEach(async ({ page }) => {
-    baseURL = page.context().baseURL || 'http://localhost:5174';
+  test.beforeEach(async ({ workerBaseURL }) => {
+    // Get base URL from worker fixture (set by global setup)
+    baseURL = workerBaseURL;
   });
 
   // =====================
