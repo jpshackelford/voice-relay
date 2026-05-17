@@ -180,6 +180,130 @@ describe('KioskMode', () => {
     });
   });
 
+  describe('Sidebar status row layout', () => {
+    beforeEach(() => {
+      setWindowWidth(1024); // Desktop width
+    });
+
+    it('renders device counts and TTS toggle in same container', async () => {
+      const devices = [createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      // Find the status row container
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow).toBeDefined();
+
+      // Verify both participants and TTS toggle are inside the status row
+      const participants = statusRow?.querySelector('.kiosk-participants');
+      const ttsToggle = statusRow?.querySelector('.kiosk-tts-toggle');
+      expect(participants).toBeDefined();
+      expect(ttsToggle).toBeDefined();
+    });
+
+    it('displays kiosk device count correctly', async () => {
+      const devices = [createKioskDevice('kiosk-1'), createKioskDevice('kiosk-2')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).toContain('🖥️ 2');
+    });
+
+    it('displays mobile device count correctly', async () => {
+      const devices = [createMobileDevice('mobile-1'), createMobileDevice('mobile-2'), createMobileDevice('mobile-3')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).toContain('📱 3');
+    });
+
+    it('displays both kiosk and mobile counts when both types connected', async () => {
+      const devices = [
+        createKioskDevice('kiosk-1'),
+        createMobileDevice('mobile-1'),
+        createMobileDevice('mobile-2'),
+      ];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).toContain('🖥️ 1');
+      expect(statusRow?.textContent).toContain('📱 2');
+    });
+
+    it('hides kiosk count when no kiosk devices', async () => {
+      const devices = [createMobileDevice('mobile-1')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).not.toContain('🖥️');
+    });
+
+    it('hides mobile count when no mobile devices', async () => {
+      const devices = [createKioskDevice('kiosk-1')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).not.toContain('📱');
+    });
+
+    it('renders TTS checkbox inside status row', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      const checkbox = statusRow?.querySelector('input[type="checkbox"]');
+      expect(checkbox).toBeDefined();
+    });
+
+    it('renders TTS speaker emoji inside status row', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      expect(statusRow?.textContent).toContain('🔊');
+    });
+
+    it('TTS checkbox toggles correctly', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} />);
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      const checkbox = statusRow?.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      expect(checkbox).toBeDefined();
+
+      // Initial state should be unchecked (TTS disabled by default - server-side TTS handles AI responses)
+      expect(checkbox.checked).toBe(false);
+
+      // Toggle the checkbox on
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      expect(checkbox.checked).toBe(true);
+
+      // Toggle the checkbox off again
+      await act(async () => {
+        fireEvent.click(checkbox);
+      });
+
+      expect(checkbox.checked).toBe(false);
+    });
+  });
+
   describe('QR code display state transitions', () => {
     beforeEach(() => {
       setWindowWidth(1024); // Desktop width for display tests
