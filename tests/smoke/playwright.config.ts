@@ -18,7 +18,7 @@ export default defineConfig({
   timeout: 30000,
   globalSetup: path.join(__dirname, 'auth.setup.ts'),
   use: {
-    baseURL: process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net',
+    baseURL: process.env.SMOKE_TEST_URL || 'https://app.no-hands.dev',
     headless: true,
     screenshot: 'only-on-failure',
   },

@@ -18,10 +18,10 @@ import * as path from 'path';
  * - Test workspace with OPENHANDS_API_KEY configured
  *
  * Usage:
- *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+ *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
  */
 
-const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
+const BASE_URL = process.env.SMOKE_TEST_URL || 'https://app.no-hands.dev';
 const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('AI Assistant Integration', () => {

@@ -14,7 +14,7 @@ import * as path from 'path';
  * Uses saved auth state from smoke:auth setup.
  */
 
-const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
+const BASE_URL = process.env.SMOKE_TEST_URL || 'https://app.no-hands.dev';
 const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 // Helper to extract join code from invite link

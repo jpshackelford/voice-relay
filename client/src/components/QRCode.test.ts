@@ -37,9 +37,9 @@ describe('QRCode buildQrUrl', () => {
       writable: true,
       value: {
         protocol: 'https:',
-        hostname: 'vr.chorecraft.net',
+        hostname: 'app.no-hands.dev',
         port: '',
-        href: 'https://vr.chorecraft.net/workspace/ws123',
+        href: 'https://app.no-hands.dev/workspace/ws123',
       },
     });
   });
@@ -60,7 +60,7 @@ describe('QRCode buildQrUrl', () => {
         sessionId: 'sess456',
       });
 
-      expect(url).toBe('https://vr.chorecraft.net/join/ABC123');
+      expect(url).toBe('https://app.no-hands.dev/join/ABC123');
     });
 
     it('generates session URL when both workspaceId and sessionId provided', () => {
@@ -69,7 +69,7 @@ describe('QRCode buildQrUrl', () => {
         sessionId: 'sess456',
       });
 
-      expect(url).toBe('https://vr.chorecraft.net/workspace/ws123/session/sess456');
+      expect(url).toBe('https://app.no-hands.dev/workspace/ws123/session/sess456');
     });
 
     it('generates workspace URL when only workspaceId provided', () => {
@@ -77,13 +77,13 @@ describe('QRCode buildQrUrl', () => {
         workspaceId: 'ws123',
       });
 
-      expect(url).toBe('https://vr.chorecraft.net/workspace/ws123');
+      expect(url).toBe('https://app.no-hands.dev/workspace/ws123');
     });
 
     it('falls back to current URL when no options provided', () => {
       const url = buildQrUrl({});
 
-      expect(url).toBe('https://vr.chorecraft.net/workspace/ws123');
+      expect(url).toBe('https://app.no-hands.dev/workspace/ws123');
     });
   });
 
@@ -112,15 +112,15 @@ describe('QRCode buildQrUrl', () => {
         writable: true,
         value: {
           protocol: 'https:',
-          hostname: 'vr.chorecraft.net',
+          hostname: 'app.no-hands.dev',
           port: '',
-          href: 'https://vr.chorecraft.net/workspace/ws123/',
+          href: 'https://app.no-hands.dev/workspace/ws123/',
         },
       });
 
       const url = buildQrUrl({});
 
-      expect(url).toBe('https://vr.chorecraft.net/workspace/ws123');
+      expect(url).toBe('https://app.no-hands.dev/workspace/ws123');
     });
   });
 });
@@ -131,9 +131,9 @@ describe('Session URL format for F3', () => {
       writable: true,
       value: {
         protocol: 'https:',
-        hostname: 'vr.chorecraft.net',
+        hostname: 'app.no-hands.dev',
         port: '',
-        href: 'https://vr.chorecraft.net/',
+        href: 'https://app.no-hands.dev/',
       },
     });
   });
@@ -145,7 +145,7 @@ describe('Session URL format for F3', () => {
     });
 
     // Should use new path format, not query param
-    expect(url).toBe('https://vr.chorecraft.net/workspace/abc-def-123/session/session-xyz-789');
+    expect(url).toBe('https://app.no-hands.dev/workspace/abc-def-123/session/session-xyz-789');
     expect(url).not.toContain('?session=');
   });
 });

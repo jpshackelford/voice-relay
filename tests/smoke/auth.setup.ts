@@ -15,7 +15,7 @@ const AUTH_FILE = path.join(__dirname, '.auth-state.json');
  * and reused by subsequent smoke tests.
  */
 async function globalSetup() {
-  const baseURL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
+  const baseURL = process.env.SMOKE_TEST_URL || 'https://app.no-hands.dev';
   const testAuthSecret = process.env.TEST_AUTH_SECRET;
   
   // Option 1: Automated authentication using test endpoint

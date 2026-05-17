@@ -926,7 +926,7 @@ GRANT ALL PRIVILEGES ON voice_relay.* TO 'voice_relay'@'localhost';
 
 **Post-Deploy Setup:**
 1. Create GitHub OAuth App: `https://github.com/settings/applications/new`
-2. Set callback URL: `https://vr.chorecraft.net/auth/github/callback`
+2. Set callback URL: `https://app.no-hands.dev/auth/github/callback`
 3. Configure env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `JWT_SECRET`, `BASE_URL`
 
 **Future Work (deferred to Phase 4):**

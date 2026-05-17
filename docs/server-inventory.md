@@ -26,11 +26,15 @@ ssh root@74.50.50.116
 
 ## Hosted Domains
 
-### vr.chorecraft.net (Voice Relay)
+### vr.chorecraft.net (Voice Relay) — LEGACY
+
+> **Note:** Voice Relay is now served at **`app.no-hands.dev`** with new infrastructure.
+> The `vr.chorecraft.net` deployment is deprecated.
 
 | Property | Value |
 |----------|-------|
-| **URL** | https://vr.chorecraft.net |
+| **URL** | https://app.no-hands.dev (production) |
+| **Legacy URL** | https://vr.chorecraft.net (deprecated) |
 | **App Type** | Node.js (Express + WebSocket) |
 | **Source** | [jpshackelford/voice-relay](https://github.com/jpshackelford/voice-relay) |
 | **Port** | 3002 |
@@ -38,7 +42,10 @@ ssh root@74.50.50.116
 | **Document Root** | `/var/www/vr.chorecraft.net/app/client/dist` |
 | **App Directory** | `/var/www/vr.chorecraft.net/app` |
 
-**Deployment:** Automatic via GitHub Actions on push to `main`.
+**Deployment:** Automatic via GitHub Actions on push to `main` (now deploys to `app.no-hands.dev`).
+
+<details>
+<summary>Legacy manual operations (for vr.chorecraft.net)</summary>
 
 ```bash
 # Manual operations
@@ -52,6 +59,8 @@ git pull origin main
 npm ci && npm run build
 sudo systemctl restart voice-relay
 ```
+
+</details>
 
 ### ja.chorecraft.net / ja.shackelford.org
 
