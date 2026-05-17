@@ -25,219 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 08:10 UTC - Implementation Worker
-
-Implemented Issue #141 - README.md is out-of-date and inaccurate
-
-**PR:** [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-
-**Changes:**
-- Updated overview to multi-user real-time communication platform
-- Fixed device terminology: mobile/kiosk instead of input/output
-- Added Core Concepts section (User, Workspace, Session, Device Views)
-- Documented QR code join flow with approval workflow
-- Updated architecture diagram for multi-user model
-- Updated message protocol with workspaceId/sessionId fields
-- Added Display API documentation
-- Updated authentication section (removed "Phase 4" label)
-- Complete environment variable documentation
-- Updated testing section (Vitest, Playwright, smoke tests)
-- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
-
-**Status:** CI green, ready for review
-
----
-
-### 2026-05-17 01:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `653ba7b` | merge | PR #148 - fix(e2e): E2E test failures | **NEW** |
-| `3e1e919` | expansion | Issue #156 - Replace DNS name | **NEW** |
-
-🚀 **Spawned: 2 Workers (parallel)**
-
-1. **Merge Worker**
-   - PR: [#148 - fix(e2e): multiple fixes for E2E test failures](https://github.com/jpshackelford/voice-relay/pull/148)
-   - Task: Squash-merge PR #148 (CI green, 0 threads, CLEAN merge state, priority:high)
-   - Conversation: [`653ba7b`](https://app.all-hands.dev/conversations/653ba7bc087d4ba6aa3074b610894359)
-
-2. **Expansion Worker**
-   - Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
-   - Task: Analyze issue, add technical detail, add `ready` label
-   - Conversation: [`3e1e919`](https://app.all-hands.dev/conversations/3e1e9193a5124edaa81d247425e026c3)
-
-**Current State:**
-- Open PRs:
-  - #148: CI green, 0 threads, MERGEABLE → merging now
-  - #143: CONFLICTING, CHANGES_REQUESTED (stuck, `needs-human`)
-  - #157: Draft, CI red (fixing Issue #139)
-- Issues needing expansion: #156 (now being expanded)
-- Ready issues: #139, #141, #142 (PR #143), #147 (PR #148), #154 (priority:medium), #155 (priority:low)
-- Expansion slot: Occupied (`3e1e919`)
-- PR slot: Occupied (`653ba7b`)
-
-**Housekeeping:**
-- 📦 Archived old entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
----
-### 2026-05-17 01:36 UTC - Merge Worker (`653ba7b`)
-
-✅ **Merged PR #148 - E2E Test Fixes**
-
-- PR: [#148 - fix(e2e): multiple fixes for E2E test failures when TEST_AUTH_SECRET is enabled](https://github.com/jpshackelford/voice-relay/pull/148)
-- Issue: [#147 - Fix Stale E2E Test Selectors](https://github.com/jpshackelford/voice-relay/issues/147)
-- Status: **MERGED** ✅
-- Issue #147: **AUTO-CLOSED** ✅
-
-**Merge Details:**
-- Squash-merged with conventional commit: `fix(e2e): multiple fixes for E2E test failures when TEST_AUTH_SECRET is enabled`
-- All 58 E2E tests passing
-
-**Key Changes:**
-- CSS selector fixes: `.session-name` → `.session-name-text`, `.qr-code-container canvas` → `.qr-code-container img`
-- Added `TEST_AUTH_SECRET` to CI workflow
-- Serial test execution (`workers: 1`) to avoid SQLite race conditions
-- Added `ensureKioskDrawerOpen()` helper for kiosk sidebar visibility
-- Extracted anonymous mode constants to `server/src/constants.ts`
-- Added `isAnonymousMode()` and `isAnonymousSession()` helper functions
-- Extracted `resolveSessionForDevice()` to reduce register handler complexity
-
-**Production Notes:**
-- No database migrations - purely test infrastructure and code refactoring
-- Safe for production deployment
-- App auto-deploys to vr.chorecraft.net on merge to main
-
----
-### 2026-05-17 01:42 UTC - Expansion Worker
-
-✅ **Expanded Issue #156**
-
-- Issue: [Replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
-- Type: Enhancement
-- Status: Ready for implementation
-- Approach: Find and replace ~70 domain references across 10 files (tests, docs, CI config, .env.example)
-
-**Files affected:**
-- `.env.example` - Update defaults
-- `.github/workflows/deploy.yml` - URL + path updates  
-- `tests/smoke/*.ts` - Default fallback URLs
-- `tests/smoke/README.md` - Example commands
-- `client/src/components/QRCode.test.ts` - Mock hostnames
-- `server/src/openhands.test.ts` - Test URLs
-- `docs/DEPLOYMENT.md` - All references (25+ changes)
-
-**Note:** This is a documentation/config-only change - no functional code changes needed.
-
----
-### 2026-05-17 02:06 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `165d426` | implementation | Issue #154 - ElevenLabs API Key UI | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
-- Priority: `priority:medium`
-- Conversation: [`165d426`](https://app.all-hands.dev/conversations/165d4263488d4e0f9fbc3059714af77e)
-
-**Current State:**
-- Open PRs:
-  - #157: Draft, CI lint failing (Conventional Commits check)
-  - #143: CONFLICTING, CHANGES_REQUESTED (`needs-human`)
-- Issues needing expansion: None (all have `ready` label ✓)
-- Ready issues (by priority):
-  - #154: `priority:medium` → **now being implemented**
-  - #155: `priority:low`
-  - #156, #141, #139: no priority (need `/assess-priority`)
-  - #142: has stuck PR #143
-
-**Previous Workers (finished):**
-- `653ba7b` (merge #148 → closed Issue #147) ✅
-- `3e1e919` (expansion #156 → added `ready` label) ✅
-
-**Housekeeping:**
-- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
----
-### 2026-05-17 02:16 UTC - Implementation Worker (`165d426`)
-
-✅ **Created PR #158 - ElevenLabs API Key UI Configuration**
-
-- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
-- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
-- Status: **Ready for review** ✅
-
-**Implementation Summary:**
-Adds the missing UI components to WorkspaceHome.tsx settings section for configuring ElevenLabs TTS integration.
-
-**Changes:**
-| File | Changes |
-|------|---------|
-| `client/src/pages/WorkspaceHome.tsx` | Added ElevenLabs API key input section, voice selector dropdown, TTS enable toggle |
-| `client/src/App.css` | Added CSS styles for voice selector and TTS toggle |
-| `client/src/hooks/useWorkspaceSettings.test.ts` | Added 12 new tests for ElevenLabs hook functions |
-
-**Features Implemented:**
-1. **ElevenLabs API Key Input Section**
-   - Password input with Save/Test/Remove buttons
-   - Status indicator (✓ Configured / ⚠️ Not Configured)
-   - Success/error message display with 3s auto-clear
-   - Link to elevenlabs.io for getting API key
-
-2. **Voice Selector Dropdown**
-   - Fetches available voices from ElevenLabs API
-   - Loading state while fetching
-   - Default voice: Aria (Xb7hH8MSUJpSbSDYk0k2)
-   - Only enabled when API key is configured
-
-3. **TTS Enable/Disable Toggle**
-   - Checkbox to enable ElevenLabs text-to-speech
-   - Only enabled when API key is configured
-   - Hint explaining kiosk device behavior
-
-**Acceptance Criteria (all 16 checkboxes met):**
-- ✅ API key input/save/test/remove functionality
-- ✅ Voice selector with dynamic voice fetching
-- ✅ TTS toggle with proper enable/disable logic
-- ✅ Button states during operations
-- ✅ Proper CSS styling matching existing patterns
-
-**Testing:**
-- 12 new tests for ElevenLabs hook functions
-- All 223 client tests pass
-- All 598 server tests pass
-
-CI: ✅ All checks passed (4/4)
-PR state: Ready for review
-
-### 2026-05-17 02:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a3484ae` | review | PR #158 - ElevenLabs API Key UI | **NEW** |
-
-**Spawned: Review Worker**
-- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
-- Conversation: [`a3484ae`](https://app.all-hands.dev/conversations/a3484aeb103d4ef7bc04cf85f632e11c)
-- 4 unresolved review threads about error handling consistency
-
-**Worker Completed:** `165d426` (implementation)
-- Created PR #158 for Issue #154 (ElevenLabs API Key UI)
-
-**Current State:**
-- Open PRs: #158 (ready, needs review fixes), #157 (draft), #143 (blocked - needs mobile evidence)
-- Ready issues: #139, #141, #142, #154, #155, #156 (all have `ready` label)
-- Issues needing expansion: None
-
-**Action Taken:**
-🚀 **Spawned review worker** for PR #158 to address error handling feedback
-
----
 ### 2026-05-17 02:35 UTC - Review Worker (`a3484ae`)
 
 ✅ **Addressed PR #158 Review Feedback - Error Handling Consistency**
@@ -802,6 +589,28 @@ Closes #139
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---
+### 2026-05-17 08:10 UTC - Implementation Worker
+
+Implemented Issue #141 - README.md is out-of-date and inaccurate
+
+**PR:** [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+
+**Changes:**
+- Updated overview to multi-user real-time communication platform
+- Fixed device terminology: mobile/kiosk instead of input/output
+- Added Core Concepts section (User, Workspace, Session, Device Views)
+- Documented QR code join flow with approval workflow
+- Updated architecture diagram for multi-user model
+- Updated message protocol with workspaceId/sessionId fields
+- Added Display API documentation
+- Updated authentication section (removed "Phase 4" label)
+- Complete environment variable documentation
+- Updated testing section (Vitest, Playwright, smoke tests)
+- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
+
+**Status:** CI green, ready for review
+
+---
 ### 2026-05-17 08:36 UTC - Orchestrator
 
 **Active Workers:**
@@ -854,5 +663,3 @@ Closes #139
 
 CI: ✅ All checks passed (4/4)
 PR state: Ready for review
-
----
