@@ -4,128 +4,170 @@
 
 ## Executive Summary
 
-This document addresses how to enable an AI agent to dynamically create interactive visualizations and simple applications (like a Lemonade Stand game) on tvOS, where **all user interaction is through voice commands** rather than direct UI manipulation.
+This document addresses how to enable an AI agent to dynamically create interactive visualizations and simple applications (like a Lemonade Stand game) that render consistently on both **web browsers** and **tvOS (Apple TV)**.
 
-**Recommended Approach**: SwiftUI + WKWebView hybrid, with a **declarative UI component library** that the AI can compose to build interfaces.
-
----
-
-## 1. JavaScript Runtime Options for tvOS
-
-| Runtime | Description | UI Rendering | Voice Integration | Future-Proof |
-|---------|-------------|--------------|-------------------|--------------|
-| **TVMLKit + TVJS** | Apple's original client-server model; JavaScript drives TVML templates | Limited to TVML templates | Via SiriKit/MPRemoteCommandCenter | ⚠️ Deprecated |
-| **React Native tvOS** | Community fork with tvOS focus engine support | Full React component model | Native bridging required | ✅ Active |
-| **WKWebView** | WebKit engine embedded in SwiftUI | Full HTML/CSS/Canvas/WebGL | Native SwiftUI handles voice | ✅ Supported |
-| **JavaScriptCore** | Low-level JS engine; no built-in UI | Requires custom rendering bridge | Native integration required | ✅ Supported |
-
-**Recommendation**: **SwiftUI + WKWebView** provides the best balance of graphics flexibility (Canvas, SVG, charts) and native voice integration.
+**Recommended Approach**: **React Native tvOS** for the tvOS app, sharing a common component schema with the existing React-based web kiosk.
 
 ---
 
-## 2. Architecture for Voice-Driven AI Visualizations
+## 1. The Cross-Platform Challenge
 
-### 2.1 Proposed Architecture
+### 1.1 Key Constraint: No WebView on tvOS
+
+**Apple does not support WKWebView on tvOS.** This was a deliberate decision to push developers toward native experiences. This means we cannot simply embed the web kiosk in a WebView on Apple TV.
+
+Sources:
+- [Apple TV doesn't support Webviews](https://www.developer-tech.com/news/apple-tv-doesnt-support-webviews-pushes-clean-native-experience/)
+- [Apple TV: A World Without Webviews](https://medium.com/bpxl-craft/apple-tv-a-world-without-webkit-5c428a64a6dd)
+
+### 1.2 Available Options
+
+| Runtime | Description | Web Support | tvOS Support |
+|---------|-------------|-------------|--------------|
+| **TVMLKit + TVJS** | Apple's client-server model | ❌ No | ⚠️ Deprecated |
+| **React Native tvOS** | Community fork with focus engine | ✅ Via react-native-web | ✅ Active |
+| **Native SwiftUI** | Apple's modern UI framework | ❌ No | ✅ Native |
+| **Separate codebases** | React (web) + SwiftUI (tvOS) | ✅ | ✅ |
+
+---
+
+## 2. Recommendation: React Native tvOS
+
+### 2.1 Why React Native tvOS?
+
+| Advantage | Description |
+|-----------|-------------|
+| **Same React paradigm** | Web kiosk already uses React; team knows the patterns |
+| **Shared component schema** | Same JSON structure renders on both platforms |
+| **Focus engine support** | Built-in handling for Siri Remote navigation |
+| **Active maintenance** | Regular releases tracking React Native versions |
+| **Android TV option** | Same codebase could target Android TV if needed |
+
+### 2.2 Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         tvOS App (SwiftUI)                          │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │                    Voice Command Layer                          │ │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │ │
-│  │  │   Siri      │  │   Speech    │  │  Siri Remote D-pad      │ │ │
-│  │  │   Intents   │  │   Framework │  │  (select, menu, etc.)   │ │ │
-│  │  └──────┬──────┘  └──────┬──────┘  └────────────┬────────────┘ │ │
-│  │         │                │                      │               │ │
-│  │         └────────────────┴──────────────────────┘               │ │
-│  │                          │                                      │ │
-│  │                    Command Router                               │ │
-│  │                          │                                      │ │
-│  └──────────────────────────┼──────────────────────────────────────┘ │
-│                             │                                        │
-│  ┌──────────────────────────┴──────────────────────────────────────┐ │
-│  │                    Rendering Layer                               │ │
-│  │                                                                  │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐│ │
-│  │  │                   WKWebView                                  ││ │
-│  │  │                                                              ││ │
-│  │  │  ┌─────────────────────────────────────────────────────────┐││ │
-│  │  │  │              UI Component Library                        │││ │
-│  │  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ │││ │
-│  │  │  │  │   Card   │ │  Chart   │ │   Grid   │ │  GameBoard  │ │││ │
-│  │  │  │  └──────────┘ └──────────┘ └──────────┘ └─────────────┘ │││ │
-│  │  │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ │││ │
-│  │  │  │  │  Status  │ │  Timer   │ │  Counter │ │  Animation  │ │││ │
-│  │  │  │  └──────────┘ └──────────┘ └──────────┘ └─────────────┘ │││ │
-│  │  │  └─────────────────────────────────────────────────────────┘││ │
-│  │  │                                                              ││ │
-│  │  │  evaluateJavaScript("render(componentTree)")                 ││ │
-│  │  └──────────────────────────────────────────────────────────────┘│ │
-│  │                                                                  │ │
-│  └──────────────────────────────────────────────────────────────────┘ │
-│                                                                       │
-└───────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ WebSocket
-                                    ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                         Voice Relay Server                            │
-│                                                                       │
-│  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                      AI Agent (OpenHands)                        │ │
-│  │                                                                  │ │
-│  │  Input: "Let's play Lemonade Stand"                              │ │
-│  │  Output: Declarative UI Definition (JSON)                        │ │
-│  │                                                                  │ │
-│  └─────────────────────────────────────────────────────────────────┘ │
-└───────────────────────────────────────────────────────────────────────┘
+                    AI Agent (OpenHands)
+                           │
+                           │ Generates JSON component tree
+                           ▼
+                 ┌─────────────────────┐
+                 │   Voice Relay Server │
+                 │                      │
+                 │  { type: "app",      │
+                 │    components: [...] │
+                 │  }                   │
+                 └──────────┬──────────┘
+                            │
+              WebSocket display message
+                            │
+            ┌───────────────┴───────────────┐
+            │                               │
+            ▼                               ▼
+   ┌─────────────────┐            ┌─────────────────┐
+   │   Web Kiosk     │            │   tvOS App      │
+   │                 │            │                 │
+   │  React          │            │  React Native   │
+   │  (react-dom)    │            │  tvOS           │
+   │                 │            │                 │
+   │  <Card />       │            │  <Card />       │
+   │  <StatusBar />  │            │  <StatusBar />  │
+   │  <Chart />      │            │  <Chart />      │
+   │                 │            │                 │
+   └─────────────────┘            └─────────────────┘
+           │                               │
+           │      Same component schema    │
+           │      Same visual output       │
+           └───────────────────────────────┘
 ```
 
-### 2.2 Data Flow
+### 2.3 Code Sharing Strategy
 
-1. **User speaks**: "Let's play Lemonade Stand together"
-2. **Voice Relay captures**: Speech-to-text → sends to AI
-3. **AI generates UI definition**: Returns a declarative JSON structure
-4. **Server sends display command**: `{ type: "display", displayType: "app", content: {...} }`
-5. **tvOS renders**: SwiftUI passes JSON to WKWebView
-6. **User interacts via voice**: "I want to make 20 cups of lemonade"
-7. **AI updates state**: Returns updated UI definition
+**Option A: Shared component definitions (Recommended)**
 
----
-
-## 3. Declarative UI Component Library
-
-### 3.1 Design Philosophy
-
-The AI should compose UIs from **predefined building blocks** rather than generating arbitrary JavaScript. This provides:
-
-- **Safety**: No arbitrary code execution; only rendering from data
-- **Consistency**: All apps follow the same visual language
-- **Voice-first**: Components designed for verbal interaction
-
-### 3.2 Proposed Component Schema
+Both platforms consume the same JSON schema. Components are implemented separately but follow the same interface:
 
 ```typescript
-// Display message type for interactive apps
+// Shared type definitions (used by both platforms)
+interface CardComponent {
+  type: 'card';
+  id: string;
+  title: string;
+  content: string;
+  icon?: string;
+  highlight?: boolean;
+}
+
+// Web implementation (React)
+const Card: React.FC<CardComponent> = ({ title, content, icon, highlight }) => (
+  <div className={`card ${highlight ? 'highlight' : ''}`}>
+    {icon && <span className="icon">{icon}</span>}
+    <h3>{title}</h3>
+    <p>{content}</p>
+  </div>
+);
+
+// tvOS implementation (React Native)
+const Card: React.FC<CardComponent> = ({ title, content, icon, highlight }) => (
+  <View style={[styles.card, highlight && styles.highlight]}>
+    {icon && <Text style={styles.icon}>{icon}</Text>}
+    <Text style={styles.title}>{title}</Text>
+    <Text style={styles.content}>{content}</Text>
+  </View>
+);
+```
+
+**Option B: react-native-web for full code sharing**
+
+Use `react-native-web` to run React Native components in the browser:
+
+```
+┌─────────────────────────────────────┐
+│     Shared Component Library        │
+│     (React Native components)       │
+└──────────────────┬──────────────────┘
+                   │
+       ┌───────────┴───────────┐
+       │                       │
+       ▼                       ▼
+┌─────────────┐         ┌─────────────┐
+│ Web Kiosk   │         │ tvOS App    │
+│ (RN Web)    │         │ (RN tvOS)   │
+└─────────────┘         └─────────────┘
+```
+
+This maximizes code reuse but adds complexity to the web build.
+
+---
+
+## 3. Component Schema
+
+### 3.1 Display Message Format
+
+Extend the existing display protocol with an `app` type:
+
+```typescript
+type DisplayType = 'markdown' | 'image' | 'clear' | 'app';
+
 interface AppDisplay {
   type: 'app';
-  appType: string;  // e.g., 'lemonade-stand', 'quiz', 'chart'
-  state: AppState;
-  voiceHints: string[];  // Suggested voice commands
+  appType: string;        // 'lemonade-stand', 'quiz', 'chart'
+  title?: string;
+  state: {
+    components: Component[];
+    data: Record<string, any>;
+  };
 }
+```
 
-interface AppState {
-  components: Component[];
-  data: Record<string, any>;
-}
+### 3.2 Component Types
 
+```typescript
 type Component =
   | CardComponent
   | GridComponent
   | ChartComponent
   | StatusBarComponent
   | CounterComponent
-  | TimerComponent
   | MessageComponent;
 
 interface CardComponent {
@@ -141,14 +183,14 @@ interface GridComponent {
   type: 'grid';
   id: string;
   columns: number;
-  items: GridItem[];
+  items: Array<{ id: string; label: string; icon?: string }>;
 }
 
 interface ChartComponent {
   type: 'chart';
   id: string;
   chartType: 'bar' | 'line' | 'pie';
-  data: ChartData;
+  data: { labels: string[]; values: number[] };
   title?: string;
 }
 
@@ -163,9 +205,6 @@ interface CounterComponent {
   id: string;
   label: string;
   value: number;
-  min?: number;
-  max?: number;
-  step?: number;
 }
 
 interface MessageComponent {
@@ -178,9 +217,7 @@ interface MessageComponent {
 
 ### 3.3 Example: Lemonade Stand Game
 
-**User says**: "Let's play Lemonade Stand"
-
-**AI returns**:
+**AI returns:**
 ```json
 {
   "type": "display",
@@ -196,8 +233,7 @@ interface MessageComponent {
           "items": [
             { "label": "Money", "value": "$20.00", "icon": "💰" },
             { "label": "Lemons", "value": 30, "icon": "🍋" },
-            { "label": "Sugar", "value": "2 cups", "icon": "🧂" },
-            { "label": "Ice", "value": "20 cubes", "icon": "🧊" }
+            { "label": "Sugar", "value": "2 cups", "icon": "🧂" }
           ]
         },
         {
@@ -217,320 +253,158 @@ interface MessageComponent {
             { "id": "buy", "label": "Buy Supplies", "icon": "🛒" },
             { "id": "sell", "label": "Open Stand", "icon": "🏪" }
           ]
-        },
-        {
-          "type": "message",
-          "id": "hint",
-          "text": "Say 'make lemonade', 'set price', 'buy supplies', or 'open stand'",
-          "variant": "info"
         }
       ],
       "data": {
         "day": 1,
         "money": 20.00,
-        "lemons": 30,
-        "sugar": 2,
-        "ice": 20,
-        "weather": "sunny",
-        "temperature": 92
+        "lemons": 30
       }
-    },
-    "voiceHints": [
-      "make lemonade",
-      "set price to 50 cents",
-      "buy 10 lemons",
-      "open the stand"
-    ]
-  }
-}
-```
-
-**User says**: "Make 10 cups of lemonade"
-
-**AI updates state and returns new UI**:
-```json
-{
-  "type": "display",
-  "display": {
-    "type": "app",
-    "appType": "lemonade-stand",
-    "state": {
-      "components": [
-        {
-          "type": "status",
-          "id": "resources",
-          "items": [
-            { "label": "Money", "value": "$20.00", "icon": "💰" },
-            { "label": "Lemons", "value": 20, "icon": "🍋" },
-            { "label": "Lemonade", "value": "10 cups", "icon": "🥤", "highlight": true }
-          ]
-        },
-        {
-          "type": "message",
-          "id": "result",
-          "text": "You made 10 cups of lemonade! Used 10 lemons and 1 cup of sugar.",
-          "variant": "success"
-        }
-      ]
     }
   }
 }
 ```
 
----
-
-## 4. Voice Interaction Patterns
-
-### 4.1 Command Types
-
-| Category | Examples | Implementation |
-|----------|----------|----------------|
-| **Navigation** | "go back", "show menu", "next" | SwiftUI focus engine |
-| **Selection** | "select the first option", "choose price" | Map to component IDs |
-| **Value Input** | "set to 50 cents", "make 10 cups" | Parse numbers from speech |
-| **Confirmation** | "yes", "no", "confirm", "cancel" | Simple intent matching |
-| **Help** | "what can I say?", "help" | Display voiceHints |
-
-### 4.2 Natural Language Processing
-
-The AI handles NLP, not the tvOS app:
-
-```
-User: "I want to charge a dollar for each cup"
-  ↓
-Voice Relay transcribes to text
-  ↓
-AI interprets: Set price to $1.00
-  ↓
-AI updates game state and returns new UI
-```
-
-### 4.3 Voice Hints
-
-The `voiceHints` array in each UI state provides contextual suggestions:
-
-```swift
-// SwiftUI displays hints as an overlay or accessibility label
-Text("Try saying: \(voiceHints.joined(separator: ", "))")
-    .font(.caption)
-    .foregroundColor(.secondary)
-```
+This renders identically on web and tvOS.
 
 ---
 
-## 5. Implementation Options
+## 4. tvOS-Specific Considerations
 
-### 5.1 Option A: WKWebView Component Library (Recommended)
+### 4.1 Focus Engine
 
-**tvOS Side**:
-- SwiftUI app with embedded WKWebView
-- HTML/CSS/JS component library bundled with app
-- Voice commands captured via SiriKit/Speech framework
-- Communication via `WKScriptMessageHandler` and `evaluateJavaScript`
+React Native tvOS includes built-in support for the tvOS focus engine:
 
-**Server Side**:
-- AI generates JSON component trees
-- Server sends via existing display WebSocket message
-- New display type: `app`
+```tsx
+import { TouchableOpacity } from 'react-native';
 
-**Pros**:
-- Rich graphics capability (charts, animations, canvas)
-- Component library can evolve without app update
-- Full CSS styling control
+// Focusable button that responds to Siri Remote
+const ActionButton = ({ label, onPress }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    style={styles.button}
+    tvParallaxProperties={{ enabled: true }}
+  >
+    <Text>{label}</Text>
+  </TouchableOpacity>
+);
+```
 
-**Cons**:
-- WKWebView focus handling requires custom implementation
-- Slight overhead for web rendering
+### 4.2 Remote Navigation
 
-### 5.2 Option B: Native SwiftUI Components
+The Siri Remote D-pad maps to focus movement. Grid items become focusable:
 
-**tvOS Side**:
-- Pure SwiftUI with dynamic component rendering
-- JSON-to-SwiftUI View mapper
-- Native focus engine support
+```tsx
+const Grid = ({ items, columns }) => (
+  <View style={[styles.grid, { flexDirection: 'row', flexWrap: 'wrap' }]}>
+    {items.map(item => (
+      <TouchableOpacity
+        key={item.id}
+        style={{ width: `${100/columns}%` }}
+        hasTVPreferredFocus={item.id === items[0].id}
+      >
+        <Text>{item.icon} {item.label}</Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+```
 
-**Server Side**:
-- Same JSON schema as Option A
+### 4.3 No Direct Touch
 
-**Pros**:
-- Native performance and focus handling
-- No WebView complexity
+Since tvOS has no touch screen, all interaction is via:
+- **Siri Remote**: D-pad navigation, select button
+- **Voice**: User speaks to the mobile device, AI responds with updated UI
 
-**Cons**:
-- Adding new components requires app update
-- Less flexible for rich visualizations
-- SwiftUI charts/graphics more limited than web
-
-### 5.3 Option C: React Native tvOS
-
-**tvOS Side**:
-- React Native app with component library
-- JavaScript bundle updated via CodePush or app updates
-
-**Server Side**:
-- AI generates React component tree (JSON)
-
-**Pros**:
-- Cross-platform (could also target web kiosk)
-- Rich React ecosystem
-
-**Cons**:
-- React Native tvOS is community-maintained
-- Bridge overhead for complex UIs
-- WebView not well supported in React Native tvOS
-
-### 5.4 Comparison Matrix
-
-| Factor | WKWebView | Native SwiftUI | React Native |
-|--------|-----------|----------------|--------------|
-| Graphics Capability | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Voice Integration | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Focus Engine | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| Update Flexibility | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ |
-| Maintenance Burden | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Future-Proof | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+The tvOS app is primarily a **display surface**, not an input device.
 
 ---
 
-## 6. Security Considerations
+## 5. Security: Data, Not Code
 
-### 6.1 No Arbitrary Code Execution
+### 5.1 Design Principle
 
-**Critical Design Decision**: The AI generates **data**, not code.
+**The AI generates component definitions (data), not executable code.**
 
 ```
 ❌ BAD: AI generates JavaScript to execute
    { "type": "script", "code": "document.body.innerHTML = '...'" }
 
-✅ GOOD: AI generates component definitions
+✅ GOOD: AI generates component tree
    { "type": "app", "components": [...] }
 ```
 
-### 6.2 Component Library as Sandbox
+### 5.2 Validation
 
-The component library acts as a natural sandbox:
-
-- Only predefined components can be rendered
-- No `eval()` or dynamic code execution
-- Data is validated before rendering
-- CSS is scoped and sanitized
-
-### 6.3 Validation Layer
+Server validates component trees before sending to clients:
 
 ```typescript
-// Server-side validation before sending to tvOS
+const KNOWN_TYPES = ['card', 'grid', 'chart', 'status', 'counter', 'message'];
+
 function validateAppDisplay(display: AppDisplay): boolean {
-  // Check all components are known types
-  for (const component of display.state.components) {
-    if (!KNOWN_COMPONENT_TYPES.includes(component.type)) {
-      return false;
-    }
-  }
-  // Validate data types and ranges
-  // ...
-  return true;
+  return display.state.components.every(c => KNOWN_TYPES.includes(c.type));
 }
 ```
 
----
+### 5.3 No eval() or Dynamic Code
 
-## 7. Protocol Extension
-
-### 7.1 New Display Type: `app`
-
-Extend the existing display message protocol:
-
-```typescript
-// Existing types
-type DisplayType = 'markdown' | 'image' | 'clear' | 'app';  // Add 'app'
-
-// App display message
-interface DisplayMessage {
-  type: 'display';
-  display: {
-    type: 'app';
-    appType: string;        // 'lemonade-stand', 'chart', 'quiz', etc.
-    title?: string;
-    state: AppState;
-    voiceHints?: string[];
-  };
-}
-```
-
-### 7.2 App State Updates
-
-For efficient updates, support partial state changes:
-
-```typescript
-interface AppStateUpdate {
-  type: 'display-update';
-  target: string;           // Component ID
-  changes: Partial<Component>;
-}
-```
+The component library renders from data only:
+- No `eval()` or `new Function()`
+- No `dangerouslySetInnerHTML` with AI content
+- All text content is escaped/sanitized
 
 ---
 
-## 8. Example Use Cases
+## 6. Implementation Plan
 
-### 8.1 Lemonade Stand (Educational Game)
-- Voice-driven buying, making, pricing, selling
-- Weather affects demand
-- Track profit/loss
-- Components: StatusBar, Cards, Counters
+### 6.1 Phase 1: Web Kiosk (MVP)
 
-### 8.2 Quiz/Trivia
-- "What's your answer? A, B, C, or D?"
-- Timer component
-- Score tracking
-- Components: Question Card, Timer, Score Counter
+1. Add `app` display type to existing protocol
+2. Build component library for web kiosk (React)
+3. Test with AI-generated Lemonade Stand game
+4. Components: Card, StatusBar, Grid, Message
 
-### 8.3 Data Visualization
-- "Show me sales by region"
-- Chart components (bar, line, pie)
-- Components: Charts, Legends, Filters
+### 6.2 Phase 2: tvOS App
 
-### 8.4 Flashcards
-- "Flip the card", "Next card"
-- Spaced repetition tracking
-- Components: Card (flippable), Progress
+1. Create React Native tvOS app shell
+2. Implement same components for tvOS
+3. Add WebSocket connection to voice-relay server
+4. Test focus navigation with Siri Remote
+
+### 6.3 Phase 3: Shared Code
+
+1. Extract shared types/schemas to common package
+2. Evaluate react-native-web for full code sharing
+3. Add chart components (victory-native works on both)
 
 ---
 
-## 9. Recommendations
+## 7. Alternatives Considered
 
-### 9.1 Short-term (MVP)
+### 7.1 Separate SwiftUI App
 
-1. **Add `app` display type** to existing protocol
-2. **Build minimal component set**: Card, Status, Message, Grid
-3. **Test with web kiosk** before tvOS implementation
-4. **AI prompt engineering** to generate valid component trees
+**Pros**: Native performance, Apple-supported
+**Cons**: Separate codebase, different component implementations, no code sharing
 
-### 9.2 Medium-term
+### 7.2 TVMLKit + TVJS
 
-1. **WKWebView component library** for tvOS
-2. **Chart components** using Canvas/SVG
-3. **Voice hint UI** with suggested commands
-4. **State persistence** for multi-turn interactions
+**Pros**: JavaScript-based, server-driven UI
+**Cons**: Deprecated by Apple, limited component set, no web support
 
-### 9.3 Long-term
+### 7.3 Web-only (No tvOS)
 
-1. **Custom app templates** (pre-built games/visualizations)
-2. **Animation components** for engaging feedback
-3. **Accessibility features** (VoiceOver integration)
-4. **Component marketplace** for user-contributed components
+**Pros**: Simplest, no native app needed
+**Cons**: No Apple TV support, requires browser on TV
 
 ---
 
-## 10. References
+## 8. References
 
-- [React Native tvOS](https://github.com/react-native-tvos/react-native-tvos)
-- [TVMLKit Documentation](https://developer.apple.com/documentation/tvmljs) (Deprecated)
-- [SwiftUI Focus Engine](https://developer.apple.com/documentation/swiftui/focus)
-- [WKWebView in SwiftUI](https://codewithchris.com/swiftui-webview/)
-- [SiriKit Media Intents](https://developer.apple.com/videos/play/wwdc2020/10061/)
-- [Speech Framework](https://developer.apple.com/documentation/speech)
-- [tvOS Focus Best Practices](https://www.oxagile.com/article/tvos-focus-engine-best-practices/)
+- [React Native tvOS](https://github.com/react-native-tvos/react-native-tvos) - The maintained fork
+- [React Native for TV](https://reactnative.dev/docs/building-for-tv) - Official docs
+- [react-native-web](https://necolas.github.io/react-native-web/) - Run RN components in browser
+- [tvOS Focus Engine](https://developer.apple.com/documentation/uikit/focus-based_navigation) - Apple docs
+- [Victory Native](https://formidable.com/open-source/victory/docs/native/) - Cross-platform charts
 
 ---
 
