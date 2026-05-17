@@ -25,26 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 20:17 UTC - Expansion Worker
-
-✅ **Expanded Issue #172 - Smoke test failure after deployment**
-
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
-- Type: Bug (flaky test)
-- Status: **Ready for implementation** ✅
-- Labels: `ready`
-
-**Root Cause:** Test timeout mismatch - AI connection test waits 30 seconds but server allows 60 seconds for OpenHands API startup. When OpenHands Cloud experiences slow startup (cold start/high load), the test times out while AI is legitimately still connecting.
-
-**Fix:** Increase `toHaveClass(/active/)` timeout from 30s to 60s in `tests/smoke/ai-integration.spec.ts` to match server-side `pollUntilReady()` timeout.
-
-**Evidence not a code regression:**
-- Failing commit `13fd490` only modified WORKLOG.md
-- Previous deploy with identical test code passed 25 minutes earlier
-- 14 consecutive successful deploys before this failure
-
----
-
 ### 2026-05-17 13:45 UTC - Review Worker (`62f5293`)
 
 ✅ **Addressed PR #161 Review Feedback**
@@ -701,27 +681,58 @@ The AI successfully addressed all code review feedback:
 **Action:** Removed outdated "needs-human" / "CONFLICTING" references to PR #143
 
 ---
-### 2026-05-17 20:17 UTC - Merge Worker (Manual)
 
-✅ **Merged PR #171 - Issue #162 (Mobile Status Icons)**
+### 2026-05-17 20:20 UTC - Orchestrator
 
-- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
-- **Status:** **MERGED** ✅
-- **Issue #162:** **CLOSED** (auto-closed via "Fixes #162")
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c77734a` | implementation | Issue #162 - Mobile icons | ✓ finished |
+| `dd0d905` | implementation | Issue #172 - Smoke test failure | **NEW** |
 
-**Fix Summary:**
-Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` to preserve `flex-direction: row` layout. The generic `header` selector was setting `flex-direction: column`, causing icons to stack vertically.
+**Completed:** Worker `c77734a` finished implementing Issue #162
+- PR #171 was merged successfully at 20:17 UTC
+- Issue #162 is now closed
 
-**CI Status at Merge:**
-- ✅ Build Client: Pass
-- ✅ Server Tests: Pass
-- ✅ Lint PR Title: Pass
-- ✅ **Mobile E2E Tests: Pass** (validates the CSS fix)
-- ⚠️ Chromium E2E: Flaky WebSocket timeout (unrelated to CSS change)
+**Spawned: Implementation Worker**
+- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
+- Conversation: [`dd0d905`](https://app.all-hands.dev/conversations/dd0d905897354ea29667e5514a106a53)
 
-**Risk:** 🟢 LOW - CSS-only change, zero runtime risk
+**Housekeeping:**
+- ✅ Truncated WORKLOG.md (720→~200 lines)
+- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
 
-**Cleanup:** PR #170 (duplicate) should be closed.
+**Current State:**
+- No open PRs
+- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
+- Ready issues (unprioritized): #166, #167, #168, #169
+- Issues needing expansion: None
 
-**Production:** App auto-deploys to vr.chorecraft.net on merge to main
+
+---
+
+### 2026-05-17 20:20 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c77734a` | implementation | Issue #162 - Mobile icons | ✓ finished |
+| `dd0d905` | implementation | Issue #172 - Smoke test failure | **NEW** |
+
+**Completed:** Worker `c77734a` finished implementing Issue #162
+- PR #171 was merged successfully at 20:17 UTC
+- Issue #162 is now closed
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
+- Conversation: [`dd0d905`](https://app.all-hands.dev/conversations/dd0d905897354ea29667e5514a106a53)
+
+**Housekeeping:**
+- ✅ Truncated WORKLOG.md (720→~200 lines)
+- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
+
+**Current State:**
+- No open PRs
+- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
+- Ready issues (unprioritized): #166, #167, #168, #169
+- Issues needing expansion: None
