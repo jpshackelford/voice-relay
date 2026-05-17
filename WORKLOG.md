@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 08:10 UTC - Implementation Worker
+
+Implemented Issue #141 - README.md is out-of-date and inaccurate
+
+**PR:** [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+
+**Changes:**
+- Updated overview to multi-user real-time communication platform
+- Fixed device terminology: mobile/kiosk instead of input/output
+- Added Core Concepts section (User, Workspace, Session, Device Views)
+- Documented QR code join flow with approval workflow
+- Updated architecture diagram for multi-user model
+- Updated message protocol with workspaceId/sessionId fields
+- Added Display API documentation
+- Updated authentication section (removed "Phase 4" label)
+- Complete environment variable documentation
+- Updated testing section (Vitest, Playwright, smoke tests)
+- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
+
+**Status:** CI green, ready for review
+
+---
+
 ### 2026-05-17 01:35 UTC - Orchestrator
 
 **Active Workers:**
