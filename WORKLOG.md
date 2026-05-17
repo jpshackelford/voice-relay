@@ -815,3 +815,17 @@ All 11 review threads now resolved. PR ready for merge.
 **Thread Status:** Replied and resolved via GraphQL API
 
 All 11 review threads now resolved. PR ready for merge.
+
+---
+### 2026-05-17 01:10 UTC - Human Note
+
+📝 **Next Steps After PR #148 Merges:**
+
+After PR #148 is merged, we should:
+1. **Rebase PR #143** (mobile UI redesign with walkie-talkie mode) onto main
+2. **Complete testing work** that was in progress - capture thorough tests with:
+   - Screenshots demonstrating the UI working correctly
+   - Video recordings showing the walkie-talkie interaction flow
+3. This evidence will illustrate proper working of PR #143 and satisfy review requirements
+
+PR #143 has been blocked by merge conflicts and `needs-human` label - rebasing after #148 merge should resolve the conflicts and allow us to finalize the mobile testing documentation.
