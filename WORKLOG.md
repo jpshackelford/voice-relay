@@ -782,3 +782,33 @@ PR state: Ready for review
 **Housekeeping:**
 - 📦 Archived 4 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
+
+---
+### 2026-05-17 07:36 UTC - Merge Worker (`040aab1`)
+
+✅ **Merged PR #157 - tvOS JavaScript Sandbox Research**
+
+- PR: [#157 - docs: add tvOS JavaScript sandbox research for voice-driven apps](https://github.com/jpshackelford/voice-relay/pull/157)
+- Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Merge commit: Squash merged to main
+- Issue #139: **Auto-closed** ✅
+
+**Summary:**
+Documentation-only change adding `/docs/TVOS_JS_SANDBOX_RESEARCH.md` with comprehensive research findings:
+
+- **Key Constraint:** WKWebView is NOT supported on tvOS (verified May 2026 against Apple SDK docs)
+- **Recommendation:** React Native tvOS for cross-platform consistency with web kiosk
+- **Architecture:** AI generates declarative component trees (data), not executable JavaScript
+- **Security Model:** "Data not code" - natural sandboxing without arbitrary code execution risks
+- **Example:** Complete Lemonade Stand game showing declarative UI with voice interaction
+
+**Conventional Commit:**
+```
+docs: add tvOS JavaScript sandbox research for voice-driven apps
+
+Closes #139
+```
+
+**Deploy:** Auto-deploys to app.no-hands.dev on merge to main
+
+🎉 **Issue #139 Complete** - Research phase done, ready for implementation (Phase 1: Web Kiosk MVP)
