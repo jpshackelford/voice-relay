@@ -838,3 +838,30 @@ Fixes #156
 - PR slot: Occupied (review worker `550ebb6`)
 
 ---
+### 2026-05-17 07:15 UTC - Review Worker (`550ebb6`)
+
+✅ **Addressed PR #157 Review Feedback - WKWebView Source Verification**
+
+- PR: [#157 - docs: add tvOS JavaScript sandbox research for voice-driven apps](https://github.com/jpshackelford/voice-relay/pull/157)
+- Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Commit: 678cc68
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `TVOS_JS_SANDBOX_RESEARCH.md:17` | 🟡 Suggestion | WKWebView sources are from 2015-2016 (10+ years old), need current verification | ✅ Added verification note citing current Apple SDK documentation |
+
+**Research Findings:**
+- **Verified via Apple's official SDK documentation (May 2026):**
+  - [WKWebView](https://developer.apple.com/documentation/webkit/wkwebview): Lists iOS 8.0+, iPadOS 8.0+, Mac Catalyst 13.1+, macOS 10.10+, visionOS 1.0+ — **tvOS NOT listed**
+  - [WebView SwiftUI struct](https://developer.apple.com/documentation/WebKit/WebView-swift.struct) (WWDC25): Also excludes tvOS from supported platforms
+- **Conclusion:** WKWebView remains unavailable on tvOS — architecture recommendation (React Native tvOS) remains valid
+
+**Thread resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
