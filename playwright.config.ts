@@ -30,7 +30,7 @@ export default defineConfig({
   // - Tests verify multi-device relay within that shared workspace context
   // - Production handles concurrency via workspace isolation (each user has their own)
   // - SQLite with WAL mode handles concurrent reads in production; test isolation
-  //   would require per-worker databases and server instances (tracked in #149)
+  //   would require per-worker databases and server instances (tracked in #155)
   workers: 1,
   // Ensure tests within a file run in defined order (some depend on prior state)
   fullyParallel: false,

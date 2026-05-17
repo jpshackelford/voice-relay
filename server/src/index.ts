@@ -55,6 +55,33 @@ function getNetworkAddresses(): string[] {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/**
+ * Resolves the session for a device during registration in authenticated mode.
+ * 
+ * @param sessionRepository - The session repository (must be defined in authenticated mode)
+ * @param clientSessionId - Optional session ID provided by the client
+ * @param workspaceId - The workspace the device is joining
+ * @returns The resolved session (existing or newly created active session)
+ */
+function resolveSessionForDevice(
+  sessionRepository: SessionRepository,
+  clientSessionId: string | undefined,
+  workspaceId: string
+): { id: string; name: string | null } {
+  // If client provided a sessionId, try to use it
+  if (clientSessionId) {
+    const requestedSession = sessionRepository.findById(clientSessionId);
+    if (requestedSession && requestedSession.workspaceId === workspaceId && requestedSession.status === 'active') {
+      return { id: requestedSession.id, name: requestedSession.name };
+    }
+    console.warn(`[WS] Invalid session ${clientSessionId} requested, using active session`);
+  }
+  
+  // Fall back to active session for this workspace
+  const activeSession = sessionRepository.getOrCreateActiveSession(workspaceId);
+  return { id: activeSession.id, name: activeSession.name };
+}
+
 // Version info loaded at startup from version.json (generated during deployment)
 const versionInfo = loadVersionInfo();
 console.log(`[Server] Version: ${versionInfo.commit}`);
@@ -383,33 +410,23 @@ wss.on('connection', (ws: WebSocket) => {
               }
             }
             
-            // Determine session for this device (null until resolved from DB)
-            let resolvedSession: { id: string; name: string | null } | null = null;
-            
-            if (sessionRepository) {
-              // If client provided sessionId, try to use it
-              if (message.sessionId) {
-                const requestedSession = sessionRepository.findById(message.sessionId);
-                if (requestedSession && requestedSession.workspaceId === requestedWorkspaceId && requestedSession.status === 'active') {
-                  resolvedSession = { id: requestedSession.id, name: requestedSession.name };
-                } else {
-                  console.warn(`[WS] Invalid session ${message.sessionId} requested by ${message.deviceId}, using active session`);
-                }
-              }
-              
-              // If no valid session from client request, get or create active session
-              if (!resolvedSession) {
-                const activeSession = sessionRepository.getOrCreateActiveSession(requestedWorkspaceId);
-                resolvedSession = { id: activeSession.id, name: activeSession.name };
-              }
-              
-              // Track device in session_devices table (device must exist for FK constraint)
-              sessionRepository.addDevice(resolvedSession.id, message.deviceId);
+            // Resolve session for this device (requires sessionRepository in authenticated mode)
+            if (!sessionRepository) {
+              console.error(`[WS] Session repository not available in authenticated mode`);
+              ws.send(JSON.stringify({
+                type: 'error',
+                code: 'SERVER_CONFIGURATION_ERROR',
+                message: 'Session tracking not available',
+              }));
+              ws.close();
+              return;
             }
             
-            // Use resolved session or fall back to anonymous for edge cases
-            session = resolvedSession ?? { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME };
+            session = resolveSessionForDevice(sessionRepository, message.sessionId, requestedWorkspaceId);
             sessionId = session.id;
+            
+            // Track device in session_devices table (device must exist for FK constraint)
+            sessionRepository.addDevice(sessionId, message.deviceId);
           }
           
           deviceId = message.deviceId;
