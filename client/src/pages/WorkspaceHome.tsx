@@ -415,7 +415,22 @@ export function WorkspaceHome() {
     if (settings?.hasElevenlabsApiKey) {
       setVoicesLoading(true);
       fetchElevenlabsVoices()
-        .then(setVoices)
+        .then(async (fetchedVoices) => {
+          setVoices(fetchedVoices);
+          // Handle edge case: ensure selected voice exists in the fetched list
+          if (fetchedVoices.length > 0) {
+            const currentVoiceId = settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID;
+            const voiceExists = fetchedVoices.some(v => v.voice_id === currentVoiceId);
+            if (!voiceExists) {
+              // Fallback to first available voice if current selection doesn't exist
+              try {
+                await updateSettings({ elevenlabsVoiceId: fetchedVoices[0].voice_id });
+              } catch (err) {
+                setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to set fallback voice: ' + (err as Error).message });
+              }
+            }
+          }
+        })
         .catch((err) => {
           console.error('Failed to fetch ElevenLabs voices:', err);
           setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to load voices: ' + (err as Error).message });
@@ -424,7 +439,7 @@ export function WorkspaceHome() {
     } else {
       setVoices([]);
     }
-  }, [settings?.hasElevenlabsApiKey, fetchElevenlabsVoices]);
+  }, [settings?.hasElevenlabsApiKey, settings?.elevenlabsVoiceId, fetchElevenlabsVoices, updateSettings]);
 
   // Find current workspace from list
   useEffect(() => {
