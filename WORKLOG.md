@@ -25,85 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 14:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `b008e3b` | merge | PR #161 - parallel E2E test execution | **NEW** |
-
-🚀 **Spawned: Merge Worker**
-
-- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
-- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
-- Conversation: [`b008e3b`](https://app.all-hands.dev/conversations/b008e3b17dc64a60986f26cadd455a62)
-- Task: Squash-merge PR #161 (CI green 5/5, all 4 review threads resolved, MERGEABLE)
-
-**Previous Worker Completed:** `62f5293` (review PR #161, finished)
-- ✅ Review feedback addressed (4 threads), PR ready for merge
-
-**Current State:**
-- Open PRs:
-  - #161: CI green, all threads resolved, MERGEABLE → **merging now**
-  - #143: `needs-human` label, CONFLICTING (stuck, skipped)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #155 (priority:low) - has PR #161 merging now
-  - #142 (ready) - blocked by stuck PR #143
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (merge worker `b008e3b`)
-
----
-### 2026-05-17 14:07 UTC - Merge Worker (`b008e3b`)
-
-✅ **Merged PR #161 - Parallel E2E Test Execution**
-
-- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
-- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
-- Status: **MERGED** ✅
-- Issue #155: **CLOSED** (auto-closed via "Fixes #155")
-
-**Commit Message:**
-```
-test: enable parallel E2E test execution with per-worker isolation
-
-Enable parallel E2E test execution with per-worker isolation
-
-Implement per-worker test isolation where each Playwright worker gets its own
-server instance, SQLite database, and test workspace. This eliminates FK
-constraint violations and race conditions between tests.
-
-Architecture:
-- Worker 0: client=5174, server=3002, db=test-worker-0.db
-- Worker 1: client=5184, server=3012, db=test-worker-1.db
-- etc.
-
-Key Changes:
-- Add global-setup.ts: Spawns N server instances with unique ports/databases
-- Add global-teardown.ts: Graceful cleanup of server processes and temp files
-- Add fixtures.ts: Worker-scoped fixtures (workerBaseURL, workerClientPort, etc.)
-- Update playwright.config.ts: Remove webServer block, add globalSetup/Teardown
-- Update all test files: Import from ./fixtures, use workerBaseURL fixture
-- Update CI workflow: Add PLAYWRIGHT_WORKERS=4, process cleanup step
-
-Review Feedback Addressed:
-- Fixed worker count mismatch between config files (default to 4 consistently)
-- Use wildcard port patterns (51XX, 52XX) for scalable CI cleanup
-- Add process startup failure detection for faster debugging
-
-Fixes #155
-```
-
-**Production Safety:** ⚠️ Test infrastructure only - No production code modified. Changes affect:
-- Test configuration and fixtures
-- CI workflow (test environment only)
-- .gitignore patterns for test databases
-
-**Risk:** 🟢 LOW - Test infrastructure changes only, no production code impact
-
-**Auto-deploy:** Production (app.no-hands.dev) uses SQLite `sqlite.db` - this merge has no impact on production database or application code
-
----
 ### 2026-05-17 14:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -762,40 +683,6 @@ The AI successfully addressed all code review feedback:
 **Risk:** 🟢 LOW - Test-only change, no production code impact
 
 ---
-
-### 2026-05-17 20:50 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `441026f` | merge | PR #173 - AI connection timeout | **NEW** |
-
-**Completed:** Worker `dd0d905` finished implementing Issue #172
-- PR #173 created successfully at 20:35 UTC
-
-🚀 **Spawned: Merge Worker**
-- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
-- Conversation: [`441026f`](https://app.all-hands.dev/conversations/441026fcc45440d482a9e3c93eab2e5f)
-- Task: Squash-merge PR #173 (review approved, CI flaky test unrelated to changes)
-
-**Current State:**
-- Open PRs:
-  - #173: Ready, CI has 1 flaky failure (mobile-voice.spec.ts - unrelated to PR changes, main has same issue)
-- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
-- Ready issues (unprioritized): #166, #167, #168, #169
-- Issues needing expansion: None 🎉
-
-**Slots:**
-- Expansion: 4 available (nothing to expand)
-- Implementation: 1 available (will be used after PR #173 merges)
-- Review: 1 of 2 used (merge worker)
-
-**Housekeeping:**
-- ✅ Truncated WORKLOG.md (790→762 lines)
-- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
-
----
 ### 2026-05-17 20:49 UTC - Merge Worker (`441026f`)
 
 ✅ **Merged PR #173 - AI Connection Timeout Fix**
@@ -827,6 +714,39 @@ Fixes #172
 **Risk:** 🟢 LOW - Test-only change, no production impact
 
 **Auto-deploy:** Production (vr.chorecraft.net) is unaffected - test file changes don't affect runtime
+
+---
+### 2026-05-17 20:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `441026f` | merge | PR #173 - AI connection timeout | **NEW** |
+
+**Completed:** Worker `dd0d905` finished implementing Issue #172
+- PR #173 created successfully at 20:35 UTC
+
+🚀 **Spawned: Merge Worker**
+- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
+- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
+- Conversation: [`441026f`](https://app.all-hands.dev/conversations/441026fcc45440d482a9e3c93eab2e5f)
+- Task: Squash-merge PR #173 (review approved, CI flaky test unrelated to changes)
+
+**Current State:**
+- Open PRs:
+  - #173: Ready, CI has 1 flaky failure (mobile-voice.spec.ts - unrelated to PR changes, main has same issue)
+- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
+- Ready issues (unprioritized): #166, #167, #168, #169
+- Issues needing expansion: None 🎉
+
+**Slots:**
+- Expansion: 4 available (nothing to expand)
+- Implementation: 1 available (will be used after PR #173 merges)
+- Review: 1 of 2 used (merge worker)
+
+**Housekeeping:**
+- ✅ Truncated WORKLOG.md (790→762 lines)
+- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
 
 ---
 ### 2026-05-17 21:00 UTC - Orchestrator
@@ -876,3 +796,43 @@ tsc: not found - TypeScript not properly installed
 | Expansion | 0 | 4 | 4 |
 | Implementation | 1 | 0 | 1 |
 | Review | 0 | 2 | 2 |
+
+---
+### 2026-05-17 21:19 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4435600` | implementation | Issue #163 - Remove kiosk mode navigation | **NEW** |
+
+**Previous Worker Status:**
+- `03bed53` (implementation #163) → not found in API, marked as unknown
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+- Conversation: [`4435600`](https://app.all-hands.dev/conversations/443560096792418aa5c43a168e5520ce)
+- Priority: medium
+
+**⚠️ Production Status (Issue #174):**
+- Production remains DOWN (corrupted node_modules)
+- `needs-human` label applied - requires SSH access
+- PRs can still be created and tested in CI
+- **Merging paused** until production is healthy
+
+**Current State:**
+- Open PRs: None
+- Ready issues (priority:medium): #163 (impl started), #164, #165
+- Ready issues (no priority): #166, #167, #168, #169
+- Blocked issues: #174 (critical, needs-human)
+- Issues needing expansion: None 🎉
+
+**Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review | 0 | 2 | 2 |
+
+**Housekeeping:**
+- ✅ Truncated WORKLOG.md (archived 2 old entries)
+- ✅ Updated .workflow-state.json

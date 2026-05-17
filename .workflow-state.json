@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "03bed53",
+        "conv_id": "4435600",
         "issue": 163,
-        "started": "2026-05-17T21:03:46.807307+00:00"
+        "started": "2026-05-17T21:19:44.582826+00:00"
       }
     ],
     "review": []
@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T21:03:46.807307+00:00",
+  "last_updated": "2026-05-17T21:19:44.582826+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -35,6 +35,15 @@
       "finished": "2026-05-17T21:01:51.144391+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #173"
+    },
+    {
+      "conv_id": "03bed53",
+      "type": "implementation",
+      "issue": 163,
+      "started": "2026-05-17T21:03:46.807307+00:00",
+      "finished": "2026-05-17T21:18:27.316062+00:00",
+      "status": "unknown",
+      "outcome": "Worker not found in API - may have been from different org or expired"
     }
   ]
 }
