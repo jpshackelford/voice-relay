@@ -216,6 +216,53 @@ curl -I https://app.no-hands.dev/health
    ```
 6. Restart: `sudo systemctl restart voice-relay`
 
+## Push Notifications (ntfy.sh)
+
+The deployment workflow sends push notifications via [ntfy.sh](https://ntfy.sh) when failures occur.
+
+### Notification Types
+
+| Scenario | Priority | Description |
+|----------|----------|-------------|
+| Deployment failure | High | Smoke tests failed after deploy; rollback initiated |
+| Rollback failure | Urgent | Rollback failed; manual intervention required |
+
+### Subscribing to Alerts
+
+1. Install the ntfy app:
+   - [iOS App Store](https://apps.apple.com/app/ntfy/id1625396347)
+   - [Google Play](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+   - [Web UI](https://ntfy.sh) (for desktop notifications)
+
+2. Subscribe to the topic:
+   - Open the app or web UI
+   - Tap/click **Subscribe to topic**
+   - Enter the topic name (same value as the `NTFY_TOPIC` secret)
+
+3. Configure notification settings:
+   - Enable notifications in your device settings
+   - For critical alerts, consider enabling "persistent" or "priority" notification mode
+
+### Secret Setup
+
+To enable ntfy notifications, add the `NTFY_TOPIC` secret to the repository:
+
+1. Go to **Repository Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Name: `NTFY_TOPIC`
+4. Value: A unique, hard-to-guess topic name (e.g., `voice-relay-prod-alerts-a7b3c9`)
+
+> **Note:** The topic name acts as a password. Anyone who knows the topic can subscribe to (or send) messages. Use a unique, random string.
+
+### Testing Notifications
+
+To verify ntfy is working:
+
+```bash
+# Send a test message (replace with your topic)
+curl -d "Test notification from voice-relay" ntfy.sh/YOUR_TOPIC_NAME
+```
+
 ## Troubleshooting
 
 ### Auth returns 404

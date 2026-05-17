@@ -296,6 +296,22 @@ jobs:
 
             core.setOutput('issue_number', issue.number);
       
+      - name: Notify on deployment failure
+        if: secrets.NTFY_TOPIC != ''
+        run: |
+          curl -s \
+            -H "Priority: high" \
+            -H "Tags: warning,rotating_light" \
+            -H "Title: voice-relay deployment failed" \
+            -H "Actions: view, View Logs, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -d "Deployment failed for commit ${{ github.sha }}
+
+          Triggered by: ${{ github.actor }}
+          Automatic rollback: ${{ steps.find-good.outputs.has_rollback_target == 'true' && 'initiated' || 'not available' }}
+
+          Check workflow logs for details." \
+            ntfy.sh/${{ secrets.NTFY_TOPIC }} || true
+
       # NOTE: This rollback assumes stateless deployments. If the failed deployment
       # included database migrations or server-side config changes, the rollback may
       # create version mismatches. For stateful changes, manual intervention is required.
@@ -382,3 +398,20 @@ jobs:
               issue_number: parseInt(issueNumber),
               labels: ['critical']
             });
+
+      - name: Notify on rollback failure
+        if: failure() && steps.find-good.outputs.has_rollback_target == 'true' && secrets.NTFY_TOPIC != ''
+        run: |
+          curl -s \
+            -H "Priority: urgent" \
+            -H "Tags: skull,sos" \
+            -H "Title: 🚨 CRITICAL: voice-relay rollback FAILED" \
+            -H "Actions: view, View Logs, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -d "MANUAL INTERVENTION REQUIRED
+
+          Rollback to ${{ steps.find-good.outputs.commit }} FAILED
+          Original failure: ${{ github.sha }}
+          Triggered by: ${{ github.actor }}
+
+          Production may be DOWN. Check immediately." \
+            ntfy.sh/${{ secrets.NTFY_TOPIC }} || true
