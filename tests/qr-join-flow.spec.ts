@@ -70,7 +70,7 @@ test.describe('QR Code Join Flow', () => {
 
     try {
       // Navigate kiosk to session
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Verify large QR code is displayed (no mobile devices yet)
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
@@ -139,7 +139,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract and validate QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
@@ -182,7 +182,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Verify initial state: large QR visible, mini QR not visible
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible();
@@ -246,7 +246,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
@@ -323,7 +323,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
