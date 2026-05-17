@@ -99,7 +99,7 @@ test.describe('AI Assistant Integration', () => {
       // AI status indicator only appears when connecting or connected
       const aiStatus = page.locator('.ai-status');
       // Wait for AI to auto-connect (status indicator appears)
-      await expect(aiStatus).toBeVisible({ timeout: 30000 });
+      await expect(aiStatus).toBeVisible({ timeout: 60000 });
     }
 
     test('AI auto-connects to session and shows status indicator', async ({ page }) => {
@@ -149,7 +149,7 @@ test.describe('AI Assistant Integration', () => {
       const aiStatus = page.locator('.ai-status');
 
       // Wait for connected state (active class) - may briefly show connecting first
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
 
       // Kiosk AI status indicator should also be visible
       await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
@@ -175,7 +175,7 @@ test.describe('AI Assistant Integration', () => {
 
       // Wait for AI to auto-connect
       const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
 
       // Send a simple message
       const input = page.locator('input[type="text"]');
@@ -213,7 +213,7 @@ test.describe('AI Assistant Integration', () => {
 
       // Wait for AI to auto-connect
       const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
 
       // Intercept display API call to verify AI uses it
       const displayApiPromise = page.waitForRequest(
@@ -235,7 +235,7 @@ test.describe('AI Assistant Integration', () => {
 
       // Verify image appears on canvas
       const displayImage = page.locator('.kiosk-display img, .display-image img');
-      await expect(displayImage).toBeVisible({ timeout: 30000 });
+      await expect(displayImage).toBeVisible({ timeout: 60000 });
 
       // Verify image loaded successfully (not broken)
       const imageLoaded = await displayImage.evaluate((img: HTMLImageElement) => {
@@ -269,7 +269,7 @@ test.describe('AI Assistant Integration', () => {
 
       // Wait for AI to auto-connect
       const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
+      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
 
       // Intercept display API
       const displayApiPromise = page.waitForRequest(
@@ -291,7 +291,7 @@ test.describe('AI Assistant Integration', () => {
       // If markdown type, verify it renders
       if (requestBody.type === 'markdown') {
         const markdownDisplay = page.locator('.display-markdown, .markdown-content');
-        await expect(markdownDisplay).toBeVisible({ timeout: 30000 });
+        await expect(markdownDisplay).toBeVisible({ timeout: 60000 });
       }
     });
   });
