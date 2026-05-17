@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "4435600",
-        "issue": 163,
-        "started": "2026-05-17T21:19:44.582826+00:00"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T21:19:44.582826+00:00",
+  "last_updated": "2026-05-17T21:34:17.638451+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -44,6 +38,15 @@
       "finished": "2026-05-17T21:18:27.316062+00:00",
       "status": "unknown",
       "outcome": "Worker not found in API - may have been from different org or expired"
+    },
+    {
+      "conv_id": "4435600",
+      "type": "implementation",
+      "issue": 163,
+      "started": "2026-05-17T21:19:44.582826+00:00",
+      "finished": "2026-05-17T21:34:17.638451+00:00",
+      "status": "success",
+      "outcome": "Created PR #175 for issue #163"
     }
   ]
 }
