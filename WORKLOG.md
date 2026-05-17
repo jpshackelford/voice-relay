@@ -1048,3 +1048,45 @@ Adding explicit cleanup ensures rollback succeeds regardless of corruption state
 
 **Root Cause:**
 In incident #174, automatic rollback failed because npm ci couldn't clean corrupted node_modules directory.
+
+---
+### 2026-05-17 22:30 UTC - Implementation Worker (`91fd6a6`)
+
+✅ **PR #179 Ready for Review** - Issue #164 (Visualizer toggle)
+
+- Issue: [#164 - Mobile: Visualizer toggle is hard to find in settings](https://github.com/jpshackelford/voice-relay/issues/164)
+- PR: [#179 - feat(client): add quick-toggle button for voice/visualizer mode in mobile header](https://github.com/jpshackelford/voice-relay/pull/179)
+- Status: **Ready for review** ✅
+- Priority: MEDIUM
+
+**Changes:**
+- Added toggle button in mobile header between connection indicator and settings button
+- Button shows 🗣️ in voice mode, 📊 in visualizer mode
+- Single tap toggles between Voice and Visualizer input modes
+- Subtle purple highlight when visualizer mode is active
+- Includes proper accessibility attributes (aria-label, aria-pressed, title)
+- Stream cleanup handled by existing inputMode effect
+
+**Files Modified:**
+- `client/src/components/MobileMode.tsx` (+9 lines)
+- `client/src/App.css` (+10 lines)
+- `client/src/components/MobileMode.test.tsx` (+104 lines, 8 new tests)
+
+**Acceptance Criteria Met:**
+- [x] Toggle button in mobile header between connection indicator and settings
+- [x] Single-tap toggles between Voice and Visualizer modes
+- [x] Button icon reflects current mode (🗣️ or 📊)
+- [x] Proper title and aria-label attributes
+- [x] Settings modal toggle still works (unchanged)
+- [x] Stream cleanup on mode change (existing effect)
+- [x] Works in portrait and landscape (responsive styles)
+
+**CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass (598 tests)
+- ✅ Client Tests: Pass (328 tests, 8 new for toggle button)
+- ✅ Conventional Commits lint: Pass
+- ⚠️ E2E Tests: Chromium flaky (WebSocket stability - pre-existing on main, unrelated to client changes)
+- ✅ Mobile E2E: Pass
+
+**Risk:** 🟢 LOW - UI-only change, minimal code, reuses existing state management
