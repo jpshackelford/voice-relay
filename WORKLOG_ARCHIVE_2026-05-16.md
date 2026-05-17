@@ -2270,3 +2270,101 @@ PR state: Ready for review (moved from draft)
 
 **Housekeeping:**
 - 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-16 20:07 UTC - Merge Worker (`b880a5e`)
+
+✅ **Merged PR #146 - ElevenLabs TTS Integration**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Issue: [#135 - Investigate ElevenLabs integration for text-to-speech](https://github.com/jpshackelford/voice-relay/issues/135)
+- Status: **MERGED** ✅
+- Issue #135: **AUTO-CLOSED** ✅
+
+**Merge Details:**
+- Squash-merged with conventional commit: `feat(tts): add ElevenLabs TTS integration for AI responses`
+- Migration 011 adds ElevenLabs columns to workspace_settings (additive, safe for SQLite)
+- TTS disabled by default - no production impact until workspace owner configures API key
+
+**Review History:**
+- 5 review rounds, all issues addressed
+- Final rating: 🟢 **Good taste**
+- Key fixes: TTS integration in index.ts, dual TTS bug, audio truncation, test coverage, memory leak
+
+**Production Notes:**
+- App auto-deploys to vr.chorecraft.net on merge to main
+- Migration runs automatically on server start
+- Existing workspaces unaffected (TTS disabled by default)
+
+### 2026-05-16 20:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `7d39c3e` | implementation | Issue #136 - Image feedback mechanism | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
+- Priority: `priority:medium`
+- Conversation: [`7d39c3e`](https://app.all-hands.dev/conversations/7d39c3e60e8b4ce494ec05b1c1854757)
+
+**Stuck PRs (require human intervention):**
+- [PR #143 - feat(client): redesign mobile UI with walkie-talkie mode](https://github.com/jpshackelford/voice-relay/pull/143)
+  - Status: CONFLICTING (merge conflicts), CHANGES_REQUESTED
+  - All review threads resolved ✓
+  - Blocked: needs merge conflict resolution + mobile device evidence
+  - Added `needs-human` label ⏳
+
+- [PR #148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
+  - Status: Draft, E2E tests failing (6 failures)
+  - Marked as **HUMAN WORKING** per previous instruction
+
+**Current State:**
+- Open PRs: #143 (stuck), #148 (human working)
+- Ready issues: #136 (now being implemented), #139, #141, #142 (has PR #143)
+- Issues needing expansion: None (all expanded ✓)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied by implementation worker `7d39c3e`
+
+**Previous Workers (finished):**
+- `b880a5e` (merge #146 - ElevenLabs TTS integration merged)
+
+---
+### 2026-05-16 20:47 UTC - Implementation Worker (`7d39c3e`)
+
+✅ **Created PR #153 - Display Result Feedback Mechanism**
+
+- PR: [#153 - feat: add display-result feedback mechanism for image load events](https://github.com/jpshackelford/voice-relay/pull/153)
+- Issue: [#136 - Investigate feedback mechanism for failed image displays](https://github.com/jpshackelford/voice-relay/issues/136)
+- Status: **Ready for review** ✅
+
+**Implementation Summary:**
+Implements client-to-server feedback loop for display results when the AI sends image URLs to the kiosk display.
+
+**Changes:**
+| File | Changes |
+|------|---------|
+| `client/src/types.ts` | Added `DisplayResultMessage` type |
+| `client/src/hooks/useWebSocket.ts` | Added `sendDisplayResult()` function |
+| `client/src/components/KioskMode.tsx` | Added `onLoad`/`onError` handlers, 10s timeout, error indicators |
+| `client/src/pages/SessionView.tsx` | Wired `sendDisplayResult` to KioskMode |
+| `server/src/types.ts` | Added `DisplayResultMessage` type |
+| `server/src/index.ts` | Added `display-result` WebSocket handler, forwards to AI session |
+
+**Testing:**
+- 4 new tests in `useWebSocket.test.ts` for `sendDisplayResult`
+- 8 new tests in `KioskMode.test.tsx` for image feedback (load, error, timeout, duplicates)
+- All 810 tests pass (212 client + 598 server)
+
+**Acceptance Criteria (all met):**
+- [x] Image load failures detected via `onError` handler
+- [x] Image load successes detected via `onLoad` handler
+- [x] Kiosk sends `display-result` message to server
+- [x] Server forwards failure notifications to AI session
+- [x] AI receives actionable feedback
+- [x] Timeout handling (10s default)
+- [x] Multiple kiosks: first result reported (duplicates ignored)
+
+CI: ✅ All checks passed (5/5)
+PR state: Ready for review
