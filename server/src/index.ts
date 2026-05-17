@@ -378,39 +378,29 @@ wss.on('connection', (ws: WebSocket) => {
             session = { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME };
             sessionId = ANONYMOUS_SESSION_ID;
           } else {
-            // Authenticated mode: validate workspace exists (FK constraint)
-            if (workspaceRepository) {
-              const workspace = workspaceRepository.findById(requestedWorkspaceId);
-              if (!workspace) {
-                console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
-                ws.send(JSON.stringify({
-                  type: 'error',
-                  code: 'WORKSPACE_NOT_FOUND',
-                  message: 'Workspace does not exist',
-                }));
-                ws.close();
-                return;
-              }
+            // Authenticated mode requires all repositories for FK constraints and persistence
+            if (!workspaceRepository) {
+              console.error(`[WS] Workspace repository not available in authenticated mode`);
+              ws.send(JSON.stringify({
+                type: 'error',
+                code: 'SERVER_CONFIGURATION_ERROR',
+                message: 'Workspace validation not available',
+              }));
+              ws.close();
+              return;
             }
             
-            // Persist device to database (required for session FK constraint)
-            // This auto-registers devices with generated names when joining via QR code
-            if (deviceRepository) {
-              const result = deviceRepository.registerOrUpdate(
-                message.deviceId,
-                requestedWorkspaceId,
-                message.displayName,
-                message.mode
-              );
-              // Only send token if this is a new device registration
-              if (result.isNew && result.token) {
-                deviceToken = result.token;
-                tokenExpiresAt = result.expiresAt;
-                console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
-              }
+            if (!deviceRepository) {
+              console.error(`[WS] Device repository not available in authenticated mode`);
+              ws.send(JSON.stringify({
+                type: 'error',
+                code: 'SERVER_CONFIGURATION_ERROR',
+                message: 'Device registration not available',
+              }));
+              ws.close();
+              return;
             }
             
-            // Resolve session for this device (requires sessionRepository in authenticated mode)
             if (!sessionRepository) {
               console.error(`[WS] Session repository not available in authenticated mode`);
               ws.send(JSON.stringify({
@@ -420,6 +410,34 @@ wss.on('connection', (ws: WebSocket) => {
               }));
               ws.close();
               return;
+            }
+            
+            // Validate workspace exists (FK constraint)
+            const workspace = workspaceRepository.findById(requestedWorkspaceId);
+            if (!workspace) {
+              console.warn(`[WS] Workspace not found: ${requestedWorkspaceId}, rejecting registration`);
+              ws.send(JSON.stringify({
+                type: 'error',
+                code: 'WORKSPACE_NOT_FOUND',
+                message: 'Workspace does not exist',
+              }));
+              ws.close();
+              return;
+            }
+            
+            // Persist device to database (required for session FK constraint)
+            // This auto-registers devices with generated names when joining via QR code
+            const result = deviceRepository.registerOrUpdate(
+              message.deviceId,
+              requestedWorkspaceId,
+              message.displayName,
+              message.mode
+            );
+            // Only send token if this is a new device registration
+            if (result.isNew && result.token) {
+              deviceToken = result.token;
+              tokenExpiresAt = result.expiresAt;
+              console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
             }
             
             session = resolveSessionForDevice(sessionRepository, message.sessionId, requestedWorkspaceId);
