@@ -794,3 +794,43 @@ PR state: Ready for review
 - Ready issues: #156 (no priority), #155 (priority:low), #154 (has PR), #142 (has PR #143), #141, #139 (has PR #157)
 - Expansion slot: Available (nothing to expand)
 - PR slot: Occupied (merge worker `f6d1549`)
+
+---
+### 2026-05-17 05:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fa5f178` | implementation | Issue #156 - replace vr.chorecraft.net with app.no-hands.dev | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- Conversation: [`fa5f178`](https://app.all-hands.dev/conversations/fa5f178cbac340f3998512ea0b5072bb)
+- Priority: `priority:medium`
+- Task: Update all references from old domain to new production domain (app.no-hands.dev)
+
+**Worker Completed:** `f6d1549` (merge PR #158, finished)
+- ✅ **Merged:** [PR #158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Issue #154 closed automatically
+
+**Priority Assessment:**
+- Issue #156: `priority:medium` (quick win, low complexity)
+- Issue #141: `priority:low` (docs update, can wait)
+- Issue #155: Already labeled `priority:low`
+
+**Stuck PR Labeled:**
+- [PR #143](https://github.com/jpshackelford/voice-relay/pull/143): Added `needs-human` label (merge conflicts + CHANGES_REQUESTED)
+
+**Current State:**
+- Open PRs:
+  - #157: Draft, lint failing (tvOS research - in progress)
+  - #143: CHANGES_REQUESTED + `needs-human` (merge conflicts, stuck)
+- Issues needing expansion: None 🎉
+- Ready issues: #156 (medium, PR in progress), #155 (low), #141 (low)
+- Ready issues with stuck PRs: #142 (PR #143 stuck), #139 (PR #157 draft)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (implementation worker `fa5f178`)
+
+**Housekeeping:**
+- 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
