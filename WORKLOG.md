@@ -953,3 +953,30 @@ tsc: not found - TypeScript not properly installed
 - Cleaned up unused `onModeChange` prop and imports
 - Updated tests to reflect removed functionality
 
+---
+### 2026-05-17 22:08 UTC - Implementation Worker (`0147a93`)
+
+✅ **PR #177 Ready for Review** - Issue #176 (Add rm -rf node_modules to rollback)
+
+- Issue: [#176 - Add rm -rf node_modules to rollback step](https://github.com/jpshackelford/voice-relay/issues/176)
+- PR: [#177 - fix: add rm -rf node_modules to rollback step in deploy.yml](https://github.com/jpshackelford/voice-relay/pull/177)
+- Status: **Ready for review** ✅
+- Priority: CRITICAL
+
+**Changes:**
+- Added `rm -rf node_modules` before `npm ci` in rollback step
+- Added visibility echo: `echo "=== Cleaning node_modules ==="`
+- Location: `.github/workflows/deploy.yml` (rollback step)
+
+**CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass
+- ✅ Conventional Commits lint: Pass
+- ⚠️ E2E Tests: Flaky failures (WebSocket stability - pre-existing on main, unrelated to workflow change)
+
+**Root Cause Fix:**
+In incident #174, rollback failed because `npm ci` couldn't clean corrupted `node_modules`. 
+Adding explicit cleanup ensures rollback succeeds regardless of corruption state.
+
+**Risk:** 🟢 LOW - Workflow file change only, no application code affected
+
