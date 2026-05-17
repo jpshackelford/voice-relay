@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:35 UTC - Issue Expansion Complete
+
+**Issue:** [#184 - fix: Add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/issues/184)
+
+**Status:** ✅ Expanded and ready for implementation
+
+**Changes Made:**
+- Updated issue body with structured Problem, Root Cause, Proposed Solution sections
+- Added design decisions table and edge case analysis
+- Added clear acceptance criteria checklist
+- Added implementation comment with exact diff and verification steps
+- Added `ready` label
+
+**Technical Summary:**
+- Add `concurrency` block to `.github/workflows/deploy.yml`
+- Group: `deploy-production`, `cancel-in-progress: false` (queue, don't cancel)
+- Prevents race conditions when multiple commits trigger concurrent deployments
+- Fix for Incident #178 (concurrent deployment corruption)
+
+**Effort:** ~5 minutes implementation, 1 file changed
+
+---
+
 ### 2026-05-17 23:20 UTC - Issue Expansion Complete
 
 **Issue:** [#183 - feat: Set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/issues/183)
