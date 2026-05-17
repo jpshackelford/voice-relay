@@ -25,113 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 10:07 UTC - Review Worker (PR #160)
-
-✅ **Addressed PR #160 Review Feedback - Missing workspaceId Fields**
-
-- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-- Commit: 6d58a96
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed (2 threads):**
-
-| Thread | Severity | Issue | Fix |
-|--------|----------|-------|-----|
-| devices array missing workspaceId | 🟠 Important | device-list devices array missing workspaceId field (server sends it per registry.ts:254) | Added workspaceId to devices array example |
-| text message missing workspaceId | 🟠 Important | text message example missing workspaceId field (server sends it per index.ts:546) | Added workspaceId to text message example |
-
-**Both threads resolved** ✅
-
-CI: ✅ All checks passed (4/4)
-PR state: Ready for review
-
----
-
-### 2026-05-17 03:04 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `6b0ef27` | review | PR #158 - ElevenLabs API Key UI (1 thread) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
-- Conversation: [`6b0ef27`](https://app.all-hands.dev/conversations/6b0ef272d92347c798801683adbc873e)
-- Task: Address 1 unresolved review thread:
-  - 🟡 Suggestion: Type inconsistency - use exported `ElevenlabsVoice` type instead of inline definition
-- PR Status: CI green (5/5), MERGEABLE
-
-**Worker Completed:** `a3484ae` (review #158 - round 1, finished)
-- Addressed 4 review threads (error handling consistency, magic constant)
-
-**Current State:**
-- Open PRs:
-  - #158: CI green, 1 unresolved thread (now being addressed)
-  - #157: Draft, lint failing (Conventional Commits check)
-  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts + mobile evidence)
-- Issues needing expansion: None (all have `ready` label ✓)
-- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker `6b0ef27`)
-
-**Housekeeping:**
-- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
----
-### 2026-05-17 03:07 UTC - Review Worker (`6b0ef27`)
-
-✅ **Addressed PR #158 Review Feedback - Type Consistency**
-
-- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
-- Commit: 241de58
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed (1 thread):**
-
-| Thread | Severity | Issue | Fix |
-|--------|----------|-------|-----|
-| Type inconsistency | 🟡 Suggestion | Inline type definition duplicates `ElevenlabsVoice` interface | Imported `ElevenlabsVoice` type from hook and updated `voices` state to use it |
-
-**Thread resolved** ✅
-
-CI: ✅ All checks passed (4/4)
-PR state: Ready for review
-
----
-### 2026-05-17 03:36 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c1d7cdd` | review | PR #158 - ElevenLabs API Key UI (2 threads) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
-- Conversation: [`c1d7cdd`](https://app.all-hands.dev/conversations/c1d7cddc238945e2a4b568f852c99fa1)
-- Task: Address 2 unresolved review threads:
-  - 🟠 Important: Voice select edge case - default voice not in API response breaks UI
-  - 🟡 Suggestion: Tests verify mocks not behavior - add integration-style tests
-- PR Status: CI green (5/5), MERGEABLE
-
-**Worker Completed:** `6b0ef27` (review #158 - round 2, finished)
-- Addressed 1 thread (type consistency)
-
-**Current State:**
-- Open PRs:
-  - #158: CI green, 2 unresolved threads (now being addressed)
-  - #157: Draft, lint failing (Conventional Commits check)
-  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts)
-- Issues needing expansion: None (all have `ready` label ✓)
-- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker `c1d7cdd`)
-
-**Housekeeping:**
-- 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
-
----
 ### 2026-05-17 04:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -807,5 +700,57 @@ PR state: Ready for review
   - #155 (priority:low) - queued
 - Expansion slot: Empty (nothing to expand)
 - PR slot: Occupied (review worker `1870397`)
+
+---
+### 2026-05-17 10:07 UTC - Review Worker (PR #160)
+
+✅ **Addressed PR #160 Review Feedback - Missing workspaceId Fields**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Commit: 6d58a96
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| devices array missing workspaceId | 🟠 Important | device-list devices array missing workspaceId field (server sends it per registry.ts:254) | Added workspaceId to devices array example |
+| text message missing workspaceId | 🟠 Important | text message example missing workspaceId field (server sends it per index.ts:546) | Added workspaceId to text message example |
+
+**Both threads resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+### 2026-05-17 10:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ab7098` | merge | PR #160 - docs: rewrite README.md | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`5ab7098`](https://app.all-hands.dev/conversations/5ab709892afe4d46a57190f7639e3913)
+- Task: Final merge preparation - all 9 review threads resolved, CI green, MERGEABLE
+
+**Previous Worker Completed:** `1870397` (review PR #160 - round 4, finished)
+- Addressed 2 final threads (workspaceId fields)
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, all threads resolved → **merging now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 merging now
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (merge worker `5ab7098`)
+
+**Housekeeping:**
+- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---

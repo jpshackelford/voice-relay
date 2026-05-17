@@ -392,3 +392,88 @@ PR state: Ready for review
 
 CI: ✅ All checks passed (4/4)
 PR state: Ready for review
+
+---
+### 2026-05-17 03:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6b0ef27` | review | PR #158 - ElevenLabs API Key UI (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Conversation: [`6b0ef27`](https://app.all-hands.dev/conversations/6b0ef272d92347c798801683adbc873e)
+- Task: Address 1 unresolved review thread:
+  - 🟡 Suggestion: Type inconsistency - use exported `ElevenlabsVoice` type instead of inline definition
+- PR Status: CI green (5/5), MERGEABLE
+
+**Worker Completed:** `a3484ae` (review #158 - round 1, finished)
+- Addressed 4 review threads (error handling consistency, magic constant)
+
+**Current State:**
+- Open PRs:
+  - #158: CI green, 1 unresolved thread (now being addressed)
+  - #157: Draft, lint failing (Conventional Commits check)
+  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts + mobile evidence)
+- Issues needing expansion: None (all have `ready` label ✓)
+- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `6b0ef27`)
+
+**Housekeeping:**
+- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-17 03:07 UTC - Review Worker (`6b0ef27`)
+
+✅ **Addressed PR #158 Review Feedback - Type Consistency**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Commit: 241de58
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| Type inconsistency | 🟡 Suggestion | Inline type definition duplicates `ElevenlabsVoice` interface | Imported `ElevenlabsVoice` type from hook and updated `voices` state to use it |
+
+**Thread resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
+### 2026-05-17 03:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c1d7cdd` | review | PR #158 - ElevenLabs API Key UI (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Conversation: [`c1d7cdd`](https://app.all-hands.dev/conversations/c1d7cddc238945e2a4b568f852c99fa1)
+- Task: Address 2 unresolved review threads:
+  - 🟠 Important: Voice select edge case - default voice not in API response breaks UI
+  - 🟡 Suggestion: Tests verify mocks not behavior - add integration-style tests
+- PR Status: CI green (5/5), MERGEABLE
+
+**Worker Completed:** `6b0ef27` (review #158 - round 2, finished)
+- Addressed 1 thread (type consistency)
+
+**Current State:**
+- Open PRs:
+  - #158: CI green, 2 unresolved threads (now being addressed)
+  - #157: Draft, lint failing (Conventional Commits check)
+  - #143: CHANGES_REQUESTED (`needs-human` - merge conflicts)
+- Issues needing expansion: None (all have `ready` label ✓)
+- Ready issues: #139, #141, #142, #154 (PR #158), #155, #156
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `c1d7cdd`)
+
+**Housekeeping:**
+- 📦 Archived entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
