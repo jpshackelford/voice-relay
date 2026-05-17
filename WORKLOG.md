@@ -871,3 +871,20 @@ tsc: not found - TypeScript not properly installed
 🔄 **Re-ran CI** on PR #175 (E2E tests failed due to flaky WebSocket timeout)
 
 **Note:** PR #175 is awaiting CI results. Once green and reviewed, it can be merged.
+
+### 2026-05-17 21:50 UTC - Expansion Worker
+
+✅ **Expanded Issue #176** - fix: Add rm -rf node_modules to rollback step in deploy.yml
+
+- **Issue:** [#176](https://github.com/jpshackelford/voice-relay/issues/176)
+- **Type:** Deployment fix (related to incident #174)
+- **Status:** Ready for implementation
+- **Analysis:**
+  - Verified rollback step location: `.github/workflows/deploy.yml` lines 303-322
+  - Confirmed root cause: `npm ci` can fail on corrupted `node_modules`
+  - Proposed fix is correct: Add `rm -rf node_modules` before `npm ci`
+  - Additional finding: Deploy step (line 52) could benefit from same fix (separate enhancement)
+- **Complexity:** Low
+- **Labels added:** `ready`
+
+---
