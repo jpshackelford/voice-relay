@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "slots": {
     "expansion": [],
     "implementation": [
@@ -16,5 +16,6 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T20:20:43.297031+00:00"
+  "last_updated": "2026-05-17T20:34:13.345924+00:00",
+  "completed": []
 }

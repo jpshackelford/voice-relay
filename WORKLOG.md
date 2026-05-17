@@ -25,29 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 13:45 UTC - Review Worker (`62f5293`)
-
-✅ **Addressed PR #161 Review Feedback**
-
-- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
-- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed (4 threads):**
-
-| Thread | Severity | Issue | Resolution |
-|--------|----------|-------|------------|
-| `playwright.config.ts` | 🔴 Critical | Worker count mismatch - config defaults to undefined while global-setup defaults to 4 | ✅ Fixed: `WORKER_COUNT` now defaults to `'4'` in both files (commit ebff275) |
-| `.github/workflows/ci.yml` | 🟠 Important | Hardcoded port patterns won't scale with different PLAYWRIGHT_WORKERS values | ✅ Fixed: Using wildcard patterns `51[0-9][0-9]` and `52[0-9][0-9]` (commit 9e3b51b) |
-| `tests/global-setup.ts` | 🟠 Important | No detection of process startup failures - spawn() succeeds even if npm fails | ✅ Fixed: Added exit event handlers to detect failures within 500ms (commit 8487193) |
-| `tests/fixtures.ts` | 🟡 Suggestion | Type assertion `as typeof request` bypasses type checking | ❌ Declined: Proxy adds complexity without practical benefit; explicit is better |
-
-**All 4 threads resolved** ✅
-
-CI: ✅ All checks passed (4/4)
-PR state: Ready for review (marked ready)
-
----
 ### 2026-05-17 14:01 UTC - Orchestrator
 
 **Active Workers:**
@@ -681,7 +658,6 @@ The AI successfully addressed all code review feedback:
 **Action:** Removed outdated "needs-human" / "CONFLICTING" references to PR #143
 
 ---
-
 ### 2026-05-17 20:20 UTC - Orchestrator
 
 **Active Workers:**
@@ -708,9 +684,7 @@ The AI successfully addressed all code review feedback:
 - Ready issues (unprioritized): #166, #167, #168, #169
 - Issues needing expansion: None
 
-
 ---
-
 ### 2026-05-17 20:20 UTC - Orchestrator
 
 **Active Workers:**
@@ -736,3 +710,24 @@ The AI successfully addressed all code review feedback:
 - Ready issues (prioritized): #163, #164, #165 (all priority:medium)
 - Ready issues (unprioritized): #166, #167, #168, #169
 - Issues needing expansion: None
+
+---
+
+### 2026-05-17 20:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `dd0d905` | implementation | Issue #172 - 🚨 Smoke test failure after deployment | running |
+
+**Current State:**
+- [PR #173](https://github.com/jpshackelford/voice-relay/pull/173): Draft - E2E tests in progress (Fixes #172)
+- Ready issues: #163, #164, #165 (priority:medium), #166, #167, #168, #169 (no priority)
+- Issues needing expansion: None 🎉
+
+**Housekeeping:**
+- Archived 1 old entry to `WORKLOG_ARCHIVE_2026-05-17.md`
+- Migrated state file to v2 format
+
+⏳ **Waiting** - Implementation worker `dd0d905` is active with PR #173 CI in progress
+- Next check in ~30 minutes
