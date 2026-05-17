@@ -1097,6 +1097,13 @@ header {
     gap: 0.75rem;
     align-items: flex-start;
   }
+
+  /* Override for mobile walkie-talkie header - keep horizontal layout
+   * Fixes #162: Status icons should not stack vertically */
+  .walkie-header {
+    flex-direction: row;
+    align-items: center;
+  }
   
   .mode-switch {
     width: 100%;

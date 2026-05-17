@@ -181,6 +181,45 @@ test.describe('Mobile Voice UI', () => {
     const statusIndicator = page.locator('[role="status"], .connection-dot, .walkie-header span[aria-label*="onnect"]');
     await expect(statusIndicator.first()).toBeVisible();
   });
+
+  test('walkie-header icons are laid out horizontally on mobile viewport', async ({ page }) => {
+    // Issue #162: Status icons were stacking vertically instead of horizontally
+    // This test verifies the fix by checking that .walkie-header has flex-direction: row
+    const walkieHeader = page.locator('.walkie-header');
+    await expect(walkieHeader).toBeVisible();
+
+    // Verify the header has horizontal flex layout (flex-direction: row)
+    const flexDirection = await walkieHeader.evaluate(el => 
+      window.getComputedStyle(el).flexDirection
+    );
+    expect(flexDirection).toBe('row');
+
+    // Verify icons are aligned center vertically
+    const alignItems = await walkieHeader.evaluate(el =>
+      window.getComputedStyle(el).alignItems
+    );
+    expect(alignItems).toBe('center');
+
+    // Verify that the header contains expected elements in horizontal arrangement
+    const connectionDot = walkieHeader.locator('.connection-dot');
+    const settingsBtn = walkieHeader.locator('[aria-label="Open settings"]');
+    const conversationBtn = walkieHeader.locator('.conversation-btn, [aria-label*="conversation"]');
+    
+    await expect(connectionDot).toBeVisible();
+    await expect(settingsBtn).toBeVisible();
+    await expect(conversationBtn.first()).toBeVisible();
+
+    // Verify elements are positioned horizontally (not stacked vertically)
+    // Get bounding boxes to confirm horizontal layout
+    const dotBox = await connectionDot.boundingBox();
+    const settingsBox = await settingsBtn.boundingBox();
+    
+    if (dotBox && settingsBox) {
+      // Connection dot should be to the left of settings button (or have similar Y position)
+      // For horizontal layout, the Y positions should be roughly similar (within the same row)
+      expect(Math.abs((dotBox.y + dotBox.height/2) - (settingsBox.y + settingsBox.height/2))).toBeLessThan(30);
+    }
+  });
 });
 
 test.describe('Mobile Voice Input with Fake Audio', () => {
