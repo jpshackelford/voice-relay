@@ -747,3 +747,35 @@ Closes #139
 **Deploy:** Auto-deploys to app.no-hands.dev on merge to main
 
 🎉 **Issue #139 Complete** - Research phase done, ready for implementation (Phase 1: Web Kiosk MVP)
+
+### 2026-05-17 08:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9df14c6` | implementation | Issue #141 - README.md is out-of-date | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`9df14c6`](https://app.all-hands.dev/conversations/9df14c64a39f4c1cb12c3548a5092d48)
+- Task: Rewrite README.md with current architecture (workspaces, sessions, mobile/kiosk)
+
+**Previous Workers Completed:**
+- `040aab1` (merge PR #157): finished ✓ - Issue #139 closed (tvOS research)
+
+**Current State:**
+- Open PRs:
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) → **being implemented now**
+  - #142 (depends on stuck PR #143) - skipped
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (implementation worker `9df14c6`)
+
+**Housekeeping:**
+- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
+---
