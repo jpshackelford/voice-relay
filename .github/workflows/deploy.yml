@@ -21,6 +21,10 @@ on:
           - status
           - logs
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   operate:
     runs-on: ubuntu-latest
