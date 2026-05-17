@@ -524,3 +524,34 @@ The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn'
 - `client/src/components/MobileMode.tsx`
 
 **Complexity:** Low
+
+---
+### 2026-05-17 19:35 UTC - Expansion Worker
+
+✅ **Expanded Issue #167**
+
+- Issue: [#167 - Feature: Add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/issues/167)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+Users have no visibility into what the AI agent is doing in real-time. Only final message responses are shown - no insight into commands being run, files being read, or agent thinking.
+
+**Proposed Solution:**
+Add a collapsible "Agent Actions" panel in the kiosk sidebar with a toggle to show/hide real-time agent events from the OpenHands WebSocket stream.
+
+**Technical Approach:**
+1. Add `onAction` callback to `AISession` interface in `openhands.ts`
+2. Forward non-message events (AgentStateChangeEvent, CmdRunAction, etc.) to clients
+3. Create new `useAgentActions.ts` hook for state management
+4. Add toggle + panel UI in `KioskMode.tsx`
+
+**Files affected:**
+- `server/src/openhands.ts` - Add onAction callback, formatEventSummary() helper
+- `server/src/index.ts` - Wire up onAction to broadcast
+- `client/src/types.ts` - Add AgentActionMessage type
+- `client/src/hooks/useAgentActions.ts` (new)
+- `client/src/components/KioskMode.tsx` - Add actions panel UI
+- `client/src/App.css` - Add panel styles
+
+**Complexity:** Medium
