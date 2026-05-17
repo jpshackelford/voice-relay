@@ -25,6 +25,15 @@ export default defineConfig({
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
   retries: 0,
+  // Serial execution is intentional for this test suite:
+  // - All tests share a single test workspace created via /auth/test-session
+  // - Tests verify multi-device relay within that shared workspace context
+  // - Production handles concurrency via workspace isolation (each user has their own)
+  // - SQLite with WAL mode handles concurrent reads in production; test isolation
+  //   would require per-worker databases and server instances (tracked in #155)
+  workers: 1,
+  // Ensure tests within a file run in defined order (some depend on prior state)
+  fullyParallel: false,
   use: {
     baseURL: `http://localhost:${TEST_CLIENT_PORT}`,
     headless: true,

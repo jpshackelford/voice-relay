@@ -75,6 +75,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E tests
+        env:
+          TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
         run: npm test
 
       - name: Upload test results

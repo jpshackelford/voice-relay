@@ -3,6 +3,7 @@ import {
   getAuthState,
   waitForStableConnection,
   findMessageInput,
+  ensureKioskDrawerOpen,
 } from './utils/auth-helper';
 
 /**
@@ -112,7 +113,10 @@ async function sendMessage(page: Page, text: string): Promise<void> {
   const { input } = await findMessageInput(page);
   await input.fill(text);
   await input.press('Enter');
-  
+
+  // Ensure drawer is open in kiosk mode to see messages
+  await ensureKioskDrawerOpen(page);
+
   // Wait for message to appear
   const messageWithContent = page.locator('.kiosk-message.final, .message.final')
     .filter({ hasText: text });
@@ -123,6 +127,9 @@ async function sendMessage(page: Page, text: string): Promise<void> {
  * Helper: Check if a message is visible in session
  */
 async function isMessageVisible(page: Page, text: string): Promise<boolean> {
+  // Ensure drawer is open in kiosk mode to see messages
+  await ensureKioskDrawerOpen(page);
+
   const messageWithContent = page.locator('.kiosk-message.final, .message.final')
     .filter({ hasText: text });
   return await messageWithContent.isVisible({ timeout: 1000 }).catch(() => false);
@@ -161,7 +168,7 @@ test.describe('Session Management', () => {
     await expect(sessionRow).toBeVisible();
     
     // Check for session name (or truncated ID)
-    const sessionName = sessionRow.locator('.session-name');
+    const sessionName = sessionRow.locator('.session-name-text');
     await expect(sessionName).toBeVisible();
     
     // Check for creation time
@@ -346,15 +353,18 @@ test.describe('Session Management', () => {
     // Return to Session A by navigating directly to its URL
     await page.goto(`/workspace/${workspaceId}/session/${sessionAId}`);
     await waitForStableConnection(page, CONNECTION_STABLE_TIMEOUT);
-    
+
     // Wait for messages to load from server (history messages)
     await page.waitForTimeout(1000);
-    
+
+    // Open drawer after page navigation (drawer state resets on new page load)
+    await ensureKioskDrawerOpen(page);
+
     // Verify message A is still in Session A
     const msgALocator = page.locator('.kiosk-message.final, .message.final')
       .filter({ hasText: msgA });
     await expect(msgALocator.first()).toBeVisible({ timeout: MESSAGE_APPEAR_TIMEOUT });
-    
+
     // Verify message B is NOT in Session A
     expect(await isMessageVisible(page, msgB)).toBe(false);
   });
@@ -419,7 +429,7 @@ test.describe('Session Management', () => {
     await expect(sessionRow).toBeVisible();
     
     // Session name
-    await expect(sessionRow.locator('.session-name')).toBeVisible();
+    await expect(sessionRow.locator('.session-name-text')).toBeVisible();
     
     // Creation time
     await expect(sessionRow.locator('.session-meta')).toContainText(/Created/);

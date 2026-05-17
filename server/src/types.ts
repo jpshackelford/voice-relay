@@ -60,7 +60,7 @@ export function isValidPlatform(platform: unknown): platform is DevicePlatform {
 export interface RegisterMessage {
   type: 'register';
   deviceId: string;
-  workspaceId?: string;  // Optional for backward compatibility; defaults to 'default'
+  workspaceId?: string;  // Optional for backward compatibility; defaults to anonymous mode
   sessionId?: string;    // Optional; auto-assigns to active session if omitted
   displayName: string;
   mode: DeviceMode;

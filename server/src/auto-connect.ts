@@ -11,6 +11,7 @@ import type { MessageStore } from './storage/index.js';
 import type { AISessionManager } from './openhands.js';
 import type { TtsService } from './tts/index.js';
 import type { RelayedTextMessage, SessionAIStatusMessage } from './types.js';
+import { isAnonymousSession } from './constants.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -155,7 +156,7 @@ export function shouldAutoConnect(
   sessionRepository: SessionRepository,
   aiSessionManager: AISessionManager
 ): boolean {
-  if (!sessionId || sessionId === 'default') {
+  if (isAnonymousSession(sessionId)) {
     return false;
   }
   
