@@ -462,3 +462,40 @@ Add a quick-toggle button directly in the mobile header that allows single-tap s
 
 **Complexity:** Low - reuses existing state management, no API changes
 
+
+---
+### 2026-05-17 19:24 UTC - Expansion Worker (`f2401be`)
+
+✅ **Expanded Issue #162**
+
+- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- Type: Bug
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+On narrow mobile viewports (≤480px), the walkie-header icons (connection dot, settings button, conversation button) stack vertically instead of displaying horizontally.
+
+**Root Cause:**
+Generic CSS media query at `client/src/App.css` line 1095-1099 targets all `header` elements and sets `flex-direction: column`. This overrides the `.walkie-header` styles which should maintain horizontal layout.
+
+```css
+@media (max-width: 480px) {
+  header {
+    flex-direction: column;  /* Affects .walkie-header */
+  }
+}
+```
+
+**Proposed Fix:**
+Add explicit `.walkie-header` override in the media query:
+```css
+.walkie-header {
+  flex-direction: row;
+  align-items: center;
+}
+```
+
+**Files to Modify:**
+- `client/src/App.css` - Add `.walkie-header` override in `@media (max-width: 480px)` block (~line 1099)
+
+**Complexity:** Low
