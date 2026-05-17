@@ -663,3 +663,38 @@ Implemented Issue #141 - README.md is out-of-date and inaccurate
 
 CI: ✅ All checks passed (4/4)
 PR state: Ready for review
+
+---
+### 2026-05-17 09:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c4797aa` | review | PR #160 - README.md rewrite (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`c4797aa`](https://app.all-hands.dev/conversations/c4797aa2c11c4c7e844db00b0e253a31)
+- Task: Address 2 unresolved review threads:
+  - 🟠 Important: `workspaceId` should be optional (not required) in RegisterMessage
+  - 🟠 Important: Field name should be `display` not `content` in DisplayMessage
+
+**Previous Workers Completed:**
+- `558322f` (review PR #160 - round 1): finished ✓
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, 2 unresolved threads → **being addressed now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 in review
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `c4797aa`)
+
+**Housekeeping:**
+- 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
