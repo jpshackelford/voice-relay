@@ -828,3 +828,40 @@ PR state: Ready for review
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
 
 ---
+### 2026-05-17 06:05 UTC - Merge Worker (`9f442d8`)
+
+✅ **Merged PR #159 - Domain Migration**
+
+- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- Status: **MERGED** ✅
+- Issue #156: **CLOSED** (auto-closed via "Fixes #156")
+
+**Commit Message:**
+```
+docs: replace vr.chorecraft.net with app.no-hands.dev
+
+Migrates all domain references from the legacy vr.chorecraft.net to the
+new production domain app.no-hands.dev:
+
+- Update .env.example with new BASE_URL and relative SQLITE_PATH
+- Update CI workflow health checks and smoke test URLs
+- Update all test fixtures to use new domain
+- Mark legacy infrastructure documentation as deprecated
+- Preserve server paths in docs for historical reference
+
+Fixes #156
+```
+
+**Summary:**
+- 12 files changed across config, tests, and documentation
+- All active code references updated to app.no-hands.dev
+- Legacy server paths (e.g., /var/www/vr.chorecraft.net/app) retained for historical reference
+- CI/CD now targets new production URL for smoke tests
+- Documentation clearly marks old domain as deprecated
+
+**Production Impact:**
+- App auto-deploys to app.no-hands.dev on merge to main
+- No database migrations required (docs/config change only)
+
+---
