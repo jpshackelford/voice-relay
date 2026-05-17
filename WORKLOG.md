@@ -25,6 +25,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:20 UTC - Issue #168 Implementation
+
+**Issue:** #168 - Bug: Audio checkbox and display count on separate lines - combine to save space
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/181
+
+**Changes:**
+- Combined `kiosk-participants` and `kiosk-tts-toggle` into a single `kiosk-status-row` container
+- Added flexbox layout with `space-between` for horizontal alignment
+- Added 9 new unit tests for the combined layout
+
+**Status:** PR ready for review
+
+**Notes:**
+- E2E tests failing with "WebSocket connection did not stabilize" - these are pre-existing flaky tests on main branch, unrelated to this CSS/layout change
+- All 337 unit tests pass, including 9 new tests for this feature
+
+---
+
 ### 2026-05-17 15:32 UTC - Orchestrator
 
 **Active Workers:**
@@ -1267,5 +1286,72 @@ This would queue deployments instead of running them concurrently.
 - ⚠️ E2E Tests: Chromium failure (WebSocket stability - pre-existing on main, unrelated)
 
 **Risk:** 🟢 LOW - UI-only change, consistent with existing patterns
+
+---
+
+### 2026-05-17 23:07 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9452622` | review | PR #180 - Settings navigation | **NEW** |
+| `f401608` | implementation | Issue #168 - Audio checkbox layout | **NEW** |
+
+**Completed Workers (this cycle):**
+- `1d1fdc2` (implementation) → Created PR #180 for Issue #165 ✅
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** for [PR #180](https://github.com/jpshackelford/voice-relay/pull/180) (Issue #165)
+   - PR Review bot pending, will wait and address feedback
+   - Conversation: [`9452622`](https://app.all-hands.dev/conversations/9452622e07cb4a2d9ca60859ab2fc509)
+
+2. **Implementation Worker** for [Issue #168](https://github.com/jpshackelford/voice-relay/issues/168) (priority:medium)
+   - Bug: Audio checkbox and display count on separate lines
+   - Conversation: [`f401608`](https://app.all-hands.dev/conversations/f4016089a1eb47cca4c5b0a1a99f4832)
+
+**Priority Assessment (inline):**
+Assigned priorities to unprioritized ready issues:
+- #168 → `priority:medium` (bug fix)
+- #166, #167, #169 → `priority:low` (UI polish/features)
+
+**Current State:**
+- Open PRs: #180 (Settings navigation - under review)
+- Ready issues (priority:medium): #168 (in progress)
+- Ready issues (priority:low): #166, #167, #169
+- No issues needing expansion 🎉
+
+**Slot Status:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review | 1 | 1 | 2 |
+
+---
+
+### 2026-05-17 23:15 UTC - Review Worker (`9452622`)
+
+✅ **PR #180 Review Addressed** - Ready to Merge
+
+- PR: [#180](https://github.com/jpshackelford/voice-relay/pull/180)
+- Issue: [#165](https://github.com/jpshackelford/voice-relay/issues/165) - Mobile Settings navigation consistency
+- Priority: **MEDIUM**
+
+**Review Summary:**
+- PR Review Bot: 🟢 "Worth merging - Elegant solution that improves UX consistency"
+- No inline review comments requiring action
+- No additional changes needed
+
+**Minor Fix Applied:**
+- Restored `WORKLOG.md` and `.workflow-state.json` to main (these files were accidentally included in feature branch)
+
+**Final CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass
+- ✅ Conventional Commits lint: Pass
+- ⚠️ E2E Tests: Chromium failure (pre-existing flaky tests on main, unrelated to PR changes)
+
+**Status:** PR is ready for merge - all review feedback addressed
 
 ---
