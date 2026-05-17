@@ -206,6 +206,7 @@ async function globalSetup(config: FullConfig): Promise<void> {
 
   const workers: WorkerInfo[] = [];
   const processes: { server: ChildProcess; client: ChildProcess }[] = [];
+  const startupErrors: Error[] = [];
 
   try {
     // Spawn servers and clients for each worker
@@ -219,6 +220,22 @@ async function globalSetup(config: FullConfig): Promise<void> {
       const serverProc = spawnServer(i, serverPort, dbPath);
       const clientProc = spawnClient(i, clientPort, serverPort);
 
+      // Fail fast if processes exit unexpectedly during startup
+      serverProc.on('exit', (code) => {
+        if (code !== null && code !== 0) {
+          const error = new Error(`Server ${i} exited with code ${code}`);
+          console.error(`[global-setup] ${error.message}`);
+          startupErrors.push(error);
+        }
+      });
+      clientProc.on('exit', (code) => {
+        if (code !== null && code !== 0) {
+          const error = new Error(`Client ${i} exited with code ${code}`);
+          console.error(`[global-setup] ${error.message}`);
+          startupErrors.push(error);
+        }
+      });
+
       processes.push({ server: serverProc, client: clientProc });
 
       workers.push({
@@ -228,6 +245,12 @@ async function globalSetup(config: FullConfig): Promise<void> {
         serverPid: serverProc.pid || 0,
         clientPid: clientProc.pid || 0,
       });
+    }
+
+    // Check for early startup failures before waiting for health checks
+    await sleep(500);
+    if (startupErrors.length > 0) {
+      throw new Error(`Process startup failed: ${startupErrors.map(e => e.message).join(', ')}`);
     }
 
     // Wait for all servers to be ready
