@@ -1,4 +1,5 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 /**
  * Playwright configuration for parallel E2E tests.
@@ -37,13 +38,17 @@ import { defineConfig } from '@playwright/test';
 // Must match the default in global-setup.ts to ensure worker count consistency
 const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '4', 10);
 
+// Audio fixtures for mobile voice tests (from oh-local-speech)
+const AUDIO_FIXTURES_DIR = path.resolve(__dirname, 'tests/fixtures/audio');
+
 export default defineConfig({
   testDir: './tests',
   // Smoke tests are excluded from regular test runs - they require production
   // auth state and target the deployed server. Run them separately with:
   // `SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke`
   // See tests/smoke/README.md for setup instructions.
-  testIgnore: ['**/smoke/**'],
+  // Use explicit path pattern to ensure exclusion works
+  testIgnore: ['**/smoke/*.ts', '**/smoke/*.spec.ts'],
 
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
@@ -75,9 +80,34 @@ export default defineConfig({
   // This allows each worker to have its own isolated server instance
 
   projects: [
+    // Default project for standard E2E tests
+    // Excludes mobile-voice.spec.ts and smoke tests
     {
       name: 'chromium',
+      testIgnore: ['**/mobile-voice.spec.ts', '**/smoke/**'],
       use: { browserName: 'chromium' },
+    },
+    // Mobile voice tests project - run with: npm run test:mobile
+    // Includes fake audio device for testing voice input
+    {
+      name: 'mobile-chrome',
+      testMatch: '**/mobile-voice.spec.ts',
+      use: {
+        ...devices['Pixel 5'],
+        // Capture video for all mobile tests (useful for PR evidence)
+        video: 'on',
+        // Always capture screenshots (not just on failure)
+        screenshot: 'on',
+        launchOptions: {
+          args: [
+            // Use fake audio/video devices for testing
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+            // Use short_hello.wav as default fake audio input
+            `--use-file-for-fake-audio-capture=${path.join(AUDIO_FIXTURES_DIR, 'short_hello.wav')}`,
+          ],
+        },
+      },
     },
   ],
 });

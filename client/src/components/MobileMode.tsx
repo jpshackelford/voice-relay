@@ -1,8 +1,12 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, type FormEvent } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
+import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
+import { Oscilloscope } from './Oscilloscope';
+import { MobileSettings, type InputMode } from './MobileSettings';
+import { ConversationPane } from './ConversationPane';
 import type { DeviceInfo, DeviceMode, Utterance } from '../types';
 
 interface MobileModeProps {
@@ -14,7 +18,7 @@ interface MobileModeProps {
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
-  sessionId?: string;  // VR session ID for session-centric AI
+  sessionId?: string;
 }
 
 export function MobileMode({ 
@@ -34,67 +38,48 @@ export function MobileMode({
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
+  // Input mode: 'voice' uses Web Speech API only, 'visualizer' uses getUserMedia for oscilloscope only
+  // This eliminates the dual microphone stream issue by making them mutually exclusive
+  const [inputMode, setInputMode] = useState<InputMode>('voice');
   
   const utteranceIdRef = useRef(generateUUID());
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spokenUtterancesRef = useRef(new Set<string>());
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const sharedStreamRef = useRef<MediaStream | null>(null);
+  const lastViewedCountRef = useRef(0);
+  // Separate text state for visualizer mode manual text entry
+  const [visualizerText, setVisualizerText] = useState('');
+  // Refs for effect optimization (issue #3) - avoid re-running on state changes
+  const isListeningRef = useRef(false);
+  const audioAnalyserActiveRef = useRef(false);
 
-  const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
+  const { speak, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ sessionId });
+  const audioAnalyser = useAudioAnalyser();
+
+  // Memoize checkAvailability to avoid unstable dependency
+  const checkAvailability = ai.checkAvailability;
 
   // Check AI availability on mount
   useEffect(() => {
-    ai.checkAvailability().then(status => setAiAvailable(status.available));
-  }, [ai.checkAvailability]);
+    checkAvailability().then(status => setAiAvailable(status.available));
+  }, [checkAvailability]);
 
   // Notify parent of AI status changes
   useEffect(() => {
     onAIStatusChange?.(ai.connected);
   }, [ai.connected, onAIStatusChange]);
 
-  const generateNewUtteranceId = useCallback(() => {
-    utteranceIdRef.current = generateUUID();
+  // Cleanup shared stream on unmount
+  useEffect(() => {
+    return () => {
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
+    };
   }, []);
-
-  // Debounced send for typing
-  const sendDebounced = useCallback((currentText: string, partial: boolean) => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    if (!partial) {
-      sendText(utteranceIdRef.current, currentText, false);
-      return;
-    }
-
-    debounceRef.current = setTimeout(() => {
-      sendText(utteranceIdRef.current, currentText, true);
-    }, 100);
-  }, [sendText]);
-
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newText = e.target.value;
-    setText(newText);
-    sendDebounced(newText, true);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleSend = () => {
-    if (text.trim()) {
-      sendText(utteranceIdRef.current, text, false);
-      // AI messages are forwarded server-side via session WebSocket
-      setText('');
-      generateNewUtteranceId();
-    }
-  };
 
   // Speech recognition handlers
   const handleInterimResult = useCallback((transcript: string) => {
@@ -107,12 +92,10 @@ export function MobileMode({
     setInterimText('');
     
     if (autoSubmit) {
-      // Auto-submit: send as final and reset
       sendText(utteranceIdRef.current, newText.trim(), false);
       setText('');
       utteranceIdRef.current = generateUUID();
     } else {
-      // Manual mode: append to text with space, send as partial
       setText(newText + ' ');
       sendText(utteranceIdRef.current, newText + ' ', true);
     }
@@ -130,177 +113,284 @@ export function MobileMode({
     onError: handleSttError,
   });
 
+  // Keep refs in sync with state for effect optimization
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
+
+  useEffect(() => {
+    audioAnalyserActiveRef.current = audioAnalyser.isActive;
+  }, [audioAnalyser.isActive]);
+
+  // Stop active mic when input mode changes
+  // This ensures clean state transition when user switches modes in settings
+  // Uses refs to read current state inside the effect, only re-running when inputMode changes
+  // (Optimization: avoids unnecessary effect runs when isListening/isActive change)
+  useEffect(() => {
+    if (isListeningRef.current || audioAnalyserActiveRef.current) {
+      stopListening();
+      audioAnalyser.stop();
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
+    }
+  }, [inputMode, audioAnalyser.stop, stopListening]);
+
+  // Handle microphone toggle based on input mode.
+  //
+  // INPUT MODE DESIGN: To eliminate the dual microphone stream issue, speech recognition
+  // and audio visualization are mutually exclusive:
+  //
+  // - 'voice' mode: Uses Web Speech API only (browser manages mic internally)
+  //   Benefit: Native speech-to-text, no explicit getUserMedia call
+  //   Tradeoff: No oscilloscope visualization
+  //
+  // - 'visualizer' mode: Uses getUserMedia for oscilloscope only
+  //   Benefit: Real-time audio visualization
+  //   Tradeoff: No speech recognition, manual text input required
+  //
+  // This design ensures only ONE microphone stream is active at any time,
+  // eliminating resource waste and potential permission conflicts on mobile devices.
+  const handleMicToggle = useCallback(async () => {
+    // Stop current activity
+    if (isListening || audioAnalyser.isActive) {
+      stopListening();
+      audioAnalyser.stop();
+      if (sharedStreamRef.current) {
+        sharedStreamRef.current.getTracks().forEach(track => track.stop());
+        sharedStreamRef.current = null;
+      }
+      return;
+    }
+
+    if (inputMode === 'voice') {
+      // Voice mode: Use Web Speech API only (browser manages mic internally)
+      try {
+        startListening();
+      } catch (err) {
+        console.error('[MobileMode] Speech recognition error:', err);
+        setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
+      }
+    } else {
+      // Visualizer mode: Use getUserMedia for oscilloscope only
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        sharedStreamRef.current = stream;
+        await audioAnalyser.start(stream);
+      } catch (err) {
+        console.error('[MobileMode] Mic access error:', err);
+        setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+        audioAnalyser.stop();
+        if (sharedStreamRef.current) {
+          sharedStreamRef.current.getTracks().forEach(track => track.stop());
+          sharedStreamRef.current = null;
+        }
+      }
+    }
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening]);
+
   // Speak new final utterances when TTS is enabled (only from others)
   useEffect(() => {
     if (!ttsEnabled) return;
 
     for (const [id, utterance] of utterances) {
-      // Only speak messages from others
       if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
         spokenUtterancesRef.current.add(id);
+        // Prevent unbounded growth: keep only recent IDs
+        if (spokenUtterancesRef.current.size > 100) {
+          const entries = Array.from(spokenUtterancesRef.current);
+          spokenUtterancesRef.current = new Set(entries.slice(-50));
+        }
         speak(utterance.text);
       }
     }
   }, [utterances, ttsEnabled, speak, deviceId]);
 
-  // Note: AI message forwarding is now handled server-side
-  // When a text message is received via WebSocket, the server forwards it to the session's AI
+  // Handle manual text submission in visualizer mode
+  const handleVisualizerSubmit = useCallback((e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = visualizerText.trim();
+    if (!trimmed) return;
+    
+    sendText(utteranceIdRef.current, trimmed, false);
+    setVisualizerText('');
+    utteranceIdRef.current = generateUUID();
+  }, [visualizerText, sendText]);
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [utterances]);
+  // Connection status indicator
+  const connectionStatus = connected ? 'connected' : 'disconnected';
 
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
+  // Count unread messages (messages from others since last view)
+  const totalOtherMessages = useMemo(() => 
+    [...utterances.values()].filter(
+      u => u.senderId !== deviceId && !u.partial
+    ).length,
+    [utterances.size, deviceId]
+  );
+  const unreadCount = Math.max(0, totalOtherMessages - lastViewedCountRef.current);
+
+  // Reset unread count when conversation pane opens
+  const handleConversationOpen = useCallback(() => {
+    setConversationOpen(true);
+    lastViewedCountRef.current = totalOtherMessages;
+  }, [totalOtherMessages]);
+
+  const handleConversationClose = useCallback(() => {
+    setConversationOpen(false);
   }, []);
 
-  // Sort utterances by received time
-  const sortedUtterances = [...utterances.values()].sort(
-    (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
-  );
-
-  const mobileDevices = devices.filter(d => d.mode === 'mobile');
-  const kioskDevices = devices.filter(d => d.mode === 'kiosk');
+  // Device counts for settings
+  const mobileCount = devices.filter(d => d.mode === 'mobile').length;
+  const kioskCount = devices.filter(d => d.mode === 'kiosk').length;
 
   return (
-    <div className="mobile-mode">
-      <header>
-        <div className="device-info">
-          <span className="device-name">📱 {displayName}</span>
-          <span className={`connection-status ${connected ? 'connected' : ''}`}>
-            {connected ? '● Connected' : '○ Disconnected'}
-          </span>
-        </div>
-        <div className="mode-buttons">
-          <button className="mode-switch" onClick={() => onModeChange('kiosk')}>
-            🖥️ Kiosk
-          </button>
-        </div>
+    <div className="mobile-mode mobile-walkie">
+      {/* Minimal Header */}
+      <header className="walkie-header">
+        <div 
+          className={`connection-dot ${connectionStatus}`} 
+          title={connected ? 'Connected' : 'Disconnected'}
+          role="status"
+          aria-label={connected ? 'Connected to server' : 'Disconnected from server'}
+        />
+        <div className="walkie-header-spacer" />
+        <button 
+          className="walkie-header-btn" 
+          onClick={() => setSettingsOpen(true)}
+          title="Settings"
+          aria-label="Open settings"
+        >
+          ⚙️
+        </button>
+        <button 
+          className="walkie-header-btn conversation-btn" 
+          onClick={handleConversationOpen}
+          title="View conversation"
+          aria-label={`View conversation${unreadCount > 0 ? `, ${unreadCount} unread messages` : ''}`}
+        >
+          💬
+          {unreadCount > 0 && <span className="unread-badge" aria-hidden="true">{unreadCount}</span>}
+        </button>
       </header>
 
-      <div className="mobile-participants">
-        {mobileDevices.length > 0 && (
-          <span className="participant-group">
-            📱 {mobileDevices.length} mobile{mobileDevices.length !== 1 ? 's' : ''}
-          </span>
-        )}
-        {kioskDevices.length > 0 && (
-          <span className="participant-group">
-            🖥️ {kioskDevices.length} kiosk{kioskDevices.length !== 1 ? 's' : ''}
-          </span>
-        )}
-      </div>
-
-      <div className="tts-toggle">
-        <label>
-          <input
-            type="checkbox"
-            checked={ttsEnabled}
-            onChange={(e) => setTtsEnabled(e.target.checked)}
-            disabled={!ttsSupported}
-          />
-          🔊 Read messages aloud {isSpeaking && '(speaking...)'}
-        </label>
-        {!ttsSupported && <span className="not-supported">(not supported)</span>}
-      </div>
-
-      <div className="messages mobile-messages">
-        {sortedUtterances.length === 0 ? (
-          <div className="no-messages">
-            No messages yet. Start the conversation!
-          </div>
-        ) : (
-          sortedUtterances.map((utterance) => {
-            const isOwnMessage = utterance.senderId === deviceId;
-            return (
-              <div 
-                key={utterance.id} 
-                className={`message ${utterance.partial ? 'partial' : 'final'} ${isOwnMessage ? 'own-message' : ''}`}
-              >
-                <span className="sender">{isOwnMessage ? 'You' : utterance.senderName}:</span>
-                <span className="text">{utterance.text}</span>
-                {utterance.partial && <span className="typing-indicator">...</span>}
-              </div>
-            );
-          })
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="mobile-input-area">
-        {interimText && (
-          <div className="interim-text">
-            <em>{interimText}</em>
+      {/* Main Content */}
+      <div className="walkie-content">
+        {/* Oscilloscope - only shown in visualizer mode */}
+        {inputMode === 'visualizer' && (
+          <div className="walkie-oscilloscope">
+            <Oscilloscope
+              analyser={audioAnalyser.analyser}
+              dataArray={audioAnalyser.dataArray}
+              isActive={audioAnalyser.isActive}
+              width={280}
+              height={100}
+            />
           </div>
         )}
-        <div className="mobile-input-row">
-          {/* AI status indicator (display only - AI auto-connects to session) */}
-          {aiAvailable && (ai.connecting || ai.connected) && (
-            <div
-              className={`ai-status ${ai.connected ? 'active' : ''} ${ai.connecting ? 'connecting' : ''} ${ai.thinking ? 'thinking' : ''}`}
-              title={ai.connecting ? 'AI connecting...' : ai.thinking ? 'AI thinking...' : 'AI connected'}
-            >
-              {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
-            </div>
+
+        {/* Status Text */}
+        <div className="walkie-status">
+          {sttError ? (
+            <span className="walkie-error">⚠️ {sttError}</span>
+          ) : inputMode === 'visualizer' ? (
+            audioAnalyser.isActive ? (
+              <span className="walkie-listening">Recording...</span>
+            ) : (
+              <span className="walkie-ready">Tap to record</span>
+            )
+          ) : interimText ? (
+            <span className="walkie-interim">"{interimText}"</span>
+          ) : isListening ? (
+            <span className="walkie-listening">Listening...</span>
+          ) : (
+            <span className="walkie-ready">Tap to speak</span>
           )}
-          <button 
-            className={`stt-btn-small ${isListening ? 'listening' : ''}`}
-            onClick={isListening ? stopListening : startListening}
-            disabled={!sttSupported}
-            title={sttSupported ? (isListening ? 'Stop listening' : 'Start speech-to-text') : 'Speech recognition not supported'}
-          >
-            {isListening ? '🔴' : '🎤'}
-          </button>
-          <button
-            className={`auto-submit-toggle ${autoSubmit ? 'active' : ''}`}
-            onClick={() => setAutoSubmit(!autoSubmit)}
-            title={autoSubmit ? 'Auto-send on: speech sends immediately' : 'Auto-send off: edit before sending'}
-          >
-            {autoSubmit ? '⚡' : '✏️'}
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={handleTextChange}
-            onKeyDown={handleKeyDown}
-            placeholder={ai.connected ? "Ask the AI..." : "Type a message..."}
-          />
-          <button 
-            className="send-btn-small"
-            onClick={handleSend}
-            disabled={!text.trim()}
-          >
-            ➤
-          </button>
+        </div>
+
+        {/* Text input for visualizer mode (manual text entry) */}
+        {inputMode === 'visualizer' && (
+          <form className="walkie-text-form" onSubmit={handleVisualizerSubmit}>
+            <input
+              type="text"
+              className="walkie-text-input"
+              placeholder="Type message..."
+              value={visualizerText}
+              onChange={(e) => setVisualizerText(e.target.value)}
+              aria-label="Type message to send"
+            />
+            <button
+              type="submit"
+              className="walkie-send-btn"
+              disabled={!visualizerText.trim()}
+              aria-label="Send message"
+            >
+              ➤
+            </button>
+          </form>
+        )}
+
+        {/* Large Mic Button */}
+        <button
+          className={`walkie-mic-btn ${(isListening || audioAnalyser.isActive) ? 'active' : ''}`}
+          onClick={handleMicToggle}
+          disabled={inputMode === 'voice' && !sttSupported}
+          title={
+            inputMode === 'visualizer'
+              ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
+              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+          }
+          aria-label={
+            inputMode === 'visualizer'
+              ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
+              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+          }
+          aria-pressed={isListening || audioAnalyser.isActive}
+        >
+          <span className="mic-icon" aria-hidden="true">{(isListening || audioAnalyser.isActive) ? '🔴' : '🎤'}</span>
+        </button>
+
+        {/* AI Status Badge */}
+        {aiAvailable && (ai.connecting || ai.connected) && (
+          <div className={`walkie-ai-badge ${ai.thinking ? 'thinking' : ''}`}>
+            {ai.connecting ? '🔗 Connecting...' : ai.thinking ? '🤔 Thinking...' : '✨ AI Connected'}
+          </div>
+        )}
+
+        {/* Device counts (subtle) */}
+        <div className="walkie-devices">
+          {mobileCount > 0 && <span>📱 {mobileCount}</span>}
+          {kioskCount > 0 && <span>🖥️ {kioskCount}</span>}
         </div>
       </div>
 
-      {sttError && (
-        <div className="stt-error">
-          ⚠️ {sttError}
-        </div>
-      )}
+      {/* Settings Modal */}
+      <MobileSettings
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        displayName={displayName}
+        ttsEnabled={ttsEnabled}
+        ttsSupported={ttsSupported}
+        autoSubmit={autoSubmit}
+        inputMode={inputMode}
+        onTtsChange={setTtsEnabled}
+        onAutoSubmitChange={setAutoSubmit}
+        onInputModeChange={setInputMode}
+        onModeChange={onModeChange}
+      />
 
+      {/* Conversation Pane */}
+      <ConversationPane
+        isOpen={conversationOpen}
+        onClose={handleConversationClose}
+        utterances={utterances}
+        deviceId={deviceId}
+      />
+
+      {/* AI Error Toast */}
       {ai.error && (
-        <div className="ai-error">
+        <div className="walkie-toast error">
           ⚠️ AI: {ai.error}
-        </div>
-      )}
-
-      {(ai.connecting || ai.connected || ai.thinking) && (
-        <div className={`ai-status-indicator ${
-          ai.connecting ? 'connecting' :
-          ai.thinking ? 'thinking' :
-          'connected'
-        }`}>
-          {ai.connecting ? '🔗' : ai.thinking ? '🤔' : '✨'}
         </div>
       )}
     </div>
