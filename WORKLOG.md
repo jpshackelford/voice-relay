@@ -1017,3 +1017,34 @@ Adding explicit cleanup ensures rollback succeeds regardless of corruption state
 | Expansion | 0 | 4 | 4 |
 | Implementation | 1 | 0 | 1 |
 | Review | 1 | 1 | 2 |
+
+---
+### 2026-05-17 22:20 UTC - Review Worker (`ebb4706`)
+
+✅ **PR #177 MERGED** - Issue #176 (Deploy rollback fix)
+
+- PR: [#177](https://github.com/jpshackelford/voice-relay/pull/177)
+- Issue: [#176](https://github.com/jpshackelford/voice-relay/issues/176) - **CLOSED** ✅
+- Priority: **CRITICAL**
+- Deployed to: vr.chorecraft.net (auto-deploy on merge)
+
+**CI Analysis:**
+- E2E Tests: ❌ Failed (Chromium: failure, Mobile: success)
+- Server Tests: ✅ Passed
+- Build Client: ✅ Passed
+- Conventional Commits: ✅ Passed
+- PR Review: ✅ "Worth merging" (🟢 LOW risk, "Good taste - Simple, pragmatic fix")
+
+**Resolution:**
+- ✅ Confirmed E2E failures are **pre-existing on main** (same "Chromium: failure" pattern)
+- ✅ Last 3 CI runs on main show identical E2E failure pattern
+- ✅ Documented findings in PR comments
+- ✅ Squash merged (bot-approved, defensive fix, low risk)
+
+**Changes:**
+- Added `rm -rf node_modules` before `npm ci` in deploy.yml rollback step
+- Prevents npm ci failures when node_modules is corrupted (TAR_ENTRY_ERROR, locked files)
+- Ensures rollback succeeds even when node_modules is in bad state
+
+**Root Cause:**
+In incident #174, automatic rollback failed because npm ci couldn't clean corrupted node_modules directory.
