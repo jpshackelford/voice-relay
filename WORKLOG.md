@@ -1129,3 +1129,42 @@ In incident #174, automatic rollback failed because npm ci couldn't clean corrup
 | Implementation | 0 | 1 | 1 |
 | Review | 1 | 1 | 2 |
 
+---
+### 2026-05-17 22:33 UTC - Expansion Worker (`1b85f04`)
+
+✅ **Issue #178 RESOLVED & CLOSED** - Smoke test failure after deployment
+
+- Issue: [#178 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/178)
+- Priority: **CRITICAL**
+- Status: **CLOSED** ✅
+
+**Root Cause: Concurrent Deployment Race Condition**
+
+Two commits were pushed to main almost simultaneously (~22:21:51Z):
+- `77b0984` (worklog update)
+- `c0f5d7f` (PR #177 merge - deploy rollback fix)
+
+Both triggered separate Server Operations workflows that attempted to deploy to production concurrently, causing:
+1. **Git ref lock conflicts**: `error: cannot lock ref 'refs/remotes/origin/main'`
+2. **Corrupted node_modules**: Two `npm ci` processes ran simultaneously → TAR_ENTRY_ERROR failures
+
+**Resolution:**
+- ✅ Rollback to `5a25916` succeeded (eventually)
+- ✅ Production is healthy and operational
+- ✅ Health check: `{"status":"ok","devices":0,"version":"5a25916","deployedAt":"2026-05-17T22:22:39Z"}`
+
+**Classification:**
+- **Type**: Transient infrastructure issue (race condition)
+- **Impact**: Brief deployment failure, auto-recovered
+- **Code changes needed**: None
+
+**Recommendation:**
+Add concurrency control to Server Operations workflow to prevent future race conditions:
+```yaml
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+```
+
+This would queue deployments instead of running them concurrently.
+
