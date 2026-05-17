@@ -4061,6 +4061,16 @@ header {
   border-color: #555;
 }
 
+.input-mode-toggle.visualizer-active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.input-mode-toggle.visualizer-active:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.7);
+}
+
 .conversation-btn .unread-badge {
   position: absolute;
   top: -4px;

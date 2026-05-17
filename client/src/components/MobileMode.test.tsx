@@ -113,6 +113,8 @@ describe('MobileMode', () => {
       expect(screen.getByRole('button', { name: /open settings/i })).toBeDefined();
       // Should have conversation button
       expect(screen.getByRole('button', { name: /view conversation/i })).toBeDefined();
+      // Should have input mode toggle button
+      expect(screen.getByRole('button', { name: /switch to visualizer mode/i })).toBeDefined();
     });
 
     it('shows connection status indicator', () => {
@@ -125,6 +127,108 @@ describe('MobileMode', () => {
       render(<MobileMode {...defaultProps} connected={false} />);
       const indicator = screen.getByRole('status');
       expect(indicator.getAttribute('aria-label')).toContain('Disconnected');
+    });
+  });
+
+  describe('header toggle button', () => {
+    it('displays voice icon when in voice mode', () => {
+      render(<MobileMode {...defaultProps} />);
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.textContent).toBe('🗣️');
+    });
+
+    it('has proper aria-label in voice mode', () => {
+      render(<MobileMode {...defaultProps} />);
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.getAttribute('aria-label')).toBe('Switch to Visualizer mode');
+    });
+
+    it('has aria-pressed=false in voice mode', () => {
+      render(<MobileMode {...defaultProps} />);
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('switches to visualizer mode when clicked', async () => {
+      render(<MobileMode {...defaultProps} />);
+      
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      await act(async () => {
+        fireEvent.click(toggleBtn);
+      });
+
+      // After clicking, should now show visualizer icon and voice mode label
+      const updatedToggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
+      expect(updatedToggleBtn.textContent).toBe('📊');
+      expect(updatedToggleBtn.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('switches back to voice mode when clicked again', async () => {
+      render(<MobileMode {...defaultProps} />);
+      
+      // Switch to visualizer
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+      });
+
+      // Switch back to voice
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to voice mode/i }));
+      });
+
+      // Should be back to voice mode
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.textContent).toBe('🗣️');
+      expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('shows oscilloscope when switched to visualizer mode via header toggle', async () => {
+      render(<MobileMode {...defaultProps} />);
+      
+      // Initially no oscilloscope
+      expect(document.querySelector('.walkie-oscilloscope')).toBeNull();
+
+      // Click header toggle
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+      });
+
+      // Oscilloscope should now be visible
+      expect(document.querySelector('.walkie-oscilloscope')).not.toBeNull();
+    });
+
+    it('has visualizer-active class when in visualizer mode', async () => {
+      render(<MobileMode {...defaultProps} />);
+      
+      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.classList.contains('visualizer-active')).toBe(false);
+
+      await act(async () => {
+        fireEvent.click(toggleBtn);
+      });
+
+      const updatedToggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
+      expect(updatedToggleBtn.classList.contains('visualizer-active')).toBe(true);
+    });
+
+    it('stops active mic streams when toggling from voice to visualizer', async () => {
+      // Start with listening active
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: true,
+        isSupported: true,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+
+      render(<MobileMode {...defaultProps} />);
+
+      // Click header toggle to switch modes
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+      });
+
+      // stopListening should have been called when mode changed
+      expect(mockStopListening).toHaveBeenCalled();
     });
   });
 
