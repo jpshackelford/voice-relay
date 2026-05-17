@@ -826,3 +826,55 @@ PR #143 has been blocked by merge conflicts and `needs-human` label - rebasing a
 
 **Housekeeping:**
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-17 02:16 UTC - Implementation Worker (`165d426`)
+
+✅ **Created PR #158 - ElevenLabs API Key UI Configuration**
+
+- PR: [#158 - feat: add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/pull/158)
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Status: **Ready for review** ✅
+
+**Implementation Summary:**
+Adds the missing UI components to WorkspaceHome.tsx settings section for configuring ElevenLabs TTS integration.
+
+**Changes:**
+| File | Changes |
+|------|---------|
+| `client/src/pages/WorkspaceHome.tsx` | Added ElevenLabs API key input section, voice selector dropdown, TTS enable toggle |
+| `client/src/App.css` | Added CSS styles for voice selector and TTS toggle |
+| `client/src/hooks/useWorkspaceSettings.test.ts` | Added 12 new tests for ElevenLabs hook functions |
+
+**Features Implemented:**
+1. **ElevenLabs API Key Input Section**
+   - Password input with Save/Test/Remove buttons
+   - Status indicator (✓ Configured / ⚠️ Not Configured)
+   - Success/error message display with 3s auto-clear
+   - Link to elevenlabs.io for getting API key
+
+2. **Voice Selector Dropdown**
+   - Fetches available voices from ElevenLabs API
+   - Loading state while fetching
+   - Default voice: Aria (Xb7hH8MSUJpSbSDYk0k2)
+   - Only enabled when API key is configured
+
+3. **TTS Enable/Disable Toggle**
+   - Checkbox to enable ElevenLabs text-to-speech
+   - Only enabled when API key is configured
+   - Hint explaining kiosk device behavior
+
+**Acceptance Criteria (all 16 checkboxes met):**
+- ✅ API key input/save/test/remove functionality
+- ✅ Voice selector with dynamic voice fetching
+- ✅ TTS toggle with proper enable/disable logic
+- ✅ Button states during operations
+- ✅ Proper CSS styling matching existing patterns
+
+**Testing:**
+- 12 new tests for ElevenLabs hook functions
+- All 223 client tests pass
+- All 598 server tests pass
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
