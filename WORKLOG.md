@@ -1629,3 +1629,37 @@ Add a "Skip →" button in the top-right corner of the QR display that dismisses
 | Review | 2 | 0 | 2 |
 
 ---
+
+---
+
+### 2026-05-17 23:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a3b90a6` | review | PR #180 - Settings back button | running |
+| `cb0062b` | review | PR #181 - Kiosk sidebar status | running |
+| `df24a60` | expansion | Issue #189 - Device registration bug | **NEW** |
+| `27cc695` | implementation | Issue #184 - Concurrency controls | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Expansion Worker** for high-priority bug
+   - Issue: [#189 - bug: Devices not properly remembered](https://github.com/jpshackelford/voice-relay/issues/189)
+   - Conversation: [`df24a60`](https://app.all-hands.dev/conversations/df24a601d98c43b08f887258bdf1ece5)
+
+2. **Implementation Worker** for high-priority fix
+   - Issue: [#184 - Add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/issues/184)
+   - Conversation: [`27cc695`](https://app.all-hands.dev/conversations/27cc6951423545d8bfc0a286df215e2d)
+
+**Current State:**
+- 3 open PRs: #180 (CI fail), #181 (CI green), #187 (CI partial fail)
+- PR #187 fixes Issue #182, waiting for CI fixes
+- Review slots full (2/2) - working on PRs #180 and #181
+- Ready issues: #182 (has PR), #183, #186, #165, #166, #167, #168, #169
+- Issues needing expansion: #188 (low priority), #189 (high priority, now being expanded)
+
+**Recent Completions:**
+- ✅ Expansion workers finished: Issue #184, #186
+- ✅ Implementation worker finished: Issue #182
+
