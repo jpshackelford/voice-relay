@@ -2214,3 +2214,29 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived 2 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-16 19:40 UTC - Review Worker (`abd9826`)
+
+✅ **Addressed PR #146 Review Feedback - Memory Leak Fix**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Commit: 1ea3b4f
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `useAudioPlayback.ts:120` | 🟠 Important | Memory leak if audio-end never arrives | ✅ Added 30-second timeout-based cleanup per utteranceId |
+
+**Implementation:**
+- Added `chunkTimeoutsRef` to track per-utterance cleanup timeouts
+- Timeout resets on each incoming chunk (extends deadline while streaming)
+- Timeout clears when audio-end arrives (normal flow)
+- Timeouts cleared on `stop()` and component unmount
+- After 30s without audio-end, chunks are automatically cleaned up with warning log
+
+CI: ✅ All checks passed (4/4)
+Review Thread: Replied and resolved via GraphQL API
+PR state: Ready for review (moved from draft)
