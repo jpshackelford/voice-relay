@@ -25,6 +25,20 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 19:55 UTC - Implementation Worker
+
+**Completed:** Issue #162 - Mobile status icons stacking vertically
+
+- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
+- **Fix:** Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` block to preserve `flex-direction: row`
+- **Root Cause:** Generic `header` selector in mobile media query was setting `flex-direction: column`, overriding walkie-header styles
+- **Testing:** Added Playwright test to verify horizontal layout; mobile E2E tests pass
+- **CI Status:** Build, Server Tests, Conventional Commits all pass. Mobile tests pass. Chromium E2E tests failing with flaky WebSocket timeout (pre-existing issue in main branch)
+- **Status:** Ready for review
+
+---
+
 ### 2026-05-17 13:36 UTC - Orchestrator
 
 **Active Workers:**
