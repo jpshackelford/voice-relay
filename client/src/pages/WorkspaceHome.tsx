@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
-import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings';
+import { useWorkspaceSettings, type ElevenlabsVoice } from '../hooks/useWorkspaceSettings';
 import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
 
 // Default ElevenLabs voice ID (Aria)
@@ -323,7 +323,7 @@ export function WorkspaceHome() {
   const [elevenlabsApiKeyMessage, setElevenlabsApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // ElevenLabs voice selection state
-  const [voices, setVoices] = useState<{ voice_id: string; name: string }[]>([]);
+  const [voices, setVoices] = useState<ElevenlabsVoice[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
 
   // Version info from health endpoint
