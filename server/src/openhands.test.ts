@@ -8,9 +8,9 @@ import { loadPrompt, getServerUrl, AISessionManager, type AISession, type Thinki
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
     const originalBaseUrl = process.env.BASE_URL;
-    process.env.BASE_URL = 'https://vr.chorecraft.net';
+    process.env.BASE_URL = 'https://app.no-hands.dev';
     try {
-      expect(getServerUrl()).toBe('https://vr.chorecraft.net');
+      expect(getServerUrl()).toBe('https://app.no-hands.dev');
     } finally {
       if (originalBaseUrl) {
         process.env.BASE_URL = originalBaseUrl;
@@ -269,11 +269,11 @@ describe('loadPrompt', () => {
 
     test('SERVER_URL appears in all display API examples', () => {
       const originalBaseUrl = process.env.BASE_URL;
-      process.env.BASE_URL = 'https://vr.chorecraft.net';
+      process.env.BASE_URL = 'https://app.no-hands.dev';
       try {
         const prompt = loadPrompt('system-prompt');
         // Count occurrences of the URL in curl commands
-        const urlMatches = prompt.match(/https:\/\/vr\.chorecraft\.net\/api\/display/g);
+        const urlMatches = prompt.match(/https:\/\/app\.no-hands\.dev\/api\/display/g);
         expect(urlMatches).toBeTruthy();
         // Should appear 4 times (greeting, markdown, image, clear commands)
         expect(urlMatches!.length).toBe(4);

@@ -8,7 +8,7 @@ For fully unattended smoke tests, use the test auth endpoint:
 
 ```bash
 # Requires TEST_AUTH_SECRET set on both server and in your env
-TEST_AUTH_SECRET=your-secret SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+TEST_AUTH_SECRET=your-secret SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
 ```
 
 ## Setup
@@ -31,30 +31,30 @@ TEST_AUTH_SECRET=your-secret SMOKE_TEST_URL=https://vr.chorecraft.net npm run sm
 
 5. Run tests:
    ```bash
-   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
    ```
 
 ### Option 2: Interactive Authentication (Local Development)
 
 ```bash
 # Opens browser for GitHub OAuth - complete login manually
-SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke:auth
+SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke:auth
 
 # Then run tests using saved session
-SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
 ```
 
 ## Running Smoke Tests
 
 ```bash
 # Run all smoke tests against production
-SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
 
 # Run specific test
-SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.spec.ts -g "health"
+SMOKE_TEST_URL=https://app.no-hands.dev npx playwright test tests/smoke/smoke.spec.ts -g "health"
 
 # Run only unauthenticated tests
-SMOKE_TEST_URL=https://vr.chorecraft.net npx playwright test tests/smoke/smoke.spec.ts -g "Health|Authentication Flow"
+SMOKE_TEST_URL=https://app.no-hands.dev npx playwright test tests/smoke/smoke.spec.ts -g "Health|Authentication Flow"
 ```
 
 ## What's Tested
@@ -120,7 +120,7 @@ smoke-tests:
     - run: npx playwright install chromium
     - name: Run smoke tests
       env:
-        SMOKE_TEST_URL: https://vr.chorecraft.net
+        SMOKE_TEST_URL: https://app.no-hands.dev
         TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
       run: npm run smoke
 ```

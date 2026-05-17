@@ -12,16 +12,16 @@ import * as path from 'path';
  * 
  * Usage:
  *   # Automated (requires TEST_AUTH_SECRET on server and in env):
- *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+ *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
  *   
  *   # Interactive (manual OAuth):
- *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke:auth
- *   SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke
+ *   SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke:auth
+ *   SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
  * 
  * Note: Auth state is created by global-setup.ts before tests run.
  */
 
-const BASE_URL = process.env.SMOKE_TEST_URL || 'https://vr.chorecraft.net';
+const BASE_URL = process.env.SMOKE_TEST_URL || 'https://app.no-hands.dev';
 const AUTH_FILE = path.join(__dirname, '.auth-state.json');
 
 test.describe('Production Smoke Tests', () => {

@@ -1,6 +1,10 @@
-# Deployment Guide (vr.chorecraft.net)
+# Deployment Guide
 
-This documents the production deployment of Voice Relay on `vr.chorecraft.net`.
+> **Note:** This document describes the legacy deployment on `chorecraft.net`. 
+> The production app is now served at **`app.no-hands.dev`** with different infrastructure.
+> Server-specific paths (systemd configs, Apache settings) below are historical reference only.
+
+This documents the legacy production deployment of Voice Relay on `chorecraft.net`.
 
 ## Server Overview
 
@@ -9,7 +13,7 @@ This documents the production deployment of Voice Relay on `vr.chorecraft.net`.
 | Host | `chorecraft.net` (74.50.50.116) |
 | OS | Ubuntu 22.04 |
 | User | `jpshack` |
-| Domain | `vr.chorecraft.net` |
+| Domain | `vr.chorecraft.net` (legacy) |
 | SSL | Let's Encrypt (via Certbot) |
 
 ## Directory Structure
@@ -158,7 +162,7 @@ See `.env.example` for required variables. Key ones:
 | `GITHUB_CLIENT_ID` | GitHub OAuth App Client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App Client Secret |
 | `JWT_SECRET` | Secret for signing JWT tokens |
-| `BASE_URL` | `https://vr.chorecraft.net` (for OAuth callbacks) |
+| `BASE_URL` | `https://app.no-hands.dev` (for OAuth callbacks) |
 | `OPENHANDS_CLOUD_API_KEY` | OpenHands AI integration |
 
 ## Deployment
@@ -193,7 +197,7 @@ sudo systemctl restart voice-relay
 
 # Verify
 sudo systemctl status voice-relay
-curl -I https://vr.chorecraft.net/health
+curl -I https://app.no-hands.dev/health
 ```
 
 ## GitHub OAuth Setup
@@ -202,8 +206,8 @@ curl -I https://vr.chorecraft.net/health
 2. Click **OAuth Apps** → **New OAuth App**
 3. Fill in:
    - **Application name:** Voice Relay
-   - **Homepage URL:** `https://vr.chorecraft.net`
-   - **Authorization callback URL:** `https://vr.chorecraft.net/auth/github/callback`
+   - **Homepage URL:** `https://app.no-hands.dev`
+   - **Authorization callback URL:** `https://app.no-hands.dev/auth/github/callback`
 4. Copy Client ID and generate Client Secret
 5. Add to `/var/www/vr.chorecraft.net/app/.env`:
    ```

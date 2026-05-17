@@ -19,7 +19,7 @@ export default defineConfig({
   testDir: './tests',
   // Smoke tests are excluded from regular test runs - they require production
   // auth state and target the deployed server. Run them separately with:
-  // `SMOKE_TEST_URL=https://vr.chorecraft.net npm run smoke`
+  // `SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke`
   // See tests/smoke/README.md for setup instructions.
   testIgnore: ['**/smoke/**'],
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s

@@ -104,7 +104,7 @@ jobs:
         run: |
           echo "Waiting for server to be ready..."
           for i in {1..30}; do
-            if curl -s https://vr.chorecraft.net/health | grep -q '"status":"ok"'; then
+            if curl -s https://app.no-hands.dev/health | grep -q '"status":"ok"'; then
               echo "Server is ready!"
               exit 0
             fi
@@ -116,7 +116,7 @@ jobs:
       
       - name: Run smoke tests
         env:
-          SMOKE_TEST_URL: https://vr.chorecraft.net
+          SMOKE_TEST_URL: https://app.no-hands.dev
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
         run: npm run smoke
       
@@ -327,7 +327,7 @@ jobs:
         run: |
           echo "Waiting for server to be ready after rollback..."
           for i in {1..30}; do
-            if curl -s https://vr.chorecraft.net/health | grep -q '"status":"ok"'; then
+            if curl -s https://app.no-hands.dev/health | grep -q '"status":"ok"'; then
               echo "Server is healthy after rollback!"
               echo "rollback_success=true" >> "$GITHUB_OUTPUT"
               exit 0
