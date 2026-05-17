@@ -925,3 +925,31 @@ tsc: not found - TypeScript not properly installed
 - Implementation: 1/1 (full)
 - Review: 1/2
 
+---
+### 2026-05-17 22:03 UTC - Review Worker (`00c600d`)
+
+✅ **PR #175 MERGED** - Issue #163 (Remove kiosk mode navigation)
+
+- PR: [#175](https://github.com/jpshackelford/voice-relay/pull/175)
+- Issue: [#163](https://github.com/jpshackelford/voice-relay/issues/163) - **CLOSED** ✅
+- Deployed to: vr.chorecraft.net (auto-deploy on merge)
+
+**CI Analysis:**
+- Chromium E2E: ❌ Failed (WebSocket connection stability - QR join flow tests)
+- Mobile E2E: ✅ Passed
+- Server Tests: ✅ Passed
+- Build Client: ✅ Passed
+- PR Review: ✅ "Worth merging" (🟢 LOW risk)
+
+**Resolution:**
+- ✅ Confirmed failures are **pre-existing on main** (not introduced by this PR)
+- ✅ Failures are in QR join flow tests - completely unrelated to mobile settings changes
+- ✅ Re-ran failed workflow - still failing (persistent infrastructure issue, not flaky)
+- ✅ Documented findings in PR comments
+- ✅ Squash merged (bot-approved, UI-only change, low risk)
+
+**Changes:**
+- Removed "Switch to Kiosk Mode" button from MobileSettings
+- Cleaned up unused `onModeChange` prop and imports
+- Updated tests to reflect removed functionality
+
