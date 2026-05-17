@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { setupTwoDeviceSession, ensureKioskInputVisible, ensureKioskDrawerOpen } from './utils/auth-helper';
 
 /**
@@ -14,11 +14,10 @@ import { setupTwoDeviceSession, ensureKioskInputVisible, ensureKioskDrawerOpen }
  * - Server must have TEST_AUTH_SECRET configured
  * - TEST_AUTH_SECRET environment variable must be set
  *
- * These tests run against the local dev server (via webServer config in playwright.config.ts)
+ * These tests run in parallel with per-worker isolation (GitHub Issue #155)
  */
 
-// Run tests serially to avoid port conflicts and resource contention
-// (individual tests call test.slow() to get 3x timeout)
+// Run tests serially within this file (they share workspace state within a worker)
 test.describe.configure({ mode: 'serial' });
 
 // Get test auth secret from environment
@@ -38,9 +37,9 @@ test.describe('Multi-Device Real-Time Relay', () => {
 
   let baseURL: string;
 
-  test.beforeEach(async ({ page }) => {
-    // Get base URL from page context (set by webServer config)
-    baseURL = page.context().baseURL || 'http://localhost:5174';
+  test.beforeEach(async ({ workerBaseURL }) => {
+    // Get base URL from worker fixture (set by global setup)
+    baseURL = workerBaseURL;
   });
 
   test('two devices can join same session and relay messages', async ({ browser }) => {

@@ -322,7 +322,7 @@ export async function setupTwoDeviceSession(
   const mobilePage = await mobileContext.newPage();
 
   // Navigate kiosk to dashboard (which redirects to workspace home)
-  await kioskPage.goto('/dashboard');
+  await kioskPage.goto(`${baseURL}/dashboard`);
 
   // Wait for workspace home to load (shows devices section)
   await expect(kioskPage.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
@@ -422,12 +422,15 @@ export interface MessageInputResult {
  *
  * @param page - The kiosk Playwright page
  * @param connectionTimeout - Timeout for connection stabilization (default: 20000)
+ * @param baseURL - Optional base URL for navigation (for parallel test isolation)
  */
 export async function navigateKioskToSession(
   page: Page,
-  connectionTimeout: number = 20000
+  connectionTimeout: number = 20000,
+  baseURL?: string
 ): Promise<void> {
-  await page.goto('/dashboard');
+  const dashboardUrl = baseURL ? `${baseURL}/dashboard` : '/dashboard';
+  await page.goto(dashboardUrl);
   await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
 

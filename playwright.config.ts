@@ -1,19 +1,41 @@
 import { defineConfig } from '@playwright/test';
 
-// Use different ports for tests to avoid conflicts with dev server
-const TEST_CLIENT_PORT = 5174;
-const TEST_SERVER_PORT = 3002;
+/**
+ * Playwright configuration for parallel E2E tests.
+ *
+ * ## Architecture (GitHub Issue #155)
+ *
+ * Each Playwright worker gets isolated infrastructure:
+ * - Unique client port: 5174 + (workerIndex * 10)
+ * - Unique server port: 3002 + (workerIndex * 10)
+ * - Unique SQLite database: ./data/test-worker-{workerIndex}.db
+ *
+ * Port Allocation:
+ * | Worker | Client Port | Server Port | Database                  |
+ * |--------|-------------|-------------|---------------------------|
+ * | 0      | 5174        | 3002        | ./data/test-worker-0.db   |
+ * | 1      | 5184        | 3012        | ./data/test-worker-1.db   |
+ * | 2      | 5194        | 3022        | ./data/test-worker-2.db   |
+ * | 3      | 5204        | 3032        | ./data/test-worker-3.db   |
+ *
+ * ## Server Lifecycle
+ *
+ * - globalSetup spawns all worker servers before tests run
+ * - globalTeardown kills all processes and cleans up after tests
+ * - Each test file imports fixtures.ts which provides worker-specific baseURL
+ *
+ * ## Environment Variables
+ *
+ * - PLAYWRIGHT_WORKERS: Number of parallel workers (default: 4)
+ * - TEST_AUTH_SECRET: Required for authenticated tests
+ * - JWT_SECRET: JWT signing secret (defaults to test value locally)
+ * - DEBUG_GLOBAL_SETUP: Enable verbose logging from server processes
+ * - CLEANUP_TEST_DBS: Remove test databases after teardown (default: false)
+ */
 
-// Get auth secret from environment for multi-device tests
-const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET || '';
-// JWT_SECRET is required for auth to work. In local development, a fallback is
-// convenient. In CI, JWT_SECRET MUST be set explicitly via environment/secrets
-// to avoid using a well-known value that could be exploited if tests somehow
-// run against non-test infrastructure.
-const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-local-dev-only';
-
-// Use a separate test database to avoid conflicts with dev/prod
-const SQLITE_PATH = process.env.SQLITE_PATH || './data/test-messages.db';
+// Determine worker count from environment or default to 4
+// Must match the default in global-setup.ts to ensure worker count consistency
+const WORKER_COUNT = parseInt(process.env.PLAYWRIGHT_WORKERS || '4', 10);
 
 export default defineConfig({
   testDir: './tests',
@@ -22,34 +44,36 @@ export default defineConfig({
   // `SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke`
   // See tests/smoke/README.md for setup instructions.
   testIgnore: ['**/smoke/**'],
+
   // Default timeout of 30s, but multi-device tests use test.slow() for 90s
   timeout: 30000,
   retries: 0,
-  // Serial execution is intentional for this test suite:
-  // - All tests share a single test workspace created via /auth/test-session
-  // - Tests verify multi-device relay within that shared workspace context
-  // - Production handles concurrency via workspace isolation (each user has their own)
-  // - SQLite with WAL mode handles concurrent reads in production; test isolation
-  //   would require per-worker databases and server instances (tracked in #155)
-  workers: 1,
-  // Ensure tests within a file run in defined order (some depend on prior state)
-  fullyParallel: false,
+
+  // Parallel execution with per-worker isolation (GitHub Issue #155)
+  // Each worker gets its own server instance and database
+  workers: WORKER_COUNT,
+
+  // Allow tests within a file to run in parallel
+  // Tests that need sequential execution can use test.describe.configure({ mode: 'serial' })
+  fullyParallel: true,
+
+  // Global setup/teardown handles server lifecycle for all workers
+  globalSetup: './tests/global-setup.ts',
+  globalTeardown: './tests/global-teardown.ts',
+
   use: {
-    baseURL: `http://localhost:${TEST_CLIENT_PORT}`,
+    // baseURL is dynamically set per-worker via fixtures.ts
+    // The default here is just a fallback
+    baseURL: 'http://localhost:5174',
     headless: true,
     screenshot: 'only-on-failure',
     // Enable tracing for debugging failed tests
     trace: 'on-first-retry',
   },
-  webServer: {
-    // Pass env vars inline in the command (more reliable than env option)
-    // Use SQLite storage to enable auth routes (required for multi-device tests)
-    command: `PORT=${TEST_SERVER_PORT} STORE_DRIVER=sqlite SQLITE_PATH="${SQLITE_PATH}" TEST_AUTH_SECRET="${TEST_AUTH_SECRET}" JWT_SECRET="${JWT_SECRET}" npm run dev -w server & VITE_WS_PORT=${TEST_SERVER_PORT} npm run dev -w client -- --port ${TEST_CLIENT_PORT}`,
-    url: `http://localhost:${TEST_CLIENT_PORT}`,
-    reuseExistingServer: false,
-    // Increase timeout for server startup
-    timeout: 60000,
-  },
+
+  // NOTE: webServer block removed - servers are now managed by globalSetup/globalTeardown
+  // This allows each worker to have its own isolated server instance
+
   projects: [
     {
       name: 'chromium',

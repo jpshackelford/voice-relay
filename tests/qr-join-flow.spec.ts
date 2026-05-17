@@ -1,4 +1,5 @@
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { test, expect } from './fixtures';
+import type { Browser, BrowserContext, Page } from '@playwright/test';
 import { 
   createAuthenticatedContext, 
   waitForStableConnection,
@@ -45,9 +46,9 @@ test.describe('QR Code Join Flow', () => {
 
   let baseURL: string;
 
-  test.beforeEach(async ({ page }) => {
-    // Get base URL from page context (set by webServer config)
-    baseURL = page.context().baseURL || 'http://localhost:5174';
+  test.beforeEach(async ({ workerBaseURL }) => {
+    // Get base URL from worker fixture (set by global setup)
+    baseURL = workerBaseURL;
   });
 
   test('mobile device joins session via QR code URL', async ({ browser }) => {
@@ -69,7 +70,7 @@ test.describe('QR Code Join Flow', () => {
 
     try {
       // Navigate kiosk to session
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Verify large QR code is displayed (no mobile devices yet)
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
@@ -138,7 +139,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract and validate QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
@@ -181,7 +182,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Verify initial state: large QR visible, mini QR not visible
       await expect(kioskPage.locator('.display-idle-qr')).toBeVisible();
@@ -245,7 +246,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
@@ -322,7 +323,7 @@ test.describe('QR Code Join Flow', () => {
     const kioskPage = await kioskContext.newPage();
 
     try {
-      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT);
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
 
       // Extract QR URL
       const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
