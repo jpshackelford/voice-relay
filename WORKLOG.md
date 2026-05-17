@@ -1230,3 +1230,42 @@ This would queue deployments instead of running them concurrently.
 | Review | 0 | 2 | 2 |
 
 ---
+### 2026-05-17 22:55 UTC - Implementation Worker (`1d1fdc2`)
+
+✅ **PR #180 Created** - Issue #165 (Settings navigation consistency)
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- PR: [#180 - fix(client): use consistent back button navigation in Settings modal](https://github.com/jpshackelford/voice-relay/pull/180)
+- Status: **Ready for review** ✅
+- Priority: MEDIUM
+
+**Changes:**
+- Replaced X close button (✕) with back button (← Back) in MobileSettings modal
+- Reordered header elements: back button first, then title (matching ConversationPane)
+- Updated CSS: `.mobile-settings-close` → `.mobile-settings-back` with matching styles
+
+**Files Modified:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back"
+- `client/src/App.css` - Update styles to match ConversationPane
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions
+- `client/src/components/MobileMode.test.tsx` - Fix selectors
+- `tests/mobile-voice.spec.ts` - Update Playwright selectors
+
+**Acceptance Criteria Met:**
+- [x] Settings modal uses back button (←) instead of X for closing
+- [x] Back button text consistent with conversation pane ("← Back")
+- [x] Back button positioned in header's left side
+- [x] Header layout remains clean and accessible
+- [x] All existing functionality preserved
+
+**CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass
+- ✅ Client Tests: Pass (328 tests)
+- ✅ Conventional Commits lint: Pass
+- ✅ Mobile E2E: Pass (9/9)
+- ⚠️ E2E Tests: Chromium failure (WebSocket stability - pre-existing on main, unrelated)
+
+**Risk:** 🟢 LOW - UI-only change, consistent with existing patterns
+
+---
