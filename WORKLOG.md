@@ -838,3 +838,31 @@ PR #143 has been blocked by merge conflicts and `needs-human` label - rebasing a
 **Housekeeping:**
 - 📦 Archived old entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
 
+
+---
+### 2026-05-17 01:36 UTC - Merge Worker (`653ba7b`)
+
+✅ **Merged PR #148 - E2E Test Fixes**
+
+- PR: [#148 - fix(e2e): multiple fixes for E2E test failures when TEST_AUTH_SECRET is enabled](https://github.com/jpshackelford/voice-relay/pull/148)
+- Issue: [#147 - Fix Stale E2E Test Selectors](https://github.com/jpshackelford/voice-relay/issues/147)
+- Status: **MERGED** ✅
+- Issue #147: **AUTO-CLOSED** ✅
+
+**Merge Details:**
+- Squash-merged with conventional commit: `fix(e2e): multiple fixes for E2E test failures when TEST_AUTH_SECRET is enabled`
+- All 58 E2E tests passing
+
+**Key Changes:**
+- CSS selector fixes: `.session-name` → `.session-name-text`, `.qr-code-container canvas` → `.qr-code-container img`
+- Added `TEST_AUTH_SECRET` to CI workflow
+- Serial test execution (`workers: 1`) to avoid SQLite race conditions
+- Added `ensureKioskDrawerOpen()` helper for kiosk sidebar visibility
+- Extracted anonymous mode constants to `server/src/constants.ts`
+- Added `isAnonymousMode()` and `isAnonymousSession()` helper functions
+- Extracted `resolveSessionForDevice()` to reduce register handler complexity
+
+**Production Notes:**
+- No database migrations - purely test infrastructure and code refactoring
+- Safe for production deployment
+- App auto-deploys to vr.chorecraft.net on merge to main
