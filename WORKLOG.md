@@ -679,3 +679,29 @@ The AI successfully addressed all code review feedback:
 - No blocked work - automation can proceed normally
 
 **Action:** Removed outdated "needs-human" / "CONFLICTING" references to PR #143
+
+---
+### 2026-05-17 20:17 UTC - Merge Worker (Manual)
+
+✅ **Merged PR #171 - Issue #162 (Mobile Status Icons)**
+
+- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
+- **Status:** **MERGED** ✅
+- **Issue #162:** **CLOSED** (auto-closed via "Fixes #162")
+
+**Fix Summary:**
+Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` to preserve `flex-direction: row` layout. The generic `header` selector was setting `flex-direction: column`, causing icons to stack vertically.
+
+**CI Status at Merge:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass
+- ✅ Lint PR Title: Pass
+- ✅ **Mobile E2E Tests: Pass** (validates the CSS fix)
+- ⚠️ Chromium E2E: Flaky WebSocket timeout (unrelated to CSS change)
+
+**Risk:** 🟢 LOW - CSS-only change, zero runtime risk
+
+**Cleanup:** PR #170 (duplicate) should be closed.
+
+**Production:** App auto-deploys to vr.chorecraft.net on merge to main
