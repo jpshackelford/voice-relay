@@ -3434,6 +3434,77 @@ header {
   text-decoration: underline;
 }
 
+/* ElevenLabs Settings */
+.elevenlabs-setting {
+  margin-top: 1rem;
+}
+
+.voice-setting {
+  padding-top: 1rem;
+}
+
+.voice-select-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.voice-select {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.voice-select:focus {
+  border-color: #3282b8;
+}
+
+.voice-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tts-toggle-setting {
+  padding-top: 0.75rem;
+}
+
+.tts-toggle-setting label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.tts-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #3282b8;
+  cursor: pointer;
+}
+
+.tts-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.checkbox-label {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.tts-toggle-setting .setting-hint {
+  margin-left: 26px;
+}
+
 /* ===== Waiting for Approval Overlay ===== */
 .waiting-for-approval-overlay {
   position: fixed;

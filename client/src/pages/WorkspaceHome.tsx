@@ -4,8 +4,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
-import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings';
+import { useWorkspaceSettings, type ElevenlabsVoice } from '../hooks/useWorkspaceSettings';
 import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
+
+// Default ElevenLabs voice ID (Aria)
+const DEFAULT_ELEVENLABS_VOICE_ID = 'Xb7hH8MSUJpSbSDYk0k2';
+
+// Safe error message extraction - handles non-Error throws
+function getErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 // Format relative time (e.g., "2m ago", "1hr ago")
 function formatRelativeTime(date: string): string {
@@ -314,6 +322,15 @@ export function WorkspaceHome() {
   const [apiKeyStatus, setApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
   const [apiKeyMessage, setApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // ElevenLabs API key settings state
+  const [elevenlabsApiKeyInput, setElevenlabsApiKeyInput] = useState('');
+  const [elevenlabsApiKeyStatus, setElevenlabsApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
+  const [elevenlabsApiKeyMessage, setElevenlabsApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // ElevenLabs voice selection state
+  const [voices, setVoices] = useState<ElevenlabsVoice[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
+
   // Version info from health endpoint
   const [version, setVersion] = useState<string | null>(null);
 
@@ -325,7 +342,12 @@ export function WorkspaceHome() {
     settings, 
     setApiKey, 
     testApiKey, 
-    removeApiKey 
+    removeApiKey,
+    setElevenlabsApiKey,
+    testElevenlabsApiKey,
+    removeElevenlabsApiKey,
+    fetchElevenlabsVoices,
+    updateSettings,
   } = useWorkspaceSettings(workspaceId, workspace?.isOwner ?? false);
   
   // Use ref to prevent race condition with auto-create
@@ -384,6 +406,45 @@ export function WorkspaceHome() {
       return () => clearTimeout(timer);
     }
   }, [inviteLinkError]);
+
+  // Clear ElevenLabs API key success messages after 3 seconds
+  useEffect(() => {
+    if (elevenlabsApiKeyMessage?.type === 'success') {
+      const timer = setTimeout(() => setElevenlabsApiKeyMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [elevenlabsApiKeyMessage]);
+
+  // Fetch ElevenLabs voices when key is configured
+  useEffect(() => {
+    if (settings?.hasElevenlabsApiKey) {
+      setVoicesLoading(true);
+      fetchElevenlabsVoices()
+        .then(async (fetchedVoices) => {
+          setVoices(fetchedVoices);
+          // Handle edge case: ensure selected voice exists in the fetched list
+          if (fetchedVoices.length > 0) {
+            const currentVoiceId = settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID;
+            const voiceExists = fetchedVoices.some(v => v.voice_id === currentVoiceId);
+            if (!voiceExists) {
+              // Fallback to first available voice if current selection doesn't exist
+              try {
+                await updateSettings({ elevenlabsVoiceId: fetchedVoices[0].voice_id });
+              } catch (err) {
+                setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to set fallback voice: ' + getErrorMessage(err) });
+              }
+            }
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch ElevenLabs voices:', err);
+          setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to load voices: ' + getErrorMessage(err) });
+        })
+        .finally(() => setVoicesLoading(false));
+    } else {
+      setVoices([]);
+    }
+  }, [settings?.hasElevenlabsApiKey, fetchElevenlabsVoices, updateSettings]);
 
   // Find current workspace from list
   useEffect(() => {
@@ -457,7 +518,7 @@ export function WorkspaceHome() {
       setRemoveDeviceMessage({ type: 'success', text: `Device "${deviceName}" removed successfully` });
       // Message will be cleared by useEffect when removeDeviceMessage changes
     } catch (err) {
-      setRemoveDeviceMessage({ type: 'error', text: (err as Error).message });
+      setRemoveDeviceMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setRemovingDevice(false);
     }
@@ -485,7 +546,7 @@ export function WorkspaceHome() {
       // Toast will be cleared by useEffect when archiveToast changes
     } catch (err) {
       console.error('Failed to archive session:', err);
-      setArchiveToast(`Failed to archive: ${(err as Error).message}`);
+      setArchiveToast(`Failed to archive: ${getErrorMessage(err)}`);
       // Toast will be cleared by useEffect when archiveToast changes
     } finally {
       setArchivingSession(false);
@@ -504,7 +565,7 @@ export function WorkspaceHome() {
       setApiKeyInput('');
       setApiKeyMessage({ type: 'success', text: 'API key saved successfully' });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
     }
@@ -522,7 +583,7 @@ export function WorkspaceHome() {
         text: result.message 
       });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
     }
@@ -538,9 +599,77 @@ export function WorkspaceHome() {
       await removeApiKey();
       setApiKeyMessage({ type: 'success', text: 'API key removed' });
     } catch (err) {
-      setApiKeyMessage({ type: 'error', text: (err as Error).message });
+      setApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
     } finally {
       setApiKeyStatus('idle');
+    }
+  };
+
+  // ElevenLabs API key handlers
+  const handleSaveElevenlabsApiKey = async () => {
+    if (!elevenlabsApiKeyInput.trim()) return;
+    
+    setElevenlabsApiKeyStatus('saving');
+    setElevenlabsApiKeyMessage(null);
+    
+    try {
+      await setElevenlabsApiKey(elevenlabsApiKeyInput.trim());
+      setElevenlabsApiKeyInput('');
+      setElevenlabsApiKeyMessage({ type: 'success', text: 'ElevenLabs API key saved successfully' });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setElevenlabsApiKeyStatus('idle');
+    }
+  };
+
+  const handleTestElevenlabsApiKey = async () => {
+    setElevenlabsApiKeyStatus('testing');
+    setElevenlabsApiKeyMessage(null);
+    
+    try {
+      // Test with input if provided, otherwise test stored key
+      const result = await testElevenlabsApiKey(elevenlabsApiKeyInput.trim() || undefined);
+      setElevenlabsApiKeyMessage({ 
+        type: result.valid ? 'success' : 'error', 
+        text: result.message 
+      });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setElevenlabsApiKeyStatus('idle');
+    }
+  };
+
+  const handleRemoveElevenlabsApiKey = async () => {
+    if (!confirm('Are you sure you want to remove the ElevenLabs API key? This will disable TTS.')) return;
+    
+    setElevenlabsApiKeyStatus('removing');
+    setElevenlabsApiKeyMessage(null);
+    
+    try {
+      await removeElevenlabsApiKey();
+      setElevenlabsApiKeyMessage({ type: 'success', text: 'ElevenLabs API key removed' });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setElevenlabsApiKeyStatus('idle');
+    }
+  };
+
+  const handleVoiceChange = async (voiceId: string) => {
+    try {
+      await updateSettings({ elevenlabsVoiceId: voiceId });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update voice: ' + getErrorMessage(err) });
+    }
+  };
+
+  const handleTtsToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ elevenlabsTtsEnabled: enabled });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update TTS setting: ' + getErrorMessage(err) });
     }
   };
 
@@ -884,6 +1013,105 @@ export function WorkspaceHome() {
                 <span className="setting-hint">
                   Your OpenHands Cloud API key for AI-powered conversations. 
                   Get one at <a href="https://app.all-hands.dev" target="_blank" rel="noopener noreferrer">app.all-hands.dev</a>
+                </span>
+              </div>
+
+              {/* ElevenLabs API Key */}
+              <div className="setting-row api-key-setting elevenlabs-setting">
+                <label>ElevenLabs API Key</label>
+                <div className="api-key-status">
+                  {settings?.hasElevenlabsApiKey ? (
+                    <span className="status-configured">✓ Configured</span>
+                  ) : (
+                    <span className="status-not-configured">⚠️ Not Configured</span>
+                  )}
+                </div>
+                <div className="api-key-input-row">
+                  <input
+                    type="password"
+                    placeholder={settings?.hasElevenlabsApiKey ? '••••••••••••••••' : 'Enter your ElevenLabs API key'}
+                    value={elevenlabsApiKeyInput}
+                    onChange={(e) => setElevenlabsApiKeyInput(e.target.value)}
+                    disabled={elevenlabsApiKeyStatus !== 'idle'}
+                    className="api-key-input"
+                  />
+                  <button
+                    onClick={handleSaveElevenlabsApiKey}
+                    disabled={elevenlabsApiKeyStatus !== 'idle' || !elevenlabsApiKeyInput.trim()}
+                    className="api-key-btn save-btn"
+                  >
+                    {elevenlabsApiKeyStatus === 'saving' ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={handleTestElevenlabsApiKey}
+                    disabled={elevenlabsApiKeyStatus !== 'idle' || (!elevenlabsApiKeyInput.trim() && !settings?.hasElevenlabsApiKey)}
+                    className="api-key-btn test-btn"
+                  >
+                    {elevenlabsApiKeyStatus === 'testing' ? 'Testing...' : 'Test'}
+                  </button>
+                  {settings?.hasElevenlabsApiKey && (
+                    <button
+                      onClick={handleRemoveElevenlabsApiKey}
+                      disabled={elevenlabsApiKeyStatus !== 'idle'}
+                      className="api-key-btn remove-btn"
+                    >
+                      {elevenlabsApiKeyStatus === 'removing' ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+                {elevenlabsApiKeyMessage && (
+                  <div className={`api-key-message ${elevenlabsApiKeyMessage.type}`}>
+                    {elevenlabsApiKeyMessage.text}
+                  </div>
+                )}
+                <span className="setting-hint">
+                  Your ElevenLabs API key for natural text-to-speech. 
+                  Get one at <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer">elevenlabs.io</a>
+                </span>
+              </div>
+
+              {/* Voice Selection (only when ElevenLabs key is configured) */}
+              <div className="setting-row voice-setting">
+                <label>Voice</label>
+                <div className="voice-select-row">
+                  <select
+                    value={settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID}
+                    onChange={(e) => handleVoiceChange(e.target.value)}
+                    disabled={!settings?.hasElevenlabsApiKey || voicesLoading}
+                    className="voice-select"
+                  >
+                    {voicesLoading ? (
+                      <option value="">Loading voices...</option>
+                    ) : voices.length > 0 ? (
+                      voices.map((voice) => (
+                        <option key={voice.voice_id} value={voice.voice_id}>
+                          {voice.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={DEFAULT_ELEVENLABS_VOICE_ID}>Aria (Default)</option>
+                    )}
+                  </select>
+                </div>
+                <span className="setting-hint">
+                  Select the voice for text-to-speech output
+                </span>
+              </div>
+
+              {/* TTS Enable/Disable Toggle */}
+              <div className="setting-row tts-toggle-setting">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={settings?.elevenlabsTtsEnabled ?? false}
+                    onChange={(e) => handleTtsToggle(e.target.checked)}
+                    disabled={!settings?.hasElevenlabsApiKey}
+                    className="tts-checkbox"
+                  />
+                  <span className="checkbox-label">Enable ElevenLabs TTS</span>
+                </label>
+                <span className="setting-hint">
+                  When enabled, AI responses will be spoken aloud on kiosk devices
                 </span>
               </div>
             </div>
