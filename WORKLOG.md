@@ -25,87 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-16 22:36 UTC - Orchestrator (Update)
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `2c36051` | review | PR #148 - E2E Test Selectors (3 threads) | running |
-| `51a84fe` | expansion | Issue #154 - ElevenLabs API Key UI | **NEW** |
-
-🚀 **Spawned: Expansion Worker (parallel)**
-
-- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
-- Conversation: [`51a84fe`](https://app.all-hands.dev/conversations/51a84fe84fdc4283a98200370521b829)
-- Task: Review issue, add technical approach, add `ready` label
-
-**Both slots now occupied:**
-- Expansion slot: `51a84fe` (Issue #154)
-- PR slot: `2c36051` (PR #148 review)
-
-**Stuck PRs:**
-- [PR #143](https://github.com/jpshackelford/voice-relay/pull/143) - `needs-human` label, DIRTY (merge conflicts)
-
-**Current State:**
-- Open PRs: #148 (review), #143 (stuck)
-- Issues needing expansion: #154 (now being expanded)
-- Ready issues: #139, #141, #142 (no priority labels)
-- Next check: ~30 minutes (next cron trigger)
-
----
-### 2026-05-16 22:36 UTC - Expansion Worker (`51a84fe`)
-
-✅ **Expanded Issue #154 - ElevenLabs API Key UI**
-
-- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
-- Status: **Ready for implementation** ✅
-- Label: `ready` added
-
-**Technical Approach Added:**
-- Identified `WorkspaceHome.tsx` as the only file needing changes
-- Backend + hooks already complete from PR #146
-- Detailed acceptance criteria (16 checkboxes):
-  - API key input section (7 criteria)
-  - Voice selector dropdown (8 criteria)
-  - TTS enable/disable toggle (5 criteria)
-  - UI/UX requirements (4 criteria)
-- Implementation pattern with code snippets
-- Voice fetch effect pattern
-- Estimated effort: ~2-3 hours
-
-**Files Reviewed:**
-- `client/src/pages/WorkspaceHome.tsx` - Existing OpenHands API key UI pattern
-- `client/src/hooks/useWorkspaceSettings.ts` - All hooks already exported
-- PR #146 - Backend implementation context
-
----
-### 2026-05-16 22:42 UTC - Review Feedback Handler
-
-**PR #148 Review Feedback Addressed**
-
-Addressed all review feedback on [PR #148](https://github.com/jpshackelford/voice-relay/pull/148):
-
-1. ✅ **Critical: `workers: 1` band-aid** (playwright.config.ts:28)
-   - Added detailed documentation explaining architectural rationale
-   - Serial execution is intentional: tests share workspace context
-   - Production handles concurrency via workspace isolation
-   - Created [#155](https://github.com/jpshackelford/voice-relay/issues/155) to track proper per-worker isolation
-
-2. ✅ **Suggestion: Repeated `isLegacyMode` checks** (server/src/index.ts:350)
-   - Created `server/src/constants.ts` with `isAnonymousMode()` helper
-   - Restructured register handler with clear anonymous vs authenticated branches
-   - Renamed "legacy mode" to "anonymous mode" (more descriptive)
-
-3. ✅ **Suggestion: Magic string `'default'`** (server/src/index.ts:337)
-   - Extracted to `ANONYMOUS_WORKSPACE_ID`, `ANONYMOUS_SESSION_ID`, `ANONYMOUS_SESSION_NAME` constants
-   - All usages updated across index.ts, auto-connect.ts, and tests
-
-4. ✅ **Positive feedback** (tests/utils/auth-helper.ts:382)
-   - Acknowledged
-
-All review threads replied to and resolved. PR marked ready for review.
-
----
 ### 2026-05-16 23:34 UTC - Orchestrator
 
 **Active Workers:**
@@ -856,7 +775,6 @@ PR state: Ready for review
 **Housekeeping:**
 - 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
 
-
 ---
 ### 2026-05-17 05:34 UTC - Review Worker (`bc67885`)
 
@@ -877,3 +795,36 @@ PR state: Ready for review
 
 CI: ✅ All checks passed (4/4)
 PR state: Ready for review
+
+---
+### 2026-05-17 06:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9f442d8` | merge | PR #159 - docs: replace vr.chorecraft.net with app.no-hands.dev | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- Conversation: [`9f442d8`](https://app.all-hands.dev/conversations/9f442d8926a6443db098694f10abe5d9)
+- Task: Squash-merge PR #159 (CI green 5/5, all threads resolved, MERGEABLE)
+
+**Worker Completed:** `bc67885` (review PR #159, finished)
+- ✅ Review feedback addressed, PR ready for merge
+
+**Current State:**
+- Open PRs:
+  - #159: CI green, 0 unresolved threads, MERGEABLE → **merging now**
+  - #157: Draft, lint failing (Conventional Commits check) - tvOS research
+  - #143: CONFLICTING, CHANGES_REQUESTED + `needs-human` (stuck)
+- Issues needing expansion: None 🎉
+- Ready issues: #156 (has PR), #155 (priority:low), #142 (PR #143 stuck), #141 (priority:low), #139 (PR #157 draft)
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (merge worker `9f442d8`)
+
+**Housekeeping:**
+- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---

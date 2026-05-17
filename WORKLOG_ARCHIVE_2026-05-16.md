@@ -2542,3 +2542,84 @@ Received instruction:
 - PR slot: Occupied (review worker `2c36051`)
 
 [ACKNOWLEDGED: ## INSTRUCTION: Handle code review comments on PR #148]
+
+---
+### 2026-05-16 22:36 UTC - Orchestrator (Update)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2c36051` | review | PR #148 - E2E Test Selectors (3 threads) | running |
+| `51a84fe` | expansion | Issue #154 - ElevenLabs API Key UI | **NEW** |
+
+🚀 **Spawned: Expansion Worker (parallel)**
+
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Conversation: [`51a84fe`](https://app.all-hands.dev/conversations/51a84fe84fdc4283a98200370521b829)
+- Task: Review issue, add technical approach, add `ready` label
+
+**Both slots now occupied:**
+- Expansion slot: `51a84fe` (Issue #154)
+- PR slot: `2c36051` (PR #148 review)
+
+**Stuck PRs:**
+- [PR #143](https://github.com/jpshackelford/voice-relay/pull/143) - `needs-human` label, DIRTY (merge conflicts)
+
+**Current State:**
+- Open PRs: #148 (review), #143 (stuck)
+- Issues needing expansion: #154 (now being expanded)
+- Ready issues: #139, #141, #142 (no priority labels)
+- Next check: ~30 minutes (next cron trigger)
+
+---
+### 2026-05-16 22:36 UTC - Expansion Worker (`51a84fe`)
+
+✅ **Expanded Issue #154 - ElevenLabs API Key UI**
+
+- Issue: [#154 - Add UI for ElevenLabs API key configuration](https://github.com/jpshackelford/voice-relay/issues/154)
+- Status: **Ready for implementation** ✅
+- Label: `ready` added
+
+**Technical Approach Added:**
+- Identified `WorkspaceHome.tsx` as the only file needing changes
+- Backend + hooks already complete from PR #146
+- Detailed acceptance criteria (16 checkboxes):
+  - API key input section (7 criteria)
+  - Voice selector dropdown (8 criteria)
+  - TTS enable/disable toggle (5 criteria)
+  - UI/UX requirements (4 criteria)
+- Implementation pattern with code snippets
+- Voice fetch effect pattern
+- Estimated effort: ~2-3 hours
+
+**Files Reviewed:**
+- `client/src/pages/WorkspaceHome.tsx` - Existing OpenHands API key UI pattern
+- `client/src/hooks/useWorkspaceSettings.ts` - All hooks already exported
+- PR #146 - Backend implementation context
+
+---
+### 2026-05-16 22:42 UTC - Review Feedback Handler
+
+**PR #148 Review Feedback Addressed**
+
+Addressed all review feedback on [PR #148](https://github.com/jpshackelford/voice-relay/pull/148):
+
+1. ✅ **Critical: `workers: 1` band-aid** (playwright.config.ts:28)
+   - Added detailed documentation explaining architectural rationale
+   - Serial execution is intentional: tests share workspace context
+   - Production handles concurrency via workspace isolation
+   - Created [#155](https://github.com/jpshackelford/voice-relay/issues/155) to track proper per-worker isolation
+
+2. ✅ **Suggestion: Repeated `isLegacyMode` checks** (server/src/index.ts:350)
+   - Created `server/src/constants.ts` with `isAnonymousMode()` helper
+   - Restructured register handler with clear anonymous vs authenticated branches
+   - Renamed "legacy mode" to "anonymous mode" (more descriptive)
+
+3. ✅ **Suggestion: Magic string `'default'`** (server/src/index.ts:337)
+   - Extracted to `ANONYMOUS_WORKSPACE_ID`, `ANONYMOUS_SESSION_ID`, `ANONYMOUS_SESSION_NAME` constants
+   - All usages updated across index.ts, auto-connect.ts, and tests
+
+4. ✅ **Positive feedback** (tests/utils/auth-helper.ts:382)
+   - Acknowledged
+
+All review threads replied to and resolved. PR marked ready for review.
