@@ -25,6 +25,32 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:00 UTC - PR #190 Concurrency Controls
+
+**PR:** [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+
+**Issue:** [#184 - fix: Add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/issues/184)
+
+**Problem:** Multiple commits pushed to main simultaneously caused deployment failures:
+- Git ref lock conflicts from concurrent fetches
+- Node modules corruption from concurrent `npm ci` operations  
+- Inconsistent deployment state from partial deployments
+
+**Solution:** Added workflow-level concurrency control to `.github/workflows/deploy.yml`:
+```yaml
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+```
+
+**Design Decisions:**
+- `cancel-in-progress: false` queues deployments instead of cancelling, ensuring every commit eventually deploys
+- Single group `deploy-production` serializes all Server Operations (deploy, restart, status, logs)
+
+**Status:** ✅ PR ready for review - Conventional Commits, Build, and Server Tests passing. E2E failures are pre-existing on main (WebSocket timing flakes), unrelated to this workflow change.
+
+---
+
 ### 2026-05-17 23:55 UTC - Issue #189 Expanded
 
 **Issue:** [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189)
