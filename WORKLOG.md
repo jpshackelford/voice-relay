@@ -25,38 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 12:38 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `54a02e1` | implementation | Issue #155 - Enable parallel E2E test execution | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
-- Conversation: [`54a02e1`](https://app.all-hands.dev/conversations/54a02e19b60343fea0a59eca855fba3f)
-- Priority: `priority:low`
-- Task: Implement per-worker test isolation for parallel E2E tests
-
-**Previous Worker Completed:** `8b5f7b1` (merge PR #160, finished)
-- ✅ **Merged:** [PR #160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-- Issue #141 closed automatically
-
-**Current State:**
-- Open PRs:
-  - #143: `needs-human` label (stuck - merge conflicts)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #155 (`priority:low`) - **now being implemented**
-  - #142 (blocked by stuck PR #143)
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (implementation worker `54a02e1`)
-
-**Housekeeping:**
-- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
-
----
 ### 2026-05-17 12:58 UTC - Implementation Worker (`54a02e1`)
 
 ✅ **PR Submitted: Parallel E2E Test Execution**
@@ -388,60 +356,6 @@ All 4 expansion slots now occupied, analyzing mobile UI issues:
 - 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---
-### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
-
-✅ **Expanded Issue #165**
-
-- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
-
-**Root Cause:**
-Different UI patterns implemented for the same close action:
-- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
-- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
-
-**Proposed Fix:**
-Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
-
-**Files to Modify:**
-- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
-- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
-- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
-
-✅ **Expanded Issue #165**
-
-- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
-
-**Root Cause:**
-Different UI patterns implemented for the same close action:
-- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
-- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
-
-**Proposed Fix:**
-Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
-
-**Files to Modify:**
-- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
-- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
-- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
-
-**Complexity:** Low
-
----
 ### 2026-05-17 19:19 UTC - Expansion Worker (`f21d297`)
 
 ✅ **Expanded Issue #164**
@@ -462,6 +376,84 @@ Add a quick-toggle button directly in the mobile header that allows single-tap s
 
 **Complexity:** Low - reuses existing state management, no API changes
 
+---
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
+
+✅ **Expanded Issue #165**
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
+
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
+
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
+
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
+
+✅ **Expanded Issue #165**
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
+
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
+
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
+
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:21 UTC - Expansion Worker
+
+✅ **Expanded Issue #163**
+
+- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn't be available on mobile devices. Kiosk mode is designed for large displays (TV, desktop) - offering it on mobile creates confusion and degrades UX.
+
+**Technical Approach:**
+1. Remove the "Switch to Kiosk Mode" button from `MobileSettings.tsx` (lines 137-146)
+2. Remove `onModeChange` prop from `MobileSettingsProps` interface
+3. Update `MobileMode.tsx` to stop passing the prop
+4. Update tests in `MobileSettings.test.tsx`
+
+**Files affected:**
+- `client/src/components/MobileSettings.tsx`
+- `client/src/components/MobileSettings.test.tsx`
+- `client/src/components/MobileMode.tsx`
+
+**Complexity:** Low
 
 ---
 ### 2026-05-17 19:24 UTC - Expansion Worker (`f2401be`)
@@ -501,29 +493,46 @@ Add explicit `.walkie-header` override in the media query:
 **Complexity:** Low
 
 ---
-### 2026-05-17 19:21 UTC - Expansion Worker
+### 2026-05-17 19:38 UTC - Orchestrator
 
-✅ **Expanded Issue #163**
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c77734a` | implementation | Issue #162 - Mobile status icons layout bug | **NEW** |
+| `e8d8f2e` | expansion | Issue #166 - Text transcription display | **NEW** |
+| `59e09cd` | expansion | Issue #167 - Toggle agent actions | **NEW** |
+| `74a484f` | expansion | Issue #168 - Audio checkbox layout | **NEW** |
+| `79e83c8` | expansion | Issue #169 - Kiosk mode indicator | **NEW** |
 
-- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
+🚀 **Spawned: 5 Workers (parallel)**
 
-**Summary:**
-The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn't be available on mobile devices. Kiosk mode is designed for large displays (TV, desktop) - offering it on mobile creates confusion and degrades UX.
+**1. Implementation Worker** (priority:high bug fix)
+- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- Conversation: [`c77734a`](https://app.all-hands.dev/conversations/c77734a3...)
+- Priority: `priority:high` (bug)
 
-**Technical Approach:**
-1. Remove the "Switch to Kiosk Mode" button from `MobileSettings.tsx` (lines 137-146)
-2. Remove `onModeChange` prop from `MobileSettingsProps` interface
-3. Update `MobileMode.tsx` to stop passing the prop
-4. Update tests in `MobileSettings.test.tsx`
+**2. Expansion Workers** (4 issues needing analysis)
+- [#166 - Mobile: Text transcription display is poor in oscilloscope view](https://github.com/jpshackelford/voice-relay/issues/166) → [`e8d8f2e`](https://app.all-hands.dev/conversations/e8d8f2e5...)
+- [#167 - Feature: Add toggle to show/hide agent actions](https://github.com/jpshackelford/voice-relay/issues/167) → [`59e09cd`](https://app.all-hands.dev/conversations/59e09cd9...)
+- [#168 - Bug: Audio checkbox and display count on separate lines](https://github.com/jpshackelford/voice-relay/issues/168) → [`74a484f`](https://app.all-hands.dev/conversations/74a484f6...)
+- [#169 - UI: Simplify kiosk mode connection indicator](https://github.com/jpshackelford/voice-relay/issues/169) → [`79e83c8`](https://app.all-hands.dev/conversations/79e83c8f...)
 
-**Files affected:**
-- `client/src/components/MobileSettings.tsx`
-- `client/src/components/MobileSettings.test.tsx`
-- `client/src/components/MobileMode.tsx`
+**Priority Assessment Completed:**
+- Added `priority:high` to Issue #162 (bug)
+- Added `priority:medium` to Issues #163, #164, #165 (enhancements)
 
-**Complexity:** Low
+**Previous Expansion Workers Completed:**
+- `398ccf9`, `f21d297`, `c540bf0`, `68159f9` all finished ✓
+- Issues #162, #163, #164, #165 now have `ready` label
+
+**Current State:**
+- Open PRs: None
+- Ready issues: #162 (priority:high - now implementing), #163, #164, #165 (priority:medium)
+- Issues needing expansion: #166, #167, #168, #169 (all now being expanded)
+- All 5 worker slots occupied (4 expansion + 1 implementation)
+
+**Housekeeping:**
+- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
 
 ---
 ### 2026-05-17 19:35 UTC - Expansion Worker
