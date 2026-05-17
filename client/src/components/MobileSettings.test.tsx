@@ -105,19 +105,19 @@ describe('MobileSettings', () => {
     });
   });
 
-  describe('close button', () => {
-    it('shows close button', () => {
+  describe('back button', () => {
+    it('shows back button', () => {
       render(<MobileSettings {...defaultProps} />);
-      const closeButton = screen.getByText('✕');
-      expect(closeButton).toBeDefined();
+      const backButton = screen.getByText('← Back');
+      expect(backButton).toBeDefined();
     });
 
-    it('calls onClose when close button clicked', async () => {
+    it('calls onClose when back button clicked', async () => {
       render(<MobileSettings {...defaultProps} />);
-      const closeButton = screen.getByText('✕');
+      const backButton = screen.getByText('← Back');
       
       await act(async () => {
-        fireEvent.click(closeButton);
+        fireEvent.click(backButton);
       });
 
       expect(defaultProps.onClose).toHaveBeenCalled();

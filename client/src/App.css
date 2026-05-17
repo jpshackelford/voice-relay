@@ -4362,8 +4362,8 @@ header {
 
 .mobile-settings-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
@@ -4373,23 +4373,18 @@ header {
   margin: 0;
 }
 
-.mobile-settings-close {
-  width: 32px;
-  height: 32px;
+.mobile-settings-back {
   background: transparent;
-  border: 1px solid #333;
-  border-radius: 50%;
-  color: #888;
+  border: none;
+  color: #3282b8;
   font-size: 1rem;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0.5rem;
+  margin: -0.5rem;
 }
 
-.mobile-settings-close:hover {
-  border-color: #666;
-  color: #fff;
+.mobile-settings-back:hover {
+  color: #5ca8e0;
 }
 
 .mobile-settings-content {

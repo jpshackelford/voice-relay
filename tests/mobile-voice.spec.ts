@@ -175,7 +175,7 @@ test.describe('Mobile Voice UI', () => {
     await expect(page.locator('.mobile-settings-modal.open')).toBeVisible();
 
     // Close settings via close button
-    await page.click('.mobile-settings-close');
+    await page.click('.mobile-settings-back');
     await expect(page.locator('.mobile-settings-modal.open')).not.toBeVisible();
   });
 
@@ -251,7 +251,7 @@ test.describe('Mobile Voice Input with Fake Audio', () => {
     
     if (await visualizerOption.isVisible({ timeout: 2000 }).catch(() => false)) {
       await visualizerOption.click();
-      await page.click('.mobile-settings-close');
+      await page.click('.mobile-settings-back');
 
       // Start recording in visualizer mode
       const micButton = page.locator('.walkie-mic-btn');

@@ -266,7 +266,7 @@ describe('MobileMode', () => {
 
       // Close settings to trigger effect
       await act(async () => {
-        const closeBtn = screen.getByText('✕');
+        const closeBtn = document.querySelector('.mobile-settings-back') as HTMLButtonElement;
         fireEvent.click(closeBtn);
       });
 
@@ -336,9 +336,9 @@ describe('MobileMode', () => {
         fireEvent.click(vizBtn);
       });
       
-      // Close settings
+      // Close settings by clicking the settings modal back button
       await act(async () => {
-        const closeBtn = screen.getByText('✕');
+        const closeBtn = document.querySelector('.mobile-settings-back') as HTMLButtonElement;
         fireEvent.click(closeBtn);
         // Wait for modal animation
         await new Promise(resolve => setTimeout(resolve, 250));
