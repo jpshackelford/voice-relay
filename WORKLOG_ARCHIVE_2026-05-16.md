@@ -2097,3 +2097,28 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
+
+---
+### 2026-05-16 17:34 UTC - Review Worker (`913a925`)
+
+✅ **Addressed PR #146 Review Feedback - Final Suggestion Thread**
+
+- PR: [#146 - feat(server): add ElevenLabs TTS integration for AI responses](https://github.com/jpshackelford/voice-relay/pull/146)
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Decision |
+|--------|----------|-------|----------|
+| `auto-connect.ts:107` | 🟡 Suggestion | Check for kiosks before TTS synthesis to save API credits | **Declined** - Complexity vs benefit tradeoff |
+
+**Rationale for declining:**
+1. The check would run on EVERY AI response, adding overhead even in the normal case
+2. Race condition: kiosk joining mid-synthesis would miss audio
+3. Enabling TTS without kiosks is a configuration error, not a common use case
+4. Keeps the callback simple and maintainable
+5. Cost savings minimal since users with TTS enabled typically have kiosks connected
+
+CI: ✅ All checks passed (6/6)
+All review threads: Resolved ✅
+PR state: Ready for review
