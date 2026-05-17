@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 10:07 UTC - Review Worker (PR #160)
+
+✅ **Addressed PR #160 Review Feedback - Missing workspaceId Fields**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Commit: 6d58a96
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| devices array missing workspaceId | 🟠 Important | device-list devices array missing workspaceId field (server sends it per registry.ts:254) | Added workspaceId to devices array example |
+| text message missing workspaceId | 🟠 Important | text message example missing workspaceId field (server sends it per index.ts:546) | Added workspaceId to text message example |
+
+**Both threads resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
+
 ### 2026-05-17 03:04 UTC - Orchestrator
 
 **Active Workers:**
