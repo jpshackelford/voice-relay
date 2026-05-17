@@ -159,7 +159,7 @@ If upgrading from a previous version, see [docs/MIGRATION.md](docs/MIGRATION.md)
 
 Configure persistence via environment variables:
 
-### SQLite (Production Default)
+### SQLite (Recommended for Production)
 
 ```bash
 STORE_DRIVER=sqlite
@@ -292,13 +292,15 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 {
   type: 'registered',
   deviceId: string,
-  workspaceId: string
+  session: { id: string, name: string | null },
+  deviceToken?: string,        // Only on first registration
+  tokenExpiresAt?: string      // Only on first registration
 }
 
 // Device list update
 {
   type: 'device-list',
-  devices: [{ id, displayName, mode, workspaceId }]
+  devices: [{ id, displayName, mode }]
 }
 
 // Text message
@@ -309,7 +311,6 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
   senderName: string,
   text: string,
   partial: boolean,
-  workspaceId: string,
   sessionId?: string
 }
 
