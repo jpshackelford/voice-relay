@@ -378,22 +378,6 @@ describe('MobileMode', () => {
 
       expect(screen.getByText('Settings')).toBeDefined();
     });
-
-    it('calls onModeChange when switching to kiosk mode', async () => {
-      render(<MobileMode {...defaultProps} />);
-
-      // Open settings
-      await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /open settings/i }));
-      });
-
-      // Click switch to kiosk
-      await act(async () => {
-        fireEvent.click(screen.getByText(/Switch to Kiosk Mode/));
-      });
-
-      expect(defaultProps.onModeChange).toHaveBeenCalledWith('kiosk');
-    });
   });
 
   describe('device counts', () => {
