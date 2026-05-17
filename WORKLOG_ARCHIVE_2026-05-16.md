@@ -2623,3 +2623,105 @@ Addressed all review feedback on [PR #148](https://github.com/jpshackelford/voic
    - Acknowledged
 
 All review threads replied to and resolved. PR marked ready for review.
+
+---
+### 2026-05-16 23:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c015f29` | review | PR #148 - E2E Test Selectors (2 threads) | **NEW** |
+| `301bf79` | expansion | Issue #155 - E2E Test Isolation | **NEW** |
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
+   - Task: Address 2 new review threads:
+     - 🔴 `isAnonymousMode()` semantic bug (expects workspaceId, called with sessionId)
+     - 🟡 `ANONYMOUS_SESSION_ID` as sentinel in auth mode is confusing
+   - Conversation: [`c015f29`](https://app.all-hands.dev/conversations/c015f29ebeb14ea2829bba44a6339f52)
+
+2. **Expansion Worker**
+   - Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
+   - Task: Analyze, add technical approach, add `ready` label
+   - Conversation: [`301bf79`](https://app.all-hands.dev/conversations/301bf79c0b86486fa57a0b08169d0427)
+
+**Housekeeping:**
+- 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog >300 lines)
+
+**Current State:**
+- Open PRs:
+  - #148: CI green, 2 unresolved threads (now being addressed)
+  - #143: `needs-human` label, CONFLICTING (merge conflicts)
+- Issues needing expansion: #155 (now being expanded)
+- Ready issues: #139, #141, #142 (no priority), #154 (priority:medium), #147 (has PR #148)
+- Expansion slot: Occupied (`301bf79`)
+- PR slot: Occupied (`c015f29`)
+
+---
+### 2026-05-16 23:34 UTC - Expansion Worker (`301bf79`)
+
+✅ **Expanded Issue #155 - Parallel E2E Test Execution**
+
+- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
+- Status: **Ready for implementation** ✅
+- Label: `ready` added
+
+**Technical Approach Added:**
+
+1. **Problem Statement**: Tests currently share single server (ports 5174/3002), single SQLite database, and single test workspace, requiring serial execution
+
+2. **Proposed Solution**: Per-worker isolation
+   - Each Playwright worker gets unique server ports: `basePort + (workerIndex * 10)`
+   - Each worker gets unique SQLite database: `./data/test-worker-{n}.db`
+   - Each worker creates own test workspace via `/auth/test-session`
+
+3. **Implementation Plan** (5 phases):
+   - Phase 1: Create `tests/global-setup.ts`, `tests/global-teardown.ts`, `tests/fixtures.ts`
+   - Phase 2: Update `playwright.config.ts` to use global setup/teardown
+   - Phase 3: Migrate all test files to use new worker fixtures
+   - Phase 4: CI integration with PLAYWRIGHT_WORKERS env var
+   - Phase 5: Documentation and validation
+
+4. **Files Affected**:
+   - New: `tests/global-setup.ts`, `tests/global-teardown.ts`, `tests/fixtures.ts`, `tests/test-utils/server-manager.ts`
+   - Modified: `playwright.config.ts`, all 6 test spec files, `.github/workflows/test.yml`
+
+5. **Acceptance Criteria** (6 items):
+   - E2E tests run with workers:4 without flaky failures
+   - Each worker has isolated server/database
+   - No FK constraint violations or race conditions
+   - Server cleanup occurs reliably
+   - CI run time decreases by 50%+
+   - Test results remain deterministic
+
+**Context:**
+- Issue created as follow-up from PR #148 code review
+- Current `workers: 1` masks concurrency issues
+- Production uses workspace isolation (not affected by this)
+
+---
+### 2026-05-16 23:36 UTC - Review Worker (`c015f29`)
+
+✅ **Addressed PR #148 Review Feedback - Final 2 Threads**
+
+- PR: [#148 - fix(e2e): update stale test selectors](https://github.com/jpshackelford/voice-relay/pull/148)
+- Commit: cd7829d
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `auto-connect.ts:148` | 🔴 Critical | `isAnonymousMode()` expects workspaceId but called with sessionId - semantic bug | ✅ Added `isAnonymousSession()` helper in constants.ts, updated shouldAutoConnect() to use it |
+| `index.ts:387` | 🟡 Suggestion | `ANONYMOUS_SESSION_ID` as sentinel in auth mode is confusing | ✅ Refactored to use `null` as sentinel (`resolvedSession`), clearer semantics |
+
+**Changes:**
+- `server/src/constants.ts`: Added `isAnonymousSession()` function for session-level checks
+- `server/src/auto-connect.ts`: Use `isAnonymousSession(sessionId)` instead of `isAnonymousMode(sessionId)`
+- `server/src/index.ts`: Use `null` sentinel with `resolvedSession` variable in authenticated mode
+
+**Test Results:** ✅ 570 server tests passing
+
+All 6 review threads now resolved. PR marked ready for review.
