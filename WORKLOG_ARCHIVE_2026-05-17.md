@@ -1044,3 +1044,233 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
+---
+### 2026-05-17 09:06 UTC - Review Worker (`c4797aa`)
+
+✅ **Addressed PR #160 Review Feedback - Type Definition Fixes**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Commit: 18b1ba1
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| RegisterMessage | 🟠 Important | `workspaceId` should be optional (not required) | Changed `workspaceId: string` to `workspaceId?: string` |
+| DisplayMessage | 🟠 Important | Field name should be `display` not `content` | Changed `content: { type, content, title }` to `display: { type, content, title }` |
+
+**All 6 threads resolved** ✅ (4 from previous round + 2 from this round)
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
+### 2026-05-17 09:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3c64797` | review | PR #160 - README.md (1 thread) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`3c64797`](https://app.all-hands.dev/conversations/3c647970e10d4cdd9a38f47ef1474873)
+- Task: Address 1 unresolved review thread:
+  - 🟠 Important: Missing `requestId` field in `join-resolved` message example
+
+**Previous Workers Completed:**
+- `c4797aa` (review PR #160 - round 2): finished ✓
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, 1 unresolved thread → **being addressed now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 in review
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `3c64797`)
+
+**Housekeeping:**
+- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
+---
+### 2026-05-17 09:37 UTC - Review Worker (`3c64797`)
+
+✅ **Addressed PR #160 Review Feedback - Missing requestId Field**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Commit: df54a69
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| join-resolved | 🟠 Important | Missing `requestId` field per `JoinResolvedMessage` interface | Added `requestId: string` to the message example |
+
+**Thread resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+**Handing back to orchestrator for merge.**
+### 2026-05-17 10:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1870397` | review | PR #160 - README.md (2 threads) | **NEW** |
+
+🚀 **Spawned: Review Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`1870397`](https://app.all-hands.dev/conversations/1870397f533a41448bb24ce3fba6b1dd)
+- Task: Address 2 unresolved review threads:
+  - 🟠 Important: `devices` array missing `workspaceId` field
+  - 🟠 Important: `text` message missing `workspaceId` field
+- PR Status: CI green (5/5), MERGEABLE
+
+**Previous Worker Completed:** `3c64797` (review PR #160 - round 3, finished)
+- Addressed `requestId` thread, but 2 new threads emerged
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, 2 unresolved threads → **being addressed now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 in review
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (review worker `1870397`)
+
+---
+### 2026-05-17 10:07 UTC - Review Worker (PR #160)
+
+✅ **Addressed PR #160 Review Feedback - Missing workspaceId Fields**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Commit: 6d58a96
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (2 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| devices array missing workspaceId | 🟠 Important | device-list devices array missing workspaceId field (server sends it per registry.ts:254) | Added workspaceId to devices array example |
+| text message missing workspaceId | 🟠 Important | text message example missing workspaceId field (server sends it per index.ts:546) | Added workspaceId to text message example |
+
+**Both threads resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+### 2026-05-17 10:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5ab7098` | merge | PR #160 - docs: rewrite README.md | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`5ab7098`](https://app.all-hands.dev/conversations/5ab709892afe4d46a57190f7639e3913)
+- Task: Final merge preparation - all 9 review threads resolved, CI green, MERGEABLE
+
+**Previous Worker Completed:** `1870397` (review PR #160 - round 4, finished)
+- Addressed 2 final threads (workspaceId fields)
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, all threads resolved → **merging now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 merging now
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (merge worker `5ab7098`)
+
+**Housekeeping:**
+- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
+---
+### 2026-05-17 11:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8b5f7b1` | merge | PR #160 - docs: rewrite README.md | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Conversation: [`8b5f7b1`](https://app.all-hands.dev/conversations/8b5f7b129efc4199b0a70fe352d03b74)
+- Task: Final merge preparation - all 9 review threads resolved, CI green, "Good taste" review
+
+**Previous Worker Completed:** `5ab7098` (merge PR #160, finished without completing merge)
+- Restarted merge worker to complete the task
+
+**Current State:**
+- Open PRs:
+  - #160: CI green, all threads resolved → **merging now**
+  - #143: `needs-human` label (stuck, skipped)
+- Issues needing expansion: None 🎉
+- Ready issues:
+  - #141 (priority:low) - has PR #160 merging now
+  - #142 (no priority) - depends on stuck PR #143
+  - #155 (priority:low) - queued for implementation
+- Expansion slot: Empty (nothing to expand)
+- PR slot: Occupied (merge worker `8b5f7b1`)
+
+---
+### 2026-05-17 11:08 UTC - Merge Worker (`8b5f7b1`)
+
+✅ **MERGED: PR #160 - docs: rewrite README.md to reflect current architecture**
+
+- PR: [#160](https://github.com/jpshackelford/voice-relay/pull/160) → **MERGED** ✅
+- Issue: [#141](https://github.com/jpshackelford/voice-relay/issues/141) → **CLOSED** (auto-close via "Fixes #141")
+- Merge method: Squash
+
+**Summary:**
+Complete README.md rewrite to document Voice Relay's evolution from prototype to production multi-user platform.
+
+**Key Changes:**
+- Updated overview: multi-user platform with workspaces and sessions
+- Fixed device terminology: mobile/kiosk views (not input/output)
+- Added Core Concepts section: User, Workspace, Session, Device Views
+- Documented QR code join workflow with owner approval
+- Updated architecture diagram: multi-user workspace model
+- Updated message protocol with workspaceId/sessionId fields
+- Added Display API documentation
+- Updated authentication section (removed "Phase 4")
+- Documented all environment variables
+- Updated testing section: Vitest, Playwright, smoke tests
+- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
+
+**Review History:** 9 technical accuracy corrections addressed across 4 review rounds:
+- `registered` message structure
+- `device-list` message fields
+- `text` message fields
+- `join-resolved` message fields
+- `display` message fields
+- `register` message optionality
+- SQLite heading clarification
+
+**Risk:** 🟢 LOW - Documentation only, no code changes, no migrations
+
+**Auto-deploy:** Production (vr.chorecraft.net) updated on merge to main
