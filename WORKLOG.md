@@ -25,6 +25,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:20 UTC - Issue Expansion Complete
+
+**Issue:** [#183 - feat: Set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/issues/183)
+
+**Status:** ✅ Expanded and ready for implementation
+
+**Changes Made:**
+- Rewrote issue body with Problem Statement, Proposed Solution, Architecture diagram, and Acceptance Criteria
+- Added implementation comment with detailed Technical Approach and 4-phase Implementation Plan
+- Documented files affected and server changes required
+- Added `ready` label, removed `on-hold` label
+
+**Technical Summary:**
+- Deploy Uptime Kuma on chorecraft.net:3003 for continuous health monitoring
+- Monitor `https://app.no-hands.dev/health` every 60 seconds
+- Integrate with ntfy.sh for push notifications on outages
+- Status page at `https://status.chorecraft.net`
+
+---
+
 ### 2026-05-17 23:18 UTC - Orchestrator
 
 **Active Workers:**
