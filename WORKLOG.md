@@ -832,3 +832,27 @@ Closes #139
 - PR slot: Occupied (review worker `558322f`)
 
 ---
+### 2026-05-17 08:42 UTC - Review Worker (`558322f`)
+
+✅ **Addressed PR #160 Review Feedback - Message Type Corrections**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Commit: b9201f9
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (4 threads):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| `README.md:295` | 🟠 Important | `registered` message had wrong structure | ✅ Changed to `session: { id, name }` + optional `deviceToken`/`tokenExpiresAt` per types.ts |
+| `README.md:301` | 🟠 Important | `device-list` had extra `workspaceId` field | ✅ Removed `workspaceId` from DeviceInfo per types.ts |
+| `README.md:312` | 🟠 Important | `text` message had extra `workspaceId` field | ✅ Removed `workspaceId` from RelayedTextMessage per types.ts |
+| `README.md:162` | 🟡 Suggestion | SQLite heading said "Production Default" but code defaults to memory | ✅ Changed to "SQLite (Recommended for Production)" |
+
+**All 4 threads resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+---
