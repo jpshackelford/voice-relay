@@ -499,3 +499,28 @@ Add explicit `.walkie-header` override in the media query:
 - `client/src/App.css` - Add `.walkie-header` override in `@media (max-width: 480px)` block (~line 1099)
 
 **Complexity:** Low
+
+---
+### 2026-05-17 19:21 UTC - Expansion Worker
+
+✅ **Expanded Issue #163**
+
+- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn't be available on mobile devices. Kiosk mode is designed for large displays (TV, desktop) - offering it on mobile creates confusion and degrades UX.
+
+**Technical Approach:**
+1. Remove the "Switch to Kiosk Mode" button from `MobileSettings.tsx` (lines 137-146)
+2. Remove `onModeChange` prop from `MobileSettingsProps` interface
+3. Update `MobileMode.tsx` to stop passing the prop
+4. Update tests in `MobileSettings.test.tsx`
+
+**Files affected:**
+- `client/src/components/MobileSettings.tsx`
+- `client/src/components/MobileSettings.test.tsx`
+- `client/src/components/MobileMode.tsx`
+
+**Complexity:** Low
