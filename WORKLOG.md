@@ -25,177 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 07:36 UTC - Merge Worker (`040aab1`)
-
-✅ **Merged PR #157 - tvOS JavaScript Sandbox Research**
-
-- PR: [#157 - docs: add tvOS JavaScript sandbox research for voice-driven apps](https://github.com/jpshackelford/voice-relay/pull/157)
-- Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
-- Merge commit: Squash merged to main
-- Issue #139: **Auto-closed** ✅
-
-**Summary:**
-Documentation-only change adding `/docs/TVOS_JS_SANDBOX_RESEARCH.md` with comprehensive research findings:
-
-- **Key Constraint:** WKWebView is NOT supported on tvOS (verified May 2026 against Apple SDK docs)
-- **Recommendation:** React Native tvOS for cross-platform consistency with web kiosk
-- **Architecture:** AI generates declarative component trees (data), not executable JavaScript
-- **Security Model:** "Data not code" - natural sandboxing without arbitrary code execution risks
-- **Example:** Complete Lemonade Stand game showing declarative UI with voice interaction
-
-**Conventional Commit:**
-```
-docs: add tvOS JavaScript sandbox research for voice-driven apps
-
-Closes #139
-```
-
-**Deploy:** Auto-deploys to app.no-hands.dev on merge to main
-
-🎉 **Issue #139 Complete** - Research phase done, ready for implementation (Phase 1: Web Kiosk MVP)
-
-### 2026-05-17 08:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `9df14c6` | implementation | Issue #141 - README.md is out-of-date | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-
-- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-- Conversation: [`9df14c6`](https://app.all-hands.dev/conversations/9df14c64a39f4c1cb12c3548a5092d48)
-- Task: Rewrite README.md with current architecture (workspaces, sessions, mobile/kiosk)
-
-**Previous Workers Completed:**
-- `040aab1` (merge PR #157): finished ✓ - Issue #139 closed (tvOS research)
-
-**Current State:**
-- Open PRs:
-  - #143: `needs-human` label (stuck, skipped)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #141 (priority:low) → **being implemented now**
-  - #142 (depends on stuck PR #143) - skipped
-  - #155 (priority:low) - queued
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (implementation worker `9df14c6`)
-
-**Housekeeping:**
-- 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
-
----
-### 2026-05-17 08:10 UTC - Implementation Worker
-
-Implemented Issue #141 - README.md is out-of-date and inaccurate
-
-**PR:** [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-
-**Changes:**
-- Updated overview to multi-user real-time communication platform
-- Fixed device terminology: mobile/kiosk instead of input/output
-- Added Core Concepts section (User, Workspace, Session, Device Views)
-- Documented QR code join flow with approval workflow
-- Updated architecture diagram for multi-user model
-- Updated message protocol with workspaceId/sessionId fields
-- Added Display API documentation
-- Updated authentication section (removed "Phase 4" label)
-- Complete environment variable documentation
-- Updated testing section (Vitest, Playwright, smoke tests)
-- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
-
-**Status:** CI green, ready for review
-
----
-### 2026-05-17 08:36 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `558322f` | review | PR #160 - docs: rewrite README.md | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-- Conversation: [`558322f`](https://app.all-hands.dev/conversations/558322ff8d0f47108acd9d8fecb57191)
-- Task: Address 4 unresolved review threads (message type corrections)
-
-**Previous Workers Completed:**
-- `9df14c6` (implementation PR #160): finished ✓ - Created PR #160
-
-**Current State:**
-- Open PRs:
-  - #160: CI green, 4 unresolved threads → **being addressed now**
-  - #143: `needs-human` label (stuck, skipped)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #141 (priority:low) - has PR #160 in review
-  - #142 (no priority) - depends on stuck PR #143
-  - #155 (priority:low) - queued
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker `558322f`)
-
----
-### 2026-05-17 08:42 UTC - Review Worker (`558322f`)
-
-✅ **Addressed PR #160 Review Feedback - Message Type Corrections**
-
-- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-- Commit: b9201f9
-- Status: **Ready for review** ✅
-
-**Review Feedback Addressed (4 threads):**
-
-| Thread | Severity | Issue | Fix |
-|--------|----------|-------|-----|
-| `README.md:295` | 🟠 Important | `registered` message had wrong structure | ✅ Changed to `session: { id, name }` + optional `deviceToken`/`tokenExpiresAt` per types.ts |
-| `README.md:301` | 🟠 Important | `device-list` had extra `workspaceId` field | ✅ Removed `workspaceId` from DeviceInfo per types.ts |
-| `README.md:312` | 🟠 Important | `text` message had extra `workspaceId` field | ✅ Removed `workspaceId` from RelayedTextMessage per types.ts |
-| `README.md:162` | 🟡 Suggestion | SQLite heading said "Production Default" but code defaults to memory | ✅ Changed to "SQLite (Recommended for Production)" |
-
-**All 4 threads resolved** ✅
-
-CI: ✅ All checks passed (4/4)
-PR state: Ready for review
-
----
-### 2026-05-17 09:05 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c4797aa` | review | PR #160 - README.md rewrite (2 threads) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
-- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
-- Conversation: [`c4797aa`](https://app.all-hands.dev/conversations/c4797aa2c11c4c7e844db00b0e253a31)
-- Task: Address 2 unresolved review threads:
-  - 🟠 Important: `workspaceId` should be optional (not required) in RegisterMessage
-  - 🟠 Important: Field name should be `display` not `content` in DisplayMessage
-
-**Previous Workers Completed:**
-- `558322f` (review PR #160 - round 1): finished ✓
-
-**Current State:**
-- Open PRs:
-  - #160: CI green, 2 unresolved threads → **being addressed now**
-  - #143: `needs-human` label (stuck, skipped)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #141 (priority:low) - has PR #160 in review
-  - #142 (no priority) - depends on stuck PR #143
-  - #155 (priority:low) - queued
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker `c4797aa`)
-
-**Housekeeping:**
-- 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
-
----
 ### 2026-05-17 09:06 UTC - Review Worker (`c4797aa`)
 
 ✅ **Addressed PR #160 Review Feedback - Type Definition Fixes**
@@ -638,6 +467,7 @@ Fixes #155
 **Risk:** 🟢 LOW - Test infrastructure changes only, no production code impact
 
 **Auto-deploy:** Production (app.no-hands.dev) uses SQLite `sqlite.db` - this merge has no impact on production database or application code
+
 ---
 ### 2026-05-17 14:35 UTC - Orchestrator
 
@@ -711,9 +541,6 @@ PR #143 remains stuck and requires human action. The only open issue (#142 - Red
 **Action Taken:** None - automation will continue checking but cannot progress until human resolves PR #143
 
 ---
-
----
-
 ### 2026-05-17 15:32 UTC - Orchestrator
 
 **Active Workers:**
@@ -751,3 +578,42 @@ PR #143 (Redesign Mobile UI) has merge conflicts and code review issues that req
    ```
 
 ---
+
+### 2026-05-17 19:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f2401be` | expansion | Issue #162 - Status icons stacking | **NEW** |
+| `b324eb0` | expansion | Issue #163 - Remove kiosk mode nav | **NEW** |
+| `ef45e39` | expansion | Issue #164 - Visualizer toggle | **NEW** |
+| `085a07c` | expansion | Issue #165 - Settings navigation | **NEW** |
+
+🚀 **Spawned: 4 Expansion Workers (parallel)**
+
+All 4 expansion slots now occupied, analyzing mobile UI issues:
+
+1. **Issue #162** - [Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+   - Conv: [`f2401be`](https://app.all-hands.dev/conversations/f2401be)
+
+2. **Issue #163** - [Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+   - Conv: [`b324eb0`](https://app.all-hands.dev/conversations/b324eb05e2784508a7ccb7d6ed48bd81)
+
+3. **Issue #164** - [Mobile: Visualizer toggle is hard to find in settings](https://github.com/jpshackelford/voice-relay/issues/164)
+   - Conv: [`ef45e39`](https://app.all-hands.dev/conversations/ef45e399572c47c5b61e16c50626a3b5)
+
+4. **Issue #165** - [Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+   - Conv: [`085a07c`](https://app.all-hands.dev/conversations/085a07c34722463ab4f945f859af57f0)
+
+**Current State:**
+- Open PRs: None 🎉
+- Issues needing expansion: #162, #163, #164, #165, #166, #167, #168, #169 (8 total)
+  - 4 now being expanded (above)
+  - 4 remaining (#166-#169) - queued for next cycle
+- Ready issues: None (waiting for expansion)
+- Expansion slots: 4/4 occupied ✅
+- Implementation slot: Available (waiting for ready issues)
+- Review slots: 0/2 (no PRs to review)
+
+**Housekeeping:**
+- 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)

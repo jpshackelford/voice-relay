@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "slots": {
+    "expansion": [
+      {"conv_id": "f2401be", "issue": 162, "started": "2026-05-17T19:04:00Z"},
+      {"conv_id": "b324eb0", "issue": 163, "started": "2026-05-17T19:04:30Z"},
+      {"conv_id": "ef45e39", "issue": 164, "started": "2026-05-17T19:04:31Z"},
+      {"conv_id": "085a07c", "issue": 165, "started": "2026-05-17T19:04:32Z"}
+    ],
+    "implementation": [],
+    "review": []
+  },
+  "limits": {
+    "expansion": 4,
+    "implementation": 1,
+    "review": 2
+  },
+  "last_updated": "2026-05-17T19:05:00Z"
+}
