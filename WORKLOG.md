@@ -836,3 +836,33 @@ tsc: not found - TypeScript not properly installed
 **Housekeeping:**
 - ✅ Truncated WORKLOG.md (archived 2 old entries)
 - ✅ Updated .workflow-state.json
+
+---
+### 2026-05-17 21:30 UTC - Implementation Worker (`4435600`)
+
+✅ **PR #175 Ready for Review - Issue #163 (Remove kiosk mode navigation)**
+
+- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+- PR: [#175 - refactor(client): remove kiosk mode navigation from mobile settings](https://github.com/jpshackelford/voice-relay/pull/175)
+- Status: **Ready for review** ✅
+
+**Changes:**
+- Removed "Switch to Kiosk Mode" button from MobileSettings component
+- Removed `onModeChange` prop from MobileSettingsProps interface  
+- Cleaned up unused imports (DeviceMode) and test fixtures
+- Updated component docstring to reflect removed functionality
+
+**Files Modified:**
+- `client/src/components/MobileSettings.tsx` - Button and prop removal
+- `client/src/components/MobileSettings.test.tsx` - Test fixture cleanup
+- `client/src/components/MobileMode.tsx` - Stop passing unused prop
+- `client/src/components/MobileMode.test.tsx` - Test removal
+
+**CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass (598 tests)
+- ✅ Client Tests: Pass (320 tests)
+- ✅ Lint PR Title: Pass (conventional commits)
+- ⚠️ E2E Tests: Flaky failures (WebSocket stability - pre-existing on main, unrelated to this PR)
+
+**Risk:** 🟢 LOW - UI cleanup only, no behavior changes beyond removing navigation option
