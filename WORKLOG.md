@@ -1470,3 +1470,52 @@ Add ntfy.sh notifications to the `handle-failure` job in deploy.yml:
 **Status:** PR ready for merge - merge conflicts resolved, CI passing (except pre-existing flaky tests)
 
 ---
+
+
+### 2026-05-17 23:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a3b90a6` | review | PR #180 - Settings navigation | **NEW** |
+| `cb0062b` | review | PR #181 - Kiosk sidebar layout | **NEW** |
+| `dd42bb2` | implementation | Issue #182 - ntfy.sh notifications | **NEW** |
+| `0283be3` | expansion | Issue #184 - Concurrency controls | **NEW** |
+| `597c41b` | expansion | Issue #186 - QR dismissal | **NEW** |
+
+**Spawned: 5 Workers**
+
+1. **Review Worker** for [PR #180](https://github.com/jpshackelford/voice-relay/pull/180)
+   - Fix E2E test failures for Settings back button navigation
+   - Conversation: [`a3b90a6`](https://app.all-hands.dev/conversations/a3b90a66d4194aebb86bd629dabfc246)
+
+2. **Review Worker** for [PR #181](https://github.com/jpshackelford/voice-relay/pull/181)
+   - Fix E2E test failures for Kiosk sidebar status row
+   - Conversation: [`cb0062b`](https://app.all-hands.dev/conversations/cb0062b2c86d4582bfefe0794381f2c8)
+
+3. **Implementation Worker** for [Issue #182](https://github.com/jpshackelford/voice-relay/issues/182) (priority:high)
+   - Add ntfy.sh push notifications for deployment failures
+   - Conversation: [`dd42bb2`](https://app.all-hands.dev/conversations/dd42bb23c59e4c0dbe92844fe71243b2)
+
+4. **Expansion Worker** for [Issue #184](https://github.com/jpshackelford/voice-relay/issues/184) (priority:high)
+   - Concurrency controls for Server Operations workflow
+   - Conversation: [`0283be3`](https://app.all-hands.dev/conversations/0283be31204d49daabeded0779bb0ffa)
+
+5. **Expansion Worker** for [Issue #186](https://github.com/jpshackelford/voice-relay/issues/186) (priority:medium)
+   - QR code dismissal without mobile scan
+   - Conversation: [`597c41b`](https://app.all-hands.dev/conversations/597c41b6bcbd4bb980a1ab8d33e110d1)
+
+**Current State:**
+- Open PRs: #180, #181 (both have E2E failures being addressed)
+- Ready issues (priority:high): #182 (implementation started)
+- Ready issues (priority:medium): #168, #165, #183 (#165, #168 have PRs)
+- Issues needing expansion: #184 (high), #186 (medium), #185 (on-hold - skip)
+
+**Slot Status:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 2 | 2 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review | 2 | 0 | 2 |
+
+---
