@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 01:42 UTC - Expansion Worker
+
+✅ **Expanded Issue #156**
+
+- Issue: [Replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- Type: Enhancement
+- Status: Ready for implementation
+- Approach: Find and replace ~70 domain references across 10 files (tests, docs, CI config, .env.example)
+
+**Files affected:**
+- `.env.example` - Update defaults
+- `.github/workflows/deploy.yml` - URL + path updates  
+- `tests/smoke/*.ts` - Default fallback URLs
+- `tests/smoke/README.md` - Example commands
+- `client/src/components/QRCode.test.ts` - Mock hostnames
+- `server/src/openhands.test.ts` - Test URLs
+- `docs/DEPLOYMENT.md` - All references (25+ changes)
+
+**Note:** This is a documentation/config-only change - no functional code changes needed.
+
+---
+
 ### 2026-05-16 18:35 UTC - Orchestrator
 
 **Active Workers:**
