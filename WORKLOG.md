@@ -583,3 +583,39 @@ Wrap both in a single `.kiosk-status-row` container with `display: flex; justify
 - `client/src/App.css` - Add `.kiosk-status-row` styles, update child styles
 
 **Complexity:** Low
+
+---
+### 2026-05-17 19:35 UTC - Expansion Worker
+
+✅ **Expanded Issue #166**
+
+- Issue: [#166 - Mobile: Text transcription display is poor in oscilloscope view](https://github.com/jpshackelford/voice-relay/issues/166)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+Users want both oscilloscope visualization AND automatic speech transcription simultaneously. Currently these are mutually exclusive due to Web Speech API limitations - it manages its own microphone stream internally and cannot share with `getUserMedia`.
+
+**Proposed Solution:**
+Implement server-side speech recognition using a single `getUserMedia` stream that feeds both:
+1. Oscilloscope visualization (existing)
+2. Audio streaming to server for Whisper/Deepgram transcription
+
+**Technical Approach:**
+1. Create `useAudioStreaming` hook - capture audio, encode, stream via WebSocket
+2. Add server-side transcription service (Whisper or commercial API)
+3. New `InputMode: 'unified'` combining both features
+4. Modify `MobileMode.tsx` for unified mode handling
+
+**Files to Modify:**
+- `client/src/hooks/useAudioStreaming.ts` (new)
+- `client/src/hooks/useAudioAnalyser.ts` (minor refactor)
+- `client/src/components/MobileMode.tsx`
+- `client/src/components/MobileSettings.tsx`
+- `server/src/websocket/handlers.ts`
+- `server/src/services/transcription.ts` (new)
+
+**Estimated Effort:** 17-24 hours
+
+**Complexity:** High - requires server infrastructure changes
+
