@@ -113,8 +113,8 @@ async function setupMobileSession(
   // Wait for workspace to load and enter a session
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 15000 });
 
-  // Click View to enter the first session
-  const viewButton = page.getByRole('button', { name: /view/i });
+  // Click View to enter the first session (use .first() since there may be multiple sessions)
+  const viewButton = page.getByRole('button', { name: /view/i }).first();
   await expect(viewButton).toBeVisible({ timeout: 5000 });
   await viewButton.click();
 
