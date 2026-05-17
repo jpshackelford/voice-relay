@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useWorkspaceSettings } from './useWorkspaceSettings';
+import { useWorkspaceSettings, type ElevenlabsVoice } from './useWorkspaceSettings';
 
 // Create a mutable mock state that can be changed per test
 let mockAuthState = {
@@ -753,21 +753,22 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
       expect(result.current.settings).toEqual(mockSettings);
     });
 
-    let voices;
+    let voices: ElevenlabsVoice[] | undefined;
     await act(async () => {
       voices = await result.current.fetchElevenlabsVoices();
     });
 
     // Verify all voices are parsed correctly
-    expect(voices).toHaveLength(3);
-    expect(voices[0]).toEqual({ voice_id: 'v1', name: 'Voice One', labels: { accent: 'american', age: 'young' } });
-    expect(voices[1]).toEqual({ voice_id: 'v2', name: 'Voice Two', labels: { accent: 'british' } });
-    expect(voices[2]).toEqual({ voice_id: 'v3', name: 'Voice Three' });
+    expect(voices).toBeDefined();
+    expect(voices!).toHaveLength(3);
+    expect(voices![0]).toEqual({ voice_id: 'v1', name: 'Voice One', labels: { accent: 'american', age: 'young' } });
+    expect(voices![1]).toEqual({ voice_id: 'v2', name: 'Voice Two', labels: { accent: 'british' } });
+    expect(voices![2]).toEqual({ voice_id: 'v3', name: 'Voice Three' });
     
     // Verify specific field access works
-    expect(voices[0].voice_id).toBe('v1');
-    expect(voices[0].name).toBe('Voice One');
-    expect(voices[0].labels?.accent).toBe('american');
+    expect(voices![0].voice_id).toBe('v1');
+    expect(voices![0].name).toBe('Voice One');
+    expect(voices![0].labels?.accent).toBe('american');
   });
 
   it('fetchElevenlabsVoices handles empty voices array', async () => {
@@ -804,13 +805,14 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
       expect(result.current.settings).toEqual(mockSettings);
     });
 
-    let voices;
+    let voices: ElevenlabsVoice[] | undefined;
     await act(async () => {
       voices = await result.current.fetchElevenlabsVoices();
     });
 
+    expect(voices).toBeDefined();
     expect(voices).toEqual([]);
-    expect(voices.length).toBe(0);
+    expect(voices!.length).toBe(0);
   });
 
   it('updateSettings correctly updates state after voice change', async () => {
@@ -946,18 +948,19 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
       expect(result.current.settings).toEqual(mockSettings);
     });
 
-    let testResult;
+    let testResult: { valid: boolean; message: string } | undefined;
     await act(async () => {
       testResult = await result.current.testElevenlabsApiKey('test-key');
     });
 
     // Verify result can be used in real code conditions
-    expect(testResult.valid).toBe(true);
-    expect(testResult.message).toBe('API key is valid and working');
+    expect(testResult).toBeDefined();
+    expect(testResult!.valid).toBe(true);
+    expect(testResult!.message).toBe('API key is valid and working');
     
     // Test conditional usage pattern
-    if (testResult.valid) {
-      expect(testResult.message).toContain('valid');
+    if (testResult!.valid) {
+      expect(testResult!.message).toContain('valid');
     }
   });
 
@@ -997,13 +1000,14 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
       expect(result.current.settings).toEqual(mockSettings);
     });
 
-    let testResult;
+    let testResult: { valid: boolean; message: string } | undefined;
     await act(async () => {
       testResult = await result.current.testElevenlabsApiKey('bad-key');
     });
 
-    expect(testResult.valid).toBe(false);
-    expect(testResult.message).toBe('Invalid API key');
+    expect(testResult).toBeDefined();
+    expect(testResult!.valid).toBe(false);
+    expect(testResult!.message).toBe('Invalid API key');
   });
 
   it('setElevenlabsApiKey updates hasElevenlabsApiKey state after success', async () => {
@@ -1169,7 +1173,7 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
 
     let currentVoiceId = 'voice-1';
     
-    global.fetch = vi.fn().mockImplementation(async (url, options) => {
+    global.fetch = vi.fn().mockImplementation(async (_url, options) => {
       if (options?.method === 'PATCH') {
         const body = JSON.parse(options.body);
         currentVoiceId = body.elevenlabsVoiceId;
