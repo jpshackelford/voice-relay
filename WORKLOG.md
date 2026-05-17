@@ -25,6 +25,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 20:17 UTC - Expansion Worker
+
+✅ **Expanded Issue #172 - Smoke test failure after deployment**
+
+- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
+- Type: Bug (flaky test)
+- Status: **Ready for implementation** ✅
+- Labels: `ready`
+
+**Root Cause:** Test timeout mismatch - AI connection test waits 30 seconds but server allows 60 seconds for OpenHands API startup. When OpenHands Cloud experiences slow startup (cold start/high load), the test times out while AI is legitimately still connecting.
+
+**Fix:** Increase `toHaveClass(/active/)` timeout from 30s to 60s in `tests/smoke/ai-integration.spec.ts` to match server-side `pollUntilReady()` timeout.
+
+**Evidence not a code regression:**
+- Failing commit `13fd490` only modified WORKLOG.md
+- Previous deploy with identical test code passed 25 minutes earlier
+- 14 consecutive successful deploys before this failure
+
+---
+
 ### 2026-05-17 13:45 UTC - Review Worker (`62f5293`)
 
 ✅ **Addressed PR #161 Review Feedback**
