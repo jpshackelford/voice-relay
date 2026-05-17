@@ -253,7 +253,7 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 {
   type: 'register',
   deviceId: string,
-  workspaceId: string,
+  workspaceId?: string,
   sessionId?: string,       // Auto-assigns to active session if omitted
   displayName: string,
   mode: 'mobile' | 'kiosk',
@@ -334,7 +334,7 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 // Display content (to kiosks)
 {
   type: 'display',
-  content: { type, content, title }
+  display: { type, content, title }
 }
 ```
 
