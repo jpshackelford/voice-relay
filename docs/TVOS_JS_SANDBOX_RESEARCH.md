@@ -16,7 +16,11 @@ This document addresses how to enable an AI agent to dynamically create interact
 
 **Apple does not support WKWebView on tvOS.** This was a deliberate decision to push developers toward native experiences. This means we cannot simply embed the web kiosk in a WebView on Apple TV.
 
-Sources:
+**Verification (May 2026):** This constraint remains current. Apple's official SDK documentation confirms:
+- [WKWebView](https://developer.apple.com/documentation/webkit/wkwebview) lists supported platforms as: iOS 8.0+, iPadOS 8.0+, Mac Catalyst 13.1+, macOS 10.10+, visionOS 1.0+ — **tvOS is not listed**
+- The new [WebView SwiftUI struct](https://developer.apple.com/documentation/WebKit/WebView-swift.struct) (introduced iOS 26.0/macOS 26.0 at WWDC25) similarly excludes tvOS from its supported platforms
+
+Historical context (2015-2016):
 - [Apple TV doesn't support Webviews](https://www.developer-tech.com/news/apple-tv-doesnt-support-webviews-pushes-clean-native-experience/)
 - [Apple TV: A World Without Webviews](https://medium.com/bpxl-craft/apple-tv-a-world-without-webkit-5c428a64a6dd)
 
