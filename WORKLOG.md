@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:55 UTC - Issue #189 Expanded
+
+**Issue:** [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189)
+
+**Type:** Bug Report
+
+**Status:** Ready for implementation
+
+**Root Cause Analysis:**
+1. **Primary:** Server default uses memory storage, device records lost on restart
+2. **Secondary:** Single localStorage key for all workspaces causes token overwrites
+
+**Proposed Fixes:**
+1. Change default storage driver from `memory` to `sqlite` in `server/src/storage/index.ts`
+2. Make client device token storage workspace-scoped in `client/src/utils/deviceToken.ts`
+
+**Files to Modify:**
+- `server/src/storage/index.ts`
+- `client/src/utils/deviceToken.ts`
+- `client/src/hooks/useDeviceRestoration.ts`
+- `client/src/hooks/useWebSocket.ts`
+
+---
+
 ### 2026-05-17 23:50 UTC - PR #181 E2E Tests Fixed
 
 **PR:** [#181 - fix(client): combine kiosk sidebar status row elements](https://github.com/jpshackelford/voice-relay/pull/181)
