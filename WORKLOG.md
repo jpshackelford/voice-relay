@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 05:13 UTC - OpenHands Agent
+
+**PR Submitted: Domain Update**
+- Issue: [#156 - replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/issues/156)
+- PR: [#159 - docs: replace vr.chorecraft.net with app.no-hands.dev](https://github.com/jpshackelford/voice-relay/pull/159)
+- Status: CI green ✅, Ready for review
+
+**Changes Made:**
+- Updated .env.example with new production URL
+- Updated CI/CD workflow smoke test URLs
+- Updated all smoke test files with new default URL
+- Updated client/server test mocks with new domain
+- Added deprecation notes to DEPLOYMENT.md and server-inventory.md
+- Updated docs/DESIGN.md OAuth callback URL
+
+**Out of Scope (as noted in issue):**
+- Server-side infrastructure paths retained for legacy reference
+- GitHub OAuth re-registration (manual admin task)
+- DNS configuration (handled outside repo)
+
+---
+
 ### 2026-05-16 22:31 UTC - Orchestrator
 
 **Active Workers:**
