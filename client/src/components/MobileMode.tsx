@@ -255,6 +255,15 @@ export function MobileMode({
           aria-label={connected ? 'Connected to server' : 'Disconnected from server'}
         />
         <div className="walkie-header-spacer" />
+        <button
+          className={`walkie-header-btn input-mode-toggle ${inputMode === 'visualizer' ? 'visualizer-active' : ''}`}
+          onClick={() => setInputMode(inputMode === 'voice' ? 'visualizer' : 'voice')}
+          title={inputMode === 'voice' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'}
+          aria-label={inputMode === 'voice' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'}
+          aria-pressed={inputMode === 'visualizer'}
+        >
+          {inputMode === 'voice' ? '🗣️' : '📊'}
+        </button>
         <button 
           className="walkie-header-btn" 
           onClick={() => setSettingsOpen(true)}
