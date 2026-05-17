@@ -7,6 +7,9 @@ import { useDevices, type DeviceInfo } from '../hooks/useDevices';
 import { useWorkspaceSettings } from '../hooks/useWorkspaceSettings';
 import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
 
+// Default ElevenLabs voice ID (Aria)
+const DEFAULT_ELEVENLABS_VOICE_ID = 'Xb7hH8MSUJpSbSDYk0k2';
+
 // Format relative time (e.g., "2m ago", "1hr ago")
 function formatRelativeTime(date: string): string {
   const now = new Date();
@@ -413,7 +416,10 @@ export function WorkspaceHome() {
       setVoicesLoading(true);
       fetchElevenlabsVoices()
         .then(setVoices)
-        .catch((err) => console.error('Failed to fetch ElevenLabs voices:', err))
+        .catch((err) => {
+          console.error('Failed to fetch ElevenLabs voices:', err);
+          setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to load voices: ' + (err as Error).message });
+        })
         .finally(() => setVoicesLoading(false));
     } else {
       setVoices([]);
@@ -635,7 +641,7 @@ export function WorkspaceHome() {
     try {
       await updateSettings({ elevenlabsVoiceId: voiceId });
     } catch (err) {
-      console.error('Failed to update voice:', err);
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update voice: ' + (err as Error).message });
     }
   };
 
@@ -643,7 +649,7 @@ export function WorkspaceHome() {
     try {
       await updateSettings({ elevenlabsTtsEnabled: enabled });
     } catch (err) {
-      console.error('Failed to update TTS setting:', err);
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update TTS setting: ' + (err as Error).message });
     }
   };
 
@@ -1049,7 +1055,7 @@ export function WorkspaceHome() {
                 <label>Voice</label>
                 <div className="voice-select-row">
                   <select
-                    value={settings?.elevenlabsVoiceId || 'Xb7hH8MSUJpSbSDYk0k2'}
+                    value={settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID}
                     onChange={(e) => handleVoiceChange(e.target.value)}
                     disabled={!settings?.hasElevenlabsApiKey || voicesLoading}
                     className="voice-select"
@@ -1063,7 +1069,7 @@ export function WorkspaceHome() {
                         </option>
                       ))
                     ) : (
-                      <option value="Xb7hH8MSUJpSbSDYk0k2">Aria (Default)</option>
+                      <option value={DEFAULT_ELEVENLABS_VOICE_ID}>Aria (Default)</option>
                     )}
                   </select>
                 </div>
