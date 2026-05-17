@@ -25,6 +25,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:20 UTC - Issue #168 Implementation
+
+**Issue:** #168 - Bug: Audio checkbox and display count on separate lines - combine to save space
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/181
+
+**Changes:**
+- Combined `kiosk-participants` and `kiosk-tts-toggle` into a single `kiosk-status-row` container
+- Added flexbox layout with `space-between` for horizontal alignment
+- Added 9 new unit tests for the combined layout
+
+**Status:** PR ready for review
+
+**Notes:**
+- E2E tests failing with "WebSocket connection did not stabilize" - these are pre-existing flaky tests on main branch, unrelated to this CSS/layout change
+- All 337 unit tests pass, including 9 new tests for this feature
+
+---
+
 ### 2026-05-17 15:32 UTC - Orchestrator
 
 **Active Workers:**
