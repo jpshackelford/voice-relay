@@ -731,3 +731,26 @@ PR state: Ready for review
 
 **Housekeeping:**
 - 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
+
+---
+### 2026-05-17 09:37 UTC - Review Worker (`3c64797`)
+
+✅ **Addressed PR #160 Review Feedback - Missing requestId Field**
+
+- PR: [#160 - docs: rewrite README.md to reflect current architecture](https://github.com/jpshackelford/voice-relay/pull/160)
+- Issue: [#141 - README.md is out-of-date and inaccurate](https://github.com/jpshackelford/voice-relay/issues/141)
+- Commit: df54a69
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed (1 thread):**
+
+| Thread | Severity | Issue | Fix |
+|--------|----------|-------|-----|
+| join-resolved | 🟠 Important | Missing `requestId` field per `JoinResolvedMessage` interface | Added `requestId: string` to the message example |
+
+**Thread resolved** ✅
+
+CI: ✅ All checks passed (4/4)
+PR state: Ready for review
+
+**Handing back to orchestrator for merge.**
