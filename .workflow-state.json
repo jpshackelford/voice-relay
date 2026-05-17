@@ -1,22 +1,28 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "e9e7f7e",
+        "conv_id": "0147a93",
         "issue": 176,
-        "started": "2026-05-17T21:50:16.644328+00:00"
+        "started": "2026-05-17T22:04:03.438001+00:00"
       }
     ],
-    "implementation": [],
-    "review": []
+    "review": [
+      {
+        "conv_id": "00c600d",
+        "pr": 175,
+        "started": "2026-05-17T22:04:03.438001+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T21:50:16.644347+00:00",
+  "last_updated": "2026-05-17T22:04:03.438001+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -53,6 +59,15 @@
       "finished": "2026-05-17T21:34:17.638451+00:00",
       "status": "success",
       "outcome": "Created PR #175 for issue #163"
+    },
+    {
+      "conv_id": "e9e7f7e",
+      "type": "expansion",
+      "issue": 176,
+      "started": "2026-05-17T21:50:16.644328+00:00",
+      "finished": "2026-05-17T22:01:40.910861+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #176"
     }
   ]
 }
