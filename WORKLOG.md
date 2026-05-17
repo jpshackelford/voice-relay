@@ -25,6 +25,41 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-17 23:47 UTC - Implementation Worker (`dd42bb2`)
+
+✅ **Implemented Issue #182 - ntfy.sh Push Notifications**
+
+- PR: [#187](https://github.com/jpshackelford/voice-relay/pull/187)
+- Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182) - Add ntfy.sh push notifications for deployment failures
+- Priority: **HIGH**
+- Status: **PR Ready for Review** ✅
+
+**Implementation:**
+- Added deployment failure notification step to `handle-failure` job (after issue creation)
+- Added rollback failure notification step (after rollback health check fails)
+- Added documentation section to `docs/DEPLOYMENT.md`:
+  - Notification types and priorities
+  - Subscription instructions (iOS, Android, Web)
+  - Secret setup guide
+  - Testing instructions
+
+**Files Changed:**
+- `.github/workflows/deploy.yml` - 2 new notification steps (+33 lines)
+- `docs/DEPLOYMENT.md` - New "Push Notifications (ntfy.sh)" section (+47 lines)
+
+**CI Status:**
+- ✅ Build Client: Pass
+- ✅ Server Tests: Pass
+- ✅ Conventional Commits lint: Pass
+- ⚠️ E2E Tests: Pre-existing flaky failure (unrelated to workflow-only changes)
+
+**Note:** E2E test failures are pre-existing on main branch. This is a workflow-only change with no application code modified.
+
+**Next Steps:**
+- Add `NTFY_TOPIC` repository secret before merging
+
+---
+
 ### 2026-05-17 23:35 UTC - Issue Expansion Complete
 
 **Issue:** [#184 - fix: Add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/issues/184)
