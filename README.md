@@ -327,6 +327,7 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 // Join request resolved (to requesting device)
 {
   type: 'join-resolved',
+  requestId: string,
   approved: boolean,
   workspace?: { id, name, slug }
 }
