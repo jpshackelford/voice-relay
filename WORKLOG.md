@@ -440,3 +440,25 @@ Replace X button with back button in MobileSettings header, matching Conversatio
 - `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
 
 **Complexity:** Low
+
+---
+### 2026-05-17 19:19 UTC - Expansion Worker (`f21d297`)
+
+✅ **Expanded Issue #164**
+
+- Issue: [#164 - Mobile: Visualizer toggle is hard to find in settings](https://github.com/jpshackelford/voice-relay/issues/164)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+The input mode toggle (Voice/Visualizer) is buried in the Settings modal, requiring multiple taps to access a frequently-used feature.
+
+**Proposed Solution:**
+Add a quick-toggle button directly in the mobile header that allows single-tap switching between Voice (🗣️) and Visualizer (📊) modes.
+
+**Files to Modify:**
+- `client/src/components/MobileMode.tsx` - Add toggle button to header (~10 LOC)
+- `client/src/App.css` - Style toggle button (optional, can reuse existing)
+
+**Complexity:** Low - reuses existing state management, no API changes
+
