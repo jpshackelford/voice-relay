@@ -791,3 +791,25 @@ Fixes #156
 - 📦 Archived 3 entries to WORKLOG_ARCHIVE_2026-05-16.md (worklog truncation)
 
 ---
+### 2026-05-17 06:36 UTC - Review Worker (`8208589`)
+
+✅ **Fixed PR #157 - Title Case & Ready for Review**
+
+- PR: [#157 - docs: add tvOS JavaScript sandbox research for voice-driven apps](https://github.com/jpshackelford/voice-relay/pull/157)
+- Issue: [#139 - [Research] Safely render AI-generated JavaScript apps on kiosk](https://github.com/jpshackelford/voice-relay/issues/139)
+- Status: **Ready for review** ✅
+
+**Actions Completed:**
+1. ✅ Fixed PR title: Changed `docs: Add` → `docs: add` (lowercase after type prefix)
+2. ✅ CI re-ran: lint-pr-title now passing (4/4 checks green)
+3. ✅ Moved PR from draft to ready for review
+
+**CI Status:** All checks passing ✅
+- lint-pr-title: ✅ SUCCESS
+- Server Tests: ✅ SUCCESS  
+- Build Client: ✅ SUCCESS
+- E2E Tests: ✅ SUCCESS
+
+**Production Note:** This is a docs-only change (no production impact). App auto-deploys to app.no-hands.dev on merge to main.
+
+---
