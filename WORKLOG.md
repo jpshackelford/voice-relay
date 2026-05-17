@@ -784,3 +784,41 @@ PR state: Ready for review
 - PR slot: Occupied (merge worker `8b5f7b1`)
 
 ---
+### 2026-05-17 11:08 UTC - Merge Worker (`8b5f7b1`)
+
+✅ **MERGED: PR #160 - docs: rewrite README.md to reflect current architecture**
+
+- PR: [#160](https://github.com/jpshackelford/voice-relay/pull/160) → **MERGED** ✅
+- Issue: [#141](https://github.com/jpshackelford/voice-relay/issues/141) → **CLOSED** (auto-close via "Fixes #141")
+- Merge method: Squash
+
+**Summary:**
+Complete README.md rewrite to document Voice Relay's evolution from prototype to production multi-user platform.
+
+**Key Changes:**
+- Updated overview: multi-user platform with workspaces and sessions
+- Fixed device terminology: mobile/kiosk views (not input/output)
+- Added Core Concepts section: User, Workspace, Session, Device Views
+- Documented QR code join workflow with owner approval
+- Updated architecture diagram: multi-user workspace model
+- Updated message protocol with workspaceId/sessionId fields
+- Added Display API documentation
+- Updated authentication section (removed "Phase 4")
+- Documented all environment variables
+- Updated testing section: Vitest, Playwright, smoke tests
+- Cross-referenced DESIGN.md, DEPLOYMENT.md, MIGRATION.md
+
+**Review History:** 9 technical accuracy corrections addressed across 4 review rounds:
+- `registered` message structure
+- `device-list` message fields
+- `text` message fields
+- `join-resolved` message fields
+- `display` message fields
+- `register` message optionality
+- SQLite heading clarification
+
+**Risk:** 🟢 LOW - Documentation only, no code changes, no migrations
+
+**Auto-deploy:** Production (vr.chorecraft.net) updated on merge to main
+
+---
