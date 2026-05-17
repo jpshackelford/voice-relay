@@ -25,57 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-17 19:55 UTC - Implementation Worker
-
-**Completed:** Issue #162 - Mobile status icons stacking vertically
-
-- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
-- **Fix:** Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` block to preserve `flex-direction: row`
-- **Root Cause:** Generic `header` selector in mobile media query was setting `flex-direction: column`, overriding walkie-header styles
-- **Testing:** Added Playwright test to verify horizontal layout; mobile E2E tests pass
-- **CI Status:** Build, Server Tests, Conventional Commits all pass. Mobile tests pass. Chromium E2E tests failing with flaky WebSocket timeout (pre-existing issue in main branch)
-- **Status:** Ready for review
-
----
-
-### 2026-05-17 13:36 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `62f5293` | review | PR #161 - Parallel E2E tests (4 threads) | **NEW** |
-
-🚀 **Spawned: Review Worker**
-
-- PR: [#161 - test: enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/pull/161)
-- Issue: [#155 - Enable parallel E2E test execution with per-worker isolation](https://github.com/jpshackelford/voice-relay/issues/155)
-- Conversation: [`62f5293`](https://app.all-hands.dev/conversations/62f52933a7db4ddba7513200aa59b09f)
-- Task: Address 4 unresolved review threads:
-  - 🔴 Critical: Worker count mismatch (PLAYWRIGHT_WORKERS default)
-  - 🟠 Important: Hardcoded port patterns in CI cleanup
-  - 🟠 Important: No process startup failure detection
-  - 🟡 Suggestion: Type assertion bypasses type checking
-- PR Status: CI green, MERGEABLE
-
-**Previous Worker Completed:** `54a02e1` (implementation #155, finished)
-- ✅ Created [PR #161](https://github.com/jpshackelford/voice-relay/pull/161)
-
-**Current State:**
-- Open PRs:
-  - #161: CI green, 4 unresolved threads → **being addressed now**
-  - #143: `needs-human` label (stuck, skipped)
-- Issues needing expansion: None 🎉
-- Ready issues:
-  - #155 (`priority:low`) - has PR #161 in review
-  - #142 (no priority) - blocked by stuck PR #143
-- Expansion slot: Empty (nothing to expand)
-- PR slot: Occupied (review worker `62f5293`)
-
-**Housekeeping:**
-- 📦 Archived 5 entries to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
-
----
 ### 2026-05-17 13:45 UTC - Review Worker (`62f5293`)
 
 ✅ **Addressed PR #161 Review Feedback**
@@ -695,6 +644,19 @@ All 4 expansion workers finished successfully. Issues #166-169 now have `ready` 
 **Risk:** 🟢 LOW - CSS-only change, additive override doesn't affect other elements
 
 ---
+### 2026-05-17 19:55 UTC - Implementation Worker
+
+**Completed:** Issue #162 - Mobile status icons stacking vertically
+
+- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
+- **Fix:** Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` block to preserve `flex-direction: row`
+- **Root Cause:** Generic `header` selector in mobile media query was setting `flex-direction: column`, overriding walkie-header styles
+- **Testing:** Added Playwright test to verify horizontal layout; mobile E2E tests pass
+- **CI Status:** Build, Server Tests, Conventional Commits all pass. Mobile tests pass. Chromium E2E tests failing with flaky WebSocket timeout (pre-existing issue in main branch)
+- **Status:** Ready for review
+
+---
 ### 2026-05-17 19:58 UTC - Worklog Correction (Manual)
 
 📝 **Corrected stale worklog entries**
@@ -717,4 +679,3 @@ The AI successfully addressed all code review feedback:
 - No blocked work - automation can proceed normally
 
 **Action:** Removed outdated "needs-human" / "CONFLICTING" references to PR #143
-
