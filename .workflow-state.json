@@ -1,13 +1,19 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "f30b9b7",
+        "issue": 228,
+        "started": "2026-05-18T20:34:41.964569+00:00"
+      }
+    ],
     "implementation": [],
     "review": [
       {
-        "conv_id": "2b1ad13",
+        "conv_id": "a61bd58",
         "pr": 227,
-        "started": "2026-05-18T20:20:18.717072+00:00"
+        "started": "2026-05-18T20:34:41.964569+00:00"
       }
     ]
   },
@@ -16,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T20:20:18.717072+00:00",
+  "last_updated": "2026-05-18T20:34:41.964569+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -1028,6 +1034,15 @@
       "finished": "2026-05-18T20:19:48.581676+00:00",
       "status": "success",
       "outcome": "Created PR #227 for Issue #224 - dad joke voice previews"
+    },
+    {
+      "conv_id": "2b1ad13",
+      "type": "review",
+      "pr": 227,
+      "started": "2026-05-18T20:20:18.717072+00:00",
+      "finished": "2026-05-18T20:33:44.940542+00:00",
+      "status": "not_found",
+      "outcome": "Worker not found - assumed finished, PR #227 ready for merge"
     }
   ]
 }
