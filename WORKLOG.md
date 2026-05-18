@@ -26,6 +26,41 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:44 UTC - Implementation Worker
+
+✅ **Implemented Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
+
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Type:** Enhancement (Legal/OAuth requirement)
+- **Status:** PR open, ready for review
+
+**Summary:**
+Added publicly accessible Terms of Service and Privacy Policy pages required for Google OAuth consent screen configuration. Documents adapted from All Hands AI templates for Voice Relay's specific use case.
+
+**Changes Made:**
+- Created `docs/terms-of-service.md` and `docs/privacy-policy.md`
+- Added `LegalPage.tsx` component for shared layout and markdown rendering
+- Added `/tos` and `/privacy` routes (public, no auth required)
+- Added footer links to Login page
+- Configured Vite `@docs` path alias for markdown imports
+- Uses existing `marked` + `dompurify` for markdown rendering (same as KioskMode)
+
+**Files Changed (12 files, +596 lines):**
+- New: `docs/terms-of-service.md`, `docs/privacy-policy.md`
+- New: `client/src/components/LegalPage.tsx`
+- New: `client/src/pages/TermsOfService.tsx`, `client/src/pages/PrivacyPolicy.tsx`
+- Modified: `client/src/App.tsx`, `client/src/pages/Login.tsx`, `client/src/App.css`
+- Modified: `client/vite.config.ts`, `client/tsconfig.json`, `client/src/vite-env.d.ts`
+
+**URLs (after merge/deploy):**
+- Terms of Service: `https://vr.chorecraft.net/tos`
+- Privacy Policy: `https://vr.chorecraft.net/privacy`
+
+These URLs can be used in Google OAuth consent screen configuration.
+
+---
+
 ### 2026-05-18 21:25 UTC - Implementation Worker
 
 ✅ **Implemented Issue #228 - Release Notes Display Issues in Desktop Mode**
