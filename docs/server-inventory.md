@@ -86,6 +86,36 @@ sudo systemctl restart number-game-api
 | **Type** | Static HTML |
 | **Document Root** | `/var/www/chorecraft.net/public_html` |
 
+### status.chorecraft.net (Uptime Kuma)
+
+| Property | Value |
+|----------|-------|
+| **URL** | https://status.chorecraft.net |
+| **App Type** | Node.js (Uptime Kuma) |
+| **Source** | [louislam/uptime-kuma](https://github.com/louislam/uptime-kuma) |
+| **Port** | 3003 |
+| **Service** | `uptime-kuma.service` |
+| **App Directory** | `/home/jpshack/monitoring/uptime-kuma` |
+
+**Purpose:** Independent health monitoring for voice-relay and other services. Provides:
+- Continuous polling of `https://app.no-hands.dev/health` (60-second interval)
+- Push notifications via ntfy.sh on downtime
+- Public status page at https://status.chorecraft.net
+
+**Configured Monitors:**
+
+| Monitor | Target | Interval | Expected |
+|---------|--------|----------|----------|
+| voice-relay health | `https://app.no-hands.dev/health` | 60s | JSON `{"status":"ok",...}` |
+| chorecraft.net | `https://chorecraft.net` | 5 min | HTTP 200 |
+
+```bash
+# Service management
+sudo systemctl status uptime-kuma
+sudo systemctl restart uptime-kuma
+journalctl -u uptime-kuma -f
+```
+
 ---
 
 ## System Services
@@ -270,9 +300,10 @@ Create `.github/workflows/deploy.yml` in the repo (see voice-relay for example).
 | 443 | Apache (HTTPS) |
 | 3000 | number-game-api |
 | 3002 | voice-relay |
+| 3003 | uptime-kuma |
 | 3306 | MySQL |
 
-**Next available port:** 3003
+**Next available port:** 3004
 
 ---
 
