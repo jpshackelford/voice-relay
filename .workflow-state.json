@@ -7,32 +7,16 @@
         "conv_id": "0fc56cc",
         "issue": 224,
         "started": "2026-05-18T19:49:44.442421+00:00"
-      },
-      {
-        "conv_id": "23e3c5d",
-        "issue": 224,
-        "started": "2026-05-18T19:50:11.697863+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "2c3dcb5",
-        "pr": 225,
-        "started": "2026-05-18T19:49:31.795145+00:00"
-      },
-      {
-        "conv_id": "2c3dcb5",
-        "pr": 225,
-        "started": "2026-05-18T19:50:11.697863+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T19:50:11.697863+00:00",
+  "last_updated": "2026-05-18T20:02:40.384278+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -1008,6 +992,33 @@
       "finished": "2026-05-18T19:47:30.157674+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #223"
+    },
+    {
+      "conv_id": "23e3c5d",
+      "type": "implementation",
+      "issue": 224,
+      "started": "2026-05-18T19:50:11.697863+00:00",
+      "finished": "2026-05-18T20:02:40.384278+00:00",
+      "status": "duplicate",
+      "outcome": "Duplicate entry removed - 224"
+    },
+    {
+      "conv_id": "2c3dcb5",
+      "type": "review",
+      "pr": 225,
+      "started": "2026-05-18T19:49:31.795145+00:00",
+      "finished": "2026-05-18T20:02:40.384278+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #225"
+    },
+    {
+      "conv_id": "2c3dcb5",
+      "type": "review",
+      "pr": 225,
+      "started": "2026-05-18T19:50:11.697863+00:00",
+      "finished": "2026-05-18T20:02:40.384278+00:00",
+      "status": "duplicate",
+      "outcome": "Duplicate entry removed - 225"
     }
   ]
 }
