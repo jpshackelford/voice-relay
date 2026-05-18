@@ -2765,3 +2765,31 @@ _This update was created by an AI agent (OpenHands) on behalf of the repository 
 3. **Implementation Worker** for [Issue #191](https://github.com/jpshackelford/voice-relay/issues/191) - [`9f461ef`](https://app.all-hands.dev/conversations/9f461efb04f744a4b51c8cf2e72b0e65)
 
 **Also:** Added `priority:medium` label to Issue #191
+
+---
+
+### 2026-05-18 03:15 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9f461ef` | implementation | Issue #191 - Unify TTS settings | running |
+| `26258e9` | merge | PR #201 - Simplify kiosk indicator | **NEW** |
+
+**Workers Completed This Cycle:**
+- `b944711` (merge) → PR #200 merged ✓
+- `a0171c7` (review) → PR #201 reviewed ✓
+
+**Current State:**
+- [PR #201](https://github.com/jpshackelford/voice-relay/pull/201): CI green, review positive, no unresolved threads → **Merge worker spawned**
+- Issue #191: Implementation in progress (worker `9f461ef`)
+- Ready issues (no PR yet): #166, #167, #188 (all priority:low)
+- Issue #197: `needs-human` - smoke test failure (skipped)
+
+**Actions Taken:**
+🚀 **Spawned merge worker** for [PR #201](https://github.com/jpshackelford/voice-relay/pull/201) - [`26258e9`](https://app.all-hands.dev/conversations/26258e9120bb4fd5bbb757386f801925)
+
+**Next Cycle:**
+- Implementation slot occupied (wait for #191 PR)
+- 1 review slot still available
+- Expansion slots idle (all issues have `ready` label)
