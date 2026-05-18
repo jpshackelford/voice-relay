@@ -26,6 +26,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 19:35 UTC - Merge Worker
+
+✅ **PR #222 Merged - Agent Actions Panel V1 Wrapped Events Fix**
+
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220) - Auto-closed
+- **Deployment:** Merged to main → Auto-deployed to vr.chorecraft.net 🚀
+
+**Summary:**
+Fixed Agent Actions panel in Kiosk mode to display descriptive summaries instead of generic kind names.
+
+**Key Changes:**
+- Handle V1 wrapped events (ActionEvent, ObservationEvent) with nested action/observation objects
+- Add handlers for SystemPromptEvent and MessageEvent
+- Extract truncate() helper for consistent string truncation
+- Maintain backward compatibility with direct action types
+- Added 40+ comprehensive tests
+
+**Before:** "Observation", "Action"
+**After:** "curl -X POST...", "Read /workspace/...", "Output: ..."
+
+---
+
 ### 2026-05-18 19:09 UTC - Review Worker
 
 ✅ **PR #222 Second Review Round Complete**
