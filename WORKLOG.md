@@ -26,6 +26,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 19:45 UTC - Implementation Worker
+
+🔧 **PR #225 Created - Smoke Test AI Connection Retry**
+
+- **Issue:** [#213 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/213)
+- **PR:** [#225 - fix(e2e): add retry logic for AI connection in smoke tests](https://github.com/jpshackelford/voice-relay/pull/225)
+- **Type:** Bug fix
+- **Status:** Ready for review, CI green
+
+**Summary:**
+Added retry logic to AI connection assertions in smoke tests to handle transient API failures that were causing false test failures (AI staying stuck in "connecting" state).
+
+**Changes:**
+- Added `waitForAIConnected()` helper function using Playwright's `toPass()` for robust retry handling
+- Updated 4 tests to use the new helper
+- Allows up to 30 seconds per connection attempt, retries for up to 90 seconds total
+
+---
+
 ### 2026-05-18 19:36 UTC - Expansion Worker
 
 ✅ **Expanded Issue #224**
