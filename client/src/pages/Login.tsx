@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -78,6 +78,12 @@ export function Login() {
           You'll need a GitHub account to create and manage workspaces.
         </p>
       </div>
+
+      <footer className="login-footer">
+        <Link to="/tos">Terms of Service</Link>
+        <span className="login-footer-divider">•</span>
+        <Link to="/privacy">Privacy Policy</Link>
+      </footer>
     </div>
   );
 }
