@@ -2503,3 +2503,40 @@ Unified 3 separate unsynced TTS settings into single session-level control with 
 - [x] Browser-local TTS deprecated/removed
 
 **CI Status:** All checks passing ✅
+
+---
+
+### 2026-05-18 13:45 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ee2137c` | review | PR #202 - Unified TTS settings | **NEW** |
+| `6b82f0b` | implementation | Issue #166 - Mobile oscilloscope transcription | **NEW** |
+
+**Current State:**
+- [PR #202](https://github.com/jpshackelford/voice-relay/pull/202): Open, CI green, 1 unresolved review thread (critical TTS default behavior issue)
+- Issue #197: Blocked - smoke test failure due to npm cache corruption (needs-human label)
+
+**Ready Issues (no PR yet):**
+- #166 (priority:low) - Mobile oscilloscope transcription - **implementation started**
+- #167 (priority:low) - Toggle agent actions display
+- #188 (priority:low) - ElevenLabs settings info
+
+**Action Taken:**
+🚀 **Spawned 2 Workers (parallel):**
+
+1. **Review Worker** for [PR #202](https://github.com/jpshackelford/voice-relay/pull/202) - Unified TTS settings
+   - Conversation: [`ee2137c`](https://app.all-hands.dev/conversations/ee2137c796fe4fadabf8c02476460eb1)
+   - Task: Address critical review feedback about TTS default behavior
+
+2. **Implementation Worker** for [Issue #166](https://github.com/jpshackelford/voice-relay/issues/166) - Mobile oscilloscope transcription
+   - Conversation: [`6b82f0b`](https://app.all-hands.dev/conversations/6b82f0bf0aba4df1a1027ffc4f0b8bcd)
+   - Task: Implement server-side speech recognition for unified oscilloscope+transcription mode
+
+**Slot Usage:**
+- Expansion: 0/4 (all issues already have `ready` label)
+- Implementation: 1/1
+- Review: 1/2
+
+**Note:** Issue #197 (smoke test failure) has `needs-human` label - requires manual SSH to clear npm cache on production server.
