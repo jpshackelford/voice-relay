@@ -26,6 +26,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:05 UTC - Expansion Worker
+
+✅ **Expanded Issue #229 - In-Product Release Notes Should Include Hyperlinks to PRs**
+
+- **Issue:** [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+- **Type:** Enhancement
+- **Status:** Ready for implementation
+
+**Summary:**
+Expanded the enhancement request to add clickable PR links in the "What's New" release notes modal. PR numbers are currently stripped from commit messages during changelog generation. The fix involves:
+1. Modifying `parseCommitMessage()` in `scripts/generate-changelog.ts` to extract and preserve PR numbers
+2. Adding `prNumber` field to the `Change` interface
+3. Rendering PR links in `client/src/components/ReleaseNotes.tsx`
+4. Adding CSS styling for the links
+
+**Complexity:** Low - straightforward parsing and rendering changes.
+
+---
+
 ### 2026-05-18 20:05 UTC - Implementation Worker
 
 🔧 **PR #227 Created - Custom Dad Joke Voice Previews (Updated)**
