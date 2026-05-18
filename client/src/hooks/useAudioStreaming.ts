@@ -199,6 +199,13 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
         const ringBuffer = ringBufferRef.current;
         const capacity = ringBuffer.data.length;
         
+        // Check if we have room for new data - process first if overflow would occur
+        const availableSpace = capacity - ringBuffer.length;
+        if (inputData.length > availableSpace) {
+          console.warn('[AudioStreaming] Ring buffer overflow, processing before write');
+          processAudioBuffer();
+        }
+        
         // Write to ring buffer (no allocation, just index update)
         for (let i = 0; i < inputData.length; i++) {
           ringBuffer.data[ringBuffer.writeIndex] = inputData[i];
@@ -206,7 +213,7 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
         }
         ringBuffer.length = Math.min(ringBuffer.length + inputData.length, capacity);
         
-        // Process if we have enough samples
+        // Process if we have enough samples for a chunk
         processAudioBuffer();
       };
 
