@@ -771,6 +771,61 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
     expect(voices![0].labels?.accent).toBe('american');
   });
 
+  it('fetchElevenlabsVoices parses preview_url when present', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockVoicesResponse = {
+      voices: [
+        { voice_id: 'v1', name: 'Voice One', preview_url: 'https://example.com/voice1.mp3' },
+        { voice_id: 'v2', name: 'Voice Two', preview_url: 'https://example.com/voice2.mp3' },
+        { voice_id: 'v3', name: 'Voice Three' }, // No preview_url
+      ],
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockVoicesResponse,
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let voices: ElevenlabsVoice[] | undefined;
+    await act(async () => {
+      voices = await result.current.fetchElevenlabsVoices();
+    });
+
+    // Verify preview_url is parsed correctly
+    expect(voices).toBeDefined();
+    expect(voices!).toHaveLength(3);
+    expect(voices![0].preview_url).toBe('https://example.com/voice1.mp3');
+    expect(voices![1].preview_url).toBe('https://example.com/voice2.mp3');
+    expect(voices![2].preview_url).toBeUndefined();
+  });
+
   it('fetchElevenlabsVoices handles empty voices array', async () => {
     const mockSettings = {
       workspaceId: 'ws1',

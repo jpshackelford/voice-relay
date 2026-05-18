@@ -217,9 +217,9 @@ export async function testApiKey(apiKey: string): Promise<{ valid: boolean; mess
  * Fetch available voices from ElevenLabs.
  * 
  * @param apiKey - ElevenLabs API key
- * @returns Promise with array of voice objects
+ * @returns Promise with array of voice objects including preview URLs when available
  */
-export async function fetchVoices(apiKey: string): Promise<Array<{ voice_id: string; name: string; labels?: Record<string, string> }>> {
+export async function fetchVoices(apiKey: string): Promise<Array<{ voice_id: string; name: string; labels?: Record<string, string>; preview_url?: string }>> {
   const response = await fetch('https://api.elevenlabs.io/v1/voices', {
     headers: {
       'xi-api-key': apiKey,
