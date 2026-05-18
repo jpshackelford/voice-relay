@@ -2639,3 +2639,26 @@ Server proceeded with TTS when `sessionTtsSettings` was undefined, but client de
 **Review Threads:** 4/4 resolved
 
 ---
+
+### 2026-05-18 14:27 UTC - Review Worker (`57d2254`)
+
+✅ **PR #202 Second Round Review Feedback Addressed**
+
+- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
+- **Issue:** Device selection validation on disconnect
+- **Status:** Ready for review ✅
+
+**Problem:**
+When a user selects a specific kiosk for TTS output and that kiosk disconnects, the device dropdown would show an invalid value. TTS audio would silently fail to play.
+
+**Fix Applied (commit 0ffa71b):**
+- Added device existence validation in both KioskMode.tsx and MobileSettings.tsx
+- Select now gracefully falls back to "all" when selected device is no longer connected
+- Fixed test type errors by adding required `outputDeviceId` to SessionTtsSettings test objects
+
+**CI Status:** All checks passing ✅
+**Review Threads:** All resolved (3/3) ✅
+
+**PR is ready for merge.** All review feedback addressed across both review rounds.
+
+---
