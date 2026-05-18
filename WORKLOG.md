@@ -304,3 +304,61 @@ Added new "Unified" input mode that combines Web Speech API transcription with o
 
 **PR is ready for merge.**
 
+---
+
+### 2026-05-18 15:50 UTC - Implementation Worker (`d14a3c8`)
+
+✅ **PR #206 Created for Issue #167**
+
+- **PR:** [#206 - feat(client): add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/pull/206)
+- **Issue:** [#167 - Add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/issues/167)
+- **Status:** CI passing ✅, Ready for review ✅
+
+**Implementation Summary:**
+Added collapsible "Agent Actions" panel in kiosk sidebar that displays real-time OpenHands agent events (file reads, command runs, browser actions, etc.). Toggle state persists to localStorage.
+
+**Key Changes:**
+
+1. **Server-side** (`server/src/openhands.ts`, `server/src/index.ts`):
+   - Added `AgentAction` interface and `AgentActionMessage` type
+   - Added `formatEventSummary()` helper for human-readable action descriptions
+   - Added `ActionCallback` and `setActionCallback()` in AISessionManager
+   - Modified `connectWebSocket()` to forward agent action events to clients
+
+2. **Client-side types** (`client/src/types.ts`):
+   - Added `AgentAction` and `AgentActionMessage` types
+
+3. **New hook** (`client/src/hooks/useAgentActions.ts`):
+   - Manages actions list (max 50 retained)
+   - Persists toggle state to localStorage
+   - Provides `getActionIcon()` for action type icons
+
+4. **UI** (`client/src/components/KioskMode.tsx`):
+   - Added collapsible agent actions panel below participants
+   - Shows action count badge when collapsed
+   - Auto-scrolls to latest actions when expanded
+
+5. **Styles** (`client/src/App.css`):
+   - Added `.kiosk-agent-actions` panel styles
+   - Responsive design for mobile/desktop
+
+**Acceptance Criteria:**
+- ✅ Toggle button appears in kiosk sidebar below participants
+- ✅ Toggle state persists in localStorage
+- ✅ When enabled, agent actions display in collapsible panel
+- ✅ Actions show: action type icon + brief description
+- ✅ Panel auto-scrolls to show latest actions
+- ✅ Maximum 50 actions retained (older ones pruned)
+- ✅ Panel respects mobile/desktop responsive layout
+- ✅ Performance: No UI jank with rapid event stream
+
+**Tests:**
+- ✅ 8 new unit tests for useAgentActions hook
+- ✅ All server tests passing (37 tests)
+- ✅ All client tests passing (55 tests)
+- ✅ E2E tests passing
+
+**Verification:**
+- ✅ Build passes
+- ✅ CI: All checks green (Build Client, Server Tests, E2E Tests, lint-pr-title)
+
