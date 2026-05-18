@@ -25,6 +25,22 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+
+### 2026-05-18 18:36 UTC - Review Worker
+
+✅ **PR #222 Review Feedback Addressed**
+
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220)
+- **Status:** CI passing ✅, Ready for merge
+
+**Review Feedback Addressed:**
+- Removed unused `getNestedActionType` helper function (dead code cleanup per bot review)
+- Function was defined but never called in the codebase
+
+**Commit:** `4dc6485`
+
+---
 ### 2026-05-18 18:28 UTC - Implementation Worker
 
 ✅ **Implemented Issue #220 - Agent Actions panel V1 wrapped events**
