@@ -31,22 +31,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 - Issue: [#185 - In-app release notes viewer](https://github.com/jpshackelford/voice-relay/issues/185)
 - Type: Enhancement  
-- Status: Ready for implementation
+- Status: Ready for implementation ✅ `ready` label added
 
 **Summary:**
-Users need a way to see what changed in recent deployments without leaving the app. The app deploys frequently (149 deploy tags exist) but has no user-facing changelog.
+Users need a way to see what changed in recent deployments without leaving the app. The app deploys frequently (148 `deploy-success-*` tags exist) but has no user-facing changelog.
 
 **Selected Approach:** Build-time changelog generation (Option D from original discussion)
 - Generate `changelog.json` during build from git history between `deploy-success-*` tags
-- Server API endpoint (`GET /api/changelog`) serves pre-generated data
-- Client modal accessible from MobileSettings via "What's New" link
+- **Offline-first**: Changelog bundled at build time, no runtime API calls needed
+- Client modal accessible from MobileSettings via "📦 What's New" link
 - Relative time display using `Intl.RelativeTimeFormat`, tap for absolute time
 
 **Files Affected:**
-- New: `scripts/generate-changelog.ts`, `client/src/components/ReleaseNotes.tsx`, `client/src/components/RelativeTime.tsx`
-- Modified: `server/src/index.ts` (add endpoint), `client/src/components/MobileSettings.tsx`, `client/src/App.css`, `package.json`
+| File | Action | Description |
+|------|--------|-------------|
+| `scripts/generate-changelog.ts` | Create | Git tag parser → changelog.json |
+| `client/src/components/ReleaseNotes.tsx` | Create | Modal component for release notes |
+| `client/src/utils/relativeTime.ts` | Create | Relative time formatter utility |
+| `client/src/components/MobileSettings.tsx` | Modify | Add "What's New" link |
+| `client/src/App.css` | Modify | Add release notes modal styles |
+| `client/package.json` | Modify | Add prebuild script |
+| `.gitignore` | Modify | Add changelog.json |
 
-**Complexity:** Medium - multiple components but follows established patterns
+**Complexity:** Medium - follows existing MobileSettings modal patterns
 
 ---
 
