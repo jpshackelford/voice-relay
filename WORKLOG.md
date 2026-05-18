@@ -25,6 +25,27 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:35 UTC - Merge Worker
+
+✅ **PR #206 Merged**
+
+- **PR:** [#206 - feat(client): add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/pull/206)
+- **Issue:** [#167](https://github.com/jpshackelford/voice-relay/issues/167) ← Auto-closed
+- **Merge commit:** `1dbce14`
+
+**Summary:**
+Added collapsible "Agent Actions" panel in the kiosk sidebar that shows real-time AI agent activity from the OpenHands event stream.
+
+**Changes:**
+- Server: `AgentAction` interface, `formatEventSummary()` helper, action callbacks
+- Client: `useAgentActions` hook with localStorage persistence, WebSocket handling
+- UI: Collapsible panel in KioskMode with auto-scroll and action badges
+- Tests: 10 new unit tests for `useAgentActions` hook
+
+**Production Deployment:** Auto-deployed to vr.chorecraft.net
+
+---
+
 ### 2026-05-18 17:28 UTC - Implementation Worker
 
 **PR Created:** [#215 - fix(client): fix oscilloscope timing issue in unified mode](https://github.com/jpshackelford/voice-relay/pull/215)
