@@ -457,3 +457,30 @@ Added collapsible "Agent Actions" panel in kiosk sidebar that displays real-time
 | Expansion | 1 | 3 | 4 |
 | Implementation | 1 | 0 | 1 |
 | Review | 1 | 1 | 2 |
+
+---
+
+### 2026-05-18 16:54 UTC - Review Worker (`da86766`)
+
+✅ **PR #206 Review Feedback Addressed**
+
+- **PR:** [#206 - feat(client): add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/pull/206)
+- **Issue:** [#167](https://github.com/jpshackelford/voice-relay/issues/167)
+- **Status:** CI passing ✅, All review threads resolved ✅, Ready for merge
+
+**Review Feedback Addressed (1 thread → resolved):**
+
+1. **Remove unnecessary `actionCount` property** (🟡 Suggestion)
+   - The code reviewer noted that `useMemo` was unnecessary for computing `actionCount` since `Array.length` is already O(1)
+   - Removed the `actionCount` property entirely from the hook return object
+   - Consumers already access `actions.length` directly where needed
+   - Updated tests to remove `actionCount` assertions
+
+**Commit:** `27940c6` - refactor(useAgentActions): remove unnecessary actionCount property
+
+**Verification:**
+- ✅ Client tests: 423 passed (10 tests in useAgentActions.test.ts)
+- ✅ TypeScript: No errors
+- ✅ CI: All 4 checks green (Build Client, Server Tests, E2E Tests, Conventional Commits)
+
+**PR is ready for merge.**
