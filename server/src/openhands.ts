@@ -373,18 +373,138 @@ interface V1Event {
 }
 
 /**
+ * Truncate a string to maxLen, adding ellipsis if needed.
+ */
+function truncate(str: string, maxLen: number): string {
+  if (!str) return '';
+  return str.length > maxLen ? str.substring(0, maxLen - 3) + '...' : str;
+}
+
+/**
  * Format an OpenHands event into a human-readable summary.
  * Used to create concise descriptions of agent actions.
+ * 
+ * Handles both:
+ * - V1 wrapped events (kind: "ActionEvent"/"ObservationEvent" with nested action/observation)
+ * - Direct action events (kind: "CmdRunAction", etc. with direct properties)
  */
 function formatEventSummary(event: V1Event): string {
   const kind = event.kind || 'Unknown';
   
-  // Handle common action types with specific formatting
+  // V1 Wrapped Events: ActionEvent contains nested 'action' object
+  if (kind === 'ActionEvent') {
+    const action = event.action as Record<string, unknown> | undefined;
+    if (action) {
+      const actionType = action.action as string;
+      
+      // Extract summary based on action type
+      if (actionType === 'run') {
+        const cmd = action.command as string;
+        if (cmd) return truncate(cmd, 60);
+        return 'Running command';
+      }
+      if (actionType === 'read') {
+        const path = action.path as string;
+        if (path) return `Read ${truncate(path, 50)}`;
+        return 'Reading file';
+      }
+      if (actionType === 'write') {
+        const path = action.path as string;
+        if (path) return `Write ${truncate(path, 50)}`;
+        return 'Writing file';
+      }
+      if (actionType === 'edit') {
+        const path = action.path as string;
+        if (path) return `Edit ${truncate(path, 50)}`;
+        return 'Editing file';
+      }
+      if (actionType === 'browse') {
+        const url = action.url as string;
+        if (url) return `Browse ${truncate(url, 45)}`;
+        return 'Browsing';
+      }
+      if (actionType === 'browse_interactive') {
+        const browserAction = action.browser_actions as string;
+        if (browserAction) return `Browser: ${truncate(browserAction, 50)}`;
+        return 'Browser interaction';
+      }
+      if (actionType === 'think') {
+        const thought = action.thought as string;
+        if (thought) return truncate(thought, 60);
+        return 'Thinking...';
+      }
+      if (actionType === 'message') {
+        const content = action.content as string;
+        if (content) return truncate(content, 60);
+        return 'Message';
+      }
+      if (actionType === 'finish') {
+        return 'Task completed';
+      }
+      if (actionType === 'delegate') {
+        const agent = action.agent as string;
+        if (agent) return `Delegating to ${agent}`;
+        return 'Delegating to sub-agent';
+      }
+      if (actionType === 'reject') {
+        return 'Request rejected';
+      }
+      // Fallback: return the action type
+      if (actionType) return truncate(String(actionType), 60);
+    }
+    
+    // If no nested action, try reasoning_content for agent thinking
+    if (event.reasoning_content) {
+      return truncate(String(event.reasoning_content), 60);
+    }
+    return 'Agent action';
+  }
+  
+  // V1 Wrapped Events: ObservationEvent contains nested 'observation' object
+  if (kind === 'ObservationEvent') {
+    const observation = event.observation as Record<string, unknown> | undefined;
+    if (observation) {
+      // Terminal output
+      const cmd = observation.command as string;
+      if (cmd) return `Output: ${truncate(cmd, 50)}`;
+      
+      // File read observation
+      const path = observation.path as string;
+      if (path) return `File: ${truncate(path, 50)}`;
+      
+      // Generic content
+      const content = observation.content as string | { text?: string }[];
+      if (content) {
+        if (typeof content === 'string') {
+          return truncate(content, 60);
+        }
+        if (Array.isArray(content) && content[0]?.text) {
+          return truncate(content[0].text, 60);
+        }
+      }
+    }
+    return 'Observation';
+  }
+  
+  // V1 Wrapped Events: SystemPromptEvent
+  if (kind === 'SystemPromptEvent') {
+    return 'System prompt loaded';
+  }
+  
+  // V1 Wrapped Events: MessageEvent
+  if (kind === 'MessageEvent') {
+    const llmMessage = event.llm_message as { content?: { text?: string }[] } | undefined;
+    if (llmMessage?.content?.[0]?.text) {
+      return truncate(llmMessage.content[0].text, 60);
+    }
+    return 'Message';
+  }
+  
+  // Handle direct action types (legacy/alternative format)
   switch (kind) {
     case 'CmdRunAction':
       if (event.command) {
-        const cmd = String(event.command);
-        return cmd.length > 60 ? cmd.substring(0, 57) + '...' : cmd;
+        return truncate(String(event.command), 60);
       }
       return 'Running command';
       
@@ -392,41 +512,30 @@ function formatEventSummary(event: V1Event): string {
       return 'Command output received';
       
     case 'FileReadAction':
-      if (event.path) {
-        return `Read ${event.path}`;
-      }
+      if (event.path) return `Read ${event.path}`;
       return 'Reading file';
       
     case 'FileWriteAction':
-      if (event.path) {
-        return `Write ${event.path}`;
-      }
+      if (event.path) return `Write ${event.path}`;
       return 'Writing file';
       
     case 'FileEditAction':
-      if (event.path) {
-        return `Edit ${event.path}`;
-      }
+      if (event.path) return `Edit ${event.path}`;
       return 'Editing file';
       
     case 'BrowseURLAction':
       if (event.args && typeof event.args === 'object' && 'url' in event.args) {
         const url = String(event.args.url);
-        return `Navigate to ${url.length > 40 ? url.substring(0, 37) + '...' : url}`;
+        return `Navigate to ${truncate(url, 40)}`;
       }
       return 'Navigating browser';
       
     case 'BrowseInteractiveAction':
-      if (event.action) {
-        return `Browser: ${event.action}`;
-      }
+      if (event.action) return `Browser: ${event.action}`;
       return 'Browser interaction';
       
     case 'AgentThinkAction':
-      if (event.thought) {
-        const thought = String(event.thought);
-        return thought.length > 60 ? thought.substring(0, 57) + '...' : thought;
-      }
+      if (event.thought) return truncate(String(event.thought), 60);
       return 'Thinking...';
       
     case 'AgentStateChangeEvent':
@@ -445,7 +554,7 @@ function formatEventSummary(event: V1Event): string {
       return 'Status update';
       
     default:
-      // For unknown types, use the kind as the summary
+      // For unknown types, use the kind as the summary (cleaned up)
       return kind.replace(/Action$|Observation$|Event$/i, '');
   }
 }
