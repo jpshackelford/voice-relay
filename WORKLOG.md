@@ -2169,3 +2169,32 @@ Fixed three bugs in the changelog generator that were causing incomplete/incorre
 - Issues on-hold: #208, #210
 
 ---
+
+---
+
+### 2026-05-18 22:19 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `36b08fc` | implementation | Issue #229 - PR Links in Release Notes | **NEW** |
+
+**Workers Completed Since Last Run:**
+- `7ed2beb` (implementation) → error (issue #229 retry needed)
+- `42cdf2b` (review) → finished ✅ (PR #233 merged)
+- `2ec9a6a` (review) → finished ✅ (PR #234 merged)
+
+**Current State:**
+- Open PRs: [#221](https://github.com/jpshackelford/voice-relay/pull/221) - draft, `needs-human` (stuck)
+- Issues needing expansion: None
+- Ready issues: #229 (priority:low) - now in progress
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned implementation worker** for Issue #229
+- Issue: [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+- Conversation: [`36b08fc`](https://app.all-hands.dev/conversations/36b08fc9f35941c79aa064355aaa5c68)
+- Previous attempt (7ed2beb) errored - this is a retry
+
+Note: PR #221 skipped - has `needs-human` label, waiting for human intervention.
+

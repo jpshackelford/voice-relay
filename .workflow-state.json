@@ -4,49 +4,20 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "7ed2beb",
+        "conv_id": "36b08fc",
         "issue": 229,
-        "started": "2026-05-18T22:04:53.177917+00:00"
+        "started": "2026-05-18T22:19:29.284185+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "42cdf2b",
-        "pr": 233,
-        "started": "2026-05-18T22:04:53.177917+00:00"
-      },
-      {
-        "conv_id": "2ec9a6a",
-        "pr": 234,
-        "started": "2026-05-18T22:04:53.177917+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T22:04:53.177917+00:00",
+  "last_updated": "2026-05-18T22:19:29.284185+00:00",
   "completed": [
-    {
-      "conv_id": "0147a93",
-      "type": "implementation",
-      "issue": 176,
-      "started": "2026-05-17T22:04:03.438001+00:00",
-      "finished": "2026-05-17T22:18:08.864451+00:00",
-      "status": "success",
-      "outcome": "Created PR for issue #176"
-    },
-    {
-      "conv_id": "00c600d",
-      "type": "review",
-      "pr": 175,
-      "started": "2026-05-17T22:04:03.438001+00:00",
-      "finished": "2026-05-17T22:18:08.864451+00:00",
-      "status": "success",
-      "outcome": "Merged or addressed review on PR #175"
-    },
     {
       "conv_id": "91fd6a6",
       "type": "implementation",
@@ -1102,6 +1073,33 @@
       "status": "success",
       "outcome": "Completed work for PR #233",
       "pr": 233
+    },
+    {
+      "conv_id": "7ed2beb",
+      "type": "implementation",
+      "started": "2026-05-18T22:04:53.177917+00:00",
+      "finished": "2026-05-18T22:18:19.289171+00:00",
+      "status": "error",
+      "issue": 229,
+      "outcome": "Worker error for issue #229"
+    },
+    {
+      "conv_id": "42cdf2b",
+      "type": "review",
+      "started": "2026-05-18T22:04:53.177917+00:00",
+      "finished": "2026-05-18T22:18:19.289171+00:00",
+      "status": "finished",
+      "pr": 233,
+      "outcome": "Worker finished for PR #233"
+    },
+    {
+      "conv_id": "2ec9a6a",
+      "type": "review",
+      "started": "2026-05-18T22:04:53.177917+00:00",
+      "finished": "2026-05-18T22:18:19.289171+00:00",
+      "status": "finished",
+      "pr": 234,
+      "outcome": "Worker finished for PR #234"
     }
   ]
 }
