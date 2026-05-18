@@ -26,6 +26,35 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 19:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #224**
+
+- **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
+- **Type:** Enhancement
+- **Status:** Ready for implementation
+- **Labels:** `ready`, `priority:low`
+
+**Summary:**
+Replace ElevenLabs-provided voice preview samples with custom dad joke previews synthesized using our existing TTS infrastructure.
+
+**Technical Approach:**
+- Create dad jokes data file with 20+ short jokes
+- Add `synthesizeToBuffer()` function to collect WebSocket audio chunks
+- Add `POST /:id/settings/voice-preview` API endpoint
+- Update client to call new API instead of using `preview_url`
+
+**Files Affected:**
+- `server/src/tts/dad-jokes.ts` (NEW)
+- `server/src/tts/elevenlabs.ts`
+- `server/src/workspaces/router.ts`
+- `client/src/hooks/useWorkspaceSettings.ts`
+- `client/src/pages/WorkspaceHome.tsx`
+
+**Complexity:** Medium
+
+---
+
 ### 2026-05-18 19:35 UTC - Merge Worker
 
 ✅ **PR #222 Merged - Agent Actions Panel V1 Wrapped Events Fix**
