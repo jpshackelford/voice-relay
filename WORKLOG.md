@@ -1768,3 +1768,38 @@ Add a "Skip →" button in the top-right corner of the QR display that dismisses
 - ✅ Expansion workers finished: Issue #184, #186
 - ✅ Implementation worker finished: Issue #182
 
+
+---
+
+### 2026-05-18 00:08 UTC - Orchestrator
+
+**✅ Merged: PR #181** - fix(client): combine kiosk sidebar status row elements
+- Issue #168 closed via PR merge
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a3b90a6` | review | PR #180 - Settings back button | running |
+| `73a632e` | implementation | Issue #189 - Device persistence bug | running |
+| `ae1138c` | expansion | Issue #191 - Unify TTS settings | running |
+| `92a5757` | expansion | Issue #188 - ElevenLabs API permissions | running |
+| `31dc2ee` | expansion | Issue #185 - In-app release notes | running |
+
+**Current State:**
+- **Open PRs:**
+  - [PR #190](https://github.com/jpshackelford/voice-relay/pull/190): fix: add concurrency controls (CI FAILURE, 1 unresolved thread)
+  - [PR #187](https://github.com/jpshackelford/voice-relay/pull/187): feat: ntfy.sh notifications (CI FAILURE, 3 unresolved threads)
+  - [PR #180](https://github.com/jpshackelford/voice-relay/pull/180): fix: Settings back button (CI PENDING)
+- **Issues needing expansion:** #191, #188, #185 (all being expanded now)
+- **Ready issues:** #189 (priority:high, being implemented), #184, #182, #186, #183, #169, #167, #166, #165
+
+**Action Taken:**
+🚀 **Spawned 5 workers (parallel)**
+
+1. **Review (Merge) Worker** - Merged [PR #181](https://github.com/jpshackelford/voice-relay/pull/181) ✅
+2. **Implementation Worker** for [Issue #189](https://github.com/jpshackelford/voice-relay/issues/189) - Device persistence bug (priority:high)
+3. **Expansion Workers** for Issues #191, #188, #185
+
+**Note:** Some duplicate workers may have been spawned by a concurrent orchestrator run. Deduplication applied to state file.
+
+---
