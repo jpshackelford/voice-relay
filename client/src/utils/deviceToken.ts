@@ -3,6 +3,13 @@
  * Uses localStorage for persistence across page refreshes.
  * Also checks for server-set cookies from auto-device creation.
  * 
+ * STORAGE STRATEGY:
+ * Device tokens are stored per-workspace to support multiple workspaces from
+ * the same browser. The storage key format is: voice_relay_device_token_{workspaceId}
+ * 
+ * Migration: Legacy single-key storage is automatically migrated to workspace-scoped
+ * storage when the device token is accessed.
+ * 
  * SECURITY NOTE: Device cookies are NOT httpOnly - they are readable by JavaScript
  * to allow client-side device session restoration. This is acceptable because:
  * - Device tokens only identify a device within a workspace
@@ -10,9 +17,17 @@
  * - Device tokens cannot be used to impersonate users or access other workspaces
  */
 
-const DEVICE_TOKEN_KEY = 'voice_relay_device_token';
+const LEGACY_DEVICE_TOKEN_KEY = 'voice_relay_device_token';
+const DEVICE_TOKEN_KEY_PREFIX = 'voice_relay_device_token_';
 const DEVICE_ID_KEY = 'voice_relay_device_id';
 const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
+
+/**
+ * Get workspace-scoped storage key for device token.
+ */
+function getDeviceTokenKey(workspaceId: string): string {
+  return `${DEVICE_TOKEN_KEY_PREFIX}${workspaceId}`;
+}
 
 interface StoredDeviceInfo {
   deviceId: string;
@@ -85,13 +100,15 @@ export function getServerSetDeviceToken(): StoredDeviceInfo | null {
 
 /**
  * Store device token after successful registration/login.
+ * Uses workspace-scoped storage key.
  * Returns true if storage succeeded, false otherwise.
  */
 export function storeDeviceToken(info: StoredDeviceInfo): boolean {
   try {
-    localStorage.setItem(DEVICE_TOKEN_KEY, JSON.stringify(info));
+    const key = getDeviceTokenKey(info.workspaceId);
+    localStorage.setItem(key, JSON.stringify(info));
     // Verify the write succeeded by reading back
-    const stored = localStorage.getItem(DEVICE_TOKEN_KEY);
+    const stored = localStorage.getItem(key);
     return stored !== null;
   } catch (e) {
     console.error('[DeviceToken] Failed to store device token:', e);
@@ -100,34 +117,61 @@ export function storeDeviceToken(info: StoredDeviceInfo): boolean {
 }
 
 /**
- * Get stored device token info from localStorage.
- * Also checks for server-set cookie and migrates to localStorage if found.
+ * Get stored device token info from localStorage for a specific workspace.
+ * Also checks for server-set cookie and legacy storage, migrating if found.
+ * 
+ * @param workspaceId - The workspace ID to get the device token for. 
+ *                      If not provided, falls back to legacy single-key storage.
  */
-export function getStoredDeviceToken(): StoredDeviceInfo | null {
+export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | null {
   try {
-    // First check localStorage
-    const stored = localStorage.getItem(DEVICE_TOKEN_KEY);
-    if (stored) {
-      return JSON.parse(stored) as StoredDeviceInfo;
+    // If workspaceId provided, check workspace-scoped storage first
+    if (workspaceId) {
+      const key = getDeviceTokenKey(workspaceId);
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        return JSON.parse(stored) as StoredDeviceInfo;
+      }
+      
+      // Check legacy storage and migrate if it matches this workspace
+      const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
+      if (legacyStored) {
+        const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
+        if (legacyDevice.workspaceId === workspaceId) {
+          console.log('[DeviceToken] Migrating legacy storage to workspace-scoped storage');
+          storeDeviceToken(legacyDevice); // Store in new location
+          localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY); // Remove legacy
+          return legacyDevice;
+        }
+      }
+    } else {
+      // Fallback: check legacy storage for backward compatibility
+      const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
+      if (legacyStored) {
+        return JSON.parse(legacyStored) as StoredDeviceInfo;
+      }
     }
     
     // Check for server-set cookie (from auto-device creation)
     const serverSetDevice = getServerSetDeviceToken();
     if (serverSetDevice) {
-      // Migrate to localStorage for consistency
-      console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
-      const migrationSucceeded = storeDeviceToken(serverSetDevice);
-      if (migrationSucceeded) {
-        // Only delete the cookie if localStorage migration succeeded
-        // This ensures the cookie remains as a safety net if localStorage is disabled/full
-        // Include secure flag on HTTPS to ensure proper cookie deletion
-        const isSecure = window.location.protocol === 'https:';
-        const secureFlag = isSecure ? ' secure;' : '';
-        document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secureFlag}`;
-      } else {
-        console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
+      // Only use if workspace matches or we don't know the workspace yet
+      if (!workspaceId || serverSetDevice.workspaceId === workspaceId) {
+        // Migrate to localStorage for consistency
+        console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
+        const migrationSucceeded = storeDeviceToken(serverSetDevice);
+        if (migrationSucceeded) {
+          // Only delete the cookie if localStorage migration succeeded
+          // This ensures the cookie remains as a safety net if localStorage is disabled/full
+          // Include secure flag on HTTPS to ensure proper cookie deletion
+          const isSecure = window.location.protocol === 'https:';
+          const secureFlag = isSecure ? ' secure;' : '';
+          document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secureFlag}`;
+        } else {
+          console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
+        }
+        return serverSetDevice;
       }
-      return serverSetDevice;
     }
     
     return null;
@@ -139,10 +183,18 @@ export function getStoredDeviceToken(): StoredDeviceInfo | null {
 
 /**
  * Clear stored device token (on logout or error).
+ * 
+ * @param workspaceId - The workspace ID to clear the device token for.
+ *                      If not provided, clears legacy storage and session device ID.
  */
-export function clearDeviceToken(): void {
+export function clearDeviceToken(workspaceId?: string): void {
   try {
-    localStorage.removeItem(DEVICE_TOKEN_KEY);
+    if (workspaceId) {
+      const key = getDeviceTokenKey(workspaceId);
+      localStorage.removeItem(key);
+    }
+    // Always clear legacy storage for backward compatibility
+    localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
     localStorage.removeItem(DEVICE_ID_KEY);
   } catch (e) {
     console.error('[DeviceToken] Failed to clear device token:', e);
@@ -152,9 +204,11 @@ export function clearDeviceToken(): void {
 /**
  * Validate stored device token against server.
  * Returns device info if valid, null if invalid.
+ * 
+ * @param workspaceId - The workspace ID to validate the device token for.
  */
-export async function validateDeviceToken(): Promise<ValidatedDevice | null> {
-  const stored = getStoredDeviceToken();
+export async function validateDeviceToken(workspaceId?: string): Promise<ValidatedDevice | null> {
+  const stored = getStoredDeviceToken(workspaceId);
   if (!stored?.deviceToken) {
     return null;
   }
@@ -174,7 +228,7 @@ export async function validateDeviceToken(): Promise<ValidatedDevice | null> {
     // Token invalid, clear it
     if (response.status === 401) {
       console.log('[DeviceToken] Token invalid, clearing');
-      clearDeviceToken();
+      clearDeviceToken(workspaceId);
     }
     return null;
   } catch (e) {
@@ -187,7 +241,7 @@ export async function validateDeviceToken(): Promise<ValidatedDevice | null> {
  * Check if we have a stored device token for a specific workspace.
  */
 export function hasDeviceTokenForWorkspace(workspaceId: string): boolean {
-  const stored = getStoredDeviceToken();
+  const stored = getStoredDeviceToken(workspaceId);
   return stored?.workspaceId === workspaceId;
 }
 

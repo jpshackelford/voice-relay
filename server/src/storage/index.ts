@@ -38,7 +38,7 @@ export function createStore(config: StoreConfig): MessageStore {
 /**
  * Create a store from environment variables:
  * 
- * STORE_DRIVER=memory|sqlite|redis|firestore (default: memory)
+ * STORE_DRIVER=memory|sqlite|redis|firestore (default: sqlite)
  * STORE_MAX_MESSAGES=100 (default: 100)
  * 
  * For SQLite:
@@ -52,7 +52,7 @@ export function createStore(config: StoreConfig): MessageStore {
  *   FIRESTORE_COLLECTION=voice-relay-messages
  */
 export function createStoreFromEnv(): MessageStore {
-  const driver = (process.env.STORE_DRIVER || 'memory') as StoreConfig['driver'];
+  const driver = (process.env.STORE_DRIVER || 'sqlite') as StoreConfig['driver'];
   const maxMessages = parseInt(process.env.STORE_MAX_MESSAGES || '100', 10);
 
   const config: StoreConfig = {

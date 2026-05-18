@@ -30,14 +30,16 @@ interface DeviceRestorationResult {
 
 /**
  * Get device ID, preferring session storage but falling back to stored token.
+ * 
+ * @param workspaceId - The workspace ID to look up the device token for.
  */
-function getOrCreateDeviceId(): string {
+function getOrCreateDeviceId(workspaceId?: string): string {
   // First check session storage (for current tab)
   let id = getSessionDeviceId();
   if (id) return id;
   
-  // Check if we have a stored device token
-  const storedDevice = getStoredDeviceToken();
+  // Check if we have a stored device token for this workspace
+  const storedDevice = getStoredDeviceToken(workspaceId);
   if (storedDevice?.deviceId) {
     storeSessionDeviceId(storedDevice.deviceId);
     return storedDevice.deviceId;
@@ -51,11 +53,13 @@ function getOrCreateDeviceId(): string {
 
 /**
  * Get display name, preferring session storage, then stored device.
+ * 
+ * @param workspaceId - The workspace ID to look up the device token for.
  */
-function getInitialDisplayName(): string {
+function getInitialDisplayName(workspaceId?: string): string {
   let name = sessionStorage.getItem('displayName');
   if (!name) {
-    const storedDevice = getStoredDeviceToken();
+    const storedDevice = getStoredDeviceToken(workspaceId);
     if (storedDevice?.name) {
       name = storedDevice.name;
     } else {
@@ -68,9 +72,11 @@ function getInitialDisplayName(): string {
 
 /**
  * Get mode from stored device token.
+ * 
+ * @param workspaceId - The workspace ID to look up the device token for.
  */
-function getStoredMode(): DeviceMode | null {
-  const storedDevice = getStoredDeviceToken();
+function getStoredMode(workspaceId?: string): DeviceMode | null {
+  const storedDevice = getStoredDeviceToken(workspaceId);
   return storedDevice?.mode ?? null;
 }
 
@@ -87,9 +93,10 @@ function getStoredMode(): DeviceMode | null {
  */
 export function useDeviceRestoration(workspaceId: string | undefined): DeviceRestorationResult {
   // Initialize state with stored/generated values (runs once)
-  const [deviceId] = useState(getOrCreateDeviceId);
-  const [displayName, setDisplayName] = useState(getInitialDisplayName);
-  const [restoredMode, setRestoredMode] = useState<DeviceMode | null>(getStoredMode);
+  // Pass workspaceId to helper functions for workspace-scoped storage
+  const [deviceId] = useState(() => getOrCreateDeviceId(workspaceId));
+  const [displayName, setDisplayName] = useState(() => getInitialDisplayName(workspaceId));
+  const [restoredMode, setRestoredMode] = useState<DeviceMode | null>(() => getStoredMode(workspaceId));
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [wasRestored, setWasRestored] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -102,7 +109,8 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
     if (!workspaceId) return;
     if (validationAttempted.current) return;
     
-    const storedDevice = getStoredDeviceToken();
+    // Use workspace-scoped storage
+    const storedDevice = getStoredDeviceToken(workspaceId);
     if (!storedDevice?.deviceToken || storedDevice.workspaceId !== workspaceId) {
       return;
     }
@@ -110,7 +118,7 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
     validationAttempted.current = true;
     setIsValidating(true);
 
-    validateDeviceToken()
+    validateDeviceToken(workspaceId)
       .then((validatedDevice) => {
         if (validatedDevice && validatedDevice.workspaceId === workspaceId) {
           console.log('[useDeviceRestoration] Device token validated, restoring session');
@@ -134,7 +142,7 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
           }
         } else {
           // Token invalid for this workspace
-          clearDeviceToken();
+          clearDeviceToken(workspaceId);
         }
       })
       .catch((err) => {
