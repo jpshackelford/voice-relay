@@ -9,6 +9,8 @@ import {
   getSessionDeviceId,
   getServerSetDeviceToken,
   parseDeviceCookieJson,
+  migrateLegacyDeviceToken,
+  migrateServerSetDeviceCookie,
 } from './deviceToken';
 
 describe('deviceToken utilities', () => {
@@ -123,7 +125,7 @@ describe('deviceToken utilities', () => {
   });
 
   describe('legacy storage migration', () => {
-    it('migrates legacy single-key storage to workspace-scoped storage', () => {
+    it('getStoredDeviceToken reads legacy storage without migrating (pure read)', () => {
       const legacyDevice = {
         deviceId: 'device-123',
         deviceToken: 'token-abc',
@@ -135,17 +137,57 @@ describe('deviceToken utilities', () => {
       // Store in legacy location
       localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
 
-      // Retrieve with workspace ID should migrate
+      // Retrieve should read but NOT migrate (pure read function)
       const stored = getStoredDeviceToken('workspace-456');
 
       expect(stored).toEqual(legacyDevice);
+      // Legacy key should still exist (no migration in getter)
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('migrateLegacyDeviceToken migrates to workspace-scoped storage', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Explicit migration call
+      const migrated = migrateLegacyDeviceToken('workspace-456');
+
+      expect(migrated).toEqual(legacyDevice);
       // Legacy key should be removed after migration
       expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
       // New workspace-scoped key should exist
       expect(localStorage.getItem('voice_relay_device_token_workspace-456')).not.toBeNull();
     });
 
-    it('does not migrate legacy storage for different workspace', () => {
+    it('migrateLegacyDeviceToken does not migrate for different workspace', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Try to migrate for different workspace
+      const migrated = migrateLegacyDeviceToken('workspace-789');
+
+      expect(migrated).toBeNull();
+      // Legacy key should still exist (not migrated for wrong workspace)
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('does not migrate legacy storage for different workspace on read', () => {
       const legacyDevice = {
         deviceId: 'device-123',
         deviceToken: 'token-abc',

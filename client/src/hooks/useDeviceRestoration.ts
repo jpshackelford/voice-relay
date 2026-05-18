@@ -6,6 +6,8 @@ import {
   storeSessionDeviceId,
   getSessionDeviceId,
   storeDeviceToken,
+  migrateLegacyDeviceToken,
+  migrateServerSetDeviceCookie,
 } from '../utils/deviceToken';
 import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
@@ -24,6 +26,8 @@ interface DeviceRestorationResult {
   wasRestored: boolean;
   /** Whether token validation is in progress */
   isValidating: boolean;
+  /** Whether workspaceId was available during initialization */
+  isInitialized: boolean;
   /** Update display name */
   setDisplayName: (name: string) => void;
 }
@@ -32,23 +36,33 @@ interface DeviceRestorationResult {
  * Get device ID, preferring session storage but falling back to stored token.
  * 
  * @param workspaceId - The workspace ID to look up the device token for.
+ *                      If undefined, only checks session storage (defers workspace-scoped lookup).
  */
-function getOrCreateDeviceId(workspaceId?: string): string {
+function getOrCreateDeviceId(workspaceId: string | undefined): string {
   // First check session storage (for current tab)
   let id = getSessionDeviceId();
   if (id) return id;
   
-  // Check if we have a stored device token for this workspace
-  const storedDevice = getStoredDeviceToken(workspaceId);
-  if (storedDevice?.deviceId) {
-    storeSessionDeviceId(storedDevice.deviceId);
-    return storedDevice.deviceId;
+  // Only check workspace-scoped storage if workspaceId is available
+  // This prevents generating an orphan ID when workspaceId is still loading
+  if (workspaceId) {
+    const storedDevice = getStoredDeviceToken(workspaceId);
+    if (storedDevice?.deviceId) {
+      storeSessionDeviceId(storedDevice.deviceId);
+      return storedDevice.deviceId;
+    }
   }
   
-  // Generate new ID
-  id = generateUUID();
-  storeSessionDeviceId(id);
-  return id;
+  // Generate new ID only if workspaceId is available
+  // If workspaceId is undefined, we'll re-initialize when it becomes available
+  if (workspaceId) {
+    id = generateUUID();
+    storeSessionDeviceId(id);
+    return id;
+  }
+  
+  // Return empty string when workspaceId is undefined - will re-initialize via useEffect
+  return '';
 }
 
 /**
@@ -88,25 +102,60 @@ function getStoredMode(workspaceId?: string): DeviceMode | null {
  * - Validating stored device tokens against the server
  * - Restoring device name and mode from validated tokens
  * - Managing display name with session persistence
+ * - Re-initializing when workspaceId becomes available (handles async workspace loading)
  * 
  * @param workspaceId - Current workspace ID for token validation
  */
 export function useDeviceRestoration(workspaceId: string | undefined): DeviceRestorationResult {
+  // Track whether we have a valid workspaceId for initialization
+  const initialWorkspaceId = useRef(workspaceId);
+  
   // Initialize state with stored/generated values (runs once)
   // Pass workspaceId to helper functions for workspace-scoped storage
-  const [deviceId] = useState(() => getOrCreateDeviceId(workspaceId));
+  const [deviceId, setDeviceId] = useState(() => getOrCreateDeviceId(workspaceId));
   const [displayName, setDisplayName] = useState(() => getInitialDisplayName(workspaceId));
   const [restoredMode, setRestoredMode] = useState<DeviceMode | null>(() => getStoredMode(workspaceId));
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [wasRestored, setWasRestored] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(!!workspaceId);
   
   // Prevent double validation in React strict mode
   const validationAttempted = useRef(false);
 
-  // Validate stored device token on mount
+  // Re-initialize when workspaceId becomes available (handles async workspace loading)
+  // This fixes the race condition where workspaceId is undefined at mount
+  useEffect(() => {
+    // Only re-initialize if we mounted without a workspaceId and now have one
+    if (!initialWorkspaceId.current && workspaceId && !isInitialized) {
+      console.log('[useDeviceRestoration] workspaceId now available, re-initializing');
+      
+      // Perform migrations explicitly during initialization
+      migrateLegacyDeviceToken(workspaceId);
+      migrateServerSetDeviceCookie(workspaceId);
+      
+      const newDeviceId = getOrCreateDeviceId(workspaceId);
+      setDeviceId(newDeviceId);
+      setDisplayName(getInitialDisplayName(workspaceId));
+      setRestoredMode(getStoredMode(workspaceId));
+      setIsInitialized(true);
+    }
+  }, [workspaceId, isInitialized]);
+  
+  // Perform migrations on mount if we have a workspaceId
+  const migrationPerformed = useRef(false);
+  useEffect(() => {
+    if (workspaceId && !migrationPerformed.current) {
+      migrationPerformed.current = true;
+      migrateLegacyDeviceToken(workspaceId);
+      migrateServerSetDeviceCookie(workspaceId);
+    }
+  }, [workspaceId]);
+
+  // Validate stored device token when workspaceId is available
   useEffect(() => {
     if (!workspaceId) return;
+    if (!isInitialized) return;
     if (validationAttempted.current) return;
     
     // Use workspace-scoped storage
@@ -151,7 +200,7 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
       .finally(() => {
         setIsValidating(false);
       });
-  }, [workspaceId]);
+  }, [workspaceId, isInitialized]);
 
   // Persist display name to session storage
   useEffect(() => {
@@ -167,6 +216,7 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
     deviceToken,
     wasRestored,
     isValidating,
+    isInitialized,
     setDisplayName,
   };
 }

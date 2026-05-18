@@ -117,8 +117,73 @@ export function storeDeviceToken(info: StoredDeviceInfo): boolean {
 }
 
 /**
+ * Migrate legacy single-key storage to workspace-scoped storage.
+ * This is a separate function to avoid side effects in getter functions.
+ * 
+ * @param workspaceId - The workspace ID to migrate for.
+ * @returns The migrated device info if migration occurred, null otherwise.
+ */
+export function migrateLegacyDeviceToken(workspaceId: string): StoredDeviceInfo | null {
+  try {
+    // Check legacy storage and migrate if it matches this workspace
+    const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
+    if (legacyStored) {
+      const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
+      if (legacyDevice.workspaceId === workspaceId) {
+        console.log('[DeviceToken] Migrating legacy storage to workspace-scoped storage');
+        storeDeviceToken(legacyDevice); // Store in new location
+        localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY); // Remove legacy
+        return legacyDevice;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error('[DeviceToken] Failed to migrate legacy storage:', e);
+    return null;
+  }
+}
+
+/**
+ * Migrate server-set device cookie to localStorage.
+ * This is a separate function to avoid side effects in getter functions.
+ * 
+ * @param workspaceId - The workspace ID to migrate for (optional).
+ * @returns The migrated device info if migration occurred, null otherwise.
+ */
+export function migrateServerSetDeviceCookie(workspaceId?: string): StoredDeviceInfo | null {
+  try {
+    const serverSetDevice = getServerSetDeviceToken();
+    if (!serverSetDevice) return null;
+    
+    // Only migrate if workspace matches or we don't know the workspace yet
+    if (workspaceId && serverSetDevice.workspaceId !== workspaceId) {
+      return null;
+    }
+    
+    console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
+    const migrationSucceeded = storeDeviceToken(serverSetDevice);
+    if (migrationSucceeded) {
+      // Only delete the cookie if localStorage migration succeeded
+      // Include secure flag on HTTPS to ensure proper cookie deletion
+      const isSecure = window.location.protocol === 'https:';
+      const secureFlag = isSecure ? ' secure;' : '';
+      document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secureFlag}`;
+    } else {
+      console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
+    }
+    return serverSetDevice;
+  } catch (e) {
+    console.error('[DeviceToken] Failed to migrate server cookie:', e);
+    return null;
+  }
+}
+
+/**
  * Get stored device token info from localStorage for a specific workspace.
- * Also checks for server-set cookie and legacy storage, migrating if found.
+ * Pure read function - no side effects.
+ * 
+ * Note: Call migrateLegacyDeviceToken() and migrateServerSetDeviceCookie()
+ * explicitly during initialization if migration is needed.
  * 
  * @param workspaceId - The workspace ID to get the device token for. 
  *                      If not provided, falls back to legacy single-key storage.
@@ -133,14 +198,11 @@ export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | n
         return JSON.parse(stored) as StoredDeviceInfo;
       }
       
-      // Check legacy storage and migrate if it matches this workspace
+      // Check legacy storage (read-only, no migration here)
       const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
       if (legacyStored) {
         const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
         if (legacyDevice.workspaceId === workspaceId) {
-          console.log('[DeviceToken] Migrating legacy storage to workspace-scoped storage');
-          storeDeviceToken(legacyDevice); // Store in new location
-          localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY); // Remove legacy
           return legacyDevice;
         }
       }
@@ -152,24 +214,10 @@ export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | n
       }
     }
     
-    // Check for server-set cookie (from auto-device creation)
+    // Check for server-set cookie (read-only, no migration here)
     const serverSetDevice = getServerSetDeviceToken();
     if (serverSetDevice) {
-      // Only use if workspace matches or we don't know the workspace yet
       if (!workspaceId || serverSetDevice.workspaceId === workspaceId) {
-        // Migrate to localStorage for consistency
-        console.log('[DeviceToken] Found server-set device cookie, migrating to localStorage');
-        const migrationSucceeded = storeDeviceToken(serverSetDevice);
-        if (migrationSucceeded) {
-          // Only delete the cookie if localStorage migration succeeded
-          // This ensures the cookie remains as a safety net if localStorage is disabled/full
-          // Include secure flag on HTTPS to ensure proper cookie deletion
-          const isSecure = window.location.protocol === 'https:';
-          const secureFlag = isSecure ? ' secure;' : '';
-          document.cookie = `${DEVICE_TOKEN_COOKIE_NAME}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;${secureFlag}`;
-        } else {
-          console.warn('[DeviceToken] localStorage migration failed, keeping cookie as fallback');
-        }
         return serverSetDevice;
       }
     }
