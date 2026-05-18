@@ -1773,8 +1773,6 @@ Added "What's New" section to desktop workspace settings, bringing feature parit
 
 ---
 
----
-
 ### 2026-05-18 21:16 UTC - Orchestrator
 
 **Active Workers:**
@@ -1818,3 +1816,45 @@ Applied priority labels to ready issues:
 | Review | 0 | 2 | 2 |
 
 Next check in ~30 minutes.
+
+---
+
+### 2026-05-18 21:20 UTC - Expansion Worker
+
+✅ **Expanded Issue #230 - Changelog Generator Shows Incomplete/Incorrect History**
+
+- **Issue:** [#230 - fix: Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+- **Type:** Bug
+- **Status:** Ready for implementation
+- **Labels:** `ready`
+
+**Summary:**
+Reproduced and verified three bugs in `scripts/generate-changelog.ts` affecting historical accuracy:
+
+1. **Boundary Bug (CONFIRMED):** The 20th tag has no previous boundary, causing `git log` to return 873 commits (all history) instead of just that release's changes. Result: 82 feat/fix entries in a single mega-entry.
+
+2. **20-Entry Limit (CONFIRMED):** Only first 20 tags processed, but there are 202 deploy tags with 54 meaningful releases. Only 6 entries shown.
+
+3. **Pre-Tag History Gap (CONFIRMED):** First commit (April 26) predates first deploy tag (May 6) by 10 days, creating an unboundable gap.
+
+**Root Cause:**
+```typescript
+// Line 169 - arbitrary limit
+const recentTags = tags.slice(0, 20);
+
+// Line 174 - no boundary for last tag
+const previousTag = recentTags[i + 1] || null;  // undefined for i=19
+```
+
+**Proposed Fix:**
+- Fetch N+1 tags to ensure valid boundaries for all N entries
+- Remove `slice(0, 20)` limit
+- Add seed file support for pre-tag period
+
+**Files to Modify:**
+- `scripts/generate-changelog.ts`
+- `scripts/changelog-seed.json` (new)
+
+**Complexity:** Medium
+
+---
