@@ -4,7 +4,8 @@ import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings } from '../types';
+import { getActionIcon } from '../hooks/useAgentActions';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction } from '../types';
 import type { AIState } from '../hooks/useAI';
 
 // Configure marked for GitHub Flavored Markdown with line breaks
@@ -38,6 +39,12 @@ interface KioskModeProps {
   sessionTtsSettings?: SessionTtsSettings | null;
   /** Callback to update session TTS settings */
   onSessionTtsSettingsChange?: (settings: SessionTtsSettings) => void;
+  /** Agent actions from OpenHands event stream */
+  agentActions?: AgentAction[];
+  /** Whether to show the agent actions panel */
+  showAgentActions?: boolean;
+  /** Callback to toggle agent actions visibility */
+  onToggleAgentActions?: () => void;
 }
 
 // Hook to detect mobile devices
@@ -74,6 +81,9 @@ export function KioskMode({
   onDisplayResult,
   sessionTtsSettings,
   onSessionTtsSettingsChange,
+  agentActions = [],
+  showAgentActions = false,
+  onToggleAgentActions,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -97,6 +107,8 @@ export function KioskMode({
   const imageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the current display content URL to prevent duplicate result sends
   const lastReportedDisplayRef = useRef<string | null>(null);
+  // Ref for auto-scrolling agent actions panel
+  const actionsEndRef = useRef<HTMLDivElement>(null);
 
   // AI state is now passed from parent via props (wired to WebSocket in SessionView)
 
@@ -284,6 +296,13 @@ export function KioskMode({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [utterances]);
 
+  // Auto-scroll agent actions panel to bottom
+  useEffect(() => {
+    if (showAgentActions) {
+      actionsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [agentActions, showAgentActions]);
+
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
@@ -466,6 +485,35 @@ export function KioskMode({
               </select>
             )}
           </div>
+        </div>
+
+        {/* Agent Actions Panel */}
+        <div className="kiosk-agent-actions">
+          <button
+            className={`agent-actions-toggle ${showAgentActions ? 'active' : ''}`}
+            onClick={onToggleAgentActions}
+            title={showAgentActions ? 'Hide agent actions' : 'Show agent actions'}
+          >
+            🔍 Agent Actions
+            {!showAgentActions && agentActions.length > 0 && (
+              <span className="action-badge">{agentActions.length}</span>
+            )}
+          </button>
+          {showAgentActions && (
+            <div className="agent-actions-list">
+              {agentActions.length === 0 ? (
+                <div className="no-actions">No agent actions yet</div>
+              ) : (
+                agentActions.map((action) => (
+                  <div key={action.id} className="agent-action">
+                    <span className="action-icon">{getActionIcon(action.kind)}</span>
+                    <span className="action-summary">{action.summary}</span>
+                  </div>
+                ))
+              )}
+              <div ref={actionsEndRef} />
+            </div>
+          )}
         </div>
 
         <div className="kiosk-messages">

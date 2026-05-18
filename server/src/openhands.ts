@@ -307,6 +307,15 @@ export function loadPrompt(
 /**
  * Active AI session linked to a VR session
  */
+/** Agent action event from OpenHands event stream */
+export interface AgentAction {
+  id: string;
+  timestamp: string;
+  kind: string;
+  source: string;
+  summary: string;
+}
+
 export interface AISession {
   conversationId: string;
   taskId: string;
@@ -318,6 +327,8 @@ export interface AISession {
   sessionApiKey?: string;
   lastEventId?: string;
   onMessage?: (message: string) => void;
+  /** Callback for agent action events */
+  onAction?: (action: AgentAction) => void;
   reconnectAttempts: number;
   maxReconnectAttempts: number;
   /** Whether AI is currently processing a response */
@@ -345,8 +356,136 @@ interface V1ConversationStateUpdateEvent {
   value: Record<string, unknown>;
 }
 
+/** Generic OpenHands event shape for action forwarding */
+interface V1Event {
+  id?: string;
+  timestamp?: string;
+  kind?: string;
+  source?: string;
+  // Action-specific fields
+  command?: string;
+  path?: string;
+  thought?: string;
+  args?: Record<string, unknown>;
+  action?: string;
+  // For nested structures
+  [key: string]: unknown;
+}
+
+/**
+ * Format an OpenHands event into a human-readable summary.
+ * Used to create concise descriptions of agent actions.
+ */
+function formatEventSummary(event: V1Event): string {
+  const kind = event.kind || 'Unknown';
+  
+  // Handle common action types with specific formatting
+  switch (kind) {
+    case 'CmdRunAction':
+      if (event.command) {
+        const cmd = String(event.command);
+        return cmd.length > 60 ? cmd.substring(0, 57) + '...' : cmd;
+      }
+      return 'Running command';
+      
+    case 'CmdOutputObservation':
+      return 'Command output received';
+      
+    case 'FileReadAction':
+      if (event.path) {
+        return `Read ${event.path}`;
+      }
+      return 'Reading file';
+      
+    case 'FileWriteAction':
+      if (event.path) {
+        return `Write ${event.path}`;
+      }
+      return 'Writing file';
+      
+    case 'FileEditAction':
+      if (event.path) {
+        return `Edit ${event.path}`;
+      }
+      return 'Editing file';
+      
+    case 'BrowseURLAction':
+      if (event.args && typeof event.args === 'object' && 'url' in event.args) {
+        const url = String(event.args.url);
+        return `Navigate to ${url.length > 40 ? url.substring(0, 37) + '...' : url}`;
+      }
+      return 'Navigating browser';
+      
+    case 'BrowseInteractiveAction':
+      if (event.action) {
+        return `Browser: ${event.action}`;
+      }
+      return 'Browser interaction';
+      
+    case 'AgentThinkAction':
+      if (event.thought) {
+        const thought = String(event.thought);
+        return thought.length > 60 ? thought.substring(0, 57) + '...' : thought;
+      }
+      return 'Thinking...';
+      
+    case 'AgentStateChangeEvent':
+      if (event.args && typeof event.args === 'object' && 'agent_state' in event.args) {
+        return `State: ${event.args.agent_state}`;
+      }
+      return 'State change';
+      
+    case 'AgentFinishAction':
+      return 'Task completed';
+      
+    case 'AgentDelegateAction':
+      return 'Delegating to sub-agent';
+      
+    case 'ConversationStateUpdateEvent':
+      return 'Status update';
+      
+    default:
+      // For unknown types, use the kind as the summary
+      return kind.replace(/Action$|Observation$|Event$/i, '');
+  }
+}
+
+/**
+ * Get an emoji icon for an event kind.
+ * Used for visual distinction in the UI.
+ */
+function getEventIcon(kind: string): string {
+  switch (kind) {
+    case 'CmdRunAction':
+      return '🔧';
+    case 'CmdOutputObservation':
+      return '📤';
+    case 'FileReadAction':
+      return '📁';
+    case 'FileWriteAction':
+    case 'FileEditAction':
+      return '✏️';
+    case 'BrowseURLAction':
+    case 'BrowseInteractiveAction':
+      return '🌐';
+    case 'AgentThinkAction':
+      return '💭';
+    case 'AgentStateChangeEvent':
+      return '🔄';
+    case 'AgentFinishAction':
+      return '✅';
+    case 'AgentDelegateAction':
+      return '🤝';
+    default:
+      return '⚡';
+  }
+}
+
 /** Callback type for thinking state changes */
 export type ThinkingChangeCallback = (sessionId: string, isThinking: boolean) => void;
+
+/** Callback type for agent action events */
+export type ActionCallback = (sessionId: string, action: AgentAction) => void;
 
 /**
  * Manager for AI sessions using WebSocket
@@ -357,6 +496,8 @@ export class AISessionManager {
   private client: OpenHandsClient | null = null;
   /** Callback invoked when AI thinking state changes */
   private onThinkingChange?: ThinkingChangeCallback;
+  /** Callback invoked when agent performs an action */
+  private onAction?: ActionCallback;
 
   constructor() {
     try {
@@ -376,6 +517,14 @@ export class AISessionManager {
    */
   setThinkingChangeCallback(callback: ThinkingChangeCallback | undefined): void {
     this.onThinkingChange = callback;
+  }
+
+  /**
+   * Set callback for agent action events
+   * Used by the server to broadcast agent-action messages
+   */
+  setActionCallback(callback: ActionCallback | undefined): void {
+    this.onAction = callback;
   }
 
   // ==================== Session-Centric Methods (NEW) ====================
@@ -635,9 +784,21 @@ export class AISessionManager {
         else if (event.kind === 'ConversationErrorEvent' || event.kind === 'ServerErrorEvent') {
           console.error(`[AI] Error event: ${event.message || event.error || 'Unknown error'}`);
         }
-        // Log unknown event kinds for debugging
+        // Forward other events as agent actions for visibility
         else if (event.kind) {
           console.log(`[AI] Event: ${event.kind} (source: ${event.source || 'unknown'})`);
+          
+          // Forward action events to the session via callback
+          if (this.onAction && session.sessionId) {
+            const action: AgentAction = {
+              id: event.id || crypto.randomUUID(),
+              timestamp: event.timestamp || new Date().toISOString(),
+              kind: event.kind,
+              source: event.source || 'unknown',
+              summary: formatEventSummary(event as V1Event),
+            };
+            this.onAction(session.sessionId, action);
+          }
         }
       } catch (e) {
         console.error('[AI] Error parsing WebSocket message:', e);

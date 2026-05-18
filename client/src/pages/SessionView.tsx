@@ -8,6 +8,7 @@ import { JoinRequestStack } from '../components/JoinRequestNotification';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAI } from '../hooks/useAI';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
+import { useAgentActions } from '../hooks/useAgentActions';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
@@ -84,6 +85,9 @@ export function SessionView() {
 
   // Audio playback for server-side TTS (ElevenLabs)
   const audioPlayback = useAudioPlayback();
+
+  // Agent actions for showing AI activity in kiosk sidebar
+  const agentActions = useAgentActions(sessionId);
 
   // Memoize extractors to avoid unnecessary re-fetches
   const extractWorkspace = useCallback((data: unknown) => data as WorkspaceInfo, []);
@@ -268,6 +272,7 @@ export function SessionView() {
     onJoinRequestMessage: handleJoinRequestMessage,
     onSessionAIStatusMessage: ai.handleSessionAIStatus,
     onAIThinkingMessage: ai.handleAIThinking,
+    onAgentActionMessage: agentActions.handleAgentAction,
     onAudioChunkMessage: (msg) => audioPlayback.handleAudioChunk(msg as AudioChunkMessage),
     onAudioEndMessage: (msg) => audioPlayback.handleAudioEnd(msg as AudioEndMessage),
   });
@@ -472,6 +477,9 @@ export function SessionView() {
           onDisplayResult={sendDisplayResult}
           sessionTtsSettings={sessionTtsSettings}
           onSessionTtsSettingsChange={updateSessionTtsSettings}
+          agentActions={agentActions.actions}
+          showAgentActions={agentActions.showActions}
+          onToggleAgentActions={agentActions.toggleShowActions}
         />
       </>
     );

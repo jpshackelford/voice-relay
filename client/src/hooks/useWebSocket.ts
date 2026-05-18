@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
@@ -14,6 +14,7 @@ interface UseWebSocketOptions {
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
   onAIThinkingMessage?: (message: ServerMessage & { type: 'ai-thinking' }) => void;
   onSessionAIStatusMessage?: (message: ServerMessage & { type: 'session-ai-status' }) => void;
+  onAgentActionMessage?: (message: AgentActionMessage) => void;
   onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
   onDeviceRemovedMessage?: (message: ServerMessage & { type: 'device-removed' }) => void;
@@ -25,7 +26,7 @@ interface UseWebSocketOptions {
   onTranscriptionErrorMessage?: (message: ServerMessage & { type: 'transcription-error' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -41,6 +42,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
   const onAIThinkingMessageRef = useRef(onAIThinkingMessage);
   const onSessionAIStatusMessageRef = useRef(onSessionAIStatusMessage);
+  const onAgentActionMessageRef = useRef(onAgentActionMessage);
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
   const onDeviceRemovedMessageRef = useRef(onDeviceRemovedMessage);
@@ -62,6 +64,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onAIStatusMessageRef.current = onAIStatusMessage;
   onAIThinkingMessageRef.current = onAIThinkingMessage;
   onSessionAIStatusMessageRef.current = onSessionAIStatusMessage;
+  onAgentActionMessageRef.current = onAgentActionMessage;
   onJoinRequestMessageRef.current = onJoinRequestMessage;
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
   onDeviceRemovedMessageRef.current = onDeviceRemovedMessage;
@@ -153,6 +156,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             break;
           case 'session-ai-status':
             onSessionAIStatusMessageRef.current?.(message);
+            break;
+          case 'agent-action':
+            onAgentActionMessageRef.current?.(message);
             break;
           case 'join-request':
             onJoinRequestMessageRef.current?.(message);
