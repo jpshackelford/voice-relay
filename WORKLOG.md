@@ -25,352 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 02:19 UTC - PR #198 Review Feedback Addressed
-
-✅ **Review Feedback Complete**
-
-- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
-- Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182)
-- Status: **Ready for review** ✅
-
-**Feedback Addressed:**
-1. ✅ Rollback success notification (thread): Added notification when automatic rollback succeeds to close the feedback loop
-
-**Changes in commit 55d38ab:**
-- Added `Notify on rollback success` step with default priority notification
-- Updated `docs/DEPLOYMENT.md` with rollback success in notification priorities table
-
-**Notification flow now complete:**
-1. Deployment failure → High priority notification
-2. Rollback succeeds → Default priority notification (new)
-3. Rollback fails → Urgent notification requiring manual intervention
-
-**CI Status:** All checks passing
-
----
-
-### 2026-05-18 02:22 UTC - PR #199 Ready for Review
-
-🔄 **In Review: Uptime Kuma Health Monitoring Documentation**
-
-- PR: [#199 - feat: set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/pull/199)
-- Issue: [#183](https://github.com/jpshackelford/voice-relay/issues/183) - Set up Uptime Kuma
-- Status: **Ready for review** 🔄
-
-**What's included:**
-Documentation update for `docs/server-inventory.md`:
-1. Added `status.chorecraft.net (Uptime Kuma)` section under Hosted Domains
-2. Documented service configuration (port 3003, systemd service)
-3. Listed configured monitors (voice-relay health, chorecraft.net)
-4. Updated port allocation table (added uptime-kuma on 3003)
-5. Updated next available port to 3004
-
-**Note:** The actual server deployment (SSH to chorecraft.net) will be performed manually following the approach in issue #183 comments.
-
----
-
-### 2026-05-18 02:06 UTC - PR #190 Merged
-
-✅ **Merged: Workflow Concurrency Controls**
-
-- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
-- Issue: [#184](https://github.com/jpshackelford/voice-relay/issues/184) - **CLOSED**
-- Status: **Merged to main** ✅
-
-**What was merged:**
-1. **Workflow concurrency control**: Added `concurrency` block to `deploy.yml`
-   - Group: `deploy-production` (serializes all deployments)
-   - `cancel-in-progress: false` (queue deployments, don't cancel)
-   - `timeout-minutes: 15` (prevent stuck deployments from blocking queue)
-
-2. **E2E test reliability fix**: Updated `auth-helper.ts`
-   - Added `.connection-dot.connected` detection for mobile walkie UI
-   - Maintains backward compatibility with legacy connection indicators
-
-**Production impact:** Auto-deploying to vr.chorecraft.net. Deployments will now queue instead of racing.
-
----
-
-### 2026-05-18 01:56 UTC - ntfy.sh Push Notifications
-
-✅ **PR #198 Created**
-
-- Issue: [#182 - feat: Add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/issues/182)
-- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
-- Priority: high
-- Status: **Ready for review** ✅
-
-**Changes:**
-- Added `Notify on deployment failure` step with high priority notification
-- Added `Notify on rollback failure` step with urgent priority notification  
-- Updated `docs/DEPLOYMENT.md` with subscription instructions
-
-**Implementation Details:**
-- Notifications sent via ntfy.sh (free, no signup required)
-- Graceful degradation: feature disabled if `NTFY_TOPIC` secret not configured
-- Deployment failures get "high" priority, rollback failures get "urgent" (max)
-
-**CI Status:** All checks passing
-
----
-
-### 2026-05-18 01:55 UTC - Review Feedback Addressed
-
-✅ **PR #190 Review Feedback Complete**
-
-- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
-- Status: **Ready for review** ✅
-
-**Feedback Addressed:**
-1. ✅ Timeout protection (thread 1): `timeout-minutes: 15` was already added in commit 5c08b06
-2. ✅ PR scope documentation (thread 2): Updated PR description to document E2E test changes
-
-**Changes in PR:**
-- Workflow concurrency: `cancel-in-progress: false` with 15-minute timeout
-- E2E test fix: Added `.connection-dot.connected` detection for mobile walkie UI
-
-**CI Status:** All checks passing
-
----
-
-### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
-
-✅ **Expanded Issue #165**
-
-- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
-
-**Root Cause:**
-Different UI patterns implemented for the same close action:
-- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
-- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
-
-**Proposed Fix:**
-Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
-
-**Files to Modify:**
-- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
-- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
-- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
-
-✅ **Expanded Issue #165**
-
-- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
-
-**Root Cause:**
-Different UI patterns implemented for the same close action:
-- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
-- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
-
-**Proposed Fix:**
-Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
-
-**Files to Modify:**
-- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
-- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
-- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:21 UTC - Expansion Worker
-
-✅ **Expanded Issue #163**
-
-- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Summary:**
-The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn't be available on mobile devices. Kiosk mode is designed for large displays (TV, desktop) - offering it on mobile creates confusion and degrades UX.
-
-**Technical Approach:**
-1. Remove the "Switch to Kiosk Mode" button from `MobileSettings.tsx` (lines 137-146)
-2. Remove `onModeChange` prop from `MobileSettingsProps` interface
-3. Update `MobileMode.tsx` to stop passing the prop
-4. Update tests in `MobileSettings.test.tsx`
-
-**Files affected:**
-- `client/src/components/MobileSettings.tsx`
-- `client/src/components/MobileSettings.test.tsx`
-- `client/src/components/MobileMode.tsx`
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:24 UTC - Expansion Worker (`f2401be`)
-
-✅ **Expanded Issue #162**
-
-- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- Type: Bug
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-On narrow mobile viewports (≤480px), the walkie-header icons (connection dot, settings button, conversation button) stack vertically instead of displaying horizontally.
-
-**Root Cause:**
-Generic CSS media query at `client/src/App.css` line 1095-1099 targets all `header` elements and sets `flex-direction: column`. This overrides the `.walkie-header` styles which should maintain horizontal layout.
-
-```css
-@media (max-width: 480px) {
-  header {
-    flex-direction: column;  /* Affects .walkie-header */
-  }
-}
-```
-
-**Proposed Fix:**
-Add explicit `.walkie-header` override in the media query:
-```css
-.walkie-header {
-  flex-direction: row;
-  align-items: center;
-}
-```
-
-**Files to Modify:**
-- `client/src/App.css` - Add `.walkie-header` override in `@media (max-width: 480px)` block (~line 1099)
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:35 UTC - Expansion Worker
-
-✅ **Expanded Issue #167**
-
-- Issue: [#167 - Feature: Add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/issues/167)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-Users have no visibility into what the AI agent is doing in real-time. Only final message responses are shown - no insight into commands being run, files being read, or agent thinking.
-
-**Proposed Solution:**
-Add a collapsible "Agent Actions" panel in the kiosk sidebar with a toggle to show/hide real-time agent events from the OpenHands WebSocket stream.
-
-**Technical Approach:**
-1. Add `onAction` callback to `AISession` interface in `openhands.ts`
-2. Forward non-message events (AgentStateChangeEvent, CmdRunAction, etc.) to clients
-3. Create new `useAgentActions.ts` hook for state management
-4. Add toggle + panel UI in `KioskMode.tsx`
-
-**Files affected:**
-- `server/src/openhands.ts` - Add onAction callback, formatEventSummary() helper
-- `server/src/index.ts` - Wire up onAction to broadcast
-- `client/src/types.ts` - Add AgentActionMessage type
-- `client/src/hooks/useAgentActions.ts` (new)
-- `client/src/components/KioskMode.tsx` - Add actions panel UI
-- `client/src/App.css` - Add panel styles
-
-**Complexity:** Medium
-
----
-### 2026-05-17 19:35 UTC - Expansion Worker
-
-✅ **Expanded Issue #166**
-
-- Issue: [#166 - Mobile: Text transcription display is poor in oscilloscope view](https://github.com/jpshackelford/voice-relay/issues/166)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-Users want both oscilloscope visualization AND automatic speech transcription simultaneously. Currently these are mutually exclusive due to Web Speech API limitations - it manages its own microphone stream internally and cannot share with `getUserMedia`.
-
-**Proposed Solution:**
-Implement server-side speech recognition using a single `getUserMedia` stream that feeds both:
-1. Oscilloscope visualization (existing)
-2. Audio streaming to server for Whisper/Deepgram transcription
-
-**Technical Approach:**
-1. Create `useAudioStreaming` hook - capture audio, encode, stream via WebSocket
-2. Add server-side transcription service (Whisper or commercial API)
-3. New `InputMode: 'unified'` combining both features
-4. Modify `MobileMode.tsx` for unified mode handling
-
-**Files to Modify:**
-- `client/src/hooks/useAudioStreaming.ts` (new)
-- `client/src/hooks/useAudioAnalyser.ts` (minor refactor)
-- `client/src/components/MobileMode.tsx`
-- `client/src/components/MobileSettings.tsx`
-- `server/src/websocket/handlers.ts`
-- `server/src/services/transcription.ts` (new)
-
-**Estimated Effort:** 17-24 hours
-
-**Complexity:** High - requires server infrastructure changes
-
----
-### 2026-05-17 19:36 UTC - Expansion Worker
-
-✅ **Expanded Issue #168**
-
-- Issue: [#168 - Bug: Audio checkbox and display count on separate lines - combine to save space](https://github.com/jpshackelford/voice-relay/issues/168)
-- Type: Bug (UI Polish)
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-In the kiosk mode conversation sidebar, the device count indicators (🖥️/📱) and audio checkbox (🔊) are on separate lines, wasting vertical space.
-
-**Root Cause:**
-Two separate `<div>` elements at lines 428-447 in `KioskMode.tsx`:
-1. `.kiosk-participants` - Device counts with padding and border-bottom
-2. `.kiosk-tts-toggle` - Audio checkbox with padding and border-bottom
-
-Both are block-level elements that stack vertically.
-
-**Proposed Fix:**
-Wrap both in a single `.kiosk-status-row` container with `display: flex; justify-content: space-between;` to place participants on left and TTS toggle on right.
-
-**Files to Modify:**
-- `client/src/components/KioskMode.tsx` - Wrap in new container
-- `client/src/App.css` - Add `.kiosk-status-row` styles, update child styles
-
-**Complexity:** Low
-
----
-### 2026-05-17 19:36 UTC - Expansion Worker (`79e83c8`)
-
-✅ **Expanded Issue #169**
-
-- Issue: [#169 - UI: Simplify kiosk mode connection indicator - replace icon with solid dot](https://github.com/jpshackelford/voice-relay/issues/169)
-- Type: Enhancement
-- Status: **Ready for implementation** ✅
-
-**Problem:**
-The kiosk mode connection indicator uses a plug emoji (🔌) with a green/red circle border. This is visually complex for what it communicates and creates clutter in the minimalist kiosk UI.
-
-**Proposed Solution:**
-Replace the plug icon with a minimal solid-color dot:
-- Green solid dot = connected
-- Red solid dot (with pulse animation) = disconnected
-- Reposition to bottom-left corner for visual balance with AI indicator at bottom-right
-
-**Technical Approach:**
-1. Remove plug emoji from JSX (KioskMode.tsx, 2 locations)
-2. Update CSS to create solid dot styling and move position from `right: 1rem` to `left: 1rem`
-
-**Files to Modify:**
-- `client/src/components/KioskMode.tsx` - Remove 🔌 emoji from connection indicator divs (lines ~326, ~602)
-- `client/src/App.css` - Update `.connection-indicator` styles (~line 3077-3120)
-
-**Complexity:** Low
-
----
 ### 2026-05-17 19:38 UTC - Orchestrator
 
 **Active Workers:**
@@ -2548,7 +2202,6 @@ Production smoke test and rollback both failed due to **npm cache corruption** o
 **Human action required:** Clear npm cache on production server to unblock merges.
 
 ---
-
 ### 2026-05-18 01:50 UTC - Orchestrator
 
 **Active Workers:**
@@ -2581,6 +2234,7 @@ Production smoke test and rollback both failed due to **npm cache corruption** o
 - Ready issues remaining: #191, #186, #183, #188, #169, #167, #166
 
 **Slot Usage:** implementation=1/1, review=2/2, expansion=0/4
+
 ---
 ### 2026-05-18 01:51 UTC - Merge Worker
 
@@ -2631,7 +2285,46 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 **Review thread resolved, CI green.**
 
 ---
+### 2026-05-18 01:55 UTC - Review Feedback Addressed
 
+✅ **PR #190 Review Feedback Complete**
+
+- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+- Status: **Ready for review** ✅
+
+**Feedback Addressed:**
+1. ✅ Timeout protection (thread 1): `timeout-minutes: 15` was already added in commit 5c08b06
+2. ✅ PR scope documentation (thread 2): Updated PR description to document E2E test changes
+
+**Changes in PR:**
+- Workflow concurrency: `cancel-in-progress: false` with 15-minute timeout
+- E2E test fix: Added `.connection-dot.connected` detection for mobile walkie UI
+
+**CI Status:** All checks passing
+
+---
+### 2026-05-18 01:56 UTC - ntfy.sh Push Notifications
+
+✅ **PR #198 Created**
+
+- Issue: [#182 - feat: Add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/issues/182)
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Priority: high
+- Status: **Ready for review** ✅
+
+**Changes:**
+- Added `Notify on deployment failure` step with high priority notification
+- Added `Notify on rollback failure` step with urgent priority notification  
+- Updated `docs/DEPLOYMENT.md` with subscription instructions
+
+**Implementation Details:**
+- Notifications sent via ntfy.sh (free, no signup required)
+- Graceful degradation: feature disabled if `NTFY_TOPIC` secret not configured
+- Deployment failures get "high" priority, rollback failures get "urgent" (max)
+
+**CI Status:** All checks passing
+
+---
 ### 2026-05-18 02:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -2665,7 +2358,27 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 - Focus: Clear PR backlog before starting new implementations
 
 ---
+### 2026-05-18 02:06 UTC - PR #190 Merged
 
+✅ **Merged: Workflow Concurrency Controls**
+
+- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+- Issue: [#184](https://github.com/jpshackelford/voice-relay/issues/184) - **CLOSED**
+- Status: **Merged to main** ✅
+
+**What was merged:**
+1. **Workflow concurrency control**: Added `concurrency` block to `deploy.yml`
+   - Group: `deploy-production` (serializes all deployments)
+   - `cancel-in-progress: false` (queue deployments, don't cancel)
+   - `timeout-minutes: 15` (prevent stuck deployments from blocking queue)
+
+2. **E2E test reliability fix**: Updated `auth-helper.ts`
+   - Added `.connection-dot.connected` detection for mobile walkie UI
+   - Maintains backward compatibility with legacy connection indicators
+
+**Production impact:** Auto-deploying to vr.chorecraft.net. Deployments will now queue instead of racing.
+
+---
 ### 2026-05-18 02:06 UTC - Review Feedback Worker (`e1945ea`)
 
 ✅ **Addressed Review Feedback on PR #195**
@@ -2681,7 +2394,6 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 **Commit:** `dfe0591` - fix(e2e): use precise selector for connection state
 
 ---
-
 ### 2026-05-18 02:17 UTC - Orchestrator
 
 **Active Workers:**
@@ -2730,7 +2442,29 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 | Review | 2 | 2 | PR #195 merge + PR #198 review |
 
 ---
+### 2026-05-18 02:19 UTC - PR #198 Review Feedback Addressed
 
+✅ **Review Feedback Complete**
+
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182)
+- Status: **Ready for review** ✅
+
+**Feedback Addressed:**
+1. ✅ Rollback success notification (thread): Added notification when automatic rollback succeeds to close the feedback loop
+
+**Changes in commit 55d38ab:**
+- Added `Notify on rollback success` step with default priority notification
+- Updated `docs/DEPLOYMENT.md` with rollback success in notification priorities table
+
+**Notification flow now complete:**
+1. Deployment failure → High priority notification
+2. Rollback succeeds → Default priority notification (new)
+3. Rollback fails → Urgent notification requiring manual intervention
+
+**CI Status:** All checks passing
+
+---
 ### 2026-05-18 02:21 UTC - Merge Worker
 
 ✅ **Merged PR #195 → Issue #192 CLOSED**
@@ -2765,3 +2499,20 @@ Tests waited for `.connection-dot.connected` CSS class selector which is non-det
 - PRs #190 and #187 should now pass E2E tests after rebase
 
 ---
+### 2026-05-18 02:22 UTC - PR #199 Ready for Review
+
+🔄 **In Review: Uptime Kuma Health Monitoring Documentation**
+
+- PR: [#199 - feat: set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/pull/199)
+- Issue: [#183](https://github.com/jpshackelford/voice-relay/issues/183) - Set up Uptime Kuma
+- Status: **Ready for review** 🔄
+
+**What's included:**
+Documentation update for `docs/server-inventory.md`:
+1. Added `status.chorecraft.net (Uptime Kuma)` section under Hosted Domains
+2. Documented service configuration (port 3003, systemd service)
+3. Listed configured monitors (voice-relay health, chorecraft.net)
+4. Updated port allocation table (added uptime-kuma on 3003)
+5. Updated next available port to 3004
+
+**Note:** The actual server deployment (SSH to chorecraft.net) will be performed manually following the approach in issue #183 comments.

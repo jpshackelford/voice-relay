@@ -1681,3 +1681,241 @@ Add a quick-toggle button directly in the mobile header that allows single-tap s
 - `client/src/App.css` - Style toggle button (optional, can reuse existing)
 
 **Complexity:** Low - reuses existing state management, no API changes
+
+---
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
+
+✅ **Expanded Issue #165**
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
+
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
+
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
+
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
+
+✅ **Expanded Issue #165**
+
+- Issue: [#165 - Mobile: Inconsistent navigation - Settings uses X instead of back button](https://github.com/jpshackelford/voice-relay/issues/165)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+MobileSettings modal uses `✕` (X symbol) to close, while ConversationPane uses `← Back` button. This inconsistent navigation pattern confuses users.
+
+**Root Cause:**
+Different UI patterns implemented for the same close action:
+- `ConversationPane.tsx` (line 54-56): `<button className="conversation-back">← Back</button>`
+- `MobileSettings.tsx` (line 61-63): `<button className="mobile-settings-close">✕</button>`
+
+**Proposed Fix:**
+Replace X button with back button in MobileSettings header, matching ConversationPane pattern.
+
+**Files to Modify:**
+- `client/src/components/MobileSettings.tsx` - Replace X with "← Back", reorder header elements
+- `client/src/App.css` - Update `.mobile-settings-close` to `.mobile-settings-back` styles
+- `client/src/components/MobileSettings.test.tsx` - Update button assertions if needed
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:21 UTC - Expansion Worker
+
+✅ **Expanded Issue #163**
+
+- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Summary:**
+The mobile settings modal displays a "Switch to Kiosk Mode" button that shouldn't be available on mobile devices. Kiosk mode is designed for large displays (TV, desktop) - offering it on mobile creates confusion and degrades UX.
+
+**Technical Approach:**
+1. Remove the "Switch to Kiosk Mode" button from `MobileSettings.tsx` (lines 137-146)
+2. Remove `onModeChange` prop from `MobileSettingsProps` interface
+3. Update `MobileMode.tsx` to stop passing the prop
+4. Update tests in `MobileSettings.test.tsx`
+
+**Files affected:**
+- `client/src/components/MobileSettings.tsx`
+- `client/src/components/MobileSettings.test.tsx`
+- `client/src/components/MobileMode.tsx`
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:24 UTC - Expansion Worker (`f2401be`)
+
+✅ **Expanded Issue #162**
+
+- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
+- Type: Bug
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+On narrow mobile viewports (≤480px), the walkie-header icons (connection dot, settings button, conversation button) stack vertically instead of displaying horizontally.
+
+**Root Cause:**
+Generic CSS media query at `client/src/App.css` line 1095-1099 targets all `header` elements and sets `flex-direction: column`. This overrides the `.walkie-header` styles which should maintain horizontal layout.
+
+```css
+@media (max-width: 480px) {
+  header {
+    flex-direction: column;  /* Affects .walkie-header */
+  }
+}
+```
+
+**Proposed Fix:**
+Add explicit `.walkie-header` override in the media query:
+```css
+.walkie-header {
+  flex-direction: row;
+  align-items: center;
+}
+```
+
+**Files to Modify:**
+- `client/src/App.css` - Add `.walkie-header` override in `@media (max-width: 480px)` block (~line 1099)
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:35 UTC - Expansion Worker
+
+✅ **Expanded Issue #167**
+
+- Issue: [#167 - Feature: Add toggle to show/hide agent actions from OpenHands event stream](https://github.com/jpshackelford/voice-relay/issues/167)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+Users have no visibility into what the AI agent is doing in real-time. Only final message responses are shown - no insight into commands being run, files being read, or agent thinking.
+
+**Proposed Solution:**
+Add a collapsible "Agent Actions" panel in the kiosk sidebar with a toggle to show/hide real-time agent events from the OpenHands WebSocket stream.
+
+**Technical Approach:**
+1. Add `onAction` callback to `AISession` interface in `openhands.ts`
+2. Forward non-message events (AgentStateChangeEvent, CmdRunAction, etc.) to clients
+3. Create new `useAgentActions.ts` hook for state management
+4. Add toggle + panel UI in `KioskMode.tsx`
+
+**Files affected:**
+- `server/src/openhands.ts` - Add onAction callback, formatEventSummary() helper
+- `server/src/index.ts` - Wire up onAction to broadcast
+- `client/src/types.ts` - Add AgentActionMessage type
+- `client/src/hooks/useAgentActions.ts` (new)
+- `client/src/components/KioskMode.tsx` - Add actions panel UI
+- `client/src/App.css` - Add panel styles
+
+**Complexity:** Medium
+
+---
+### 2026-05-17 19:35 UTC - Expansion Worker
+
+✅ **Expanded Issue #166**
+
+- Issue: [#166 - Mobile: Text transcription display is poor in oscilloscope view](https://github.com/jpshackelford/voice-relay/issues/166)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+Users want both oscilloscope visualization AND automatic speech transcription simultaneously. Currently these are mutually exclusive due to Web Speech API limitations - it manages its own microphone stream internally and cannot share with `getUserMedia`.
+
+**Proposed Solution:**
+Implement server-side speech recognition using a single `getUserMedia` stream that feeds both:
+1. Oscilloscope visualization (existing)
+2. Audio streaming to server for Whisper/Deepgram transcription
+
+**Technical Approach:**
+1. Create `useAudioStreaming` hook - capture audio, encode, stream via WebSocket
+2. Add server-side transcription service (Whisper or commercial API)
+3. New `InputMode: 'unified'` combining both features
+4. Modify `MobileMode.tsx` for unified mode handling
+
+**Files to Modify:**
+- `client/src/hooks/useAudioStreaming.ts` (new)
+- `client/src/hooks/useAudioAnalyser.ts` (minor refactor)
+- `client/src/components/MobileMode.tsx`
+- `client/src/components/MobileSettings.tsx`
+- `server/src/websocket/handlers.ts`
+- `server/src/services/transcription.ts` (new)
+
+**Estimated Effort:** 17-24 hours
+
+**Complexity:** High - requires server infrastructure changes
+
+---
+### 2026-05-17 19:36 UTC - Expansion Worker
+
+✅ **Expanded Issue #168**
+
+- Issue: [#168 - Bug: Audio checkbox and display count on separate lines - combine to save space](https://github.com/jpshackelford/voice-relay/issues/168)
+- Type: Bug (UI Polish)
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+In the kiosk mode conversation sidebar, the device count indicators (🖥️/📱) and audio checkbox (🔊) are on separate lines, wasting vertical space.
+
+**Root Cause:**
+Two separate `<div>` elements at lines 428-447 in `KioskMode.tsx`:
+1. `.kiosk-participants` - Device counts with padding and border-bottom
+2. `.kiosk-tts-toggle` - Audio checkbox with padding and border-bottom
+
+Both are block-level elements that stack vertically.
+
+**Proposed Fix:**
+Wrap both in a single `.kiosk-status-row` container with `display: flex; justify-content: space-between;` to place participants on left and TTS toggle on right.
+
+**Files to Modify:**
+- `client/src/components/KioskMode.tsx` - Wrap in new container
+- `client/src/App.css` - Add `.kiosk-status-row` styles, update child styles
+
+**Complexity:** Low
+
+---
+### 2026-05-17 19:36 UTC - Expansion Worker (`79e83c8`)
+
+✅ **Expanded Issue #169**
+
+- Issue: [#169 - UI: Simplify kiosk mode connection indicator - replace icon with solid dot](https://github.com/jpshackelford/voice-relay/issues/169)
+- Type: Enhancement
+- Status: **Ready for implementation** ✅
+
+**Problem:**
+The kiosk mode connection indicator uses a plug emoji (🔌) with a green/red circle border. This is visually complex for what it communicates and creates clutter in the minimalist kiosk UI.
+
+**Proposed Solution:**
+Replace the plug icon with a minimal solid-color dot:
+- Green solid dot = connected
+- Red solid dot (with pulse animation) = disconnected
+- Reposition to bottom-left corner for visual balance with AI indicator at bottom-right
+
+**Technical Approach:**
+1. Remove plug emoji from JSX (KioskMode.tsx, 2 locations)
+2. Update CSS to create solid dot styling and move position from `right: 1rem` to `left: 1rem`
+
+**Files to Modify:**
+- `client/src/components/KioskMode.tsx` - Remove 🔌 emoji from connection indicator divs (lines ~326, ~602)
+- `client/src/App.css` - Update `.connection-indicator` styles (~line 3077-3120)
+
+**Complexity:** Low
