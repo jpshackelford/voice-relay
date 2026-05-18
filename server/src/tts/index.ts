@@ -68,9 +68,9 @@ export class TtsService {
     utteranceId: string,
     sessionTtsSettings?: SessionTtsSettings
   ): Promise<void> {
-    // Check session-level TTS enabled setting (user toggle in UI)
-    if (sessionTtsSettings && !sessionTtsSettings.enabled) {
-      console.log(`[TTS] Disabled for session ${sessionId} (session setting)`);
+    // Check session-level TTS enabled setting (default to disabled if not set)
+    if (!sessionTtsSettings?.enabled) {
+      console.log(`[TTS] Disabled for session ${sessionId} (session setting${!sessionTtsSettings ? ' not set' : ''})`);
       return;
     }
 
