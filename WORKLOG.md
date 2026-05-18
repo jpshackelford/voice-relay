@@ -25,184 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 03:00 UTC - Implementation Worker (`2bf4dd9`)
-
-✅ **PR #201 Ready for Review - Issue #169 (Simplify Kiosk Connection Indicator)**
-
-- Issue: [#169 - UI: Simplify kiosk mode connection indicator - replace icon with solid dot](https://github.com/jpshackelford/voice-relay/issues/169)
-- PR: [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
-- Status: **Ready for review** ✅
-
-**Problem:**
-Kiosk connection indicator used a plug emoji (🔌) with colored border, creating visual clutter and competing with the AI status indicator (both bottom-right).
-
-**Solution:**
-- Replaced plug emoji with minimal solid-colored dot
-- Green (#00c853) when connected, red (#ff4444) when disconnected
-- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
-- Reduced size from 2.5rem to 0.75rem (0.625rem on mobile)
-- Maintained pulse animation for disconnected visibility
-- Preserved hover tooltip for accessibility
-
-**Files Modified:**
-- `client/src/components/KioskMode.tsx` - Removed emoji, updated comments
-- `client/src/App.css` - Simplified styling, repositioned to left
-
-**CI Status:** All checks passing ✅ (Build, Server Tests, E2E, Conventional Commits)
-
-**Risk:** 🟢 LOW - CSS-only visual change, no functionality affected
-
-_This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
-
----
-### 2026-05-18 03:00 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `b944711` | merge | PR #200 - Allow dismissing QR code screen | **NEW** |
-| `a0171c7` | review | PR #201 - Simplify kiosk connection indicator | **NEW** |
-| `9f461ef` | implementation | Issue #191 - Unify TTS settings | **NEW** |
-
-**Workers Completed This Cycle:**
-- `2bf4dd9` (implementation) → Created PR #201 for Issue #169
-- `3b88999` (merge) → Completed work on PR #198
-- `fe49084` (review) → Completed work on PR #200
-
-**Current State:**
-- [PR #200](https://github.com/jpshackelford/voice-relay/pull/200): CI green, positive review → Merge worker spawned
-- [PR #201](https://github.com/jpshackelford/voice-relay/pull/201): CI green, 1 unresolved thread (needs screenshots) → Review worker spawned
-- Ready issues: #166, #167, #169 (priority:low), #186 (priority:medium), #188 (priority:low), #191 (priority:medium)
-- Issue #197 has `needs-human` label - skipped
-
-**Actions Taken:**
-🚀 **Spawned 3 workers:**
-1. **Merge Worker** for [PR #200](https://github.com/jpshackelford/voice-relay/pull/200) - [`b944711`](https://app.all-hands.dev/conversations/b9447115c87d4ea8931197c7fd33e65f)
-2. **Review Worker** for [PR #201](https://github.com/jpshackelford/voice-relay/pull/201) - [`a0171c7`](https://app.all-hands.dev/conversations/a0171c7b2ef04c53bf5f72989b93f35b)
-3. **Implementation Worker** for [Issue #191](https://github.com/jpshackelford/voice-relay/issues/191) - [`9f461ef`](https://app.all-hands.dev/conversations/9f461efb04f744a4b51c8cf2e72b0e65)
-
-**Also:** Added `priority:medium` label to Issue #191
-
----
-### 2026-05-18 03:10 UTC - Merge Worker
-
-**PR #200 Merged** ✅
-
-- **PR:** [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
-- **Issue:** [#186](https://github.com/jpshackelford/voice-relay/issues/186) (auto-closed)
-- **Commit:** `feat: add Skip button to dismiss QR code screen on kiosk display`
-
-**Summary:**
-Added "Skip →" button to kiosk QR code screen allowing users to proceed without mobile device scan. Useful for solo kiosk usage, development/testing, and quick demos.
-
-**Review Status:**
-- 2 automated reviews: both 🟢 LOW risk, "Worth merging"
-- All CI checks passed (5/5)
-
-**Migration Check:** ✅ No database changes - pure frontend feature (CSS + React state)
-
-**Deployed:** Auto-deploying to vr.chorecraft.net
-
----
-### 2026-05-18 03:13 UTC - PR Review Worker
-
-**PR #201 Review Addressed** ✅
-
-- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
-- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169)
-- **Status:** Ready for review (all feedback addressed)
-
-**Review Feedback:**
-- Automated review requested screenshots showing the visual change
-- Added `docs/screenshots/kiosk-connection-indicator.png` - full layout view with both states
-- Added `docs/screenshots/connection-indicator-closeup.png` - closeup of the dot indicators
-- Updated PR description to embed screenshots
-
-**Commits:**
-1. Original implementation (8db5cc2) - CSS & component changes
-2. Screenshot addition (f06d989) - Visual documentation for reviewers
-
-**CI Status:** All 4 checks passing ✅
-
----
-### 2026-05-18 03:15 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `9f461ef` | implementation | Issue #191 - Unify TTS settings | running |
-| `26258e9` | merge | PR #201 - Simplify kiosk indicator | **NEW** |
-
-**Workers Completed This Cycle:**
-- `b944711` (merge) → PR #200 merged ✓
-- `a0171c7` (review) → PR #201 reviewed ✓
-
-**Current State:**
-- [PR #201](https://github.com/jpshackelford/voice-relay/pull/201): CI green, review positive, no unresolved threads → **Merge worker spawned**
-- Issue #191: Implementation in progress (worker `9f461ef`)
-- Ready issues (no PR yet): #166, #167, #188 (all priority:low)
-- Issue #197: `needs-human` - smoke test failure (skipped)
-
-**Actions Taken:**
-🚀 **Spawned merge worker** for [PR #201](https://github.com/jpshackelford/voice-relay/pull/201) - [`26258e9`](https://app.all-hands.dev/conversations/26258e9120bb4fd5bbb757386f801925)
-
-**Next Cycle:**
-- Implementation slot occupied (wait for #191 PR)
-- 1 review slot still available
-- Expansion slots idle (all issues have `ready` label)
-
-### 2026-05-18 03:34 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `0c3d2ee` | review | PR #202 - Unify TTS settings | **NEW** |
-| `a434159` | implementation | Issue #166 - Mobile transcription display | **NEW** |
-
-**Workers Completed This Cycle:**
-- `9f461ef` (implementation) → Created PR #202 for Issue #191 ✓
-- `26258e9` (merge) → Merged PR #201 (kiosk connection indicator) ✓
-
-**Current State:**
-- [PR #202](https://github.com/jpshackelford/voice-relay/pull/202): Open, CI green, 1 unresolved critical review thread → **Review worker spawned**
-- Ready issues (no PR yet): #166 (impl started), #167, #188 (all priority:low)
-- Issue #197 has `needs-human` label - smoke test failure (skipped)
-
-**Actions Taken:**
-🚀 **Spawned 2 workers:**
-1. **Review Worker** for [PR #202](https://github.com/jpshackelford/voice-relay/pull/202) - [`0c3d2ee`](https://app.all-hands.dev/conversations/0c3d2ee486fc4e18aa145ed8db232bac)
-   - Critical bug: Server/client TTS default mismatch must be fixed
-2. **Implementation Worker** for [Issue #166](https://github.com/jpshackelford/voice-relay/issues/166) - [`a434159`](https://app.all-hands.dev/conversations/a4341599a1b3474bba2252cda8675c94)
-   - Mobile text transcription display improvement
-
-**Available Slots:**
-- Expansion: 4 (no issues need expansion)
-- Implementation: 0 (occupied)
-- Review: 1 (1 of 2 occupied)
-
----
-### 2026-05-18 03:18 UTC - Merge Worker
-
-**PR #201 Merged** ✅
-
-- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
-- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169) (auto-closed)
-- **Commit:** `feat(client): simplify kiosk mode connection indicator to solid dot`
-
-**Summary:**
-Replaced plug emoji (🔌) connection indicator with minimal solid colored dot:
-- Green (#00c853) when connected, red (#ff4444) when disconnected
-- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
-- Pure CSS solution eliminates emoji dependency for cross-platform consistency
-
-**Review Evolution:**
-1. Initial review: CSS simplification approved, requested screenshots
-2. Feedback addressed: Added screenshots to `docs/screenshots/`
-3. Final review: "Worth merging" with LOW risk assessment
-
-**Deployed:** Auto-deploying to vr.chorecraft.net
-
----
 ### 2026-05-18 03:27 UTC - Implementation Worker
 
 **PR #202 Created** 🔄
@@ -484,7 +306,6 @@ When a user selects a specific kiosk for TTS output and that kiosk disconnects, 
 **PR is ready for another review pass.**
 
 ---
-
 ### 2026-05-18 14:50 UTC - Orchestrator
 
 **Active Workers:**
@@ -559,4 +380,42 @@ PR #202 (unified TTS settings) was merged to main while PR #203 (audio streaming
 
 **PR is ready for merge.**
 - ✅ Updated .workflow-state.json
+
+---
+### 2026-05-18 15:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2a9ee58` | merge | PR #203 - Audio streaming Phase 1 | **NEW** |
+| `2d029a0` | implementation | Issue #167 - Toggle agent actions | **NEW** |
+
+**Workers Completed This Cycle:**
+- `0fadaec` (review) → ✅ Addressed review feedback on PR #203 (all 9 threads resolved)
+
+**Current State:**
+- [PR #203](https://github.com/jpshackelford/voice-relay/pull/203): CI ✅, all review threads resolved ✅, mergeable ✅ → **Merge worker spawned**
+- Issue #167 ready for implementation → **Implementation worker spawned**
+- Ready issues: #167 (in progress), #188 (priority:low)
+- Blocked: #197 (needs-human - smoke test failure)
+
+**Actions Taken:**
+🚀 **Spawned 2 workers:**
+1. **Merge Worker** for [PR #203](https://github.com/jpshackelford/voice-relay/pull/203) - Audio streaming infrastructure
+   - Conversation: [`2a9ee58`](https://app.all-hands.dev/conversations/2a9ee583414b4d319036f70bbc169267)
+   - Task: Craft commit message, squash-merge, verify issue #166 closes
+
+2. **Implementation Worker** for [Issue #167](https://github.com/jpshackelford/voice-relay/issues/167) - Toggle agent actions
+   - Conversation: [`2d029a0`](https://app.all-hands.dev/conversations/2d029a03ce474042ac85a2d6e84269a9)
+   - Task: Implement toggle to show/hide agent actions in event stream
+
+**Housekeeping:**
+- ✅ Archived 6 worklog entries (kept 10)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review/Merge | 1 | 1 | 2 |
 
