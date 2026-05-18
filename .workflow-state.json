@@ -11,9 +11,9 @@
     ],
     "review": [
       {
-        "conv_id": "e701b44",
+        "conv_id": "fffaa55",
         "pr": 222,
-        "started": "2026-05-18T18:49:27.785413+00:00"
+        "started": "2026-05-18T19:05:07.440153+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T18:49:27.785423+00:00",
+  "last_updated": "2026-05-18T19:05:07.440165+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -908,6 +908,15 @@
       "status": "success",
       "outcome": "Addressed review on PR #222",
       "pr": 222
+    },
+    {
+      "conv_id": "e701b44",
+      "type": "review",
+      "pr": 222,
+      "started": "2026-05-18T18:49:27.785413+00:00",
+      "finished": "2026-05-18T19:03:09.499227+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #222"
     }
   ]
 }
