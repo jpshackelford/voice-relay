@@ -3,22 +3,22 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "32d7f1f",
+        "conv_id": "ee8a922",
         "issue": 228,
-        "started": "2026-05-18T20:51:12.552866+00:00"
+        "started": "2026-05-18T21:04:21.686758+00:00"
       },
       {
-        "conv_id": "85cb052",
+        "conv_id": "30aa199",
         "issue": 229,
-        "started": "2026-05-18T20:51:12.552866+00:00"
+        "started": "2026-05-18T21:04:21.686758+00:00"
       }
     ],
     "implementation": [],
     "review": [
       {
-        "conv_id": "30c940b",
+        "conv_id": "a189809",
         "pr": 227,
-        "started": "2026-05-18T20:51:12.552866+00:00"
+        "started": "2026-05-18T21:04:21.686758+00:00"
       }
     ]
   },
@@ -27,17 +27,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T20:51:12.552866+00:00",
+  "last_updated": "2026-05-18T21:04:21.686758+00:00",
   "completed": [
-    {
-      "conv_id": "441026f",
-      "type": "review",
-      "pr": 173,
-      "started": "2026-05-17T20:50:04.726094+00:00",
-      "finished": "2026-05-17T21:01:51.144391+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #173"
-    },
     {
       "conv_id": "03bed53",
       "type": "implementation",
@@ -1056,6 +1047,33 @@
       "finished": "2026-05-18T20:49:52.125880+00:00",
       "status": "not_found",
       "outcome": "Review worker finished for PR #227",
+      "pr": 227
+    },
+    {
+      "conv_id": "32d7f1f",
+      "type": "expansion",
+      "started": "2026-05-18T20:51:12.552866+00:00",
+      "finished": "2026-05-18T21:02:57.120813+00:00",
+      "status": "not_found",
+      "outcome": "Worker finished (not found in API) - 228",
+      "issue": 228
+    },
+    {
+      "conv_id": "85cb052",
+      "type": "expansion",
+      "started": "2026-05-18T20:51:12.552866+00:00",
+      "finished": "2026-05-18T21:02:57.120813+00:00",
+      "status": "not_found",
+      "outcome": "Worker finished (not found in API) - 229",
+      "issue": 229
+    },
+    {
+      "conv_id": "30c940b",
+      "type": "review",
+      "started": "2026-05-18T20:51:12.552866+00:00",
+      "finished": "2026-05-18T21:02:57.120813+00:00",
+      "status": "not_found",
+      "outcome": "Worker finished (not found in API) - 227",
       "pr": 227
     }
   ]
