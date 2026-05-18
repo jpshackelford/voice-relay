@@ -2686,3 +2686,38 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 | Review | 2 | 2 | PR #195 merge + PR #198 review |
 
 ---
+
+### 2026-05-18 02:21 UTC - Merge Worker
+
+✅ **Merged PR #195 → Issue #192 CLOSED**
+
+- PR: [#195 - fix(e2e): resolve flaky mobile voice tests (WebSocket timing)](https://github.com/jpshackelford/voice-relay/pull/195)
+- Issue: [#192 - Fix any failing E2E tests!](https://github.com/jpshackelford/voice-relay/issues/192) **CLOSED**
+- Merge Type: Squash merge to main
+- Labels: `critical`, `priority:high`, `ready`
+
+**Summary:**
+Fixed critical flaky E2E test failures in mobile voice tests that were blocking PRs and breaking the main branch.
+
+**Root Cause:**
+Tests waited for `.connection-dot.connected` CSS class selector which is non-deterministic - WebSocket timing under CI load caused 10-second timeouts to fail intermittently.
+
+**Key Changes:**
+1. **Added `data-ws-state` attribute** to connection indicator in `MobileMode.tsx`
+   - Tests now check actual WebSocket state via data attribute
+   - More reliable than CSS class inspection
+2. **Increased WebSocket connection timeout** from 10s to 30s for CI stability
+3. **Added test-level retry config** (`retries: 2`) for inherent timing non-determinism
+   - CLI retries removed per code review (avoid 2×2 multiplication)
+
+**Review Evolution:**
+- Initial PR flagged redundant retry config (CLI + test-level = 4x retries)
+- Suggested data-ws-state attribute for direct WebSocket state detection
+- Fixed imprecise `[data-ws-state]` → `[data-ws-state="connected"]` selector
+- Final review: ✅ Worth merging
+
+**Production Notes:**
+- App auto-deploying to vr.chorecraft.net
+- PRs #190 and #187 should now pass E2E tests after rebase
+
+---
