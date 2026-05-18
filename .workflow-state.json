@@ -1,19 +1,25 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "ff12fd0",
+        "issue": 209,
+        "started": "2026-05-18T16:51:34.598034+00:00"
+      }
+    ],
     "implementation": [
       {
-        "conv_id": "d14a3c8",
-        "issue": 167,
-        "started": "2026-05-18T15:51:23.925706+00:00"
+        "conv_id": "80b043a",
+        "issue": 207,
+        "started": "2026-05-18T16:51:34.598034+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "a24926b",
-        "pr": 205,
-        "started": "2026-05-18T16:04:11.731448+00:00"
+        "conv_id": "da86766",
+        "pr": 206,
+        "started": "2026-05-18T16:51:34.598034+00:00"
       }
     ]
   },
@@ -22,7 +28,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T16:04:11.731448+00:00",
+  "last_updated": "2026-05-18T16:51:34.598034+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -702,6 +708,24 @@
       "finished": "2026-05-18T16:03:28.556678+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #205 - all threads resolved"
+    },
+    {
+      "conv_id": "d14a3c8",
+      "type": "implementation",
+      "issue": 167,
+      "started": "2026-05-18T15:51:23.925706+00:00",
+      "finished": "2026-05-18T16:48:54.885272+00:00",
+      "status": "success",
+      "outcome": "Created PR #206 for issue #167"
+    },
+    {
+      "conv_id": "a24926b",
+      "type": "merge",
+      "pr": 205,
+      "started": "2026-05-18T16:04:11.731448+00:00",
+      "finished": "2026-05-18T16:48:54.885272+00:00",
+      "status": "success",
+      "outcome": "Merged PR #205 - unified input mode"
     }
   ]
 }
