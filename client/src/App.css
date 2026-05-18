@@ -4037,6 +4037,47 @@ header {
 }
 
 /* ========================================
+   What's New Section
+   ======================================== */
+
+.whats-new-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+
+.whats-new-section h2 {
+  color: #9ca3af;
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.whats-new-content {
+  margin-top: 1rem;
+}
+
+.whats-new-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.whats-new-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #666;
+  color: #fff;
+}
+
+/* ========================================
    Danger Zone Section
    ======================================== */
 

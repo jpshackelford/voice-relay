@@ -6,6 +6,7 @@ import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
 import { useWorkspaceSettings, type ElevenlabsVoice } from '../hooks/useWorkspaceSettings';
 import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
+import { ReleaseNotes } from '../components/ReleaseNotes';
 
 // Default ElevenLabs voice ID (Aria)
 const DEFAULT_ELEVENLABS_VOICE_ID = 'Xb7hH8MSUJpSbSDYk0k2';
@@ -340,6 +341,9 @@ export function WorkspaceHome() {
 
   // Delete workspace state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // What's New modal state
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
   // Workspace settings hook
   const { 
@@ -1211,6 +1215,25 @@ export function WorkspaceHome() {
           </section>
         )}
 
+        {/* What's New Section (visible to all users) */}
+        <section className="whats-new-section">
+          <h2>
+            <span className="section-icon">📦</span>
+            What's New
+          </h2>
+          <div className="whats-new-content">
+            <button
+              className="whats-new-btn"
+              onClick={() => setWhatsNewOpen(true)}
+            >
+              View Release Notes
+            </button>
+            <span className="setting-hint">
+              See recent features and bug fixes
+            </span>
+          </div>
+        </section>
+
         {/* Danger Zone Section (for owners) */}
         {workspace.isOwner && (
           <section className="danger-zone-section">
@@ -1243,6 +1266,9 @@ export function WorkspaceHome() {
             onCancel={() => setShowDeleteModal(false)}
           />
         )}
+
+        {/* What's New Modal */}
+        <ReleaseNotes isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       </main>
       {version && (
         <footer className="version-footer">
