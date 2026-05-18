@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 02:06 UTC - PR #190 Merged
+
+✅ **Merged: Workflow Concurrency Controls**
+
+- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+- Issue: [#184](https://github.com/jpshackelford/voice-relay/issues/184) - **CLOSED**
+- Status: **Merged to main** ✅
+
+**What was merged:**
+1. **Workflow concurrency control**: Added `concurrency` block to `deploy.yml`
+   - Group: `deploy-production` (serializes all deployments)
+   - `cancel-in-progress: false` (queue deployments, don't cancel)
+   - `timeout-minutes: 15` (prevent stuck deployments from blocking queue)
+
+2. **E2E test reliability fix**: Updated `auth-helper.ts`
+   - Added `.connection-dot.connected` detection for mobile walkie UI
+   - Maintains backward compatibility with legacy connection indicators
+
+**Production impact:** Auto-deploying to vr.chorecraft.net. Deployments will now queue instead of racing.
+
+---
+
 ### 2026-05-18 01:56 UTC - ntfy.sh Push Notifications
 
 ✅ **PR #198 Created**
