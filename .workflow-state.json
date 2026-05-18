@@ -3,28 +3,17 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "6003d10",
-        "issue": 218,
-        "started": "2026-05-18T17:49:37.369044+00:00"
-      },
-      {
-        "conv_id": "1403580",
-        "issue": 219,
-        "started": "2026-05-18T17:49:37.369044+00:00"
+        "conv_id": "279438c",
+        "issue": 220,
+        "started": "2026-05-18T18:05:23.077408+00:00"
       }
     ],
-    "implementation": [
-      {
-        "conv_id": "55a11f7",
-        "issue": 188,
-        "started": "2026-05-18T17:36:14.551431+00:00"
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "9be4881",
-        "pr": 215,
-        "started": "2026-05-18T17:49:37.369044+00:00"
+        "conv_id": "13541a3",
+        "pr": 217,
+        "started": "2026-05-18T18:05:23.077408+00:00"
       }
     ]
   },
@@ -33,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T17:49:37.369044+00:00",
+  "last_updated": "2026-05-18T18:05:23.077408+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -838,6 +827,42 @@
       "finished": "2026-05-18T17:48:14.395740+00:00",
       "status": "success",
       "outcome": "Worker finished - PR merged"
+    },
+    {
+      "conv_id": "6003d10",
+      "type": "expansion",
+      "started": "2026-05-18T17:49:37.369044+00:00",
+      "finished": "2026-05-18T18:04:09.137524+00:00",
+      "status": "success",
+      "outcome": "Expansion completed - issue #218 ready",
+      "issue": 218
+    },
+    {
+      "conv_id": "1403580",
+      "type": "expansion",
+      "started": "2026-05-18T17:49:37.369044+00:00",
+      "finished": "2026-05-18T18:04:09.137524+00:00",
+      "status": "success",
+      "outcome": "Issue #219 closed - no action needed",
+      "issue": 219
+    },
+    {
+      "conv_id": "55a11f7",
+      "type": "implementation",
+      "started": "2026-05-18T17:36:14.551431+00:00",
+      "finished": "2026-05-18T18:04:09.137524+00:00",
+      "status": "success",
+      "outcome": "Created PR #217 for issue #188",
+      "issue": 188
+    },
+    {
+      "conv_id": "9be4881",
+      "type": "review",
+      "started": "2026-05-18T17:49:37.369044+00:00",
+      "finished": "2026-05-18T18:04:09.137524+00:00",
+      "status": "success",
+      "outcome": "PR #215 work completed",
+      "pr": 215
     }
   ]
 }
