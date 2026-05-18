@@ -2572,6 +2572,22 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 **Test Coverage:** 36 deviceToken tests, 14 useDeviceRestoration tests, 333 client + 598 server tests passing
 
 
+### 2026-05-18 02:07 UTC - Review Worker (`2dbaf09`)
+
+✅ **PR #198 Review Feedback Addressed**
+
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Status: **Ready for review** ✅
+
+**Review Feedback Addressed:**
+- Added security note to `docs/DEPLOYMENT.md` explicitly warning that ntfy.sh is a public service
+- Topic names should be treated as shared secrets since anyone who discovers them can subscribe
+- Commit: 223bf0a
+
+**Review thread resolved, CI green.**
+
+---
+
 ### 2026-05-18 02:05 UTC - Orchestrator
 
 **Active Workers:**
