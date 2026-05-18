@@ -58,14 +58,16 @@ function getCookie(name: string): string | null {
 }
 
 /**
- * Parse and validate device cookie JSON string.
- * Extracted as a pure function for easier testing.
+ * Parse and validate device JSON string.
+ * Extracted as a pure function for easier testing and reuse.
  * Returns null if JSON is invalid or required fields are missing.
+ * 
+ * This validates the shape of the data to ensure garbage data is detected.
  */
-export function parseDeviceCookieJson(json: string): StoredDeviceInfo | null {
+export function parseDeviceJson(json: string): StoredDeviceInfo | null {
   try {
     const parsed = JSON.parse(json);
-    // Validate required fields
+    // Validate required fields - catches both invalid JSON and malformed objects
     if (!parsed.deviceId || !parsed.deviceToken || !parsed.workspaceId) {
       return null;
     }
@@ -81,6 +83,12 @@ export function parseDeviceCookieJson(json: string): StoredDeviceInfo | null {
     return null;
   }
 }
+
+/**
+ * Parse and validate device cookie JSON string.
+ * @deprecated Use parseDeviceJson instead. This is an alias for backward compatibility.
+ */
+export const parseDeviceCookieJson = parseDeviceJson;
 
 /**
  * Read device info from server-set cookie (from auto-device creation).
@@ -120,15 +128,24 @@ export function storeDeviceToken(info: StoredDeviceInfo): boolean {
  * Migrate legacy single-key storage to workspace-scoped storage.
  * This is a separate function to avoid side effects in getter functions.
  * 
+ * Also cleans up invalid legacy data (garbage data) during migration.
+ * 
  * @param workspaceId - The workspace ID to migrate for.
  * @returns The migrated device info if migration occurred, null otherwise.
  */
 export function migrateLegacyDeviceToken(workspaceId: string): StoredDeviceInfo | null {
   try {
-    // Check legacy storage and migrate if it matches this workspace
+    // Check legacy storage and migrate if valid and matches this workspace
     const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
     if (legacyStored) {
-      const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
+      // Uses parseDeviceJson for consistent validation
+      const legacyDevice = parseDeviceJson(legacyStored);
+      if (!legacyDevice) {
+        // Invalid data - clean up garbage
+        console.log('[DeviceToken] Removing invalid legacy storage data');
+        localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
+        return null;
+      }
       if (legacyDevice.workspaceId === workspaceId) {
         console.log('[DeviceToken] Migrating legacy storage to workspace-scoped storage');
         storeDeviceToken(legacyDevice); // Store in new location
@@ -190,27 +207,24 @@ export function migrateServerSetDeviceCookie(workspaceId?: string): StoredDevice
  */
 export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | null {
   try {
-    // If workspaceId provided, check workspace-scoped storage first
+    // Check workspace-scoped storage first (if workspaceId provided)
     if (workspaceId) {
       const key = getDeviceTokenKey(workspaceId);
       const stored = localStorage.getItem(key);
       if (stored) {
-        return JSON.parse(stored) as StoredDeviceInfo;
+        const device = parseDeviceJson(stored);
+        if (device) return device;
       }
-      
-      // Check legacy storage (read-only, no migration here)
-      const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
-      if (legacyStored) {
-        const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
-        if (legacyDevice.workspaceId === workspaceId) {
-          return legacyDevice;
-        }
-      }
-    } else {
-      // Fallback: check legacy storage for backward compatibility
-      const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
-      if (legacyStored) {
-        return JSON.parse(legacyStored) as StoredDeviceInfo;
+    }
+    
+    // Check legacy storage (read-only, no migration here)
+    // Uses parseDeviceJson for consistent validation
+    const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
+    if (legacyStored) {
+      const legacyDevice = parseDeviceJson(legacyStored);
+      // Return only if valid AND matches workspace (or no workspace filter)
+      if (legacyDevice && (!workspaceId || legacyDevice.workspaceId === workspaceId)) {
+        return legacyDevice;
       }
     }
     
@@ -241,18 +255,16 @@ export function clearDeviceToken(workspaceId?: string): void {
       const key = getDeviceTokenKey(workspaceId);
       localStorage.removeItem(key);
       
-      // Only clear legacy storage if it belongs to this workspace
+      // Only clear legacy storage if it belongs to this workspace OR is invalid
       const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
       if (legacyStored) {
-        try {
-          const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
-          if (legacyDevice.workspaceId === workspaceId) {
-            localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
-          }
-        } catch {
-          // If we can't parse it, safe to remove (invalid data)
+        // Uses parseDeviceJson for consistent validation
+        // Invalid data (bad JSON or missing fields) is treated as garbage and removed
+        const legacyDevice = parseDeviceJson(legacyStored);
+        if (!legacyDevice || legacyDevice.workspaceId === workspaceId) {
           localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
         }
+        // Valid data for different workspace is preserved (maintains isolation)
       }
     } else {
       // No workspace specified, clear legacy storage
