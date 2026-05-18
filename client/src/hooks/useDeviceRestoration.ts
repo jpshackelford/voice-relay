@@ -104,10 +104,15 @@ function getStoredMode(workspaceId?: string): DeviceMode | null {
  * - Managing display name with session persistence
  * - Re-initializing when workspaceId becomes available (handles async workspace loading)
  * 
+ * **Important:** This hook does NOT support changing workspaceId after initialization.
+ * Workspace switching should be handled by remounting the component (e.g., via route change).
+ * If workspaceId changes from one valid value to another, this hook will log a warning
+ * but will not re-initialize state for the new workspace.
+ * 
  * @param workspaceId - Current workspace ID for token validation
  */
 export function useDeviceRestoration(workspaceId: string | undefined): DeviceRestorationResult {
-  // Track whether we have a valid workspaceId for initialization
+  // Track the workspaceId we initialized with for detecting unsupported workspace changes
   const initialWorkspaceId = useRef(workspaceId);
   
   // Initialize state with stored/generated values (runs once)
@@ -122,35 +127,44 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
   
   // Prevent double validation in React strict mode
   const validationAttempted = useRef(false);
+  
+  // Track if migration has been performed (to prevent duplicate calls)
+  const migrationPerformed = useRef(false);
 
-  // Re-initialize when workspaceId becomes available (handles async workspace loading)
-  // This fixes the race condition where workspaceId is undefined at mount
+  // Single useEffect to handle both mount and re-initialization scenarios
+  // Consolidates migration logic to prevent duplicate execution
   useEffect(() => {
-    // Only re-initialize if we mounted without a workspaceId and now have one
-    if (!initialWorkspaceId.current && workspaceId && !isInitialized) {
+    // Warn if workspaceId changes to a different valid value (unsupported)
+    if (initialWorkspaceId.current && workspaceId && workspaceId !== initialWorkspaceId.current) {
+      console.warn(
+        '[useDeviceRestoration] Workspace changed from',
+        initialWorkspaceId.current,
+        'to',
+        workspaceId,
+        '- this is not supported. Component should remount on workspace change.'
+      );
+      return;
+    }
+    
+    // Skip if no workspaceId available yet or already migrated
+    if (!workspaceId || migrationPerformed.current) return;
+    
+    // Mark migration as done before executing (prevents double execution in strict mode)
+    migrationPerformed.current = true;
+    
+    // Perform migrations explicitly
+    migrateLegacyDeviceToken(workspaceId);
+    migrateServerSetDeviceCookie(workspaceId);
+    
+    // If we mounted without a workspaceId, re-initialize state now that we have one
+    if (!initialWorkspaceId.current && !isInitialized) {
       console.log('[useDeviceRestoration] workspaceId now available, re-initializing');
-      
-      // Perform migrations explicitly during initialization
-      migrateLegacyDeviceToken(workspaceId);
-      migrateServerSetDeviceCookie(workspaceId);
-      
-      const newDeviceId = getOrCreateDeviceId(workspaceId);
-      setDeviceId(newDeviceId);
+      setDeviceId(getOrCreateDeviceId(workspaceId));
       setDisplayName(getInitialDisplayName(workspaceId));
       setRestoredMode(getStoredMode(workspaceId));
       setIsInitialized(true);
     }
   }, [workspaceId, isInitialized]);
-  
-  // Perform migrations on mount if we have a workspaceId
-  const migrationPerformed = useRef(false);
-  useEffect(() => {
-    if (workspaceId && !migrationPerformed.current) {
-      migrationPerformed.current = true;
-      migrateLegacyDeviceToken(workspaceId);
-      migrateServerSetDeviceCookie(workspaceId);
-    }
-  }, [workspaceId]);
 
   // Validate stored device token when workspaceId is available
   useEffect(() => {
