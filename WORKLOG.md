@@ -25,6 +25,37 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 03:27 UTC - Implementation Worker
+
+**PR #202 Created** 🔄
+
+- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
+- **Issue:** [#191](https://github.com/jpshackelford/voice-relay/issues/191) (Fixes)
+- **Status:** Ready for review ✅
+
+**Summary:**
+Unified 3 separate unsynced TTS settings into single session-level control with real-time sync:
+
+**Changes:**
+- Added `SessionTtsSettings` interface (enabled + outputDeviceId) to session metadata
+- Added WebSocket messages for real-time TTS settings sync across all devices
+- Updated `registry.broadcastAudioToKiosks()` to support device targeting
+- KioskMode & MobileSettings: Replaced local state with session-level TTS toggle + device dropdown
+- Deprecated browser-based TTS in favor of server-side ElevenLabs TTS
+
+**Acceptance Criteria (all met):**
+- [x] Single unified TTS toggle visible on both kiosk and mobile
+- [x] TTS setting changes sync in real-time across all devices
+- [x] Device dropdown allows selecting which device plays audio
+- [x] Audio only plays on selected device (or all kiosks if none selected)
+- [x] TTS setting persists in session metadata
+- [x] Workspace-level ElevenLabs API key config unchanged
+- [x] Browser-local TTS deprecated/removed
+
+**CI Status:** All checks passing ✅
+
+---
+
 ### 2026-05-18 03:18 UTC - Merge Worker
 
 **PR #201 Merged** ✅
