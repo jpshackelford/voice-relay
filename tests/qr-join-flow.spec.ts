@@ -372,4 +372,117 @@ test.describe('QR Code Join Flow', () => {
       await kioskContext.close();
     }
   });
+
+  test('user can skip QR code and access kiosk mode', async ({ browser }) => {
+    test.slow();
+
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    const kioskContext = await createAuthenticatedContext(
+      browser,
+      baseURL,
+      TEST_AUTH_SECRET,
+      { viewport: { width: 1280, height: 720 } }
+    );
+    const kioskPage = await kioskContext.newPage();
+
+    try {
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
+
+      // Verify large QR code is displayed initially
+      await expect(kioskPage.locator('.display-idle-qr')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+      await expect(kioskPage.getByText('Join this session')).toBeVisible();
+
+      // Verify Skip button is visible
+      const skipButton = kioskPage.locator('.qr-skip-button');
+      await expect(skipButton).toBeVisible();
+      await expect(skipButton).toHaveText('Skip →');
+
+      // Click Skip button
+      await skipButton.click();
+
+      // Verify QR dismissed and greeting state shown
+      await expect(kioskPage.locator('.display-idle-qr')).not.toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+      await expect(kioskPage.locator('.display-greeting')).toBeVisible();
+      await expect(kioskPage.getByText('Session Ready')).toBeVisible();
+      await expect(kioskPage.getByText('No devices connected')).toBeVisible();
+
+      // Verify mini QR is now visible in corner
+      await expect(kioskPage.locator('.mini-qr-overlay')).toBeVisible();
+
+      // Verify can still interact with kiosk input (open drawer)
+      const drawerOpenBtn = kioskPage.locator('.drawer-open-btn');
+      if (await drawerOpenBtn.isVisible()) {
+        await drawerOpenBtn.click();
+        await expect(kioskPage.locator('.kiosk-sidebar')).toBeVisible();
+      }
+
+      console.log('QR skip flow test passed');
+
+    } finally {
+      await kioskContext.close();
+    }
+  });
+
+  test('mobile can still join after QR is dismissed', async ({ browser }) => {
+    test.slow();
+    // Skip flaky test in CI - WebSocket stabilization times out intermittently
+    test.skip(SKIP_FLAKY_WS_TESTS, 'Flaky in CI: WebSocket timing-sensitive');
+
+    if (!TEST_AUTH_SECRET) {
+      test.skip();
+      return;
+    }
+
+    const kioskContext = await createAuthenticatedContext(
+      browser,
+      baseURL,
+      TEST_AUTH_SECRET,
+      { viewport: { width: 1280, height: 720 } }
+    );
+    const kioskPage = await kioskContext.newPage();
+
+    try {
+      await navigateKioskToSession(kioskPage, CONNECTION_STABLE_TIMEOUT, baseURL);
+
+      // First extract QR URL before dismissing
+      const qrUrl = await extractQrUrl(kioskPage, '[data-qr-url]', QR_URL_EXTRACT_TIMEOUT);
+
+      // Click Skip button
+      await kioskPage.locator('.qr-skip-button').click();
+
+      // Verify greeting state with no devices
+      await expect(kioskPage.locator('.display-greeting')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+      await expect(kioskPage.getByText('No devices connected')).toBeVisible();
+
+      // Now have a mobile device join using the QR URL
+      const mobileContext = await createAuthenticatedContext(
+        browser,
+        baseURL,
+        TEST_AUTH_SECRET,
+        { viewport: { width: 375, height: 667 } }
+      );
+      const mobilePage = await mobileContext.newPage();
+
+      try {
+        await mobilePage.goto(qrUrl);
+        await expect(mobilePage.locator('.mobile-mode')).toBeVisible({ timeout: ELEMENT_VISIBLE_TIMEOUT });
+        await waitForStableConnection(mobilePage, CONNECTION_STABLE_TIMEOUT);
+
+        // Verify kiosk now shows device connected
+        await expect(kioskPage.getByText(/📱.*1.*device.*connected/)).toBeVisible({ timeout: DEVICE_COUNT_UPDATE_TIMEOUT });
+
+        console.log('Mobile join after QR dismiss test passed');
+
+      } finally {
+        await mobileContext.close();
+      }
+
+    } finally {
+      await kioskContext.close();
+    }
+  });
 });

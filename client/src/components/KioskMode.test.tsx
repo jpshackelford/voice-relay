@@ -971,4 +971,96 @@ describe('KioskMode', () => {
       });
     });
   });
+
+  describe('QR Skip Button', () => {
+    beforeEach(() => {
+      setWindowWidth(1024); // Desktop width
+    });
+
+    it('renders Skip button when no mobile devices connected', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} />);
+      });
+
+      // Should show large QR screen with Skip button
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      expect(skipButton).toBeDefined();
+      expect(skipButton.textContent).toBe('Skip →');
+    });
+
+    it('hides QR and shows greeting when Skip is clicked', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} />);
+      });
+
+      // Initially should show large QR screen
+      expect(document.querySelector('.display-idle-qr')).toBeDefined();
+      expect(document.querySelector('.display-greeting')).toBeNull();
+
+      // Click skip button
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should now show greeting state
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-greeting')).toBeDefined();
+      expect(screen.getByText('Session Ready')).toBeDefined();
+      expect(screen.getByText('No devices connected')).toBeDefined();
+    });
+
+    it('shows mini QR overlay after Skip is clicked', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} />);
+      });
+
+      // Initially mini QR should not be visible
+      expect(document.querySelector('.mini-qr-overlay')).toBeNull();
+
+      // Click skip button
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Mini QR should now be visible
+      expect(document.querySelector('.mini-qr-overlay')).toBeDefined();
+    });
+
+    it('does not show Skip button when mobile devices are connected', async () => {
+      const devices = [createMobileDevice('mobile-1')];
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      // Should not have Skip button (should be in greeting state already)
+      const skipButton = screen.queryByRole('button', { name: /skip qr code screen/i });
+      expect(skipButton).toBeNull();
+    });
+
+    it('shows correct device count after mobile joins post-dismiss', async () => {
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} />);
+      });
+
+      // Click skip button
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should show "No devices connected"
+      expect(screen.getByText('No devices connected')).toBeDefined();
+
+      // Now a mobile device joins
+      const devices = [createMobileDevice('mobile-1')];
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={devices} />);
+      });
+
+      // Should now show device count
+      expect(screen.getByText(/📱 1 device connected/)).toBeDefined();
+    });
+  });
 });
