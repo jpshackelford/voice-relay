@@ -3,17 +3,22 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "f30b9b7",
+        "conv_id": "32d7f1f",
         "issue": 228,
-        "started": "2026-05-18T20:34:41.964569+00:00"
+        "started": "2026-05-18T20:51:12.552866+00:00"
+      },
+      {
+        "conv_id": "85cb052",
+        "issue": 229,
+        "started": "2026-05-18T20:51:12.552866+00:00"
       }
     ],
     "implementation": [],
     "review": [
       {
-        "conv_id": "a61bd58",
+        "conv_id": "30c940b",
         "pr": 227,
-        "started": "2026-05-18T20:34:41.964569+00:00"
+        "started": "2026-05-18T20:51:12.552866+00:00"
       }
     ]
   },
@@ -22,17 +27,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T20:34:41.964569+00:00",
+  "last_updated": "2026-05-18T20:51:12.552866+00:00",
   "completed": [
-    {
-      "conv_id": "dd0d905",
-      "type": "implementation",
-      "issue": 172,
-      "started": "2026-05-17T20:20:43.297022+00:00",
-      "finished": "2026-05-17T20:47:17.451605+00:00",
-      "status": "success",
-      "outcome": "Created PR #173 for issue #172"
-    },
     {
       "conv_id": "441026f",
       "type": "review",
@@ -1043,6 +1039,24 @@
       "finished": "2026-05-18T20:33:44.940542+00:00",
       "status": "not_found",
       "outcome": "Worker not found - assumed finished, PR #227 ready for merge"
+    },
+    {
+      "conv_id": "f30b9b7",
+      "type": "expansion",
+      "started": "2026-05-18T20:34:41.964569+00:00",
+      "finished": "2026-05-18T20:49:52.125880+00:00",
+      "status": "not_found",
+      "outcome": "Expansion worker finished for issue #228",
+      "issue": 228
+    },
+    {
+      "conv_id": "a61bd58",
+      "type": "review",
+      "started": "2026-05-18T20:34:41.964569+00:00",
+      "finished": "2026-05-18T20:49:52.125880+00:00",
+      "status": "not_found",
+      "outcome": "Review worker finished for PR #227",
+      "pr": 227
     }
   ]
 }
