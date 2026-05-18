@@ -1,25 +1,25 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "5231986",
-        "started": "2026-05-18T00:21:46.404815+00:00",
-        "issue": 192
+        "conv_id": "080defd",
+        "started": "2026-05-18T00:34:50.704002+00:00",
+        "issue": 185
       }
     ],
-    "implementation": [],
     "review": [
       {
-        "conv_id": "b9fe432",
-        "started": "2026-05-18T00:21:46.404815+00:00",
-        "pr": 180,
-        "type": "merge"
+        "conv_id": "145c86e",
+        "started": "2026-05-18T00:34:50.704002+00:00",
+        "pr": 193,
+        "type": "review"
       },
       {
-        "conv_id": "b573a3c",
-        "started": "2026-05-18T00:21:46.404815+00:00",
-        "pr": 193,
+        "conv_id": "d746613",
+        "started": "2026-05-18T00:34:50.704002+00:00",
+        "pr": 190,
         "type": "ci_fix"
       }
     ]
@@ -29,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T00:21:46.404815+00:00",
+  "last_updated": "2026-05-18T00:34:50.704002+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -286,6 +286,33 @@
       "finished": "2026-05-18T00:18:50.936161+00:00",
       "status": "success",
       "pr": 180
+    },
+    {
+      "conv_id": "5231986",
+      "type": "expansion",
+      "issue": 192,
+      "started": "2026-05-18T00:21:46.404815+00:00",
+      "finished": "2026-05-18T00:31:55.613978+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #192"
+    },
+    {
+      "conv_id": "b9fe432",
+      "type": "review",
+      "pr": 180,
+      "started": "2026-05-18T00:21:46.404815+00:00",
+      "finished": "2026-05-18T00:31:55.613978+00:00",
+      "status": "success",
+      "outcome": "Merged or addressed review on PR #180"
+    },
+    {
+      "conv_id": "b573a3c",
+      "type": "review",
+      "pr": 193,
+      "started": "2026-05-18T00:21:46.404815+00:00",
+      "finished": "2026-05-18T00:31:55.613978+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #193"
     }
   ]
 }
