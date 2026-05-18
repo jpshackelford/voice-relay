@@ -339,8 +339,9 @@ jobs:
             git checkout ${{ steps.find-good.outputs.commit }}
             # Generate version.json for rollback commit
             echo "{\"commit\": \"$(git rev-parse --short HEAD)\", \"deployedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > version.json
-            # Clean node_modules to ensure fresh install (prevents npm ci failures on corruption)
-            echo "=== Cleaning node_modules ==="
+            # Clean npm cache AND node_modules for clean slate (prevents cache corruption cascades)
+            echo "=== Cleaning npm cache and node_modules ==="
+            npm cache clean --force
             rm -rf node_modules
             npm ci
             npm run build
