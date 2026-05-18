@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:56 UTC - ntfy.sh Push Notifications
+
+✅ **PR #198 Created**
+
+- Issue: [#182 - feat: Add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/issues/182)
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Priority: high
+- Status: **Ready for review** ✅
+
+**Changes:**
+- Added `Notify on deployment failure` step with high priority notification
+- Added `Notify on rollback failure` step with urgent priority notification  
+- Updated `docs/DEPLOYMENT.md` with subscription instructions
+
+**Implementation Details:**
+- Notifications sent via ntfy.sh (free, no signup required)
+- Graceful degradation: feature disabled if `NTFY_TOPIC` secret not configured
+- Deployment failures get "high" priority, rollback failures get "urgent" (max)
+
+**CI Status:** All checks passing
+
+---
+
 ### 2026-05-18 01:55 UTC - Review Feedback Addressed
 
 ✅ **PR #190 Review Feedback Complete**
