@@ -482,3 +482,41 @@ When a user selects a specific kiosk for TTS output and that kiosk disconnects, 
 **Review Threads:** All 5 resolved (including 4 new threads from second review round)
 
 **PR is ready for another review pass.**
+
+---
+
+### 2026-05-18 14:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0fadaec` | review | PR #203 - Fix merge conflicts | **NEW** |
+
+**Previous Workers Completed:**
+- `df26c59` (merge PR #202) → ✅ Merged successfully
+- `29532e5` (review PR #203) → ✅ Finished (but conflicts remain)
+
+**PR #202 Merged:** [feat: unify TTS settings with single session-level control](https://github.com/jpshackelford/voice-relay/pull/202)
+
+🚀 **Spawned: Review Worker**
+- PR: [#203 - feat: add audio streaming infrastructure](https://github.com/jpshackelford/voice-relay/pull/203)
+- Issue: #166 - Mobile: Text transcription display is poor
+- Problem: Merge conflict after PR #202 merge
+- Conversation: [`0fadaec`](https://app.all-hands.dev/conversations/0fadaec255ea4a8790ab8796d3bb7200)
+
+**Current State:**
+- Open PRs: #203 (conflict, needs rebase)
+- Ready issues: #166 (in PR), #167, #188 (all priority:low)
+- Blocked issues: #197 (needs-human, critical smoke test failure)
+
+**Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review | 1 | 1 | 2 |
+
+**Housekeeping:**
+- ✅ Archived 73 worklog entries (truncated to 15)
+- ✅ Updated .workflow-state.json
+
