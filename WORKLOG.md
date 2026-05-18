@@ -2616,3 +2616,26 @@ Server proceeded with TTS when `sessionTtsSettings` was undefined, but client de
 - Implementation slot available (will proceed after reviews addressed)
 
 ---
+
+### 2026-05-18 14:27 UTC - Review Worker (`edae91f`)
+
+✅ **PR #203 Review Feedback Addressed**
+
+- **PR:** [#203 - feat: add audio streaming infrastructure for server-side transcription (Phase 1)](https://github.com/jpshackelford/voice-relay/pull/203)
+- **Issue:** [#166](https://github.com/jpshackelford/voice-relay/issues/166)
+- **Status:** Ready for review ✅
+
+**Review Threads Addressed (commit 143a4ed):**
+
+1. ✅ **Critical: Stale closure bug (line 164)** - Added `isStreamingRef` to track streaming state in callbacks. The `onaudioprocess` callback now checks `isStreamingRef.current` instead of the state variable which was captured at callback creation time.
+
+2. ✅ **Important: Memory allocation (line 173)** - Implemented ring buffer pattern with pre-allocated Float32Array (~60 seconds capacity). The callback now writes directly to ring buffer indices instead of creating new arrays on every event, eliminating GC pressure during audio processing.
+
+3. ✅ **Important: samplesPerChunk stale closure (line 68)** - Added `samplesPerChunkRef` with useEffect that updates when sampleRate/chunkDurationMs change. processAudioBuffer reads from ref to ensure current values.
+
+4. ❌ **Declined: AudioWorklet suggestion (line 161)** - Declined as it would significantly expand Phase 1 scope. AudioWorklet requires separate worker module, async registration, and MessagePort communication. ScriptProcessorNode is deprecated but functional. Code already has comment acknowledging this technical debt for Phase 4.
+
+**CI Status:** All checks passing ✅
+**Review Threads:** 4/4 resolved
+
+---
