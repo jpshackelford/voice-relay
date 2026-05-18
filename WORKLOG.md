@@ -26,6 +26,33 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:19 UTC - Expansion Worker
+
+✅ **Expanded Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
+
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **Type:** Enhancement
+- **Status:** Ready for implementation
+
+**Summary:**
+Expanded and restructured the issue for implementing Terms of Service and Privacy Policy documents required for Google OAuth consent screen configuration. The original issue was comprehensive but needed clearer structure for implementation.
+
+**Key Technical Decisions:**
+1. **Approach:** Markdown documents in `docs/` with client-side React routes (vs static HTML)
+2. **Documents:** Adapted from All Hands AI templates with Voice Relay-specific data practices
+3. **Routing:** Add `/tos` and `/privacy` routes using `react-markdown` for rendering
+4. **UX:** Add footer links to Login page
+
+**Files Affected:**
+- New: `docs/terms-of-service.md`, `docs/privacy-policy.md`
+- New: `client/src/pages/TermsOfService.tsx`, `client/src/pages/PrivacyPolicy.tsx`
+- New: `client/src/components/LegalPage.tsx`
+- Modified: `client/src/App.tsx`, `client/src/pages/Login.tsx`, `client/src/App.css`
+
+**Complexity:** Low-Medium - ~1-2 hours, no backend changes needed.
+
+---
+
 ### 2026-05-18 21:13 UTC - Expansion Worker
 
 ✅ **Expanded Issue #228 - Release Notes Display Issues in Desktop Mode**
