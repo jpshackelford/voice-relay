@@ -3,31 +3,31 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "ee8a922",
-        "issue": 228,
-        "started": "2026-05-18T21:04:21.686758+00:00"
+        "conv_id": "42549ae",
+        "started": "2026-05-18T21:19:58.028793+00:00",
+        "issue": 230
       },
       {
-        "conv_id": "30aa199",
-        "issue": 229,
-        "started": "2026-05-18T21:04:21.686758+00:00"
+        "conv_id": "9e7ef4b",
+        "started": "2026-05-18T21:19:58.028793+00:00",
+        "issue": 231
       }
     ],
-    "implementation": [],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "a189809",
-        "pr": 227,
-        "started": "2026-05-18T21:04:21.686758+00:00"
+        "conv_id": "7032f92",
+        "started": "2026-05-18T21:19:58.028793+00:00",
+        "issue": 228
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T21:04:21.686758+00:00",
+  "last_updated": "2026-05-18T21:19:58.028793+00:00",
   "completed": [
     {
       "conv_id": "03bed53",
@@ -1075,6 +1075,33 @@
       "status": "not_found",
       "outcome": "Worker finished (not found in API) - 227",
       "pr": 227
+    },
+    {
+      "conv_id": "ee8a922",
+      "type": "expansion",
+      "issue": 228,
+      "started": "2026-05-18T21:04:21.686758+00:00",
+      "finished": "2026-05-18T21:17:44.779200+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #228"
+    },
+    {
+      "conv_id": "30aa199",
+      "type": "expansion",
+      "issue": 229,
+      "started": "2026-05-18T21:04:21.686758+00:00",
+      "finished": "2026-05-18T21:17:44.779200+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #229"
+    },
+    {
+      "conv_id": "a189809",
+      "type": "review",
+      "pr": 227,
+      "started": "2026-05-18T21:04:21.686758+00:00",
+      "finished": "2026-05-18T21:17:44.779200+00:00",
+      "status": "not_found",
+      "outcome": "Addressed review on PR #227"
     }
   ]
 }

@@ -1745,3 +1745,49 @@ Added "What's New" section to desktop workspace settings, bringing feature parit
 **Slots Available:** 2 expansion, 1 implementation, 1 review
 
 ---
+
+---
+
+### 2026-05-18 21:16 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42549ae` | expansion | Issue #230 - Changelog generator issues | **NEW** |
+| `9e7ef4b` | expansion | Issue #231 - Terms of Service/Privacy Policy | **NEW** |
+| `7032f92` | implementation | Issue #228 - Release Notes Display Issues | **NEW** |
+
+**Priority Assessment:**
+Applied priority labels to ready issues:
+- Issue #228: `priority:medium` ⬅️ NEXT (CSS-only quick fix)
+- Issue #229: `priority:low` (Enhancement, more complex)
+
+**Current State:**
+- Open PRs: [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) (draft - V1 event formatting)
+- Ready issues: #228 (priority:medium), #229 (priority:low)
+- Issues needing expansion: #230, #231
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned 3 workers (parallel)**
+
+1. **Expansion Worker** - Issue #230
+   - [#230 - Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+   - Conversation: [`42549ae`](https://app.all-hands.dev/conversations/42549ae)
+
+2. **Expansion Worker** - Issue #231
+   - [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+   - Conversation: [`9e7ef4b`](https://app.all-hands.dev/conversations/9e7ef4b)
+
+3. **Implementation Worker** - Issue #228
+   - [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+   - Conversation: [`7032f92`](https://app.all-hands.dev/conversations/7032f92)
+
+**Slot Status:**
+| Slot Type | Active | Limit | Available |
+|-----------|--------|-------|-----------|
+| Expansion | 2 | 4 | 2 |
+| Implementation | 1 | 1 | 0 |
+| Review | 0 | 2 | 2 |
+
+Next check in ~30 minutes.
