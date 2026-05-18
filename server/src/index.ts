@@ -93,6 +93,11 @@ const versionInfo = loadVersionInfo();
 console.log(`[Server] Version: ${versionInfo.commit}`);
 
 const app = express();
+
+// Trust the first proxy (Apache) - required for express-rate-limit and IP detection
+// See: https://expressjs.com/en/guide/behind-proxies.html
+app.set('trust proxy', 1);
+
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
