@@ -5,6 +5,7 @@ interface Change {
   type: 'feat' | 'fix';
   scope?: string;
   description: string;
+  prNumber?: number;
 }
 
 interface ChangelogEntry {
@@ -185,6 +186,17 @@ export function ReleaseNotes({ isOpen, onClose }: ReleaseNotesProps) {
                             <span className="change-scope">{change.scope}:</span>
                           )}{' '}
                           {change.description}
+                          {change.prNumber && (
+                            <a
+                              href={`https://github.com/jpshackelford/voice-relay/pull/${change.prNumber}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="change-pr-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              #{change.prNumber}
+                            </a>
+                          )}
                         </span>
                       </li>
                     ))}

@@ -22,6 +22,7 @@ interface Change {
   type: 'feat' | 'fix';
   scope?: string;
   description: string;
+  prNumber?: number;
 }
 
 interface ChangelogEntry {
@@ -51,6 +52,10 @@ function parseCommitMessage(message: string): Change | null {
 
   const [, type, scope, description] = match;
 
+  // Extract PR number before cleaning description (GitHub auto-adds "(#123)" at the end)
+  const prMatch = description.match(/\(#(\d+)\)\s*$/);
+  const prNumber = prMatch ? parseInt(prMatch[1], 10) : undefined;
+
   // Clean up description: remove PR references like (#123)
   let cleanDesc = description.replace(/\s*\(#\d+\)\s*$/, '').trim();
   // Capitalize first letter
@@ -60,6 +65,7 @@ function parseCommitMessage(message: string): Change | null {
     type: type.toLowerCase() as 'feat' | 'fix',
     scope: scope || undefined,
     description: cleanDesc,
+    prNumber,
   };
 }
 
