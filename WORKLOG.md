@@ -1883,3 +1883,30 @@ const previousTag = recentTags[i + 1] || null;  // undefined for i=19
 **Complexity:** Medium
 
 ---
+
+### 2026-05-18 21:35 UTC - Merge Worker
+
+✅ **PR #232 Merged - Release Notes Desktop Display Issues**
+
+- **PR:** [#232 - fix(client): release notes desktop display issues](https://github.com/jpshackelford/voice-relay/pull/232)
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **Type:** Bug Fix (CSS)
+- **Status:** ✅ Merged to main
+
+**Summary:**
+Fixed two display issues with the release notes feature in desktop mode:
+1. Button/hint text layout - Added flex column layout for proper vertical stacking
+2. Modal alignment - Added desktop media query (>=768px) to center modal instead of bottom sheet
+
+**Technical Details:**
+- CSS-only changes (+28 lines to `client/src/App.css`)
+- No database migrations required
+- Mobile behavior preserved (bottom sheet < 768px)
+- Desktop modal uses fade+slide animation
+
+**Merge Details:**
+- Commit: `fix(client): release notes desktop display issues`
+- Issue #228 auto-closed on merge
+- Auto-deploying to vr.chorecraft.net
+
+---
