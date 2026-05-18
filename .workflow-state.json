@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "0fc56cc",
-        "issue": 224,
-        "started": "2026-05-18T19:49:44.442421+00:00"
+        "conv_id": "2b1ad13",
+        "pr": 227,
+        "started": "2026-05-18T20:20:18.717072+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T20:02:40.384278+00:00",
+  "last_updated": "2026-05-18T20:20:18.717072+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -1019,6 +1019,15 @@
       "finished": "2026-05-18T20:02:40.384278+00:00",
       "status": "duplicate",
       "outcome": "Duplicate entry removed - 225"
+    },
+    {
+      "conv_id": "0fc56cc",
+      "type": "implementation",
+      "issue": 224,
+      "started": "2026-05-18T19:49:44.442421+00:00",
+      "finished": "2026-05-18T20:19:48.581676+00:00",
+      "status": "success",
+      "outcome": "Created PR #227 for Issue #224 - dad joke voice previews"
     }
   ]
 }
