@@ -162,11 +162,16 @@ export async function waitForWebSocketConnected(
   timeout = 10000
 ): Promise<void> {
   // Wait for any of the connection status indicators to show "Connected"
-  // Mobile mode: .connection-status.connected or text "Connected"
+  // Mobile walkie mode: .connection-dot.connected (dot indicator)
+  // Mobile legacy mode: .connection-status.connected or text "Connected"
   // Kiosk mode: .connection-indicator.connected (plug icon)
   await page.waitForFunction(
     () => {
-      // Check mobile connection status
+      // Check mobile walkie connection dot (current mobile UI)
+      const mobileDot = document.querySelector('.connection-dot.connected');
+      if (mobileDot) return true;
+
+      // Check mobile connection status (legacy)
       const mobileStatus = document.querySelector('.connection-status.connected');
       if (mobileStatus) return true;
 
@@ -207,10 +212,11 @@ export async function waitForStableConnection(
   
   while (Date.now() - startTime < timeout) {
     const isConnected = await page.evaluate(() => {
-      // Check both mobile and kiosk connection indicators
+      // Check all connection indicators: mobile walkie dot, mobile legacy status, kiosk indicator
+      const mobileDot = document.querySelector('.connection-dot.connected');
       const mobileStatus = document.querySelector('.connection-status.connected');
       const kioskIndicator = document.querySelector('.connection-indicator.connected');
-      return !!(mobileStatus || kioskIndicator);
+      return !!(mobileDot || mobileStatus || kioskIndicator);
     });
     
     if (isConnected) {

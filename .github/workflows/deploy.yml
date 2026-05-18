@@ -21,9 +21,14 @@ on:
           - status
           - logs
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   operate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       action: ${{ github.event.inputs.action || 'deploy' }}
     
