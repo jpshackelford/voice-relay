@@ -260,8 +260,23 @@ app.get('/health', (_req, res) => {
 
 // Changelog endpoint for release notes
 // Serves changelog.json generated at build time
+interface ChangelogEntry {
+  commit: string;
+  deployedAt: string;
+  changes: Array<{
+    type: 'feat' | 'fix';
+    scope?: string;
+    description: string;
+  }>;
+}
+
+interface Changelog {
+  generatedAt: string | null;
+  entries: ChangelogEntry[];
+}
+
 const changelogPath = join(__dirname, '../changelog.json');
-let cachedChangelog: object | null = null;
+let cachedChangelog: Changelog | null = null;
 
 app.get('/api/changelog', (_req, res) => {
   if (!cachedChangelog) {
