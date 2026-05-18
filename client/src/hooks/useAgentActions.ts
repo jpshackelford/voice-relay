@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import type { AgentAction, AgentActionMessage } from '../types';
 
 /** Maximum number of actions to retain */
@@ -66,18 +66,13 @@ export function useAgentActions(sessionId?: string) {
     setActions([]);
   }, []);
 
-  /**
-   * Number of actions currently stored.
-   */
-  const actionCount = useMemo(() => actions.length, [actions]);
-
   return {
     /** List of agent actions (most recent last) */
     actions,
     /** Whether the actions panel is visible */
     showActions,
     /** Number of actions currently stored */
-    actionCount,
+    actionCount: actions.length,
     /** Handle an incoming agent action message */
     handleAgentAction,
     /** Toggle the visibility of the actions panel */
