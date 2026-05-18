@@ -319,6 +319,16 @@ describe('deviceToken utilities', () => {
       expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
     });
 
+    it('clears legacy storage when JSON has wrong shape (missing required fields)', () => {
+      // Valid JSON but missing required fields (deviceId, deviceToken, workspaceId)
+      localStorage.setItem('voice_relay_device_token', '{}');
+
+      clearDeviceToken('workspace-456');
+      
+      // Invalid shape should be cleared as garbage data
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+    });
+
     it('handles clearing when nothing stored', () => {
       // Should not throw
       expect(() => clearDeviceToken('workspace-456')).not.toThrow();
