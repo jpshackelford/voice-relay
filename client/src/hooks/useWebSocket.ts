@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
@@ -21,9 +21,11 @@ interface UseWebSocketOptions {
   onAudioChunkMessage?: (message: ServerMessage & { type: 'audio-chunk' }) => void;
   onAudioEndMessage?: (message: ServerMessage & { type: 'audio-end' }) => void;
   onSessionTtsSettingsChanged?: (message: ServerMessage & { type: 'session-tts-settings-changed' }) => void;
+  onTranscriptionResultMessage?: (message: ServerMessage & { type: 'transcription-result' }) => void;
+  onTranscriptionErrorMessage?: (message: ServerMessage & { type: 'transcription-error' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -46,6 +48,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAudioChunkMessageRef = useRef(onAudioChunkMessage);
   const onAudioEndMessageRef = useRef(onAudioEndMessage);
   const onSessionTtsSettingsChangedRef = useRef(onSessionTtsSettingsChanged);
+  const onTranscriptionResultMessageRef = useRef(onTranscriptionResultMessage);
+  const onTranscriptionErrorMessageRef = useRef(onTranscriptionErrorMessage);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -65,6 +69,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onAudioChunkMessageRef.current = onAudioChunkMessage;
   onAudioEndMessageRef.current = onAudioEndMessage;
   onSessionTtsSettingsChangedRef.current = onSessionTtsSettingsChanged;
+  onTranscriptionResultMessageRef.current = onTranscriptionResultMessage;
+  onTranscriptionErrorMessageRef.current = onTranscriptionErrorMessage;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -189,6 +195,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             });
             onSessionTtsSettingsChangedRef.current?.(message);
             break;
+          case 'transcription-result':
+            onTranscriptionResultMessageRef.current?.(message);
+            break;
+          case 'transcription-error':
+            onTranscriptionErrorMessageRef.current?.(message);
+            break;
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err);
@@ -277,6 +289,30 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
+  // Send audio input chunk for server-side transcription
+  const sendAudioInputChunk = useCallback((chunkIndex: number, audioBase64: string, sampleRate: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const message: AudioInputChunkMessage = {
+        type: 'audio-input-chunk',
+        chunkIndex,
+        audio: audioBase64,
+        sampleRate,
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+
+  // Signal end of audio input stream
+  const sendAudioInputEnd = useCallback((totalChunks: number) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const message: AudioInputEndMessage = {
+        type: 'audio-input-end',
+        totalChunks,
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+
   return { 
     connected, 
     devices, 
@@ -288,5 +324,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     sendJoinResponse, 
     sendDisplayResult,
     updateSessionTtsSettings,
+    sendAudioInputChunk,
+    sendAudioInputEnd,
   };
 }
