@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 18:10 UTC - Review Worker
+
+✅ **PR #217 Review Feedback Addressed**
+
+- **PR:** [#217 - feat: add API permissions info and voice test button in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/pull/217)
+- **Issue:** [#188](https://github.com/jpshackelford/voice-relay/issues/188)
+- **Status:** CI passing ✅, Ready for review
+- **Commit:** `ca77663`
+
+**Review Feedback Addressed:**
+
+1. **Audio state transition bug** (Thread 1)
+   - Problem: `oncanplaythrough` may not fire for cached/fast-loading audio, leaving status stuck in 'loading'
+   - Fix: Removed `oncanplaythrough` event handler, now using the Promise returned by `audio.play()` to set status to 'playing'
+
+2. **Event listener cleanup** (Thread 2)
+   - Problem: Potential memory leaks from event listeners not being cleaned up on unmount
+   - Fix: Added cleanup of `onended` and `onerror` event listeners in the unmount useEffect
+
+**Changes:** `client/src/pages/WorkspaceHome.tsx`
+
+---
+
 ### 2026-05-18 17:50 UTC - Expansion Worker
 
 ✅ **Expanded Issue #218**
