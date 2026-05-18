@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 18:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #220**
+
+- **Issue:** [#220 - Bug: Agent Actions panel not functioning correctly in Kiosk mode](https://github.com/jpshackelford/voice-relay/issues/220)
+- **Type:** Bug
+- **Status:** Ready for implementation
+- **Labels:** `bug`, `client`, `ready`, `priority:high`
+
+**Root Cause:**
+The `formatEventSummary()` function in `server/src/openhands.ts` was designed for direct action events (V1 style like `CmdRunAction`) but OpenHands now sends V1 wrapped events where:
+- `kind: "ActionEvent"` contains nested `action` object with actual action data
+- `kind: "ObservationEvent"` contains nested `observation` object with actual observation data
+
+The function wasn't extracting data from these nested structures, causing generic summaries like "Observation" instead of descriptive ones like "Output: curl -X POST..."
+
+**Fix Required:**
+Update `formatEventSummary()` to handle V1 wrapped event format by detecting `ActionEvent`/`ObservationEvent` kinds and extracting data from nested `action`/`observation` objects.
+
+**Files to Modify:**
+- `server/src/openhands.ts` - Update `formatEventSummary()` function
+
+---
+
 ### 2026-05-18 18:10 UTC - Review Worker
 
 ✅ **PR #217 Review Feedback Addressed**
