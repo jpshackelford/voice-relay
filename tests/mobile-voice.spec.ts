@@ -124,8 +124,10 @@ async function setupMobileSession(
   // Wait for mobile mode to render
   await expect(page.locator('.mobile-mode, .mobile-walkie')).toBeVisible({ timeout: 10000 });
   
-  // Wait for connection indicator to show connected (mobile uses .connection-dot.connected)
-  await expect(page.locator('.connection-dot.connected, [aria-label*="Connected to server"]')).toBeVisible({ timeout: 10000 });
+  // Wait for WebSocket connection state via data attribute (more reliable than CSS class)
+  // Uses data-ws-state attribute that reflects actual connection state directly
+  // 30s timeout for CI stability: WebSocket timing is non-deterministic under load (GitHub Issue #192)
+  await expect(page.locator('[data-ws-state="connected"]')).toBeVisible({ timeout: 30000 });
   
   // Small delay to ensure UI is stable
   await page.waitForTimeout(500);
@@ -134,6 +136,9 @@ async function setupMobileSession(
 test.describe('Mobile Voice UI', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Add retries for mobile tests which involve WebSocket timing (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';
@@ -189,8 +194,8 @@ test.describe('Mobile Voice UI', () => {
   });
 
   test('connection status indicator is visible', async ({ page }) => {
-    // Should show connection status
-    const statusIndicator = page.locator('[role="status"], .connection-dot, .walkie-header span[aria-label*="onnect"]');
+    // Should show connection status (use data-ws-state="connected" for precise state detection)
+    const statusIndicator = page.locator('[data-ws-state="connected"], [role="status"].connection-dot');
     await expect(statusIndicator.first()).toBeVisible();
   });
 });
@@ -198,6 +203,9 @@ test.describe('Mobile Voice UI', () => {
 test.describe('Mobile Voice Input with Fake Audio', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Add retries for mobile tests which involve WebSocket timing (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';

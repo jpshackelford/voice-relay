@@ -87,6 +87,7 @@ jobs:
         id: e2e-mobile
         env:
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
+        # Retries configured at test suite level (GitHub Issue #192)
         run: npm run test:mobile
 
       - name: Cleanup test processes
