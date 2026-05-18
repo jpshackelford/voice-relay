@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:39 UTC - E2E Fix Worker
+
+✅ **Fixed PR #190 E2E Test Failure**
+
+- Issue: [#184 - fix: Add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/issues/184)
+- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+- Status: **Ready for review** ✅ CI GREEN
+
+**Problem Identified:**
+E2E test failing at line 128 in `mobile-voice.spec.ts` - the `setupMobileSession()` helper was timing out waiting for connection indicator.
+
+**Root Cause:**
+The `waitForWebSocketConnected()` and `waitForStableConnection()` functions in `tests/utils/auth-helper.ts` were missing a check for the mobile walkie UI's connection indicator class (`.connection-dot.connected`). They only checked for legacy classes (`.connection-status.connected`).
+
+**Fixes Applied:**
+1. **auth-helper.ts:** Added `.connection-dot.connected` check to both `waitForWebSocketConnected()` and `waitForStableConnection()` functions
+2. **deploy.yml:** Added `timeout-minutes: 15` to the operate job per review feedback - prevents stuck SSH operations from blocking the deployment queue indefinitely
+
+**CI Status:** ✅ All checks passing
+
+---
+
 ### 2026-05-18 00:24 UTC - Implementation Worker
 
 ✅ **Implemented Issue #189 - Devices not properly remembered**
