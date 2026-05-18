@@ -670,3 +670,50 @@ During the incident tracked in #197, the automatic rollback failed because it in
 **PR is ready for merge.**
 
 ---
+
+---
+
+### 2026-05-18 17:21 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6a581a1` | merge | PR #214 - trust proxy fix | **NEW** |
+| `3b5e6cf` | merge | PR #212 - npm cache cleanup | **NEW** |
+| `16fc53a` | implementation | Issue #211 - oscilloscope bug | **NEW** |
+
+**Previous Workers Completed:**
+| Conv ID | Type | Result |
+|---------|------|--------|
+| `b418d04` | expansion | ✅ Issue #211 ready |
+| `682605d` | expansion | ✅ Issue #213 ready |
+| `df5f559` | implementation | ✅ Created PR #214 for Issue #209 |
+| `cb261fd` | review | ✅ PR #212 resolved |
+| `300f205` | review | ✅ PR #206 resolved |
+
+**Current State:**
+- 3 PRs ready for merge (CI green, no unresolved threads):
+  - [PR #214](https://github.com/jpshackelford/voice-relay/pull/214) - Fixes #209 (trust proxy) ← spawning merge
+  - [PR #212](https://github.com/jpshackelford/voice-relay/pull/212) - Fixes #207 (npm cache) ← spawning merge
+  - [PR #206](https://github.com/jpshackelford/voice-relay/pull/206) - Fixes #167 (agent actions toggle) - will merge next round
+- Ready issues (highest priority first):
+  - #211 (priority:high) - oscilloscope bug ← spawning implementation
+  - #209 (priority:high) - covered by PR #214
+  - #207 (no priority) - covered by PR #212
+- Issues on-hold (skipped): #208, #210
+
+**Action Taken:**
+🚀 **Spawned 3 workers (parallel)**
+
+1. **Merge Worker** for [PR #214](https://github.com/jpshackelford/voice-relay/pull/214)
+   - Fixes Issue #209 - Express trust proxy configuration
+   - Conversation: [`6a581a1`](https://app.all-hands.dev/conversations/6a581a1970e0401a907bce5c449c7a3d)
+
+2. **Merge Worker** for [PR #212](https://github.com/jpshackelford/voice-relay/pull/212)
+   - Fixes Issue #207 - npm cache cleanup in rollback
+   - Conversation: [`3b5e6cf`](https://app.all-hands.dev/conversations/3b5e6cfe8ea947d492d85ecba10322f7)
+
+3. **Implementation Worker** for [Issue #211](https://github.com/jpshackelford/voice-relay/issues/211)
+   - Bug: Combined view oscilloscope shows flat line
+   - Priority: high
+   - Conversation: [`16fc53a`](https://app.all-hands.dev/conversations/16fc53adb9a64b67b8d1afe3bc457c10)
