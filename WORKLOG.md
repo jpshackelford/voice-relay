@@ -2540,3 +2540,25 @@ Unified 3 separate unsynced TTS settings into single session-level control with 
 - Review: 1/2
 
 **Note:** Issue #197 (smoke test failure) has `needs-human` label - requires manual SSH to clear npm cache on production server.
+
+---
+
+### 2026-05-18 13:55 UTC - Review Worker (`ee2137c`)
+
+✅ **PR #202 Review Feedback Addressed**
+
+- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
+- **Issue:** Critical TTS default behavior inconsistency
+- **Status:** Ready for review ✅
+
+**Problem:**
+Server proceeded with TTS when `sessionTtsSettings` was undefined, but client defaults to disabled (`sessionTtsSettings?.enabled ?? false`). This caused unexpected audio playback on new sessions where UI showed TTS OFF.
+
+**Fix Applied (commits 297c5df, 74b6094):**
+- Changed `server/src/tts/index.ts` check from `if (sessionTtsSettings && !sessionTtsSettings.enabled)` to `if (!sessionTtsSettings?.enabled)` - now defaults to disabled when undefined
+- Updated tests to properly exercise both session-level and workspace-level TTS checks
+- Added explicit tests for new default-disabled behavior
+
+**CI Status:** All checks passing ✅
+**Review Thread:** Resolved ✅
+
