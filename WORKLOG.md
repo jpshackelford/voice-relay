@@ -25,6 +25,23 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:28 UTC - Implementation Worker
+
+**PR Created:** [#215 - fix(client): fix oscilloscope timing issue in unified mode](https://github.com/jpshackelford/voice-relay/pull/215)
+
+- **Issue:** [#211 - Combined view oscilloscope shows flat line while standalone scope view works](https://github.com/jpshackelford/voice-relay/issues/211)
+- **Priority:** HIGH (bug)
+- **Status:** CI passing ✅, Ready for review
+
+**Summary:**
+Fixed oscilloscope displaying flat line in unified mode due to timing issue with useMemo and React refs. The `setIsActive(true)` was being called before `analyserRef` and `dataArrayRef` were populated, causing useMemo to capture null values.
+
+**Changes:**
+- `client/src/hooks/useAudioAnalyser.ts`: Move `setIsActive(true)` to after refs are populated
+- `client/src/hooks/useAudioAnalyser.test.ts`: Add tests for the timing fix
+
+---
+
 ### 2026-05-18 17:15 UTC - Implementation Worker
 
 **PR Created:** [#214 - fix(server): add trust proxy configuration for Express behind Apache](https://github.com/jpshackelford/voice-relay/pull/214)
