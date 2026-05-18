@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:20 UTC - Review Feedback Worker
+
+✅ **Addressed All Review Feedback on PR #194**
+
+- Issue: [#185 - Release Notes in Mobile](https://github.com/jpshackelford/voice-relay/issues/185)
+- PR: [#194 - feat(client): add in-app release notes viewer](https://github.com/jpshackelford/voice-relay/pull/194)
+- Status: **Ready for review** ✅ CI GREEN, 3/3 review threads resolved
+
+**Security Fix (c99b837):**
+- Added `isValidRefName()` validation to prevent command injection via malicious git tag names
+- Both `getTagDate()` and `getCommitsBetween()` now validate refs before use
+- Added `--` separator in `for-each-ref` command as additional defense-in-depth
+
+**Type Safety Improvement (de807a9):**
+- Added explicit `Changelog` and `ChangelogEntry` interfaces in server/src/index.ts
+- Cache now properly typed as `Changelog | null`
+
+**Evidence Note:**
+Screenshot requires GitHub OAuth authentication. Feature verified through:
+- All 374 tests pass (18 ReleaseNotes + 19 relativeTime tests)
+- `/api/changelog` endpoint returns valid changelog data
+
+---
+
 ### 2026-05-18 01:15 UTC - Implementation Worker
 
 ✅ **Fixed Flaky E2E Test Timing (Issue #192)**
