@@ -1566,3 +1566,107 @@ describe('Workspace Router - DELETE /:id (enhanced)', () => {
     expect(workspaceRepository.findById(testWorkspaceId)).toBeNull();
   });
 });
+
+// Tests for POST /:id/settings/voice-preview endpoint
+describe('Workspace Router - POST /:id/settings/voice-preview', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let userRepository: UserRepository;
+  let jwtService: JWTService;
+  let testWorkspaceId: string;
+  let ownerId: string;
+  let ownerToken: string;
+  let nonOwnerId: string;
+  let nonOwnerToken: string;
+
+  beforeEach(() => {
+    const env = setupDeletionTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+    userRepository = env.userRepository;
+    jwtService = env.jwtService;
+
+    // Create workspace owner
+    ownerId = 'owner-123';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(ownerId, 12345, 'owner');
+
+    // Create non-owner user
+    nonOwnerId = 'nonowner-456';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(nonOwnerId, 67890, 'nonowner');
+
+    // Create workspace
+    testWorkspaceId = 'workspace-123';
+    db.prepare(`
+      INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `).run(testWorkspaceId, ownerId, 'Test Workspace', 'test-workspace', 'ABCD-1234');
+
+    // Generate tokens using user objects
+    const owner = userRepository.findById(ownerId)!;
+    ownerToken = jwtService.sign(owner);
+    const nonOwner = userRepository.findById(nonOwnerId)!;
+    nonOwnerToken = jwtService.sign(nonOwner);
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('requires authentication', async () => {
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/settings/voice-preview`)
+      .send({ voiceId: 'test-voice' })
+      .expect(401);
+
+    expect(response.body.error).toBe('Authentication required');
+  });
+
+  it('requires owner permission', async () => {
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/settings/voice-preview`)
+      .set('Authorization', `Bearer ${nonOwnerToken}`)
+      .send({ voiceId: 'test-voice' })
+      .expect(403);
+
+    expect(response.body.error).toBe('Only owner can generate voice previews');
+  });
+
+  it('returns 404 for non-existent workspace', async () => {
+    const response = await request(app)
+      .post('/api/workspaces/nonexistent/settings/voice-preview')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ voiceId: 'test-voice' })
+      .expect(404);
+
+    expect(response.body.error).toBe('Workspace not found');
+  });
+
+  it('requires voiceId in request body', async () => {
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/settings/voice-preview`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({})
+      .expect(400);
+
+    expect(response.body.error).toBe('voiceId is required');
+  });
+
+  it('requires ElevenLabs API key to be configured', async () => {
+    // Workspace has no ElevenLabs API key configured
+    const response = await request(app)
+      .post(`/api/workspaces/${testWorkspaceId}/settings/voice-preview`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ voiceId: 'test-voice' })
+      .expect(400);
+
+    expect(response.body.error).toBe('ElevenLabs API key not configured');
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { testApiKey, DEFAULT_VOICE_ID, synthesize } from './elevenlabs.js';
+import { testApiKey, DEFAULT_VOICE_ID, synthesize, synthesizeToBuffer } from './elevenlabs.js';
 
 // Mock WebSocket for synthesize tests
 class MockWebSocket extends EventEmitter {
@@ -503,6 +503,133 @@ describe('ElevenLabs TTS', () => {
       await expect(promise).rejects.toThrow('ElevenLabs error: Some error');
       // Audio should NOT be processed when there's an error
       expect(onAudioChunk).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('synthesizeToBuffer', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      mockWsInstance = null;
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects all chunks into a single buffer', async () => {
+      const promise = synthesizeToBuffer('Test text', 'test-api-key', 'test-voice');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Send multiple chunks (base64 encoded "chunk1", "chunk2", "chunk3")
+      const chunk1 = Buffer.from('chunk1').toString('base64');
+      const chunk2 = Buffer.from('chunk2').toString('base64');
+      const chunk3 = Buffer.from('chunk3').toString('base64');
+
+      mockWsInstance!.simulateMessage({ audio: chunk1 });
+      mockWsInstance!.simulateMessage({ audio: chunk2 });
+      mockWsInstance!.simulateMessage({ audio: chunk3 });
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      const result = await promise;
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.toString()).toBe('chunk1chunk2chunk3');
+    });
+
+    it('uses default voice ID when not specified', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      const chunk = Buffer.from('audio').toString('base64');
+      mockWsInstance!.simulateMessage({ audio: chunk });
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      const result = await promise;
+      expect(result.toString()).toBe('audio');
+    });
+
+    it('rejects on synthesis error', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      mockWsInstance!.simulateMessage({ error: 'Voice not found' });
+
+      await expect(promise).rejects.toThrow('ElevenLabs error: Voice not found');
+    });
+
+    it('rejects if no audio received', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Complete without any audio
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      await expect(promise).rejects.toThrow('No audio data received');
+    });
+
+    it('rejects on connection timeout', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice');
+
+      // Attach rejection handler immediately
+      let rejectionError: Error | null = null;
+      const handledPromise = promise.catch((e) => {
+        rejectionError = e as Error;
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      
+      // Don't open connection - let timeout occur
+      await vi.advanceTimersByTimeAsync(10001);
+
+      await handledPromise;
+
+      expect(rejectionError).not.toBeNull();
+      expect(rejectionError!.message).toBe('ElevenLabs connection timeout');
+    });
+
+    it('rejects on synthesis timeout (15 seconds)', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice');
+
+      let rejectionError: Error | null = null;
+      const handledPromise = promise.catch((e) => {
+        rejectionError = e as Error;
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Send one chunk but never complete
+      const chunk = Buffer.from('partial').toString('base64');
+      mockWsInstance!.simulateMessage({ audio: chunk });
+
+      // Advance past the 15s synthesis timeout
+      await vi.advanceTimersByTimeAsync(15001);
+
+      await handledPromise;
+
+      expect(rejectionError).not.toBeNull();
+      expect(rejectionError!.message).toBe('Synthesis timeout exceeded');
+    });
+
+    it('handles audio in same message as isFinal', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      const chunk = Buffer.from('final-chunk').toString('base64');
+      mockWsInstance!.simulateMessage({ audio: chunk, isFinal: true });
+
+      const result = await promise;
+      expect(result.toString()).toBe('final-chunk');
     });
   });
 });

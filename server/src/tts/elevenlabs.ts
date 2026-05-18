@@ -23,6 +23,9 @@ const OUTPUT_FORMAT = 'mp3_44100_128';
 /** Connection timeout in milliseconds */
 const CONNECTION_TIMEOUT_MS = 10000;
 
+/** Synthesis timeout for buffer mode (15 seconds) */
+const SYNTHESIS_TIMEOUT_MS = 15000;
+
 /** Interface for audio chunk callbacks */
 export interface AudioChunkCallback {
   (audioBase64: string): void;
@@ -232,4 +235,70 @@ export async function fetchVoices(apiKey: string): Promise<Array<{ voice_id: str
 
   const data = await response.json();
   return data.voices || [];
+}
+
+/**
+ * Synthesize text to speech and return complete audio as a Buffer.
+ * 
+ * Collects all chunks from the WebSocket stream and returns a complete MP3 buffer.
+ * Suitable for one-off synthesis operations like voice previews.
+ * 
+ * @param text - Text to synthesize
+ * @param apiKey - ElevenLabs API key
+ * @param voiceId - Voice ID to use (defaults to DEFAULT_VOICE_ID)
+ * @returns Promise that resolves with complete MP3 audio as Buffer
+ */
+export function synthesizeToBuffer(
+  text: string,
+  apiKey: string,
+  voiceId: string = DEFAULT_VOICE_ID
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let timeoutId: NodeJS.Timeout | null = null;
+    let isComplete = false;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+
+    // Set synthesis timeout
+    timeoutId = setTimeout(() => {
+      if (!isComplete) {
+        isComplete = true;
+        reject(new Error('Synthesis timeout exceeded'));
+      }
+    }, SYNTHESIS_TIMEOUT_MS);
+
+    synthesize(text, {
+      apiKey,
+      voiceId,
+      onAudioChunk: (audioBase64: string) => {
+        const chunk = Buffer.from(audioBase64, 'base64');
+        chunks.push(chunk);
+      },
+      onComplete: (error?: Error) => {
+        if (isComplete) return;
+        isComplete = true;
+        cleanup();
+
+        if (error) {
+          reject(error);
+        } else if (chunks.length === 0) {
+          reject(new Error('No audio data received'));
+        } else {
+          resolve(Buffer.concat(chunks));
+        }
+      },
+    }).catch((err) => {
+      if (!isComplete) {
+        isComplete = true;
+        cleanup();
+        reject(err);
+      }
+    });
+  });
 }

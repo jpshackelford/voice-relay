@@ -1277,4 +1277,146 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
     });
     expect(result.current.settings?.elevenlabsVoiceId).toBe('voice-1');
   });
+
+  it('generateVoicePreview returns audio base64 on success', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: 'voice-id',
+      elevenlabsTtsEnabled: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockAudio = 'SGVsbG8gV29ybGQ='; // base64 "Hello World"
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ audio: mockAudio }),
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let previewResult: { audio: string } | undefined;
+    await act(async () => {
+      previewResult = await result.current.generateVoicePreview('test-voice-id');
+    });
+
+    expect(previewResult).toBeDefined();
+    expect(previewResult!.audio).toBe(mockAudio);
+    
+    // Verify the API was called correctly
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/workspaces/ws1/settings/voice-preview',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ voiceId: 'test-voice-id' }),
+      })
+    );
+  });
+
+  it('generateVoicePreview throws on API error', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: 'voice-id',
+      elevenlabsTtsEnabled: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Failed to generate voice preview' }),
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    await expect(
+      result.current.generateVoicePreview('test-voice-id')
+    ).rejects.toThrow('Failed to generate voice preview');
+  });
+
+  it('generateVoicePreview throws when workspaceId is undefined', async () => {
+    const { result } = renderHook(() => 
+      useWorkspaceSettings(undefined, true)
+    );
+
+    await expect(
+      result.current.generateVoicePreview('test-voice-id')
+    ).rejects.toThrow('No workspace selected');
+  });
+
+  it('generateVoicePreview handles timeout error', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: 'voice-id',
+      elevenlabsTtsEnabled: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 504,
+        json: async () => ({ error: 'Voice synthesis timed out' }),
+      });
+
+    const { result } = renderHook(() => 
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    await expect(
+      result.current.generateVoicePreview('test-voice-id')
+    ).rejects.toThrow('Voice synthesis timed out');
+  });
 });

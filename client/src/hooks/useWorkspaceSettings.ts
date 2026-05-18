@@ -26,6 +26,10 @@ export interface ElevenlabsVoice {
   preview_url?: string;
 }
 
+export interface VoicePreviewResult {
+  audio: string; // base64 MP3
+}
+
 interface UseWorkspaceSettingsReturn {
   settings: WorkspaceSettings | null;
   loading: boolean;
@@ -39,6 +43,7 @@ interface UseWorkspaceSettingsReturn {
   testElevenlabsApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
   removeElevenlabsApiKey: () => Promise<void>;
   fetchElevenlabsVoices: () => Promise<ElevenlabsVoice[]>;
+  generateVoicePreview: (voiceId: string) => Promise<VoicePreviewResult>;
 }
 
 /**
@@ -275,6 +280,28 @@ export function useWorkspaceSettings(
     return data.voices as ElevenlabsVoice[];
   }, [workspaceId, ensureValidToken]);
 
+  const generateVoicePreview = useCallback(async (voiceId: string): Promise<VoicePreviewResult> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/voice-preview`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voiceId }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to generate voice preview');
+    }
+
+    return await res.json() as VoicePreviewResult;
+  }, [workspaceId, ensureValidToken]);
+
   return {
     settings,
     loading,
@@ -288,5 +315,6 @@ export function useWorkspaceSettings(
     testElevenlabsApiKey,
     removeElevenlabsApiKey,
     fetchElevenlabsVoices,
+    generateVoicePreview,
   };
 }
