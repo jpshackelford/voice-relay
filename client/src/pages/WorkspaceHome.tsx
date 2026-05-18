@@ -710,10 +710,6 @@ export function WorkspaceHome() {
     const audio = new Audio(selectedVoice.preview_url);
     voicePreviewAudioRef.current = audio;
     
-    audio.oncanplaythrough = () => {
-      setVoicePreviewStatus('playing');
-    };
-    
     audio.onended = () => {
       setVoicePreviewStatus('idle');
       voicePreviewAudioRef.current = null;
@@ -725,11 +721,13 @@ export function WorkspaceHome() {
       setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
     };
     
-    audio.play().catch(() => {
-      setVoicePreviewStatus('idle');
-      voicePreviewAudioRef.current = null;
-      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
-    });
+    audio.play()
+      .then(() => setVoicePreviewStatus('playing'))
+      .catch(() => {
+        setVoicePreviewStatus('idle');
+        voicePreviewAudioRef.current = null;
+        setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
+      });
   }, [voices, settings?.elevenlabsVoiceId, voicePreviewStatus, stopVoicePreview]);
 
   // Stop preview when voice changes
@@ -741,7 +739,10 @@ export function WorkspaceHome() {
   useEffect(() => {
     return () => {
       if (voicePreviewAudioRef.current) {
-        voicePreviewAudioRef.current.pause();
+        const audio = voicePreviewAudioRef.current;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.pause();
         voicePreviewAudioRef.current = null;
       }
     };
