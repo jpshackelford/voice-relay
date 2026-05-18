@@ -2225,3 +2225,28 @@ Fixed three bugs in the changelog generator that were causing incomplete/incorre
 
 Note: PR #221 skipped - has `needs-human` label, waiting for human intervention.
 
+
+---
+
+### 2026-05-18 22:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `04175fe` | merge | PR #235 - feat: add PR links to in-product release notes | **NEW** |
+
+**Worker Completed:** `36b08fc` (implementation)
+- Created PR #235 for Issue #229 - In-Product Release Notes hyperlinks
+
+**Current State:**
+- [PR #235](https://github.com/jpshackelford/voice-relay/pull/235): CI ✅ GREEN, Review ✅ Positive ("Worth merging"), Ready to merge
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): DRAFT with `needs-human` label - skipped
+- Ready issues: #229 (has PR #235 implementing it)
+- Issues needing expansion: #208, #210 both `on-hold` - skipped
+
+**Action Taken:**
+🚀 **Spawned merge worker** for PR #235
+- PR is ready: CI green, positive review, no unresolved threads
+- Conversation: [`04175fe`](https://app.all-hands.dev/conversations/04175fe1426b40e780819475324d1207)
+
+---
