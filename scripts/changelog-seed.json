@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "commit": "00b5181",
+      "deployedAt": "2026-05-06T21:35:50Z",
+      "isLegacy": true,
+      "changes": [
+        { "type": "feat", "description": "Initial release with core voice relay functionality" },
+        { "type": "feat", "description": "Add chat mode for bidirectional messaging" },
+        { "type": "feat", "description": "Use WebSocket for AI session communication" },
+        { "type": "feat", "description": "Dynamic display lines based on kiosk screen size" },
+        { "type": "feat", "description": "Collapsible sidebar drawer, QR modal, and mobile-optimized kiosk" },
+        { "type": "feat", "description": "Forward messages from all devices to AI" },
+        { "type": "feat", "description": "Add database migration system for SQLite storage" },
+        { "type": "feat", "scope": "auth", "description": "Add GitHub OAuth authentication" },
+        { "type": "feat", "description": "Phase 3 - Workspaces Implementation" },
+        { "type": "feat", "scope": "server", "description": "Scope device registry and WebSocket per workspace" },
+        { "type": "feat", "scope": "client", "description": "Add auth UI and dashboard for workspace management" },
+        { "type": "feat", "description": "Add device token persistence, session tracking & UX polish" },
+        { "type": "feat", "description": "Scope messages to sessions" },
+        { "type": "feat", "description": "Replace Dashboard with Workspace Home" },
+        { "type": "feat", "scope": "client", "description": "Session view with auto-detect mode, QR idle state" },
+        { "type": "feat", "description": "Add QR code session join with auto-join workspace" },
+        { "type": "feat", "scope": "security", "description": "Add signed, time-limited QR tokens for session access control" },
+        { "type": "feat", "description": "Exit kiosk mode navigates to workspace home" },
+        { "type": "feat", "description": "Auto-register first device when creating default workspace" },
+        { "type": "feat", "description": "Add workspace settings for OpenHands API key" },
+        { "type": "feat", "scope": "ci", "description": "Add automatic rollback and issue filing on smoke test failure" },
+        { "type": "fix", "description": "Fixed height kiosk layout with scrollable sidebar" },
+        { "type": "fix", "description": "Position QR button and AI status inside kiosk display area" },
+        { "type": "fix", "scope": "client", "description": "Simplify device modes to mobile and kiosk" },
+        { "type": "fix", "scope": "sessions", "description": "Register device before adding to session" }
+      ]
+    }
+  ]
+}

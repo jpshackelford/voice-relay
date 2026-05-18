@@ -11,7 +11,7 @@
  */
 
 import { execSync } from 'child_process';
-import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,10 +28,15 @@ interface ChangelogEntry {
   commit: string; // Short SHA
   deployedAt: string; // ISO timestamp
   changes: Change[];
+  isLegacy?: boolean; // True for pre-tag entries from seed file
 }
 
 interface Changelog {
   generatedAt: string;
+  entries: ChangelogEntry[];
+}
+
+interface SeedFile {
   entries: ChangelogEntry[];
 }
 
@@ -150,6 +155,25 @@ function getCommitsBetween(newerTag: string, olderTag: string | null): string[] 
 }
 
 /**
+ * Load seed entries from changelog-seed.json for pre-tag history.
+ */
+function loadSeedEntries(): ChangelogEntry[] {
+  const seedPath = join(__dirname, 'changelog-seed.json');
+  if (!existsSync(seedPath)) {
+    return [];
+  }
+
+  try {
+    const seedData = JSON.parse(readFileSync(seedPath, 'utf-8')) as SeedFile;
+    console.log(`Loaded ${seedData.entries.length} seed entries from changelog-seed.json`);
+    return seedData.entries;
+  } catch (error) {
+    console.warn('Failed to load changelog-seed.json:', error);
+    return [];
+  }
+}
+
+/**
  * Generate changelog from git history.
  */
 function generateChangelog(): Changelog {
@@ -157,21 +181,23 @@ function generateChangelog(): Changelog {
 
   if (tags.length === 0) {
     console.log('No deploy-success-* tags found');
+    // Still load seed entries even without tags
+    const seedEntries = loadSeedEntries();
     return {
       generatedAt: new Date().toISOString(),
-      entries: [],
+      entries: seedEntries,
     };
   }
 
   console.log(`Found ${tags.length} deploy tags`);
 
-  // Limit to 20 most recent releases
-  const recentTags = tags.slice(0, 20);
+  // Process ALL tags (no arbitrary limit)
+  // Stop before the last tag to ensure we always have a boundary
   const entries: ChangelogEntry[] = [];
 
-  for (let i = 0; i < recentTags.length; i++) {
-    const currentTag = recentTags[i];
-    const previousTag = recentTags[i + 1] || null;
+  for (let i = 0; i < tags.length - 1; i++) {
+    const currentTag = tags[i];
+    const previousTag = tags[i + 1]; // Always defined since we stop before last
 
     const commits = getCommitsBetween(currentTag, previousTag);
     const changes: Change[] = [];
@@ -193,7 +219,22 @@ function generateChangelog(): Changelog {
     }
   }
 
-  console.log(`Generated ${entries.length} changelog entries with user-facing changes`);
+  console.log(`Generated ${entries.length} changelog entries with user-facing changes from tags`);
+
+  // Merge with seed entries for pre-tag history
+  const seedEntries = loadSeedEntries();
+  if (seedEntries.length > 0) {
+    // Deduplicate by commit SHA
+    const existingCommits = new Set(entries.map((e) => e.commit));
+    const uniqueSeedEntries = seedEntries.filter((e) => !existingCommits.has(e.commit));
+    console.log(`Adding ${uniqueSeedEntries.length} unique seed entries`);
+    entries.push(...uniqueSeedEntries);
+  }
+
+  // Sort entries by deployedAt (newest first)
+  entries.sort((a, b) => new Date(b.deployedAt).getTime() - new Date(a.deployedAt).getTime());
+
+  console.log(`Total changelog entries: ${entries.length}`);
 
   return {
     generatedAt: new Date().toISOString(),
