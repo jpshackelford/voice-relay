@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:20 UTC - Review Feedback Worker (Final)
+
+✅ **Completed Final Review Feedback on PR #193**
+
+- Issue: [#189 - Device persistence bug](https://github.com/jpshackelford/voice-relay/issues/189)
+- PR: [#193 - fix(client): use workspace-scoped device storage and SQLite default](https://github.com/jpshackelford/voice-relay/pull/193)
+- Status: **Ready for review** ✅ CI GREEN, **12/12 review threads resolved**
+
+**Changes Made (7d22a67):**
+
+1. **Eliminated code duplication** - Refactored to use `parseDeviceJson()` across all storage access
+   - Renamed `parseDeviceCookieJson` to `parseDeviceJson` for generic reuse
+   - Updated `getStoredDeviceToken()`, `clearDeviceToken()`, `migrateLegacyDeviceToken()` to use it
+
+2. **Consistent error handling** - Invalid data now treated consistently
+   - Both invalid JSON AND malformed objects (missing required fields) are detected
+   - Garbage data is cleaned up during `clearDeviceToken()` and `migrateLegacyDeviceToken()`
+   - Valid data for other workspaces is preserved (maintains isolation)
+
+**Tests:** All 349 client tests pass ✅
+
+---
+
 ### 2026-05-18 01:20 UTC - PR #194 Merged
 
 ✅ **MERGED: In-App Release Notes Viewer**
