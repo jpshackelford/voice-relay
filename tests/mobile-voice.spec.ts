@@ -194,8 +194,8 @@ test.describe('Mobile Voice UI', () => {
   });
 
   test('connection status indicator is visible', async ({ page }) => {
-    // Should show connection status (use data-ws-state for reliable state detection)
-    const statusIndicator = page.locator('[data-ws-state], [role="status"].connection-dot');
+    // Should show connection status (use data-ws-state="connected" for precise state detection)
+    const statusIndicator = page.locator('[data-ws-state="connected"], [role="status"].connection-dot');
     await expect(statusIndicator.first()).toBeVisible();
   });
 });
