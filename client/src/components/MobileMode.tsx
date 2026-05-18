@@ -253,6 +253,7 @@ export function MobileMode({
           title={connected ? 'Connected' : 'Disconnected'}
           role="status"
           aria-label={connected ? 'Connected to server' : 'Disconnected from server'}
+          data-ws-state={connectionStatus}
         />
         <div className="walkie-header-spacer" />
         <button
