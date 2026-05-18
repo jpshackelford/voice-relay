@@ -6,6 +6,8 @@ import { WorkspaceHome } from './pages/WorkspaceHome';
 import { Workspace } from './pages/Workspace';
 import { SessionView } from './pages/SessionView';
 import { JoinPage } from './pages/JoinPage';
+import { TermsOfService } from './pages/TermsOfService';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { useWorkspaces } from './hooks/useWorkspaces';
 import './App.css';
 
@@ -56,6 +58,9 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Legal pages - public, no auth required */}
+      <Route path="/tos" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       {/* Join workspace via invite link - handles auth redirect internally */}
       <Route path="/join/:code" element={<JoinPage />} />
       <Route

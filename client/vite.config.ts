@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 const wsPort = process.env.VITE_WS_PORT || '3001';
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@docs': path.resolve(__dirname, '../docs'),
+    },
+  },
   server: {
     port: 5173,
     host: true, // Listen on all interfaces
