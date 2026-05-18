@@ -400,7 +400,23 @@ jobs:
               issue_number: parseInt(issueNumber),
               labels: ['critical']
             });
-      
+
+      - name: Notify on rollback success
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        if: steps.verify-rollback.outputs.rollback_success == 'true' && env.NTFY_TOPIC != ''
+        run: |
+          curl -s \
+            -H "Priority: default" \
+            -H "Tags: white_check_mark,arrows_counterclockwise" \
+            -H "Title: voice-relay rollback succeeded" \
+            -H "Actions: view, View Logs, ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -d "Rollback to ${{ steps.find-good.outputs.commit }} completed successfully.
+
+          System recovered automatically.
+          Original failure: ${{ github.sha }}" \
+            ntfy.sh/${{ secrets.NTFY_TOPIC }} || true
+
       - name: Notify on rollback failure
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}

@@ -193,6 +193,7 @@ Deployment failures trigger push notifications via [ntfy.sh](https://ntfy.sh). T
 | Event | Priority | Tags | Action Needed |
 |-------|----------|------|---------------|
 | Deployment failure | High | ⚠️🚨 | Review logs, automatic rollback may be in progress |
+| Rollback success | Default | ✅🔄 | No action needed - system recovered automatically |
 | Rollback failure | Urgent (max) | 💀🆘 | **Manual intervention required immediately** |
 
 #### Setup for Repository Admins
