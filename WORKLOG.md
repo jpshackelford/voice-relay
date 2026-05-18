@@ -26,6 +26,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 19:03 UTC - Implementation Worker
+
+✅ **Implemented Issue #218 - Add What's New release notes to desktop workspace settings**
+
+- **Issue:** [#218 - Add "What's New" release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/issues/218)
+- **PR:** [#223 - feat(client): add What's New release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/pull/223)
+- **Status:** CI passing ✅, Ready for review
+
+**Changes:**
+- Added `ReleaseNotes` import and `whatsNewOpen` state to WorkspaceHome.tsx
+- Added new "What's New" section between Settings and Danger Zone (visible to all users)
+- Added CSS styles for `.whats-new-section` and `.whats-new-btn`
+- Changed button text from "View" to "See" to avoid E2E test selector conflicts
+
+**Files Modified:**
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/App.css`
+
+---
+
 ### 2026-05-18 18:36 UTC - Review Worker
 
 ✅ **PR #222 Review Feedback Addressed**
