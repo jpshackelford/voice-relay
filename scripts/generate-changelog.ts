@@ -59,6 +59,15 @@ function parseCommitMessage(message: string): Change | null {
 }
 
 /**
+ * Validate that a git ref name contains only safe characters.
+ * Defense-in-depth against command injection even though tags come from git.
+ */
+function isValidRefName(ref: string): boolean {
+  // Only allow alphanumeric, hyphens, underscores, dots, and forward slashes
+  return /^[a-zA-Z0-9._/-]+$/.test(ref);
+}
+
+/**
  * Execute a git command and return trimmed stdout.
  */
 function git(args: string): string {
@@ -91,9 +100,14 @@ function getDeployTags(): string[] {
  * Get the date of a tag in ISO format.
  */
 function getTagDate(tag: string): string {
+  // Validate tag name to prevent command injection
+  if (!isValidRefName(tag)) {
+    console.warn(`Skipping invalid tag name: ${tag}`);
+    return new Date().toISOString();
+  }
   try {
     // Get tag's commit date in ISO format
-    const date = git(`for-each-ref --format='%(creatordate:iso-strict)' refs/tags/${tag}`);
+    const date = git(`for-each-ref --format='%(creatordate:iso-strict)' -- refs/tags/${tag}`);
     // Remove any timezone suffix and ensure UTC format
     const parsed = new Date(date);
     return parsed.toISOString();
@@ -115,9 +129,18 @@ function getShortSha(tag: string): string {
  * Get commits between two tags (exclusive of the older tag).
  */
 function getCommitsBetween(newerTag: string, olderTag: string | null): string[] {
+  // Validate tag names to prevent command injection
+  if (!isValidRefName(newerTag)) {
+    console.warn(`Skipping invalid tag name: ${newerTag}`);
+    return [];
+  }
+  if (olderTag && !isValidRefName(olderTag)) {
+    console.warn(`Skipping invalid tag name: ${olderTag}`);
+    return [];
+  }
   try {
     const range = olderTag ? `${olderTag}..${newerTag}` : newerTag;
-    // Get commit messages with short hash
+    // Get commit messages (validation above ensures safe ref names)
     const output = git(`log --pretty=format:"%s" ${range}`);
     if (!output) return [];
     return output.split('\n').filter(Boolean);
