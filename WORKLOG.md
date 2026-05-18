@@ -25,19 +25,20 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 22:25 UTC - Implementation
+### 2026-05-18 22:34 UTC - Merge
 
-🔄 **PR #235 - PR Links in Release Notes (Ready for Review)**
+✅ **Merged PR #235 - PR Links in Release Notes**
 
 - **PR:** [#235 - feat: add PR links to in-product release notes](https://github.com/jpshackelford/voice-relay/pull/235)
-- **Issue:** [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+- **Issue:** [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229) (auto-closed)
 - **Type:** Feature (UI Enhancement)
-- **Status:** ⏳ Ready for review
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
 
 **Summary:**
 Added clickable PR links to the in-product release notes ("What's New") modal. Users can now click through to see the associated Pull Request for more details, discussions, and code changes.
 
 **Technical Details:**
+- Frontend-only change - **no database migrations**
 - Modified `scripts/generate-changelog.ts` to extract PR number from commit messages (format: `(#123)`)
 - Updated `ReleaseNotes.tsx` to render PR numbers as clickable links to GitHub
 - Links open in new tab with `target="_blank"` and `rel="noopener noreferrer"`
@@ -50,6 +51,8 @@ Added clickable PR links to the in-product release notes ("What's New") modal. U
 - `client/src/components/ReleaseNotes.tsx` - Render PR links
 - `client/src/components/ReleaseNotes.test.tsx` - Add test cases
 - `client/src/App.css` - Add PR link styles
+
+**Review:** 🟢 LOW risk - Code review approved, all CI checks passed
 
 ---
 
