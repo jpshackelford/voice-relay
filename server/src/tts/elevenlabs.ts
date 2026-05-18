@@ -233,3 +233,65 @@ export async function fetchVoices(apiKey: string): Promise<Array<{ voice_id: str
   const data = await response.json();
   return data.voices || [];
 }
+
+/** Timeout for synthesize-to-buffer operations (15 seconds) */
+const SYNTHESIS_TIMEOUT_MS = 15000;
+
+/**
+ * Synthesize text to speech and return complete audio as a Buffer.
+ * 
+ * Collects all audio chunks from the WebSocket stream and returns
+ * a complete MP3 buffer. Useful for single-shot synthesis operations
+ * like voice previews.
+ * 
+ * @param text - Text to synthesize
+ * @param apiKey - ElevenLabs API key
+ * @param voiceId - Voice ID to use (defaults to DEFAULT_VOICE_ID)
+ * @returns Promise that resolves with complete MP3 audio as Buffer
+ * @throws Error if synthesis fails or times out
+ */
+export async function synthesizeToBuffer(
+  text: string,
+  apiKey: string,
+  voiceId?: string
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let completed = false;
+    
+    // Overall timeout for the synthesis operation
+    const timeoutId = setTimeout(() => {
+      if (!completed) {
+        completed = true;
+        reject(new Error('Synthesis timeout'));
+      }
+    }, SYNTHESIS_TIMEOUT_MS);
+
+    synthesize(text, {
+      apiKey,
+      voiceId: voiceId || DEFAULT_VOICE_ID,
+      onAudioChunk: (audioBase64: string) => {
+        chunks.push(Buffer.from(audioBase64, 'base64'));
+      },
+      onComplete: (error?: Error) => {
+        if (completed) return;
+        completed = true;
+        clearTimeout(timeoutId);
+        
+        if (error) {
+          reject(error);
+        } else if (chunks.length === 0) {
+          reject(new Error('No audio data received'));
+        } else {
+          resolve(Buffer.concat(chunks));
+        }
+      },
+    }).catch((err) => {
+      if (!completed) {
+        completed = true;
+        clearTimeout(timeoutId);
+        reject(err);
+      }
+    });
+  });
+}

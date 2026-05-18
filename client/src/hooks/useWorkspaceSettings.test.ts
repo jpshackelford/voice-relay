@@ -1277,4 +1277,109 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
     });
     expect(result.current.settings?.elevenlabsVoiceId).toBe('voice-1');
   });
+
+  it('generateVoicePreview returns audio data on success', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: 'voice-123',
+      elevenlabsTtsEnabled: true,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const mockPreviewResponse = {
+      audio: 'base64encodedaudiodata',
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockPreviewResponse,
+      });
+
+    const { result } = renderHook(() =>
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    let previewResult: { audio: string } | undefined;
+    await act(async () => {
+      previewResult = await result.current.generateVoicePreview('voice-123');
+    });
+
+    expect(previewResult).toBeDefined();
+    expect(previewResult!.audio).toBe('base64encodedaudiodata');
+
+    // Verify the correct endpoint was called
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/voice-preview',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ voiceId: 'voice-123' }),
+      })
+    );
+  });
+
+  it('generateVoicePreview throws error on failure', async () => {
+    const mockSettings = {
+      workspaceId: 'ws1',
+      hasApiKey: false,
+      hasElevenlabsApiKey: true,
+      ttsVoice: null,
+      sttLanguage: null,
+      allowAutoJoin: true,
+      requireQrToken: false,
+      elevenlabsVoiceId: null,
+      elevenlabsTtsEnabled: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSettings,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Synthesis failed' }),
+      });
+
+    const { result } = renderHook(() =>
+      useWorkspaceSettings('ws1', true)
+    );
+
+    await waitFor(() => {
+      expect(result.current.settings).toEqual(mockSettings);
+    });
+
+    await expect(
+      result.current.generateVoicePreview('voice-123')
+    ).rejects.toThrow('Synthesis failed');
+  });
+
+  it('generateVoicePreview throws when no workspace selected', async () => {
+    const { result } = renderHook(() =>
+      useWorkspaceSettings(undefined, true)
+    );
+
+    await expect(
+      result.current.generateVoicePreview('voice-123')
+    ).rejects.toThrow('No workspace selected');
+  });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
-import { testApiKey, DEFAULT_VOICE_ID, synthesize } from './elevenlabs.js';
+import { testApiKey, DEFAULT_VOICE_ID, synthesize, synthesizeToBuffer } from './elevenlabs.js';
 
 // Mock WebSocket for synthesize tests
 class MockWebSocket extends EventEmitter {
@@ -503,6 +503,124 @@ describe('ElevenLabs TTS', () => {
       await expect(promise).rejects.toThrow('ElevenLabs error: Some error');
       // Audio should NOT be processed when there's an error
       expect(onAudioChunk).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('synthesizeToBuffer', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      mockWsInstance = null;
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('collects audio chunks and returns concatenated buffer', async () => {
+      const promise = synthesizeToBuffer('Test text', 'test-api-key', 'voice-123');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Send multiple audio chunks (base64 encoded)
+      mockWsInstance!.simulateMessage({ audio: Buffer.from('chunk1').toString('base64') });
+      mockWsInstance!.simulateMessage({ audio: Buffer.from('chunk2').toString('base64') });
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      const result = await promise;
+      
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.toString()).toBe('chunk1chunk2');
+    });
+
+    it('uses default voice ID when not specified', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      mockWsInstance!.simulateMessage({ audio: Buffer.from('audio').toString('base64') });
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      await promise;
+      // No error means default voice was used successfully
+    });
+
+    it('rejects on synthesis error', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice-id');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      mockWsInstance!.simulateMessage({ error: 'Invalid voice' });
+
+      await expect(promise).rejects.toThrow('ElevenLabs error: Invalid voice');
+    });
+
+    it('rejects when no audio data received', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice-id');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Complete without sending any audio
+      mockWsInstance!.simulateMessage({ isFinal: true });
+
+      await expect(promise).rejects.toThrow('No audio data received');
+    });
+
+    it('rejects on synthesis timeout', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice-id');
+
+      // Immediately attach a rejection handler to prevent unhandled rejection
+      let rejectionError: Error | null = null;
+      const handledPromise = promise.catch((e) => {
+        rejectionError = e as Error;
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Don't send any messages, just wait for timeout
+      // The synthesis timeout is 15 seconds
+      await vi.advanceTimersByTimeAsync(15001);
+
+      await handledPromise;
+      
+      expect(rejectionError).not.toBeNull();
+      expect(rejectionError!.message).toBe('Synthesis timeout');
+    });
+
+    it('rejects on connection timeout', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice-id');
+
+      // Attach rejection handler immediately
+      let rejectionError: Error | null = null;
+      const handledPromise = promise.catch((e) => {
+        rejectionError = e as Error;
+      });
+
+      await vi.advanceTimersByTimeAsync(0);
+      
+      // Don't open connection - wait for connection timeout (10s)
+      await vi.advanceTimersByTimeAsync(10001);
+
+      await handledPromise;
+      
+      expect(rejectionError).not.toBeNull();
+      expect(rejectionError!.message).toBe('ElevenLabs connection timeout');
+    });
+
+    it('handles WebSocket close before completion', async () => {
+      const promise = synthesizeToBuffer('Test', 'api-key', 'voice-id');
+
+      await vi.advanceTimersByTimeAsync(0);
+      mockWsInstance!.simulateOpen();
+
+      // Close before any audio received
+      mockWsInstance!.simulateClose(1000, 'Connection closed');
+
+      await expect(promise).rejects.toThrow('ElevenLabs connection closed');
     });
   });
 });

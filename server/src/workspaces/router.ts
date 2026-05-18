@@ -851,6 +851,60 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Generate voice preview with dad joke
+  router.post('/:id/settings/voice-preview', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can preview voices' });
+        return;
+      }
+
+      const { voiceId } = req.body as { voiceId?: string };
+      if (!voiceId) {
+        res.status(400).json({ error: 'voiceId is required' });
+        return;
+      }
+
+      // Get stored ElevenLabs API key
+      const settings = workspaceRepository.getSettings(workspace.id);
+      if (!settings?.elevenlabsApiKeyEncrypted || !settings?.elevenlabsApiKeyIv || !settings?.elevenlabsApiKeyTag) {
+        res.status(400).json({ error: 'ElevenLabs API key not configured' });
+        return;
+      }
+
+      const apiKey = decryptApiKey({
+        encrypted: settings.elevenlabsApiKeyEncrypted,
+        iv: settings.elevenlabsApiKeyIv,
+        tag: settings.elevenlabsApiKeyTag,
+      });
+
+      // Get random dad joke and synthesize
+      const { getRandomJoke } = await import('../tts/dad-jokes.js');
+      const { synthesizeToBuffer } = await import('../tts/elevenlabs.js');
+      
+      const joke = getRandomJoke();
+      const audioBuffer = await synthesizeToBuffer(joke, apiKey, voiceId);
+      
+      // Return base64 encoded audio
+      res.json({ audio: audioBuffer.toString('base64') });
+    } catch (err) {
+      console.error('[Workspaces] Voice preview error:', err);
+      const message = (err as Error).message;
+      if (message.includes('timeout')) {
+        res.status(504).json({ error: 'Voice synthesis timed out' });
+      } else {
+        res.status(500).json({ error: 'Failed to generate voice preview' });
+      }
+    }
+  });
+
   // List workspace members
   router.get('/:id/members', auth, async (req: Request, res: Response) => {
     try {
