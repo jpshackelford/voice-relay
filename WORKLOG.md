@@ -26,6 +26,35 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 22:06 UTC - Merge Worker
+
+✅ **Merged PR #233 - Terms of Service and Privacy Policy**
+
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231) (auto-closed)
+- **Type:** Feature (Documentation)
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Added publicly accessible legal pages required for Google OAuth consent screen configuration:
+- Terms of Service at `/tos`
+- Privacy Policy at `/privacy`
+- Footer links on Login page
+
+**Technical Details:**
+- Frontend-only change - **no database migrations**
+- Markdown files in `docs/` rendered via `marked` + `dompurify` (existing dependencies)
+- Public routes accessible without authentication
+- Documents adapted from All Hands AI templates for Voice Relay's specific use case
+
+**Key Decisions from Review:**
+- Simplified type declarations by removing redundant module declaration
+- Removed unnecessary tsconfig include (path alias sufficient)
+
+**Review:** 🟢 LOW risk - Code review approved, all CI checks passed
+
+---
+
 ### 2026-05-18 22:04 UTC - Merge Worker
 
 ✅ **Merged PR #234 - Changelog Generator Fixes**
