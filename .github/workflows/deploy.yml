@@ -309,7 +309,7 @@ jobs:
             -d "Deployment failed for commit ${{ github.sha }}
 
           Triggered by: ${{ github.actor }}
-          Automatic rollback: ${{ steps.find-good.outputs.has_rollback_target == 'true' && 'initiated' || 'not available' }}
+          Automatic rollback: ${{ steps.find-good.outputs.has_rollback_target == 'true' && 'will be attempted' || 'not available' }}
 
           Check workflow logs for details." \
             ntfy.sh/${{ secrets.NTFY_TOPIC }} || true
