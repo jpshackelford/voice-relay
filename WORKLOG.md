@@ -26,6 +26,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:51 UTC - Review Worker
+
+✅ **Addressed Review Feedback on PR #233 - Terms of Service and Privacy Policy**
+
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **Status:** ✅ Ready for merge (all CI checks passing)
+
+**Review Feedback Addressed:**
+
+1. **`client/src/vite-env.d.ts`** - Removed redundant `@docs/*.md?raw` module declaration
+   - The wildcard `*.md?raw` pattern on line 4 already covers all markdown raw imports including those via the path alias
+   
+2. **`client/tsconfig.json`** - Removed unnecessary `../docs/*.md` from include array
+   - The path alias in `paths` config is sufficient for TypeScript resolution via Vite's raw string handling
+
+**Changes Made:**
+- Commit: `68705cd` - refactor: simplify type declarations per review feedback
+- Both review threads replied to and resolved
+
+**CI Status:** All 4 checks passing (Build Client, E2E Tests, Server Tests, Conventional Commits)
+
+---
+
 ### 2026-05-18 21:44 UTC - Implementation Worker
 
 ✅ **Implemented Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
