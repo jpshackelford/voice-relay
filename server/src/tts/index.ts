@@ -5,13 +5,14 @@
  * to kiosk devices in real-time.
  */
 
-import { synthesize, testApiKey, fetchVoices, DEFAULT_VOICE_ID } from './elevenlabs.js';
+import { synthesize, testApiKey, fetchVoices, synthesizeToBuffer, DEFAULT_VOICE_ID } from './elevenlabs.js';
 import type { WorkspaceSettings } from '../workspaces/types.js';
 import type { SessionTtsSettings } from '../sessions/types.js';
 import type { DeviceRegistry } from '../registry.js';
 import type { AudioChunkMessage, AudioEndMessage } from '../types.js';
 
-export { testApiKey, fetchVoices, DEFAULT_VOICE_ID };
+export { testApiKey, fetchVoices, synthesizeToBuffer, DEFAULT_VOICE_ID };
+export { getRandomJoke, DAD_JOKES } from './dad-jokes.js';
 
 /**
  * TTS Service configuration

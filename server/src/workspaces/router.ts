@@ -851,6 +851,61 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     }
   });
 
+  // Generate voice preview (synthesize dad joke with selected voice)
+  router.post('/:id/settings/voice-preview', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can generate voice previews' });
+        return;
+      }
+
+      const { voiceId } = req.body as { voiceId?: string };
+      if (!voiceId) {
+        res.status(400).json({ error: 'voiceId is required' });
+        return;
+      }
+
+      // Get stored ElevenLabs API key
+      const settings = workspaceRepository.getSettings(workspace.id);
+      if (!settings?.elevenlabsApiKeyEncrypted || !settings?.elevenlabsApiKeyIv || !settings?.elevenlabsApiKeyTag) {
+        res.status(400).json({ error: 'ElevenLabs API key not configured' });
+        return;
+      }
+
+      const apiKey = decryptApiKey({
+        encrypted: settings.elevenlabsApiKeyEncrypted,
+        iv: settings.elevenlabsApiKeyIv,
+        tag: settings.elevenlabsApiKeyTag,
+      });
+
+      // Get a random dad joke and synthesize it
+      const { synthesizeToBuffer, getRandomJoke } = await import('../tts/index.js');
+      const joke = getRandomJoke();
+      
+      console.log(`[Workspaces] Generating voice preview for workspace ${workspace.id}: "${joke.substring(0, 30)}..."`);
+      
+      const audioBuffer = await synthesizeToBuffer(joke, apiKey, voiceId);
+      const audioBase64 = audioBuffer.toString('base64');
+
+      res.json({ audio: audioBase64 });
+    } catch (err) {
+      console.error('[Workspaces] Voice preview error:', err);
+      const message = (err as Error).message;
+      if (message.includes('timeout')) {
+        res.status(504).json({ error: 'Voice synthesis timed out' });
+      } else {
+        res.status(500).json({ error: 'Failed to generate voice preview' });
+      }
+    }
+  });
+
   // List workspace members
   router.get('/:id/members', auth, async (req: Request, res: Response) => {
     try {

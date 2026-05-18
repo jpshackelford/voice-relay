@@ -355,6 +355,7 @@ export function WorkspaceHome() {
     testElevenlabsApiKey,
     removeElevenlabsApiKey,
     fetchElevenlabsVoices,
+    generateVoicePreview,
     updateSettings,
   } = useWorkspaceSettings(workspaceId, workspace?.isOwner ?? false);
   
@@ -691,18 +692,13 @@ export function WorkspaceHome() {
     setVoicePreviewStatus('idle');
   }, []);
 
-  // Play voice preview using ElevenLabs preview_url
-  const handleVoicePreview = useCallback(() => {
-    const selectedVoice = voices.find(v => v.voice_id === (settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID));
+  // Play voice preview by synthesizing a dad joke with the selected voice
+  const handleVoicePreview = useCallback(async () => {
+    const selectedVoiceId = settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID;
     
     // If already playing, stop it
     if (voicePreviewStatus === 'playing') {
       stopVoicePreview();
-      return;
-    }
-    
-    if (!selectedVoice?.preview_url) {
-      setElevenlabsApiKeyMessage({ type: 'error', text: 'No preview available for this voice' });
       return;
     }
 
@@ -711,28 +707,40 @@ export function WorkspaceHome() {
     
     setVoicePreviewStatus('loading');
     
-    const audio = new Audio(selectedVoice.preview_url);
-    voicePreviewAudioRef.current = audio;
-    
-    audio.onended = () => {
-      setVoicePreviewStatus('idle');
-      voicePreviewAudioRef.current = null;
-    };
-    
-    audio.onerror = () => {
-      setVoicePreviewStatus('idle');
-      voicePreviewAudioRef.current = null;
-      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
-    };
-    
-    audio.play()
-      .then(() => setVoicePreviewStatus('playing'))
-      .catch(() => {
+    try {
+      // Generate preview using our API (synthesizes a dad joke)
+      const { audio } = await generateVoicePreview(selectedVoiceId);
+      
+      // Convert base64 to blob and create audio element
+      const audioBlob = new Blob(
+        [Uint8Array.from(atob(audio), c => c.charCodeAt(0))],
+        { type: 'audio/mpeg' }
+      );
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audioElement = new Audio(audioUrl);
+      voicePreviewAudioRef.current = audioElement;
+      
+      audioElement.onended = () => {
         setVoicePreviewStatus('idle');
         voicePreviewAudioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audioElement.onerror = () => {
+        setVoicePreviewStatus('idle');
+        voicePreviewAudioRef.current = null;
+        URL.revokeObjectURL(audioUrl);
         setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
-      });
-  }, [voices, settings?.elevenlabsVoiceId, voicePreviewStatus, stopVoicePreview]);
+      };
+      
+      await audioElement.play();
+      setVoicePreviewStatus('playing');
+    } catch (err) {
+      setVoicePreviewStatus('idle');
+      voicePreviewAudioRef.current = null;
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to generate voice preview: ' + getErrorMessage(err) });
+    }
+  }, [settings?.elevenlabsVoiceId, voicePreviewStatus, stopVoicePreview, generateVoicePreview]);
 
   // Stop preview when voice changes
   useEffect(() => {
