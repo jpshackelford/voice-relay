@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ReleaseNotes } from './ReleaseNotes';
 import type { DeviceInfo, SessionTtsSettings } from '../types';
 
-export type InputMode = 'voice' | 'visualizer';
+export type InputMode = 'voice' | 'visualizer' | 'unified';
 
 interface MobileSettingsProps {
   isOpen: boolean;
@@ -134,7 +134,7 @@ export function MobileSettings({
                 type="checkbox"
                 checked={autoSubmit}
                 onChange={(e) => onAutoSubmitChange(e.target.checked)}
-                disabled={inputMode === 'visualizer'}
+                disabled={inputMode === 'visualizer'} // Only disable in visualizer-only mode
               />
               <span className="toggle-switch" />
             </label>
@@ -142,14 +142,16 @@ export function MobileSettings({
 
           <div className="mobile-settings-divider" />
 
-          {/* Input Mode Selector - prevents dual microphone streams */}
+          {/* Input Mode Selector */}
           <div className="mobile-settings-section">
             <div className="mobile-settings-input-mode">
               <span className="input-mode-label">🎤 Input Mode</span>
               <span className="input-mode-hint">
                 {inputMode === 'voice' 
                   ? 'Voice recognition (no visualizer)' 
-                  : 'Audio visualizer (manual text entry)'}
+                  : inputMode === 'visualizer'
+                    ? 'Audio visualizer (manual text entry)'
+                    : 'Voice recognition with visualizer'}
               </span>
               <div className="input-mode-buttons">
                 <button
@@ -158,6 +160,13 @@ export function MobileSettings({
                   aria-pressed={inputMode === 'voice'}
                 >
                   🗣️ Voice
+                </button>
+                <button
+                  className={`input-mode-btn ${inputMode === 'unified' ? 'active' : ''}`}
+                  onClick={() => onInputModeChange('unified')}
+                  aria-pressed={inputMode === 'unified'}
+                >
+                  ✨ Unified
                 </button>
                 <button
                   className={`input-mode-btn ${inputMode === 'visualizer' ? 'active' : ''}`}

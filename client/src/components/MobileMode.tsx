@@ -44,8 +44,8 @@ export function MobileMode({
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [conversationOpen, setConversationOpen] = useState(false);
-  // Input mode: 'voice' uses Web Speech API only, 'visualizer' uses getUserMedia for oscilloscope only
-  // This eliminates the dual microphone stream issue by making them mutually exclusive
+  // Input mode: 'voice' uses Web Speech API only, 'visualizer' uses getUserMedia for oscilloscope only,
+  // 'unified' combines both - Web Speech API for transcription AND getUserMedia for oscilloscope visualization
   const [inputMode, setInputMode] = useState<InputMode>('voice');
   
   const utteranceIdRef = useRef(generateUUID());
@@ -141,8 +141,7 @@ export function MobileMode({
 
   // Handle microphone toggle based on input mode.
   //
-  // INPUT MODE DESIGN: To eliminate the dual microphone stream issue, speech recognition
-  // and audio visualization are mutually exclusive:
+  // INPUT MODE DESIGN:
   //
   // - 'voice' mode: Uses Web Speech API only (browser manages mic internally)
   //   Benefit: Native speech-to-text, no explicit getUserMedia call
@@ -152,8 +151,12 @@ export function MobileMode({
   //   Benefit: Real-time audio visualization
   //   Tradeoff: No speech recognition, manual text input required
   //
-  // This design ensures only ONE microphone stream is active at any time,
-  // eliminating resource waste and potential permission conflicts on mobile devices.
+  // - 'unified' mode: Uses BOTH Web Speech API AND getUserMedia simultaneously
+  //   The Web Speech API manages its own internal mic stream for transcription,
+  //   while getUserMedia provides a separate stream for the oscilloscope.
+  //   Modern browsers handle two logical mic streams fine - it's the same physical mic.
+  //   Benefit: Voice recognition + real-time visualization
+  //   Tradeoff: Two mic permission requests on first use
   const handleMicToggle = useCallback(async () => {
     // Stop current activity
     if (isListening || audioAnalyser.isActive) {
@@ -173,6 +176,28 @@ export function MobileMode({
       } catch (err) {
         console.error('[MobileMode] Speech recognition error:', err);
         setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
+      }
+    } else if (inputMode === 'unified') {
+      // Unified mode: Start BOTH Web Speech API AND getUserMedia for oscilloscope
+      // These use separate logical streams to the same physical microphone
+      try {
+        // Start speech recognition first
+        startListening();
+        
+        // Then start audio analyser for visualization (separate stream)
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        sharedStreamRef.current = stream;
+        await audioAnalyser.start(stream);
+      } catch (err) {
+        console.error('[MobileMode] Unified mode error:', err);
+        setSttError(err instanceof Error ? err.message : 'Microphone access denied');
+        // Clean up on error - stop speech recognition and audio analyser
+        stopListening();
+        audioAnalyser.stop();
+        if (sharedStreamRef.current) {
+          sharedStreamRef.current.getTracks().forEach(track => track.stop());
+          sharedStreamRef.current = null;
+        }
       }
     } else {
       // Visualizer mode: Use getUserMedia for oscilloscope only
@@ -248,13 +273,22 @@ export function MobileMode({
         />
         <div className="walkie-header-spacer" />
         <button
-          className={`walkie-header-btn input-mode-toggle ${inputMode === 'visualizer' ? 'visualizer-active' : ''}`}
-          onClick={() => setInputMode(inputMode === 'voice' ? 'visualizer' : 'voice')}
-          title={inputMode === 'voice' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'}
-          aria-label={inputMode === 'voice' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'}
-          aria-pressed={inputMode === 'visualizer'}
+          className={`walkie-header-btn input-mode-toggle ${inputMode !== 'voice' ? 'visualizer-active' : ''}`}
+          onClick={() => setInputMode(
+            inputMode === 'voice' ? 'unified' : 
+            inputMode === 'unified' ? 'visualizer' : 'voice'
+          )}
+          title={
+            inputMode === 'voice' ? 'Switch to Unified mode' : 
+            inputMode === 'unified' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'
+          }
+          aria-label={
+            inputMode === 'voice' ? 'Switch to Unified mode' : 
+            inputMode === 'unified' ? 'Switch to Visualizer mode' : 'Switch to Voice mode'
+          }
+          aria-pressed={inputMode !== 'voice'}
         >
-          {inputMode === 'voice' ? '🗣️' : '📊'}
+          {inputMode === 'voice' ? '🗣️' : inputMode === 'unified' ? '✨' : '📊'}
         </button>
         <button 
           className="walkie-header-btn" 
@@ -277,8 +311,8 @@ export function MobileMode({
 
       {/* Main Content */}
       <div className="walkie-content">
-        {/* Oscilloscope - only shown in visualizer mode */}
-        {inputMode === 'visualizer' && (
+        {/* Oscilloscope - shown in visualizer AND unified modes */}
+        {(inputMode === 'visualizer' || inputMode === 'unified') && (
           <div className="walkie-oscilloscope">
             <Oscilloscope
               analyser={audioAnalyser.analyser}
@@ -299,6 +333,14 @@ export function MobileMode({
               <span className="walkie-listening">Recording...</span>
             ) : (
               <span className="walkie-ready">Tap to record</span>
+            )
+          ) : inputMode === 'unified' ? (
+            interimText ? (
+              <span className="walkie-interim">"{interimText}"</span>
+            ) : isListening || audioAnalyser.isActive ? (
+              <span className="walkie-listening">Listening...</span>
+            ) : (
+              <span className="walkie-ready">Tap to speak</span>
             )
           ) : interimText ? (
             <span className="walkie-interim">"{interimText}"</span>
@@ -335,16 +377,20 @@ export function MobileMode({
         <button
           className={`walkie-mic-btn ${(isListening || audioAnalyser.isActive) ? 'active' : ''}`}
           onClick={handleMicToggle}
-          disabled={inputMode === 'voice' && !sttSupported}
+          disabled={(inputMode === 'voice' || inputMode === 'unified') && !sttSupported}
           title={
             inputMode === 'visualizer'
               ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
-              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+              : (sttSupported 
+                  ? (isListening || audioAnalyser.isActive ? 'Stop listening' : 'Start listening') 
+                  : 'Speech recognition not supported')
           }
           aria-label={
             inputMode === 'visualizer'
               ? (audioAnalyser.isActive ? 'Stop recording' : 'Start recording')
-              : (sttSupported ? (isListening ? 'Stop listening' : 'Start listening') : 'Speech recognition not supported')
+              : (sttSupported 
+                  ? (isListening || audioAnalyser.isActive ? 'Stop listening' : 'Start listening') 
+                  : 'Speech recognition not supported')
           }
           aria-pressed={isListening || audioAnalyser.isActive}
         >
