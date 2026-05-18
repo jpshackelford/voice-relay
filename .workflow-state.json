@@ -4,17 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "9f461ef",
-        "issue": 191,
-        "started": "2026-05-18T03:06:38.700796+00:00"
+        "conv_id": "a434159",
+        "issue": 166,
+        "started": "2026-05-18T03:34:30.832544+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "26258e9",
-        "pr": 201,
-        "type": "merge",
-        "started": "2026-05-18T03:18:32.288719+00:00"
+        "conv_id": "0c3d2ee",
+        "pr": 202,
+        "type": "review",
+        "started": "2026-05-18T03:34:30.832544+00:00"
       }
     ]
   },
@@ -23,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T03:18:32.288719+00:00",
+  "last_updated": "2026-05-18T03:34:30.832544+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -559,6 +559,24 @@
       "finished": "2026-05-18T03:16:56.111096+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #201"
+    },
+    {
+      "conv_id": "9f461ef",
+      "type": "implementation",
+      "issue": 191,
+      "started": "2026-05-18T03:06:38.700796+00:00",
+      "finished": "2026-05-18T03:33:08.176237+00:00",
+      "status": "success",
+      "outcome": "Created PR #202 for Issue #191"
+    },
+    {
+      "conv_id": "26258e9",
+      "type": "merge",
+      "pr": 201,
+      "started": "2026-05-18T03:18:32.288719+00:00",
+      "finished": "2026-05-18T03:33:08.176237+00:00",
+      "status": "success",
+      "outcome": "Merged PR #201 - kiosk connection indicator"
     }
   ]
 }
