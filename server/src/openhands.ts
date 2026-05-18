@@ -449,7 +449,7 @@ export class AISessionManager {
     console.log(`[AI] Waiting for conversation to be ready...`);
     const readyTask = await client.pollUntilReady(
       startResponse.id,
-      60000,
+      120000,
       2000
     );
     console.log(`[AI] Conversation ready:`, readyTask);
