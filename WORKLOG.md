@@ -1879,3 +1879,58 @@ Add a "Skip →" button in the top-right corner of the QR display that dismisses
 **Note:** Some duplicate workers may have been spawned by a concurrent orchestrator run. Deduplication applied to state file.
 
 ---
+
+---
+
+### 2026-05-18 00:20 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b9fe432` | merge | PR #180 - Settings back button | **NEW** |
+| `b573a3c` | review (CI fix) | PR #193 - Device persistence | **NEW** |
+| `5231986` | expansion | Issue #192 - Critical: Fix E2E tests | **NEW** |
+
+**Spawned: 3 Workers**
+
+1. **Merge Worker** for [PR #180](https://github.com/jpshackelford/voice-relay/pull/180)
+   - CI: ✅ All green
+   - Review threads: 0 unresolved
+   - Ready to squash-merge
+   - Conversation: [`b9fe432`](https://app.all-hands.dev/conversations/b9fe432feb9947fba671c5076862fd35)
+
+2. **CI Fix Worker** for [PR #193](https://github.com/jpshackelford/voice-relay/pull/193)
+   - Addresses critical Issue #192 - E2E tests must not fail
+   - CI: ❌ E2E failure (needs fixing)
+   - Conversation: [`b573a3c`](https://app.all-hands.dev/conversations/b573a3c9c9884dc7aee16311071b2aff)
+
+3. **Expansion Worker** for [Issue #192](https://github.com/jpshackelford/voice-relay/issues/192) (CRITICAL)
+   - Issue: Fix any failing E2E tests! 
+   - Labels: critical, priority:high
+   - Needs expansion to analyze E2E failures across all PRs
+   - Conversation: [`5231986`](https://app.all-hands.dev/conversations/52319866f5a34ea8b183edf27de91f5f)
+
+**Current State:**
+- **Open PRs:**
+  - [PR #180](https://github.com/jpshackelford/voice-relay/pull/180): ✅ CI green, ready to merge
+  - [PR #187](https://github.com/jpshackelford/voice-relay/pull/187): ❌ CI failure, 3 unresolved threads
+  - [PR #190](https://github.com/jpshackelford/voice-relay/pull/190): ❌ CI failure, 1 unresolved thread
+  - [PR #193](https://github.com/jpshackelford/voice-relay/pull/193): ❌ CI failure (being fixed)
+  
+- **Issues needing expansion:** #192 (CRITICAL - being expanded)
+- **Ready issues:** #182, #183, #184, #185, #186, #188, #189, #191 (waiting for E2E fix per #192)
+
+**Decision Notes:**
+- Issue #192 is CRITICAL - prioritizing E2E test fixes before implementation work
+- Implementation slot intentionally left empty per #192 directive
+- PR #180 is ready to merge (clears backlog)
+- PR #193 needs CI fix to unblock its merge
+
+**Slot Status:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 1 | 3 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review | 2 | 0 | 2 |
+
+---

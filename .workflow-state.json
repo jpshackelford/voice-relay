@@ -3,33 +3,24 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "ae1138c",
-        "started": "2026-05-18T00:06:23.133964+00:00",
-        "issue": 191
-      },
-      {
-        "conv_id": "92a5757",
-        "started": "2026-05-18T00:06:34.122023+00:00",
-        "issue": 188
-      },
-      {
-        "conv_id": "31dc2ee",
-        "started": "2026-05-18T00:06:45.419290+00:00",
-        "issue": 185
+        "conv_id": "5231986",
+        "started": "2026-05-18T00:21:46.404815+00:00",
+        "issue": 192
       }
     ],
-    "implementation": [
-      {
-        "conv_id": "73a632e",
-        "started": "2026-05-18T00:06:12.323522+00:00",
-        "issue": 189
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "a3b90a6",
-        "started": "2026-05-17T23:34:58.641040+00:00",
-        "pr": 180
+        "conv_id": "b9fe432",
+        "started": "2026-05-18T00:21:46.404815+00:00",
+        "pr": 180,
+        "type": "merge"
+      },
+      {
+        "conv_id": "b573a3c",
+        "started": "2026-05-18T00:21:46.404815+00:00",
+        "pr": 193,
+        "type": "ci_fix"
       }
     ]
   },
@@ -38,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T00:08:49.125531+00:00",
+  "last_updated": "2026-05-18T00:21:46.404815+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -255,6 +246,46 @@
       "finished": "2026-05-18T00:08:49.125531+00:00",
       "status": "success",
       "outcome": "\u2705 Merged PR #181 - fix(client): combine kiosk sidebar status row elements"
+    },
+    {
+      "conv_id": "ae1138c",
+      "type": "expansion",
+      "started": "2026-05-18T00:06:23.133964+00:00",
+      "finished": "2026-05-18T00:18:50.936161+00:00",
+      "status": "success",
+      "issue": 191
+    },
+    {
+      "conv_id": "92a5757",
+      "type": "expansion",
+      "started": "2026-05-18T00:06:34.122023+00:00",
+      "finished": "2026-05-18T00:18:50.936161+00:00",
+      "status": "success",
+      "issue": 188
+    },
+    {
+      "conv_id": "31dc2ee",
+      "type": "expansion",
+      "started": "2026-05-18T00:06:45.419290+00:00",
+      "finished": "2026-05-18T00:18:50.936161+00:00",
+      "status": "success",
+      "issue": 185
+    },
+    {
+      "conv_id": "73a632e",
+      "type": "implementation",
+      "started": "2026-05-18T00:06:12.323522+00:00",
+      "finished": "2026-05-18T00:18:50.936161+00:00",
+      "status": "success",
+      "issue": 189
+    },
+    {
+      "conv_id": "a3b90a6",
+      "type": "review",
+      "started": "2026-05-17T23:34:58.641040+00:00",
+      "finished": "2026-05-18T00:18:50.936161+00:00",
+      "status": "success",
+      "pr": 180
     }
   ]
 }
