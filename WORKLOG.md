@@ -25,6 +25,24 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 18:28 UTC - Implementation Worker
+
+✅ **Implemented Issue #220 - Agent Actions panel V1 wrapped events**
+
+- **Issue:** [#220 - Bug: Agent Actions panel not functioning correctly in Kiosk mode](https://github.com/jpshackelford/voice-relay/issues/220)
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Status:** Ready for review
+
+**Changes:**
+- Updated `formatEventSummary()` in `server/src/openhands.ts` to handle V1 wrapped events
+- Added handlers for `ActionEvent` with nested `action` object parsing
+- Added handlers for `ObservationEvent` with nested `observation` object parsing
+- Added handlers for `SystemPromptEvent` and `MessageEvent`
+- Added 40+ tests for comprehensive coverage
+- All CI checks passing
+
+---
+
 ### 2026-05-18 18:15 UTC - Expansion Worker
 
 ✅ **Expanded Issue #220**
