@@ -28,6 +28,7 @@ concurrency:
 jobs:
   operate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       action: ${{ github.event.inputs.action || 'deploy' }}
     
