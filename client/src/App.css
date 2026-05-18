@@ -5263,6 +5263,18 @@ header {
   flex: 1;
 }
 
+.release-changes .change-pr-link {
+  margin-left: 0.5em;
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.85em;
+}
+
+.release-changes .change-pr-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
 /* ========================================
    Conversation Pane (Slide-in)
    ======================================== */
