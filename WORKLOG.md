@@ -197,3 +197,39 @@ PR #202 (unified TTS settings) was merged to main while PR #203 (audio streaming
 **Previous Workers Completed:**
 - `2d029a0` (implementation for #167) - Worker finished but no PR created
 - `2a9ee58` (merge for #203) - Worker finished but PR not yet merged
+
+---
+
+### 2026-05-18 15:44 UTC - Implementation Worker (`d55d893`)
+
+✅ **PR #205 Created for Issue #204**
+
+- **PR:** [#205 - feat(client): add unified input mode for voice + visualizer](https://github.com/jpshackelford/voice-relay/pull/205)
+- **Issue:** [#204 - Mobile: Unify voice and visualizer modes with client-side STT](https://github.com/jpshackelford/voice-relay/issues/204)
+- **Status:** CI passing ✅, Ready for review
+
+**Implementation Summary:**
+Added new "Unified" input mode that combines Web Speech API transcription with oscilloscope visualization. Modern browsers handle two logical mic streams to the same physical microphone, so the Web Speech API and getUserMedia can coexist.
+
+**Changes:**
+1. Added `'unified'` to `InputMode` type: `'voice' | 'visualizer' | 'unified'`
+2. Updated `MobileSettings` with three-button selector (Voice / Unified / Visualizer)
+3. Updated `MobileMode` to handle unified mode:
+   - Starts both Web Speech API and getUserMedia for oscilloscope
+   - Shows oscilloscope in unified mode
+   - Transcription auto-submits as in voice mode
+4. Header toggle cycles: voice → unified → visualizer → voice
+5. Added comprehensive tests for unified mode functionality
+
+**Acceptance Criteria:**
+- ✅ New "Unified" input mode option in mobile settings
+- ✅ Unified mode shows oscilloscope AND performs live transcription  
+- ✅ Transcription auto-submits as it does in voice mode today
+- ✅ Both streams clean up properly when stopped
+- ⏳ Works on iOS Safari and Android Chrome (needs manual verification)
+
+**Verification:**
+- ✅ Client tests: 407 passed
+- ✅ TypeScript: No errors
+- ✅ Build: Passes
+- ✅ CI: All checks green (Build Client, Server Tests, E2E Tests, Conventional Commits)
