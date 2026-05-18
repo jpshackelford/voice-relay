@@ -38,6 +38,8 @@ import {
   type DeviceRemovedMessage,
   type SessionAIStatusMessage,
   type AIThinkingMessage,
+  type AgentActionMessage,
+  type AgentAction,
   type DisplayResultMessage,
   type SessionTtsSettingsMessage,
   type SessionTtsSettingsChangedMessage,
@@ -111,6 +113,17 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
     type: 'ai-thinking',
     sessionId,
     thinking,
+  };
+  registry.broadcastMessageToSession(sessionId, message);
+});
+
+// Wire AI action events to broadcast to session devices
+// This enables the kiosk to show real-time agent activity
+aiSessionManager.setActionCallback((sessionId: string, action: AgentAction) => {
+  const message: AgentActionMessage = {
+    type: 'agent-action',
+    sessionId,
+    action,
   };
   registry.broadcastMessageToSession(sessionId, message);
 });

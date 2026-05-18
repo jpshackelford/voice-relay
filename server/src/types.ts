@@ -228,6 +228,7 @@ export type ServerMessage =
   | WorkspaceDeletedMessage
   | AIThinkingMessage
   | SessionAIStatusMessage
+  | AgentActionMessage
   | AudioChunkMessage
   | AudioEndMessage
   | SessionTtsSettingsChangedMessage
@@ -340,4 +341,26 @@ export interface SessionAIStatusMessage {
   connecting?: boolean;
   conversationId?: string;
   error?: string;
+}
+
+/**
+ * Agent action event from OpenHands event stream.
+ * Represents actions the AI agent performs (running commands, reading files, etc.)
+ */
+export interface AgentAction {
+  id: string;
+  timestamp: string;
+  kind: string;  // Event kind: CmdRunAction, FileReadAction, AgentStateChangeEvent, etc.
+  source: string;  // Event source: agent, user, environment, hook
+  summary: string;  // Human-readable description
+}
+
+/**
+ * Server → All devices in session: Agent performed an action.
+ * Broadcast when the AI agent performs an action (running commands, reading files, etc.)
+ */
+export interface AgentActionMessage {
+  type: 'agent-action';
+  sessionId: string;
+  action: AgentAction;
 }

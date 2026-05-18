@@ -152,6 +152,25 @@ export interface SessionAIStatusMessage {
   error?: string;
 }
 
+/**
+ * Agent action event from OpenHands event stream.
+ * Represents actions the AI agent performs (running commands, reading files, etc.)
+ */
+export interface AgentAction {
+  id: string;
+  timestamp: string;
+  kind: string;  // Event kind: CmdRunAction, FileReadAction, AgentStateChangeEvent, etc.
+  source: string;  // Event source: agent, user, environment, hook
+  summary: string;  // Human-readable description
+}
+
+/** Server → All devices in session: Agent performed an action */
+export interface AgentActionMessage {
+  type: 'agent-action';
+  sessionId: string;
+  action: AgentAction;
+}
+
 /** Server → Owner's kiosk devices: New join request notification */
 export interface JoinRequestMessage {
   type: 'join-request';
@@ -251,6 +270,7 @@ export type ServerMessage =
   | AIStatusMessage
   | AIThinkingMessage
   | SessionAIStatusMessage
+  | AgentActionMessage
   | JoinRequestMessage
   | JoinResolvedMessage
   | DeviceRemovedMessage
