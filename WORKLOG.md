@@ -25,6 +25,31 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #191 - Unify TTS settings**
+
+- Issue: [#191 - Unify TTS settings](https://github.com/jpshackelford/voice-relay/issues/191)
+- Type: Enhancement
+- Status: Ready for implementation
+
+**Summary:**
+Three separate TTS settings exist in the codebase causing user confusion:
+1. Workspace-level `elevenlabsTtsEnabled` (database, controls ElevenLabs API)
+2. Kiosk `ttsEnabled` (local useState, browser TTS for human messages)
+3. Mobile `ttsEnabled` (local useState, browser TTS for messages from others)
+
+**Proposed Solution:**
+Implement session-level TTS settings that sync across all devices in real-time via WebSocket, with device selection for audio output.
+
+**Files Affected:**
+- Server: `types.ts`, `session-repository.ts`, `index.ts`, `tts/index.ts`, `registry.ts`
+- Client: `types.ts`, new `useSessionTts.ts` hook, `useWebSocket.ts`, `KioskMode.tsx`, `MobileMode.tsx`, `MobileSettings.tsx`
+
+**Complexity:** Medium - follows existing patterns, in-memory state (no migrations)
+
+---
+
 ### 2026-05-18 00:35 UTC - PR #180 E2E Fixes Complete
 
 **PR:** [#180 - fix(client): use consistent back button navigation in Settings modal](https://github.com/jpshackelford/voice-relay/pull/180)
