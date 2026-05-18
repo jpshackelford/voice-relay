@@ -609,3 +609,34 @@ During the incident tracked in #197, the automatic rollback failed because it in
 **PR is ready for merge.**
 
 ---
+
+### 2026-05-18 17:10 UTC - Review Worker
+
+✅ **PR #212 Review Feedback Addressed**
+
+- **PR:** [#212 - ci: add npm cache cleanup to rollback script](https://github.com/jpshackelford/voice-relay/pull/212)
+- **Issue:** [#207](https://github.com/jpshackelford/voice-relay/issues/207)
+- **Status:** CI passing ✅, All review threads resolved ✅, Ready for merge
+
+**Review Feedback Addressed:**
+
+1. **Asymmetric protection** (🟠 Important)
+   - Added npm cache cleanup to main deployment step (not just rollback)
+   - Both deploy and rollback now use same `npm cache verify || npm cache clean --force` pattern
+   - Both now also `rm -rf node_modules` for consistent clean-slate approach
+   - Commit: `e90835f`
+
+2. **Use npm cache verify instead of --force** (🟡 Suggestion)
+   - Changed from `npm cache clean --force` to `npm cache verify || npm cache clean --force`
+   - Tries lighter-weight cache verification first, falls back to nuclear option if verify fails
+   - Applied to both deploy and rollback for consistency
+   - Commit: `e90835f`
+
+**Verification:**
+- ✅ CI: All checks passing (4/4)
+- ✅ All review threads resolved (2/2)
+- ✅ YAML validated
+
+**PR is ready for merge.**
+
+---
