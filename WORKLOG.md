@@ -2118,3 +2118,28 @@ Replaced X close button (✕) in MobileSettings with back button (← Back) to m
 - ✅ `b573a3c` (ci_fix) → Verified PR #193 CI green
 
 ---
+
+### 2026-05-18 00:45 UTC - Implementation Worker
+
+✅ **Completed:** [PR #194](https://github.com/jpshackelford/voice-relay/pull/194) - feat(client): add in-app release notes viewer
+
+**Issue:** [#185 - Add in-app release notes viewer for mobile](https://github.com/jpshackelford/voice-relay/issues/185)
+
+**Changes Implemented:**
+- Build-time changelog generation from `deploy-success-*` tags (scripts/generate-changelog.ts)
+- Server endpoint `/api/changelog` serving generated changelog
+- ReleaseNotes modal component with scrollable release history
+- relativeTime utility for localized time formatting
+- "📦 What's New" link in MobileSettings modal
+- 37 new tests (18 component + 19 utility tests)
+
+**Acceptance Criteria:** All met ✅
+- Release notes accessible from settings
+- Newest deployments shown first
+- Relative time with tap-to-show-absolute
+- Offline-capable (with caching)
+- Filters to feat/fix only
+
+**CI Status:** All checks passing ✓
+
+---
