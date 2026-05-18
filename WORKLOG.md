@@ -2005,6 +2005,44 @@ Fixed two display issues with the release notes feature in desktop mode:
 
 ---
 
+### 2026-05-18 21:55 UTC - Implementation Worker
+
+✅ **Implemented Issue #230 - Changelog Generator Shows Incomplete/Incorrect History**
+
+- **Issue:** [#230 - Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+- **PR:** [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+- **Type:** Bug Fix
+- **Status:** PR open, ready for review
+
+**Summary:**
+Fixed three bugs in the changelog generator that were causing incomplete/incorrect release history in the "What's New" feature:
+
+1. **Boundary bug fixed:** The last tag was returning all repo history (80+ items). Now stops processing before the last tag to ensure valid boundaries.
+
+2. **20-entry limit removed:** Was only showing 6 entries (from 20 tags). Now processes all 205 deploy tags, showing 55 entries with user-facing changes.
+
+3. **Pre-tag history added:** Created `scripts/changelog-seed.json` with 25 curated entries for the initial development period (April 26 - May 6, 2026) before deploy tags existed.
+
+**Changes Made:**
+- Modified `scripts/generate-changelog.ts`:
+  - Added `loadSeedEntries()` function to read seed data
+  - Changed loop to `tags.length - 1` to fix boundary bug
+  - Removed `slice(0, 20)` limit
+  - Added deduplication and sorting logic
+  - Added `isLegacy` flag for seed entries
+- Created `scripts/changelog-seed.json` with pre-tag history
+
+**Results:**
+- Total entries: 56 (was 6)
+- Oldest entry: 25 changes (was 80+ from boundary bug)
+- Changelog size: ~18KB (well under 500KB threshold)
+
+**Files Changed:**
+- `scripts/generate-changelog.ts` (+77 lines, -8 lines)
+- `scripts/changelog-seed.json` (new, 25 curated changes)
+
+---
+
 ### 2026-05-18 21:51 UTC - Orchestrator
 
 **Active Workers:**
