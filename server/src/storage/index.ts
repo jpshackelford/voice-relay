@@ -38,7 +38,7 @@ export function createStore(config: StoreConfig): MessageStore {
 /**
  * Create a store from environment variables:
  * 
- * STORE_DRIVER=memory|sqlite|redis|firestore (default: memory)
+ * STORE_DRIVER=memory|sqlite|redis|firestore (default: sqlite)
  * STORE_MAX_MESSAGES=100 (default: 100)
  * 
  * For SQLite:
@@ -52,7 +52,7 @@ export function createStore(config: StoreConfig): MessageStore {
  *   FIRESTORE_COLLECTION=voice-relay-messages
  */
 export function createStoreFromEnv(): MessageStore {
-  const driver = (process.env.STORE_DRIVER || 'memory') as StoreConfig['driver'];
+  const driver = (process.env.STORE_DRIVER || 'sqlite') as StoreConfig['driver'];
   const maxMessages = parseInt(process.env.STORE_MAX_MESSAGES || '100', 10);
 
   const config: StoreConfig = {
@@ -71,5 +71,13 @@ export function createStoreFromEnv(): MessageStore {
   };
 
   console.log(`[Storage] Using ${driver} driver`);
+  
+  // Inform users about the default storage change (sqlite instead of memory)
+  // This helps explain why devices need to re-register after upgrading if they
+  // were previously using the implicit memory default
+  if (driver === 'sqlite' && !process.env.STORE_DRIVER) {
+    console.log('[Storage] Note: Default changed from memory to SQLite. Device records will persist across restarts. Set STORE_DRIVER=memory to use the previous behavior.');
+  }
+  
   return createStore(config);
 }

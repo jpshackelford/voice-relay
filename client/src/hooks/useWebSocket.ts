@@ -152,7 +152,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'device-removed':
             console.log('[WS] Device removed from workspace:', message.deviceId);
             // Clear stored token since it's now invalid
-            clearDeviceToken();
+            clearDeviceToken(workspaceId);
             // Update state to indicate removal
             setWasRemoved(true);
             setConnected(false);
@@ -162,7 +162,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'workspace-deleted':
             console.log('[WS] Workspace was deleted:', message.reason);
             // Clear stored token since it's now invalid
-            clearDeviceToken();
+            clearDeviceToken(workspaceId);
             setConnected(false);
             // Clear devices since workspace no longer exists
             setDevices([]);

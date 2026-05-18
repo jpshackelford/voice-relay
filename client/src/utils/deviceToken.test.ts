@@ -9,6 +9,9 @@ import {
   getSessionDeviceId,
   getServerSetDeviceToken,
   parseDeviceCookieJson,
+  migrateLegacyDeviceToken,
+  // migrateServerSetDeviceCookie is tested via integration tests (Playwright)
+  // as it requires cookie manipulation that jsdom doesn't fully support
 } from './deviceToken';
 
 describe('deviceToken utilities', () => {
@@ -25,7 +28,7 @@ describe('deviceToken utilities', () => {
   });
 
   describe('storeDeviceToken / getStoredDeviceToken', () => {
-    it('stores and retrieves device token info', () => {
+    it('stores and retrieves device token info with workspace-scoped key', () => {
       const info = {
         deviceId: 'device-123',
         deviceToken: 'token-abc',
@@ -35,21 +38,84 @@ describe('deviceToken utilities', () => {
       };
 
       storeDeviceToken(info);
-      const stored = getStoredDeviceToken();
+      const stored = getStoredDeviceToken('workspace-456');
 
       expect(stored).toEqual(info);
     });
 
-    it('returns null when no token stored', () => {
+    it('uses workspace-scoped storage key', () => {
+      const info = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      storeDeviceToken(info);
+      
+      // Should NOT use legacy key
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+      // Should use workspace-scoped key
+      expect(localStorage.getItem('voice_relay_device_token_workspace-456')).not.toBeNull();
+    });
+
+    it('stores tokens for multiple workspaces independently', () => {
+      const workspace1Device = {
+        deviceId: 'device-111',
+        deviceToken: 'token-aaa',
+        workspaceId: 'workspace-1',
+        name: 'Phone 1',
+        mode: 'mobile' as const,
+      };
+
+      const workspace2Device = {
+        deviceId: 'device-222',
+        deviceToken: 'token-bbb',
+        workspaceId: 'workspace-2',
+        name: 'Phone 2',
+        mode: 'kiosk' as const,
+      };
+
+      storeDeviceToken(workspace1Device);
+      storeDeviceToken(workspace2Device);
+
+      // Each workspace should have its own stored device
+      expect(getStoredDeviceToken('workspace-1')).toEqual(workspace1Device);
+      expect(getStoredDeviceToken('workspace-2')).toEqual(workspace2Device);
+    });
+
+    it('returns null when no token stored for workspace', () => {
+      const stored = getStoredDeviceToken('workspace-123');
+      expect(stored).toBeNull();
+    });
+
+    it('returns null when workspace-scoped storage contains wrong workspaceId', () => {
+      // Simulate data corruption: workspace-A key contains workspace-B data
+      const corruptedData = {
+        deviceId: 'device-999',
+        deviceToken: 'token-xyz',
+        workspaceId: 'workspace-B', // Wrong! Key says workspace-A but data says workspace-B
+        name: 'Corrupted',
+        mode: 'mobile' as const,
+      };
+      localStorage.setItem('voice_relay_device_token_workspace-A', JSON.stringify(corruptedData));
+      
+      // Should return null because stored workspaceId doesn't match requested workspace
+      const result = getStoredDeviceToken('workspace-A');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when workspace not provided and no legacy storage', () => {
       const stored = getStoredDeviceToken();
       expect(stored).toBeNull();
     });
 
     it('handles malformed JSON in storage', () => {
-      localStorage.setItem('voice_relay_device_token', 'not-valid-json');
+      localStorage.setItem('voice_relay_device_token_workspace-456', 'not-valid-json');
       
       // Should return null and log error (not throw)
-      const stored = getStoredDeviceToken();
+      const stored = getStoredDeviceToken('workspace-456');
       expect(stored).toBeNull();
     });
 
@@ -75,8 +141,110 @@ describe('deviceToken utilities', () => {
     });
   });
 
+  describe('legacy storage migration', () => {
+    it('getStoredDeviceToken reads legacy storage without migrating (pure read)', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Retrieve should read but NOT migrate (pure read function)
+      const stored = getStoredDeviceToken('workspace-456');
+
+      expect(stored).toEqual(legacyDevice);
+      // Legacy key should still exist (no migration in getter)
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('migrateLegacyDeviceToken migrates to workspace-scoped storage', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Explicit migration call
+      const migrated = migrateLegacyDeviceToken('workspace-456');
+
+      expect(migrated).toEqual(legacyDevice);
+      // Legacy key should be removed after migration
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+      // New workspace-scoped key should exist
+      expect(localStorage.getItem('voice_relay_device_token_workspace-456')).not.toBeNull();
+    });
+
+    it('migrateLegacyDeviceToken does not migrate for different workspace', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Try to migrate for different workspace
+      const migrated = migrateLegacyDeviceToken('workspace-789');
+
+      expect(migrated).toBeNull();
+      // Legacy key should still exist (not migrated for wrong workspace)
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('does not migrate legacy storage for different workspace on read', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Try to retrieve for different workspace
+      const stored = getStoredDeviceToken('workspace-789');
+
+      expect(stored).toBeNull();
+      // Legacy key should still exist (not migrated for wrong workspace)
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('returns legacy device when no workspace provided (backward compatibility)', () => {
+      const legacyDevice = {
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile' as const,
+      };
+
+      // Store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
+
+      // Retrieve without workspace ID should return legacy device
+      const stored = getStoredDeviceToken();
+
+      expect(stored).toEqual(legacyDevice);
+    });
+  });
+
   describe('clearDeviceToken', () => {
-    it('removes stored token', () => {
+    it('removes stored token for workspace', () => {
       storeDeviceToken({
         deviceId: 'device-123',
         deviceToken: 'token-abc',
@@ -85,15 +253,101 @@ describe('deviceToken utilities', () => {
         mode: 'mobile',
       });
 
-      clearDeviceToken();
+      clearDeviceToken('workspace-456');
       
-      const stored = getStoredDeviceToken();
+      const stored = getStoredDeviceToken('workspace-456');
       expect(stored).toBeNull();
+    });
+
+    it('only clears token for specified workspace', () => {
+      storeDeviceToken({
+        deviceId: 'device-111',
+        deviceToken: 'token-aaa',
+        workspaceId: 'workspace-1',
+        name: 'Phone 1',
+        mode: 'mobile',
+      });
+      storeDeviceToken({
+        deviceId: 'device-222',
+        deviceToken: 'token-bbb',
+        workspaceId: 'workspace-2',
+        name: 'Phone 2',
+        mode: 'mobile',
+      });
+
+      clearDeviceToken('workspace-1');
+      
+      // workspace-1 should be cleared
+      expect(getStoredDeviceToken('workspace-1')).toBeNull();
+      // workspace-2 should still exist
+      expect(getStoredDeviceToken('workspace-2')).not.toBeNull();
+    });
+
+    it('clears legacy storage when it belongs to the same workspace', () => {
+      localStorage.setItem('voice_relay_device_token', JSON.stringify({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile',
+      }));
+
+      clearDeviceToken('workspace-456');
+      
+      // Legacy key should be cleared because it belongs to the same workspace
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+    });
+
+    it('does NOT clear legacy storage when it belongs to a different workspace', () => {
+      // Legacy storage has workspace-A device
+      localStorage.setItem('voice_relay_device_token', JSON.stringify({
+        deviceId: 'device-A',
+        deviceToken: 'token-A',
+        workspaceId: 'workspace-A',
+        name: 'Phone A',
+        mode: 'mobile',
+      }));
+      
+      // Workspace-scoped storage has workspace-B device
+      storeDeviceToken({
+        deviceId: 'device-B',
+        deviceToken: 'token-B',
+        workspaceId: 'workspace-B',
+        name: 'Phone B',
+        mode: 'mobile',
+      });
+      
+      // Clear workspace-B
+      clearDeviceToken('workspace-B');
+      
+      // workspace-B should be cleared
+      expect(getStoredDeviceToken('workspace-B')).toBeNull();
+      // Legacy (workspace-A) should STILL exist - isolation preserved
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('clears legacy storage when JSON is malformed', () => {
+      localStorage.setItem('voice_relay_device_token', 'invalid-json');
+
+      clearDeviceToken('workspace-456');
+      
+      // Invalid JSON should be cleared as it can't be used
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+    });
+
+    it('clears legacy storage when JSON has wrong shape (missing required fields)', () => {
+      // Valid JSON but missing required fields (deviceId, deviceToken, workspaceId)
+      localStorage.setItem('voice_relay_device_token', '{}');
+
+      clearDeviceToken('workspace-456');
+      
+      // Invalid shape should be cleared as garbage data
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
     });
 
     it('handles clearing when nothing stored', () => {
       // Should not throw
-      expect(() => clearDeviceToken()).not.toThrow();
+      expect(() => clearDeviceToken('workspace-456')).not.toThrow();
     });
   });
 
@@ -155,7 +409,7 @@ describe('deviceToken utilities', () => {
 
   describe('validateDeviceToken', () => {
     it('returns null when no token stored', async () => {
-      const result = await validateDeviceToken();
+      const result = await validateDeviceToken('workspace-456');
       expect(result).toBeNull();
     });
 
@@ -180,7 +434,7 @@ describe('deviceToken utilities', () => {
         json: () => Promise.resolve({ device: mockDevice }),
       });
 
-      const result = await validateDeviceToken();
+      const result = await validateDeviceToken('workspace-456');
 
       expect(result).toEqual(mockDevice);
       expect(fetch).toHaveBeenCalledWith('/api/devices/validate', {
@@ -204,11 +458,11 @@ describe('deviceToken utilities', () => {
         status: 401,
       });
 
-      const result = await validateDeviceToken();
+      const result = await validateDeviceToken('workspace-456');
 
       expect(result).toBeNull();
       // Token should be cleared
-      expect(getStoredDeviceToken()).toBeNull();
+      expect(getStoredDeviceToken('workspace-456')).toBeNull();
     });
 
     it('returns null on network error without clearing token', async () => {
@@ -222,11 +476,11 @@ describe('deviceToken utilities', () => {
 
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await validateDeviceToken();
+      const result = await validateDeviceToken('workspace-456');
 
       expect(result).toBeNull();
       // Token should NOT be cleared on network error
-      expect(getStoredDeviceToken()).not.toBeNull();
+      expect(getStoredDeviceToken('workspace-456')).not.toBeNull();
     });
 
     it('returns null on non-401 error without clearing token', async () => {
@@ -243,11 +497,11 @@ describe('deviceToken utilities', () => {
         status: 500,
       });
 
-      const result = await validateDeviceToken();
+      const result = await validateDeviceToken('workspace-456');
 
       expect(result).toBeNull();
       // Token should NOT be cleared on server error
-      expect(getStoredDeviceToken()).not.toBeNull();
+      expect(getStoredDeviceToken('workspace-456')).not.toBeNull();
     });
   });
 
@@ -392,29 +646,38 @@ describe('deviceToken utilities', () => {
     // is tested via parseDeviceCookieJson tests (parsing) and storeDeviceToken tests
     // (localStorage write). Full integration testing requires real browser (Playwright).
 
-    it('prefers localStorage over cookie when both exist', () => {
-      const localStorageDevice = {
-        deviceId: 'local-device',
-        deviceToken: 'local-token',
-        workspaceId: 'local-workspace',
-        name: 'Local Device',
+    it('prefers workspace-scoped localStorage over legacy when both exist', () => {
+      const workspaceScopedDevice = {
+        deviceId: 'scoped-device',
+        deviceToken: 'scoped-token',
+        workspaceId: 'test-workspace',
+        name: 'Scoped Device',
         mode: 'mobile' as const,
       };
 
-      // Store device in localStorage
-      localStorage.setItem('voice_relay_device_token', JSON.stringify(localStorageDevice));
+      const legacyDevice = {
+        deviceId: 'legacy-device',
+        deviceToken: 'legacy-token',
+        workspaceId: 'test-workspace',
+        name: 'Legacy Device',
+        mode: 'mobile' as const,
+      };
 
-      // getStoredDeviceToken should check localStorage first and return it,
-      // without needing to read any cookie
-      const result = getStoredDeviceToken();
+      // Store device in workspace-scoped location
+      localStorage.setItem('voice_relay_device_token_test-workspace', JSON.stringify(workspaceScopedDevice));
+      // Also store in legacy location
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacyDevice));
 
-      expect(result).toEqual(localStorageDevice);
+      // getStoredDeviceToken should prefer workspace-scoped storage
+      const result = getStoredDeviceToken('test-workspace');
+
+      expect(result).toEqual(workspaceScopedDevice);
     });
 
     it('returns null when neither localStorage nor cookie has device info', () => {
       // localStorage is empty (cleared in beforeEach)
       // No cookie set
-      const result = getStoredDeviceToken();
+      const result = getStoredDeviceToken('workspace-456');
       expect(result).toBeNull();
     });
   });
