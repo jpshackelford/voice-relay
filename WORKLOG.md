@@ -270,3 +270,37 @@ Added new "Unified" input mode that combines Web Speech API transcription with o
 | Implementation | 1 | 0 | 1 |
 | Review | 1 | 1 | 2 |
 
+---
+
+### 2026-05-18 15:55 UTC - Review Worker (`09881b0`)
+
+✅ **PR #205 Review Feedback Addressed**
+
+- **PR:** [#205 - feat(client): add unified input mode for voice + visualizer](https://github.com/jpshackelford/voice-relay/pull/205)
+- **Issue:** [#204](https://github.com/jpshackelford/voice-relay/issues/204)
+- **Status:** CI passing ✅, All review threads resolved ✅, Ready for merge
+
+**Review Feedback Addressed (3 threads → all resolved):**
+
+1. **Extract stream cleanup logic** (🟡 Suggestion)
+   - Extracted `cleanupAudioStream()` helper to reduce duplication
+   - Now used consistently in mode change effect and handleMicToggle
+
+2. **Extract getUserMedia + analyser start pattern** (🟡 Suggestion)
+   - Extracted `startAudioVisualizer()` async helper
+   - Centralizes the getUserMedia + analyser.start pattern for reuse
+
+3. **Error handling could be more precise** (🟠 Important)
+   - Unified mode now uses separate try-catch blocks
+   - If speech recognition fails, returns early without starting visualizer
+   - If visualizer fails after speech started, properly cleans up speech
+   - Makes error handling explicit about what succeeded/failed
+
+**Commit:** `c3fa7e1` - refactor(MobileMode): extract helpers and improve error handling
+
+**Verification:**
+- ✅ Client tests: 407 passed
+- ✅ TypeScript: No errors
+
+**PR is ready for merge.**
+
