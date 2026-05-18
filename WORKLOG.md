@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 02:19 UTC - PR #198 Review Feedback Addressed
+
+✅ **Review Feedback Complete**
+
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182)
+- Status: **Ready for review** ✅
+
+**Feedback Addressed:**
+1. ✅ Rollback success notification (thread): Added notification when automatic rollback succeeds to close the feedback loop
+
+**Changes in commit 55d38ab:**
+- Added `Notify on rollback success` step with default priority notification
+- Updated `docs/DEPLOYMENT.md` with rollback success in notification priorities table
+
+**Notification flow now complete:**
+1. Deployment failure → High priority notification
+2. Rollback succeeds → Default priority notification (new)
+3. Rollback fails → Urgent notification requiring manual intervention
+
+**CI Status:** All checks passing
+
+---
+
 ### 2026-05-18 02:22 UTC - PR #199 Ready for Review
 
 🔄 **In Review: Uptime Kuma Health Monitoring Documentation**
