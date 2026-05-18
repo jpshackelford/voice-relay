@@ -26,6 +26,31 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:25 UTC - Implementation Worker
+
+✅ **Implemented Issue #228 - Release Notes Display Issues in Desktop Mode**
+
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **PR:** [#232 - fix(client): release notes desktop display issues](https://github.com/jpshackelford/voice-relay/pull/232)
+- **Type:** Bug Fix (CSS)
+- **Status:** PR open, ready for review
+
+**Summary:**
+Fixed two display issues with the release notes feature in desktop mode:
+1. Button and hint text were appearing side-by-side instead of stacked vertically
+2. Modal was using mobile-style bottom sheet positioning on desktop
+
+**Changes Made:**
+- Added flex column layout to `.whats-new-content` for proper vertical stacking
+- Added desktop media query (>=768px) for `.release-notes-modal` to center the modal
+- Modal uses fade+slide animation instead of bottom-sheet slide-up on desktop
+- Mobile behavior (bottom sheet) preserved for viewports < 768px
+
+**Files Changed:**
+- `client/src/App.css` (+28 lines)
+
+---
+
 ### 2026-05-18 21:19 UTC - Expansion Worker
 
 ✅ **Expanded Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
