@@ -102,6 +102,27 @@ test.describe('AI Assistant Integration', () => {
       await expect(aiStatus).toBeVisible({ timeout: 60000 });
     }
 
+    /**
+     * Wait for AI to reach connected state with retry support.
+     * Uses Playwright's toPass() to handle transient API failures gracefully.
+     * 
+     * The AI connection can fail due to:
+     * - OpenHands API rate limiting or timeouts
+     * - Transient network issues
+     * - Server-side connection pool exhaustion
+     * 
+     * This helper retries the entire connection check for up to 90 seconds,
+     * allowing 30-second intervals for each connection attempt.
+     */
+    async function waitForAIConnected(page: import('@playwright/test').Page) {
+      const aiStatus = page.locator('.ai-status');
+      // Use toPass() for retry logic on transient API failures
+      // This wraps the assertion in a retry loop
+      await expect(async () => {
+        await expect(aiStatus).toHaveClass(/active/, { timeout: 30000 });
+      }).toPass({ timeout: 90000 });
+    }
+
     test('AI auto-connects to session and shows status indicator', async ({ page }) => {
       // Check if AI is available
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
@@ -146,10 +167,8 @@ test.describe('AI Assistant Integration', () => {
       await navigateToKiosk(page, workspace.id);
       await waitForAIAutoConnect(page);
 
-      const aiStatus = page.locator('.ai-status');
-
-      // Wait for connected state (active class) - may briefly show connecting first
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
+      // Wait for connected state with retry for transient failures
+      await waitForAIConnected(page);
 
       // Kiosk AI status indicator should also be visible
       await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
@@ -173,9 +192,8 @@ test.describe('AI Assistant Integration', () => {
       await navigateToKiosk(page, workspace.id);
       await waitForAIAutoConnect(page);
 
-      // Wait for AI to auto-connect
-      const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
+      // Wait for AI to reach connected state with retry for transient failures
+      await waitForAIConnected(page);
 
       // Send a simple message
       const input = page.locator('input[type="text"]');
@@ -211,9 +229,8 @@ test.describe('AI Assistant Integration', () => {
       await navigateToKiosk(page, workspace.id);
       await waitForAIAutoConnect(page);
 
-      // Wait for AI to auto-connect
-      const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
+      // Wait for AI to reach connected state with retry for transient failures
+      await waitForAIConnected(page);
 
       // Intercept display API call to verify AI uses it
       const displayApiPromise = page.waitForRequest(
@@ -267,9 +284,8 @@ test.describe('AI Assistant Integration', () => {
       await navigateToKiosk(page, workspace.id);
       await waitForAIAutoConnect(page);
 
-      // Wait for AI to auto-connect
-      const aiStatus = page.locator('.ai-status');
-      await expect(aiStatus).toHaveClass(/active/, { timeout: 60000 });
+      // Wait for AI to reach connected state with retry for transient failures
+      await waitForAIConnected(page);
 
       // Intercept display API
       const displayApiPromise = page.waitForRequest(
