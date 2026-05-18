@@ -26,6 +26,24 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 19:50 UTC - Merge Worker
+
+✅ **PR #225 Merged - Smoke Test AI Connection Retry Fix**
+
+- **PR:** [#225 - fix(e2e): add retry logic for AI connection in smoke tests](https://github.com/jpshackelford/voice-relay/pull/225)
+- **Issue:** [#213 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/213) (auto-closed)
+- **Type:** Bug fix (test-only)
+- **Risk:** 🟢 LOW - No production code changes
+
+**Summary:**
+Added `waitForAIConnected()` helper using Playwright's `toPass()` for robust retry handling of transient AI connection failures in smoke tests.
+
+**Review Notes:**
+- Code review praised using Playwright's built-in retry mechanism over custom logic
+- E2E tests passing confirms the fix works
+
+---
+
 ### 2026-05-18 19:45 UTC - Implementation Worker
 
 🔧 **PR #225 Created - Smoke Test AI Connection Retry**
@@ -33,7 +51,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - **Issue:** [#213 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/213)
 - **PR:** [#225 - fix(e2e): add retry logic for AI connection in smoke tests](https://github.com/jpshackelford/voice-relay/pull/225)
 - **Type:** Bug fix
-- **Status:** Ready for review, CI green
+- **Status:** ✅ Merged
 
 **Summary:**
 Added retry logic to AI connection assertions in smoke tests to handle transient API failures that were causing false test failures (AI staying stuck in "connecting" state).
