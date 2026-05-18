@@ -25,6 +25,47 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:45 UTC - Review Feedback Worker
+
+✅ **Addressed All Review Feedback on PR #193**
+
+- Issue: [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189)
+- PR: [#193 - fix(client): use workspace-scoped device storage and SQLite default](https://github.com/jpshackelford/voice-relay/pull/193)
+- Status: **Ready for review** ✅ CI GREEN, 8/8 review threads resolved
+
+**Critical Bugs Fixed:**
+
+1. **clearDeviceToken() workspace isolation** (368f515)
+   - Bug: Unconditionally clearing legacy storage when clearing any workspace broke multi-workspace isolation
+   - Fix: Now only clears legacy storage if it belongs to the workspace being cleared
+   - Added test: `does NOT clear legacy storage when it belongs to a different workspace`
+
+2. **Race condition with undefined workspaceId** (f7486ad)
+   - Bug: If workspaceId was undefined at mount, useState initialized with wrong deviceId that never recovered
+   - Fix: Added useEffect to re-initialize state when workspaceId becomes available; added `isInitialized` flag
+
+**Design Improvements:**
+
+3. **Separated migration from getter** (f7486ad)
+   - Problem: `getStoredDeviceToken()` had side effects (migration) buried in a getter function
+   - Fix: Extracted into separate explicit functions:
+     - `migrateLegacyDeviceToken()` - migrates legacy single-key storage
+     - `migrateServerSetDeviceCookie()` - migrates server cookies
+   - `getStoredDeviceToken()` is now a pure read function with no side effects
+
+**Suggestions Implemented:**
+
+4. **Startup log for storage change** (d1100c1)
+   - Added informative log when using new SQLite default storage
+
+**Commits:**
+- 368f515 fix(client): clearDeviceToken only clears legacy if workspace matches
+- f7486ad refactor(client): separate migration logic and fix race condition  
+- d1100c1 chore(server): add startup log for storage driver change
+- 9ac4cf5 fix(client): remove unused import causing build failure
+
+---
+
 ### 2026-05-18 00:39 UTC - E2E Fix Worker
 
 ✅ **Fixed PR #190 E2E Test Failure**
