@@ -178,6 +178,33 @@ Manual actions available at: **Actions → Server Operations → Run workflow**
 - `logs` - Show recent logs
 - `nuke-db` - Reset database (caution!)
 
+### Push Notifications (ntfy.sh)
+
+Deployment failures trigger push notifications via [ntfy.sh](https://ntfy.sh). This provides immediate mobile/desktop alerts when deployments fail, especially critical for rollback failures requiring manual intervention.
+
+#### Subscribing to Notifications
+
+1. **Mobile (iOS/Android)**: Install the ntfy app from [App Store](https://apps.apple.com/app/ntfy/id1625396347) or [Google Play](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+2. **Desktop**: Visit [ntfy.sh](https://ntfy.sh) in your browser or install the [PWA](https://ntfy.sh/app)
+3. **Subscribe to topic**: Add the topic name configured in the `NTFY_TOPIC` repository secret
+
+#### Notification Priorities
+
+| Event | Priority | Tags | Action Needed |
+|-------|----------|------|---------------|
+| Deployment failure | High | ⚠️🚨 | Review logs, automatic rollback may be in progress |
+| Rollback success | Default | ✅🔄 | No action needed - system recovered automatically |
+| Rollback failure | Urgent (max) | 💀🆘 | **Manual intervention required immediately** |
+
+#### Setup for Repository Admins
+
+1. Go to **Repository Settings → Secrets and variables → Actions**
+2. Add new secret: `NTFY_TOPIC` = `<unique-topic-name>`
+   - Use a hard-to-guess topic name (e.g., `voice-relay-prod-alerts-a7b3c9`)
+   - **Security note**: ntfy.sh is a public service. Anyone who discovers this topic name can subscribe to your notifications. Treat it as a shared secret.
+   - Share this topic name only with team members who need alerts
+3. Test by triggering a deliberate deployment failure
+
 ### Manual Deployment
 
 ```bash
