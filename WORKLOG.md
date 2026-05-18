@@ -362,3 +362,36 @@ Added collapsible "Agent Actions" panel in kiosk sidebar that displays real-time
 - ✅ Build passes
 - ✅ CI: All checks green (Build Client, Server Tests, E2E Tests, lint-pr-title)
 
+
+---
+
+### 2026-05-18 16:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d14a3c8` | implementation | Issue #167 - Toggle agent actions | running |
+| `a24926b` | merge | PR #205 - Unified input mode | **NEW** |
+
+**Workers Completed This Cycle:**
+- `09881b0` (review for PR #205) → ✅ All review threads resolved
+
+**Current State:**
+- [PR #206](https://github.com/jpshackelford/voice-relay/pull/206) (draft): CI ✅, Toggle agent actions (#167) - impl worker running
+- [PR #205](https://github.com/jpshackelford/voice-relay/pull/205): CI ✅, all threads resolved ✅ → **Merge worker spawned**
+- Ready issues: #188 (priority:low)
+- Blocked: #197 (needs-human - smoke test failure)
+
+**Actions Taken:**
+🚀 **Spawned: Merge Worker** for [PR #205](https://github.com/jpshackelford/voice-relay/pull/205)
+- Issue: [#204](https://github.com/jpshackelford/voice-relay/issues/204) - Unified input mode
+- Conversation: [`a24926b`](https://app.all-hands.dev/conversations/a24926bfb83a4b63af07974d02f469de)
+- Task: Craft commit message, squash-merge, verify issue closes
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review/Merge | 1 | 1 | 2 |
+
