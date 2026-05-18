@@ -2438,3 +2438,38 @@ Production smoke test and rollback both failed due to **npm cache corruption** o
 | Review | 2 | 2 | Full - addressing PR feedback |
 
 **Human action required:** Clear npm cache on production server to unblock merges.
+
+---
+
+### 2026-05-18 01:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4c38f47` | merge | PR #193 - fix(client): workspace-scoped device storage | **NEW** |
+| `584adf5` | review | PR #190 - fix: add concurrency controls | **NEW** |
+| `81b95b4` | implementation | Issue #182 - ntfy.sh push notifications | **NEW** |
+
+**🚀 Spawned: 3 Workers (parallel)**
+
+1. **Merge Worker** for PR #193
+   - PR: [#193](https://github.com/jpshackelford/voice-relay/pull/193) - CI passing, 0 unresolved threads
+   - Fixes Issue #189 (devices not properly remembered)
+   - Conversation: [`4c38f47`](https://app.all-hands.dev/conversations/4c38f47)
+
+2. **Review Worker** for PR #190
+   - PR: [#190](https://github.com/jpshackelford/voice-relay/pull/190) - CI passing, 2 unresolved threads
+   - Fixes Issue #184 (concurrency controls)
+   - Conversation: [`584adf5`](https://app.all-hands.dev/conversations/584adf5)
+
+3. **Implementation Worker** for Issue #182
+   - Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182) - Add ntfy.sh push notifications (priority:high)
+   - Conversation: [`81b95b4`](https://app.all-hands.dev/conversations/81b95b4)
+
+**Current State:**
+- Open PRs: #195 (1 thread), #193 (ready to merge), #190 (2 threads), #187 (on-hold)
+- Issue #197 has `needs-human` label - skipped
+- Issues needing expansion: None
+- Ready issues remaining: #191, #186, #183, #188, #169, #167, #166
+
+**Slot Usage:** implementation=1/1, review=2/2, expansion=0/4
