@@ -2473,3 +2473,37 @@ Production smoke test and rollback both failed due to **npm cache corruption** o
 - Ready issues remaining: #191, #186, #183, #188, #169, #167, #166
 
 **Slot Usage:** implementation=1/1, review=2/2, expansion=0/4
+---
+### 2026-05-18 01:51 UTC - Merge Worker
+
+✅ **Merged PR #193 → Issue #189 CLOSED**
+
+- PR: [#193 - fix(client): use workspace-scoped device storage and SQLite default](https://github.com/jpshackelford/voice-relay/pull/193)
+- Issue: [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189) **CLOSED**
+- Merge Type: Squash merge to main
+- Commit: `fix(device-persistence): use workspace-scoped storage and SQLite default`
+
+**Summary:**
+Fixed devices not being remembered between browser sessions. Two root causes addressed:
+1. Server defaulted to memory storage (loses data on restart) → Changed to SQLite default
+2. Single localStorage key for all workspaces → Workspace-scoped keys
+
+**Key Changes:**
+- Server: Default `STORE_DRIVER` changed from `memory` to `sqlite`
+- Client: Device tokens stored per-workspace (`voice_relay_device_token_{workspaceId}`)
+- Fixed multi-workspace isolation bug in `clearDeviceToken()`
+- Fixed race condition when `workspaceId` loads asynchronously
+- Added `parseDeviceJson()` for consistent validation
+
+**Review Evolution:**
+- Initial commit flagged with critical bugs (data loss, race conditions)
+- 8 follow-up commits addressed all review feedback
+- Final review: 🟡 Acceptable with minor code clarity suggestions
+
+**Production Notes:**
+- No database migrations required
+- One-time device re-registration for existing memory-storage deployments
+- App auto-deploys to vr.chorecraft.net on merge
+
+**Test Coverage:** 36 deviceToken tests, 14 useDeviceRestoration tests, 333 client + 598 server tests passing
+
