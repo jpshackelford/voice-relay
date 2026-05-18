@@ -25,6 +25,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 03:18 UTC - Merge Worker
+
+**PR #201 Merged** ✅
+
+- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
+- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169) (auto-closed)
+- **Commit:** `feat(client): simplify kiosk mode connection indicator to solid dot`
+
+**Summary:**
+Replaced plug emoji (🔌) connection indicator with minimal solid colored dot:
+- Green (#00c853) when connected, red (#ff4444) when disconnected
+- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
+- Pure CSS solution eliminates emoji dependency for cross-platform consistency
+
+**Review Evolution:**
+1. Initial review: CSS simplification approved, requested screenshots
+2. Feedback addressed: Added screenshots to `docs/screenshots/`
+3. Final review: "Worth merging" with LOW risk assessment
+
+**Deployed:** Auto-deploying to vr.chorecraft.net
+
+---
+
 ### 2026-05-18 03:13 UTC - PR Review Worker
 
 **PR #201 Review Addressed** ✅
