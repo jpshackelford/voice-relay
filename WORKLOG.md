@@ -25,6 +25,33 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:28 UTC - Review Feedback Worker
+
+✅ **Completed Additional Review Feedback on PR #193**
+
+- Issue: [#189 - Device persistence bug](https://github.com/jpshackelford/voice-relay/issues/189)
+- PR: [#193 - fix(client): use workspace-scoped device storage and SQLite default](https://github.com/jpshackelford/voice-relay/pull/193)
+- Status: **Ready for review** ✅ CI GREEN, **all review threads resolved**
+
+**Commits Pushed:**
+
+1. **Add test for invalid shape handling (8834f88):**
+   - Added test `clears legacy storage when JSON has wrong shape` to verify clearDeviceToken handles valid JSON with missing required fields
+   - Ensures consistent error handling for both malformed JSON and invalid shape
+
+2. **Add workspace validation to workspace-scoped storage (65d4a25):**
+   - Added defense-in-depth validation: `device.workspaceId === workspaceId` for workspace-scoped storage
+   - Catches data corruption where key and stored workspaceId don't match
+   - Makes validation consistent across all storage sources (workspace-scoped, legacy, cookie)
+   - Added test `returns null when workspace-scoped storage contains wrong workspaceId`
+
+**All 14 Review Threads Resolved:**
+- 10 threads from initial reviews (already resolved)
+- 2 threads from latest review (code duplication, inconsistent error handling) - explained existing design
+- 2 new threads (workspace validation consistency, test coverage) - fixed in 65d4a25
+
+---
+
 ### 2026-05-18 01:25 UTC - Review Feedback Worker
 
 ✅ **Completed All Review Feedback on PR #195**
