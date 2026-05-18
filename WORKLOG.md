@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:50 UTC - Expansion Worker
+
+✅ **Expanded Issue #218**
+
+- Issue: [#218 - Add "What's New" release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/issues/218)
+- Type: Enhancement
+- Status: Ready for implementation
+- Labels: `ready`, `enhancement`, `client`, `priority:low`
+
+**Summary:**
+Expanded issue with detailed technical specification for adding the existing "What's New" release notes feature to the desktop workspace home page. The `ReleaseNotes` component already exists and works in mobile settings - just needs to be exposed in the desktop UI.
+
+**Technical Approach:**
+- Add `ReleaseNotes` component import and state to `WorkspaceHome.tsx`
+- Create new "What's New" section visible to all users (not owner-only)
+- Add CSS styles for `.whats-new-section` and `.whats-new-btn`
+- ~30 minutes estimated effort
+
+**Files affected:** `WorkspaceHome.tsx`, `App.css`
+
+---
+
 ### 2026-05-18 17:49 UTC - Expansion Worker
 
 ✅ **Issue #219 Closed (No Action Needed)**
