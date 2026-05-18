@@ -25,31 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 00:06 UTC - Expansion Worker
+### 2026-05-18 00:07 UTC - Expansion Worker
 
-✅ **Expanded Issue #188 - API permissions in ElevenLabs settings**
+✅ **Expanded Issue #188 - ElevenLabs API permissions and voice test**
 
-- Issue: [#188 - API permissions in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/issues/188)
+- Issue: [#188 - feat: Add API permissions info and voice test button in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/issues/188)
 - Type: Enhancement
-- Status: Ready for implementation
+- Priority: **LOW**
+- Status: **Ready for implementation** ✅
 
-**Summary:**
-Enhance ElevenLabs settings UI with:
-1. API permissions info text below API key input (Required: Text to Speech)
-2. Voice test button next to voice selector dropdown
+**Problem:**
+Users don't know which ElevenLabs API permissions to enable when creating API keys. Also, there's no way to preview how a voice sounds before using it in conversations.
 
-**Approach:**
-- Add permissions text using existing `setting-hint` class
-- New `POST /:id/settings/elevenlabs-voice-test` endpoint reusing `synthesize()` TTS function
-- Frontend button plays short test message via browser Audio API
+**Proposed Solution:**
+1. Add permissions info text below API key help: "Required permissions: Text to Speech, Voices (Read)"
+2. Add voice preview button next to voice selector that plays the voice's preview audio
 
-**Files Affected:**
-- `client/src/pages/WorkspaceHome.tsx` - Add UI elements
-- `client/src/hooks/useWorkspaceSettings.ts` - Add `testVoice()` method
-- `server/src/workspaces/router.ts` - Add voice test endpoint
-- `client/src/App.css` - Button styles
+**Recommended Approach:** Use `preview_url` field from ElevenLabs voices endpoint - no additional API calls needed, simpler implementation.
 
-**Complexity:** Low - leverages existing TTS infrastructure
+**Files to Modify:**
+- `client/src/pages/WorkspaceHome.tsx` - Add permissions text and preview button
+- `client/src/hooks/useWorkspaceSettings.ts` - Add `preview_url` to `ElevenlabsVoice` interface
+- `client/src/App.css` - Add button styles
+
+**Estimated Effort:** ~1 hour
 
 ---
 
@@ -59,29 +58,22 @@ Enhance ElevenLabs settings UI with:
 
 - Issue: [#185 - In-app release notes viewer](https://github.com/jpshackelford/voice-relay/issues/185)
 - Type: Enhancement  
-- Status: Ready for implementation ✅ `ready` label added
+- Status: Ready for implementation
 
 **Summary:**
-Users need a way to see what changed in recent deployments without leaving the app. The app deploys frequently (148 `deploy-success-*` tags exist) but has no user-facing changelog.
+Users need a way to see what changed in recent deployments without leaving the app. The app deploys frequently (149 deploy tags exist) but has no user-facing changelog.
 
 **Selected Approach:** Build-time changelog generation (Option D from original discussion)
 - Generate `changelog.json` during build from git history between `deploy-success-*` tags
-- **Offline-first**: Changelog bundled at build time, no runtime API calls needed
-- Client modal accessible from MobileSettings via "📦 What's New" link
+- Server API endpoint (`GET /api/changelog`) serves pre-generated data
+- Client modal accessible from MobileSettings via "What's New" link
 - Relative time display using `Intl.RelativeTimeFormat`, tap for absolute time
 
 **Files Affected:**
-| File | Action | Description |
-|------|--------|-------------|
-| `scripts/generate-changelog.ts` | Create | Git tag parser → changelog.json |
-| `client/src/components/ReleaseNotes.tsx` | Create | Modal component for release notes |
-| `client/src/utils/relativeTime.ts` | Create | Relative time formatter utility |
-| `client/src/components/MobileSettings.tsx` | Modify | Add "What's New" link |
-| `client/src/App.css` | Modify | Add release notes modal styles |
-| `client/package.json` | Modify | Add prebuild script |
-| `.gitignore` | Modify | Add changelog.json |
+- New: `scripts/generate-changelog.ts`, `client/src/components/ReleaseNotes.tsx`, `client/src/components/RelativeTime.tsx`
+- Modified: `server/src/index.ts` (add endpoint), `client/src/components/MobileSettings.tsx`, `client/src/App.css`, `package.json`
 
-**Complexity:** Medium - follows existing MobileSettings modal patterns
+**Complexity:** Medium - multiple components but follows established patterns
 
 ---
 
