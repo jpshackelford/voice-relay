@@ -365,6 +365,26 @@ Added collapsible "Agent Actions" panel in kiosk sidebar that displays real-time
 
 ---
 
+### 2026-05-18 16:49 UTC - Expansion Worker
+
+✅ **Issue #209 Expanded and Ready**
+
+- **Issue:** [#209](https://github.com/jpshackelford/voice-relay/issues/209) - Fix Express trust proxy configuration causing proxy errors
+- **Labels Added:** `ready`, `priority:high`
+
+**Root Cause Verified:**
+- Express app created at `server/src/index.ts:95` without `trust proxy` setting
+- `express-rate-limit` v8.5.0 throws ValidationError when X-Forwarded-For header is present but trust proxy is false
+- The `qrTokenLimiter` in sessions/router.ts triggers the error (lacks the `xForwardedForHeader: false` workaround)
+
+**Implementation Details Added:**
+- File to modify: `server/src/index.ts`
+- Add `app.set('trust proxy', 1)` after `const app = express();` (line 95)
+- This is the standard Express configuration for apps behind reverse proxies
+
+**Status:** Ready for implementation worker to pick up.
+
+---
 ### 2026-05-18 16:04 UTC - Orchestrator
 
 **Active Workers:**
