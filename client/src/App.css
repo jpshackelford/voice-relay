@@ -4058,6 +4058,9 @@ header {
 
 .whats-new-content {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .whats-new-btn {
@@ -4910,6 +4913,31 @@ header {
 
 .release-notes-modal.open {
   transform: translateY(0);
+}
+
+/* Desktop: center modal instead of bottom sheet */
+@media (min-width: 768px) {
+  .release-notes-modal {
+    top: 10%;
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(-20px);
+    opacity: 0;
+    max-width: 600px;
+    max-height: 80vh;
+    border-radius: 16px;
+    transition: transform 0.25s ease-out, opacity 0.25s ease-out;
+  }
+
+  .release-notes-modal.open {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .release-notes-header {
+    border-radius: 16px 16px 0 0;
+  }
 }
 
 .release-notes-header {
