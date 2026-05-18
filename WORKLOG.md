@@ -25,6 +25,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:20 UTC - PR #194 Merged
+
+✅ **MERGED: In-App Release Notes Viewer**
+
+- Issue: [#185 - Release Notes in Mobile](https://github.com/jpshackelford/voice-relay/issues/185) — **CLOSED**
+- PR: [#194 - feat(client): add in-app release notes viewer](https://github.com/jpshackelford/voice-relay/pull/194) — **MERGED**
+- Commit: `678e242` (squash merge)
+- Production: Auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Added release notes feature accessible from mobile settings ("📦 What's New" link). Users can see recent feat/fix commits from deploy tags with relative timestamps. 37 new tests added.
+
+**Key Files:**
+- `scripts/generate-changelog.ts` - Build-time changelog generation with command injection protection
+- `server/src/index.ts` - `/api/changelog` endpoint with typed interface
+- `client/src/components/ReleaseNotes.tsx` - Modal component with localStorage caching
+- `client/src/utils/relativeTime.ts` - Intl.RelativeTimeFormat utility
+
+---
+
 ### 2026-05-18 01:25 UTC - Review Feedback Worker (Round 2)
 
 ✅ **Completed All Review Feedback on PR #194**
