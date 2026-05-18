@@ -36,7 +36,6 @@ describe('useAgentActions hook', () => {
 
     expect(result.current.actions).toHaveLength(0);
     expect(result.current.showActions).toBe(false);
-    expect(result.current.actionCount).toBe(0);
   });
 
   it('loads showActions state from localStorage', () => {
@@ -90,7 +89,6 @@ describe('useAgentActions hook', () => {
     expect(result.current.actions).toHaveLength(1);
     expect(result.current.actions[0].id).toBe('action-1');
     expect(result.current.actions[0].kind).toBe('CmdRunAction');
-    expect(result.current.actionCount).toBe(1);
   });
 
   it('handleAgentAction filters by sessionId', () => {
@@ -226,7 +224,6 @@ describe('useAgentActions hook', () => {
     });
 
     expect(result.current.actions).toHaveLength(0);
-    expect(result.current.actionCount).toBe(0);
   });
 });
 

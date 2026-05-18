@@ -71,8 +71,6 @@ export function useAgentActions(sessionId?: string) {
     actions,
     /** Whether the actions panel is visible */
     showActions,
-    /** Number of actions currently stored */
-    actionCount: actions.length,
     /** Handle an incoming agent action message */
     handleAgentAction,
     /** Toggle the visibility of the actions panel */
