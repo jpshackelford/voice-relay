@@ -10,7 +10,8 @@ import {
   getServerSetDeviceToken,
   parseDeviceCookieJson,
   migrateLegacyDeviceToken,
-  migrateServerSetDeviceCookie,
+  // migrateServerSetDeviceCookie is tested via integration tests (Playwright)
+  // as it requires cookie manipulation that jsdom doesn't fully support
 } from './deviceToken';
 
 describe('deviceToken utilities', () => {
