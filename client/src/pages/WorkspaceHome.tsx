@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
@@ -330,6 +330,10 @@ export function WorkspaceHome() {
   // ElevenLabs voice selection state
   const [voices, setVoices] = useState<ElevenlabsVoice[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
+  
+  // Voice preview state
+  const [voicePreviewStatus, setVoicePreviewStatus] = useState<'idle' | 'loading' | 'playing'>('idle');
+  const voicePreviewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Version info from health endpoint
   const [version, setVersion] = useState<string | null>(null);
@@ -672,6 +676,77 @@ export function WorkspaceHome() {
       setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update TTS setting: ' + getErrorMessage(err) });
     }
   };
+
+  // Stop any currently playing voice preview
+  const stopVoicePreview = useCallback(() => {
+    if (voicePreviewAudioRef.current) {
+      voicePreviewAudioRef.current.pause();
+      voicePreviewAudioRef.current.currentTime = 0;
+      voicePreviewAudioRef.current = null;
+    }
+    setVoicePreviewStatus('idle');
+  }, []);
+
+  // Play voice preview using ElevenLabs preview_url
+  const handleVoicePreview = useCallback(() => {
+    const selectedVoice = voices.find(v => v.voice_id === (settings?.elevenlabsVoiceId || DEFAULT_ELEVENLABS_VOICE_ID));
+    
+    // If already playing, stop it
+    if (voicePreviewStatus === 'playing') {
+      stopVoicePreview();
+      return;
+    }
+    
+    if (!selectedVoice?.preview_url) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'No preview available for this voice' });
+      return;
+    }
+
+    // Stop any existing preview
+    stopVoicePreview();
+    
+    setVoicePreviewStatus('loading');
+    
+    const audio = new Audio(selectedVoice.preview_url);
+    voicePreviewAudioRef.current = audio;
+    
+    audio.onended = () => {
+      setVoicePreviewStatus('idle');
+      voicePreviewAudioRef.current = null;
+    };
+    
+    audio.onerror = () => {
+      setVoicePreviewStatus('idle');
+      voicePreviewAudioRef.current = null;
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
+    };
+    
+    audio.play()
+      .then(() => setVoicePreviewStatus('playing'))
+      .catch(() => {
+        setVoicePreviewStatus('idle');
+        voicePreviewAudioRef.current = null;
+        setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to play voice preview' });
+      });
+  }, [voices, settings?.elevenlabsVoiceId, voicePreviewStatus, stopVoicePreview]);
+
+  // Stop preview when voice changes
+  useEffect(() => {
+    stopVoicePreview();
+  }, [settings?.elevenlabsVoiceId, stopVoicePreview]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (voicePreviewAudioRef.current) {
+        const audio = voicePreviewAudioRef.current;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.pause();
+        voicePreviewAudioRef.current = null;
+      }
+    };
+  }, []);
 
   // Copy invite link to clipboard
   const handleCopyInviteLink = async () => {
@@ -1068,6 +1143,9 @@ export function WorkspaceHome() {
                   Your ElevenLabs API key for natural text-to-speech. 
                   Get one at <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer">elevenlabs.io</a>
                 </span>
+                <span className="setting-hint permissions-hint">
+                  <strong>Required permissions:</strong> Text to Speech
+                </span>
               </div>
 
               {/* Voice Selection (only when ElevenLabs key is configured) */}
@@ -1092,6 +1170,21 @@ export function WorkspaceHome() {
                       <option value={DEFAULT_ELEVENLABS_VOICE_ID}>Aria (Default)</option>
                     )}
                   </select>
+                  <button
+                    onClick={handleVoicePreview}
+                    disabled={!settings?.hasElevenlabsApiKey || voicesLoading || voicePreviewStatus === 'loading'}
+                    className={`voice-preview-btn ${voicePreviewStatus}`}
+                    title={voicePreviewStatus === 'playing' ? 'Stop preview' : 'Test voice'}
+                    aria-label={voicePreviewStatus === 'playing' ? 'Stop voice preview' : 'Test selected voice'}
+                  >
+                    {voicePreviewStatus === 'loading' ? (
+                      '⏳'
+                    ) : voicePreviewStatus === 'playing' ? (
+                      '⏹️'
+                    ) : (
+                      '▶️'
+                    )}
+                  </button>
                 </div>
                 <span className="setting-hint">
                   Select the voice for text-to-speech output

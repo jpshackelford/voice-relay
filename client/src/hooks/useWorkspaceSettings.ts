@@ -23,6 +23,7 @@ export interface ElevenlabsVoice {
   voice_id: string;
   name: string;
   labels?: Record<string, string>;
+  preview_url?: string;
 }
 
 interface UseWorkspaceSettingsReturn {
