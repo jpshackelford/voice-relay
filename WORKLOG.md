@@ -459,6 +459,30 @@ Added collapsible "Agent Actions" panel in kiosk sidebar that displays real-time
 | Review | 1 | 1 | 2 |
 
 ---
+### 2026-05-18 16:51 UTC - Implementation Worker (`80b043a`)
+
+✅ **PR #212 Created - Add npm cache cleanup to rollback script**
+
+- **PR:** [#212 - Add npm cache cleanup to rollback script](https://github.com/jpshackelford/voice-relay/pull/212)
+- **Issue:** [#207](https://github.com/jpshackelford/voice-relay/issues/207) (Fixes #207)
+- **Status:** CI passing ✅, Ready for review
+
+**Changes:**
+- Modified `.github/workflows/deploy.yml` (lines 342-346)
+- Added `npm cache clean --force` before `rm -rf node_modules` in rollback step
+- Updated comment to explain why both cache and node_modules need cleaning
+
+**Why this matters:**
+During the incident tracked in #197, the automatic rollback failed because it inherited the same corrupted npm cache that caused the original deployment failure. This created a cascading failure where both the initial deployment AND the recovery mechanism failed simultaneously. This fix ensures rollbacks start with a clean slate.
+
+**Acceptance Criteria Met:**
+- ✅ Rollback script clears npm cache before reinstalling dependencies
+- ✅ Comment explains why both cache and node_modules need cleaning
+- ✅ YAML syntax validated (Python yaml parser + CI workflow runs)
+
+**PR is ready for review.**
+
+---
 
 ### 2026-05-18 16:54 UTC - Review Worker (`da86766`)
 
