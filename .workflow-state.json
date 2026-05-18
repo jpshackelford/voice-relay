@@ -2,25 +2,25 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "6a8004a",
-        "issue": 192,
-        "started": "2026-05-18T01:07:18.521480+00:00"
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "ee50161",
+        "conv_id": "9c1db1f3",
         "pr": 194,
-        "type": "review",
-        "started": "2026-05-18T01:07:18.521480+00:00"
+        "type": "merge",
+        "started": "2026-05-18T01:19:58.200493+00:00"
       },
       {
-        "conv_id": "8fcf3d7",
+        "conv_id": "2a506fb",
         "pr": 193,
         "type": "review",
-        "started": "2026-05-18T01:07:18.521480+00:00"
+        "started": "2026-05-18T01:19:58.200493+00:00"
+      },
+      {
+        "conv_id": "6c95d13",
+        "pr": 195,
+        "type": "review",
+        "started": "2026-05-18T01:19:58.200493+00:00"
       }
     ]
   },
@@ -29,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T01:07:18.521480+00:00",
+  "last_updated": "2026-05-18T01:19:58.200493+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -367,6 +367,33 @@
       "finished": "2026-05-18T01:04:03.988141+00:00",
       "status": "unknown",
       "outcome": "Addressed review on PR #193"
+    },
+    {
+      "conv_id": "6a8004a",
+      "type": "implementation",
+      "started": "2026-05-18T01:07:18.521480+00:00",
+      "finished": "2026-05-18T01:18:01.800817+00:00",
+      "status": "finished",
+      "issue": 192,
+      "outcome": "Completed work for issue #192"
+    },
+    {
+      "conv_id": "ee50161",
+      "type": "review",
+      "started": "2026-05-18T01:07:18.521480+00:00",
+      "finished": "2026-05-18T01:18:01.800817+00:00",
+      "status": "finished",
+      "pr": 194,
+      "outcome": "Completed work for PR #194"
+    },
+    {
+      "conv_id": "8fcf3d7",
+      "type": "review",
+      "started": "2026-05-18T01:07:18.521480+00:00",
+      "finished": "2026-05-18T01:18:01.800817+00:00",
+      "status": "finished",
+      "pr": 193,
+      "outcome": "Completed work for PR #193"
     }
   ]
 }
