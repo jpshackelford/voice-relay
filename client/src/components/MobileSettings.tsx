@@ -45,6 +45,11 @@ export function MobileSettings({
   // Derive TTS enabled state from session settings (default to false if not set)
   const ttsEnabled = sessionTtsSettings?.enabled ?? false;
 
+  // Validate selected device exists (gracefully fall back to 'all' if device disconnected)
+  const selectedDeviceId = sessionTtsSettings?.outputDeviceId ?? null;
+  const deviceExists = selectedDeviceId === null || kioskDevices.some(d => d.id === selectedDeviceId);
+  const effectiveTtsDeviceValue = deviceExists ? (selectedDeviceId ?? 'all') : 'all';
+
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
@@ -100,7 +105,7 @@ export function MobileSettings({
                 <span className="toggle-label">Audio Output</span>
                 <select
                   className="mobile-settings-select"
-                  value={sessionTtsSettings?.outputDeviceId ?? 'all'}
+                  value={effectiveTtsDeviceValue}
                   onChange={(e) => onSessionTtsSettingsChange?.({
                     enabled: ttsEnabled,
                     outputDeviceId: e.target.value === 'all' ? null : e.target.value,

@@ -303,6 +303,11 @@ export function KioskMode({
   // without needing additional state preservation logic in KioskMode
   const mobileDevices = devices.filter(d => d.mode === 'mobile');
 
+  // Validate selected device exists (gracefully fall back to 'all' if device disconnected)
+  const selectedDeviceId = sessionTtsSettings?.outputDeviceId ?? null;
+  const deviceExists = selectedDeviceId === null || kioskDevices.some(d => d.id === selectedDeviceId);
+  const effectiveTtsDeviceValue = deviceExists ? (selectedDeviceId ?? 'all') : 'all';
+
   // On mobile, render a simplified conversation-only view
   if (isMobile) {
     return (
@@ -447,7 +452,7 @@ export function KioskMode({
             {ttsEnabled && kioskDevices.length > 0 && (
               <select
                 className="kiosk-tts-device-select"
-                value={sessionTtsSettings?.outputDeviceId ?? 'all'}
+                value={effectiveTtsDeviceValue}
                 onChange={(e) => onSessionTtsSettingsChange?.({
                   enabled: ttsEnabled,
                   outputDeviceId: e.target.value === 'all' ? null : e.target.value,

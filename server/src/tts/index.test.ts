@@ -75,7 +75,7 @@ describe('TtsService', () => {
       mockGetWorkspaceSettings.mockReturnValue(null);
 
       // Even with session TTS enabled, missing workspace settings should prevent TTS
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true, outputDeviceId: null });
 
       expect(mockDecryptApiKey).not.toHaveBeenCalled();
       expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
@@ -88,7 +88,7 @@ describe('TtsService', () => {
       });
 
       // Even with session TTS enabled, disabled workspace TTS should prevent synthesis
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true, outputDeviceId: null });
 
       expect(mockDecryptApiKey).not.toHaveBeenCalled();
       expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe('TtsService', () => {
       }));
 
       // Must pass sessionTtsSettings with enabled: true (defaults to disabled if undefined)
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true, outputDeviceId: null });
 
       expect(mockDecryptApiKey).toHaveBeenCalledWith({
         encrypted: 'encrypted-key',
@@ -124,7 +124,7 @@ describe('TtsService', () => {
     it('does nothing when sessionTtsSettings.enabled is false', async () => {
       mockGetWorkspaceSettings.mockReturnValue(mockSettings);
 
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: false });
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: false, outputDeviceId: null });
 
       expect(mockDecryptApiKey).not.toHaveBeenCalled();
       expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
