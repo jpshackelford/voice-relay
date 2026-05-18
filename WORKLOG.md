@@ -2663,3 +2663,33 @@ All slots now occupied (1 impl + 2 review). Expansion slots available but no iss
 
 _This review was performed by an AI agent (OpenHands) on behalf of the repository maintainer._
 
+---
+### 2026-05-18 03:00 UTC - Implementation Worker (`2bf4dd9`)
+
+✅ **PR #201 Ready for Review - Issue #169 (Simplify Kiosk Connection Indicator)**
+
+- Issue: [#169 - UI: Simplify kiosk mode connection indicator - replace icon with solid dot](https://github.com/jpshackelford/voice-relay/issues/169)
+- PR: [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
+- Status: **Ready for review** ✅
+
+**Problem:**
+Kiosk connection indicator used a plug emoji (🔌) with colored border, creating visual clutter and competing with the AI status indicator (both bottom-right).
+
+**Solution:**
+- Replaced plug emoji with minimal solid-colored dot
+- Green (#00c853) when connected, red (#ff4444) when disconnected
+- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
+- Reduced size from 2.5rem to 0.75rem (0.625rem on mobile)
+- Maintained pulse animation for disconnected visibility
+- Preserved hover tooltip for accessibility
+
+**Files Modified:**
+- `client/src/components/KioskMode.tsx` - Removed emoji, updated comments
+- `client/src/App.css` - Simplified styling, repositioned to left
+
+**CI Status:** All checks passing ✅ (Build, Server Tests, E2E, Conventional Commits)
+
+**Risk:** 🟢 LOW - CSS-only visual change, no functionality affected
+
+_This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
+
