@@ -57,7 +57,7 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
 
   // Refs for audio processing
   const audioContextRef = useRef<AudioContext | null>(null);
-  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -222,7 +222,7 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
       scriptProcessor.connect(audioContext.destination);
       
       // Store reference for cleanup
-      workletNodeRef.current = scriptProcessor as unknown as AudioWorkletNode;
+      processorNodeRef.current = scriptProcessor;
       
       // Update both ref and state - ref for callbacks, state for UI
       isStreamingRef.current = true;
@@ -262,9 +262,9 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
     }
     
     // Disconnect and clean up
-    if (workletNodeRef.current) {
-      workletNodeRef.current.disconnect();
-      workletNodeRef.current = null;
+    if (processorNodeRef.current) {
+      processorNodeRef.current.disconnect();
+      processorNodeRef.current = null;
     }
     
     if (sourceRef.current) {
