@@ -25,6 +25,25 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:55 UTC - Review Feedback Addressed
+
+✅ **PR #190 Review Feedback Complete**
+
+- PR: [#190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+- Status: **Ready for review** ✅
+
+**Feedback Addressed:**
+1. ✅ Timeout protection (thread 1): `timeout-minutes: 15` was already added in commit 5c08b06
+2. ✅ PR scope documentation (thread 2): Updated PR description to document E2E test changes
+
+**Changes in PR:**
+- Workflow concurrency: `cancel-in-progress: false` with 15-minute timeout
+- E2E test fix: Added `.connection-dot.connected` detection for mobile walkie UI
+
+**CI Status:** All checks passing
+
+---
+
 ### 2026-05-17 19:20 UTC - Expansion Worker (`c540bf0`)
 
 ✅ **Expanded Issue #165**
