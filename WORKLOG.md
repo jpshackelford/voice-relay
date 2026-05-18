@@ -26,6 +26,32 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 22:04 UTC - Merge Worker
+
+✅ **Merged PR #234 - Changelog Generator Fixes**
+
+- **PR:** [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+- **Issue:** [#230 - fix: Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230) (auto-closed)
+- **Type:** Bug Fix
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Fixed three bugs in the changelog generator for the "What's New" feature:
+
+1. **Boundary bug fix**: Stop processing before the last tag to ensure every entry has a valid range (was showing 80+ commits from repo inception)
+2. **Remove arbitrary limit**: Process all deploy tags instead of limiting to 20 (56 entries vs 6 previously)
+3. **Seed file for pre-tag history**: Added `scripts/changelog-seed.json` with manually curated entries for first 10 days of development
+
+**Technical Details:**
+- Build-time only change - no database migrations
+- Modified: `scripts/generate-changelog.ts`
+- Added: `scripts/changelog-seed.json`
+- Safe for production - affects only static changelog JSON generated at build time
+
+**Review:** 🟢 LOW risk - Code review approved
+
+---
+
 ### 2026-05-18 21:51 UTC - Review Worker
 
 ✅ **Addressed Review Feedback on PR #233 - Terms of Service and Privacy Policy**
