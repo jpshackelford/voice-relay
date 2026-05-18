@@ -1,9 +1,9 @@
 /**
- * Tests for OpenHands module - loadPrompt function and AISessionManager
+ * Tests for OpenHands module - loadPrompt function, AISessionManager, and formatEventSummary
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadPrompt, getServerUrl, AISessionManager, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -439,5 +439,430 @@ describe('AISession interface', () => {
     };
     
     expect(session.sessionId).toBe('session-456');
+  });
+});
+
+
+describe('formatEventSummary', () => {
+  describe('V1 wrapped ActionEvent format', () => {
+    test('formats CmdRun action with command', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'run',
+          command: 'curl -X POST http://localhost:12000/api/display'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('curl -X POST http://localhost:12000/api/display');
+    });
+
+    test('truncates long commands', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'run',
+          command: 'this is a very long command that should be truncated because it exceeds 60 characters'
+        }
+      };
+      const result = formatEventSummary(event);
+      expect(result.length).toBe(60);
+      expect(result).toContain('...');
+    });
+
+    test('formats read action with path', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'read',
+          path: '/workspace/project/voice-relay/client/src/App.tsx'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Read /workspace/project/voice-relay/client/src/App.tsx');
+    });
+
+    test('formats write action with path', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'write',
+          path: '/workspace/test.ts'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Write /workspace/test.ts');
+    });
+
+    test('formats edit action with path', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'edit',
+          path: '/workspace/test.ts'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Edit /workspace/test.ts');
+    });
+
+    test('formats browse action with url', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'browse',
+          url: 'https://example.com/page'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Navigate to https://example.com/page');
+    });
+
+    test('formats think action with thought', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'think',
+          thought: 'I need to analyze this code'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('I need to analyze this code');
+    });
+
+    test('formats finish action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'finish'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Task completed');
+    });
+
+    test('formats delegate action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'delegate'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Delegating to sub-agent');
+    });
+
+    test('formats message action with content', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'message',
+          content: 'The user has connected me to a voice relay session.'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('The user has connected me to a voice relay session.');
+    });
+
+    test('handles unknown action type', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          action: 'custom_action'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Custom_action');
+    });
+
+    test('handles ActionEvent without action object', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent'
+      };
+      expect(formatEventSummary(event)).toBe('Action');
+    });
+
+    test('handles ActionEvent with string action (edge case)', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: 'not-an-object'
+      };
+      expect(formatEventSummary(event)).toBe('Action');
+    });
+  });
+
+  describe('V1 wrapped ObservationEvent format', () => {
+    test('formats command output observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'run',
+          content: 'curl response: {"status":"ok"}'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Output: curl response: {"status":"ok"}');
+    });
+
+    test('formats cmd_output observation type', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'cmd_output',
+          content: 'Hello, World!'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Output: Hello, World!');
+    });
+
+    test('formats read observation with path', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'read',
+          path: '/workspace/file.ts'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Read /workspace/file.ts');
+    });
+
+    test('formats write observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'write',
+          path: '/workspace/output.txt'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Wrote /workspace/output.txt');
+    });
+
+    test('formats edit observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'edit',
+          path: '/workspace/modified.ts'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Edited /workspace/modified.ts');
+    });
+
+    test('formats browse observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'browse',
+          url: 'https://example.com'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Browsed https://example.com');
+    });
+
+    test('formats error observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'error',
+          content: 'Command failed with exit code 1'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Error: Command failed with exit code 1');
+    });
+
+    test('formats agent observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'agent'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Agent observation');
+    });
+
+    test('handles unknown observation type', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'custom'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Custom result');
+    });
+
+    test('handles ObservationEvent without observation object', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent'
+      };
+      expect(formatEventSummary(event)).toBe('Observation');
+    });
+
+    test('truncates long output content', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'agent',
+        observation: {
+          observation: 'run',
+          content: 'A'.repeat(100)
+        }
+      };
+      const result = formatEventSummary(event);
+      expect(result.length).toBeLessThanOrEqual(63); // "Output: " + 55 chars
+      expect(result).toContain('...');
+    });
+  });
+
+  describe('SystemPromptEvent and MessageEvent', () => {
+    test('formats SystemPromptEvent', () => {
+      const event = {
+        kind: 'SystemPromptEvent',
+        source: 'agent'
+      };
+      expect(formatEventSummary(event)).toBe('System prompt loaded');
+    });
+
+    test('formats MessageEvent with llm_message content', () => {
+      const event = {
+        kind: 'MessageEvent',
+        source: 'agent',
+        llm_message: {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'I understand you want me to help with something.' }
+          ]
+        }
+      };
+      expect(formatEventSummary(event)).toBe('I understand you want me to help with something.');
+    });
+
+    test('truncates long MessageEvent content', () => {
+      const event = {
+        kind: 'MessageEvent',
+        source: 'agent',
+        llm_message: {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'X'.repeat(100) }
+          ]
+        }
+      };
+      const result = formatEventSummary(event);
+      expect(result.length).toBe(60);
+      expect(result).toContain('...');
+    });
+
+    test('handles MessageEvent without content', () => {
+      const event = {
+        kind: 'MessageEvent',
+        source: 'agent',
+        llm_message: {
+          role: 'assistant',
+          content: []
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Message');
+    });
+
+    test('handles MessageEvent without llm_message', () => {
+      const event = {
+        kind: 'MessageEvent',
+        source: 'agent'
+      };
+      expect(formatEventSummary(event)).toBe('Message');
+    });
+  });
+
+  describe('backward compatibility - direct action types', () => {
+    test('formats CmdRunAction with command', () => {
+      const event = {
+        kind: 'CmdRunAction',
+        command: 'npm run build'
+      };
+      expect(formatEventSummary(event)).toBe('npm run build');
+    });
+
+    test('formats CmdOutputObservation', () => {
+      const event = {
+        kind: 'CmdOutputObservation'
+      };
+      expect(formatEventSummary(event)).toBe('Command output received');
+    });
+
+    test('formats FileReadAction with path', () => {
+      const event = {
+        kind: 'FileReadAction',
+        path: '/workspace/file.ts'
+      };
+      expect(formatEventSummary(event)).toBe('Read /workspace/file.ts');
+    });
+
+    test('formats FileWriteAction with path', () => {
+      const event = {
+        kind: 'FileWriteAction',
+        path: '/workspace/output.ts'
+      };
+      expect(formatEventSummary(event)).toBe('Write /workspace/output.ts');
+    });
+
+    test('formats FileEditAction with path', () => {
+      const event = {
+        kind: 'FileEditAction',
+        path: '/workspace/edit.ts'
+      };
+      expect(formatEventSummary(event)).toBe('Edit /workspace/edit.ts');
+    });
+
+    test('formats AgentThinkAction with thought', () => {
+      const event = {
+        kind: 'AgentThinkAction',
+        thought: 'Processing request'
+      };
+      expect(formatEventSummary(event)).toBe('Processing request');
+    });
+
+    test('formats AgentFinishAction', () => {
+      const event = {
+        kind: 'AgentFinishAction'
+      };
+      expect(formatEventSummary(event)).toBe('Task completed');
+    });
+
+    test('formats AgentDelegateAction', () => {
+      const event = {
+        kind: 'AgentDelegateAction'
+      };
+      expect(formatEventSummary(event)).toBe('Delegating to sub-agent');
+    });
+
+    test('formats ConversationStateUpdateEvent', () => {
+      const event = {
+        kind: 'ConversationStateUpdateEvent'
+      };
+      expect(formatEventSummary(event)).toBe('Status update');
+    });
+
+    test('formats unknown event kind', () => {
+      const event = {
+        kind: 'CustomEvent'
+      };
+      expect(formatEventSummary(event)).toBe('Custom');
+    });
+
+    test('formats event with no kind', () => {
+      const event = {};
+      expect(formatEventSummary(event)).toBe('Unknown');
+    });
   });
 });
