@@ -192,9 +192,24 @@ export function clearDeviceToken(workspaceId?: string): void {
     if (workspaceId) {
       const key = getDeviceTokenKey(workspaceId);
       localStorage.removeItem(key);
+      
+      // Only clear legacy storage if it belongs to this workspace
+      const legacyStored = localStorage.getItem(LEGACY_DEVICE_TOKEN_KEY);
+      if (legacyStored) {
+        try {
+          const legacyDevice = JSON.parse(legacyStored) as StoredDeviceInfo;
+          if (legacyDevice.workspaceId === workspaceId) {
+            localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
+          }
+        } catch {
+          // If we can't parse it, safe to remove (invalid data)
+          localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
+        }
+      }
+    } else {
+      // No workspace specified, clear legacy storage
+      localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
     }
-    // Always clear legacy storage for backward compatibility
-    localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
     localStorage.removeItem(DEVICE_ID_KEY);
   } catch (e) {
     console.error('[DeviceToken] Failed to clear device token:', e);

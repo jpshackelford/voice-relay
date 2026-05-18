@@ -224,7 +224,7 @@ describe('deviceToken utilities', () => {
       expect(getStoredDeviceToken('workspace-2')).not.toBeNull();
     });
 
-    it('clears legacy storage as well', () => {
+    it('clears legacy storage when it belongs to the same workspace', () => {
       localStorage.setItem('voice_relay_device_token', JSON.stringify({
         deviceId: 'device-123',
         deviceToken: 'token-abc',
@@ -235,7 +235,44 @@ describe('deviceToken utilities', () => {
 
       clearDeviceToken('workspace-456');
       
-      // Legacy key should also be cleared
+      // Legacy key should be cleared because it belongs to the same workspace
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+    });
+
+    it('does NOT clear legacy storage when it belongs to a different workspace', () => {
+      // Legacy storage has workspace-A device
+      localStorage.setItem('voice_relay_device_token', JSON.stringify({
+        deviceId: 'device-A',
+        deviceToken: 'token-A',
+        workspaceId: 'workspace-A',
+        name: 'Phone A',
+        mode: 'mobile',
+      }));
+      
+      // Workspace-scoped storage has workspace-B device
+      storeDeviceToken({
+        deviceId: 'device-B',
+        deviceToken: 'token-B',
+        workspaceId: 'workspace-B',
+        name: 'Phone B',
+        mode: 'mobile',
+      });
+      
+      // Clear workspace-B
+      clearDeviceToken('workspace-B');
+      
+      // workspace-B should be cleared
+      expect(getStoredDeviceToken('workspace-B')).toBeNull();
+      // Legacy (workspace-A) should STILL exist - isolation preserved
+      expect(localStorage.getItem('voice_relay_device_token')).not.toBeNull();
+    });
+
+    it('clears legacy storage when JSON is malformed', () => {
+      localStorage.setItem('voice_relay_device_token', 'invalid-json');
+
+      clearDeviceToken('workspace-456');
+      
+      // Invalid JSON should be cleared as it can't be used
       expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
     });
 
