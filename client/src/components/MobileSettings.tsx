@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ReleaseNotes } from './ReleaseNotes';
 
 export type InputMode = 'voice' | 'visualizer';
 
@@ -32,6 +33,7 @@ export function MobileSettings({
   onInputModeChange,
 }: MobileSettingsProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -130,8 +132,23 @@ export function MobileSettings({
               </div>
             </div>
           </div>
+
+          <div className="mobile-settings-divider" />
+
+          {/* What's New - Release Notes */}
+          <div className="mobile-settings-section">
+            <button
+              className="mobile-settings-link"
+              onClick={() => setWhatsNewOpen(true)}
+            >
+              📦 What's New
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Release Notes Modal */}
+      <ReleaseNotes isOpen={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
     </div>
   );
 }
