@@ -74,19 +74,21 @@ describe('TtsService', () => {
     it('does nothing when settings are not found', async () => {
       mockGetWorkspaceSettings.mockReturnValue(null);
 
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1');
+      // Even with session TTS enabled, missing workspace settings should prevent TTS
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
 
       expect(mockDecryptApiKey).not.toHaveBeenCalled();
       expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
     });
 
-    it('does nothing when TTS is not enabled', async () => {
+    it('does nothing when TTS is not enabled at workspace level', async () => {
       mockGetWorkspaceSettings.mockReturnValue({
         ...mockSettings,
         elevenlabsTtsEnabled: false,
       });
 
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1');
+      // Even with session TTS enabled, disabled workspace TTS should prevent synthesis
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
 
       expect(mockDecryptApiKey).not.toHaveBeenCalled();
       expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
@@ -100,13 +102,32 @@ describe('TtsService', () => {
         DEFAULT_VOICE_ID: 'Xb7hH8MSUJpSbSDYk0k2',
       }));
 
-      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1');
+      // Must pass sessionTtsSettings with enabled: true (defaults to disabled if undefined)
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: true });
 
       expect(mockDecryptApiKey).toHaveBeenCalledWith({
         encrypted: 'encrypted-key',
         iv: 'iv',
         tag: 'tag',
       });
+    });
+
+    it('does nothing when sessionTtsSettings is undefined (defaults to disabled)', async () => {
+      mockGetWorkspaceSettings.mockReturnValue(mockSettings);
+
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1');
+
+      expect(mockDecryptApiKey).not.toHaveBeenCalled();
+      expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when sessionTtsSettings.enabled is false', async () => {
+      mockGetWorkspaceSettings.mockReturnValue(mockSettings);
+
+      await service.synthesizeForSession('hello', 'workspace-1', 'session-1', 'utt-1', { enabled: false });
+
+      expect(mockDecryptApiKey).not.toHaveBeenCalled();
+      expect(mockRegistry.broadcastAudioToKiosks).not.toHaveBeenCalled();
     });
   });
 
