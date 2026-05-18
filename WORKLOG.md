@@ -25,6 +25,31 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:10 UTC - Expansion Worker
+
+✅ **Expanded Issue #185 - In-app release notes viewer**
+
+- Issue: [#185 - In-app release notes viewer](https://github.com/jpshackelford/voice-relay/issues/185)
+- Type: Enhancement  
+- Status: Ready for implementation
+
+**Summary:**
+Users need a way to see what changed in recent deployments without leaving the app. The app deploys frequently (149 deploy tags exist) but has no user-facing changelog.
+
+**Selected Approach:** Build-time changelog generation (Option D from original discussion)
+- Generate `changelog.json` during build from git history between `deploy-success-*` tags
+- Server API endpoint (`GET /api/changelog`) serves pre-generated data
+- Client modal accessible from MobileSettings via "What's New" link
+- Relative time display using `Intl.RelativeTimeFormat`, tap for absolute time
+
+**Files Affected:**
+- New: `scripts/generate-changelog.ts`, `client/src/components/ReleaseNotes.tsx`, `client/src/components/RelativeTime.tsx`
+- Modified: `server/src/index.ts` (add endpoint), `client/src/components/MobileSettings.tsx`, `client/src/App.css`, `package.json`
+
+**Complexity:** Medium - multiple components but follows established patterns
+
+---
+
 ### 2026-05-18 00:15 UTC - Expansion Worker
 
 ✅ **Expanded Issue #191 - Unify TTS settings**
