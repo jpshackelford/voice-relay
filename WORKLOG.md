@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:49 UTC - Expansion Worker
+
+✅ **Issue #219 Closed (No Action Needed)**
+
+- Issue: [#219 - Audit: UI feature parity between Mobile and Kiosk views](https://github.com/jpshackelford/voice-relay/issues/219)
+- Type: Audit
+- Status: Closed - no follow-up issues created
+
+**Audit Results:**
+
+1. **Release Notes (#194)** - Issue #218 already created separately for desktop implementation
+
+2. **Agent Actions Toggle (#206)** - **No action needed**
+   - Reviewed PR #206 implementation and original requirements (#167)
+   - Mobile exclusion is **intentional by design**:
+     - Original design specified "kiosk sidebar" - UI element that doesn't exist in MobileMode
+     - MobileMode has completely different UI architecture (no sidebar)
+     - Mobile screens have limited real estate for debugging tools
+     - Target audience for agent actions is developers/debugging, less critical on mobile
+
+**Decision:** The current scope is appropriate. Agent Actions is correctly kiosk-only. If users request mobile support in the future, it could be added to the conversation drawer as a follow-up enhancement.
+
+---
+
 ### 2026-05-18 17:45 UTC - Implementation Worker
 
 **PR Created:** [#217 - feat: add API permissions info and voice test button in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/pull/217)
