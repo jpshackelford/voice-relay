@@ -800,30 +800,35 @@ header {
   color: #fff;
 }
 
-.kiosk-participants {
+.kiosk-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 0.5rem 1rem;
   background: #0a0a0f;
   border-bottom: 1px solid #222;
+  gap: 1rem;
+}
+
+.kiosk-status-row .kiosk-participants {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.75rem;
 }
 
-.kiosk-participants .participant-group {
+.kiosk-status-row .kiosk-participants .participant-group {
   padding: 0.125rem 0.5rem;
   background: #1a1a2e;
   border-radius: 12px;
   color: #888;
 }
 
-.kiosk-tts-toggle {
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #222;
+.kiosk-status-row .kiosk-tts-toggle {
   font-size: 0.875rem;
 }
 
-.kiosk-tts-toggle label {
+.kiosk-status-row .kiosk-tts-toggle label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -831,7 +836,7 @@ header {
   cursor: pointer;
 }
 
-.kiosk-tts-toggle input[type="checkbox"] {
+.kiosk-status-row .kiosk-tts-toggle input[type="checkbox"] {
   width: 14px;
   height: 14px;
 }
