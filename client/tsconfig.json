@@ -20,5 +20,5 @@
       "@docs/*": ["../docs/*"]
     }
   },
-  "include": ["src", "../docs/*.md"]
+  "include": ["src"]
 }
