@@ -25,6 +25,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 02:22 UTC - PR #199 Ready for Review
+
+🔄 **In Review: Uptime Kuma Health Monitoring Documentation**
+
+- PR: [#199 - feat: set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/pull/199)
+- Issue: [#183](https://github.com/jpshackelford/voice-relay/issues/183) - Set up Uptime Kuma
+- Status: **Ready for review** 🔄
+
+**What's included:**
+Documentation update for `docs/server-inventory.md`:
+1. Added `status.chorecraft.net (Uptime Kuma)` section under Hosted Domains
+2. Documented service configuration (port 3003, systemd service)
+3. Listed configured monitors (voice-relay health, chorecraft.net)
+4. Updated port allocation table (added uptime-kuma on 3003)
+5. Updated next available port to 3004
+
+**Note:** The actual server deployment (SSH to chorecraft.net) will be performed manually following the approach in issue #183 comments.
+
+---
+
 ### 2026-05-18 02:06 UTC - PR #190 Merged
 
 ✅ **Merged: Workflow Concurrency Controls**
