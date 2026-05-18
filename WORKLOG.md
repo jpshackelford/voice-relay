@@ -45,6 +45,19 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ---
 
+### 2026-05-18 17:06 UTC - Expansion Worker
+
+✅ **Expanded Issue #211**
+
+- Issue: [Combined view oscilloscope shows flat line while standalone scope view works](https://github.com/jpshackelford/voice-relay/issues/211)
+- Type: Bug
+- Status: Ready for implementation
+- Root cause: `useAudioAnalyser` hook's `useMemo` returns stale ref values because `setIsActive(true)` is called before async AudioContext setup completes. The refs are populated after the state change, but `useMemo` doesn't recalculate.
+- Proposed fix: Move `setIsActive(true)` to after refs are populated (line ~126 in `useAudioAnalyser.ts`)
+- Labels: `ready`, `bug`, `priority:high`
+
+---
+
 ### 2026-05-18 14:50 UTC - Orchestrator
 
 **Active Workers:**
