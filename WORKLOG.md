@@ -2398,3 +2398,43 @@ Maintainer can visually verify post-merge on vr.chorecraft.net.
 - 10 threads from initial reviews (already resolved)
 - 2 threads from latest review (code duplication, inconsistent error handling) - explained existing design
 - 2 new threads (workspace validation consistency, test coverage) - fixed in 65d4a25
+
+---
+### 2026-05-18 01:34 UTC - Orchestrator
+
+**⚠️ CRITICAL: Production Down (Issue #197)**
+
+Production smoke test and rollback both failed due to **npm cache corruption** on the server.
+- Root cause: Corrupted npm tarballs in server cache
+- Impact: Production is currently not functional
+- Resolution: Requires manual SSH access to clear npm cache and redeploy
+
+**Merging blocked** until production is stable.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `642557b` | review | PR #195 - E2E test flakiness | **NEW** |
+| `b3601e6` | review | PR #190 - Concurrency controls | **NEW** |
+
+**Current State:**
+- 🚨 [Issue #197](https://github.com/jpshackelford/voice-relay/issues/197) - Smoke test failure (needs-human)
+- [PR #193](https://github.com/jpshackelford/voice-relay/pull/193) - Ready to merge (0 unresolved threads, CI green) - **BLOCKED by prod issue**
+- [PR #195](https://github.com/jpshackelford/voice-relay/pull/195) - 1 unresolved thread → spawned review worker
+- [PR #190](https://github.com/jpshackelford/voice-relay/pull/190) - 2 unresolved threads → spawned review worker
+- PR #187 - on-hold
+
+**Action Taken:**
+1. Analyzed smoke test failure logs → identified npm cache corruption
+2. Added `needs-human` label to Issue #197
+3. Posted analysis comment with manual fix steps
+4. 🚀 **Spawned 2 review workers** for PRs with unresolved feedback
+
+**Slot Status:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | Issue #197 needs manual fix, not expansion |
+| Implementation | 0 | 1 | Blocked by production issue |
+| Review | 2 | 2 | Full - addressing PR feedback |
+
+**Human action required:** Clear npm cache on production server to unblock merges.
