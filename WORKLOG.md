@@ -1295,3 +1295,25 @@ The review noted one minor improvement (dead code cleanup - unused `getNestedAct
 3. **Expansion Worker** for [Issue #224](https://github.com/jpshackelford/voice-relay/issues/224) → Conv [`2142caf`](https://app.all-hands.dev/conversations/2142caf...)
 
 **Slots Utilized:** 2/2 review, 1/4 expansion, 0/1 implementation
+
+---
+
+### 2026-05-18 19:35 UTC - Merge Worker (`ea1d2b4`)
+
+✅ **PR #223 Merged**
+
+- **PR:** [#223 - feat(client): add What's New release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/pull/223)
+- **Issue:** [#218](https://github.com/jpshackelford/voice-relay/issues/218) - Auto-closed ✅
+- **Status:** Squash-merged to main, deployed to vr.chorecraft.net
+
+**Summary:**
+Added "What's New" section to desktop workspace settings, bringing feature parity with mobile. The release notes modal is now accessible to all workspace users (not just owners) via a button in the workspace home page.
+
+**Review Assessment:**
+- 🟢 LOW risk - frontend-only change reusing existing ReleaseNotes component
+- "Good taste - Elegant, simple solution" - github-actions bot
+
+**Changes (67 lines):**
+- `client/src/pages/WorkspaceHome.tsx`: +26 lines (import, state, section, modal)
+- `client/src/App.css`: +41 lines (styling for whats-new-section)
+
