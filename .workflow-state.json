@@ -4,23 +4,23 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "92912c1",
+        "conv_id": "6a8004a",
         "issue": 192,
-        "started": "2026-05-18T00:50:04.430557+00:00"
+        "started": "2026-05-18T01:07:18.521480+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "cbbb397",
+        "conv_id": "ee50161",
         "pr": 194,
         "type": "review",
-        "started": "2026-05-18T00:50:04.430557+00:00"
+        "started": "2026-05-18T01:07:18.521480+00:00"
       },
       {
-        "conv_id": "469ed5a",
+        "conv_id": "8fcf3d7",
         "pr": 193,
         "type": "review",
-        "started": "2026-05-18T00:50:04.430557+00:00"
+        "started": "2026-05-18T01:07:18.521480+00:00"
       }
     ]
   },
@@ -29,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T00:50:04.430557+00:00",
+  "last_updated": "2026-05-18T01:07:18.521480+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -340,6 +340,33 @@
       "status": "finished",
       "outcome": "Completed work for PR #190",
       "pr": 190
+    },
+    {
+      "conv_id": "92912c1",
+      "type": "implementation",
+      "issue": 192,
+      "started": "2026-05-18T00:50:04.430557+00:00",
+      "finished": "2026-05-18T01:04:03.988141+00:00",
+      "status": "unknown",
+      "outcome": "Created PR for issue #192"
+    },
+    {
+      "conv_id": "cbbb397",
+      "type": "review",
+      "pr": 194,
+      "started": "2026-05-18T00:50:04.430557+00:00",
+      "finished": "2026-05-18T01:04:03.988141+00:00",
+      "status": "unknown",
+      "outcome": "Addressed review on PR #194"
+    },
+    {
+      "conv_id": "469ed5a",
+      "type": "review",
+      "pr": 193,
+      "started": "2026-05-18T00:50:04.430557+00:00",
+      "finished": "2026-05-18T01:04:03.988141+00:00",
+      "status": "unknown",
+      "outcome": "Addressed review on PR #193"
     }
   ]
 }
