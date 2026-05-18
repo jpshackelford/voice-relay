@@ -379,14 +379,6 @@ function truncate(str: string, maxLen: number): string {
   return str.length > maxLen ? str.substring(0, maxLen - 3) + '...' : str;
 }
 
-/** Get the nested action type (e.g., "run", "read", "write") from a V1 wrapped ActionEvent */
-function getNestedActionType(event: V1Event): string | undefined {
-  if (event.action && typeof event.action === 'object' && 'action' in event.action) {
-    return String(event.action.action);
-  }
-  return undefined;
-}
-
 /** Format ActionEvent with nested action object */
 function formatActionEvent(event: V1Event): string {
   const action = event.action as Record<string, unknown> | undefined;
