@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 03:13 UTC - PR Review Worker
+
+**PR #201 Review Addressed** ✅
+
+- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
+- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169)
+- **Status:** Ready for review (all feedback addressed)
+
+**Review Feedback:**
+- Automated review requested screenshots showing the visual change
+- Added `docs/screenshots/kiosk-connection-indicator.png` - full layout view with both states
+- Added `docs/screenshots/connection-indicator-closeup.png` - closeup of the dot indicators
+- Updated PR description to embed screenshots
+
+**Commits:**
+1. Original implementation (8db5cc2) - CSS & component changes
+2. Screenshot addition (f06d989) - Visual documentation for reviewers
+
+**CI Status:** All 4 checks passing ✅
+
+---
+
 ### 2026-05-18 03:10 UTC - Merge Worker
 
 **PR #200 Merged** ✅
