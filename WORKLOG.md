@@ -26,6 +26,29 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 21:13 UTC - Expansion Worker
+
+✅ **Expanded Issue #228 - Release Notes Display Issues in Desktop Mode**
+
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **Type:** Bug
+- **Status:** Ready for implementation
+
+**Summary:**
+Investigated and documented two CSS display issues in the release notes feature on desktop viewports:
+
+1. **Button/text layout:** The "See Release Notes" button and hint text appear side-by-side instead of stacked vertically. Root cause: `.whats-new-content` lacks flex column layout.
+
+2. **Modal alignment:** The release notes modal slides up from the bottom (mobile sheet style) on desktop. Root cause: No media query to center modal on larger screens.
+
+**Proposed Fix:** CSS-only changes to `client/src/App.css`:
+- Add `display: flex; flex-direction: column` to `.whats-new-content`
+- Add `@media (min-width: 768px)` query to center `.release-notes-modal`
+
+**Complexity:** Low - no component changes needed.
+
+---
+
 ### 2026-05-18 21:05 UTC - Expansion Worker
 
 ✅ **Expanded Issue #229 - In-Product Release Notes Should Include Hyperlinks to PRs**
