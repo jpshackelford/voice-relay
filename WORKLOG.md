@@ -2586,3 +2586,33 @@ Server proceeded with TTS when `sessionTtsSettings` was undefined, but client de
 **CI Status:** All checks passing ✅
 **Review Thread:** Resolved ✅
 
+
+### 2026-05-18 14:19 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `57d2254` | review | PR #202 - unify TTS settings | **NEW** |
+| `edae91f` | review | PR #203 - audio streaming infrastructure | **NEW** |
+
+**Previous Workers Completed:**
+- `6b82f0b` (implementation) → ✅ Created PR #203 for Issue #166
+- `ee2137c` (review) → ✅ Addressed feedback on PR #202
+
+**Spawned: 2 Review Workers (parallel)**
+
+1. **Review Worker** for [PR #202 - feat: unify TTS settings](https://github.com/jpshackelford/voice-relay/pull/202)
+   - 2 unresolved review threads (device validation suggestions)
+   - Conversation: [`57d2254`](https://app.all-hands.dev/conversations/57d22544534e49f493296143bc12e00f)
+
+2. **Review Worker** for [PR #203 - feat: audio streaming infrastructure](https://github.com/jpshackelford/voice-relay/pull/203)
+   - 4 unresolved review threads (stale closure bug, memory allocation, etc.)
+   - Conversation: [`edae91f`](https://app.all-hands.dev/conversations/edae91fb3d734d16b05cbb7613ff68e2)
+
+**Current State:**
+- 2 open PRs (both CI green, both have unresolved review threads)
+- 4 ready issues: #166 (PR exists), #191 (PR exists), #167 (priority:low), #188 (priority:low)
+- 1 issue with `needs-human`: #197 (smoke test failure - skipped)
+- Implementation slot available (will proceed after reviews addressed)
+
+---
