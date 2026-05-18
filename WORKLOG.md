@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 14:02 UTC - Implementation Worker
+
+**Issue #166 - Mobile: Text transcription display is poor in oscilloscope view**
+
+Implemented **Phase 1** of the audio streaming infrastructure for server-side transcription.
+
+**PR Created:** [#203 - feat: add audio streaming infrastructure for server-side transcription (Phase 1)](https://github.com/jpshackelford/voice-relay/pull/203)
+
+**What's included:**
+- New `useAudioStreaming` hook for client-side audio capture and streaming
+- New `AudioBufferManager` for server-side audio chunk accumulation
+- New message types for audio streaming (`audio-input-chunk`, `audio-input-end`)
+- New transcription response types (`transcription-result`, `transcription-error`)
+- Comprehensive unit tests for all new components
+
+**CI Status:** ✅ All checks passing
+
+**Next Steps (Phases 2-4):**
+- Phase 2: Implement transcription callback using Whisper/Rev.ai API
+- Phase 3: Add 'unified' InputMode in MobileMode.tsx
+- Phase 4: Polish (silence detection, reconnection handling, settings UI)
+
+---
+
 ### 2026-05-17 21:19 UTC - Orchestrator
 
 **Active Workers:**
