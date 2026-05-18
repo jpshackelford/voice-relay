@@ -3,22 +3,28 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "2142caf",
+        "conv_id": "df7fdfe",
         "issue": 224,
-        "started": "2026-05-18T19:19:25.437467+00:00"
+        "started": "2026-05-18T19:36:05.846372+00:00"
       }
     ],
-    "implementation": [],
+    "implementation": [
+      {
+        "conv_id": "852e482",
+        "issue": 213,
+        "started": "2026-05-18T19:36:05.846372+00:00"
+      }
+    ],
     "review": [
       {
-        "conv_id": "9daa9f3",
+        "conv_id": "ec5510b",
         "pr": 222,
-        "started": "2026-05-18T19:19:25.437467+00:00"
+        "started": "2026-05-18T19:36:05.846372+00:00"
       },
       {
-        "conv_id": "ea1d2b4",
+        "conv_id": "c4e5863",
         "pr": 223,
-        "started": "2026-05-18T19:19:25.437467+00:00"
+        "started": "2026-05-18T19:36:05.846372+00:00"
       }
     ]
   },
@@ -27,7 +33,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T19:19:25.437467+00:00",
+  "last_updated": "2026-05-18T19:36:05.846372+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -940,6 +946,33 @@
       "finished": "2026-05-18T19:18:25.292977+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #222 - all threads resolved"
+    },
+    {
+      "conv_id": "2142caf",
+      "type": "expansion",
+      "started": "2026-05-18T19:19:25.437467+00:00",
+      "finished": "2026-05-18T19:33:49.574271+00:00",
+      "status": "finished",
+      "outcome": "Worker completed for expansion",
+      "issue": 224
+    },
+    {
+      "conv_id": "9daa9f3",
+      "type": "review",
+      "started": "2026-05-18T19:19:25.437467+00:00",
+      "finished": "2026-05-18T19:33:49.574271+00:00",
+      "status": "finished",
+      "outcome": "Worker completed for review",
+      "pr": 222
+    },
+    {
+      "conv_id": "ea1d2b4",
+      "type": "review",
+      "started": "2026-05-18T19:19:25.437467+00:00",
+      "finished": "2026-05-18T19:33:49.574271+00:00",
+      "status": "finished",
+      "outcome": "Worker completed for review",
+      "pr": 223
     }
   ]
 }
