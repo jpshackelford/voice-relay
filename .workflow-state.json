@@ -3,23 +3,33 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "ff12fd0",
-        "issue": 209,
-        "started": "2026-05-18T16:51:34.598034+00:00"
+        "conv_id": "b418d04",
+        "issue": 211,
+        "started": "2026-05-18T17:06:34.164698+00:00"
+      },
+      {
+        "conv_id": "682605d",
+        "issue": 213,
+        "started": "2026-05-18T17:06:44.136633+00:00"
       }
     ],
     "implementation": [
       {
-        "conv_id": "80b043a",
-        "issue": 207,
-        "started": "2026-05-18T16:51:34.598034+00:00"
+        "conv_id": "df5f559",
+        "issue": 209,
+        "started": "2026-05-18T17:06:14.742198+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "da86766",
+        "conv_id": "cb261fd",
+        "pr": 212,
+        "started": "2026-05-18T17:05:51.089474+00:00"
+      },
+      {
+        "conv_id": "300f205",
         "pr": 206,
-        "started": "2026-05-18T16:51:34.598034+00:00"
+        "started": "2026-05-18T17:06:04.270275+00:00"
       }
     ]
   },
@@ -28,7 +38,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T16:51:34.598034+00:00",
+  "last_updated": "2026-05-18T17:06:44.136649+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -726,6 +736,32 @@
       "finished": "2026-05-18T16:48:54.885272+00:00",
       "status": "success",
       "outcome": "Merged PR #205 - unified input mode"
+    },
+    {
+      "conv_id": "ff12fd0",
+      "type": "expansion",
+      "issue": 209,
+      "started": "2026-05-18T16:51:34.598034+00:00",
+      "finished": "2026-05-18T17:03:22.073752+00:00",
+      "outcome": "Worker None - #209"
+    },
+    {
+      "conv_id": "80b043a",
+      "type": "implementation",
+      "issue": 207,
+      "started": "2026-05-18T16:51:34.598034+00:00",
+      "finished": "2026-05-18T17:03:22.073752+00:00",
+      "status": "finished",
+      "outcome": "Worker finished - #207"
+    },
+    {
+      "conv_id": "da86766",
+      "type": "review",
+      "pr": 206,
+      "started": "2026-05-18T16:51:34.598034+00:00",
+      "finished": "2026-05-18T17:03:22.073752+00:00",
+      "status": "finished",
+      "outcome": "Worker finished - #206"
     }
   ]
 }
