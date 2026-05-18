@@ -324,13 +324,11 @@ export function KioskMode({
           </button>
         </header>
         
-        {/* Connection indicator - always visible in lower-right */}
+        {/* Connection indicator - solid dot in lower-left */}
         <div 
           className={`connection-indicator ${connected ? 'connected' : 'disconnected'}`}
           title={connected ? 'Connected' : 'Disconnected'}
-        >
-          🔌
-        </div>
+        />
 
         <div className="kiosk-messages">
           {sortedUtterances.length === 0 ? (
@@ -610,15 +608,13 @@ export function KioskMode({
           </div>
         )}
 
-        {/* Connection status indicator - plug icon (always visible, bottom-right) */}
+        {/* Connection status indicator - solid dot in bottom-left */}
         <div 
           className={`connection-indicator ${connected ? 'connected' : 'disconnected'}`}
           title={connected ? 'Connected' : 'Disconnected'}
-        >
-          🔌
-        </div>
+        />
 
-        {/* AI status indicator (above connection indicator when active) */}
+        {/* AI status indicator - bottom-right (connection dot is bottom-left) */}
         {(ai?.connecting || ai?.connected || ai?.thinking) && (
           <div className={`kiosk-ai-status ${
             ai?.connecting ? 'connecting' :
