@@ -1978,3 +1978,38 @@ Fixed two display issues with the release notes feature in desktop mode:
    - Issue: [#231 - Add Terms of Service and Privacy Policy](https://github.com/jpshackelford/voice-relay/issues/231) (`priority:high`)
    - Conversation: [`51ec504`](https://app.all-hands.dev/conversations/51ec504c38264224b813ff62f8503ec0)
    - Blocks Google OAuth consent screen configuration
+
+---
+
+### 2026-05-18 21:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fa83bc3` | review | PR #233 - ToS & Privacy Policy | **NEW** |
+| `9f2587a` | implementation | Issue #230 - Changelog fix | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#233 - Terms of Service and Privacy Policy](https://github.com/jpshackelford/voice-relay/pull/233)
+   - 2 unresolved review threads to address (redundant type declarations)
+   - Conversation: [`fa83bc3`](https://app.all-hands.dev/conversations/fa83bc328f7d4a7f90cce1c3c690efaa)
+
+2. **Implementation Worker**  
+   - Issue: [#230 - Changelog generator fix](https://github.com/jpshackelford/voice-relay/issues/230) (priority:medium)
+   - Conversation: [`9f2587a`](https://app.all-hands.dev/conversations/9f2587affc2c4e499fcadb98ee9c00a3)
+
+**Previous Worker Completed:**
+- ✅ `51ec504` (implementation for Issue #231) → Created PR #233
+
+**Other PRs:**
+- PR #221 (draft, CONFLICTING) - marked with `needs-human` label for manual conflict resolution
+
+**Remaining Ready Issues:**
+- #229 (priority:low) - In-Product Release Notes hyperlinks
+- #231 (priority:high) - ToS/Privacy Policy ← PR #233 in review
+- #230 (priority:medium) - Changelog fix ← being implemented
+
+**Issues on-hold:** #208, #210
+

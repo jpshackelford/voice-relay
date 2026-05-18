@@ -4,38 +4,26 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "51ec504",
-        "issue": 231,
-        "started": "2026-05-18T21:37:30.211973+00:00"
+        "conv_id": "9f2587a",
+        "issue": 230,
+        "started": "2026-05-18T21:51:10.973554+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "fa83bc3",
+        "pr": 233,
+        "started": "2026-05-18T21:51:00.056825+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T21:37:30.211973+00:00",
+  "last_updated": "2026-05-18T21:51:18.188757+00:00",
   "completed": [
-    {
-      "conv_id": "03bed53",
-      "type": "implementation",
-      "issue": 163,
-      "started": "2026-05-17T21:03:46.807307+00:00",
-      "finished": "2026-05-17T21:18:27.316062+00:00",
-      "status": "unknown",
-      "outcome": "Worker not found in API - may have been from different org or expired"
-    },
-    {
-      "conv_id": "4435600",
-      "type": "implementation",
-      "issue": 163,
-      "started": "2026-05-17T21:19:44.582826+00:00",
-      "finished": "2026-05-17T21:34:17.638451+00:00",
-      "status": "success",
-      "outcome": "Created PR #175 for issue #163"
-    },
     {
       "conv_id": "e9e7f7e",
       "type": "expansion",
@@ -1091,6 +1079,15 @@
       "finished": "2026-05-18T21:17:44.779200+00:00",
       "status": "not_found",
       "outcome": "Addressed review on PR #227"
+    },
+    {
+      "conv_id": "51ec504",
+      "type": "implementation",
+      "issue": 231,
+      "started": "2026-05-18T21:37:30.211973+00:00",
+      "finished": "2026-05-18T21:48:11.309597+00:00",
+      "status": "success",
+      "outcome": "Completed work for issue #231"
     }
   ]
 }
