@@ -220,6 +220,7 @@ describe('MobileSettings', () => {
     it('shows input mode buttons', () => {
       render(<MobileSettings {...defaultProps} />);
       expect(screen.getByText('🗣️ Voice')).toBeDefined();
+      expect(screen.getByText('✨ Unified')).toBeDefined();
       expect(screen.getByText('📊 Visualizer')).toBeDefined();
     });
 
@@ -227,6 +228,12 @@ describe('MobileSettings', () => {
       render(<MobileSettings {...defaultProps} inputMode="voice" />);
       const voiceBtn = screen.getByText('🗣️ Voice');
       expect(voiceBtn.className).toContain('active');
+    });
+
+    it('shows unified button as active when inputMode is unified', () => {
+      render(<MobileSettings {...defaultProps} inputMode="unified" />);
+      const unifiedBtn = screen.getByText('✨ Unified');
+      expect(unifiedBtn.className).toContain('active');
     });
 
     it('shows visualizer button as active when inputMode is visualizer', () => {
@@ -246,6 +253,17 @@ describe('MobileSettings', () => {
       expect(defaultProps.onInputModeChange).toHaveBeenCalledWith('voice');
     });
 
+    it('calls onInputModeChange with unified when unified button clicked', async () => {
+      render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      const unifiedBtn = screen.getByText('✨ Unified');
+      
+      await act(async () => {
+        fireEvent.click(unifiedBtn);
+      });
+
+      expect(defaultProps.onInputModeChange).toHaveBeenCalledWith('unified');
+    });
+
     it('calls onInputModeChange with visualizer when visualizer button clicked', async () => {
       render(<MobileSettings {...defaultProps} inputMode="voice" />);
       const vizBtn = screen.getByText('📊 Visualizer');
@@ -262,6 +280,11 @@ describe('MobileSettings', () => {
       expect(screen.getByText('Voice recognition (no visualizer)')).toBeDefined();
     });
 
+    it('shows correct hint for unified mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="unified" />);
+      expect(screen.getByText('Voice recognition with visualizer')).toBeDefined();
+    });
+
     it('shows correct hint for visualizer mode', () => {
       render(<MobileSettings {...defaultProps} inputMode="visualizer" />);
       expect(screen.getByText('Audio visualizer (manual text entry)')).toBeDefined();
@@ -275,6 +298,12 @@ describe('MobileSettings', () => {
 
     it('enables auto-submit toggle in voice mode', () => {
       render(<MobileSettings {...defaultProps} inputMode="voice" />);
+      const checkbox = screen.getByRole('checkbox', { name: /auto-send speech/i }) as HTMLInputElement;
+      expect(checkbox.disabled).toBe(false);
+    });
+
+    it('enables auto-submit toggle in unified mode', () => {
+      render(<MobileSettings {...defaultProps} inputMode="unified" />);
       const checkbox = screen.getByRole('checkbox', { name: /auto-send speech/i }) as HTMLInputElement;
       expect(checkbox.disabled).toBe(false);
     });

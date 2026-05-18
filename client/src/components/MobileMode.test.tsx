@@ -113,8 +113,8 @@ describe('MobileMode', () => {
       expect(screen.getByRole('button', { name: /open settings/i })).toBeDefined();
       // Should have conversation button
       expect(screen.getByRole('button', { name: /view conversation/i })).toBeDefined();
-      // Should have input mode toggle button
-      expect(screen.getByRole('button', { name: /switch to visualizer mode/i })).toBeDefined();
+      // Should have input mode toggle button (starts in voice mode, shows switch to unified)
+      expect(screen.getByRole('button', { name: /switch to unified mode/i })).toBeDefined();
     });
 
     it('shows connection status indicator', () => {
@@ -133,85 +133,118 @@ describe('MobileMode', () => {
   describe('header toggle button', () => {
     it('displays voice icon when in voice mode', () => {
       render(<MobileMode {...defaultProps} />);
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      const toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
       expect(toggleBtn.textContent).toBe('🗣️');
     });
 
     it('has proper aria-label in voice mode', () => {
       render(<MobileMode {...defaultProps} />);
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
-      expect(toggleBtn.getAttribute('aria-label')).toBe('Switch to Visualizer mode');
+      const toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
+      expect(toggleBtn.getAttribute('aria-label')).toBe('Switch to Unified mode');
     });
 
     it('has aria-pressed=false in voice mode', () => {
       render(<MobileMode {...defaultProps} />);
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      const toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
       expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('switches to visualizer mode when clicked', async () => {
+    it('cycles through modes: voice -> unified -> visualizer -> voice', async () => {
       render(<MobileMode {...defaultProps} />);
       
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      // Start in voice mode
+      let toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
+      expect(toggleBtn.textContent).toBe('🗣️');
+      expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
+
+      // Click to switch to unified mode
       await act(async () => {
         fireEvent.click(toggleBtn);
       });
 
-      // After clicking, should now show visualizer icon and voice mode label
-      const updatedToggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
-      expect(updatedToggleBtn.textContent).toBe('📊');
-      expect(updatedToggleBtn.getAttribute('aria-pressed')).toBe('true');
-    });
+      // Now in unified mode
+      toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(toggleBtn.textContent).toBe('✨');
+      expect(toggleBtn.getAttribute('aria-pressed')).toBe('true');
 
-    it('switches back to voice mode when clicked again', async () => {
-      render(<MobileMode {...defaultProps} />);
-      
-      // Switch to visualizer
+      // Click to switch to visualizer mode
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+        fireEvent.click(toggleBtn);
       });
 
-      // Switch back to voice
+      // Now in visualizer mode
+      toggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
+      expect(toggleBtn.textContent).toBe('📊');
+      expect(toggleBtn.getAttribute('aria-pressed')).toBe('true');
+
+      // Click to switch back to voice mode
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /switch to voice mode/i }));
+        fireEvent.click(toggleBtn);
       });
 
-      // Should be back to voice mode
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      // Back to voice mode
+      toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
       expect(toggleBtn.textContent).toBe('🗣️');
       expect(toggleBtn.getAttribute('aria-pressed')).toBe('false');
     });
 
-    it('shows oscilloscope when switched to visualizer mode via header toggle', async () => {
+    it('shows oscilloscope when in unified mode', async () => {
       render(<MobileMode {...defaultProps} />);
       
       // Initially no oscilloscope
       expect(document.querySelector('.walkie-oscilloscope')).toBeNull();
 
-      // Click header toggle
+      // Click header toggle to switch to unified mode
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+        fireEvent.click(screen.getByRole('button', { name: /switch to unified mode/i }));
       });
 
       // Oscilloscope should now be visible
       expect(document.querySelector('.walkie-oscilloscope')).not.toBeNull();
     });
 
-    it('has visualizer-active class when in visualizer mode', async () => {
+    it('shows oscilloscope when in visualizer mode', async () => {
       render(<MobileMode {...defaultProps} />);
       
-      const toggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      // Initially no oscilloscope
+      expect(document.querySelector('.walkie-oscilloscope')).toBeNull();
+
+      // Click twice to get to visualizer mode (voice -> unified -> visualizer)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to unified mode/i }));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+      });
+
+      // Oscilloscope should be visible
+      expect(document.querySelector('.walkie-oscilloscope')).not.toBeNull();
+    });
+
+    it('has visualizer-active class when in unified or visualizer mode', async () => {
+      render(<MobileMode {...defaultProps} />);
+      
+      const toggleBtn = screen.getByRole('button', { name: /switch to unified mode/i });
       expect(toggleBtn.classList.contains('visualizer-active')).toBe(false);
 
+      // Switch to unified mode
       await act(async () => {
         fireEvent.click(toggleBtn);
       });
 
-      const updatedToggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
+      let updatedToggleBtn = screen.getByRole('button', { name: /switch to visualizer mode/i });
+      expect(updatedToggleBtn.classList.contains('visualizer-active')).toBe(true);
+
+      // Switch to visualizer mode
+      await act(async () => {
+        fireEvent.click(updatedToggleBtn);
+      });
+
+      updatedToggleBtn = screen.getByRole('button', { name: /switch to voice mode/i });
       expect(updatedToggleBtn.classList.contains('visualizer-active')).toBe(true);
     });
 
-    it('stops active mic streams when toggling from voice to visualizer', async () => {
+    it('stops active mic streams when toggling from voice to unified', async () => {
       // Start with listening active
       vi.mocked(useSpeechRecognition).mockReturnValue({
         isListening: true,
@@ -224,7 +257,7 @@ describe('MobileMode', () => {
 
       // Click header toggle to switch modes
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /switch to visualizer mode/i }));
+        fireEvent.click(screen.getByRole('button', { name: /switch to unified mode/i }));
       });
 
       // stopListening should have been called when mode changed
@@ -417,6 +450,89 @@ describe('MobileMode', () => {
 
       const sendBtn = screen.getByRole('button', { name: /send message/i }) as HTMLButtonElement;
       expect(sendBtn.disabled).toBe(true);
+    });
+  });
+
+  describe('unified mode', () => {
+    const renderInUnifiedMode = async () => {
+      const result = render(<MobileMode {...defaultProps} />);
+      
+      // Open settings
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /open settings/i }));
+      });
+      
+      // Switch to unified mode
+      await act(async () => {
+        const unifiedBtn = screen.getByText('✨ Unified');
+        fireEvent.click(unifiedBtn);
+      });
+      
+      // Close settings by clicking the settings modal back button
+      await act(async () => {
+        const closeBtn = document.querySelector('.mobile-settings-back') as HTMLButtonElement;
+        fireEvent.click(closeBtn);
+        // Wait for modal animation
+        await new Promise(resolve => setTimeout(resolve, 250));
+      });
+      
+      return result;
+    };
+
+    it('shows oscilloscope container in unified mode', async () => {
+      await renderInUnifiedMode();
+      expect(document.querySelector('.walkie-oscilloscope')).not.toBeNull();
+    });
+
+    it('does NOT show text input form in unified mode (uses speech)', async () => {
+      await renderInUnifiedMode();
+      expect(screen.queryByPlaceholderText('Type message...')).toBeNull();
+    });
+
+    it('shows "Tap to speak" status in unified mode', async () => {
+      await renderInUnifiedMode();
+      expect(screen.getByText('Tap to speak')).toBeDefined();
+    });
+
+    it('shows "Listening..." when active in unified mode', async () => {
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: true,
+        isSupported: true,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      vi.mocked(useAudioAnalyser).mockReturnValue({
+        isActive: true,
+        analyser: null,
+        dataArray: null,
+        start: mockAudioStart,
+        stop: mockAudioStop,
+        error: null,
+      });
+
+      await renderInUnifiedMode();
+      expect(screen.getByText('Listening...')).toBeDefined();
+    });
+
+    it('mic button is active when both speech and audio are active in unified mode', async () => {
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: true,
+        isSupported: true,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      vi.mocked(useAudioAnalyser).mockReturnValue({
+        isActive: true,
+        analyser: null,
+        dataArray: null,
+        start: mockAudioStart,
+        stop: mockAudioStop,
+        error: null,
+      });
+
+      await renderInUnifiedMode();
+      const micBtn = screen.getByRole('button', { name: /stop listening/i });
+      expect(micBtn.classList.contains('active')).toBe(true);
     });
   });
 
