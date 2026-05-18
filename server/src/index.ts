@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { networkInterfaces } from 'os';
+import { readFileSync, existsSync } from 'fs';
 import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
@@ -255,6 +256,27 @@ app.get('/health', (_req, res) => {
     version: versionInfo.commit,
     deployedAt: versionInfo.deployedAt,
   });
+});
+
+// Changelog endpoint for release notes
+// Serves changelog.json generated at build time
+const changelogPath = join(__dirname, '../changelog.json');
+let cachedChangelog: object | null = null;
+
+app.get('/api/changelog', (_req, res) => {
+  if (!cachedChangelog) {
+    if (existsSync(changelogPath)) {
+      try {
+        cachedChangelog = JSON.parse(readFileSync(changelogPath, 'utf-8'));
+      } catch {
+        cachedChangelog = { generatedAt: null, entries: [] };
+      }
+    } else {
+      cachedChangelog = { generatedAt: null, entries: [] };
+    }
+  }
+  res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour
+  res.json(cachedChangelog);
 });
 
 // Server info endpoint (for QR code generation)
