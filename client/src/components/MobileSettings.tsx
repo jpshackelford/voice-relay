@@ -54,10 +54,10 @@ export function MobileSettings({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mobile-settings-header">
-          <h3>Settings</h3>
-          <button className="mobile-settings-close" onClick={onClose}>
-            ✕
+          <button className="mobile-settings-back" onClick={onClose}>
+            ← Back
           </button>
+          <h3>Settings</h3>
         </div>
 
         <div className="mobile-settings-content">
