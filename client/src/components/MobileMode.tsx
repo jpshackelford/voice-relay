@@ -124,6 +124,14 @@ export function MobileMode({
     audioAnalyserActiveRef.current = audioAnalyser.isActive;
   }, [audioAnalyser.isActive]);
 
+  // Helper to clean up the shared audio stream
+  const cleanupAudioStream = useCallback(() => {
+    if (sharedStreamRef.current) {
+      sharedStreamRef.current.getTracks().forEach(track => track.stop());
+      sharedStreamRef.current = null;
+    }
+  }, []);
+
   // Stop active mic when input mode changes
   // This ensures clean state transition when user switches modes in settings
   // Uses refs to read current state inside the effect, only re-running when inputMode changes
@@ -132,12 +140,9 @@ export function MobileMode({
     if (isListeningRef.current || audioAnalyserActiveRef.current) {
       stopListening();
       audioAnalyser.stop();
-      if (sharedStreamRef.current) {
-        sharedStreamRef.current.getTracks().forEach(track => track.stop());
-        sharedStreamRef.current = null;
-      }
+      cleanupAudioStream();
     }
-  }, [inputMode, audioAnalyser.stop, stopListening]);
+  }, [inputMode, audioAnalyser.stop, stopListening, cleanupAudioStream]);
 
   // Handle microphone toggle based on input mode.
   //
@@ -157,15 +162,19 @@ export function MobileMode({
   //   Modern browsers handle two logical mic streams fine - it's the same physical mic.
   //   Benefit: Voice recognition + real-time visualization
   //   Tradeoff: Two mic permission requests on first use
+  // Helper to start the audio visualizer (getUserMedia + analyser)
+  const startAudioVisualizer = useCallback(async (): Promise<void> => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    sharedStreamRef.current = stream;
+    await audioAnalyser.start(stream);
+  }, [audioAnalyser]);
+
   const handleMicToggle = useCallback(async () => {
     // Stop current activity
     if (isListening || audioAnalyser.isActive) {
       stopListening();
       audioAnalyser.stop();
-      if (sharedStreamRef.current) {
-        sharedStreamRef.current.getTracks().forEach(track => track.stop());
-        sharedStreamRef.current = null;
-      }
+      cleanupAudioStream();
       return;
     }
 
@@ -181,41 +190,33 @@ export function MobileMode({
       // Unified mode: Start BOTH Web Speech API AND getUserMedia for oscilloscope
       // These use separate logical streams to the same physical microphone
       try {
-        // Start speech recognition first
         startListening();
-        
-        // Then start audio analyser for visualization (separate stream)
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        sharedStreamRef.current = stream;
-        await audioAnalyser.start(stream);
       } catch (err) {
-        console.error('[MobileMode] Unified mode error:', err);
+        console.error('[MobileMode] Speech recognition error:', err);
+        setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
+        return;
+      }
+      
+      try {
+        await startAudioVisualizer();
+      } catch (err) {
+        console.error('[MobileMode] Microphone access error:', err);
         setSttError(err instanceof Error ? err.message : 'Microphone access denied');
-        // Clean up on error - stop speech recognition and audio analyser
-        stopListening();
-        audioAnalyser.stop();
-        if (sharedStreamRef.current) {
-          sharedStreamRef.current.getTracks().forEach(track => track.stop());
-          sharedStreamRef.current = null;
-        }
+        stopListening(); // Speech is running, clean it up
+        cleanupAudioStream();
       }
     } else {
       // Visualizer mode: Use getUserMedia for oscilloscope only
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        sharedStreamRef.current = stream;
-        await audioAnalyser.start(stream);
+        await startAudioVisualizer();
       } catch (err) {
         console.error('[MobileMode] Mic access error:', err);
         setSttError(err instanceof Error ? err.message : 'Microphone access denied');
         audioAnalyser.stop();
-        if (sharedStreamRef.current) {
-          sharedStreamRef.current.getTracks().forEach(track => track.stop());
-          sharedStreamRef.current = null;
-        }
+        cleanupAudioStream();
       }
     }
-  }, [isListening, audioAnalyser, inputMode, startListening, stopListening]);
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.
