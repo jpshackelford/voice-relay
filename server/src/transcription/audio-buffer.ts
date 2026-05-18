@@ -98,6 +98,10 @@ export class AudioBufferManager {
     
     if (buffer.totalSamples + samplesInChunk > maxSamples) {
       console.warn(`[AudioBuffer] Max duration exceeded for ${deviceId}, processing current buffer`);
+      // Include the current chunk before processing to avoid data loss
+      buffer.chunks.push(audioData);
+      buffer.totalSamples += samplesInChunk;
+      buffer.chunkCount++;
       this.processBuffer(deviceId);
       return;
     }
