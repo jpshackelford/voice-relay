@@ -518,5 +518,45 @@ When a user selects a specific kiosk for TTS output and that kiosk disconnects, 
 
 **Housekeeping:**
 - ✅ Archived 73 worklog entries (truncated to 15)
+
+---
+### 2026-05-18 14:55 UTC - Review Worker (`0fadaec`)
+
+✅ **PR #203 Merge Conflicts Resolved**
+
+- **PR:** [#203 - feat: add audio streaming infrastructure for server-side transcription (Phase 1)](https://github.com/jpshackelford/voice-relay/pull/203)
+- **Issue:** [#166](https://github.com/jpshackelford/voice-relay/issues/166)
+- **Status:** CI passing ✅, Ready for merge
+
+**Conflict Resolution:**
+PR #202 (unified TTS settings) was merged to main while PR #203 (audio streaming) was open. Both PRs modified the same type definition files.
+
+**Files with conflicts resolved:**
+1. `client/src/hooks/useWebSocket.ts` - Merged both TTS settings and audio streaming callbacks/refs
+2. `client/src/types.ts` - Combined `SessionTtsSettings*` and `AudioInput*`/`Transcription*` message types
+3. `server/src/types.ts` - Same as client types
+
+**Resolution approach:**
+- Rebased PR #203 branch onto latest main (commit `17555a1`)
+- Retained all functionality from both PRs:
+  - TTS settings: `SessionTtsSettingsMessage`, `SessionTtsSettingsChangedMessage`, `updateSessionTtsSettings`
+  - Audio streaming: `AudioInputChunkMessage`, `AudioInputEndMessage`, `TranscriptionResultMessage`, `TranscriptionErrorMessage`, `sendAudioInputChunk`, `sendAudioInputEnd`
+
+**Verification:**
+- ✅ Build passes (client + server)
+- ✅ Server tests: 616 passed
+- ✅ Client tests: 413 passed
+- ✅ CI: All 4 checks green (Build Client, Server Tests, E2E Tests, Conventional Commits)
+- ✅ PR status: MERGEABLE, no conflicts
+
+**Commits after rebase:**
+- `806ee41` - feat(audio): Add Phase 1 audio streaming infrastructure
+- `7aa1e1d` - fix: address review feedback for audio streaming hook
+- `e26ad23` - fix: prevent audio data loss on ring buffer overflow
+- `cd7b25c` - fix: include current audio chunk when max duration exceeded
+- `a7fa9e0` - refactor: rename workletNodeRef to processorNodeRef
+- `6f3ecf8` - docs: add documentation for known performance limitations
+
+**PR is ready for merge.**
 - ✅ Updated .workflow-state.json
 
