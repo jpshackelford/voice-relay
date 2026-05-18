@@ -1,7 +1,18 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "6003d10",
+        "issue": 218,
+        "started": "2026-05-18T17:49:37.369044+00:00"
+      },
+      {
+        "conv_id": "1403580",
+        "issue": 219,
+        "started": "2026-05-18T17:49:37.369044+00:00"
+      }
+    ],
     "implementation": [
       {
         "conv_id": "55a11f7",
@@ -11,9 +22,9 @@
     ],
     "review": [
       {
-        "conv_id": "23af42c",
-        "pr": 206,
-        "started": "2026-05-18T17:36:14.551431+00:00"
+        "conv_id": "9be4881",
+        "pr": 215,
+        "started": "2026-05-18T17:49:37.369044+00:00"
       }
     ]
   },
@@ -22,7 +33,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T17:36:14.551431+00:00",
+  "last_updated": "2026-05-18T17:49:37.369044+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -818,6 +829,15 @@
       "finished": "2026-05-18T17:33:28.701199+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #212"
+    },
+    {
+      "conv_id": "23af42c",
+      "type": "review",
+      "pr": 206,
+      "started": "2026-05-18T17:36:14.551431+00:00",
+      "finished": "2026-05-18T17:48:14.395740+00:00",
+      "status": "success",
+      "outcome": "Worker finished - PR merged"
     }
   ]
 }
