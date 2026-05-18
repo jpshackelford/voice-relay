@@ -60,13 +60,14 @@ export function useAudioAnalyser({
   }, [isActive]);
 
   const start = useCallback(async (existingStream?: MediaStream): Promise<MediaStream | undefined> => {
-    // Use ref for guard check to avoid stale closure - state is set immediately below
+    // Use ref for guard check to avoid stale closure
     if (isActiveRef.current || cancelledRef.current) return streamRef.current ?? undefined;
     
     cancelledRef.current = false;
     setError(null);
-    setIsActive(true); // Set immediately to prevent race condition with rapid start() calls
-    isActiveRef.current = true; // Keep ref in sync
+    // Set ref immediately for race condition guard (prevents rapid start() calls)
+    // But defer setIsActive(true) until refs are populated - fixes useMemo timing issue
+    isActiveRef.current = true;
     
     // Track resources for cleanup on error - fixes resource leak if error occurs before refs are set
     let audioCtx: AudioContext | null = null;
@@ -87,7 +88,6 @@ export function useAudioAnalyser({
         if (ownsStreamRef.current) {
           stream.getTracks().forEach(track => track.stop());
         }
-        setIsActive(false);
         isActiveRef.current = false;
         return undefined;
       }
@@ -105,7 +105,6 @@ export function useAudioAnalyser({
         if (ownsStreamRef.current) {
           stream.getTracks().forEach(track => track.stop());
         }
-        setIsActive(false);
         isActiveRef.current = false;
         return undefined;
       }
@@ -125,7 +124,10 @@ export function useAudioAnalyser({
       sourceRef.current = source;
       dataArrayRef.current = dataArray;
       
-      // isActive already set to true at start of this function
+      // Set state AFTER refs are populated so useMemo returns non-null analyser/dataArray
+      // This fixes the timing issue where isActive=true but analyser/dataArray were null
+      setIsActive(true);
+      
       return stream;
     } catch (err) {
       // Clean up resources created before the error
@@ -141,7 +143,8 @@ export function useAudioAnalyser({
       console.error('[AudioAnalyser] Error:', err);
       const message = err instanceof Error ? err.message : 'Failed to access microphone';
       setError(message);
-      setIsActive(false); // Reset state on error since we set it immediately at start
+      // Ensure both state and ref are false on error
+      setIsActive(false);
       isActiveRef.current = false;
       return undefined;
     }
