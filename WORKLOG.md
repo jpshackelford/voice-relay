@@ -1083,3 +1083,42 @@ Fixed oscilloscope displaying flat line in unified mode due to timing issue in t
 **Completed this cycle:**
 - ✅ Expansion worker `279438c` (Issue #220) - finished
 - ✅ Review worker `13541a3` (PR #217) - finished
+
+---
+
+### 2026-05-18 18:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `e4b0544` | review | PR #222 - V1 wrapped events | **NEW** |
+| `5f73484` | implementation | Issue #218 - What's New release notes | **NEW** |
+
+**Previous Workers Completed:**
+- `2e3f7e7` (implementation #220) → finished ✓ (Created PR #222)
+- `6636a26` (merge #217) → finished ✓ (Merged PR #217)
+
+**Current State:**
+- [PR #222](https://github.com/jpshackelford/voice-relay/pull/222): CI ✅ green, bot review positive ("Worth merging"), minor dead code cleanup suggested
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft PR (same issue #220, likely superseded by #222)
+- Ready issues: #218 (implementing), #213 (priority:low)
+- Issue #220 will close when PR #222 merges (Fixes #220)
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned 2 workers:**
+
+1. **Review Worker** for [PR #222](https://github.com/jpshackelford/voice-relay/pull/222)
+   - Task: Address dead code cleanup (remove unused `getNestedActionType` helper)
+   - Conversation: [`e4b0544`](https://app.all-hands.dev/conversations/e4b0544a72ca40d18862e81cb80f4766)
+
+2. **Implementation Worker** for [Issue #218](https://github.com/jpshackelford/voice-relay/issues/218) (priority:low)
+   - Task: Add "What's New" release notes to desktop workspace settings
+   - Conversation: [`5f73484`](https://app.all-hands.dev/conversations/5f73484ecad34408a3925e22d3964cd0)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review/Merge | 1 | 1 | 2 |
