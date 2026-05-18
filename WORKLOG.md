@@ -1998,3 +1998,25 @@ Checked out PR #193 to fix reported CI failures. Upon investigation, found that 
 | Review | 2 | 0 | 2 |
 
 ---
+
+### 2026-05-18 00:23 UTC - Merge Worker
+
+✅ **Merged: PR #180** - fix(mobile): use consistent back button navigation in Settings modal
+
+- **PR:** [#180](https://github.com/jpshackelford/voice-relay/pull/180)
+- **Issue:** [#165](https://github.com/jpshackelford/voice-relay/issues/165) - Mobile: Inconsistent navigation - Settings uses X instead of back button
+- **Status:** ✅ Merged to main, Issue #165 auto-closed
+
+**Summary:**
+Replaced X close button (✕) in MobileSettings with back button (← Back) to match the ConversationPane navigation pattern, providing consistent mobile UX across the app.
+
+**Key Changes:**
+- `MobileSettings.tsx`: Back button first, title second (standard mobile nav)
+- `App.css`: `.mobile-settings-back` styling matching `.conversation-back`
+- Tests updated for new back button selectors
+
+**Review:** LOW risk, approved as "elegant solution" that improves UX consistency
+
+**Production Impact:** App auto-deployed to vr.chorecraft.net on merge
+
+---
