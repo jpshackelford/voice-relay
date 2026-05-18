@@ -779,6 +779,35 @@ During the incident tracked in #197, the automatic rollback failed because it in
 
 ---
 
+### 2026-05-18 17:49 UTC - Merge Worker
+
+✅ **PR #215 Merged**
+
+- **PR:** [#215 - fix(client): fix oscilloscope timing issue in unified mode](https://github.com/jpshackelford/voice-relay/pull/215)
+- **Issue:** [#211](https://github.com/jpshackelford/voice-relay/issues/211) ← Auto-closed
+- **Merge commit:** `492a003`
+
+**Summary:**
+Fixed oscilloscope displaying flat line in unified mode due to timing issue in the `useAudioAnalyser` hook. The `setIsActive(true)` was being called before `analyserRef` and `dataArrayRef` were populated, causing `useMemo` to return null values even when the hook was active.
+
+**Root Cause:**
+- `setIsActive(true)` was called at start of `start()` function
+- This triggered `useMemo` to recalculate before refs were populated
+- `Oscilloscope` component requires all three (`isActive && analyser && dataArray`) to draw waveforms
+- Result: flat baseline displayed instead of audio waveform
+
+**Fix:**
+- Move `setIsActive(true)` to after refs are populated
+- Keep `isActiveRef.current = true` at start for race condition guard
+
+**Changes:**
+- `client/src/hooks/useAudioAnalyser.ts`: Fix timing of `setIsActive(true)` call
+- `client/src/hooks/useAudioAnalyser.test.ts`: Add 3 new tests for the timing fix
+
+**Production Deployment:** Auto-deployed to vr.chorecraft.net
+
+---
+
 ### 2026-05-18 17:36 UTC - Orchestrator
 
 **Active Workers:**
