@@ -2662,3 +2662,38 @@ When a user selects a specific kiosk for TTS output and that kiosk disconnects, 
 **PR is ready for merge.** All review feedback addressed across both review rounds.
 
 ---
+
+---
+
+### 2026-05-18 14:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `df26c59` | merge | PR #202 - TTS Settings | **NEW** |
+| `29532e5` | review | PR #203 - Audio Streaming (5 threads) | **NEW** |
+
+**Current State:**
+- [PR #202](https://github.com/jpshackelford/voice-relay/pull/202): ✅ CI green, 0 unresolved threads → Ready to merge
+- [PR #203](https://github.com/jpshackelford/voice-relay/pull/203): ✅ CI green, 5 unresolved threads → Needs review feedback addressed
+
+**Ready Issues:**
+- #166 (priority:low) - Mobile text display (PR #203 fixes this)
+- #167 (priority:low) - Toggle agent actions
+- #188 (priority:low) - API permissions info
+- #191 (priority:medium) - TTS settings (PR #202 fixes this)
+
+**Issues needing expansion:**
+- #197 - CI failure (`needs-human` label) - Skipped
+
+**Action Taken:**
+🚀 **Spawned 2 workers:**
+1. **Merge Worker** for [PR #202](https://github.com/jpshackelford/voice-relay/pull/202) - TTS Settings
+   - Conversation: [`df26c59`](https://app.all-hands.dev/conversations/df26c59409f445debb235052d3bb3c75)
+   - Task: Verify migrations, craft commit message, squash-merge
+
+2. **Review Worker** for [PR #203](https://github.com/jpshackelford/voice-relay/pull/203) - Audio Streaming  
+   - Conversation: [`29532e5`](https://app.all-hands.dev/conversations/29532e5516ce42838c88059c72813dd3)
+   - Task: Address 5 unresolved review threads
+
+**Implementation slot:** Available after merges (next issue: #167 or #188)
