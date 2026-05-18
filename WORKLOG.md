@@ -25,6 +25,27 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:45 UTC - Implementation Worker
+
+**PR Created:** [#217 - feat: add API permissions info and voice test button in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/pull/217)
+
+- **Issue:** [#188 - Add API permissions info and voice test button in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/issues/188)
+- **Priority:** LOW (feature)
+- **Status:** CI passing ✅, Ready for review
+
+**Summary:**
+Added UI improvements to the ElevenLabs settings section:
+1. API permissions text below the API key help text showing required permissions
+2. Voice preview button next to the voice selector dropdown that plays the selected voice using ElevenLabs' preview_url
+
+**Changes:**
+- Client: Added permissions hint, voice preview button with play/stop states
+- Server: Updated fetchVoices return type to include preview_url
+- Tests: Added test for preview_url parsing
+- CSS: Added styles for voice-preview-btn and permissions-hint
+
+---
+
 ### 2026-05-18 17:35 UTC - Merge Worker
 
 ✅ **PR #206 Merged**
