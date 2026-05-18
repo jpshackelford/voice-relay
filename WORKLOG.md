@@ -2516,3 +2516,32 @@ Documentation update for `docs/server-inventory.md`:
 5. Updated next available port to 3004
 
 **Note:** The actual server deployment (SSH to chorecraft.net) will be performed manually following the approach in issue #183 comments.
+
+---
+### 2026-05-18 02:37 UTC - Merge Worker
+
+✅ **Merged PR #199 → Issue #183 CLOSED**
+
+- PR: [#199 - feat: set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/pull/199)
+- Issue: [#183 - Set up Uptime Kuma for independent health monitoring](https://github.com/jpshackelford/voice-relay/issues/183) **CLOSED** (auto-closed)
+- Merge Type: Squash merge to main
+- Commit: `docs: add Uptime Kuma health monitoring to server inventory`
+
+**Summary:**
+Documentation-only PR that adds Uptime Kuma monitoring setup to server-inventory.md.
+
+**Key Changes:**
+1. Added `status.chorecraft.net (Uptime Kuma)` section under Hosted Domains
+   - Service configuration (port 3003, systemd service)
+   - Purpose and capabilities (health monitoring, ntfy.sh alerts, status page)
+   - Configured monitors table (voice-relay health, chorecraft.net)
+   - Service management commands
+2. Updated port allocation table: added uptime-kuma on port 3003
+3. Updated next available port to 3004
+
+**Review:** 🟢 LOW risk - Documentation-only change, consistent with existing patterns
+
+**Production Notes:**
+- App auto-deploying to vr.chorecraft.net (no functional changes)
+- Actual Uptime Kuma server deployment is manual (documented in issue #183)
+
