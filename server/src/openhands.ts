@@ -532,7 +532,7 @@ export function formatEventSummary(event: V1Event): string {
       return 'System prompt loaded';
       
     case 'MessageEvent':
-      // Try to get a preview of the message content
+      // OpenHands LLM messages contain nested content arrays with typed parts (e.g., [{type: 'text', text: '...'}])
       if (event.llm_message && typeof event.llm_message === 'object') {
         const msg = event.llm_message as { content?: Array<{ type: string; text?: string }> };
         if (msg.content && Array.isArray(msg.content)) {
