@@ -25,6 +25,38 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 01:25 UTC - Review Feedback Worker (Round 2)
+
+✅ **Completed All Review Feedback on PR #194**
+
+- Issue: [#185 - Release Notes in Mobile](https://github.com/jpshackelford/voice-relay/issues/185)
+- PR: [#194 - feat(client): add in-app release notes viewer](https://github.com/jpshackelford/voice-relay/pull/194)
+- Status: **Ready for review** ✅ CI GREEN, **3/3 review threads resolved**
+
+**Commits Pushed:**
+
+1. **Security Fix (c99b837):**
+   - Added `isValidRefName()` validation function to prevent command injection
+   - Both `getTagDate()` and `getCommitsBetween()` validate tag names before interpolation
+   - Tags validated to contain only safe characters: alphanumeric, `-`, `_`, `.`, `/`
+   - Added `--` separator in `for-each-ref` command as belt-and-suspenders defense
+
+2. **Type Safety Improvement (de807a9):**
+   - Added explicit `Changelog` and `ChangelogEntry` interfaces in server/src/index.ts
+   - Changed cache type from `object | null` to `Changelog | null`
+
+**All Review Threads Resolved:**
+- ✅ PRRT_kwDOSTUWGM6CscqH (line 96 command injection) - Fixed in c99b837
+- ✅ PRRT_kwDOSTUWGM6CscqL (line 121 command injection) - Fixed in c99b837
+- ✅ PRRT_kwDOSTUWGM6CscqP (line 264 type safety) - Fixed in de807a9
+
+**Visual Evidence Note:**
+Screenshot would require GitHub OAuth authentication to access mobile settings.
+Verified through 37 unit tests (374 client tests pass, 598 server tests pass).
+Maintainer can visually verify post-merge on vr.chorecraft.net.
+
+---
+
 ### 2026-05-18 01:20 UTC - Review Feedback Worker
 
 ✅ **Addressed All Review Feedback on PR #194**
