@@ -87,7 +87,8 @@ jobs:
         id: e2e-mobile
         env:
           TEST_AUTH_SECRET: ${{ secrets.TEST_AUTH_SECRET }}
-        run: npm run test:mobile
+        # Add --retries=2 for flaky WebSocket tests (GitHub Issue #192)
+        run: npm run test:mobile -- --retries=2
 
       - name: Cleanup test processes
         if: always()

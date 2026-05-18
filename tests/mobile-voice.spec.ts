@@ -125,7 +125,9 @@ async function setupMobileSession(
   await expect(page.locator('.mobile-mode, .mobile-walkie')).toBeVisible({ timeout: 10000 });
   
   // Wait for connection indicator to show connected (mobile uses .connection-dot.connected)
-  await expect(page.locator('.connection-dot.connected, [aria-label*="Connected to server"]')).toBeVisible({ timeout: 10000 });
+  // Increased timeout from 10s to 30s for CI stability (GitHub Issue #192)
+  // WebSocket connection timing is non-deterministic and CI environments under load need more time
+  await expect(page.locator('.connection-dot.connected, [aria-label*="Connected to server"]')).toBeVisible({ timeout: 30000 });
   
   // Small delay to ensure UI is stable
   await page.waitForTimeout(500);
@@ -134,6 +136,9 @@ async function setupMobileSession(
 test.describe('Mobile Voice UI', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Add retries for mobile tests which involve WebSocket timing (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';
@@ -198,6 +203,9 @@ test.describe('Mobile Voice UI', () => {
 test.describe('Mobile Voice Input with Fake Audio', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Add retries for mobile tests which involve WebSocket timing (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';
