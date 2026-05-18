@@ -25,6 +25,46 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:21 UTC - Expansion Worker
+
+✅ **Expanded Issue #192 - Fix any failing E2E tests!**
+
+- Issue: [#192 - Fix any failing E2E tests!](https://github.com/jpshackelford/voice-relay/issues/192)
+- Type: Bug fix / CI stability
+- Priority: **CRITICAL**
+- Status: **Ready for implementation** ✅
+
+**Problem Identified:**
+Flaky E2E test failures breaking main branch and blocking PRs. All failures trace to the same root cause:
+- Race condition in `setupMobileSession()` at line 128 of `tests/mobile-voice.spec.ts`
+- 10 second timeout insufficient for WebSocket connection in CI environments
+- Tests pass sometimes, fail other times (flaky)
+
+**Current CI Status:**
+- Main branch: ❌ FAILING (mobile-voice tests)
+- PR #190: ❌ Blocked by E2E failure
+- PR #187: ❌ Blocked by E2E failure
+- PR #193: ✅ Passing
+- PR #180: ✅ Passing
+
+**Root Cause:**
+```typescript
+// Line 128 - flaky assertion
+await expect(page.locator('.connection-dot.connected')).toBeVisible({ timeout: 10000 });
+```
+
+**Recommended Fix:**
+1. Increase timeout from 10s to 30s for CI stability
+2. Add test retries in playwright config
+3. Configure branch protection to require CI checks
+
+**Files to Modify:**
+- `tests/mobile-voice.spec.ts` - Fix `setupMobileSession()` timeout
+- `.github/workflows/ci.yml` - Add retry logic if needed
+- GitHub Settings - Configure branch protection rules
+
+---
+
 ### 2026-05-18 00:19 UTC - Implementation Worker
 
 ✅ **Implemented Issue #189 - Device persistence fix**
