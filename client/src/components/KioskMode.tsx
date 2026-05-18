@@ -425,25 +425,26 @@ export function KioskMode({
           </div>
         </header>
 
-        <div className="kiosk-participants">
-          {kioskDevices.length > 0 && (
-            <span className="participant-group">🖥️ {kioskDevices.length}</span>
-          )}
-          {mobileDevices.length > 0 && (
-            <span className="participant-group">📱 {mobileDevices.length}</span>
-          )}
-        </div>
-
-        <div className="kiosk-tts-toggle">
-          <label title="Browser TTS for user messages (AI responses use server-side TTS)">
-            <input
-              type="checkbox"
-              checked={ttsEnabled}
-              onChange={(e) => setTtsEnabled(e.target.checked)}
-              disabled={!ttsSupported}
-            />
-            🔊 {(isSpeaking || isAudioPlaying) && '(speaking...)'}
-          </label>
+        <div className="kiosk-status-row">
+          <div className="kiosk-participants">
+            {kioskDevices.length > 0 && (
+              <span className="participant-group">🖥️ {kioskDevices.length}</span>
+            )}
+            {mobileDevices.length > 0 && (
+              <span className="participant-group">📱 {mobileDevices.length}</span>
+            )}
+          </div>
+          <div className="kiosk-tts-toggle">
+            <label title="Browser TTS for user messages (AI responses use server-side TTS)">
+              <input
+                type="checkbox"
+                checked={ttsEnabled}
+                onChange={(e) => setTtsEnabled(e.target.checked)}
+                disabled={!ttsSupported}
+              />
+              🔊 {(isSpeaking || isAudioPlaying) && '(speaking...)'}
+            </label>
+          </div>
         </div>
 
         <div className="kiosk-messages">

@@ -5,7 +5,6 @@ import {
   waitForStableConnection,
   navigateKioskToSession,
   extractQrUrl,
-  WS_STABLE_TIMEOUT,
 } from './utils/auth-helper';
 
 /**
@@ -28,13 +27,12 @@ import {
 // Timeout constants (in milliseconds)
 const ELEMENT_VISIBLE_TIMEOUT = 10000;
 const DEVICE_COUNT_UPDATE_TIMEOUT = 10000;
-// Use CI-aware timeout for WebSocket stability (30s in CI, 20s locally)
-const CONNECTION_STABLE_TIMEOUT = WS_STABLE_TIMEOUT;
+const CONNECTION_STABLE_TIMEOUT = 20000;
 const QR_URL_EXTRACT_TIMEOUT = 10000;
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
-// CI detection - multi-device WebSocket tests are unreliable in CI
-const isCI = !!process.env.CI;
+// Skip flaky WebSocket tests in CI (timing-sensitive multi-device coordination)
+const SKIP_FLAKY_WS_TESTS = process.env.CI === 'true';
 
 // Skip tests if TEST_AUTH_SECRET is not set
 test.beforeAll(() => {
@@ -47,8 +45,6 @@ test.beforeAll(() => {
 test.describe('QR Code Join Flow', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
-  // Skip multi-device tests in CI - WebSocket connections are unreliable
-  test.skip(isCI, 'Multi-device WebSocket tests skipped in CI (run locally with TEST_AUTH_SECRET)');
 
   let baseURL: string;
 
@@ -59,6 +55,8 @@ test.describe('QR Code Join Flow', () => {
 
   test('mobile device joins session via QR code URL', async ({ browser }) => {
     test.slow(); // Allow 3x the default timeout
+    // Skip flaky test in CI - WebSocket stabilization times out intermittently
+    test.skip(SKIP_FLAKY_WS_TESTS, 'Flaky in CI: WebSocket timing-sensitive');
 
     if (!TEST_AUTH_SECRET) {
       test.skip();
@@ -173,6 +171,8 @@ test.describe('QR Code Join Flow', () => {
 
   test('large QR code disappears and mini QR appears after mobile joins', async ({ browser }) => {
     test.slow();
+    // Skip flaky test in CI - WebSocket stabilization times out intermittently
+    test.skip(SKIP_FLAKY_WS_TESTS, 'Flaky in CI: WebSocket timing-sensitive');
 
     if (!TEST_AUTH_SECRET) {
       test.skip();
@@ -237,6 +237,8 @@ test.describe('QR Code Join Flow', () => {
 
   test('multiple mobile devices can join via QR code', async ({ browser }) => {
     test.slow();
+    // Skip flaky test in CI - WebSocket stabilization times out intermittently
+    test.skip(SKIP_FLAKY_WS_TESTS, 'Flaky in CI: WebSocket timing-sensitive');
 
     if (!TEST_AUTH_SECRET) {
       test.skip();
@@ -314,6 +316,8 @@ test.describe('QR Code Join Flow', () => {
 
   test('kiosk device count shows correct emoji and text format', async ({ browser }) => {
     test.slow();
+    // Skip flaky test in CI - WebSocket stabilization times out intermittently
+    test.skip(SKIP_FLAKY_WS_TESTS, 'Flaky in CI: WebSocket timing-sensitive');
 
     if (!TEST_AUTH_SECRET) {
       test.skip();

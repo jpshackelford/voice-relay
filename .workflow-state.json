@@ -1,19 +1,35 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "ae1138c",
+        "started": "2026-05-18T00:06:23.133964+00:00",
+        "issue": 191
+      },
+      {
+        "conv_id": "92a5757",
+        "started": "2026-05-18T00:06:34.122023+00:00",
+        "issue": 188
+      },
+      {
+        "conv_id": "31dc2ee",
+        "started": "2026-05-18T00:06:45.419290+00:00",
+        "issue": 185
+      }
+    ],
     "implementation": [
       {
-        "conv_id": "f401608",
-        "issue": 168,
-        "started": "2026-05-17T23:07:12.476988+00:00"
+        "conv_id": "73a632e",
+        "started": "2026-05-18T00:06:12.323522+00:00",
+        "issue": 189
       }
     ],
     "review": [
       {
-        "conv_id": "9452622",
-        "pr": 180,
-        "started": "2026-05-17T23:07:12.476988+00:00"
+        "conv_id": "a3b90a6",
+        "started": "2026-05-17T23:34:58.641040+00:00",
+        "pr": 180
       }
     ]
   },
@@ -22,7 +38,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-17T23:07:12.476988+00:00",
+  "last_updated": "2026-05-18T00:08:49.125531+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -131,6 +147,114 @@
       "finished": "2026-05-17T23:04:03.250643+00:00",
       "status": "success",
       "outcome": "Created PR #180 for Issue #165"
+    },
+    {
+      "conv_id": "9452622",
+      "type": "review",
+      "pr": 180,
+      "started": "2026-05-17T23:07:12.476988+00:00",
+      "finished": "2026-05-17T23:18:06.367644+00:00",
+      "status": "finished",
+      "outcome": "PR #180 still has conflicts - needs follow-up"
+    },
+    {
+      "conv_id": "9f2b75c",
+      "type": "expansion",
+      "started": "2026-05-17T23:19:43.573867+00:00",
+      "finished": "2026-05-17T23:32:06.410745+00:00",
+      "status": null,
+      "outcome": "Expansion completed for issue #182",
+      "issue": 182
+    },
+    {
+      "conv_id": "77353f5",
+      "type": "expansion",
+      "started": "2026-05-17T23:19:43.573867+00:00",
+      "finished": "2026-05-17T23:32:06.410745+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #183",
+      "issue": 183
+    },
+    {
+      "conv_id": "f401608",
+      "type": "implementation",
+      "started": "2026-05-17T23:07:12.476988+00:00",
+      "finished": "2026-05-17T23:32:06.410745+00:00",
+      "status": "success",
+      "outcome": "Created PR for issue #168",
+      "issue": 168
+    },
+    {
+      "conv_id": "109b520",
+      "type": "review",
+      "started": "2026-05-17T23:19:43.573867+00:00",
+      "finished": "2026-05-17T23:32:06.410745+00:00",
+      "status": "success",
+      "outcome": "Merged or addressed review on PR #180",
+      "pr": 180
+    },
+    {
+      "conv_id": "0283be3",
+      "type": "expansion",
+      "issue": 184,
+      "started": "2026-05-17T23:35:33.923100+00:00",
+      "finished": "2026-05-17T23:47:03.250835+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #184"
+    },
+    {
+      "conv_id": "597c41b",
+      "type": "expansion",
+      "issue": 186,
+      "started": "2026-05-17T23:35:45.771842+00:00",
+      "finished": "2026-05-17T23:47:03.250835+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #186"
+    },
+    {
+      "conv_id": "dd42bb2",
+      "type": "implementation",
+      "issue": 182,
+      "started": "2026-05-17T23:35:22.167801+00:00",
+      "finished": "2026-05-17T23:47:03.250835+00:00",
+      "status": "success",
+      "outcome": "Created PR for issue #182"
+    },
+    {
+      "conv_id": "df24a60",
+      "type": "expansion",
+      "issue": 189,
+      "started": "2026-05-17T23:49:52.671072+00:00",
+      "finished": "2026-05-18T00:04:29.168102+00:00",
+      "status": "success",
+      "outcome": "Expansion completed for issue #189"
+    },
+    {
+      "conv_id": "27cc695",
+      "type": "implementation",
+      "issue": 184,
+      "started": "2026-05-17T23:49:52.671072+00:00",
+      "finished": "2026-05-18T00:04:29.168102+00:00",
+      "status": "success",
+      "outcome": "Created PR for issue #184"
+    },
+    {
+      "conv_id": "cb0062b",
+      "type": "review",
+      "pr": 181,
+      "started": "2026-05-17T23:35:10.358523+00:00",
+      "finished": "2026-05-18T00:04:29.168102+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #181"
+    },
+    {
+      "conv_id": "15ecf4d",
+      "type": "review",
+      "pr": 181,
+      "started": "2026-05-18T00:06:01.449358+00:00",
+      "finished": "2026-05-18T00:08:49.125531+00:00",
+      "status": "success",
+      "outcome": "\u2705 Merged PR #181 - fix(client): combine kiosk sidebar status row elements"
     }
   ]
 }
