@@ -755,3 +755,47 @@ During the incident tracked in #197, the automatic rollback failed because it in
    - Bug: Combined view oscilloscope shows flat line
    - Priority: high
    - Conversation: [`16fc53a`](https://app.all-hands.dev/conversations/16fc53adb9a64b67b8d1afe3bc457c10)
+
+---
+
+### 2026-05-18 17:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `23af42c` | merge | PR #206 - agent actions toggle | **NEW** |
+| `55a11f7` | implementation | Issue #188 - ElevenLabs settings | **NEW** |
+
+**Previous Workers Completed:**
+| Conv ID | Type | Result |
+|---------|------|--------|
+| `16fc53a` | implementation | ✅ Created PR #215 for Issue #211 |
+| `6a581a1` | merge | ✅ Merged PR #214 (trust proxy) |
+| `3b5e6cf` | merge | ✅ Merged PR #212 (npm cache) |
+
+**Current State:**
+- **Open PRs:**
+  - [PR #215](https://github.com/jpshackelford/voice-relay/pull/215) - fix oscilloscope timing (pr-review in progress)
+  - [PR #206](https://github.com/jpshackelford/voice-relay/pull/206) - agent actions toggle (ready for merge ✅)
+- **Recently Merged:** PR #214, PR #212, PR #216
+- **Ready Issues:**
+  - #211 (priority:high) - covered by PR #215
+  - #167 (priority:low) - covered by PR #206
+  - #188 (priority:low) - spawning implementation
+  - #213 (priority:low, ci-failure) - smoke test failure
+- **On-hold:** #208, #210
+
+**Action Taken:**
+🚀 **Spawned 2 workers (parallel)**
+
+1. **Merge Worker** for [PR #206](https://github.com/jpshackelford/voice-relay/pull/206)
+   - Fixes Issue #167 - Add toggle to show/hide agent actions
+   - All CI green, all review threads resolved
+   - Conversation: [`23af42c`](https://app.all-hands.dev/conversations/23af42c3e6964b59877269f0f71dc8a9)
+
+2. **Implementation Worker** for [Issue #188](https://github.com/jpshackelford/voice-relay/issues/188)
+   - feat: Add API permissions info and voice test button in ElevenLabs settings
+   - Priority: low
+   - Conversation: [`55a11f7`](https://app.all-hands.dev/conversations/55a11f7dcebd41aeba419b9c22c54b37)
+
+**Note:** PR #215 still waiting for pr-review check to complete. Will spawn review worker once review feedback is available.
