@@ -34,6 +34,24 @@ export interface SessionTtsSettingsMessage {
   outputDeviceId: string | null;
 }
 
+/** Mobile → Server: Audio chunk for server-side transcription */
+export interface AudioInputChunkMessage {
+  type: 'audio-input-chunk';
+  /** Sequential chunk number (for ordering/debugging) */
+  chunkIndex: number;
+  /** Base64-encoded PCM16 audio data */
+  audio: string;
+  /** Sample rate of the audio (e.g., 16000) */
+  sampleRate: number;
+}
+
+/** Mobile → Server: Audio stream ended (ready for final transcription) */
+export interface AudioInputEndMessage {
+  type: 'audio-input-end';
+  /** Total number of chunks sent */
+  totalChunks: number;
+}
+
 // Messages from client to server
 export type ClientMessage =
   | RegisterMessage
@@ -41,7 +59,9 @@ export type ClientMessage =
   | TextMessage
   | JoinResponseMessage
   | DisplayResultMessage
-  | SessionTtsSettingsMessage;
+  | SessionTtsSettingsMessage
+  | AudioInputChunkMessage
+  | AudioInputEndMessage;
 
 /**
  * Kiosk → Server: Report display result (image load success/failure).
@@ -175,6 +195,26 @@ export interface SessionTtsSettingsChangedMessage {
   outputDeviceId: string | null;
 }
 
+/** Server → Mobile: Transcription result from audio input */
+export interface TranscriptionResultMessage {
+  type: 'transcription-result';
+  /** The transcribed text */
+  text: string;
+  /** Whether this is a final result (vs interim/partial) */
+  isFinal: boolean;
+  /** Confidence score (0-1) if available */
+  confidence?: number;
+}
+
+/** Server → Mobile: Error during transcription */
+export interface TranscriptionErrorMessage {
+  type: 'transcription-error';
+  /** Error message */
+  error: string;
+  /** Error code for programmatic handling */
+  code?: 'no-speech' | 'service-unavailable' | 'rate-limited' | 'unknown';
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -190,7 +230,9 @@ export type ServerMessage =
   | SessionAIStatusMessage
   | AudioChunkMessage
   | AudioEndMessage
-  | SessionTtsSettingsChangedMessage;
+  | SessionTtsSettingsChangedMessage
+  | TranscriptionResultMessage
+  | TranscriptionErrorMessage;
 
 export interface DisplayMessage {
   type: 'display';

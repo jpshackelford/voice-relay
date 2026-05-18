@@ -18,6 +18,7 @@ import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import { TtsService } from './tts/index.js';
+import { AudioBufferManager } from './transcription/index.js';
 import { 
   ANONYMOUS_WORKSPACE_ID, 
   ANONYMOUS_SESSION_ID, 
@@ -118,6 +119,13 @@ let qrTokenRepository: QrTokenRepository | null = null;
 
 // TTS service for AI response speech synthesis (set up after workspace repository)
 let ttsService: TtsService | null = null;
+
+// Audio buffer manager for server-side transcription (Phase 1 infrastructure)
+// The transcription callback will be set in Phase 2 when Whisper/API is integrated
+const audioBufferManager = new AudioBufferManager({
+  maxDurationSeconds: 30,
+  sampleRate: 16000,
+});
 
 // Map requestId -> userId for tracking pending join requests
 // Used to send join-resolved messages back to the requesting user's devices.
@@ -826,6 +834,30 @@ wss.on('connection', (ws: WebSocket) => {
           }
           break;
         }
+
+        case 'audio-input-chunk': {
+          // Handle audio chunk for server-side transcription (Phase 1)
+          if (!deviceId) {
+            console.warn('[WS] Received audio-input-chunk from unregistered device');
+            return;
+          }
+
+          const { audio, chunkIndex, sampleRate } = message;
+          audioBufferManager.addChunk(deviceId, ws, audio, chunkIndex, sampleRate);
+          break;
+        }
+
+        case 'audio-input-end': {
+          // Handle end of audio stream for transcription (Phase 1)
+          if (!deviceId) {
+            console.warn('[WS] Received audio-input-end from unregistered device');
+            return;
+          }
+
+          const { totalChunks } = message;
+          await audioBufferManager.endStream(deviceId, totalChunks);
+          break;
+        }
       }
     } catch (err) {
       console.error('[WS] Error processing message:', err);
@@ -837,6 +869,9 @@ wss.on('connection', (ws: WebSocket) => {
       const device = registry.getDevice(deviceId);
       const deviceWorkspaceId = device?.workspaceId;
       const deviceSessionId = device?.sessionId;
+      
+      // Clean up audio buffer for this device
+      audioBufferManager.removeDevice(deviceId);
       
       // Remove device from session_devices table
       if (sessionRepository && deviceSessionId && deviceSessionId !== ANONYMOUS_SESSION_ID) {
