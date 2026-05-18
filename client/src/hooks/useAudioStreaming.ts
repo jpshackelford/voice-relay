@@ -63,9 +63,22 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const sendChunkRef = useRef<((chunk: ArrayBuffer) => void) | null>(null);
   
-  // Buffer for accumulating samples before sending
-  const sampleBufferRef = useRef<Float32Array>(new Float32Array(0));
-  const samplesPerChunk = Math.floor(sampleRate * (chunkDurationMs / 1000));
+  // Ref to track streaming state in callbacks (avoids stale closure issues)
+  const isStreamingRef = useRef(false);
+  
+  // Buffer for accumulating samples before sending - using ring buffer for performance
+  const ringBufferRef = useRef<{ data: Float32Array; writeIndex: number; length: number }>({
+    data: new Float32Array(0),
+    writeIndex: 0,
+    length: 0,
+  });
+  
+  // Ref for samplesPerChunk to avoid stale closures in callbacks
+  const samplesPerChunkRef = useRef(Math.floor(sampleRate * (chunkDurationMs / 1000)));
+  
+  useEffect(() => {
+    samplesPerChunkRef.current = Math.floor(sampleRate * (chunkDurationMs / 1000));
+  }, [sampleRate, chunkDurationMs]);
 
   // Keep callbacks in refs to avoid stale closures
   const onTranscriptionRef = useRef(onTranscription);
@@ -97,21 +110,31 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
 
   /**
    * Process accumulated audio samples and send as chunks.
+   * Uses ring buffer for efficient memory management.
    */
   const processAudioBuffer = useCallback(() => {
     if (!sendChunkRef.current) return;
     
-    const buffer = sampleBufferRef.current;
-    if (buffer.length < samplesPerChunk) return;
+    const ringBuffer = ringBufferRef.current;
+    const samplesPerChunk = samplesPerChunkRef.current;
     
-    // Extract a chunk's worth of samples
-    const chunk = buffer.slice(0, samplesPerChunk);
-    sampleBufferRef.current = buffer.slice(samplesPerChunk);
-    
-    // Convert to PCM16 and send
-    const pcmData = float32ToPCM16(chunk);
-    sendChunkRef.current(pcmData);
-  }, [samplesPerChunk, float32ToPCM16]);
+    while (ringBuffer.length >= samplesPerChunk) {
+      // Extract a chunk's worth of samples from ring buffer
+      const chunk = new Float32Array(samplesPerChunk);
+      const bufferCapacity = ringBuffer.data.length;
+      const readIndex = (ringBuffer.writeIndex - ringBuffer.length + bufferCapacity) % bufferCapacity;
+      
+      for (let i = 0; i < samplesPerChunk; i++) {
+        chunk[i] = ringBuffer.data[(readIndex + i) % bufferCapacity];
+      }
+      
+      ringBuffer.length -= samplesPerChunk;
+      
+      // Convert to PCM16 and send
+      const pcmData = float32ToPCM16(chunk);
+      sendChunkRef.current!(pcmData);
+    }
+  }, [float32ToPCM16]);
 
   /**
    * Start streaming audio from the provided MediaStream.
@@ -123,11 +146,19 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
     stream: MediaStream,
     sendAudioChunk: (chunk: ArrayBuffer) => void
   ): Promise<void> => {
-    if (isStreaming) return;
+    if (isStreamingRef.current) return;
     
     setError(null);
     sendChunkRef.current = sendAudioChunk;
-    sampleBufferRef.current = new Float32Array(0);
+    
+    // Initialize ring buffer with capacity for ~60 seconds of audio at target sample rate
+    // This pre-allocation avoids memory allocations during audio processing
+    const bufferCapacity = sampleRate * 60;
+    ringBufferRef.current = {
+      data: new Float32Array(bufferCapacity),
+      writeIndex: 0,
+      length: 0,
+    };
 
     try {
       // Create audio context with target sample rate
@@ -161,16 +192,19 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       
       scriptProcessor.onaudioprocess = (event) => {
-        if (!isStreaming) return;
+        // Use ref to avoid stale closure - isStreaming state is captured at callback creation
+        if (!isStreamingRef.current) return;
         
         const inputData = event.inputBuffer.getChannelData(0);
+        const ringBuffer = ringBufferRef.current;
+        const capacity = ringBuffer.data.length;
         
-        // Append to buffer
-        const currentBuffer = sampleBufferRef.current;
-        const newBuffer = new Float32Array(currentBuffer.length + inputData.length);
-        newBuffer.set(currentBuffer);
-        newBuffer.set(inputData, currentBuffer.length);
-        sampleBufferRef.current = newBuffer;
+        // Write to ring buffer (no allocation, just index update)
+        for (let i = 0; i < inputData.length; i++) {
+          ringBuffer.data[ringBuffer.writeIndex] = inputData[i];
+          ringBuffer.writeIndex = (ringBuffer.writeIndex + 1) % capacity;
+        }
+        ringBuffer.length = Math.min(ringBuffer.length + inputData.length, capacity);
         
         // Process if we have enough samples
         processAudioBuffer();
@@ -183,6 +217,8 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
       // Store reference for cleanup
       workletNodeRef.current = scriptProcessor as unknown as AudioWorkletNode;
       
+      // Update both ref and state - ref for callbacks, state for UI
+      isStreamingRef.current = true;
       setIsStreaming(true);
       
     } catch (err) {
@@ -196,15 +232,25 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
         audioContextRef.current = null;
       }
     }
-  }, [isStreaming, sampleRate, processAudioBuffer]);
+  }, [sampleRate, processAudioBuffer]);
 
   /**
    * Stop streaming audio.
    */
   const stop = useCallback(() => {
-    // Send any remaining buffered audio
-    if (sendChunkRef.current && sampleBufferRef.current.length > 0) {
-      const pcmData = float32ToPCM16(sampleBufferRef.current);
+    // Send any remaining buffered audio from ring buffer
+    const ringBuffer = ringBufferRef.current;
+    if (sendChunkRef.current && ringBuffer.length > 0) {
+      // Extract remaining samples from ring buffer
+      const remaining = new Float32Array(ringBuffer.length);
+      const capacity = ringBuffer.data.length;
+      const readIndex = (ringBuffer.writeIndex - ringBuffer.length + capacity) % capacity;
+      
+      for (let i = 0; i < ringBuffer.length; i++) {
+        remaining[i] = ringBuffer.data[(readIndex + i) % capacity];
+      }
+      
+      const pcmData = float32ToPCM16(remaining);
       sendChunkRef.current(pcmData);
     }
     
@@ -227,8 +273,10 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
     analyserRef.current = null;
     dataArrayRef.current = null;
     sendChunkRef.current = null;
-    sampleBufferRef.current = new Float32Array(0);
+    ringBufferRef.current = { data: new Float32Array(0), writeIndex: 0, length: 0 };
     
+    // Update both ref and state
+    isStreamingRef.current = false;
     setIsStreaming(false);
   }, [float32ToPCM16]);
 
