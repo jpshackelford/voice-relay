@@ -25,6 +25,23 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 17:15 UTC - Implementation Worker
+
+**PR Created:** [#214 - fix(server): add trust proxy configuration for Express behind Apache](https://github.com/jpshackelford/voice-relay/pull/214)
+
+- **Issue:** [#209 - Fix Express 'trust proxy' configuration causing proxy errors](https://github.com/jpshackelford/voice-relay/issues/209)
+- **Priority:** HIGH (bug)
+- **Status:** CI passing ✅, Ready for review
+
+**Summary:**
+Fixed express-rate-limit throwing `ValidationError` on every request when running behind Apache proxy. Added `app.set('trust proxy', 1)` configuration and comprehensive tests.
+
+**Changes:**
+- `server/src/index.ts`: Add trust proxy setting
+- `server/src/trust-proxy.test.ts`: Add tests for proxy behavior
+
+---
+
 ### 2026-05-18T17:13:00Z - Expansion Worker
 
 ✅ **Expanded Issue #213**
