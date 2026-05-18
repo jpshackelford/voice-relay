@@ -25,6 +25,30 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:19 UTC - Implementation Worker
+
+✅ **Implemented Issue #189 - Device persistence fix**
+
+- Issue: [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189)
+- PR: [#193 - fix(client): use workspace-scoped device storage and SQLite default](https://github.com/jpshackelford/voice-relay/pull/193)
+- Type: Bug fix
+- Priority: **HIGH**
+- Status: **Ready for review** ✅
+
+**Root Causes Fixed:**
+1. Changed server default storage from `memory` to `sqlite` - device records now persist across restarts
+2. Changed client localStorage to use workspace-scoped keys - prevents conflicts when accessing multiple workspaces
+
+**Key Changes:**
+- `server/src/storage/index.ts` - Default STORE_DRIVER to 'sqlite'
+- `client/src/utils/deviceToken.ts` - Workspace-scoped storage with legacy migration
+- `client/src/hooks/useDeviceRestoration.ts` - Pass workspaceId to storage functions
+- `client/src/hooks/useWebSocket.ts` - Pass workspaceId when clearing tokens
+
+**Test Coverage:** 333 client tests pass, 598 server tests pass, CI green
+
+---
+
 ### 2026-05-18 00:07 UTC - Expansion Worker
 
 ✅ **Expanded Issue #188 - ElevenLabs API permissions and voice test**
