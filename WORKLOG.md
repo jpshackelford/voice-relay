@@ -25,467 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 03:27 UTC - Implementation Worker
-
-**PR #202 Created** 🔄
-
-- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
-- **Issue:** [#191](https://github.com/jpshackelford/voice-relay/issues/191) (Fixes)
-- **Status:** Ready for review ✅
-
-**Summary:**
-Unified 3 separate unsynced TTS settings into single session-level control with real-time sync:
-
-**Changes:**
-- Added `SessionTtsSettings` interface (enabled + outputDeviceId) to session metadata
-- Added WebSocket messages for real-time TTS settings sync across all devices
-- Updated `registry.broadcastAudioToKiosks()` to support device targeting
-- KioskMode & MobileSettings: Replaced local state with session-level TTS toggle + device dropdown
-- Deprecated browser-based TTS in favor of server-side ElevenLabs TTS
-
-**Acceptance Criteria (all met):**
-- [x] Single unified TTS toggle visible on both kiosk and mobile
-- [x] TTS setting changes sync in real-time across all devices
-- [x] Device dropdown allows selecting which device plays audio
-- [x] Audio only plays on selected device (or all kiosks if none selected)
-- [x] TTS setting persists in session metadata
-- [x] Workspace-level ElevenLabs API key config unchanged
-- [x] Browser-local TTS deprecated/removed
-
-**CI Status:** All checks passing ✅
-
----
-
-### 2026-05-18 03:18 UTC - Merge Worker
-
-**PR #201 Merged** ✅
-
-- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
-- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169) (auto-closed)
-- **Commit:** `feat(client): simplify kiosk mode connection indicator to solid dot`
-
-**Summary:**
-Replaced plug emoji (🔌) connection indicator with minimal solid colored dot:
-- Green (#00c853) when connected, red (#ff4444) when disconnected
-- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
-- Pure CSS solution eliminates emoji dependency for cross-platform consistency
-
-**Review Evolution:**
-1. Initial review: CSS simplification approved, requested screenshots
-2. Feedback addressed: Added screenshots to `docs/screenshots/`
-3. Final review: "Worth merging" with LOW risk assessment
-
-**Deployed:** Auto-deploying to vr.chorecraft.net
-
----
-
-### 2026-05-18 03:13 UTC - PR Review Worker
-
-**PR #201 Review Addressed** ✅
-
-- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
-- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169)
-- **Status:** Ready for review (all feedback addressed)
-
-**Review Feedback:**
-- Automated review requested screenshots showing the visual change
-- Added `docs/screenshots/kiosk-connection-indicator.png` - full layout view with both states
-- Added `docs/screenshots/connection-indicator-closeup.png` - closeup of the dot indicators
-- Updated PR description to embed screenshots
-
-**Commits:**
-1. Original implementation (8db5cc2) - CSS & component changes
-2. Screenshot addition (f06d989) - Visual documentation for reviewers
-
-**CI Status:** All 4 checks passing ✅
-
----
-
-### 2026-05-18 03:10 UTC - Merge Worker
-
-**PR #200 Merged** ✅
-
-- **PR:** [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
-- **Issue:** [#186](https://github.com/jpshackelford/voice-relay/issues/186) (auto-closed)
-- **Commit:** `feat: add Skip button to dismiss QR code screen on kiosk display`
-
-**Summary:**
-Added "Skip →" button to kiosk QR code screen allowing users to proceed without mobile device scan. Useful for solo kiosk usage, development/testing, and quick demos.
-
-**Review Status:**
-- 2 automated reviews: both 🟢 LOW risk, "Worth merging"
-- All CI checks passed (5/5)
-
-**Migration Check:** ✅ No database changes - pure frontend feature (CSS + React state)
-
-**Deployed:** Auto-deploying to vr.chorecraft.net
-
----
-### 2026-05-17 19:38 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c77734a` | implementation | Issue #162 - Mobile status icons layout bug | **NEW** |
-| `e8d8f2e` | expansion | Issue #166 - Text transcription display | **NEW** |
-| `59e09cd` | expansion | Issue #167 - Toggle agent actions | **NEW** |
-| `74a484f` | expansion | Issue #168 - Audio checkbox layout | **NEW** |
-| `79e83c8` | expansion | Issue #169 - Kiosk mode indicator | **NEW** |
-
-🚀 **Spawned: 5 Workers (parallel)**
-
-**1. Implementation Worker** (priority:high bug fix)
-- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- Conversation: [`c77734a`](https://app.all-hands.dev/conversations/c77734a3...)
-- Priority: `priority:high` (bug)
-
-**2. Expansion Workers** (4 issues needing analysis)
-- [#166 - Mobile: Text transcription display is poor in oscilloscope view](https://github.com/jpshackelford/voice-relay/issues/166) → [`e8d8f2e`](https://app.all-hands.dev/conversations/e8d8f2e5...)
-- [#167 - Feature: Add toggle to show/hide agent actions](https://github.com/jpshackelford/voice-relay/issues/167) → [`59e09cd`](https://app.all-hands.dev/conversations/59e09cd9...)
-- [#168 - Bug: Audio checkbox and display count on separate lines](https://github.com/jpshackelford/voice-relay/issues/168) → [`74a484f`](https://app.all-hands.dev/conversations/74a484f6...)
-- [#169 - UI: Simplify kiosk mode connection indicator](https://github.com/jpshackelford/voice-relay/issues/169) → [`79e83c8`](https://app.all-hands.dev/conversations/79e83c8f...)
-
-**Priority Assessment Completed:**
-- Added `priority:high` to Issue #162 (bug)
-- Added `priority:medium` to Issues #163, #164, #165 (enhancements)
-
-**Previous Expansion Workers Completed:**
-- `398ccf9`, `f21d297`, `c540bf0`, `68159f9` all finished ✓
-- Issues #162, #163, #164, #165 now have `ready` label
-
-**Current State:**
-- Open PRs: None
-- Ready issues: #162 (priority:high - now implementing), #163, #164, #165 (priority:medium)
-- Issues needing expansion: #166, #167, #168, #169 (all now being expanded)
-- All 5 worker slots occupied (4 expansion + 1 implementation)
-
-**Housekeeping:**
-- 📦 Archived 1 entry to WORKLOG_ARCHIVE_2026-05-17.md (worklog truncation)
-
----
-### 2026-05-17 19:49 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c77734a` | implementation | Issue #162 - Mobile status icons | running |
-
-**Expansion Workers Completed:**
-- `e8d8f2e` (Issue #166) ✓
-- `59e09cd` (Issue #167) ✓
-- `74a484f` (Issue #168) ✓
-- `79e83c8` (Issue #169) ✓
-
-All 4 expansion workers finished successfully. Issues #166-169 now have `ready` label with technical details.
-
-**Open PRs:**
-- [PR #170](https://github.com/jpshackelford/voice-relay/pull/170) - Draft, fixes #162, CI pending (E2E tests)
-- [PR #171](https://github.com/jpshackelford/voice-relay/pull/171) - Draft, fixes #162, CI pending (E2E tests)
-
-⚠️ **Note:** Two PRs open for same issue (#162). PR #170 appears to be from earlier work, PR #171 is being worked on by implementation worker `c77734a`. This will need cleanup - likely close PR #170 as duplicate.
-
-**Ready Issues:**
-- #162 - priority:high (PR in progress)
-- #163 - priority:medium
-- #164 - priority:medium
-- #165 - priority:medium
-- #166 - ready (complex - server-side transcription)
-- #167 - ready (agent actions toggle)
-- #168 - ready (audio checkbox layout)
-- #169 - ready (connection indicator)
-
-**Slot Availability:**
-- Expansion: 4 available (nothing to expand - all issues have `ready` label)
-- Implementation: 0 available (c77734a working on #162)
-- Review: 2 available (PRs still in draft mode, CI pending)
-
-**Action Taken:**
-⏳ **Waiting** - Implementation worker `c77734a` is running. CI pending on PR #171. Will continue monitoring.
-
----
-### 2026-05-17 19:52 UTC - Implementation Worker (Manual)
-
-✅ **PR #170 Ready for Review - Issue #162 (Mobile Status Icons)**
-
-- Issue: [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- PR: [#170 - fix(client): keep walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/170)
-- Status: **Ready for review** ✅
-
-**Changes:**
-- Added `.walkie-header` CSS override in mobile media query (`@media max-width: 480px`)
-- Explicitly sets `flex-direction: row` and `align-items: center` to prevent generic `header` selector from overriding
-- Added E2E test validating horizontal layout on mobile viewport
-
-**Files Modified:**
-- `client/src/App.css` - Added 7 LOC for `.walkie-header` override
-- `tests/mobile-voice.spec.ts` - Added test for horizontal layout
-
-**CI Status:**
-- ✅ Build Client: Pass
-- ✅ Server Tests: Pass
-- ✅ Lint PR Title: Pass
-- ✅ Mobile Voice Tests: 9/9 pass (includes new layout test)
-- ⚠️ Other E2E Tests: Flaky failures (WebSocket stability issues - pre-existing on main)
-
-**Risk:** 🟢 LOW - CSS-only change, additive override doesn't affect other elements
-
----
-### 2026-05-17 19:55 UTC - Implementation Worker
-
-**Completed:** Issue #162 - Mobile status icons stacking vertically
-
-- **Issue:** [#162 - Mobile: Status icons stacking vertically instead of horizontally](https://github.com/jpshackelford/voice-relay/issues/162)
-- **PR:** [#171 - fix(client): keep mobile walkie-header icons horizontal on narrow viewports](https://github.com/jpshackelford/voice-relay/pull/171)
-- **Fix:** Added explicit `.walkie-header` CSS override in `@media (max-width: 480px)` block to preserve `flex-direction: row`
-- **Root Cause:** Generic `header` selector in mobile media query was setting `flex-direction: column`, overriding walkie-header styles
-- **Testing:** Added Playwright test to verify horizontal layout; mobile E2E tests pass
-- **CI Status:** Build, Server Tests, Conventional Commits all pass. Mobile tests pass. Chromium E2E tests failing with flaky WebSocket timeout (pre-existing issue in main branch)
-- **Status:** Ready for review
-
----
-### 2026-05-17 19:58 UTC - Worklog Correction (Manual)
-
-📝 **Corrected stale worklog entries**
-
-Previous entries incorrectly referenced PR #143 and Issue #142 as "stuck" and requiring human intervention. This was outdated information.
-
-**Actual Status:**
-- ✅ **PR #143** - CLOSED (walkie-talkie mobile redesign)
-- ✅ **Issue #142** - CLOSED (Redesign Mobile UI completed)
-
-The AI successfully addressed all code review feedback:
-- Dual microphone stream documentation
-- ARIA accessibility labels added
-- Test coverage expanded
-- Code structure improvements
-
-**Current State (accurate):**
-- Open PRs: #170, #171 (both fix Issue #162 - duplicate, need cleanup)
-- Ready issues: #162, #163, #164, #165, #166, #167, #168, #169 (8 total)
-- No blocked work - automation can proceed normally
-
-**Action:** Removed outdated "needs-human" / "CONFLICTING" references to PR #143
-
----
-### 2026-05-17 20:20 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c77734a` | implementation | Issue #162 - Mobile icons | ✓ finished |
-| `dd0d905` | implementation | Issue #172 - Smoke test failure | **NEW** |
-
-**Completed:** Worker `c77734a` finished implementing Issue #162
-- PR #171 was merged successfully at 20:17 UTC
-- Issue #162 is now closed
-
-**Spawned: Implementation Worker**
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
-- Conversation: [`dd0d905`](https://app.all-hands.dev/conversations/dd0d905897354ea29667e5514a106a53)
-
-**Housekeeping:**
-- ✅ Truncated WORKLOG.md (720→~200 lines)
-- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
-
-**Current State:**
-- No open PRs
-- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
-- Ready issues (unprioritized): #166, #167, #168, #169
-- Issues needing expansion: None
-
----
-### 2026-05-17 20:20 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `c77734a` | implementation | Issue #162 - Mobile icons | ✓ finished |
-| `dd0d905` | implementation | Issue #172 - Smoke test failure | **NEW** |
-
-**Completed:** Worker `c77734a` finished implementing Issue #162
-- PR #171 was merged successfully at 20:17 UTC
-- Issue #162 is now closed
-
-🚀 **Spawned: Implementation Worker**
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
-- Conversation: [`dd0d905`](https://app.all-hands.dev/conversations/dd0d905897354ea29667e5514a106a53)
-
-**Housekeeping:**
-- ✅ Truncated WORKLOG.md (720→~200 lines)
-- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
-
-**Current State:**
-- No open PRs
-- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
-- Ready issues (unprioritized): #166, #167, #168, #169
-- Issues needing expansion: None
-
----
-### 2026-05-17 20:35 UTC - Implementation Worker (`dd0d905`)
-
-✅ **PR #173 Ready for Review - Issue #172 (Smoke Test Timeout)**
-
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
-- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
-- Status: **Ready for review** ✅
-
-**Changes:**
-- Updated all AI status assertion timeouts from 30s to 60s in `tests/smoke/ai-integration.spec.ts`
-- Aligns test timeout with server-side `pollUntilReady()` timeout (60s)
-- Fixes intermittent smoke test failures when OpenHands Cloud API experiences cold starts
-
-**Files Modified:**
-- `tests/smoke/ai-integration.spec.ts` - 8 timeout updates (30000 → 60000)
-
-**CI Status:**
-- ✅ Build Client: Pass
-- ✅ Server Tests: Pass  
-- ✅ Lint PR Title: Pass
-- ⚠️ E2E Tests: 50/55 pass, 5 flaky failures (WebSocket stability - pre-existing on main, unrelated to this PR)
-
-**Risk:** 🟢 LOW - Test-only change, no production code impact
-
----
-### 2026-05-17 20:35 UTC - Implementation Worker (`dd0d905`)
-
-✅ **PR #173 Ready for Review - Issue #172 (Smoke Test Timeout)**
-
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
-- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
-- Status: **Ready for review** ✅
-
-**Changes:**
-- Updated all AI status assertion timeouts from 30s to 60s in `tests/smoke/ai-integration.spec.ts`
-- Aligns test timeout with server-side `pollUntilReady()` timeout (60s)
-- Fixes intermittent smoke test failures when OpenHands Cloud API experiences cold starts
-
-**Files Modified:**
-- `tests/smoke/ai-integration.spec.ts` - 8 timeout updates (30000 → 60000)
-
-**CI Status:**
-- ✅ Build Client: Pass
-- ✅ Server Tests: Pass  
-- ✅ Lint PR Title: Pass
-- ⚠️ E2E Tests: 50/55 pass, 5 flaky failures (WebSocket stability - pre-existing on main, unrelated to this PR)
-
-**Risk:** 🟢 LOW - Test-only change, no production code impact
-
----
-### 2026-05-17 20:49 UTC - Merge Worker (`441026f`)
-
-✅ **Merged PR #173 - AI Connection Timeout Fix**
-
-- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172)
-- Status: **MERGED** ✅
-- Issue #172: **CLOSED** (auto-closed via "Fixes #172")
-
-**Commit Message:**
-```
-fix(e2e): increase AI connection timeout from 30s to 60s
-
-Aligns test timeout with server-side pollUntilReady() timeout (60s).
-OpenHands Cloud API cold starts can take >30s during high load.
-
-Updates all AI status assertion timeouts in tests/smoke/ai-integration.spec.ts:
-- waitForAIAutoConnect() helper
-- Active tests: AI auto-connect, send message tests
-- Skipped tests: image display, markdown display (for consistency)
-
-Fixes #172
-```
-
-**Production Safety:** ⚠️ Test infrastructure only - No production code modified. Changes affect:
-- Test timeouts in `tests/smoke/ai-integration.spec.ts`
-- No server-side or client-side code changes
-
-**Risk:** 🟢 LOW - Test-only change, no production impact
-
-**Auto-deploy:** Production (vr.chorecraft.net) is unaffected - test file changes don't affect runtime
-
----
-### 2026-05-17 20:50 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `441026f` | merge | PR #173 - AI connection timeout | **NEW** |
-
-**Completed:** Worker `dd0d905` finished implementing Issue #172
-- PR #173 created successfully at 20:35 UTC
-
-🚀 **Spawned: Merge Worker**
-- PR: [#173 - fix(e2e): increase AI connection timeout from 30s to 60s](https://github.com/jpshackelford/voice-relay/pull/173)
-- Issue: [#172 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/172) (priority:high)
-- Conversation: [`441026f`](https://app.all-hands.dev/conversations/441026fcc45440d482a9e3c93eab2e5f)
-- Task: Squash-merge PR #173 (review approved, CI flaky test unrelated to changes)
-
-**Current State:**
-- Open PRs:
-  - #173: Ready, CI has 1 flaky failure (mobile-voice.spec.ts - unrelated to PR changes, main has same issue)
-- Ready issues (prioritized): #163, #164, #165 (all priority:medium)
-- Ready issues (unprioritized): #166, #167, #168, #169
-- Issues needing expansion: None 🎉
-
-**Slots:**
-- Expansion: 4 available (nothing to expand)
-- Implementation: 1 available (will be used after PR #173 merges)
-- Review: 1 of 2 used (merge worker)
-
-**Housekeeping:**
-- ✅ Truncated WORKLOG.md (790→762 lines)
-- 📦 Archived older entries to WORKLOG_ARCHIVE_2026-05-17.md
-
----
-### 2026-05-17 21:00 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `03bed53` | implementation | Issue #163 - Remove kiosk mode navigation | **NEW** |
-
-**Previous Workers Completed:**
-- `441026f` (review PR #173) → finished successfully
-- `dd0d905` (implementation #172 → PR #173) → merged
-
-🚀 **Spawned: Implementation Worker**
-- Issue: [#163 - Mobile: Remove kiosk mode navigation option](https://github.com/jpshackelford/voice-relay/issues/163)
-- Conversation: [`03bed53`](https://app.all-hands.dev/conversations/03bed530a2934765a6dcbb2031ee34a8)
-- Priority: medium
-
-**⚠️ Critical Issue #174 - Production Down**
-- Production smoke test failed after merge of PR #173
-- Rollback also failed due to corrupted node_modules
-- Added `needs-human` label - requires SSH access to fix
-- **Implementation continues** - PRs can be created and tested
-- **Merging paused** until production is healthy
-
-**Root Cause Analysis (Issue #174):**
-```
-TAR_ENTRY_ERROR ENOENT errors during npm ci
-tsc: not found - TypeScript not properly installed
-```
-**Fix Required:** SSH to server, `rm -rf node_modules && npm ci`
-
-**Current State:**
-- Open PRs: None (PR #173 merged, broke production)
-- Ready issues (priority:medium): #163 (impl started), #164, #165
-- Ready issues (no priority): #166, #167, #168, #169
-- Blocked issues: #174 (critical, needs-human - infrastructure)
-
-**Action Taken:**
-1. ✅ Analyzed critical issue #174 - identified corrupted node_modules
-2. ✅ Added `needs-human` label and analysis comment to #174
-3. 🚀 **Spawned implementation worker** for Issue #163 (highest priority)
-
-**Slots:**
-| Type | Active | Available | Max |
-|------|--------|-----------|-----|
-| Expansion | 0 | 4 | 4 |
-| Implementation | 1 | 0 | 1 |
-| Review | 0 | 2 | 2 |
-
----
 ### 2026-05-17 21:19 UTC - Orchestrator
 
 **Active Workers:**
@@ -2641,7 +2180,6 @@ Documentation-only PR that adds Uptime Kuma monitoring setup to server-inventory
 - App auto-deploying to vr.chorecraft.net (no functional changes)
 - Actual Uptime Kuma server deployment is manual (documented in issue #183)
 
-
 ---
 ### 2026-05-18 02:38 UTC - Review Worker
 
@@ -2704,7 +2242,32 @@ When the display/kiosk device starts a new session with no mobile devices connec
 _This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
 
 ---
+### 2026-05-18 02:51 UTC - Review Worker
 
+✅ **PR #200 Reviewed - Ready for Merge**
+
+- PR: [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
+- Issue: [#186](https://github.com/jpshackelford/voice-relay/issues/186)
+- Status: **Ready for merge** ✅
+
+**Review Summary:**
+- ✅ All CI checks passing (5/5): Build, Server Tests, E2E Tests, Lint, PR Review
+- ✅ No review comments requiring action
+- ✅ PR Review bot verdict: "Worth merging" with 🟢 LOW risk
+- ✅ Code quality verified: Clean implementation, proper accessibility, comprehensive tests
+
+**Implementation Quality:**
+- Simple boolean state `qrDismissed` with minimal changes
+- Button has proper `aria-label` for screen readers
+- Good CSS practices with hover/focus/active states
+- 5 unit tests + 2 E2E tests cover all behaviors
+- Additive only - no breaking changes
+
+**Next:** Awaiting orchestrator merge decision on next cycle.
+
+_This review was performed by an AI agent (OpenHands) on behalf of the repository maintainer._
+
+---
 ### 2026-05-18 02:52 UTC - Orchestrator
 
 **Active Workers:**
@@ -2732,32 +2295,6 @@ _This update was created by an AI agent (OpenHands) on behalf of the repository 
 3. Implementation worker for Issue #169 - [`2bf4dd9`](https://app.all-hands.dev/conversations/2bf4dd90...)
 
 All slots now occupied (1 impl + 2 review). Expansion slots available but no issues need expansion.
-
----
-### 2026-05-18 02:51 UTC - Review Worker
-
-✅ **PR #200 Reviewed - Ready for Merge**
-
-- PR: [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
-- Issue: [#186](https://github.com/jpshackelford/voice-relay/issues/186)
-- Status: **Ready for merge** ✅
-
-**Review Summary:**
-- ✅ All CI checks passing (5/5): Build, Server Tests, E2E Tests, Lint, PR Review
-- ✅ No review comments requiring action
-- ✅ PR Review bot verdict: "Worth merging" with 🟢 LOW risk
-- ✅ Code quality verified: Clean implementation, proper accessibility, comprehensive tests
-
-**Implementation Quality:**
-- Simple boolean state `qrDismissed` with minimal changes
-- Button has proper `aria-label` for screen readers
-- Good CSS practices with hover/focus/active states
-- 5 unit tests + 2 E2E tests cover all behaviors
-- Additive only - no breaking changes
-
-**Next:** Awaiting orchestrator merge decision on next cycle.
-
-_This review was performed by an AI agent (OpenHands) on behalf of the repository maintainer._
 
 ---
 ### 2026-05-18 03:00 UTC - Implementation Worker (`2bf4dd9`)
@@ -2789,9 +2326,7 @@ Kiosk connection indicator used a plug emoji (🔌) with colored border, creatin
 
 _This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
 
-
 ---
-
 ### 2026-05-18 03:00 UTC - Orchestrator
 
 **Active Workers:**
@@ -2821,7 +2356,47 @@ _This update was created by an AI agent (OpenHands) on behalf of the repository 
 **Also:** Added `priority:medium` label to Issue #191
 
 ---
+### 2026-05-18 03:10 UTC - Merge Worker
 
+**PR #200 Merged** ✅
+
+- **PR:** [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
+- **Issue:** [#186](https://github.com/jpshackelford/voice-relay/issues/186) (auto-closed)
+- **Commit:** `feat: add Skip button to dismiss QR code screen on kiosk display`
+
+**Summary:**
+Added "Skip →" button to kiosk QR code screen allowing users to proceed without mobile device scan. Useful for solo kiosk usage, development/testing, and quick demos.
+
+**Review Status:**
+- 2 automated reviews: both 🟢 LOW risk, "Worth merging"
+- All CI checks passed (5/5)
+
+**Migration Check:** ✅ No database changes - pure frontend feature (CSS + React state)
+
+**Deployed:** Auto-deploying to vr.chorecraft.net
+
+---
+### 2026-05-18 03:13 UTC - PR Review Worker
+
+**PR #201 Review Addressed** ✅
+
+- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
+- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169)
+- **Status:** Ready for review (all feedback addressed)
+
+**Review Feedback:**
+- Automated review requested screenshots showing the visual change
+- Added `docs/screenshots/kiosk-connection-indicator.png` - full layout view with both states
+- Added `docs/screenshots/connection-indicator-closeup.png` - closeup of the dot indicators
+- Updated PR description to embed screenshots
+
+**Commits:**
+1. Original implementation (8db5cc2) - CSS & component changes
+2. Screenshot addition (f06d989) - Visual documentation for reviewers
+
+**CI Status:** All 4 checks passing ✅
+
+---
 ### 2026-05-18 03:15 UTC - Orchestrator
 
 **Active Workers:**
@@ -2878,3 +2453,53 @@ _This update was created by an AI agent (OpenHands) on behalf of the repository 
 - Review: 1 (1 of 2 occupied)
 
 ---
+### 2026-05-18 03:18 UTC - Merge Worker
+
+**PR #201 Merged** ✅
+
+- **PR:** [#201 - feat(client): simplify kiosk connection indicator to minimal solid dot](https://github.com/jpshackelford/voice-relay/pull/201)
+- **Issue:** [#169](https://github.com/jpshackelford/voice-relay/issues/169) (auto-closed)
+- **Commit:** `feat(client): simplify kiosk mode connection indicator to solid dot`
+
+**Summary:**
+Replaced plug emoji (🔌) connection indicator with minimal solid colored dot:
+- Green (#00c853) when connected, red (#ff4444) when disconnected
+- Moved to bottom-left corner for balanced layout (AI status stays bottom-right)
+- Pure CSS solution eliminates emoji dependency for cross-platform consistency
+
+**Review Evolution:**
+1. Initial review: CSS simplification approved, requested screenshots
+2. Feedback addressed: Added screenshots to `docs/screenshots/`
+3. Final review: "Worth merging" with LOW risk assessment
+
+**Deployed:** Auto-deploying to vr.chorecraft.net
+
+---
+### 2026-05-18 03:27 UTC - Implementation Worker
+
+**PR #202 Created** 🔄
+
+- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
+- **Issue:** [#191](https://github.com/jpshackelford/voice-relay/issues/191) (Fixes)
+- **Status:** Ready for review ✅
+
+**Summary:**
+Unified 3 separate unsynced TTS settings into single session-level control with real-time sync:
+
+**Changes:**
+- Added `SessionTtsSettings` interface (enabled + outputDeviceId) to session metadata
+- Added WebSocket messages for real-time TTS settings sync across all devices
+- Updated `registry.broadcastAudioToKiosks()` to support device targeting
+- KioskMode & MobileSettings: Replaced local state with session-level TTS toggle + device dropdown
+- Deprecated browser-based TTS in favor of server-side ElevenLabs TTS
+
+**Acceptance Criteria (all met):**
+- [x] Single unified TTS toggle visible on both kiosk and mobile
+- [x] TTS setting changes sync in real-time across all devices
+- [x] Device dropdown allows selecting which device plays audio
+- [x] Audio only plays on selected device (or all kiosks if none selected)
+- [x] TTS setting persists in session metadata
+- [x] Workspace-level ElevenLabs API key config unchanged
+- [x] Browser-local TTS deprecated/removed
+
+**CI Status:** All checks passing ✅
