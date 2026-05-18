@@ -2075,3 +2075,42 @@ Fixed three bugs in the changelog generator that were causing incomplete/incorre
 
 **Issues on-hold:** #208, #210
 
+
+### 2026-05-18 22:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42cdf2b` | merge | PR #233 - Terms of Service and Privacy Policy | **NEW** |
+| `2ec9a6a` | merge | PR #234 - Changelog generator fix | **NEW** |
+| `7ed2beb` | implementation | Issue #229 - Release Notes PR hyperlinks | **NEW** |
+
+🚀 **Spawned: 3 Workers (parallel)**
+
+1. **Merge Worker** for PR #233
+   - PR: [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+   - Linked Issue: #231 (priority:high)
+   - CI: All passing, no unresolved threads
+   - Conversation: [`42cdf2b`](https://app.all-hands.dev/conversations/42cdf2b2df8248228133b51a5e360079)
+
+2. **Merge Worker** for PR #234
+   - PR: [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+   - Linked Issue: #230 (priority:medium)
+   - CI: All passing, no unresolved threads
+   - Conversation: [`2ec9a6a`](https://app.all-hands.dev/conversations/2ec9a6a9a6d54a25b16551e584cdb3b1)
+
+3. **Implementation Worker** for Issue #229
+   - Issue: [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+   - Priority: low
+   - Conversation: [`7ed2beb`](https://app.all-hands.dev/conversations/7ed2bebb6ec3473792a252b64571bf84)
+
+**Previous Workers Completed:**
+- `9f2587a` (implementation, Issue #230) → finished
+- `fa83bc3` (review, PR #233) → finished
+
+**Current State:**
+- Open PRs: #233 (ready to merge), #234 (ready to merge), #221 (stuck - needs-human)
+- Ready issues: #229 (now being implemented), #230 (has PR #234), #231 (has PR #233)
+- Issues on-hold: #208, #210
+
+---
