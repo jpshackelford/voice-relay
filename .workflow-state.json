@@ -4,17 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "2d029a0",
-        "issue": 167,
-        "started": "2026-05-18T15:04:37.894520+00:00"
+        "conv_id": "d55d893",
+        "issue": 204,
+        "started": "2026-05-18T15:36:22.992362+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "2a9ee58",
+        "conv_id": "13495a9",
         "pr": 203,
         "type": "merge",
-        "started": "2026-05-18T15:04:37.894520+00:00"
+        "started": "2026-05-18T15:36:22.992362+00:00"
       }
     ]
   },
@@ -23,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T15:19:54.967571+00:00",
+  "last_updated": "2026-05-18T15:36:22.992362+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -658,6 +658,24 @@
       "finished": "2026-05-18T15:02:48.502170+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #203 - all threads resolved"
+    },
+    {
+      "conv_id": "2d029a0",
+      "type": "implementation",
+      "started": "2026-05-18T15:04:37.894520+00:00",
+      "finished": "2026-05-18T15:34:54.985759+00:00",
+      "status": "success",
+      "outcome": "Worker completed (detected finished in orchestrator run)",
+      "issue": 167
+    },
+    {
+      "conv_id": "2a9ee58",
+      "type": "merge",
+      "started": "2026-05-18T15:04:37.894520+00:00",
+      "finished": "2026-05-18T15:34:54.985759+00:00",
+      "status": "success",
+      "outcome": "Worker completed (detected finished in orchestrator run)",
+      "pr": 203
     }
   ]
 }
