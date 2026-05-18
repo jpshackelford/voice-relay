@@ -349,15 +349,26 @@ export class DeviceRegistry {
   }
 
   /**
-   * Broadcast audio message to all kiosk devices in a session.
+   * Broadcast audio message to kiosk devices in a session.
    * Used for TTS audio streaming - only kiosks play audio to avoid echo.
+   * 
+   * @param sessionId - Session ID for routing audio
+   * @param message - Audio chunk or end message
+   * @param targetDeviceId - Optional specific device ID to send to (null = all kiosks)
    */
-  broadcastAudioToKiosks(sessionId: string, message: AudioChunkMessage | AudioEndMessage): void {
+  broadcastAudioToKiosks(
+    sessionId: string,
+    message: AudioChunkMessage | AudioEndMessage,
+    targetDeviceId?: string | null
+  ): void {
     const devices = this.getDevicesBySession(sessionId);
     const kioskDevices = devices.filter(d => d.mode === 'kiosk');
     const payload = JSON.stringify(message);
 
     for (const device of kioskDevices) {
+      // If targetDeviceId is specified, only send to that device
+      if (targetDeviceId && device.id !== targetDeviceId) continue;
+
       if (device.ws.readyState === device.ws.OPEN) {
         device.ws.send(payload);
       }

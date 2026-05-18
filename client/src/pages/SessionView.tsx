@@ -246,7 +246,16 @@ export function SessionView() {
   // Connect WebSocket with specific session ID
   // Wire AI status handlers to receive session-centric AI status updates
   // Wire audio handlers for server-side TTS (ElevenLabs)
-  const { connected, devices, sendText, updateDevice, sendJoinResponse, sendDisplayResult } = useWebSocket({
+  const { 
+    connected, 
+    devices, 
+    sessionTtsSettings,
+    sendText, 
+    updateDevice, 
+    sendJoinResponse, 
+    sendDisplayResult,
+    updateSessionTtsSettings,
+  } = useWebSocket({
     deviceId,
     displayName: displayName || 'Unknown Device',
     mode,
@@ -461,6 +470,8 @@ export function SessionView() {
           ai={ai}
           isAudioPlaying={audioPlayback.isPlaying}
           onDisplayResult={sendDisplayResult}
+          sessionTtsSettings={sessionTtsSettings}
+          onSessionTtsSettingsChange={updateSessionTtsSettings}
         />
       </>
     );
@@ -480,6 +491,8 @@ export function SessionView() {
         sendText={sendText}
         onModeChange={handleModeChange}
         sessionId={sessionId}
+        sessionTtsSettings={sessionTtsSettings}
+        onSessionTtsSettingsChange={updateSessionTtsSettings}
       />
     </>
   );

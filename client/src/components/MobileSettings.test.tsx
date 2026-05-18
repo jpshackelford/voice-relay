@@ -1,19 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MobileSettings, type InputMode } from './MobileSettings';
+import type { DeviceInfo, SessionTtsSettings } from '../types';
 
 describe('MobileSettings', () => {
+  const mockKioskDevices: DeviceInfo[] = [
+    { id: 'kiosk-1', displayName: 'Living Room', mode: 'kiosk' },
+    { id: 'kiosk-2', displayName: 'Kitchen', mode: 'kiosk' },
+  ];
+
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
     displayName: 'Test Device',
-    ttsEnabled: false,
-    ttsSupported: true,
     autoSubmit: true,
     inputMode: 'voice' as InputMode,
-    onTtsChange: vi.fn(),
     onAutoSubmitChange: vi.fn(),
     onInputModeChange: vi.fn(),
+    sessionTtsSettings: { enabled: false, outputDeviceId: null } as SessionTtsSettings,
+    onSessionTtsSettingsChange: vi.fn(),
+    kioskDevices: mockKioskDevices,
+    deviceId: 'mobile-1',
   };
 
   beforeEach(() => {
@@ -46,33 +53,96 @@ describe('MobileSettings', () => {
     });
   });
 
-  describe('TTS toggle', () => {
-    it('shows TTS toggle with correct state', () => {
-      render(<MobileSettings {...defaultProps} ttsEnabled={true} />);
-      const checkbox = screen.getByRole('checkbox', { name: /read messages aloud/i }) as HTMLInputElement;
+  describe('TTS toggle (session-level)', () => {
+    it('shows TTS toggle with correct state when enabled', () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: true, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      const checkbox = screen.getByRole('checkbox', { name: /ai voice responses/i }) as HTMLInputElement;
       expect(checkbox.checked).toBe(true);
     });
 
-    it('calls onTtsChange when toggled', async () => {
-      render(<MobileSettings {...defaultProps} ttsEnabled={false} />);
-      const checkbox = screen.getByRole('checkbox', { name: /read messages aloud/i });
+    it('shows TTS toggle with correct state when disabled', () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: false, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      const checkbox = screen.getByRole('checkbox', { name: /ai voice responses/i }) as HTMLInputElement;
+      expect(checkbox.checked).toBe(false);
+    });
+
+    it('calls onSessionTtsSettingsChange when toggled', async () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: false, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      const checkbox = screen.getByRole('checkbox', { name: /ai voice responses/i });
       
       await act(async () => {
         fireEvent.click(checkbox);
       });
 
-      expect(defaultProps.onTtsChange).toHaveBeenCalledWith(true);
+      expect(defaultProps.onSessionTtsSettingsChange).toHaveBeenCalledWith({
+        enabled: true,
+        outputDeviceId: null,
+      });
     });
 
-    it('disables TTS toggle when not supported', () => {
-      render(<MobileSettings {...defaultProps} ttsSupported={false} />);
-      const checkbox = screen.getByRole('checkbox', { name: /read messages aloud/i }) as HTMLInputElement;
-      expect(checkbox.disabled).toBe(true);
+    it('shows "Synced across all devices" hint', () => {
+      render(<MobileSettings {...defaultProps} />);
+      expect(screen.getByText('Synced across all devices')).toBeDefined();
     });
 
-    it('shows not supported text when TTS unavailable', () => {
-      render(<MobileSettings {...defaultProps} ttsSupported={false} />);
-      expect(screen.getByText('(not supported)')).toBeDefined();
+    it('shows device dropdown when TTS is enabled', () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: true, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      expect(screen.getByText('Audio Output')).toBeDefined();
+      expect(screen.getByRole('combobox')).toBeDefined();
+    });
+
+    it('hides device dropdown when TTS is disabled', () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: false, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      expect(screen.queryByText('Audio Output')).toBeNull();
+    });
+
+    it('calls onSessionTtsSettingsChange when device is selected', async () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: true, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      const select = screen.getByRole('combobox');
+      
+      await act(async () => {
+        fireEvent.change(select, { target: { value: 'kiosk-1' } });
+      });
+
+      expect(defaultProps.onSessionTtsSettingsChange).toHaveBeenCalledWith({
+        enabled: true,
+        outputDeviceId: 'kiosk-1',
+      });
+    });
+
+    it('shows device names in dropdown', () => {
+      const props = {
+        ...defaultProps,
+        sessionTtsSettings: { enabled: true, outputDeviceId: null },
+      };
+      render(<MobileSettings {...props} />);
+      expect(screen.getByText('All kiosks')).toBeDefined();
+      expect(screen.getByText('Living Room')).toBeDefined();
+      expect(screen.getByText('Kitchen')).toBeDefined();
     });
   });
 

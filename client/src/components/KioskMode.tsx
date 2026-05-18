@@ -2,10 +2,9 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings } from '../types';
 import type { AIState } from '../hooks/useAI';
 
 // Configure marked for GitHub Flavored Markdown with line breaks
@@ -35,6 +34,10 @@ interface KioskModeProps {
   isAudioPlaying?: boolean;
   /** Callback to report display result (success/failure) */
   onDisplayResult?: (result: Omit<DisplayResultMessage, 'type'>) => void;
+  /** Session-level TTS settings (synced across all devices) */
+  sessionTtsSettings?: SessionTtsSettings | null;
+  /** Callback to update session TTS settings */
+  onSessionTtsSettingsChange?: (settings: SessionTtsSettings) => void;
 }
 
 // Hook to detect mobile devices
@@ -69,10 +72,11 @@ export function KioskMode({
   ai,
   isAudioPlaying = false,
   onDisplayResult,
+  sessionTtsSettings,
+  onSessionTtsSettingsChange,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
-  const [ttsEnabled, setTtsEnabled] = useState(false);  // Browser TTS off by default (server-side ElevenLabs TTS handles AI responses)
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
@@ -80,19 +84,20 @@ export function KioskMode({
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
   const [qrDismissed, setQrDismissed] = useState(false);  // Allow dismissing QR screen without mobile scan
+
+  // Derive TTS enabled state from session settings (default to false if not set)
+  const ttsEnabled = sessionTtsSettings?.enabled ?? false;
   
   const isMobile = useIsMobile();
   
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const spokenUtterancesRef = useRef(new Set<string>());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const imageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track the current display content URL to prevent duplicate result sends
   const lastReportedDisplayRef = useRef<string | null>(null);
 
-  const { speak, isSpeaking, isSupported: ttsSupported } = useSpeechSynthesis();
   // AI state is now passed from parent via props (wired to WebSocket in SessionView)
 
   // Check AI availability on mount
@@ -270,22 +275,9 @@ export function KioskMode({
     };
   }, [displayContent?.type, displayContent?.content, onDisplayResult]);
 
-  // Speak new final utterances when TTS is enabled (only from others)
-  useEffect(() => {
-    if (!ttsEnabled) return;
-
-    for (const [id, utterance] of utterances) {
-      // Browser TTS for user messages only - AI responses use ElevenLabs server-side TTS
-      // Exclude: own messages (deviceId), AI messages ('ai'), partial, already spoken
-      if (utterance.senderId !== deviceId && utterance.senderId !== 'ai' && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
-        spokenUtterancesRef.current.add(id);
-        speak(utterance.text);
-      }
-    }
-  }, [utterances, ttsEnabled, speak, deviceId]);
-
-  // Note: AI message forwarding is now handled server-side
-  // When a text message is received via WebSocket, the server forwards it to the session's AI
+  // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
+  // The session-level ttsEnabled setting controls server-side TTS generation.
+  // AI responses are synthesized server-side and streamed to the selected kiosk device(s).
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -440,16 +432,36 @@ export function KioskMode({
               <span className="participant-group">📱 {mobileDevices.length}</span>
             )}
           </div>
-          <div className="kiosk-tts-toggle">
-            <label title="Browser TTS for user messages (AI responses use server-side TTS)">
+          <div className="kiosk-tts-controls">
+            <label title="Enable AI voice responses (server-side TTS)">
               <input
                 type="checkbox"
                 checked={ttsEnabled}
-                onChange={(e) => setTtsEnabled(e.target.checked)}
-                disabled={!ttsSupported}
+                onChange={(e) => onSessionTtsSettingsChange?.({
+                  enabled: e.target.checked,
+                  outputDeviceId: sessionTtsSettings?.outputDeviceId ?? null,
+                })}
               />
-              🔊 {(isSpeaking || isAudioPlaying) && '(speaking...)'}
+              🔊 TTS {isAudioPlaying && '(speaking...)'}
             </label>
+            {ttsEnabled && kioskDevices.length > 0 && (
+              <select
+                className="kiosk-tts-device-select"
+                value={sessionTtsSettings?.outputDeviceId ?? 'all'}
+                onChange={(e) => onSessionTtsSettingsChange?.({
+                  enabled: ttsEnabled,
+                  outputDeviceId: e.target.value === 'all' ? null : e.target.value,
+                })}
+                title="Select which device plays audio"
+              >
+                <option value="all">All kiosks</option>
+                {kioskDevices.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.id === deviceId ? '📍 This device' : d.displayName}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 

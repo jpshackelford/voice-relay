@@ -24,13 +24,24 @@ export interface DisplayContent {
   title?: string;
 }
 
+/**
+ * Client → Server: Update session TTS settings.
+ * Changes are broadcast to all devices in the session.
+ */
+export interface SessionTtsSettingsMessage {
+  type: 'session-tts-settings';
+  enabled: boolean;
+  outputDeviceId: string | null;
+}
+
 // Messages from client to server
 export type ClientMessage =
   | RegisterMessage
   | UpdateDeviceMessage
   | TextMessage
   | JoinResponseMessage
-  | DisplayResultMessage;
+  | DisplayResultMessage
+  | SessionTtsSettingsMessage;
 
 /**
  * Kiosk → Server: Report display result (image load success/failure).
@@ -153,6 +164,17 @@ export interface AudioEndMessage {
   error?: string;
 }
 
+/**
+ * Server → All devices in session: TTS settings changed.
+ * Broadcast when any device updates session TTS settings.
+ */
+export interface SessionTtsSettingsChangedMessage {
+  type: 'session-tts-settings-changed';
+  sessionId: string;
+  enabled: boolean;
+  outputDeviceId: string | null;
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -167,7 +189,8 @@ export type ServerMessage =
   | AIThinkingMessage
   | SessionAIStatusMessage
   | AudioChunkMessage
-  | AudioEndMessage;
+  | AudioEndMessage
+  | SessionTtsSettingsChangedMessage;
 
 export interface DisplayMessage {
   type: 'display';

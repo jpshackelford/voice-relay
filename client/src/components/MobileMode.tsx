@@ -1,13 +1,12 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type FormEvent } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
-import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
 import { Oscilloscope } from './Oscilloscope';
 import { MobileSettings, type InputMode } from './MobileSettings';
 import { ConversationPane } from './ConversationPane';
-import type { DeviceInfo, DeviceMode, Utterance } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, SessionTtsSettings } from '../types';
 
 interface MobileModeProps {
   deviceId: string;
@@ -19,6 +18,10 @@ interface MobileModeProps {
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
   sessionId?: string;
+  /** Session-level TTS settings (synced across all devices) */
+  sessionTtsSettings?: SessionTtsSettings | null;
+  /** Callback to update session TTS settings */
+  onSessionTtsSettingsChange?: (settings: SessionTtsSettings) => void;
 }
 
 export function MobileMode({ 
@@ -30,11 +33,12 @@ export function MobileMode({
   sendText, 
   onModeChange: _onModeChange,
   onAIStatusChange,
-  sessionId
+  sessionId,
+  sessionTtsSettings,
+  onSessionTtsSettingsChange,
 }: MobileModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
-  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
@@ -45,7 +49,6 @@ export function MobileMode({
   const [inputMode, setInputMode] = useState<InputMode>('voice');
   
   const utteranceIdRef = useRef(generateUUID());
-  const spokenUtterancesRef = useRef(new Set<string>());
   const sharedStreamRef = useRef<MediaStream | null>(null);
   const lastViewedCountRef = useRef(0);
   // Separate text state for visualizer mode manual text entry
@@ -54,7 +57,6 @@ export function MobileMode({
   const isListeningRef = useRef(false);
   const audioAnalyserActiveRef = useRef(false);
 
-  const { speak, isSupported: ttsSupported } = useSpeechSynthesis();
   const ai = useAI({ sessionId });
   const audioAnalyser = useAudioAnalyser();
 
@@ -190,22 +192,11 @@ export function MobileMode({
     }
   }, [isListening, audioAnalyser, inputMode, startListening, stopListening]);
 
-  // Speak new final utterances when TTS is enabled (only from others)
-  useEffect(() => {
-    if (!ttsEnabled) return;
-
-    for (const [id, utterance] of utterances) {
-      if (utterance.senderId !== deviceId && !utterance.partial && !spokenUtterancesRef.current.has(id)) {
-        spokenUtterancesRef.current.add(id);
-        // Prevent unbounded growth: keep only recent IDs
-        if (spokenUtterancesRef.current.size > 100) {
-          const entries = Array.from(spokenUtterancesRef.current);
-          spokenUtterancesRef.current = new Set(entries.slice(-50));
-        }
-        speak(utterance.text);
-      }
-    }
-  }, [utterances, ttsEnabled, speak, deviceId]);
+  // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
+  // The session-level ttsEnabled setting controls server-side TTS generation.
+  // AI responses are synthesized server-side and streamed to the selected kiosk device(s).
+  // Get kiosk devices for the device dropdown in MobileSettings
+  const kioskDevices = devices.filter(d => d.mode === 'kiosk');
 
   // Handle manual text submission in visualizer mode
   const handleVisualizerSubmit = useCallback((e: FormEvent) => {
@@ -379,13 +370,14 @@ export function MobileMode({
         isOpen={settingsOpen}
         onClose={() => setSettingsOpen(false)}
         displayName={displayName}
-        ttsEnabled={ttsEnabled}
-        ttsSupported={ttsSupported}
         autoSubmit={autoSubmit}
         inputMode={inputMode}
-        onTtsChange={setTtsEnabled}
         onAutoSubmitChange={setAutoSubmit}
         onInputModeChange={setInputMode}
+        sessionTtsSettings={sessionTtsSettings}
+        onSessionTtsSettingsChange={onSessionTtsSettingsChange}
+        kioskDevices={kioskDevices}
+        deviceId={deviceId}
       />
 
       {/* Conversation Pane */}

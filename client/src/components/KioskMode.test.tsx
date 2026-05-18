@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { KioskMode, parseMarkdown } from './KioskMode';
-import type { DeviceInfo, Utterance, DisplayContent } from '../types';
+import type { DeviceInfo, Utterance, DisplayContent, SessionTtsSettings } from '../types';
 
 // Mock hooks that KioskMode uses
 vi.mock('../hooks/useSpeechRecognition', () => ({
@@ -13,13 +13,7 @@ vi.mock('../hooks/useSpeechRecognition', () => ({
   }),
 }));
 
-vi.mock('../hooks/useSpeechSynthesis', () => ({
-  useSpeechSynthesis: () => ({
-    speak: vi.fn(),
-    isSpeaking: false,
-    isSupported: true,
-  }),
-}));
+// useSpeechSynthesis is no longer used by KioskMode (deprecated in favor of server-side TTS)
 
 // AI state is now passed as props, no need to mock useAI
 
@@ -54,6 +48,8 @@ describe('KioskMode', () => {
     workspaceId: 'test-workspace',
     sessionId: 'test-session',
     ai: mockAiState,
+    sessionTtsSettings: { enabled: false, outputDeviceId: null } as SessionTtsSettings,
+    onSessionTtsSettingsChange: vi.fn(),
   };
 
   // Helper to create a mobile device
@@ -276,31 +272,48 @@ describe('KioskMode', () => {
       expect(statusRow?.textContent).toContain('🔊');
     });
 
-    it('TTS checkbox toggles correctly', async () => {
+    it('TTS checkbox toggles correctly and calls onSessionTtsSettingsChange', async () => {
+      const onSessionTtsSettingsChange = vi.fn();
+
       await act(async () => {
-        render(<KioskMode {...defaultProps} />);
+        render(<KioskMode {...defaultProps} onSessionTtsSettingsChange={onSessionTtsSettingsChange} />);
       });
 
       const statusRow = document.querySelector('.kiosk-status-row');
       const checkbox = statusRow?.querySelector('input[type="checkbox"]') as HTMLInputElement;
       expect(checkbox).toBeDefined();
 
-      // Initial state should be unchecked (TTS disabled by default - server-side TTS handles AI responses)
+      // Initial state should be unchecked (TTS disabled by default via sessionTtsSettings prop)
       expect(checkbox.checked).toBe(false);
 
-      // Toggle the checkbox on
+      // Toggle the checkbox on - should call onSessionTtsSettingsChange
       await act(async () => {
         fireEvent.click(checkbox);
       });
 
+      expect(onSessionTtsSettingsChange).toHaveBeenCalledWith({
+        enabled: true,
+        outputDeviceId: null,
+      });
+
+      // Note: The actual checkbox state update requires the parent to re-render with new sessionTtsSettings
+      // Here we verify the callback was invoked with correct values
+    });
+
+    it('reflects sessionTtsSettings.enabled state correctly', async () => {
+      // Test with enabled=true
+      await act(async () => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            sessionTtsSettings={{ enabled: true, outputDeviceId: null }}
+          />
+        );
+      });
+
+      const statusRow = document.querySelector('.kiosk-status-row');
+      const checkbox = statusRow?.querySelector('input[type="checkbox"]') as HTMLInputElement;
       expect(checkbox.checked).toBe(true);
-
-      // Toggle the checkbox off again
-      await act(async () => {
-        fireEvent.click(checkbox);
-      });
-
-      expect(checkbox.checked).toBe(false);
     });
   });
 

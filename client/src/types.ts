@@ -6,6 +6,14 @@ export interface DeviceInfo {
   mode: DeviceMode;
 }
 
+/** Session-level TTS settings (synced across all devices in session) */
+export interface SessionTtsSettings {
+  /** Whether TTS is enabled for this session */
+  enabled: boolean;
+  /** Which device should play audio (null = all kiosks) */
+  outputDeviceId: string | null;
+}
+
 export interface DisplayContent {
   type: 'markdown' | 'image' | 'clear';
   content?: string;  // Markdown text or image URL
@@ -53,7 +61,14 @@ export interface DisplayResultMessage {
   displayType: 'image' | 'markdown';
 }
 
-export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage | DisplayResultMessage;
+/** Client → Server: Update session TTS settings */
+export interface SessionTtsSettingsMessage {
+  type: 'session-tts-settings';
+  enabled: boolean;
+  outputDeviceId: string | null;
+}
+
+export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage | DisplayResultMessage | SessionTtsSettingsMessage;
 
 // Messages from server to client
 export interface SessionInfo {
@@ -181,6 +196,14 @@ export interface AudioEndMessage {
   error?: string;
 }
 
+/** Server → All devices in session: TTS settings changed */
+export interface SessionTtsSettingsChangedMessage {
+  type: 'session-tts-settings-changed';
+  sessionId: string;
+  enabled: boolean;
+  outputDeviceId: string | null;
+}
+
 export type ServerMessage = 
   | RegisteredMessage 
   | DeviceListMessage 
@@ -195,7 +218,8 @@ export type ServerMessage =
   | DeviceRemovedMessage
   | WorkspaceDeletedMessage
   | AudioChunkMessage
-  | AudioEndMessage;
+  | AudioEndMessage
+  | SessionTtsSettingsChangedMessage;
 
 export interface Utterance {
   id: string;

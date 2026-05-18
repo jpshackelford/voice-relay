@@ -7,6 +7,7 @@
 
 import { synthesize, testApiKey, fetchVoices, DEFAULT_VOICE_ID } from './elevenlabs.js';
 import type { WorkspaceSettings } from '../workspaces/types.js';
+import type { SessionTtsSettings } from '../sessions/types.js';
 import type { DeviceRegistry } from '../registry.js';
 import type { AudioChunkMessage, AudioEndMessage } from '../types.js';
 
@@ -58,13 +59,21 @@ export class TtsService {
    * @param workspaceId - Workspace ID for settings and routing
    * @param sessionId - Session ID for routing audio to correct devices
    * @param utteranceId - Unique identifier for this synthesis request
+   * @param sessionTtsSettings - Optional session-level TTS settings (for device targeting)
    */
   async synthesizeForSession(
     text: string,
     workspaceId: string,
     sessionId: string,
-    utteranceId: string
+    utteranceId: string,
+    sessionTtsSettings?: SessionTtsSettings
   ): Promise<void> {
+    // Check session-level TTS enabled setting (user toggle in UI)
+    if (sessionTtsSettings && !sessionTtsSettings.enabled) {
+      console.log(`[TTS] Disabled for session ${sessionId} (session setting)`);
+      return;
+    }
+
     const settings = this.getWorkspaceSettings(workspaceId);
     if (!settings) {
       console.log(`[TTS] No settings for workspace ${workspaceId}`);
@@ -84,8 +93,11 @@ export class TtsService {
     });
 
     const voiceId = settings.elevenlabsVoiceId || DEFAULT_VOICE_ID;
+    
+    // Get target device from session settings (null = all kiosks)
+    const targetDeviceId = sessionTtsSettings?.outputDeviceId ?? null;
 
-    console.log(`[TTS] Synthesizing for session ${sessionId}: "${text.substring(0, 50)}..."`);
+    console.log(`[TTS] Synthesizing for session ${sessionId}: "${text.substring(0, 50)}..."${targetDeviceId ? ` (target: ${targetDeviceId})` : ''}`);
 
     // Guard against duplicate audio-end messages: onComplete may fire and then
     // the Promise can still reject, which would trigger the catch block.
@@ -103,7 +115,7 @@ export class TtsService {
             audio: audioBase64,
             format: 'mp3',
           };
-          this.registry.broadcastAudioToKiosks(sessionId, message);
+          this.registry.broadcastAudioToKiosks(sessionId, message, targetDeviceId);
         },
         onComplete: (error?: Error) => {
           if (audioEndSent) return;
@@ -122,7 +134,7 @@ export class TtsService {
             utteranceId,
             error: error?.message,
           };
-          this.registry.broadcastAudioToKiosks(sessionId, endMessage);
+          this.registry.broadcastAudioToKiosks(sessionId, endMessage, targetDeviceId);
         },
       });
     } catch (err) {
@@ -137,7 +149,7 @@ export class TtsService {
           utteranceId,
           error: (err as Error).message,
         };
-        this.registry.broadcastAudioToKiosks(sessionId, endMessage);
+        this.registry.broadcastAudioToKiosks(sessionId, endMessage, targetDeviceId);
       }
     }
   }
