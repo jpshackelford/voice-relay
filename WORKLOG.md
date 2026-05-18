@@ -25,6 +25,28 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:24 UTC - Implementation Worker
+
+✅ **Implemented Issue #189 - Devices not properly remembered**
+
+- Issue: [#189 - bug: Devices not properly remembered - same device re-registers as new](https://github.com/jpshackelford/voice-relay/issues/189)
+- PR: [#193 - fix: devices not properly remembered between sessions](https://github.com/jpshackelford/voice-relay/pull/193)
+- Status: **Ready for review** ✅
+
+**Changes Made:**
+1. **Server:** Changed default storage driver from `memory` to `sqlite` - ensures device records persist across server restarts
+2. **Client:** Made device token storage workspace-scoped (`voice_relay_device_token_{workspaceId}`) - allows multiple workspaces from the same browser
+3. **Migration:** Added automatic migration from legacy single-key storage to workspace-scoped keys
+
+**Test Coverage:**
+- All 345 client tests pass
+- All 598 server tests pass
+- Added new tests for workspace isolation and legacy migration
+
+**CI Status:** ✅ All checks passing
+
+---
+
 ### 2026-05-18 00:21 UTC - Expansion Worker
 
 ✅ **Expanded Issue #192 - Fix any failing E2E tests!**
