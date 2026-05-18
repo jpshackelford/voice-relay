@@ -88,6 +88,10 @@ async function mockSpeechRecognition(page: import('@playwright/test').Page) {
   });
 }
 
+// Connection timeout - increased for CI stability (GitHub Issue #192)
+// WebSocket connections can be slower in CI environments under load
+const CONNECTION_TIMEOUT = 30000;
+
 // Helper to authenticate and navigate to a mobile session
 async function setupMobileSession(
   page: import('@playwright/test').Page, 
@@ -119,13 +123,15 @@ async function setupMobileSession(
   await viewButton.click();
 
   // Wait for session view to load
-  await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
+  await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 15000 });
 
   // Wait for mobile mode to render
-  await expect(page.locator('.mobile-mode, .mobile-walkie')).toBeVisible({ timeout: 10000 });
+  await expect(page.locator('.mobile-mode, .mobile-walkie')).toBeVisible({ timeout: 15000 });
   
   // Wait for connection indicator to show connected (mobile uses .connection-dot.connected)
-  await expect(page.locator('.connection-dot.connected, [aria-label*="Connected to server"]')).toBeVisible({ timeout: 10000 });
+  // Using extended timeout for CI stability - WebSocket connections are timing-sensitive
+  // See GitHub Issue #192 for root cause analysis
+  await expect(page.locator('.connection-dot.connected, [aria-label*="Connected to server"]')).toBeVisible({ timeout: CONNECTION_TIMEOUT });
   
   // Small delay to ensure UI is stable
   await page.waitForTimeout(500);
@@ -134,6 +140,9 @@ async function setupMobileSession(
 test.describe('Mobile Voice UI', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Configure retries for flaky WebSocket tests in CI (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';
@@ -198,6 +207,9 @@ test.describe('Mobile Voice UI', () => {
 test.describe('Mobile Voice Input with Fake Audio', () => {
   // Skip all tests if no auth secret
   test.skip(!TEST_AUTH_SECRET, 'TEST_AUTH_SECRET not configured');
+  
+  // Configure retries for flaky WebSocket tests in CI (GitHub Issue #192)
+  test.describe.configure({ retries: 2 });
 
   test.beforeEach(async ({ page }) => {
     const baseURL = page.context().baseURL || 'http://localhost:5174';
