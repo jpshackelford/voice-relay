@@ -44,6 +44,24 @@ const createMockMediaStream = () => {
   } as unknown as MediaStream & { _mockTrack: MediaStreamTrack };
 };
 
+// Mock AnalyserNode
+const createMockAnalyserNode = () => ({
+  fftSize: 2048,
+  frequencyBinCount: 1024,
+  getByteTimeDomainData: vi.fn(),
+  getByteFrequencyData: vi.fn(),
+  getFloatTimeDomainData: vi.fn(),
+  getFloatFrequencyData: vi.fn(),
+  connect: vi.fn(),
+  disconnect: vi.fn(),
+});
+
+// Mock MediaStreamAudioSourceNode
+const createMockSourceNode = () => ({
+  connect: vi.fn(),
+  disconnect: vi.fn(),
+});
+
 // Store original globals for restoration
 let originalMediaDevices: MediaDevices;
 let originalAudioContext: typeof AudioContext | undefined;
@@ -214,6 +232,110 @@ describe('useAudioAnalyser hook', () => {
     it('does not throw when unmounting', () => {
       const { unmount } = renderHook(() => useAudioAnalyser());
       expect(() => unmount()).not.toThrow();
+    });
+  });
+
+  describe('timing fix (issue #211)', () => {
+    // Create a mock AudioContext class that can be used as a constructor
+    function createMockAudioContextClass() {
+      const mockAnalyser = {
+        ...createMockAnalyserNode(),
+        fftSize: 2048,
+        frequencyBinCount: 1024,
+      };
+      const mockSource = createMockSourceNode();
+
+      return class MockAudioContext {
+        state = 'running';
+        resume = vi.fn().mockResolvedValue(undefined);
+        close = vi.fn().mockResolvedValue(undefined);
+        createMediaStreamSource = vi.fn().mockReturnValue(mockSource);
+        createAnalyser = vi.fn().mockReturnValue(mockAnalyser);
+      };
+    }
+
+    it('ensures analyser and dataArray are non-null when isActive is true', async () => {
+      const mockStream = createMockMediaStream();
+
+      // Mock getUserMedia
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: {
+          getUserMedia: vi.fn().mockResolvedValue(mockStream),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      // Mock AudioContext constructor using a class
+      (window as unknown as { AudioContext: unknown }).AudioContext = createMockAudioContextClass();
+
+      const { result } = renderHook(() => useAudioAnalyser());
+
+      // Before starting, all should be false/null
+      expect(result.current.isActive).toBe(false);
+      expect(result.current.analyser).toBeNull();
+      expect(result.current.dataArray).toBeNull();
+
+      // Start the analyser
+      await act(async () => {
+        await result.current.start();
+      });
+
+      // KEY ASSERTION: When isActive is true, analyser and dataArray must also be non-null
+      // This is the fix for issue #211 - previously isActive could be true while these were null
+      expect(result.current.isActive).toBe(true);
+      expect(result.current.analyser).not.toBeNull();
+      expect(result.current.dataArray).not.toBeNull();
+      expect(result.current.dataArray).toBeInstanceOf(Uint8Array);
+    });
+
+    it('ensures analyser and dataArray are non-null when isActive is true with external stream', async () => {
+      const mockStream = createMockMediaStream();
+
+      // Mock AudioContext constructor using a class
+      (window as unknown as { AudioContext: unknown }).AudioContext = createMockAudioContextClass();
+
+      const { result } = renderHook(() => useAudioAnalyser());
+
+      // Start with existing stream (unified mode scenario)
+      await act(async () => {
+        await result.current.start(mockStream);
+      });
+
+      // Verify the fix works in the unified mode scenario (external stream)
+      expect(result.current.isActive).toBe(true);
+      expect(result.current.analyser).not.toBeNull();
+      expect(result.current.dataArray).not.toBeNull();
+    });
+
+    it('prevents rapid start() calls from causing issues', async () => {
+      const mockStream = createMockMediaStream();
+
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: {
+          getUserMedia: vi.fn().mockResolvedValue(mockStream),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      (window as unknown as { AudioContext: unknown }).AudioContext = createMockAudioContextClass();
+
+      const { result } = renderHook(() => useAudioAnalyser());
+
+      // Call start() multiple times rapidly
+      await act(async () => {
+        // Start multiple times - only the first should actually execute
+        const promise1 = result.current.start();
+        const promise2 = result.current.start();
+        const promise3 = result.current.start();
+        await Promise.all([promise1, promise2, promise3]);
+      });
+
+      // Should only have one active analyser
+      expect(result.current.isActive).toBe(true);
+      expect(result.current.analyser).not.toBeNull();
+      expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(1);
     });
   });
 });
