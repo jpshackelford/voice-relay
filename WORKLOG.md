@@ -2545,3 +2545,29 @@ Documentation-only PR that adds Uptime Kuma monitoring setup to server-inventory
 - App auto-deploying to vr.chorecraft.net (no functional changes)
 - Actual Uptime Kuma server deployment is manual (documented in issue #183)
 
+
+---
+### 2026-05-18 02:38 UTC - Review Worker
+
+🔄 **Addressed Review Feedback on PR #198**
+
+- PR: [#198 - feat: add ntfy.sh push notifications for deployment failures](https://github.com/jpshackelford/voice-relay/pull/198)
+- Issue: [#182](https://github.com/jpshackelford/voice-relay/issues/182)
+- Status: **Ready for review** ✅
+
+**Feedback Addressed:**
+- ✅ Changed "initiated" to "will be attempted" in deployment failure notification (commit af5ac8d)
+  - The notification fires BEFORE the rollback step executes
+  - "initiated" was misleading - the rollback hasn't started yet
+  - Thread resolved: PRRT_kwDOSTUWGM6CtFGg
+
+**All 3 review threads now resolved:**
+1. ✅ Security note about ntfy.sh public service (223bf0a)
+2. ✅ Rollback success notification (55d38ab)
+3. ✅ "initiated" → "will be attempted" wording fix (af5ac8d)
+
+**CI Status:** All checks passing (4/4)
+
+**Next:** Awaiting final review approval, then ready for merge.
+
+_This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
