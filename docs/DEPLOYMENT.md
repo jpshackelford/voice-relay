@@ -200,6 +200,7 @@ Deployment failures trigger push notifications via [ntfy.sh](https://ntfy.sh). T
 1. Go to **Repository Settings → Secrets and variables → Actions**
 2. Add new secret: `NTFY_TOPIC` = `<unique-topic-name>`
    - Use a hard-to-guess topic name (e.g., `voice-relay-prod-alerts-a7b3c9`)
+   - **Security note**: ntfy.sh is a public service. Anyone who discovers this topic name can subscribe to your notifications. Treat it as a shared secret.
    - Share this topic name only with team members who need alerts
 3. Test by triggering a deliberate deployment failure
 
