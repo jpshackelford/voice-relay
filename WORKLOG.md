@@ -2549,3 +2549,37 @@ Fixed devices not being remembered between browser sessions. Two root causes add
 
 **Test Coverage:** 36 deviceToken tests, 14 useDeviceRestoration tests, 333 client + 598 server tests passing
 
+
+### 2026-05-18 02:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fdc53d2` | merge | PR #190 - Concurrency controls | **NEW** |
+| `e1945ea` | review | PR #195 - Flaky E2E tests | **NEW** |
+| `2dbaf09` | review | PR #198 - ntfy.sh notifications | **NEW** |
+
+**Spawned: 3 Workers (parallel)**
+
+1. **Merge Worker** for PR #190
+   - [PR #190 - fix: add concurrency controls to Server Operations workflow](https://github.com/jpshackelford/voice-relay/pull/190)
+   - All review threads resolved, CI green, ready to merge
+   - Conversation: [`fdc53d2`](https://app.all-hands.dev/conversations/fdc53d28f32b4abca336ddad4d86130b)
+
+2. **Review Worker** for PR #195
+   - [PR #195 - fix(e2e): resolve flaky mobile voice tests](https://github.com/jpshackelford/voice-relay/pull/195)
+   - 1 unresolved thread: selector precision issue
+   - Conversation: [`e1945ea`](https://app.all-hands.dev/conversations/e1945ea66ab74415b0635b1335d7532f)
+
+3. **Review Worker** for PR #198
+   - [PR #198 - feat: add ntfy.sh push notifications](https://github.com/jpshackelford/voice-relay/pull/198)
+   - 1 unresolved thread: security documentation
+   - Conversation: [`2dbaf09`](https://app.all-hands.dev/conversations/2dbaf096e9014e829ed41e8165f9f3e9)
+
+**Current State:**
+- Open PRs: 3 active + 1 on-hold
+- All issues have `ready` label (no expansion needed)
+- Issue #197: `needs-human` label (smoke test failure) - skipping
+- Focus: Clear PR backlog before starting new implementations
+
+---

@@ -1,26 +1,27 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [
+    "expansion": [
       {
-        "conv_id": "81b95b4",
-        "issue": 182,
-        "started": "2026-05-18T01:51:15.475708+00:00"
+        "conv_id": "2dbaf09",
+        "pr": 198,
+        "type": "review_overflow",
+        "started": "2026-05-18T02:06:10.100974+00:00"
       }
     ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "4c38f47",
-        "pr": 193,
+        "conv_id": "fdc53d2",
+        "pr": 190,
         "type": "merge",
-        "started": "2026-05-18T01:51:15.475708+00:00"
+        "started": "2026-05-18T02:06:10.100974+00:00"
       },
       {
-        "conv_id": "584adf5",
-        "pr": 190,
+        "conv_id": "e1945ea",
+        "pr": 195,
         "type": "review",
-        "started": "2026-05-18T01:51:15.475708+00:00"
+        "started": "2026-05-18T02:06:10.100974+00:00"
       }
     ]
   },
@@ -29,7 +30,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T01:51:15.475708+00:00",
+  "last_updated": "2026-05-18T02:06:10.100974+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -439,6 +440,33 @@
       "finished": "2026-05-18T01:48:13.551301+00:00",
       "status": "not_found",
       "outcome": "Worker not found in API - may have been from different org or expired"
+    },
+    {
+      "conv_id": "81b95b4",
+      "type": "implementation",
+      "issue": 182,
+      "started": "2026-05-18T01:51:15.475708+00:00",
+      "finished": "2026-05-18T02:04:35.027607+00:00",
+      "status": "success",
+      "outcome": "Completed work for issue #182"
+    },
+    {
+      "conv_id": "4c38f47",
+      "type": "review",
+      "pr": 193,
+      "started": "2026-05-18T01:51:15.475708+00:00",
+      "finished": "2026-05-18T02:04:35.027607+00:00",
+      "status": "success",
+      "outcome": "Completed work for PR #193"
+    },
+    {
+      "conv_id": "584adf5",
+      "type": "review",
+      "pr": 190,
+      "started": "2026-05-18T01:51:15.475708+00:00",
+      "finished": "2026-05-18T02:04:35.027607+00:00",
+      "status": "success",
+      "outcome": "Completed work for PR #190"
     }
   ]
 }
