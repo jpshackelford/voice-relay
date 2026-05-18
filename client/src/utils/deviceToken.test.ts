@@ -90,6 +90,22 @@ describe('deviceToken utilities', () => {
       expect(stored).toBeNull();
     });
 
+    it('returns null when workspace-scoped storage contains wrong workspaceId', () => {
+      // Simulate data corruption: workspace-A key contains workspace-B data
+      const corruptedData = {
+        deviceId: 'device-999',
+        deviceToken: 'token-xyz',
+        workspaceId: 'workspace-B', // Wrong! Key says workspace-A but data says workspace-B
+        name: 'Corrupted',
+        mode: 'mobile' as const,
+      };
+      localStorage.setItem('voice_relay_device_token_workspace-A', JSON.stringify(corruptedData));
+      
+      // Should return null because stored workspaceId doesn't match requested workspace
+      const result = getStoredDeviceToken('workspace-A');
+      expect(result).toBeNull();
+    });
+
     it('returns null when workspace not provided and no legacy storage', () => {
       const stored = getStoredDeviceToken();
       expect(stored).toBeNull();

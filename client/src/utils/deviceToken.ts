@@ -213,7 +213,8 @@ export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | n
       const stored = localStorage.getItem(key);
       if (stored) {
         const device = parseDeviceJson(stored);
-        if (device) return device;
+        // Validate workspaceId matches for defense in depth (catches data corruption)
+        if (device && device.workspaceId === workspaceId) return device;
       }
     }
     
