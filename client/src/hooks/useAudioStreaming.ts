@@ -187,7 +187,11 @@ export function useAudioStreaming(options: AudioStreamingOptions = {}): AudioStr
 
       // Use ScriptProcessorNode for audio capture (AudioWorklet would be better but requires more setup)
       // Note: ScriptProcessorNode is deprecated but widely supported; 
-      // we can migrate to AudioWorklet in a future iteration
+      // we can migrate to AudioWorklet in a future iteration.
+      //
+      // Known limitation: Audio processing (PCM conversion, WebSocket send) is synchronous
+      // in the onaudioprocess callback. This could cause audio glitches under heavy load.
+      // This will be resolved when migrating to AudioWorklet, which runs on a separate thread.
       const bufferSize = 4096;
       const scriptProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
       

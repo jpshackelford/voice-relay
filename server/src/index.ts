@@ -837,6 +837,9 @@ wss.on('connection', (ws: WebSocket) => {
 
         case 'audio-input-chunk': {
           // Handle audio chunk for server-side transcription (Phase 1)
+          // Note: Base64 decoding and buffer operations are synchronous here.
+          // For Phase 2, consider worker threads if multiple devices streaming
+          // simultaneously becomes a performance bottleneck.
           if (!deviceId) {
             console.warn('[WS] Received audio-input-chunk from unregistered device');
             return;
