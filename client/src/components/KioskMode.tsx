@@ -79,6 +79,7 @@ export function KioskMode({
   const [drawerOpen, setDrawerOpen] = useState(false);  // Start collapsed per F3
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
+  const [qrDismissed, setQrDismissed] = useState(false);  // Allow dismissing QR screen without mobile scan
   
   const isMobile = useIsMobile();
   
@@ -106,6 +107,11 @@ export function KioskMode({
 
   const generateNewUtteranceId = useCallback(() => {
     utteranceIdRef.current = generateUUID();
+  }, []);
+
+  // Dismiss QR screen and show greeting state
+  const handleDismissQr = useCallback(() => {
+    setQrDismissed(true);
   }, []);
 
   const sendDebounced = useCallback((currentText: string, partial: boolean) => {
@@ -557,13 +563,15 @@ export function KioskMode({
               <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(displayContent.content || '') }} />
             </div>
           ) : null
-        ) : mobileDevices.length > 0 ? (
-          // Connected state: show greeting + mini QR in corner
+        ) : mobileDevices.length > 0 || qrDismissed ? (
+          // Connected state OR QR dismissed: show greeting + mini QR in corner
           <div className="display-greeting">
             <div className="greeting-content">
               <h1 className="greeting-title">Session Ready</h1>
               <p className="greeting-subtitle">
-                📱 {mobileDevices.length} device{mobileDevices.length > 1 ? 's' : ''} connected
+                {mobileDevices.length > 0
+                  ? `📱 ${mobileDevices.length} device${mobileDevices.length > 1 ? 's' : ''} connected`
+                  : 'No devices connected'}
               </p>
             </div>
             {/* Mini QR code in lower-right corner */}
@@ -582,8 +590,15 @@ export function KioskMode({
             </div>
           </div>
         ) : (
-          // Idle state: show large QR code for joining
+          // Idle state: show large QR code for joining with Skip option
           <div className="display-idle-qr">
+            <button 
+              className="qr-skip-button" 
+              onClick={handleDismissQr}
+              aria-label="Skip QR code screen"
+            >
+              Skip →
+            </button>
             <h2 className="idle-qr-title">Join this session</h2>
             <QRCodeDisplay 
               size={280} 

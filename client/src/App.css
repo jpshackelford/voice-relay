@@ -3147,6 +3147,7 @@ header {
   justify-content: center;
   text-align: center;
   padding: 2rem;
+  position: relative; /* For skip button positioning */
 }
 
 .idle-qr-title {
@@ -3184,6 +3185,37 @@ header {
 
 .display-idle-qr .qr-url:hover {
   background: rgba(50, 130, 184, 0.2);
+}
+
+/* QR Skip Button - positioned top-right of QR screen */
+.qr-skip-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #888;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.qr-skip-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.qr-skip-button:focus {
+  outline: 2px solid #3282b8;
+  outline-offset: 2px;
+}
+
+.qr-skip-button:active {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Mobile adjustments for session view */
