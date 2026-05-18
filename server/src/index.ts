@@ -38,6 +38,8 @@ import {
   type SessionAIStatusMessage,
   type AIThinkingMessage,
   type DisplayResultMessage,
+  type SessionTtsSettingsMessage,
+  type SessionTtsSettingsChangedMessage,
 } from './types.js';
 
 function getNetworkAddresses(): string[] {
@@ -529,6 +531,21 @@ wss.on('connection', (ws: WebSocket) => {
           };
           ws.send(JSON.stringify(historyMessage));
 
+          // Send current TTS settings for this session (if any)
+          if (sessionRepository && sessionId !== ANONYMOUS_SESSION_ID) {
+            const sessionForTts = sessionRepository.findById(sessionId);
+            const ttsSettings = sessionForTts?.metadata?.ttsSettings;
+            if (ttsSettings) {
+              const ttsSettingsMsg: SessionTtsSettingsChangedMessage = {
+                type: 'session-tts-settings-changed',
+                sessionId,
+                enabled: ttsSettings.enabled,
+                outputDeviceId: ttsSettings.outputDeviceId,
+              };
+              ws.send(JSON.stringify(ttsSettingsMsg));
+            }
+          }
+
           // Auto-connect AI when first device joins session
           if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, aiSessionManager)) {
             // Start AI connection asynchronously (don't block registration)
@@ -716,6 +733,55 @@ wss.on('connection', (ws: WebSocket) => {
           // Remove from pending tracking
           pendingJoinRequests.delete(requestId);
           pendingRequestTimestamps.delete(requestId);
+          break;
+        }
+
+        case 'session-tts-settings': {
+          // Handle session TTS settings update from any device
+          if (!deviceId || !sessionId) {
+            console.warn('[WS] Received session-tts-settings from unregistered device');
+            return;
+          }
+
+          const device = registry.getDevice(deviceId);
+          if (!device) {
+            console.warn('[WS] session-tts-settings received from unknown device');
+            return;
+          }
+
+          if (!sessionRepository) {
+            console.warn('[WS] Session repository not available');
+            return;
+          }
+
+          const ttsMsg = message as SessionTtsSettingsMessage;
+          
+          // Update session metadata with new TTS settings
+          const session = sessionRepository.findById(sessionId);
+          if (!session) {
+            console.warn(`[WS] Session not found: ${sessionId}`);
+            return;
+          }
+
+          const newMetadata = {
+            ...session.metadata,
+            ttsSettings: {
+              enabled: ttsMsg.enabled,
+              outputDeviceId: ttsMsg.outputDeviceId,
+            },
+          };
+          sessionRepository.update(sessionId, { metadata: newMetadata });
+
+          console.log(`[TTS] Session settings updated for ${sessionId}: enabled=${ttsMsg.enabled}, outputDevice=${ttsMsg.outputDeviceId || 'all'}`);
+
+          // Broadcast to all devices in session
+          const broadcastMsg: SessionTtsSettingsChangedMessage = {
+            type: 'session-tts-settings-changed',
+            sessionId,
+            enabled: ttsMsg.enabled,
+            outputDeviceId: ttsMsg.outputDeviceId,
+          };
+          registry.broadcastMessageToSession(sessionId, broadcastMsg);
           break;
         }
 

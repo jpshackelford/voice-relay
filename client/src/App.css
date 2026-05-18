@@ -824,6 +824,55 @@ header {
   color: #888;
 }
 
+/* Kiosk TTS Controls (unified session-level) */
+.kiosk-status-row .kiosk-tts-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.kiosk-status-row .kiosk-tts-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #888;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.kiosk-status-row .kiosk-tts-controls input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+}
+
+.kiosk-tts-device-select {
+  padding: 0.25rem 0.5rem;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 0.75rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 10.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.5rem;
+  max-width: 140px;
+}
+
+.kiosk-tts-device-select:focus {
+  outline: none;
+  border-color: #3282b8;
+}
+
+.kiosk-tts-device-select option {
+  background: #1a1a2e;
+  color: #ccc;
+}
+
+/* Legacy: Keep for backward compatibility */
 .kiosk-status-row .kiosk-tts-toggle {
   font-size: 0.875rem;
 }
@@ -4488,6 +4537,47 @@ header {
 
 .mobile-settings-toggle input:disabled + .toggle-switch {
   opacity: 0.5;
+}
+
+/* TTS Device Dropdown */
+.mobile-settings-tts-device {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+  margin-top: 0.75rem;
+  border-left: 2px solid #333;
+}
+
+.mobile-settings-tts-device .toggle-label {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.mobile-settings-select {
+  width: 100%;
+  padding: 0.625rem;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 10.5l-5-5h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+.mobile-settings-select:focus {
+  outline: none;
+  border-color: #3282b8;
+}
+
+.mobile-settings-select option {
+  background: #111;
+  color: #fff;
 }
 
 .mobile-settings-divider {

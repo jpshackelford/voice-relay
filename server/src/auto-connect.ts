@@ -106,7 +106,11 @@ export async function autoConnectAI(
 
         // Generate TTS for AI response (only if TTS service is available and enabled)
         if (ttsService && ttsService.isEnabled(workspaceId)) {
-          ttsService.synthesizeForSession(text, workspaceId, sessionId, utteranceId).catch(err => {
+          // Get session-level TTS settings (if any) for device targeting
+          const session = sessionRepository.findById(sessionId);
+          const sessionTtsSettings = session?.metadata?.ttsSettings;
+          
+          ttsService.synthesizeForSession(text, workspaceId, sessionId, utteranceId, sessionTtsSettings).catch(err => {
             console.error(`[TTS] Failed to synthesize for session ${sessionId}:`, err);
           });
         }

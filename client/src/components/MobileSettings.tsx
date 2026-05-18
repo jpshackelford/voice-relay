@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ReleaseNotes } from './ReleaseNotes';
+import type { DeviceInfo, SessionTtsSettings } from '../types';
 
 export type InputMode = 'voice' | 'visualizer';
 
@@ -7,33 +8,47 @@ interface MobileSettingsProps {
   isOpen: boolean;
   onClose: () => void;
   displayName: string;
-  ttsEnabled: boolean;
-  ttsSupported: boolean;
   autoSubmit: boolean;
   inputMode: InputMode;
-  onTtsChange: (enabled: boolean) => void;
   onAutoSubmitChange: (enabled: boolean) => void;
   onInputModeChange: (mode: InputMode) => void;
+  /** Session-level TTS settings (synced across all devices) */
+  sessionTtsSettings?: SessionTtsSettings | null;
+  /** Callback to update session TTS settings */
+  onSessionTtsSettingsChange?: (settings: SessionTtsSettings) => void;
+  /** Kiosk devices in session (for device dropdown) */
+  kioskDevices?: DeviceInfo[];
+  /** Current device ID (to mark as "This device" in dropdown) */
+  deviceId?: string;
 }
 
 /**
  * Settings modal for mobile mode.
- * Contains TTS toggle, auto-submit toggle, and input mode selector.
+ * Contains TTS toggle (session-level), auto-submit toggle, and input mode selector.
  */
 export function MobileSettings({
   isOpen,
   onClose,
   displayName,
-  ttsEnabled,
-  ttsSupported,
   autoSubmit,
   inputMode,
-  onTtsChange,
   onAutoSubmitChange,
   onInputModeChange,
+  sessionTtsSettings,
+  onSessionTtsSettingsChange,
+  kioskDevices = [],
+  deviceId,
 }: MobileSettingsProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  
+  // Derive TTS enabled state from session settings (default to false if not set)
+  const ttsEnabled = sessionTtsSettings?.enabled ?? false;
+
+  // Validate selected device exists (gracefully fall back to 'all' if device disconnected)
+  const selectedDeviceId = sessionTtsSettings?.outputDeviceId ?? null;
+  const deviceExists = selectedDeviceId === null || kioskDevices.some(d => d.id === selectedDeviceId);
+  const effectiveTtsDeviceValue = deviceExists ? (selectedDeviceId ?? 'all') : 'all';
 
   useEffect(() => {
     if (isOpen) {
@@ -72,17 +87,39 @@ export function MobileSettings({
           <div className="mobile-settings-section">
             <label className="mobile-settings-toggle">
               <span className="toggle-label">
-                🔊 Read messages aloud
-                {!ttsSupported && <span className="not-supported">(not supported)</span>}
+                🔊 AI Voice Responses
+                <span className="toggle-hint">Synced across all devices</span>
               </span>
               <input
                 type="checkbox"
                 checked={ttsEnabled}
-                onChange={(e) => onTtsChange(e.target.checked)}
-                disabled={!ttsSupported}
+                onChange={(e) => onSessionTtsSettingsChange?.({
+                  enabled: e.target.checked,
+                  outputDeviceId: sessionTtsSettings?.outputDeviceId ?? null,
+                })}
               />
               <span className="toggle-switch" />
             </label>
+            {ttsEnabled && kioskDevices.length > 0 && (
+              <div className="mobile-settings-tts-device">
+                <span className="toggle-label">Audio Output</span>
+                <select
+                  className="mobile-settings-select"
+                  value={effectiveTtsDeviceValue}
+                  onChange={(e) => onSessionTtsSettingsChange?.({
+                    enabled: ttsEnabled,
+                    outputDeviceId: e.target.value === 'all' ? null : e.target.value,
+                  })}
+                >
+                  <option value="all">All kiosks</option>
+                  {kioskDevices.map(d => (
+                    <option key={d.id} value={d.id}>
+                      {d.id === deviceId ? '📍 This device' : d.displayName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="mobile-settings-section">

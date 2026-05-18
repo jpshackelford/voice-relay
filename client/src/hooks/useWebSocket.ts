@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, JoinResponseMessage, DisplayResultMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 interface UseWebSocketOptions {
@@ -20,14 +20,17 @@ interface UseWebSocketOptions {
   onWorkspaceDeletedMessage?: (message: ServerMessage & { type: 'workspace-deleted' }) => void;
   onAudioChunkMessage?: (message: ServerMessage & { type: 'audio-chunk' }) => void;
   onAudioEndMessage?: (message: ServerMessage & { type: 'audio-end' }) => void;
+  onSessionTtsSettingsChanged?: (message: ServerMessage & { type: 'session-tts-settings-changed' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
   const [wasRemoved, setWasRemoved] = useState(false);
+  // Session-level TTS settings (synced across all devices)
+  const [sessionTtsSettings, setSessionTtsSettings] = useState<SessionTtsSettings | null>(null);
   const registeredRef = useRef(false);
   const currentModeRef = useRef(mode);
   const onTextMessageRef = useRef(onTextMessage);
@@ -42,6 +45,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onWorkspaceDeletedMessageRef = useRef(onWorkspaceDeletedMessage);
   const onAudioChunkMessageRef = useRef(onAudioChunkMessage);
   const onAudioEndMessageRef = useRef(onAudioEndMessage);
+  const onSessionTtsSettingsChangedRef = useRef(onSessionTtsSettingsChanged);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -60,6 +64,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onWorkspaceDeletedMessageRef.current = onWorkspaceDeletedMessage;
   onAudioChunkMessageRef.current = onAudioChunkMessage;
   onAudioEndMessageRef.current = onAudioEndMessage;
+  onSessionTtsSettingsChangedRef.current = onSessionTtsSettingsChanged;
 
   // Connect WebSocket (only depends on deviceId)
   useEffect(() => {
@@ -176,6 +181,14 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           case 'audio-end':
             onAudioEndMessageRef.current?.(message);
             break;
+          case 'session-tts-settings-changed':
+            console.log('[WS] Session TTS settings updated:', message);
+            setSessionTtsSettings({
+              enabled: message.enabled,
+              outputDeviceId: message.outputDeviceId,
+            });
+            onSessionTtsSettingsChangedRef.current?.(message);
+            break;
         }
       } catch (err) {
         console.error('[WS] Error parsing message:', err);
@@ -249,5 +262,31 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
-  return { connected, devices, currentSession, wasRemoved, sendText, updateDevice, sendJoinResponse, sendDisplayResult };
+  /**
+   * Update session-level TTS settings (synced across all devices).
+   * @param settings - New TTS settings (enabled + outputDeviceId)
+   */
+  const updateSessionTtsSettings = useCallback((settings: SessionTtsSettings) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      const message: SessionTtsSettingsMessage = {
+        type: 'session-tts-settings',
+        enabled: settings.enabled,
+        outputDeviceId: settings.outputDeviceId,
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+
+  return { 
+    connected, 
+    devices, 
+    currentSession, 
+    wasRemoved, 
+    sessionTtsSettings,
+    sendText, 
+    updateDevice, 
+    sendJoinResponse, 
+    sendDisplayResult,
+    updateSessionTtsSettings,
+  };
 }

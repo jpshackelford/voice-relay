@@ -4,6 +4,16 @@
 export type SessionStatus = 'active' | 'ended' | 'archived';
 
 /**
+ * Session-level TTS settings (synced across all devices in session)
+ */
+export interface SessionTtsSettings {
+  /** Whether TTS is enabled for this session */
+  enabled: boolean;
+  /** Which device should play audio (null = all kiosks) */
+  outputDeviceId: string | null;
+}
+
+/**
  * Session metadata (stored as JSON)
  */
 export interface SessionMetadata {
@@ -17,6 +27,8 @@ export interface SessionMetadata {
     messageCount: number;
     deviceCount: number;
   };
+  /** Session-level TTS settings (synced across all devices) */
+  ttsSettings?: SessionTtsSettings;
 }
 
 /**
