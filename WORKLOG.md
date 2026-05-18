@@ -26,6 +26,32 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 20:00 UTC - Implementation Worker
+
+🔧 **PR #226 Created - Custom Dad Joke Voice Previews**
+
+- **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
+- **PR:** [#226 - feat: custom dad joke previews for ElevenLabs voices](https://github.com/jpshackelford/voice-relay/pull/226)
+- **Type:** Enhancement
+- **Status:** 🟡 Ready for review
+
+**Summary:**
+Replaced generic ElevenLabs preview URLs with custom dad joke previews synthesized on-demand using the workspace's ElevenLabs API key.
+
+**Changes:**
+- Added 25 curated dad jokes in `server/src/tts/dad-jokes.ts`
+- Added `synthesizeToBuffer()` for complete audio synthesis
+- Added `POST /:id/settings/voice-preview` API endpoint
+- Updated client to use custom synthesis instead of ElevenLabs preview URLs
+- Added comprehensive tests (15 new test cases)
+
+**Technical Notes:**
+- No database migration required (reads existing API key settings)
+- Uses 15-second timeout for synthesis operations
+- Properly handles loading/error states in UI
+
+---
+
 ### 2026-05-18 19:50 UTC - Merge Worker
 
 ✅ **PR #225 Merged - Smoke Test AI Connection Retry Fix**
