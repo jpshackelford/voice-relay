@@ -25,6 +25,34 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 00:06 UTC - Expansion Worker
+
+✅ **Expanded Issue #188 - API permissions in ElevenLabs settings**
+
+- Issue: [#188 - API permissions in ElevenLabs settings](https://github.com/jpshackelford/voice-relay/issues/188)
+- Type: Enhancement
+- Status: Ready for implementation
+
+**Summary:**
+Enhance ElevenLabs settings UI with:
+1. API permissions info text below API key input (Required: Text to Speech)
+2. Voice test button next to voice selector dropdown
+
+**Approach:**
+- Add permissions text using existing `setting-hint` class
+- New `POST /:id/settings/elevenlabs-voice-test` endpoint reusing `synthesize()` TTS function
+- Frontend button plays short test message via browser Audio API
+
+**Files Affected:**
+- `client/src/pages/WorkspaceHome.tsx` - Add UI elements
+- `client/src/hooks/useWorkspaceSettings.ts` - Add `testVoice()` method
+- `server/src/workspaces/router.ts` - Add voice test endpoint
+- `client/src/App.css` - Button styles
+
+**Complexity:** Low - leverages existing TTS infrastructure
+
+---
+
 ### 2026-05-18 00:10 UTC - Expansion Worker
 
 ✅ **Expanded Issue #185 - In-app release notes viewer**
