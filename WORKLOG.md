@@ -419,3 +419,30 @@ PR #202 (unified TTS settings) was merged to main while PR #203 (audio streaming
 | Implementation | 1 | 0 | 1 |
 | Review/Merge | 1 | 1 | 2 |
 
+
+---
+### 2026-05-18 15:20 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2a9ee58` | merge | PR #203 - Audio streaming Phase 1 | idle |
+| `2d029a0` | implementation | Issue #167 - Toggle agent actions | idle |
+
+**Current State:**
+- [PR #203](https://github.com/jpshackelford/voice-relay/pull/203): CI ✅, all review threads resolved ✅, mergeable ✅
+  - Merge worker is active (idle state)
+- Issue #167: Implementation worker active (idle state)
+- Issue #197: Blocked (`needs-human` - smoke test failure)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review/Merge | 1 | 1 | 2 |
+
+**Action Taken:**
+⏳ **Waiting** - Both worker slots occupied with active conversations
+- No new work spawned
+- Workers are in `idle` state (likely processing or awaiting input)
