@@ -2697,3 +2697,32 @@ When a user selects a specific kiosk for TTS output and that kiosk disconnects, 
    - Task: Address 5 unresolved review threads
 
 **Implementation slot:** Available after merges (next issue: #167 or #188)
+
+---
+
+### 2026-05-18 14:37 UTC - Merge Worker (`df26c59`)
+
+✅ **PR #202 Merged** - Unified TTS Settings
+
+- **PR:** [#202 - feat: unify TTS settings with single session-level control and device selection](https://github.com/jpshackelford/voice-relay/pull/202)
+- **Issue:** [#191](https://github.com/jpshackelford/voice-relay/issues/191) - Auto-closed ✅
+- **Merge Commit:** `c654197`
+
+**What Was Merged:**
+- Unified session-level TTS settings that sync across all devices in real-time
+- `SessionTtsSettings` interface (enabled + outputDeviceId) stored in session metadata
+- Device targeting for audio output (specific kiosk or all kiosks)
+- WebSocket messages for TTS settings sync
+- Browser-based TTS deprecated (AI responses now use ElevenLabs server-side TTS exclusively)
+
+**Key Review Decisions:**
+1. TTS defaults to **disabled** when undefined (fixed critical inconsistency)
+2. Device dropdown gracefully falls back to "all" when selected device disconnects
+3. No database migration needed - uses existing JSON metadata column
+
+**Deployment Notes:**
+- Auto-deploying to vr.chorecraft.net
+- Safe for production: No schema changes, backward compatible
+- Existing sessions will have TTS disabled by default
+
+**Files Changed:** 16 files (+560/-116)
