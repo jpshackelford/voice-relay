@@ -4,23 +4,23 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "080defd",
-        "started": "2026-05-18T00:34:50.704002+00:00",
-        "issue": 185
+        "conv_id": "92912c1",
+        "issue": 192,
+        "started": "2026-05-18T00:50:04.430557+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "145c86e",
-        "started": "2026-05-18T00:34:50.704002+00:00",
-        "pr": 193,
-        "type": "review"
+        "conv_id": "cbbb397",
+        "pr": 194,
+        "type": "review",
+        "started": "2026-05-18T00:50:04.430557+00:00"
       },
       {
-        "conv_id": "d746613",
-        "started": "2026-05-18T00:34:50.704002+00:00",
-        "pr": 190,
-        "type": "ci_fix"
+        "conv_id": "469ed5a",
+        "pr": 193,
+        "type": "review",
+        "started": "2026-05-18T00:50:04.430557+00:00"
       }
     ]
   },
@@ -29,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-18T00:34:50.704002+00:00",
+  "last_updated": "2026-05-18T00:50:04.430557+00:00",
   "completed": [
     {
       "conv_id": "dd0d905",
@@ -313,6 +313,33 @@
       "finished": "2026-05-18T00:31:55.613978+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #193"
+    },
+    {
+      "conv_id": "080defd",
+      "type": "implementation",
+      "started": "2026-05-18T00:34:50.704002+00:00",
+      "finished": "2026-05-18T00:48:46.084241+00:00",
+      "status": "finished",
+      "outcome": "Completed work for issue #185",
+      "issue": 185
+    },
+    {
+      "conv_id": "145c86e",
+      "type": "review",
+      "started": "2026-05-18T00:34:50.704002+00:00",
+      "finished": "2026-05-18T00:48:46.084241+00:00",
+      "status": "finished",
+      "outcome": "Completed work for PR #193",
+      "pr": 193
+    },
+    {
+      "conv_id": "d746613",
+      "type": "review",
+      "started": "2026-05-18T00:34:50.704002+00:00",
+      "finished": "2026-05-18T00:48:46.084241+00:00",
+      "status": "finished",
+      "outcome": "Completed work for PR #190",
+      "pr": 190
     }
   ]
 }
