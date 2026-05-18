@@ -25,6 +25,26 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-18 03:10 UTC - Merge Worker
+
+**PR #200 Merged** ✅
+
+- **PR:** [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
+- **Issue:** [#186](https://github.com/jpshackelford/voice-relay/issues/186) (auto-closed)
+- **Commit:** `feat: add Skip button to dismiss QR code screen on kiosk display`
+
+**Summary:**
+Added "Skip →" button to kiosk QR code screen allowing users to proceed without mobile device scan. Useful for solo kiosk usage, development/testing, and quick demos.
+
+**Review Status:**
+- 2 automated reviews: both 🟢 LOW risk, "Worth merging"
+- All CI checks passed (5/5)
+
+**Migration Check:** ✅ No database changes - pure frontend feature (CSS + React state)
+
+**Deployed:** Auto-deploying to vr.chorecraft.net
+
+---
 ### 2026-05-17 19:38 UTC - Orchestrator
 
 **Active Workers:**
