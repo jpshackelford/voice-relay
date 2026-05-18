@@ -2571,3 +2571,38 @@ Documentation-only PR that adds Uptime Kuma monitoring setup to server-inventory
 **Next:** Awaiting final review approval, then ready for merge.
 
 _This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
+
+---
+### 2026-05-18 02:45 UTC - Implementation Worker
+
+✅ **PR #200 Ready for Review - Issue #186 (QR Skip Button)**
+
+- Issue: [#186 - feat: Allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/issues/186)
+- PR: [#200 - feat: allow dismissing QR code screen on display device without mobile scan](https://github.com/jpshackelford/voice-relay/pull/200)
+- Status: **Ready for review** ✅
+
+**Problem:**
+When the display/kiosk device starts a new session with no mobile devices connected, it shows a fullscreen QR code for pairing. Previously, there was no way to dismiss this screen from the kiosk itself - users had to scan with a mobile device.
+
+**Solution:**
+- Added "Skip →" button in top-right corner of QR code screen
+- Clicking Skip transitions to "Session Ready" greeting state
+- Shows "No devices connected" text
+- Mini QR code appears in corner for later pairing
+- Mobile devices can still join via QR after dismissal
+
+**Files Modified:**
+- `client/src/components/KioskMode.tsx` - Added `qrDismissed` state, `handleDismissQr` callback, Skip button
+- `client/src/App.css` - Added `.qr-skip-button` styles
+- `client/src/components/KioskMode.test.tsx` - Added 5 unit tests
+- `tests/qr-join-flow.spec.ts` - Added 2 E2E tests
+
+**Test Coverage:**
+- Unit: 5 new tests (all passing)
+- E2E: 2 new tests (all passing)
+
+**CI Status:** All 4 checks passing ✅
+
+**Risk:** 🟢 LOW - Client-side state change only, no API changes, additive feature
+
+_This update was created by an AI agent (OpenHands) on behalf of the repository maintainer._
