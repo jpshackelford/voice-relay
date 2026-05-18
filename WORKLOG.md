@@ -26,6 +26,39 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 ## Log
 
 
+### 2026-05-18 20:05 UTC - Implementation Worker
+
+🔧 **PR #227 Created - Custom Dad Joke Voice Previews (Updated)**
+
+- **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
+- **PR:** [#227 - feat: use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/pull/227)
+- **Type:** Enhancement
+- **Status:** 🟡 Ready for review
+- **Supersedes:** PR #226 (same issue, more complete implementation)
+
+**Summary:**
+Replaced generic ElevenLabs `preview_url` with on-demand synthesis of random dad jokes using the workspace's configured voice. Provides a more useful preview experience demonstrating actual TTS settings.
+
+**All Acceptance Criteria Met:**
+- ✅ 25 curated dad jokes (>20 required)
+- ✅ Synthesizes using selected ElevenLabs voice
+- ✅ Loading state during synthesis
+- ✅ Graceful error handling
+- ✅ Audio plays in browser
+- ✅ Uses existing workspace API key
+- ✅ Respects voice selection from dropdown
+- ✅ Stop playback by clicking again
+
+**Files Changed (10 files, +657 lines):**
+- `server/src/tts/dad-jokes.ts` - New: jokes + `getRandomJoke()`
+- `server/src/tts/elevenlabs.ts` - New: `synthesizeToBuffer()` with 15s timeout
+- `server/src/workspaces/router.ts` - New: `POST /:id/settings/voice-preview`
+- `client/src/hooks/useWorkspaceSettings.ts` - New: `generateVoicePreview()`
+- `client/src/pages/WorkspaceHome.tsx` - Updated preview handler
+- Tests for all new code
+
+---
+
 ### 2026-05-18 20:00 UTC - Implementation Worker
 
 🔧 **PR #226 Created - Custom Dad Joke Voice Previews**
@@ -33,7 +66,7 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 - **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
 - **PR:** [#226 - feat: custom dad joke previews for ElevenLabs voices](https://github.com/jpshackelford/voice-relay/pull/226)
 - **Type:** Enhancement
-- **Status:** 🟡 Ready for review
+- **Status:** ⚠️ Superseded by PR #227
 
 **Summary:**
 Replaced generic ElevenLabs preview URLs with custom dad joke previews synthesized on-demand using the workspace's ElevenLabs API key.
