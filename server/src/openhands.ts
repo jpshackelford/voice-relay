@@ -450,37 +450,6 @@ function formatEventSummary(event: V1Event): string {
   }
 }
 
-/**
- * Get an emoji icon for an event kind.
- * Used for visual distinction in the UI.
- */
-function getEventIcon(kind: string): string {
-  switch (kind) {
-    case 'CmdRunAction':
-      return '🔧';
-    case 'CmdOutputObservation':
-      return '📤';
-    case 'FileReadAction':
-      return '📁';
-    case 'FileWriteAction':
-    case 'FileEditAction':
-      return '✏️';
-    case 'BrowseURLAction':
-    case 'BrowseInteractiveAction':
-      return '🌐';
-    case 'AgentThinkAction':
-      return '💭';
-    case 'AgentStateChangeEvent':
-      return '🔄';
-    case 'AgentFinishAction':
-      return '✅';
-    case 'AgentDelegateAction':
-      return '🤝';
-    default:
-      return '⚡';
-  }
-}
-
 /** Callback type for thinking state changes */
 export type ThinkingChangeCallback = (sessionId: string, isThinking: boolean) => void;
 
