@@ -1226,10 +1226,10 @@ export function WorkspaceHome() {
               className="whats-new-btn"
               onClick={() => setWhatsNewOpen(true)}
             >
-              View Release Notes
+              See Release Notes
             </button>
             <span className="setting-hint">
-              See recent features and bug fixes
+              Recent features and bug fixes
             </span>
           </div>
         </section>
