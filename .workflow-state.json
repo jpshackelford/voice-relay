@@ -2,23 +2,19 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "5ee5e8c",
-        "issue": 240,
-        "started": "2026-05-19T01:05:29.069248+00:00"
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "c1090cd",
+        "conv_id": "160b451",
         "pr": 237,
-        "started": "2026-05-19T01:05:29.069248+00:00"
+        "issue": null,
+        "started": "2026-05-19T01:20:16.168174+00:00"
       },
       {
-        "conv_id": "856824b",
-        "pr": 238,
-        "started": "2026-05-19T01:05:29.069248+00:00"
+        "conv_id": "ff185ca",
+        "pr": 241,
+        "issue": null,
+        "started": "2026-05-19T01:20:25.849071+00:00"
       }
     ]
   },
@@ -27,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-19T01:05:29.069248+00:00",
+  "last_updated": "2026-05-19T01:20:25.849336+00:00",
   "completed": [
     {
       "conv_id": "6a8004a",
@@ -855,6 +851,33 @@
       "finished": "2026-05-19T00:48:45.746293+00:00",
       "status": "success",
       "outcome": "\u2705 Merged PR #235 - feat: add PR links to in-product release notes"
+    },
+    {
+      "conv_id": "5ee5e8c",
+      "type": "implementation",
+      "issue": 240,
+      "started": "2026-05-19T01:05:29.069248+00:00",
+      "finished": "2026-05-19T01:17:59.602230+00:00",
+      "status": "success",
+      "outcome": "Created PR for issue #240"
+    },
+    {
+      "conv_id": "c1090cd",
+      "type": "review",
+      "pr": 237,
+      "started": "2026-05-19T01:05:29.069248+00:00",
+      "finished": "2026-05-19T01:17:59.602230+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #237"
+    },
+    {
+      "conv_id": "856824b",
+      "type": "review",
+      "pr": 238,
+      "started": "2026-05-19T01:05:29.069248+00:00",
+      "finished": "2026-05-19T01:17:59.602230+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #238"
     }
   ]
 }
