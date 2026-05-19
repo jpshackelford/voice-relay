@@ -3747,3 +3747,172 @@ These URLs can be used in Google OAuth consent screen configuration.
 - Open PRs: #233 (ready to merge), #234 (ready to merge), #221 (stuck - needs-human)
 - Ready issues: #229 (now being implemented), #230 (has PR #234), #231 (has PR #233)
 - Issues on-hold: #208, #210
+
+---
+### 2026-05-18 21:55 UTC - Implementation Worker
+
+✅ **Implemented Issue #230 - Changelog Generator Shows Incomplete/Incorrect History**
+
+- **Issue:** [#230 - Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+- **PR:** [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+- **Type:** Bug Fix
+- **Status:** PR open, ready for review
+
+**Summary:**
+Fixed three bugs in the changelog generator that were causing incomplete/incorrect release history in the "What's New" feature:
+
+1. **Boundary bug fixed:** The last tag was returning all repo history (80+ items). Now stops processing before the last tag to ensure valid boundaries.
+
+2. **20-entry limit removed:** Was only showing 6 entries (from 20 tags). Now processes all 205 deploy tags, showing 55 entries with user-facing changes.
+
+3. **Pre-tag history added:** Created `scripts/changelog-seed.json` with 25 curated entries for the initial development period (April 26 - May 6, 2026) before deploy tags existed.
+
+**Changes Made:**
+- Modified `scripts/generate-changelog.ts`:
+  - Added `loadSeedEntries()` function to read seed data
+  - Changed loop to `tags.length - 1` to fix boundary bug
+  - Removed `slice(0, 20)` limit
+  - Added deduplication and sorting logic
+  - Added `isLegacy` flag for seed entries
+- Created `scripts/changelog-seed.json` with pre-tag history
+
+**Results:**
+- Total entries: 56 (was 6)
+- Oldest entry: 25 changes (was 80+ from boundary bug)
+- Changelog size: ~18KB (well under 500KB threshold)
+
+**Files Changed:**
+- `scripts/generate-changelog.ts` (+77 lines, -8 lines)
+- `scripts/changelog-seed.json` (new, 25 curated changes)
+
+---
+### 2026-05-18 22:04 UTC - Merge Worker
+
+✅ **Merged PR #234 - Changelog Generator Fixes**
+
+- **PR:** [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+- **Issue:** [#230 - fix: Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230) (auto-closed)
+- **Type:** Bug Fix
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Fixed three bugs in the changelog generator for the "What's New" feature:
+
+1. **Boundary bug fix**: Stop processing before the last tag to ensure every entry has a valid range (was showing 80+ commits from repo inception)
+2. **Remove arbitrary limit**: Process all deploy tags instead of limiting to 20 (56 entries vs 6 previously)
+3. **Seed file for pre-tag history**: Added `scripts/changelog-seed.json` with manually curated entries for first 10 days of development
+
+**Technical Details:**
+- Build-time only change - no database migrations
+- Modified: `scripts/generate-changelog.ts`
+- Added: `scripts/changelog-seed.json`
+- Safe for production - affects only static changelog JSON generated at build time
+
+**Review:** 🟢 LOW risk - Code review approved
+
+---
+### 2026-05-18 22:06 UTC - Merge Worker
+
+✅ **Merged PR #233 - Terms of Service and Privacy Policy**
+
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231) (auto-closed)
+- **Type:** Feature (Documentation)
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Added publicly accessible legal pages required for Google OAuth consent screen configuration:
+- Terms of Service at `/tos`
+- Privacy Policy at `/privacy`
+- Footer links on Login page
+
+**Technical Details:**
+- Frontend-only change - **no database migrations**
+- Markdown files in `docs/` rendered via `marked` + `dompurify` (existing dependencies)
+- Public routes accessible without authentication
+- Documents adapted from All Hands AI templates for Voice Relay's specific use case
+
+**Key Decisions from Review:**
+- Simplified type declarations by removing redundant module declaration
+- Removed unnecessary tsconfig include (path alias sufficient)
+
+**Review:** 🟢 LOW risk - Code review approved, all CI checks passed
+
+---
+### 2026-05-18 22:19 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `36b08fc` | implementation | Issue #229 - PR Links in Release Notes | **NEW** |
+
+**Workers Completed Since Last Run:**
+- `7ed2beb` (implementation) → error (issue #229 retry needed)
+- `42cdf2b` (review) → finished ✅ (PR #233 merged)
+- `2ec9a6a` (review) → finished ✅ (PR #234 merged)
+
+**Current State:**
+- Open PRs: [#221](https://github.com/jpshackelford/voice-relay/pull/221) - draft, `needs-human` (stuck)
+- Issues needing expansion: None
+- Ready issues: #229 (priority:low) - now in progress
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned implementation worker** for Issue #229
+- Issue: [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+- Conversation: [`36b08fc`](https://app.all-hands.dev/conversations/36b08fc9f35941c79aa064355aaa5c68)
+- Previous attempt (7ed2beb) errored - this is a retry
+
+Note: PR #221 skipped - has `needs-human` label, waiting for human intervention.
+
+---
+### 2026-05-18 22:34 UTC - Merge
+
+✅ **Merged PR #235 - PR Links in Release Notes**
+
+- **PR:** [#235 - feat: add PR links to in-product release notes](https://github.com/jpshackelford/voice-relay/pull/235)
+- **Issue:** [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229) (auto-closed)
+- **Type:** Feature (UI Enhancement)
+- **Status:** ✅ Merged to main, auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Added clickable PR links to the in-product release notes ("What's New") modal. Users can now click through to see the associated Pull Request for more details, discussions, and code changes.
+
+**Technical Details:**
+- Frontend-only change - **no database migrations**
+- Modified `scripts/generate-changelog.ts` to extract PR number from commit messages (format: `(#123)`)
+- Updated `ReleaseNotes.tsx` to render PR numbers as clickable links to GitHub
+- Links open in new tab with `target="_blank"` and `rel="noopener noreferrer"`
+- Added CSS styling for subtle, non-intrusive links
+- Changes without PR numbers display correctly (no broken links)
+- 4 new test cases added for PR link rendering
+
+**Files Changed:**
+- `scripts/generate-changelog.ts` - Extract prNumber during parsing
+- `client/src/components/ReleaseNotes.tsx` - Render PR links
+- `client/src/components/ReleaseNotes.test.tsx` - Add test cases
+- `client/src/App.css` - Add PR link styles
+
+**Review:** 🟢 LOW risk - Code review approved, all CI checks passed
+
+---
+### 2026-05-18 22:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `04175fe` | merge | PR #235 - feat: add PR links to in-product release notes | **NEW** |
+
+**Worker Completed:** `36b08fc` (implementation)
+- Created PR #235 for Issue #229 - In-Product Release Notes hyperlinks
+
+**Current State:**
+- [PR #235](https://github.com/jpshackelford/voice-relay/pull/235): CI ✅ GREEN, Review ✅ Positive ("Worth merging"), Ready to merge
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): DRAFT with `needs-human` label - skipped
+- Ready issues: #229 (has PR #235 implementing it)
+- Issues needing expansion: #208, #210 both `on-hold` - skipped
+
+**Action Taken:**
+🚀 **Spawned merge worker** for PR #235
+- PR is ready: CI green, positive review, no unresolved threads
+- Conversation: [`04175fe`](https://app.all-hands.dev/conversations/04175fe1426b40e780819475324d1207)
