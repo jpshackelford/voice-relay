@@ -2749,3 +2749,186 @@ Update `formatEventSummary()` to handle V1 wrapped event format by detecting `Ac
 
 **Files to Modify:**
 - `server/src/openhands.ts` - Update `formatEventSummary()` function
+
+---
+### 2026-05-18 18:16 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6636a26` | merge | PR #217 - ElevenLabs settings | **NEW** |
+| `2e3f7e7` | implementation | Issue #220 - Agent Actions panel | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#217 - ElevenLabs settings improvements](https://github.com/jpshackelford/voice-relay/pull/217)
+   - All CI checks passed ✅, all review threads resolved ✅
+   - Ready to squash-merge
+   - Conversation: [`6636a26`](https://app.all-hands.dev/conversations/6636a267931f4006b067b218132e7d89)
+
+2. **Implementation Worker**
+   - Issue: [#220 - Agent Actions panel bug](https://github.com/jpshackelford/voice-relay/issues/220) (priority:high)
+   - Has `ready` label with technical approach
+   - Conversation: [`2e3f7e7`](https://app.all-hands.dev/conversations/2e3f7e7acd6c46cf81d06beb0fcf808b)
+
+**Current State:**
+- Open PRs: #217 (merging), #221 (draft, CI in progress)
+- Ready issues: #220 (implementing), #218, #213, #188 (low priority)
+- Issues on-hold: #210, #208
+
+**Completed this cycle:**
+- ✅ Expansion worker `279438c` (Issue #220) - finished
+- ✅ Review worker `13541a3` (PR #217) - finished
+
+---
+### 2026-05-18 18:28 UTC - Implementation Worker
+
+✅ **Implemented Issue #220 - Agent Actions panel V1 wrapped events**
+
+- **Issue:** [#220 - Bug: Agent Actions panel not functioning correctly in Kiosk mode](https://github.com/jpshackelford/voice-relay/issues/220)
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Status:** Ready for review
+
+**Changes:**
+- Updated `formatEventSummary()` in `server/src/openhands.ts` to handle V1 wrapped events
+- Added handlers for `ActionEvent` with nested `action` object parsing
+- Added handlers for `ObservationEvent` with nested `observation` object parsing
+- Added handlers for `SystemPromptEvent` and `MessageEvent`
+- Added 40+ tests for comprehensive coverage
+- All CI checks passing
+
+---
+### 2026-05-18 18:36 UTC - Review Worker
+
+✅ **PR #222 Review Feedback Addressed**
+
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220)
+- **Status:** CI passing ✅, Ready for merge
+
+**Review Feedback Addressed:**
+- Removed unused `getNestedActionType` helper function (dead code cleanup per bot review)
+- Function was defined but never called in the codebase
+
+**Commit:** `4dc6485`
+
+---
+### 2026-05-18 18:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `e4b0544` | review | PR #222 - V1 wrapped events | **NEW** |
+| `5f73484` | implementation | Issue #218 - What's New release notes | **NEW** |
+
+**Previous Workers Completed:**
+- `2e3f7e7` (implementation #220) → finished ✓ (Created PR #222)
+- `6636a26` (merge #217) → finished ✓ (Merged PR #217)
+
+**Current State:**
+- [PR #222](https://github.com/jpshackelford/voice-relay/pull/222): CI ✅ green, bot review positive ("Worth merging"), minor dead code cleanup suggested
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft PR (same issue #220, likely superseded by #222)
+- Ready issues: #218 (implementing), #213 (priority:low)
+- Issue #220 will close when PR #222 merges (Fixes #220)
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned 2 workers:**
+
+1. **Review Worker** for [PR #222](https://github.com/jpshackelford/voice-relay/pull/222)
+   - Task: Address dead code cleanup (remove unused `getNestedActionType` helper)
+   - Conversation: [`e4b0544`](https://app.all-hands.dev/conversations/e4b0544a72ca40d18862e81cb80f4766)
+
+2. **Implementation Worker** for [Issue #218](https://github.com/jpshackelford/voice-relay/issues/218) (priority:low)
+   - Task: Add "What's New" release notes to desktop workspace settings
+   - Conversation: [`5f73484`](https://app.all-hands.dev/conversations/5f73484ecad34408a3925e22d3964cd0)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review/Merge | 1 | 1 | 2 |
+
+---
+### 2026-05-18 18:49 UTC - Review Worker (`e701b44`)
+
+✅ **PR #222 Review Complete - Ready for Merge**
+
+- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
+- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220) (priority:high)
+- **Status:** All CI checks passing ✅, All review threads resolved ✅, PR marked ready
+
+**Review Feedback Addressed:**
+The review noted one minor improvement (dead code cleanup - unused `getNestedActionType` helper function). This was already addressed in commit `4dc6485` by a previous review worker. I:
+1. Verified the function was removed from `server/src/openhands.ts`
+2. Replied to the review thread explaining the fix
+3. Marked the thread as resolved
+4. Set PR back to ready for review
+
+**Ready to merge** - No breaking changes, comprehensive test coverage (40+ tests), solves user-reported bug.
+
+---
+### 2026-05-18 18:49 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5f73484` | implementation | Issue #218 - What's New release notes | running |
+| `e701b44` | review | PR #222 - handle V1 wrapped events | ✅ complete |
+
+**Current State:**
+- Open PRs: #222 (ready, all threads resolved, merge-ready), #221 (draft), #223 (draft)
+- Issues on-hold: #208, #210
+- Ready issues: #213 (priority:low), #218 (in progress), #220 (priority:high - PR #222 ready to merge)
+
+**Action Taken:**
+🚀 **Spawned review worker** for [PR #222](https://github.com/jpshackelford/voice-relay/pull/222)
+- 1 unresolved review thread needs addressing
+- Conversation: [`e701b44`](https://app.all-hands.dev/conversations/e701b44ec21045e8b6fcae065bb06813)
+
+---
+### 2026-05-18 19:01 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5f73484` | implementation | Issue #218 - What's New release notes | running |
+| `fffaa55` | review | PR #222 - V1 wrapped events fix | **NEW** |
+
+**Worker Completed:** `e701b44` (review)
+- PR #222 review feedback addressed
+
+**Current State:**
+- [PR #222](https://github.com/jpshackelford/voice-relay/pull/222): CI ✅, 1 unresolved review thread
+- [PR #223](https://github.com/jpshackelford/voice-relay/pull/223): CI ✅, bot review pending
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): DRAFT (skip)
+- Issues needing expansion: None
+- Ready issues: #213 (low), #218 (in progress), #220 (PR #222)
+
+**Action Taken:**
+🚀 **Spawned review worker** for PR #222
+- Conversation: [`fffaa55`](https://app.all-hands.dev/conversations/fffaa55f45a448559afba17ce1e93f2c)
+- Task: Address unresolved bot suggestion about MessageEvent parsing comment
+
+⏳ **Waiting** on PR #223 - bot review check still pending, will spawn review worker once feedback posted
+
+---
+### 2026-05-18 19:03 UTC - Implementation Worker
+
+✅ **Implemented Issue #218 - Add What's New release notes to desktop workspace settings**
+
+- **Issue:** [#218 - Add "What's New" release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/issues/218)
+- **PR:** [#223 - feat(client): add What's New release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/pull/223)
+- **Status:** CI passing ✅, Ready for review
+
+**Changes:**
+- Added `ReleaseNotes` import and `whatsNewOpen` state to WorkspaceHome.tsx
+- Added new "What's New" section between Settings and Danger Zone (visible to all users)
+- Added CSS styles for `.whats-new-section` and `.whats-new-btn`
+- Changed button text from "View" to "See" to avoid E2E test selector conflicts
+
+**Files Modified:**
+- `client/src/pages/WorkspaceHome.tsx`
+- `client/src/App.css`
