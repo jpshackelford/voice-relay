@@ -123,7 +123,12 @@ test.describe('AI Assistant Integration', () => {
       }).toPass({ timeout: 90000 });
     }
 
-    test('AI auto-connects to session and shows status indicator', async ({ page }) => {
+    // TEMPORARILY SKIPPED: These tests are flaky due to OpenHands API reliability issues.
+    // The API intermittently returns 401 BearerTokenError on session creation.
+    // See GitHub Issue #239 (https://github.com/jpshackelford/voice-relay/issues/239)
+    // TODO(#239): Re-enable once OpenHands API stability improves or we implement better retry logic.
+
+    test.skip('AI auto-connects to session and shows status indicator', async ({ page }) => {
       // Check if AI is available
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
@@ -149,7 +154,7 @@ test.describe('AI Assistant Integration', () => {
       await expect(aiStatus).toContainText(/✨|🔗/);
     });
 
-    test('AI status shows connected state after auto-connect', async ({ page }) => {
+    test.skip('AI status shows connected state after auto-connect', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
 
@@ -174,7 +179,7 @@ test.describe('AI Assistant Integration', () => {
       await expect(page.locator('.kiosk-ai-status')).toBeVisible({ timeout: 5000 });
     });
 
-    test('send message to AI and receive response', async ({ page }) => {
+    test.skip('send message to AI and receive response', async ({ page }) => {
       const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
       const status = await statusResponse.json();
 
