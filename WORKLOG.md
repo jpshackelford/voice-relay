@@ -1114,3 +1114,34 @@ All open issues are marked as `on-hold`. The only open PR (#221) requires human 
 1. File new issues or remove `on-hold` labels from existing ones
 2. Address PR #221 blocking issues (marked `needs-human`)
 3. Re-enable automation when ready
+
+---
+
+### 2026-05-19 03:16 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+🔒 **Auto-disabled due to inactivity**
+
+Three consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- No open PRs
+- No open issues
+- All tracked issues have been implemented and closed
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator (old)" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+---
