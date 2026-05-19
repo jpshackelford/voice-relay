@@ -308,14 +308,23 @@ describe('ReleaseNotes', () => {
 
   describe('data freshness', () => {
     it('fetches fresh data on each modal open', async () => {
-      render(<ReleaseNotes {...defaultProps} isOpen={true} />);
+      const { rerender } = render(<ReleaseNotes {...defaultProps} isOpen={true} />);
 
       await waitFor(() => {
         expect(screen.getByText(/d8456a1/)).toBeDefined();
       });
 
-      // Fetch should always be called (no caching)
       expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      // Close modal
+      rerender(<ReleaseNotes {...defaultProps} isOpen={false} />);
+
+      // Re-open modal - should fetch again
+      rerender(<ReleaseNotes {...defaultProps} isOpen={true} />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+      });
     });
   });
 });

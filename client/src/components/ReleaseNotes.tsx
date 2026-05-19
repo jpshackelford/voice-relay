@@ -25,14 +25,7 @@ interface ReleaseNotesProps {
 }
 
 const AUTO_REFRESH_INTERVAL = 60000; // 1 minute for recent entries
-
-// Clean up legacy cache key from previous versions
 const LEGACY_CACHE_KEY = 'voice-relay-changelog';
-try {
-  localStorage.removeItem(LEGACY_CACHE_KEY);
-} catch {
-  // Ignore errors if localStorage is unavailable
-}
 
 /**
  * Release notes modal displaying recent deployments and changes.
@@ -45,6 +38,15 @@ export function ReleaseNotes({ isOpen, onClose }: ReleaseNotesProps) {
   const [error, setError] = useState<string | null>(null);
   const [expandedTimestamp, setExpandedTimestamp] = useState<string | null>(null);
   const [, setRefreshKey] = useState(0); // For triggering re-renders
+
+  // Clean up legacy cache key from previous versions (runs once on mount)
+  useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_CACHE_KEY);
+    } catch {
+      // Ignore errors if localStorage is unavailable
+    }
+  }, []);
 
   // Fetch changelog from server fresh on each open
   const fetchChangelog = useCallback(async () => {
