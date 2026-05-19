@@ -36,7 +36,6 @@ describe('ReleaseNotes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
     // Mock fetch to return test data
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -300,64 +299,23 @@ describe('ReleaseNotes', () => {
       fireEvent.click(headers[0]);
       expect(headers[0].querySelector('.release-timestamp')?.textContent).toMatch(/May/);
 
-      // Second click - switch back to relative
+      // Second click - switch back to relative (matches various relative time formats)
       fireEvent.click(headers[0]);
-      expect(headers[0].querySelector('.release-timestamp')?.textContent).toMatch(/ago/);
+      const timestamp = headers[0].querySelector('.release-timestamp')?.textContent;
+      expect(timestamp).toMatch(/ago|yesterday|today|just now/i);
     });
   });
 
-  describe('caching', () => {
-    it('caches changelog in localStorage', async () => {
+  describe('data freshness', () => {
+    it('fetches fresh data on each modal open', async () => {
       render(<ReleaseNotes {...defaultProps} isOpen={true} />);
 
       await waitFor(() => {
         expect(screen.getByText(/d8456a1/)).toBeDefined();
       });
 
-      const cached = localStorage.getItem('voice-relay-changelog');
-      expect(cached).toBeDefined();
-      const parsed = JSON.parse(cached!);
-      expect(parsed.data.entries.length).toBe(2);
-    });
-
-    it('uses cached data on subsequent renders', async () => {
-      // Pre-populate cache
-      localStorage.setItem(
-        'voice-relay-changelog',
-        JSON.stringify({
-          data: mockChangelog,
-          timestamp: Date.now(),
-        })
-      );
-
-      render(<ReleaseNotes {...defaultProps} isOpen={true} />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/d8456a1/)).toBeDefined();
-      });
-
-      // Fetch should not be called since we have valid cache
-      expect(global.fetch).not.toHaveBeenCalled();
-    });
-
-    it('ignores expired cache', async () => {
-      // Pre-populate cache with old timestamp
-      localStorage.setItem(
-        'voice-relay-changelog',
-        JSON.stringify({
-          data: { generatedAt: null, entries: [] },
-          timestamp: Date.now() - 2 * 3600000, // 2 hours ago
-        })
-      );
-
-      render(<ReleaseNotes {...defaultProps} isOpen={true} />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/d8456a1/)).toBeDefined();
-      });
-
-      // Fetch should be called since cache is expired
-      expect(global.fetch).toHaveBeenCalled();
+      // Fetch should always be called (no caching)
+      expect(global.fetch).toHaveBeenCalledTimes(1);
     });
   });
 });
