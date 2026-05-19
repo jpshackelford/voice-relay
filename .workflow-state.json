@@ -5,10 +5,10 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "8b83ee8",
+        "conv_id": "b5d3505",
         "pr": 238,
         "issue": 236,
-        "started": "2026-05-19T01:49:23.641902+00:00"
+        "started": "2026-05-19T02:06:32.598261+00:00"
       }
     ]
   },
@@ -17,53 +17,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-19T01:49:23.641902+00:00",
+  "last_updated": "2026-05-19T02:06:32.598261+00:00",
   "completed": [
-    {
-      "conv_id": "642557b",
-      "type": "review",
-      "pr": 195,
-      "started": "2026-05-18T01:34:52.079304+00:00",
-      "finished": "2026-05-18T01:48:13.551301+00:00",
-      "status": "not_found",
-      "outcome": "Worker not found in API - may have been from different org or expired"
-    },
-    {
-      "conv_id": "b3601e6",
-      "type": "review",
-      "pr": 190,
-      "started": "2026-05-18T01:34:52.079304+00:00",
-      "finished": "2026-05-18T01:48:13.551301+00:00",
-      "status": "not_found",
-      "outcome": "Worker not found in API - may have been from different org or expired"
-    },
-    {
-      "conv_id": "81b95b4",
-      "type": "implementation",
-      "issue": 182,
-      "started": "2026-05-18T01:51:15.475708+00:00",
-      "finished": "2026-05-18T02:04:35.027607+00:00",
-      "status": "success",
-      "outcome": "Completed work for issue #182"
-    },
-    {
-      "conv_id": "4c38f47",
-      "type": "review",
-      "pr": 193,
-      "started": "2026-05-18T01:51:15.475708+00:00",
-      "finished": "2026-05-18T02:04:35.027607+00:00",
-      "status": "success",
-      "outcome": "Completed work for PR #193"
-    },
-    {
-      "conv_id": "584adf5",
-      "type": "review",
-      "pr": 190,
-      "started": "2026-05-18T01:51:15.475708+00:00",
-      "finished": "2026-05-18T02:04:35.027607+00:00",
-      "status": "success",
-      "outcome": "Completed work for PR #190"
-    },
     {
       "conv_id": "2dbaf09",
       "type": "review_overflow",
@@ -856,6 +811,16 @@
       "outcome": "Completed work for PR #238",
       "issue": 236,
       "pr": 238
+    },
+    {
+      "conv_id": "8b83ee8",
+      "type": "review",
+      "pr": 238,
+      "issue": 236,
+      "started": "2026-05-19T01:49:23.641902+00:00",
+      "finished": "2026-05-19T02:04:46.277840+00:00",
+      "status": "success",
+      "outcome": "Addressed all review threads on PR #238 - ready for merge"
     }
   ]
 }
