@@ -25,79 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 19:50 UTC - Merge Worker
-
-✅ **PR #225 Merged - Smoke Test AI Connection Retry Fix**
-
-- **PR:** [#225 - fix(e2e): add retry logic for AI connection in smoke tests](https://github.com/jpshackelford/voice-relay/pull/225)
-- **Issue:** [#213 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/213) (auto-closed)
-- **Type:** Bug fix (test-only)
-- **Risk:** 🟢 LOW - No production code changes
-
-**Summary:**
-Added `waitForAIConnected()` helper using Playwright's `toPass()` for robust retry handling of transient AI connection failures in smoke tests.
-
-**Review Notes:**
-- Code review praised using Playwright's built-in retry mechanism over custom logic
-- E2E tests passing confirms the fix works
-
----
-### 2026-05-18 20:00 UTC - Implementation Worker
-
-🔧 **PR #226 Created - Custom Dad Joke Voice Previews**
-
-- **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
-- **PR:** [#226 - feat: custom dad joke previews for ElevenLabs voices](https://github.com/jpshackelford/voice-relay/pull/226)
-- **Type:** Enhancement
-- **Status:** ⚠️ Superseded by PR #227
-
-**Summary:**
-Replaced generic ElevenLabs preview URLs with custom dad joke previews synthesized on-demand using the workspace's ElevenLabs API key.
-
-**Changes:**
-- Added 25 curated dad jokes in `server/src/tts/dad-jokes.ts`
-- Added `synthesizeToBuffer()` for complete audio synthesis
-- Added `POST /:id/settings/voice-preview` API endpoint
-- Updated client to use custom synthesis instead of ElevenLabs preview URLs
-- Added comprehensive tests (15 new test cases)
-
-**Technical Notes:**
-- No database migration required (reads existing API key settings)
-- Uses 15-second timeout for synthesis operations
-- Properly handles loading/error states in UI
-
----
-### 2026-05-18 20:01 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `0fc56cc` | implementation | Issue #224 - dad joke previews | running |
-
-**State Housekeeping:**
-- Cleaned up duplicate entries in `.workflow-state.json`
-- Removed finished workers: `23e3c5d` (impl), `2c3dcb5` (review)
-
-**Current State:**
-- **Open PRs:**
-  - [PR #226](https://github.com/jpshackelford/voice-relay/pull/226) (ready) - CI ✅, pr-review bot IN_PROGRESS
-  - [PR #227](https://github.com/jpshackelford/voice-relay/pull/227) (draft) - from active worker 0fc56cc
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) (draft) - older PR
-- **Ready Issues:** #224 (priority:low) - being implemented
-- **On-hold Issues:** #208, #210 - not available for work
-
-**Note:** Two PRs (#226, #227) both implement Issue #224 on different branches:
-- PR #226: `feature/224-custom-dad-joke-previews` (from completed worker 23e3c5d)
-- PR #227: `feature/224-dad-joke-voice-previews` (from active worker 0fc56cc)
-
-⏳ **Waiting** - pr-review running on PR #226, implementation worker still active
-
-**Slots:**
-- Expansion: 4/4 available (nothing to expand)
-- Implementation: 0/1 (0fc56cc running)
-- Review: 2/2 available (waiting for pr-review to complete)
-
----
 ### 2026-05-18 20:05 UTC - Implementation Worker
 
 🔧 **PR #227 Created - Custom Dad Joke Voice Previews (Updated)**
@@ -1243,3 +1170,36 @@ Temporarily skipped 3 AI integration smoke tests that call OpenHands API due to 
 
 **Migration Check:** ✅ No database changes in this PR
 
+---
+### 2026-05-19 02:16 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Workers Completed This Cycle:**
+- `b5d3505` (merge for PR #238) → ✅ Merged at 02:12 UTC
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (skipped)
+- Issue #208: on-hold
+- Issue #210: on-hold  
+- Issue #239: on-hold
+
+✅ **All quiet** - No actionable work available
+
+All open issues are marked as `on-hold`. The only open PR (#221) requires human intervention.
+
+**Recent Completions (last 6 hours):**
+- PR #238 merged - skip flaky OpenHands AI tests (Issue #236 auto-closed)
+- PR #241 merged - remove localStorage changelog cache (Issue #240 closed)
+- PR #237 merged - standardize What's New styling
+
+📦 **Housekeeping:** Archived 3 worklog entries to `WORKLOG_ARCHIVE_2026-05-18.md`
+
+**To resume work:**
+- File new issues or remove `on-hold` labels from existing ones
+- Address PR #221's blocking issues (marked `needs-human`)
+
+---

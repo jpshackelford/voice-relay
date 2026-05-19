@@ -3,49 +3,15 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "b5d3505",
-        "pr": 238,
-        "issue": 236,
-        "started": "2026-05-19T02:06:32.598261+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-19T02:06:32.598261+00:00",
+  "last_updated": "2026-05-19T02:19:20.240995+00:00",
   "completed": [
-    {
-      "conv_id": "2dbaf09",
-      "type": "review_overflow",
-      "pr": 198,
-      "started": "2026-05-18T02:06:10.100974+00:00",
-      "finished": "2026-05-18T02:18:51.474773+00:00",
-      "status": "finished",
-      "outcome": "Completed work for PR #198"
-    },
-    {
-      "conv_id": "fdc53d2",
-      "type": "merge",
-      "pr": 190,
-      "started": "2026-05-18T02:06:10.100974+00:00",
-      "finished": "2026-05-18T02:18:51.474773+00:00",
-      "status": "finished",
-      "outcome": "Completed work for PR #190"
-    },
-    {
-      "conv_id": "e1945ea",
-      "type": "review",
-      "pr": 195,
-      "started": "2026-05-18T02:06:10.100974+00:00",
-      "finished": "2026-05-18T02:18:51.474773+00:00",
-      "status": "finished",
-      "outcome": "Completed work for PR #195"
-    },
     {
       "conv_id": "95c8554",
       "type": "implementation",
@@ -821,6 +787,16 @@
       "finished": "2026-05-19T02:04:46.277840+00:00",
       "status": "success",
       "outcome": "Addressed all review threads on PR #238 - ready for merge"
+    },
+    {
+      "conv_id": "b5d3505",
+      "type": "merge",
+      "pr": 238,
+      "issue": 236,
+      "started": "2026-05-19T02:06:32.598261+00:00",
+      "finished": "2026-05-19T02:19:20.240995+00:00",
+      "status": "success",
+      "outcome": "Merged PR #238 - skip flaky OpenHands AI tests"
     }
   ]
 }
