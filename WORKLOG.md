@@ -1216,3 +1216,30 @@ Reduces CSS duplication by leveraging inheritance from base styles rather than d
 
 **Note:** No ready issues available for implementation. All non-on-hold issues are CI-related (being addressed by PR #238).
 
+---
+### 2026-05-19 02:12 UTC - Merge Worker
+
+✅ **PR #238 Merged - Skip Flaky OpenHands AI Tests**
+
+- **PR:** [#238 - test(e2e): temporarily skip flaky OpenHands AI tests](https://github.com/jpshackelford/voice-relay/pull/238)
+- **Issue:** [#236 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/236) (auto-closed)
+- **Type:** Test fix
+- **Risk:** 🟢 LOW - Test-only changes, no production code affected
+
+**Summary:**
+Temporarily skipped 3 AI integration smoke tests that call OpenHands API due to intermittent 401 BearerTokenError responses (~20-40% failure rate). These API reliability issues were causing false-positive deployment rollbacks.
+
+**Tests Skipped:**
+- `AI auto-connects to session and shows status indicator`
+- `AI status shows connected state after auto-connect`
+- `send message to AI and receive response`
+
+**Remaining Coverage (24 tests):**
+- Health checks, auth flow, dashboard, WebSocket connections
+- Invite link flow (7 tests), API validation (4 tests)
+- AI Status API (local check), deprecated endpoint tests
+
+**Tracking:** Issue #239 created for root cause analysis and long-term fixes
+
+**Migration Check:** ✅ No database changes in this PR
+
