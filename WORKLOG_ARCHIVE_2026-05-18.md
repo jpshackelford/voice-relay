@@ -3214,3 +3214,176 @@ Replaced generic ElevenLabs preview URLs with custom dad joke previews synthesiz
 - Expansion: 4/4 available (nothing to expand)
 - Implementation: 0/1 (0fc56cc running)
 - Review: 2/2 available (waiting for pr-review to complete)
+
+---
+### 2026-05-18 20:05 UTC - Implementation Worker
+
+🔧 **PR #227 Created - Custom Dad Joke Voice Previews (Updated)**
+
+- **Issue:** [#224 - Use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/issues/224)
+- **PR:** [#227 - feat: use custom dad joke previews instead of ElevenLabs preview URLs](https://github.com/jpshackelford/voice-relay/pull/227)
+- **Type:** Enhancement
+- **Status:** 🟡 Ready for review
+- **Supersedes:** PR #226 (same issue, more complete implementation)
+
+**Summary:**
+Replaced generic ElevenLabs `preview_url` with on-demand synthesis of random dad jokes using the workspace's configured voice. Provides a more useful preview experience demonstrating actual TTS settings.
+
+**All Acceptance Criteria Met:**
+- ✅ 25 curated dad jokes (>20 required)
+- ✅ Synthesizes using selected ElevenLabs voice
+- ✅ Loading state during synthesis
+- ✅ Graceful error handling
+- ✅ Audio plays in browser
+- ✅ Uses existing workspace API key
+- ✅ Respects voice selection from dropdown
+- ✅ Stop playback by clicking again
+
+**Files Changed (10 files, +657 lines):**
+- `server/src/tts/dad-jokes.ts` - New: jokes + `getRandomJoke()`
+- `server/src/tts/elevenlabs.ts` - New: `synthesizeToBuffer()` with 15s timeout
+- `server/src/workspaces/router.ts` - New: `POST /:id/settings/voice-preview`
+- `client/src/hooks/useWorkspaceSettings.ts` - New: `generateVoicePreview()`
+- `client/src/pages/WorkspaceHome.tsx` - Updated preview handler
+- Tests for all new code
+
+---
+### 2026-05-18 20:20 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2b1ad13` | merge | PR #227 - dad joke voice previews | **NEW** |
+
+**Previous Worker Completed:**
+- `0fc56cc` (implementation) - Created PR #227 for Issue #224 ✅
+
+**Current State:**
+- **Open PRs:**
+  - [PR #227](https://github.com/jpshackelford/voice-relay/pull/227) (ready to merge) - CI ✅, no unresolved threads, Fixes #224
+  - [PR #226](https://github.com/jpshackelford/voice-relay/pull/226) (superseded) - duplicate of #227, will be closed
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) (draft) - older draft
+- **Ready Issues:** #224 (priority:low) - has PR #227 ready to merge
+- **On-hold Issues:** #208, #210
+
+**Action Taken:**
+🚀 **Spawned merge worker** for [PR #227](https://github.com/jpshackelford/voice-relay/pull/227)
+- PR implements Issue #224: custom dad joke voice previews
+- All CI checks passing, no review feedback to address
+- Will also close PR #226 as superseded
+- Conversation: [`2b1ad13`](https://app.all-hands.dev/conversations/2b1ad13b16aa4c62a863f16448ca2059)
+
+**Slots:**
+- Expansion: 4/4 available (nothing to expand)
+- Implementation: 1/1 available (no ready issues without PRs)
+- Review: 1/2 occupied (merge in progress)
+
+---
+### 2026-05-18 20:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a61bd58` | merge | PR #227 - custom dad joke previews | **NEW** |
+| `f30b9b7` | expansion | Issue #228 - Release Notes Display Issues | **NEW** |
+
+**Current State:**
+- ✅ PR #226 closed (superseded by PR #227)
+- PR #227 ready to merge (CI green, review passed)
+- Issue #228 needs expansion (no labels)
+- Issues #208, #210 on-hold (skipped)
+
+**Slot Utilization:**
+- Expansion: 1/4
+- Implementation: 0/1  
+- Review/Merge: 1/2
+
+**Action Taken:**
+🚀 **Spawned 2 workers:**
+1. **Merge Worker** for [PR #227](https://github.com/jpshackelford/voice-relay/pull/227) - dad joke voice previews
+   - Conversation: [`a61bd58`](https://app.all-hands.dev/conversations/a61bd58)
+2. **Expansion Worker** for [Issue #228](https://github.com/jpshackelford/voice-relay/issues/228) - Release Notes Display Issues
+   - Conversation: [`f30b9b7`](https://app.all-hands.dev/conversations/f30b9b7)
+
+**Cleanup:**
+- Closed PR #226 as superseded by #227
+- Cleared finished review worker `2b1ad13`
+
+### 2026-05-18 20:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `30c940b` | merge | PR #227 - Custom Dad Joke Voice Previews | **NEW** |
+| `32d7f1f` | expansion | Issue #228 - Release Notes Display Issues | **NEW** |
+| `85cb052` | expansion | Issue #229 - Release Notes PR Hyperlinks | **NEW** |
+
+**State Assessment:**
+- PR #227: CI ✅ green, Review ✅ approved ("Worth merging"), Threads: 0 → Ready to merge
+- Issue #228: No `ready` label, previous expansion worker didn't complete → Re-expanding
+- Issue #229: No labels, new issue → Expanding
+- Issues #208, #210: On-hold (skipped)
+
+**Action Taken:**
+🚀 **Spawned 3 workers:**
+
+1. **Merge Worker** - [`30c940b`](https://app.all-hands.dev/conversations/30c940b82d144f4aa89a9e8db707e805)
+   - Task: Merge PR #227 (custom dad joke voice previews)
+   - Issue #224 will auto-close on merge
+
+2. **Expansion Worker** - [`32d7f1f`](https://app.all-hands.dev/conversations/32d7f1f1106c465e969eeabb81b1c849)
+   - Task: Expand Issue #228 (Release Notes Display Issues)
+   - Re-attempting after previous worker didn't complete
+
+3. **Expansion Worker** - [`85cb052`](https://app.all-hands.dev/conversations/85cb052c7a27443396e30a61576b2e1f)
+   - Task: Expand Issue #229 (Release Notes PR Hyperlinks)
+
+**Slots:**
+- Expansion: 2/4 used
+- Implementation: 0/1 available
+- Review: 1/2 used (merge counts as review slot)
+
+---
+### 2026-05-18 21:03 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a189809` | merge | PR #227 - Custom Dad Joke Voice Previews | **NEW** |
+| `ee8a922` | expansion | Issue #228 - Release Notes Display Issues | **NEW** |
+| `30aa199` | expansion | Issue #229 - Release Notes PR Hyperlinks | **NEW** |
+
+**Previous Workers Completed:**
+- `32d7f1f` (expansion) - Issue #228 ✓ (previous attempt - may not have completed)
+- `85cb052` (expansion) - Issue #229 ✓ (previous attempt - may not have completed)
+- `30c940b` (merge) - PR #227 ✓ (finished but PR not merged)
+
+**Current State:**
+- [PR #227](https://github.com/jpshackelford/voice-relay/pull/227) - Ready to merge (CI green ✅, positive review ✅)
+  - Fixes Issue #224 - custom dad joke previews
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - Draft (stale)
+- Issues needing expansion: #228, #229 (re-expanding)
+- Ready issues: #224 (has PR #227 ready)
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned 3 workers:**
+
+1. **Merge Worker** for [PR #227](https://github.com/jpshackelford/voice-relay/pull/227)
+   - PR has positive code review ("✅ Worth merging")
+   - All CI checks pass, merge state clean
+   - Fixes Issue #224 (custom dad joke previews)
+   - Conversation: [`a189809`](https://app.all-hands.dev/conversations/a18980c92c5d48b8a4fe451948efb55e)
+
+2. **Expansion Worker** for [Issue #228](https://github.com/jpshackelford/voice-relay/issues/228)
+   - Release Notes Display Issues in Desktop Mode
+   - Re-expanding after previous worker didn't complete
+   - Conversation: [`ee8a922`](https://app.all-hands.dev/conversations/ee8a922ecdbb4dd48b41da084415a64d)
+
+3. **Expansion Worker** for [Issue #229](https://github.com/jpshackelford/voice-relay/issues/229)
+   - In-Product Release Notes Should include hyperlinks to PRs
+   - Re-expanding after previous worker didn't complete
+   - Conversation: [`30aa199`](https://app.all-hands.dev/conversations/30aa199a3021488b91ef8704a901643d)
+
+**Slots Used:** 3/7 (2 expansion, 0 implementation, 1 merge)
+**Slots Available:** 2 expansion, 1 implementation, 1 review
