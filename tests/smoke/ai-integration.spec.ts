@@ -125,8 +125,8 @@ test.describe('AI Assistant Integration', () => {
 
     // TEMPORARILY SKIPPED: These tests are flaky due to OpenHands API reliability issues.
     // The API intermittently returns 401 BearerTokenError on session creation.
-    // See GitHub Issue #239 for investigation details and tracking.
-    // TODO: Re-enable once OpenHands API stability improves or we implement better retry logic.
+    // See GitHub Issue #239 (https://github.com/jpshackelford/voice-relay/issues/239)
+    // TODO(#239): Re-enable once OpenHands API stability improves or we implement better retry logic.
 
     test.skip('AI auto-connects to session and shows status indicator', async ({ page }) => {
       // Check if AI is available
