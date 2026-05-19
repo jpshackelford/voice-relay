@@ -1969,3 +1969,31 @@ These tests fail intermittently (~20-40%) due to OpenHands API reliability issue
 - Tests should be re-enabled once OpenHands API stability improves
 
 **PR is ready for merge.**
+
+---
+### 2026-05-19 01:08 UTC - Implementation Worker
+
+✅ **PR #241 Created - Remove localStorage caching for changelog**
+
+- **PR:** [#241 - fix(client): remove localStorage caching for changelog](https://github.com/jpshackelford/voice-relay/pull/241)
+- **Issue:** [#240](https://github.com/jpshackelford/voice-relay/issues/240) (Fixes #240)
+- **Status:** CI passing ✅, Ready for review
+
+**Changes:**
+- Removed `CACHE_KEY` and `CACHE_DURATION` constants from ReleaseNotes.tsx
+- Removed all localStorage read/write logic from `fetchChangelog`
+- Added cleanup of legacy cache key (`voice-relay-changelog`) on component load
+- Changelog now fetches fresh on each modal open
+
+**Test Updates:**
+- Removed 3 cache-related test cases (no longer applicable)
+- Added new "data freshness" test verifying fetch occurs on each modal open
+- Fixed pre-existing flaky test for timestamp toggling
+
+**Acceptance Criteria Met:**
+- ✅ localStorage caching removed from ReleaseNotes component
+- ✅ Changelog fetched fresh on each modal open
+- ✅ No localStorage artifacts left behind (legacy cache key cleanup added)
+- ✅ Unit tests updated to remove cache-related test cases
+
+**PR is ready for merge.**
