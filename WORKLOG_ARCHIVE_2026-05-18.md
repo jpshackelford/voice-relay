@@ -3653,3 +3653,97 @@ Added publicly accessible Terms of Service and Privacy Policy pages required for
 - Privacy Policy: `https://vr.chorecraft.net/privacy`
 
 These URLs can be used in Google OAuth consent screen configuration.
+
+---
+### 2026-05-18 21:51 UTC - Review Worker
+
+✅ **Addressed Review Feedback on PR #233 - Terms of Service and Privacy Policy**
+
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **Status:** ✅ Ready for merge (all CI checks passing)
+
+**Review Feedback Addressed:**
+
+1. **`client/src/vite-env.d.ts`** - Removed redundant `@docs/*.md?raw` module declaration
+   - The wildcard `*.md?raw` pattern on line 4 already covers all markdown raw imports including those via the path alias
+   
+2. **`client/tsconfig.json`** - Removed unnecessary `../docs/*.md` from include array
+   - The path alias in `paths` config is sufficient for TypeScript resolution via Vite's raw string handling
+
+**Changes Made:**
+- Commit: `68705cd` - refactor: simplify type declarations per review feedback
+- Both review threads replied to and resolved
+
+**CI Status:** All 4 checks passing (Build Client, E2E Tests, Server Tests, Conventional Commits)
+
+---
+### 2026-05-18 21:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fa83bc3` | review | PR #233 - ToS & Privacy Policy | **NEW** |
+| `9f2587a` | implementation | Issue #230 - Changelog fix | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker**
+   - PR: [#233 - Terms of Service and Privacy Policy](https://github.com/jpshackelford/voice-relay/pull/233)
+   - 2 unresolved review threads to address (redundant type declarations)
+   - Conversation: [`fa83bc3`](https://app.all-hands.dev/conversations/fa83bc328f7d4a7f90cce1c3c690efaa)
+
+2. **Implementation Worker**  
+   - Issue: [#230 - Changelog generator fix](https://github.com/jpshackelford/voice-relay/issues/230) (priority:medium)
+   - Conversation: [`9f2587a`](https://app.all-hands.dev/conversations/9f2587affc2c4e499fcadb98ee9c00a3)
+
+**Previous Worker Completed:**
+- ✅ `51ec504` (implementation for Issue #231) → Created PR #233
+
+**Other PRs:**
+- PR #221 (draft, CONFLICTING) - marked with `needs-human` label for manual conflict resolution
+
+**Remaining Ready Issues:**
+- #229 (priority:low) - In-Product Release Notes hyperlinks
+- #231 (priority:high) - ToS/Privacy Policy ← PR #233 in review
+- #230 (priority:medium) - Changelog fix ← being implemented
+
+**Issues on-hold:** #208, #210
+
+
+### 2026-05-18 22:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42cdf2b` | merge | PR #233 - Terms of Service and Privacy Policy | **NEW** |
+| `2ec9a6a` | merge | PR #234 - Changelog generator fix | **NEW** |
+| `7ed2beb` | implementation | Issue #229 - Release Notes PR hyperlinks | **NEW** |
+
+🚀 **Spawned: 3 Workers (parallel)**
+
+1. **Merge Worker** for PR #233
+   - PR: [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+   - Linked Issue: #231 (priority:high)
+   - CI: All passing, no unresolved threads
+   - Conversation: [`42cdf2b`](https://app.all-hands.dev/conversations/42cdf2b2df8248228133b51a5e360079)
+
+2. **Merge Worker** for PR #234
+   - PR: [#234 - fix: changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/pull/234)
+   - Linked Issue: #230 (priority:medium)
+   - CI: All passing, no unresolved threads
+   - Conversation: [`2ec9a6a`](https://app.all-hands.dev/conversations/2ec9a6a9a6d54a25b16551e584cdb3b1)
+
+3. **Implementation Worker** for Issue #229
+   - Issue: [#229 - In-Product Release Notes Should include hyperlinks to PRs](https://github.com/jpshackelford/voice-relay/issues/229)
+   - Priority: low
+   - Conversation: [`7ed2beb`](https://app.all-hands.dev/conversations/7ed2bebb6ec3473792a252b64571bf84)
+
+**Previous Workers Completed:**
+- `9f2587a` (implementation, Issue #230) → finished
+- `fa83bc3` (review, PR #233) → finished
+
+**Current State:**
+- Open PRs: #233 (ready to merge), #234 (ready to merge), #221 (stuck - needs-human)
+- Ready issues: #229 (now being implemented), #230 (has PR #234), #231 (has PR #233)
+- Issues on-hold: #208, #210
