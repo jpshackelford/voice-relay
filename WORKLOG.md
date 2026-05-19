@@ -1855,3 +1855,29 @@ These may have been spawned manually or by automation. Not spawning duplicates.
 - Not spawning expansion for #236 (already being investigated)
 - Not spawning review for PR #237 (still in progress externally)
 
+
+---
+### 2026-05-19 01:05 UTC - Finalizer Worker
+
+✅ **Finalized PR #237 - What's New Section Styling**
+
+- **PR:** [#237 - fix: standardize What's New section styling to match other workspace sections](https://github.com/jpshackelford/voice-relay/pull/237)
+- **Status:** Draft → Ready for Review ✅, CI passing ✅
+
+**Summary:**
+Completed PR started by previous worker. Reviewed changes, verified CI is green, and marked PR as ready for review.
+
+**Changes Made (by previous worker):**
+- Removed custom h2 styles from `.whats-new-section` so heading inherits from `.workspace-content h2`
+- Updated `.whats-new-btn` to match secondary button pattern (blue border/text, fills on hover)
+- Cleaned up `.danger-zone-section h2` to only override color (inherits other base styles)
+
+**Risk Assessment:** 🟢 LOW - CSS-only changes for visual consistency, no functional changes
+
+**Action Taken:**
+- ✅ Reviewed code changes - clean and sensible styling fixes
+- ✅ Verified CI - all 5 checks passing (Build Client, Server Tests, E2E Tests, Conventional Commits, PR Review skipped for drafts)
+- ✅ No review comments to address
+- ✅ Marked PR as ready for review with `gh pr ready 237`
+
+**PR is ready for merge.**
