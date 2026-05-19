@@ -1057,3 +1057,33 @@ No ready issues to implement, no PRs to review or merge.
 **To resume work:**
 - File new issues or remove `on-hold` labels from existing ones
 - Address PR #221's blocking issues (marked `needs-human`)
+
+---
+
+### 2026-05-19 02:46 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- **Open PRs:** [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - stuck (`needs-human` label)
+- **Open Issues:** 
+  - #208 - on-hold
+  - #210 - on-hold
+  - #239 - on-hold
+- **Ready issues:** None
+- **Issues needing expansion:** None
+
+All open issues are paused (`on-hold` label). The single open PR requires human intervention.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
