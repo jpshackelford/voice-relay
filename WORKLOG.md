@@ -1409,3 +1409,25 @@ These tests fail intermittently (~20-40%) due to OpenHands API reliability issue
 | Expansion | 0 | 4 | 4 |
 | Implementation | 0 | 1 | 1 |
 | Review/Merge | 2 | 0 | 2 |
+
+---
+### 2026-05-19 01:21 UTC - Merge Worker
+
+✅ **MERGED PR #237 - Standardize What's New Section Styling**
+
+- **PR:** [#237 - fix: standardize What's New section styling to match other workspace sections](https://github.com/jpshackelford/voice-relay/pull/237)
+- **Merged via:** Squash merge to main
+- **Deploy:** Auto-deploying to vr.chorecraft.net
+
+**Changes:**
+- Removed h2 style overrides from `.whats-new-section` so heading inherits
+  uppercase, letter-spacing, and font-size from `.workspace-content h2`
+- Updated `.whats-new-btn` to match secondary button pattern (blue border,
+  fill-on-hover) instead of gray muted styling
+- Cleaned up `.danger-zone-section h2` to only override color for red emphasis
+
+**Technical Approach:**
+Reduces CSS duplication by leveraging inheritance from base styles rather than duplicating property declarations. This makes styling more maintainable and ensures visual consistency across workspace sections.
+
+**Risk Assessment:** 🟢 LOW - CSS-only change, no functional impact
+
