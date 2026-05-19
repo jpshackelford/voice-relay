@@ -1431,3 +1431,21 @@ Reduces CSS duplication by leveraging inheritance from base styles rather than d
 
 **Risk Assessment:** 🟢 LOW - CSS-only change, no functional impact
 
+---
+### 2026-05-19 01:25 UTC - Review Worker
+
+✅ **PR #241 Review Feedback Addressed**
+
+- **PR:** [#241 - fix(client): remove localStorage caching for changelog](https://github.com/jpshackelford/voice-relay/pull/241)
+- **Issue:** [#240](https://github.com/jpshackelford/voice-relay/issues/240)
+- **Status:** CI passing ✅, All review threads resolved, Ready for merge
+
+**Review Feedback Addressed:**
+1. **Module-level side effect → useEffect**: Moved legacy cache cleanup from module-level code into a `useEffect` hook that runs once on component mount. This ensures cleanup runs once per component lifecycle rather than on every module import (which can happen multiple times during hot reload in development).
+
+2. **Test coverage improvement**: Updated the "fetches fresh data on each modal open" test to actually verify the behavior by testing multiple modal opens - the test now closes and re-opens the modal, asserting that fetch is called twice.
+
+**Commit:** `ca90ea6`
+
+**All Review Threads:** Resolved (2/2)
+
