@@ -2,70 +2,33 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": []
+    "implementation": [
+      {
+        "conv_id": "5ee5e8c",
+        "issue": 240,
+        "started": "2026-05-19T01:05:29.069248+00:00"
+      }
+    ],
+    "review": [
+      {
+        "conv_id": "c1090cd",
+        "pr": 237,
+        "started": "2026-05-19T01:05:29.069248+00:00"
+      },
+      {
+        "conv_id": "856824b",
+        "pr": 238,
+        "started": "2026-05-19T01:05:29.069248+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-19T00:48:45.746293+00:00",
+  "last_updated": "2026-05-19T01:05:29.069248+00:00",
   "completed": [
-    {
-      "conv_id": "080defd",
-      "type": "implementation",
-      "started": "2026-05-18T00:34:50.704002+00:00",
-      "finished": "2026-05-18T00:48:46.084241+00:00",
-      "status": "finished",
-      "outcome": "Completed work for issue #185",
-      "issue": 185
-    },
-    {
-      "conv_id": "145c86e",
-      "type": "review",
-      "started": "2026-05-18T00:34:50.704002+00:00",
-      "finished": "2026-05-18T00:48:46.084241+00:00",
-      "status": "finished",
-      "outcome": "Completed work for PR #193",
-      "pr": 193
-    },
-    {
-      "conv_id": "d746613",
-      "type": "review",
-      "started": "2026-05-18T00:34:50.704002+00:00",
-      "finished": "2026-05-18T00:48:46.084241+00:00",
-      "status": "finished",
-      "outcome": "Completed work for PR #190",
-      "pr": 190
-    },
-    {
-      "conv_id": "92912c1",
-      "type": "implementation",
-      "issue": 192,
-      "started": "2026-05-18T00:50:04.430557+00:00",
-      "finished": "2026-05-18T01:04:03.988141+00:00",
-      "status": "unknown",
-      "outcome": "Created PR for issue #192"
-    },
-    {
-      "conv_id": "cbbb397",
-      "type": "review",
-      "pr": 194,
-      "started": "2026-05-18T00:50:04.430557+00:00",
-      "finished": "2026-05-18T01:04:03.988141+00:00",
-      "status": "unknown",
-      "outcome": "Addressed review on PR #194"
-    },
-    {
-      "conv_id": "469ed5a",
-      "type": "review",
-      "pr": 193,
-      "started": "2026-05-18T00:50:04.430557+00:00",
-      "finished": "2026-05-18T01:04:03.988141+00:00",
-      "status": "unknown",
-      "outcome": "Addressed review on PR #193"
-    },
     {
       "conv_id": "6a8004a",
       "type": "implementation",
