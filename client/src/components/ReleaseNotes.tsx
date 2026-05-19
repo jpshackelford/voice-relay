@@ -24,13 +24,12 @@ interface ReleaseNotesProps {
   onClose: () => void;
 }
 
-const CACHE_KEY = 'voice-relay-changelog';
-const CACHE_DURATION = 3600000; // 1 hour in ms
 const AUTO_REFRESH_INTERVAL = 60000; // 1 minute for recent entries
+const LEGACY_CACHE_KEY = 'voice-relay-changelog';
 
 /**
  * Release notes modal displaying recent deployments and changes.
- * Fetches changelog from /api/changelog with caching.
+ * Fetches changelog from /api/changelog fresh on each modal open.
  */
 export function ReleaseNotes({ isOpen, onClose }: ReleaseNotesProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -40,22 +39,17 @@ export function ReleaseNotes({ isOpen, onClose }: ReleaseNotesProps) {
   const [expandedTimestamp, setExpandedTimestamp] = useState<string | null>(null);
   const [, setRefreshKey] = useState(0); // For triggering re-renders
 
-  // Fetch changelog from server with caching
-  const fetchChangelog = useCallback(async () => {
-    // Check localStorage cache first
+  // Clean up legacy cache key from previous versions (runs once on mount)
+  useEffect(() => {
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          setChangelog(data);
-          return;
-        }
-      }
+      localStorage.removeItem(LEGACY_CACHE_KEY);
     } catch {
-      // Cache read failed, proceed to fetch
+      // Ignore errors if localStorage is unavailable
     }
+  }, []);
 
+  // Fetch changelog from server fresh on each open
+  const fetchChangelog = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -66,16 +60,6 @@ export function ReleaseNotes({ isOpen, onClose }: ReleaseNotesProps) {
       }
       const data: Changelog = await response.json();
       setChangelog(data);
-
-      // Cache the result
-      try {
-        localStorage.setItem(
-          CACHE_KEY,
-          JSON.stringify({ data, timestamp: Date.now() })
-        );
-      } catch {
-        // Cache write failed (storage full), ignore
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load changelog');
     } finally {
