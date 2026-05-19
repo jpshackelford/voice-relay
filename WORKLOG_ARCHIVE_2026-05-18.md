@@ -3405,3 +3405,251 @@ Expanded the enhancement request to add clickable PR links in the "What's New" r
 4. Adding CSS styling for the links
 
 **Complexity:** Low - straightforward parsing and rendering changes.
+
+---
+### 2026-05-18 21:13 UTC - Expansion Worker
+
+✅ **Expanded Issue #228 - Release Notes Display Issues in Desktop Mode**
+
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **Type:** Bug
+- **Status:** Ready for implementation
+
+**Summary:**
+Investigated and documented two CSS display issues in the release notes feature on desktop viewports:
+
+1. **Button/text layout:** The "See Release Notes" button and hint text appear side-by-side instead of stacked vertically. Root cause: `.whats-new-content` lacks flex column layout.
+
+2. **Modal alignment:** The release notes modal slides up from the bottom (mobile sheet style) on desktop. Root cause: No media query to center modal on larger screens.
+
+**Proposed Fix:** CSS-only changes to `client/src/App.css`:
+- Add `display: flex; flex-direction: column` to `.whats-new-content`
+- Add `@media (min-width: 768px)` query to center `.release-notes-modal`
+
+**Complexity:** Low - no component changes needed.
+
+---
+### 2026-05-18 21:16 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `42549ae` | expansion | Issue #230 - Changelog generator issues | **NEW** |
+| `9e7ef4b` | expansion | Issue #231 - Terms of Service/Privacy Policy | **NEW** |
+| `7032f92` | implementation | Issue #228 - Release Notes Display Issues | **NEW** |
+
+**Priority Assessment:**
+Applied priority labels to ready issues:
+- Issue #228: `priority:medium` ⬅️ NEXT (CSS-only quick fix)
+- Issue #229: `priority:low` (Enhancement, more complex)
+
+**Current State:**
+- Open PRs: [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) (draft - V1 event formatting)
+- Ready issues: #228 (priority:medium), #229 (priority:low)
+- Issues needing expansion: #230, #231
+- On-hold issues: #208, #210
+
+**Action Taken:**
+🚀 **Spawned 3 workers (parallel)**
+
+1. **Expansion Worker** - Issue #230
+   - [#230 - Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+   - Conversation: [`42549ae`](https://app.all-hands.dev/conversations/42549ae)
+
+2. **Expansion Worker** - Issue #231
+   - [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+   - Conversation: [`9e7ef4b`](https://app.all-hands.dev/conversations/9e7ef4b)
+
+3. **Implementation Worker** - Issue #228
+   - [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+   - Conversation: [`7032f92`](https://app.all-hands.dev/conversations/7032f92)
+
+**Slot Status:**
+| Slot Type | Active | Limit | Available |
+|-----------|--------|-------|-----------|
+| Expansion | 2 | 4 | 2 |
+| Implementation | 1 | 1 | 0 |
+| Review | 0 | 2 | 2 |
+
+Next check in ~30 minutes.
+
+---
+### 2026-05-18 21:19 UTC - Expansion Worker
+
+✅ **Expanded Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
+
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **Type:** Enhancement
+- **Status:** Ready for implementation
+
+**Summary:**
+Expanded and restructured the issue for implementing Terms of Service and Privacy Policy documents required for Google OAuth consent screen configuration. The original issue was comprehensive but needed clearer structure for implementation.
+
+**Key Technical Decisions:**
+1. **Approach:** Markdown documents in `docs/` with client-side React routes (vs static HTML)
+2. **Documents:** Adapted from All Hands AI templates with Voice Relay-specific data practices
+3. **Routing:** Add `/tos` and `/privacy` routes using `react-markdown` for rendering
+4. **UX:** Add footer links to Login page
+
+**Files Affected:**
+- New: `docs/terms-of-service.md`, `docs/privacy-policy.md`
+- New: `client/src/pages/TermsOfService.tsx`, `client/src/pages/PrivacyPolicy.tsx`
+- New: `client/src/components/LegalPage.tsx`
+- Modified: `client/src/App.tsx`, `client/src/pages/Login.tsx`, `client/src/App.css`
+
+**Complexity:** Low-Medium - ~1-2 hours, no backend changes needed.
+
+---
+### 2026-05-18 21:20 UTC - Expansion Worker
+
+✅ **Expanded Issue #230 - Changelog Generator Shows Incomplete/Incorrect History**
+
+- **Issue:** [#230 - fix: Changelog generator shows incomplete/incorrect history](https://github.com/jpshackelford/voice-relay/issues/230)
+- **Type:** Bug
+- **Status:** Ready for implementation
+- **Labels:** `ready`
+
+**Summary:**
+Reproduced and verified three bugs in `scripts/generate-changelog.ts` affecting historical accuracy:
+
+1. **Boundary Bug (CONFIRMED):** The 20th tag has no previous boundary, causing `git log` to return 873 commits (all history) instead of just that release's changes. Result: 82 feat/fix entries in a single mega-entry.
+
+2. **20-Entry Limit (CONFIRMED):** Only first 20 tags processed, but there are 202 deploy tags with 54 meaningful releases. Only 6 entries shown.
+
+3. **Pre-Tag History Gap (CONFIRMED):** First commit (April 26) predates first deploy tag (May 6) by 10 days, creating an unboundable gap.
+
+**Root Cause:**
+```typescript
+// Line 169 - arbitrary limit
+const recentTags = tags.slice(0, 20);
+
+// Line 174 - no boundary for last tag
+const previousTag = recentTags[i + 1] || null;  // undefined for i=19
+```
+
+**Proposed Fix:**
+- Fetch N+1 tags to ensure valid boundaries for all N entries
+- Remove `slice(0, 20)` limit
+- Add seed file support for pre-tag period
+
+**Files to Modify:**
+- `scripts/generate-changelog.ts`
+- `scripts/changelog-seed.json` (new)
+
+**Complexity:** Medium
+
+---
+### 2026-05-18 21:25 UTC - Implementation Worker
+
+✅ **Implemented Issue #228 - Release Notes Display Issues in Desktop Mode**
+
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **PR:** [#232 - fix(client): release notes desktop display issues](https://github.com/jpshackelford/voice-relay/pull/232)
+- **Type:** Bug Fix (CSS)
+- **Status:** PR open, ready for review
+
+**Summary:**
+Fixed two display issues with the release notes feature in desktop mode:
+1. Button and hint text were appearing side-by-side instead of stacked vertically
+2. Modal was using mobile-style bottom sheet positioning on desktop
+
+**Changes Made:**
+- Added flex column layout to `.whats-new-content` for proper vertical stacking
+- Added desktop media query (>=768px) for `.release-notes-modal` to center the modal
+- Modal uses fade+slide animation instead of bottom-sheet slide-up on desktop
+- Mobile behavior (bottom sheet) preserved for viewports < 768px
+
+**Files Changed:**
+- `client/src/App.css` (+28 lines)
+
+---
+### 2026-05-18 21:35 UTC - Merge Worker
+
+✅ **PR #232 Merged - Release Notes Desktop Display Issues**
+
+- **PR:** [#232 - fix(client): release notes desktop display issues](https://github.com/jpshackelford/voice-relay/pull/232)
+- **Issue:** [#228 - Release Notes Display Issues in Desktop Mode](https://github.com/jpshackelford/voice-relay/issues/228)
+- **Type:** Bug Fix (CSS)
+- **Status:** ✅ Merged to main
+
+**Summary:**
+Fixed two display issues with the release notes feature in desktop mode:
+1. Button/hint text layout - Added flex column layout for proper vertical stacking
+2. Modal alignment - Added desktop media query (>=768px) to center modal instead of bottom sheet
+
+**Technical Details:**
+- CSS-only changes (+28 lines to `client/src/App.css`)
+- No database migrations required
+- Mobile behavior preserved (bottom sheet < 768px)
+- Desktop modal uses fade+slide animation
+
+**Merge Details:**
+- Commit: `fix(client): release notes desktop display issues`
+- Issue #228 auto-closed on merge
+- Auto-deploying to vr.chorecraft.net
+
+---
+### 2026-05-18 21:38 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `51ec504` | implementation | Issue #231 - TOS and Privacy Policy | **NEW** |
+
+**Current State:**
+- PR #232 was merged by another worker ✅ (Issue #228 closed)
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft (not actionable)
+- Ready issues (by priority): #231 (high), #230 (medium), #229 (low)
+- Issues on-hold: #210, #208
+- No issues need expansion 🎉
+
+**Priorities Assessed:**
+- Added `priority:high` to #231 (blocks Google OAuth)
+- Added `priority:medium` to #230 (changelog fixes)
+
+**Action Taken:**
+🚀 **Spawned 2 Workers (parallel):**
+
+1. **Merge Worker** for PR #232 - COMPLETED BEFORE ORCHESTRATOR CYCLE FINISHED
+   - PR: [#232 - fix(client): release notes desktop display issues](https://github.com/jpshackelford/voice-relay/pull/232)
+   - Conversation: [`a8ee779`](https://app.all-hands.dev/conversations/a8ee77991d2c45388a5cdc020e8731d4)
+   - ✅ Merged successfully during this cycle
+
+2. **Implementation Worker** for Issue #231
+   - Issue: [#231 - Add Terms of Service and Privacy Policy](https://github.com/jpshackelford/voice-relay/issues/231) (`priority:high`)
+   - Conversation: [`51ec504`](https://app.all-hands.dev/conversations/51ec504c38264224b813ff62f8503ec0)
+   - Blocks Google OAuth consent screen configuration
+
+---
+### 2026-05-18 21:44 UTC - Implementation Worker
+
+✅ **Implemented Issue #231 - Add Terms of Service and Privacy Policy for Google OAuth**
+
+- **Issue:** [#231 - Add Terms of Service and Privacy Policy for Google OAuth](https://github.com/jpshackelford/voice-relay/issues/231)
+- **PR:** [#233 - docs: add Terms of Service and Privacy Policy pages](https://github.com/jpshackelford/voice-relay/pull/233)
+- **Type:** Enhancement (Legal/OAuth requirement)
+- **Status:** PR open, ready for review
+
+**Summary:**
+Added publicly accessible Terms of Service and Privacy Policy pages required for Google OAuth consent screen configuration. Documents adapted from All Hands AI templates for Voice Relay's specific use case.
+
+**Changes Made:**
+- Created `docs/terms-of-service.md` and `docs/privacy-policy.md`
+- Added `LegalPage.tsx` component for shared layout and markdown rendering
+- Added `/tos` and `/privacy` routes (public, no auth required)
+- Added footer links to Login page
+- Configured Vite `@docs` path alias for markdown imports
+- Uses existing `marked` + `dompurify` for markdown rendering (same as KioskMode)
+
+**Files Changed (12 files, +596 lines):**
+- New: `docs/terms-of-service.md`, `docs/privacy-policy.md`
+- New: `client/src/components/LegalPage.tsx`
+- New: `client/src/pages/TermsOfService.tsx`, `client/src/pages/PrivacyPolicy.tsx`
+- Modified: `client/src/App.tsx`, `client/src/pages/Login.tsx`, `client/src/App.css`
+- Modified: `client/vite.config.ts`, `client/tsconfig.json`, `client/src/vite-env.d.ts`
+
+**URLs (after merge/deploy):**
+- Terms of Service: `https://vr.chorecraft.net/tos`
+- Privacy Policy: `https://vr.chorecraft.net/privacy`
+
+These URLs can be used in Google OAuth consent screen configuration.
