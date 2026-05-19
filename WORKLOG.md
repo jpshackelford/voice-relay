@@ -1231,3 +1231,30 @@ No ready issues to implement, no issues needing expansion, no PRs to review or m
 3. Re-enable automation when ready
 
 ---
+
+---
+### 2026-05-19 04:31 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Five consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- Open PRs: [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) (draft, `needs-human` label - STUCK)
+- On-hold issues: #208, #210, #239 (all paused)
+- Ready issues: None
+- Issues needing expansion: None
+
+**Reason:** All remaining work items are either on-hold or require human intervention.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
