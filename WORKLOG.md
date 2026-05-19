@@ -25,134 +25,6 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
-### 2026-05-18 19:09 UTC - Review Worker
-
-✅ **PR #222 Second Review Round Complete**
-
-- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
-- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220)
-- **Status:** CI passing ✅, All review threads resolved, Ready for merge
-
-**Review Feedback Addressed:**
-- Added explanatory comment for MessageEvent nested parsing structure (per bot suggestion)
-- Comment documents OpenHands LLM message format for future maintainers
-
-**Commit:** `70c7e6e`
-
-**All Review Threads:** Resolved
-
----
-### 2026-05-18 19:19 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `9daa9f3` | merge | PR #222 - V1 wrapped events fix | **NEW** |
-| `ea1d2b4` | merge | PR #223 - What's New feature | **NEW** |
-| `2142caf` | expansion | Issue #224 - Dad joke voice previews | **NEW** |
-
-**Previous Workers Completed:**
-- `5f73484` (implementation) → Created PR #223 for Issue #218 ✅
-- `fffaa55` (review) → Addressed all review threads on PR #222 ✅
-
-**Current State:**
-- PRs ready for merge: #222 (CI ✅, reviews ✅), #223 (CI ✅, no reviews)
-- Issues needing expansion: #224
-- Ready issues: #213, #218, #220 (all have PRs or blocked)
-- On-hold issues: #208, #210
-
-**Action Taken:**
-🚀 **Spawned 3 workers:**
-1. **Merge Worker** for [PR #222](https://github.com/jpshackelford/voice-relay/pull/222) → Conv [`9daa9f3`](https://app.all-hands.dev/conversations/9daa9f3...)
-2. **Merge Worker** for [PR #223](https://github.com/jpshackelford/voice-relay/pull/223) → Conv [`ea1d2b4`](https://app.all-hands.dev/conversations/ea1d2b4...)
-3. **Expansion Worker** for [Issue #224](https://github.com/jpshackelford/voice-relay/issues/224) → Conv [`2142caf`](https://app.all-hands.dev/conversations/2142caf...)
-
-**Slots Utilized:** 2/2 review, 1/4 expansion, 0/1 implementation
-
----
-### 2026-05-18 19:33 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `ec5510b` | merge | PR #222 - fix V1 wrapped events | **NEW** |
-| `c4e5863` | merge | PR #223 - What's New feature | **NEW** |
-| `df7fdfe` | expansion | Issue #224 - Custom dad joke previews | **NEW** |
-| `852e482` | implementation | Issue #213 - Smoke test failure | **NEW** |
-
-**Current State:**
-- Open PRs ready to merge: #222 (CI ✅, reviews resolved), #223 (CI ✅, reviews resolved)
-- Draft PR: #221 (duplicate of #222, can be closed)
-- Issues needing expansion: #224
-- Ready issues: #213 (priority:low), #210/#208 (on-hold)
-
-🚀 **Spawned 4 Workers (parallel):**
-
-1. **Merge Worker - PR #222**
-   - [PR #222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
-   - Closes issue #220
-   - Conversation: [`ec5510b`](https://app.all-hands.dev/conversations/ec5510b)
-
-2. **Merge Worker - PR #223**
-   - [PR #223 - feat(client): add What's New release notes](https://github.com/jpshackelford/voice-relay/pull/223)
-   - Closes issue #218
-   - Conversation: [`c4e5863`](https://app.all-hands.dev/conversations/c4e5863)
-
-3. **Expansion Worker - Issue #224**
-   - [Issue #224 - Use custom dad joke previews](https://github.com/jpshackelford/voice-relay/issues/224)
-   - Will analyze and add technical detail
-   - Conversation: [`df7fdfe`](https://app.all-hands.dev/conversations/df7fdfe)
-
-4. **Implementation Worker - Issue #213**
-   - [Issue #213 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/213)
-   - Priority: low
-   - Conversation: [`852e482`](https://app.all-hands.dev/conversations/852e482)
-
-**Slots Used:** 4/7 (1 expansion, 1 implementation, 2 review/merge)
-
----
-### 2026-05-18 19:35 UTC - Merge Worker
-
-✅ **PR #222 Merged - Agent Actions Panel V1 Wrapped Events Fix**
-
-- **PR:** [#222 - fix(server): handle V1 wrapped events in Agent Actions panel](https://github.com/jpshackelford/voice-relay/pull/222)
-- **Issue:** [#220](https://github.com/jpshackelford/voice-relay/issues/220) - Auto-closed
-- **Deployment:** Merged to main → Auto-deployed to vr.chorecraft.net 🚀
-
-**Summary:**
-Fixed Agent Actions panel in Kiosk mode to display descriptive summaries instead of generic kind names.
-
-**Key Changes:**
-- Handle V1 wrapped events (ActionEvent, ObservationEvent) with nested action/observation objects
-- Add handlers for SystemPromptEvent and MessageEvent
-- Extract truncate() helper for consistent string truncation
-- Maintain backward compatibility with direct action types
-- Added 40+ comprehensive tests
-
-**Before:** "Observation", "Action"
-**After:** "curl -X POST...", "Read /workspace/...", "Output: ..."
-
----
-### 2026-05-18 19:35 UTC - Merge Worker (`ea1d2b4`)
-
-✅ **PR #223 Merged**
-
-- **PR:** [#223 - feat(client): add What's New release notes to desktop workspace settings](https://github.com/jpshackelford/voice-relay/pull/223)
-- **Issue:** [#218](https://github.com/jpshackelford/voice-relay/issues/218) - Auto-closed ✅
-- **Status:** Squash-merged to main, deployed to vr.chorecraft.net
-
-**Summary:**
-Added "What's New" section to desktop workspace settings, bringing feature parity with mobile. The release notes modal is now accessible to all workspace users (not just owners) via a button in the workspace home page.
-
-**Review Assessment:**
-- 🟢 LOW risk - frontend-only change reusing existing ReleaseNotes component
-- "Good taste - Elegant, simple solution" - github-actions bot
-
-**Changes (67 lines):**
-- `client/src/pages/WorkspaceHome.tsx`: +26 lines (import, state, section, modal)
-- `client/src/App.css`: +41 lines (styling for whats-new-section)
-
----
 ### 2026-05-18 19:36 UTC - Expansion Worker
 
 ✅ **Expanded Issue #224**
@@ -1306,7 +1178,6 @@ Reduces CSS duplication by leveraging inheritance from base styles rather than d
 | Implementation | 0 | 1 | 1 |
 | Review/Merge | 2 | 0 | 2 |
 
-
 ---
 ### 2026-05-19 01:39 UTC - Review Worker
 
@@ -1333,3 +1204,39 @@ Reduces CSS duplication by leveraging inheritance from base styles rather than d
 **All Review Threads:** Resolved (1/1)
 
 **PR is ready for merge.**
+
+---
+### 2026-05-19 01:49 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8b83ee8` | review | PR #238 - skip flaky OpenHands AI tests | **NEW** |
+
+**Workers Completed This Cycle:**
+- `c409562` (merge for PR #241) → ✅ Finished (PR merged)
+- `94cd097` (review for PR #238) → ✅ Finished (feedback addressed)
+
+**Current State:**
+- [PR #238](https://github.com/jpshackelford/voice-relay/pull/238): CI ✅, 1 unresolved thread (TODO link suggestion) → **Review worker spawned**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (skipped)
+- Issue #236: ci-failure (addressed by PR #238)
+- Issues on-hold: #208, #210, #239
+
+**Actions Taken:**
+🚀 **Spawned: Review Worker** for [PR #238](https://github.com/jpshackelford/voice-relay/pull/238)
+- Issue: [#236](https://github.com/jpshackelford/voice-relay/issues/236) - Smoke test failure
+- Task: Add Issue #239 URL link to TODO comment (per review feedback)
+- Conversation: [`8b83ee8`](https://app.all-hands.dev/conversations/8b83ee8b250f47bba1d189dd831fc733)
+
+📦 **Housekeeping:** Archived 5 worklog entries from 2026-05-18 (entries older than 6hr productive window)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review/Merge | 1 | 1 | 2 |
+
+**Note:** No ready issues available for implementation. PR #221 is stuck (needs-human).
+
