@@ -166,3 +166,33 @@ PR #248 and PR #249 both fix issue #246. Review worker has been directed to addr
 - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): **STUCK** (needs-human label)
 - Ready issues: #245 (priority:medium), #247 (unprioritized)
 - Issues on-hold: #208, #210, #239
+
+---
+
+### 2026-05-20 13:00 UTC - Orchestrator
+
+**Worker Completed:** `9a14c91` (merge)
+- ✅ **Merged:** [PR #248](https://github.com/jpshackelford/voice-relay/pull/248) - fix(client): queue display content when QR code has priority
+- Issue #246 auto-closed on merge
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d6e2c92` | implementation | Issue #245 - duplicate device added | **NEW** |
+
+**Spawned: Implementation Worker**
+- Issue: [#245 - bug: duplicate device added](https://github.com/jpshackelford/voice-relay/issues/245) (priority:medium)
+- Conversation: [`d6e2c92`](https://app.all-hands.dev/conversations/d6e2c9288bca4d148b8e2d33daf3e830)
+- Technical approach documented in issue comments
+
+**Current State:**
+- No open PRs (PR #221 stuck - needs-human)
+- Ready issues: #245 (being implemented), #247 (unprioritized)
+- Issues on-hold: #208, #210, #239
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 1 | 0 | 1 |
+| Review | 0 | 2 | 2 |

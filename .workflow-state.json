@@ -2,22 +2,22 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "9a14c91",
-        "pr": 248,
-        "started": "2026-05-20T12:48:30.102269+00:00",
-        "type": "merge"
+        "conv_id": "d6e2c92",
+        "issue": 245,
+        "started": "2026-05-20T13:02:57.333926+00:00",
+        "type": "implementation"
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T12:48:30.102278+00:00",
+  "last_updated": "2026-05-20T13:02:57.333926+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -117,6 +117,15 @@
       "finished": "2026-05-20T12:47:31.116162+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #248"
+    },
+    {
+      "conv_id": "9a14c91",
+      "type": "merge",
+      "pr": 248,
+      "started": "2026-05-20T12:48:30.102269+00:00",
+      "finished": "2026-05-20T13:01:57.402107+00:00",
+      "status": "success",
+      "outcome": "Merged PR #248 - fix(client): queue display content when QR code has priority"
     }
   ]
 }
