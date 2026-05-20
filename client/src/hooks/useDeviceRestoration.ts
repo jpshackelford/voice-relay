@@ -8,6 +8,7 @@ import {
   storeDeviceToken,
   migrateLegacyDeviceToken,
   migrateServerSetDeviceCookie,
+  getPreservedDeviceId,
 } from '../utils/deviceToken';
 import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
@@ -33,7 +34,14 @@ interface DeviceRestorationResult {
 }
 
 /**
- * Get device ID, preferring session storage but falling back to stored token.
+ * Get device ID, preferring session storage but falling back to stored token
+ * or preserved device ID.
+ * 
+ * The order of precedence is:
+ * 1. Session storage (current tab)
+ * 2. Stored device token (localStorage)
+ * 3. Preserved device ID (from previous token clear - prevents duplicate devices)
+ * 4. Generate new UUID (only if workspaceId is available)
  * 
  * @param workspaceId - The workspace ID to look up the device token for.
  *                      If undefined, only checks session storage (defers workspace-scoped lookup).
@@ -50,6 +58,15 @@ function getOrCreateDeviceId(workspaceId: string | undefined): string {
     if (storedDevice?.deviceId) {
       storeSessionDeviceId(storedDevice.deviceId);
       return storedDevice.deviceId;
+    }
+    
+    // Check for preserved deviceId (from previous token clear)
+    // This prevents duplicate devices when a token expires and is cleared
+    const preservedId = getPreservedDeviceId(workspaceId);
+    if (preservedId) {
+      console.log('[useDeviceRestoration] Restored preserved deviceId for workspace:', workspaceId);
+      storeSessionDeviceId(preservedId);
+      return preservedId;
     }
   }
   
