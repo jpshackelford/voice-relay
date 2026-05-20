@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "8072d6a",
+        "conv_id": "596b1db",
         "pr": 244,
-        "started": "2026-05-20T02:19:11.202298+00:00"
+        "started": "2026-05-20T02:33:32.277551+00:00"
       }
     ]
   },
@@ -16,18 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T02:19:11.202298+00:00",
+  "last_updated": "2026-05-20T02:33:32.277551+00:00",
   "completed": [
-    {
-      "conv_id": "b5d3505",
-      "type": "merge",
-      "pr": 238,
-      "issue": 236,
-      "started": "2026-05-19T02:06:32.598261+00:00",
-      "finished": "2026-05-19T02:19:20.240995+00:00",
-      "status": "success",
-      "outcome": "Merged PR #238 - skip flaky OpenHands AI tests"
-    },
     {
       "conv_id": "a0a5d9d",
       "type": "implementation",
@@ -54,6 +44,15 @@
       "finished": "2026-05-20T02:18:22.898597+00:00",
       "status": "finished",
       "outcome": "Worker completed (status unknown - not in recent conversations)"
+    },
+    {
+      "conv_id": "8072d6a",
+      "type": "review",
+      "pr": 244,
+      "started": "2026-05-20T02:19:11.202298+00:00",
+      "finished": "2026-05-20T02:32:29.250422+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #244"
     }
   ]
 }
