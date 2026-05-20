@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "8453269",
+        "conv_id": "5bc1eb3",
         "pr": 244,
-        "started": "2026-05-20T01:50:18.652819+00:00"
+        "started": "2026-05-20T02:03:22.495545+00:00"
       }
     ]
   },
@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T01:50:18.652819+00:00",
+  "last_updated": "2026-05-20T02:03:22.495545+00:00",
   "completed": [
     {
       "conv_id": "8b83ee8",
@@ -46,6 +46,15 @@
       "finished": "2026-05-20T01:47:43.407627+00:00",
       "status": "success",
       "outcome": "Created PR #244 for issue #242 - display agent events inline"
+    },
+    {
+      "conv_id": "8453269",
+      "type": "review",
+      "pr": 244,
+      "started": "2026-05-20T01:50:18.652819+00:00",
+      "finished": "2026-05-20T02:02:43.487940+00:00",
+      "status": "success",
+      "outcome": "Addressed 3 review threads on PR #244"
     }
   ]
 }
