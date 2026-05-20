@@ -25,6 +25,31 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-20 11:38 UTC - Expansion Worker
+
+✅ **Expanded Issue #245**
+
+- Issue: [bug: duplicate device added](https://github.com/jpshackelford/voice-relay/issues/245)
+- Type: Bug
+- Status: Ready for implementation
+- Root cause: `clearDeviceToken()` removes entire localStorage entry including deviceId when token expires, causing new deviceId generation on next visit
+
+**Technical Summary:**
+- When device token expires (90 day TTL), `validateDeviceToken()` returns 401
+- `clearDeviceToken()` removes the full `StoredDeviceInfo` from localStorage
+- This clears both `deviceToken` AND `deviceId` bundled together
+- On reconnect, `getOrCreateDeviceId()` generates new UUID → new device record → duplicate
+
+**Proposed Fix:**
+Preserve deviceId in separate localStorage key when clearing expired token, update `getOrCreateDeviceId()` to check preserved ID.
+
+**Files to modify:**
+- `client/src/utils/deviceToken.ts`
+- `client/src/hooks/useDeviceRestoration.ts`
+- `client/src/utils/deviceToken.test.ts`
+
+---
+
 ### 2026-05-19 05:31 UTC - Orchestrator
 
 **Active Workers:**
