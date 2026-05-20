@@ -606,3 +606,32 @@ No actionable work available - all issues on-hold, PR #221 requires human interv
 2. Remove `on-hold` label from existing issues (#208, #210, #239), OR
 3. Resolve PR #221 (remove `needs-human` label)
 4. Then re-enable the automation
+
+---
+### 2026-05-20 15:45 UTC - Orchestrator
+
+✅ **All quiet** - Automation remains disabled
+
+**Current State (unchanged):**
+- **Open PR**: [#221](https://github.com/jpshackelford/voice-relay/pull/221) - STUCK (`needs-human` label, draft)
+- **Ready Issues**: 0
+- **Issues Needing Expansion**: 0 (all 3 issues have `on-hold` label)
+  - #208 - Add circuit breaker (on-hold)
+  - #210 - Categorize deployment failures (on-hold)
+  - #239 - Flaky AI integration tests (on-hold)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none)  | -    | -          | -      |
+
+**Note:** Manually triggered orchestrator run - automation is disabled.
+No actionable work available - all issues on-hold, PR #221 requires human intervention.
+
+**To resume automated work:**
+1. Create new issues (without `on-hold` label), OR
+2. Remove `on-hold` label from existing issues (#208, #210, #239), OR
+3. Resolve PR #221 (remove `needs-human` label)
+4. Then re-enable the automation via:
+   - OpenHands UI: https://app.all-hands.dev/automations
+   - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
