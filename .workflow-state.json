@@ -1,24 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "033ea38",
-        "issue": 245,
-        "started": "2026-05-20T11:31:58.437483+00:00"
-      },
-      {
-        "conv_id": "8530b64",
+        "conv_id": "4fa0e32",
         "issue": 246,
-        "started": "2026-05-20T11:32:11.179341+00:00"
-      },
-      {
-        "conv_id": "e28bbe1",
-        "issue": 247,
-        "started": "2026-05-20T11:32:19.764546+00:00"
+        "started": "2026-05-20T11:48:48.334761+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -26,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T11:32:26.826920+00:00",
+  "last_updated": "2026-05-20T11:48:48.334772+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -72,6 +62,33 @@
       "finished": "2026-05-20T02:47:26.518938+00:00",
       "status": "success",
       "outcome": "Merged PR #244 - feat(client): display agent events inline"
+    },
+    {
+      "conv_id": "033ea38",
+      "type": "expansion",
+      "issue": 245,
+      "started": "2026-05-20T11:31:58.437483+00:00",
+      "finished": "2026-05-20T11:47:50.844895+00:00",
+      "status": "success",
+      "outcome": "Expanded issue #245 - added ready label"
+    },
+    {
+      "conv_id": "8530b64",
+      "type": "expansion",
+      "issue": 246,
+      "started": "2026-05-20T11:32:11.179341+00:00",
+      "finished": "2026-05-20T11:47:50.844895+00:00",
+      "status": "success",
+      "outcome": "Expanded issue #246 - added ready label"
+    },
+    {
+      "conv_id": "e28bbe1",
+      "type": "expansion",
+      "issue": 247,
+      "started": "2026-05-20T11:32:19.764546+00:00",
+      "finished": "2026-05-20T11:47:50.844895+00:00",
+      "status": "success",
+      "outcome": "Expanded issue #247 - added ready label"
     }
   ]
 }
