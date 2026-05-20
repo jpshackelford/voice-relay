@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "5bc1eb3",
+        "conv_id": "8072d6a",
         "pr": 244,
-        "started": "2026-05-20T02:03:22.495545+00:00"
+        "started": "2026-05-20T02:19:11.202298+00:00"
       }
     ]
   },
@@ -16,18 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T02:03:22.495545+00:00",
+  "last_updated": "2026-05-20T02:19:11.202298+00:00",
   "completed": [
-    {
-      "conv_id": "8b83ee8",
-      "type": "review",
-      "pr": 238,
-      "issue": 236,
-      "started": "2026-05-19T01:49:23.641902+00:00",
-      "finished": "2026-05-19T02:04:46.277840+00:00",
-      "status": "success",
-      "outcome": "Addressed all review threads on PR #238 - ready for merge"
-    },
     {
       "conv_id": "b5d3505",
       "type": "merge",
@@ -55,6 +45,15 @@
       "finished": "2026-05-20T02:02:43.487940+00:00",
       "status": "success",
       "outcome": "Addressed 3 review threads on PR #244"
+    },
+    {
+      "conv_id": "5bc1eb3",
+      "type": "review",
+      "pr": 244,
+      "started": "2026-05-20T02:03:22.495545+00:00",
+      "finished": "2026-05-20T02:18:22.898597+00:00",
+      "status": "finished",
+      "outcome": "Worker completed (status unknown - not in recent conversations)"
     }
   ]
 }
