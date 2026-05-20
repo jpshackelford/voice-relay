@@ -3,20 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "596b1db",
-        "pr": 244,
-        "started": "2026-05-20T02:33:32.277551+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T02:33:32.277551+00:00",
+  "last_updated": "2026-05-20T02:47:26.518938+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -53,6 +47,15 @@
       "finished": "2026-05-20T02:32:29.250422+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #244"
+    },
+    {
+      "conv_id": "596b1db",
+      "type": "merge",
+      "pr": 244,
+      "started": "2026-05-20T02:33:32.277551+00:00",
+      "finished": "2026-05-20T02:47:26.518938+00:00",
+      "status": "success",
+      "outcome": "Merged PR #244 - feat(client): display agent events inline"
     }
   ]
 }
