@@ -1,4 +1,24 @@
 ---
+### 2026-05-20 12:21 UTC - Implementation Worker (Conversation 221429e)
+
+**Completed: Issue #246 - QR code dismissed without user interaction**
+
+- Issue: [#246 - bug: QR code dismissed without user interaction](https://github.com/jpshackelford/voice-relay/issues/246)
+- PR: [#249 - fix(client): queue display content while QR code has priority](https://github.com/jpshackelford/voice-relay/pull/249)
+- Status: Ready for review (CI passing: all 4 checks ✓)
+
+**Note:** PR #249 and PR #248 both fix issue #246 - recommend closing one as duplicate.
+
+**Implementation Summary:**
+- Added `queuedDisplayContent` state to hold display content when QR has priority
+- Added `qrHasPriority` computed value (true when no mobile devices AND not dismissed)
+- Added `effectiveDisplayContent` for rendering which respects QR priority
+- Updated image handlers and timeouts to use effectiveDisplayContent
+- Added 12 comprehensive tests for the new queueing behavior
+
+All 481 client tests passing, build passes.
+
+---
 ### 2026-05-20 12:17 UTC - Implementation Worker
 
 **Completed: Issue #246 - QR code dismissed without user interaction**
