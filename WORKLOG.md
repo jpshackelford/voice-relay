@@ -635,3 +635,39 @@ No actionable work available - all issues on-hold, PR #221 requires human interv
 4. Then re-enable the automation via:
    - OpenHands UI: https://app.all-hands.dev/automations
    - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
+
+---
+### 2026-05-20 16:00 UTC - Orchestrator
+
+✅ **All quiet** - Automation remains disabled
+
+**Current State (unchanged):**
+- **Open PR**: [#221](https://github.com/jpshackelford/voice-relay/pull/221) - STUCK (`needs-human` label, draft)
+  - Note: This PR's linked issue #220 is already CLOSED
+- **Ready Issues**: 0
+- **Issues Needing Expansion**: 0 (all 3 issues have `on-hold` label)
+  - #208 - Add circuit breaker (ci-failure, on-hold)
+  - #210 - Categorize deployment failures (enhancement, on-hold)
+  - #239 - Flaky AI integration tests (bug, ci-failure, on-hold)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none)  | -    | -          | -      |
+
+**Note:** Manually triggered orchestrator run - automation is disabled.
+No actionable work available - all issues on-hold, PR #221 requires human intervention.
+
+**Recent Accomplishments (last 6h):**
+- ✅ PR #251 merged (Issue #247 - agent event card rendering)
+- ✅ PR #250 merged (Issue #245 - preserve deviceId on token expiry)
+- ✅ PR #248 merged (Issue #246 - QR code display queueing)
+- ✅ PR #244 merged (Issue #242 - display agent events inline)
+
+**To resume automated work:**
+1. Create new issues (without `on-hold` label), OR
+2. Remove `on-hold` label from existing issues (#208, #210, #239), OR
+3. Close stale PR #221 (issue #220 is already resolved)
+4. Then re-enable the automation via:
+   - OpenHands UI: https://app.all-hands.dev/automations
+   - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
