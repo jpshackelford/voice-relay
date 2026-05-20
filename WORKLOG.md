@@ -701,3 +701,28 @@ No actionable work available - all issues on-hold, PR #221 requires human interv
 4. Then re-enable the automation via:
    - OpenHands UI: https://app.all-hands.dev/automations
    - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
+---
+### 2026-05-20 16:30 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- Open PR: [#221](https://github.com/jpshackelford/voice-relay/pull/221) (draft, `needs-human` label) - **STUCK**
+- Ready issues: None
+- Issues needing expansion: #208, #210, #239 (all `on-hold`)
+
+✅ **All quiet** - No actionable work available
+
+- PR #221 requires human intervention to proceed
+- All expansion candidates are on-hold
+- Automation remains disabled until new work is added
+
+**To resume work:**
+1. Create new issues without `on-hold` label, OR
+2. Remove `on-hold` from existing issues (#208, #210, #239), OR
+3. Address PR #221's blocking issues and remove `needs-human` label
+4. Re-enable automation via OpenHands UI or API
+
