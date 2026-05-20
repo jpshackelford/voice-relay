@@ -138,3 +138,31 @@ PR #248 and PR #249 both fix issue #246. Review worker has been directed to addr
 | Implementation | 0 | 1 | 1 |
 | Review | 1 | 1 | 2 |
 
+
+---
+
+### 2026-05-20 12:48 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9a14c91` | merge | PR #248 - queue display content when QR code has priority | **NEW** |
+
+**Worker Completed:** `83eb10e` (review)
+- PR #248 review threads resolved, ready for merge
+
+**Housekeeping:**
+- Closed PR #249 as duplicate of PR #248 (both fixed issue #246)
+
+**Spawned: Merge Worker**
+- PR: [#248 - fix(client): queue display content when QR code has priority](https://github.com/jpshackelford/voice-relay/pull/248)
+- Conversation: [`9a14c91`](https://app.all-hands.dev/conversations/9a14c919fbb243b2989156107ebeca22)
+- CI: ✅ All checks passing
+- Reviews: ✅ All 3 threads resolved
+- Mergeable: ✅ Yes
+
+**Current State:**
+- [PR #248](https://github.com/jpshackelford/voice-relay/pull/248): ready to merge (CI green, reviews resolved)
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): **STUCK** (needs-human label)
+- Ready issues: #245 (priority:medium), #247 (unprioritized)
+- Issues on-hold: #208, #210, #239

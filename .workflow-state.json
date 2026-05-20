@@ -5,9 +5,10 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "83eb10e",
+        "conv_id": "9a14c91",
         "pr": 248,
-        "started": "2026-05-20T12:33:15.188307+00:00"
+        "started": "2026-05-20T12:48:30.102269+00:00",
+        "type": "merge"
       }
     ]
   },
@@ -16,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T12:33:15.188320+00:00",
+  "last_updated": "2026-05-20T12:48:30.102278+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -107,6 +108,15 @@
       "finished": "2026-05-20T12:19:05.986503+00:00",
       "status": "success",
       "outcome": "Created PR #248 for issue #246 - QR code display queueing"
+    },
+    {
+      "conv_id": "83eb10e",
+      "type": "review",
+      "pr": 248,
+      "started": "2026-05-20T12:33:15.188307+00:00",
+      "finished": "2026-05-20T12:47:31.116162+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #248"
     }
   ]
 }
