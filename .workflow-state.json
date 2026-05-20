@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "d6e2c92",
+        "conv_id": "c7b622c",
         "issue": 245,
-        "started": "2026-05-20T13:02:57.333926+00:00",
+        "started": "2026-05-20T13:19:40.125181+00:00",
         "type": "implementation"
       }
     ],
@@ -17,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T13:02:57.333926+00:00",
+  "last_updated": "2026-05-20T13:19:40.125181+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -126,6 +126,15 @@
       "finished": "2026-05-20T13:01:57.402107+00:00",
       "status": "success",
       "outcome": "Merged PR #248 - fix(client): queue display content when QR code has priority"
+    },
+    {
+      "conv_id": "d6e2c92",
+      "type": "implementation",
+      "issue": 245,
+      "started": "2026-05-20T13:02:57.333926+00:00",
+      "finished": "2026-05-20T13:18:16.507821+00:00",
+      "status": "failed",
+      "outcome": "Conversation not found in API - likely spawn failure"
     }
   ]
 }
