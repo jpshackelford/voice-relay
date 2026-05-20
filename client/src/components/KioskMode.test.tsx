@@ -472,7 +472,9 @@ describe('KioskMode', () => {
     });
 
     describe('displayContent priority', () => {
-      it('shows displayContent over large QR when no mobile devices', async () => {
+      // Issue #246: QR now has priority when no mobile devices. displayContent is queued
+      // and shown after QR is resolved (mobile joins or user dismisses)
+      it('queues displayContent when QR has priority (no mobile devices)', async () => {
         const displayContent: DisplayContent = {
           type: 'markdown',
           content: '# Hello World',
@@ -482,9 +484,9 @@ describe('KioskMode', () => {
           render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
         });
         
-        // Should show custom content, not QR
-        expect(screen.getByText('Custom Display')).toBeDefined();
-        expect(screen.queryByText('Join this session')).toBeNull();
+        // QR has priority - should show QR, not displayContent
+        expect(screen.queryByText('Custom Display')).toBeNull();
+        expect(screen.getByText('Join this session')).toBeDefined();
       });
 
       it('shows displayContent over greeting when mobile devices connected', async () => {
@@ -502,6 +504,294 @@ describe('KioskMode', () => {
         expect(screen.getByText('AI Response')).toBeDefined();
         expect(screen.queryByText('Session Ready')).toBeNull();
       });
+    });
+  });
+
+  describe('QR Display Queueing (Issue #246)', () => {
+    beforeEach(() => {
+      setWindowWidth(1024); // Desktop width
+    });
+
+    it('queues displayContent when QR code has priority (no mobile devices, not dismissed)', async () => {
+      // Start with no devices and displayContent arriving
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# AI Greeting',
+        title: 'Hello!',
+      };
+
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Should still show large QR screen, NOT the display content
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+      expect(document.querySelector('.display-markdown')).toBeNull();
+      expect(screen.queryByText('Hello!')).toBeNull();
+    });
+
+    it('shows queued displayContent after user dismisses QR via Skip', async () => {
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# AI Greeting',
+        title: 'Hello!',
+      };
+
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Initially should show QR, not content
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+      expect(document.querySelector('.display-markdown')).toBeNull();
+
+      // Click Skip button to dismiss QR
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Now should show the queued display content
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-markdown')).not.toBeNull();
+      expect(screen.getByText('Hello!')).toBeDefined();
+    });
+
+    it('shows queued displayContent after mobile device joins', async () => {
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# AI Greeting',
+        title: 'Hello!',
+      };
+
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Initially should show QR, not content
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+      expect(document.querySelector('.display-markdown')).toBeNull();
+
+      // Simulate mobile device joining
+      const devicesWithMobile = [createMobileDevice('mobile-1')];
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={devicesWithMobile} displayContent={displayContent} />);
+      });
+
+      // Now should show the queued display content
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-markdown')).not.toBeNull();
+      expect(screen.getByText('Hello!')).toBeDefined();
+    });
+
+    it('shows displayContent immediately when mobile devices already connected', async () => {
+      const devices = [createMobileDevice('mobile-1')];
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# AI Greeting',
+        title: 'Hello!',
+      };
+
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={devices} displayContent={displayContent} />);
+      });
+
+      // Should show content immediately (no QR priority)
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-markdown')).not.toBeNull();
+      expect(screen.getByText('Hello!')).toBeDefined();
+    });
+
+    it('shows displayContent immediately when QR was previously dismissed', async () => {
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} displayContent={null} />);
+      });
+
+      // Click Skip button to dismiss QR
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Verify QR is dismissed (greeting state shown)
+      expect(document.querySelector('.display-greeting')).not.toBeNull();
+
+      // Now displayContent arrives
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# New Message',
+        title: 'AI Response',
+      };
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Should show content immediately (QR was dismissed)
+      expect(document.querySelector('.display-markdown')).not.toBeNull();
+      expect(screen.getByText('AI Response')).toBeDefined();
+    });
+
+    it('queues image displayContent when QR has priority', async () => {
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Should show QR, not image
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+      expect(document.querySelector('.display-image')).toBeNull();
+      expect(document.querySelector('img[src="https://example.com/test.png"]')).toBeNull();
+    });
+
+    it('shows queued image after QR is resolved', async () => {
+      const displayContent: DisplayContent = {
+        type: 'image',
+        content: 'https://example.com/test.png',
+        title: 'Test Image',
+      };
+
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Click Skip to resolve QR
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should show image now
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-image')).not.toBeNull();
+      expect(document.querySelector('img[src="https://example.com/test.png"]')).not.toBeNull();
+    });
+
+    it('replaces queued content with new content after QR resolves', async () => {
+      // Start with first display content (queued)
+      const firstContent: DisplayContent = {
+        type: 'markdown',
+        content: '# First Message',
+        title: 'First',
+      };
+
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} displayContent={firstContent} />);
+      });
+
+      // Second content arrives while QR still has priority
+      const secondContent: DisplayContent = {
+        type: 'markdown',
+        content: '# Second Message',
+        title: 'Second',
+      };
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={[]} displayContent={secondContent} />);
+      });
+
+      // QR still shown
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+
+      // Click Skip to resolve QR
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should show the second (latest) content
+      expect(screen.getByText('Second')).toBeDefined();
+      // First content should NOT be visible (was replaced in queue)
+      expect(screen.queryByText('First')).toBeNull();
+    });
+
+    it('clears queued content when new displayContent arrives after QR resolved', async () => {
+      // Initial state: displayContent arrives, gets queued
+      const firstContent: DisplayContent = {
+        type: 'markdown',
+        content: '# Queued Content',
+        title: 'Queued',
+      };
+
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} displayContent={firstContent} />);
+      });
+
+      // Mobile joins - resolves QR
+      const devicesWithMobile = [createMobileDevice('mobile-1')];
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={devicesWithMobile} displayContent={firstContent} />);
+      });
+
+      // Should show queued content
+      expect(screen.getByText('Queued')).toBeDefined();
+
+      // New content arrives
+      const newContent: DisplayContent = {
+        type: 'markdown',
+        content: '# New Content',
+        title: 'New',
+      };
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={devicesWithMobile} displayContent={newContent} />);
+      });
+
+      // Should show new content
+      expect(screen.getByText('New')).toBeDefined();
+      expect(screen.queryByText('Queued')).toBeNull();
+    });
+
+    it('shows greeting state if no displayContent when QR resolved', async () => {
+      await act(async () => {
+        render(<KioskMode {...defaultProps} devices={[]} displayContent={null} />);
+      });
+
+      // QR shown initially
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+
+      // Click Skip to resolve QR (no content was queued)
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should show greeting state (not display content, not QR)
+      expect(document.querySelector('.display-greeting')).not.toBeNull();
+      expect(document.querySelector('.display-idle-qr')).toBeNull();
+      expect(document.querySelector('.display-markdown')).toBeNull();
+    });
+
+    it('preserves queued content when displayContent prop becomes null', async () => {
+      // Start with content (gets queued)
+      const displayContent: DisplayContent = {
+        type: 'markdown',
+        content: '# Queued',
+        title: 'Queued Title',
+      };
+
+      const { rerender } = await act(async () => {
+        return render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+      });
+
+      // Content prop becomes null (e.g., clear display command)
+      await act(async () => {
+        rerender(<KioskMode {...defaultProps} devices={[]} displayContent={null} />);
+      });
+
+      // QR still shown
+      expect(document.querySelector('.display-idle-qr')).not.toBeNull();
+
+      // Resolve QR
+      const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+      await act(async () => {
+        fireEvent.click(skipButton);
+      });
+
+      // Should show the queued content even though displayContent prop is now null
+      expect(screen.getByText('Queued Title')).toBeDefined();
     });
   });
 
@@ -670,6 +960,9 @@ describe('KioskMode', () => {
   });
 
   describe('image display feedback', () => {
+    // Add mobile device to bypass QR priority (Issue #246 - QR queues displayContent)
+    const devicesWithMobile = [{ id: 'mobile-1', mode: 'mobile' as const, displayName: 'Mobile 1' }];
+
     beforeEach(() => {
       setWindowWidth(1024); // Desktop width
       vi.useFakeTimers();
@@ -690,7 +983,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -722,7 +1015,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -755,7 +1048,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -785,7 +1078,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -825,7 +1118,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
           />
         );
@@ -849,7 +1142,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
           />
         );
@@ -873,7 +1166,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -904,7 +1197,7 @@ describe('KioskMode', () => {
       await act(async () => {
         render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             // onDisplayResult not provided
           />
@@ -931,7 +1224,7 @@ describe('KioskMode', () => {
       const { rerender } = await act(async () => {
         return render(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -953,7 +1246,7 @@ describe('KioskMode', () => {
       await act(async () => {
         rerender(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={{ type: 'markdown', content: '# Test' }}
             onDisplayResult={onDisplayResult}
           />
@@ -964,7 +1257,7 @@ describe('KioskMode', () => {
       await act(async () => {
         rerender(
           <KioskMode 
-            {...defaultProps} 
+            {...defaultProps} devices={devicesWithMobile} 
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />

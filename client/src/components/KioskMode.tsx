@@ -94,11 +94,42 @@ export function KioskMode({
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
   const [qrDismissed, setQrDismissed] = useState(false);  // Allow dismissing QR screen without mobile scan
+  
+  // Queued display content: holds content that arrived while QR code had priority
+  // Will be shown once QR is resolved (mobile joins or user dismisses)
+  const [queuedDisplayContent, setQueuedDisplayContent] = useState<DisplayContent | null>(null);
 
   // Derive TTS enabled state from session settings (default to false if not set)
   const ttsEnabled = sessionTtsSettings?.enabled ?? false;
   
   const isMobile = useIsMobile();
+  
+  // Compute mobile device count early so we can determine QR priority for display queueing
+  const mobileDeviceCount = devices.filter(d => d.mode === 'mobile').length;
+  
+  // QR code has priority when no mobile device has joined yet AND user hasn't dismissed it
+  // When QR has priority, incoming display content is queued instead of shown immediately
+  const qrHasPriority = mobileDeviceCount === 0 && !qrDismissed;
+
+  // Determine effective display content:
+  // - If QR has priority, don't show incoming displayContent (it's queued via useEffect below)
+  // - Otherwise, show the latest displayContent from props, or queued content if no new content
+  const effectiveDisplayContent = qrHasPriority ? null : (displayContent ?? queuedDisplayContent);
+
+  // Queue display content when QR has priority
+  useEffect(() => {
+    if (qrHasPriority && displayContent) {
+      // QR has priority - queue the display content for later
+      setQueuedDisplayContent(displayContent);
+    }
+  }, [qrHasPriority, displayContent]);
+
+  // Clear queued content once it's been superseded by new displayContent
+  useEffect(() => {
+    if (!qrHasPriority && displayContent && queuedDisplayContent) {
+      setQueuedDisplayContent(null);
+    }
+  }, [qrHasPriority, displayContent, queuedDisplayContent]);
   
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -200,6 +231,7 @@ export function KioskMode({
   });
 
   // Image load handlers for display feedback
+  // Note: These reference effectiveDisplayContent since that's what's actually rendered
   const handleImageLoad = useCallback(() => {
     // Clear timeout since image loaded successfully
     if (imageTimeoutRef.current) {
@@ -209,7 +241,7 @@ export function KioskMode({
     setImageLoadError(null);
     
     // Only send if this is a new display (prevent duplicates)
-    const currentUrl = displayContent?.content;
+    const currentUrl = effectiveDisplayContent?.content;
     if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
       lastReportedDisplayRef.current = currentUrl;
       onDisplayResult?.({
@@ -217,7 +249,7 @@ export function KioskMode({
         displayType: 'image',
       });
     }
-  }, [displayContent?.content, onDisplayResult]);
+  }, [effectiveDisplayContent?.content, onDisplayResult]);
 
   const handleImageError = useCallback(() => {
     // Clear timeout since we're already reporting an error
@@ -228,7 +260,7 @@ export function KioskMode({
     setImageLoadError('load-failed');
     
     // Only send if this is a new display (prevent duplicates)
-    const currentUrl = displayContent?.content;
+    const currentUrl = effectiveDisplayContent?.content;
     if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
       lastReportedDisplayRef.current = currentUrl;
       onDisplayResult?.({
@@ -237,12 +269,12 @@ export function KioskMode({
         displayType: 'image',
       });
     }
-  }, [displayContent?.content, onDisplayResult]);
+  }, [effectiveDisplayContent?.content, onDisplayResult]);
 
   // Set up timeout for slow-loading images
   useEffect(() => {
-    // Only set timeout for image content
-    if (displayContent?.type === 'image' && displayContent.content) {
+    // Only set timeout for image content that's actually being displayed
+    if (effectiveDisplayContent?.type === 'image' && effectiveDisplayContent.content) {
       // Clear any existing timeout
       if (imageTimeoutRef.current) {
         clearTimeout(imageTimeoutRef.current);
@@ -257,7 +289,7 @@ export function KioskMode({
       
       // Set timeout for image load
       imageTimeoutRef.current = setTimeout(() => {
-        const currentUrl = displayContent.content;
+        const currentUrl = effectiveDisplayContent.content;
         // Only report timeout if we haven't already reported for this URL
         if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
           lastReportedDisplayRef.current = currentUrl;
@@ -285,7 +317,7 @@ export function KioskMode({
         imageTimeoutRef.current = null;
       }
     };
-  }, [displayContent?.type, displayContent?.content, onDisplayResult]);
+  }, [effectiveDisplayContent?.type, effectiveDisplayContent?.content, onDisplayResult]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.
@@ -637,13 +669,13 @@ export function KioskMode({
 
       {/* Right side - Display area */}
       <main className={`kiosk-display ${drawerOpen ? '' : 'full-width'}`}>
-        {displayContent ? (
-          displayContent.type === 'image' ? (
+        {effectiveDisplayContent ? (
+          effectiveDisplayContent.type === 'image' ? (
             <div className="display-image">
-              {displayContent.title && <h1 className="display-title">{displayContent.title}</h1>}
+              {effectiveDisplayContent.title && <h1 className="display-title">{effectiveDisplayContent.title}</h1>}
               <img 
-                src={displayContent.content} 
-                alt={displayContent.title || 'Display'} 
+                src={effectiveDisplayContent.content} 
+                alt={effectiveDisplayContent.title || 'Display'} 
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
@@ -653,10 +685,10 @@ export function KioskMode({
                 </div>
               )}
             </div>
-          ) : displayContent.type === 'markdown' ? (
+          ) : effectiveDisplayContent.type === 'markdown' ? (
             <div className="display-markdown">
-              {displayContent.title && <h1 className="display-title">{displayContent.title}</h1>}
-              <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(displayContent.content || '') }} />
+              {effectiveDisplayContent.title && <h1 className="display-title">{effectiveDisplayContent.title}</h1>}
+              <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(effectiveDisplayContent.content || '') }} />
             </div>
           ) : null
         ) : mobileDevices.length > 0 || qrDismissed ? (
