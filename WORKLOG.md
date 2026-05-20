@@ -659,3 +659,30 @@ Automation (v2) has been disabled to prevent unnecessary runs.
 | Review/Merge | 0 | 2 | 2 |
 
 ---
+### 2026-05-20 11:34 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `033ea38` | expansion | Issue #245 - duplicate device added | running |
+| `8530b64` | expansion | Issue #246 - QR code dismissed | running |
+| `e28bbe1` | expansion | Issue #247 - agent event layout | running |
+
+⏳ **Waiting** - All 3 expansion workers already active (spawned at 11:32 UTC)
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (stuck)
+- Issues being expanded: #245, #246, #247
+- On-hold issues: #208, #210, #239
+- Ready issues: 0 (pending expansion)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 3 | 1 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review/Merge | 0 | 2 | 2 |
+
+**Action Taken:** None - expansion workers already running, no additional action needed.
+
+---
