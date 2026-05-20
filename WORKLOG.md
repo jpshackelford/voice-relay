@@ -792,3 +792,31 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-99
   -H "Content-Type: application/json" \
   -d '{"enabled": true}'
 ```
+
+---
+### 2026-05-20 17:15 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Three consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- Open PRs: 0
+- Open issues: 3 (all have `on-hold` label - not actionable)
+  - #239 - Flaky AI integration tests (on-hold)
+  - #210 - Categorize deployment failures (on-hold)
+  - #208 - Add circuit breaker (on-hold)
+- All slots empty: expansion (0/4), implementation (0/1), review (0/2)
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+---
