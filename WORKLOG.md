@@ -76,6 +76,18 @@ Preserve deviceId in separate localStorage key when clearing expired token, upda
 
 ---
 
+### 2026-05-20 11:32 UTC - Expansion Worker
+
+✅ **Expanded Issue #246**
+
+- Issue: [bug: QR code dismissed without user interaction](https://github.com/jpshackelford/voice-relay/issues/246)
+- Type: Bug
+- Status: Ready for implementation
+- Root cause: Display area rendering logic in `KioskMode.tsx` prioritizes `displayContent` over QR code state. When AI auto-connects and sends greeting display message, it overwrites QR code before user can scan it.
+- Approach: Queue display content client-side when QR code is in initial state (no mobile device joined AND not dismissed), then show queued content when QR is resolved
+
+---
+
 ### 2026-05-19 05:31 UTC - Orchestrator
 
 **Active Workers:**
