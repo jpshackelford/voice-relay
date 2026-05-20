@@ -835,3 +835,42 @@ No ready issues to implement, no issues needing expansion, no PRs to review or m
 | Implementation | 1 | 0 | 1 |
 | Review/Merge | 0 | 2 | 2 |
 
+---
+### 2026-05-20 01:43 UTC - Implementation Worker
+
+✅ **PR #244 Created - Display agent events inline with conversation messages**
+
+- **PR:** [#244 - feat(client): display agent events inline with conversation messages](https://github.com/jpshackelford/voice-relay/pull/244)
+- **Issue:** [#242](https://github.com/jpshackelford/voice-relay/issues/242) (Fixes #242)
+- **Status:** CI passing ✅, Ready for review
+
+**Implementation Summary:**
+Implemented the Unified Timeline approach from Issue #242, displaying agent events inline with conversation messages instead of in a separate dropdown panel.
+
+**New Components:**
+- `AgentEventCard.tsx` - Collapsible card for agent events (purple theme, like OpenHands GenericEventMessage)
+- `SuccessIndicator.tsx` - Status icons (✓ success, ⏱ timeout)
+
+**Changes:**
+- Added `TimelineEntry` type to merge utterances and agent events
+- Updated `KioskMode.tsx` to render unified timeline chronologically
+- Added toggle button to show/hide agent events within message flow
+- Purple left border (#9b59b6) and subtle background for agent events
+
+**Test Coverage:**
+- 28 new tests (SuccessIndicator: 12, AgentEventCard: 16)
+- All 469 client tests pass
+- All 681 server tests pass
+
+**Acceptance Criteria Met:**
+- ✅ Agent events inline with messages, chronologically ordered
+- ✅ Collapsible cards with purple theme
+- ✅ Success indicator shows ✓/⏱ based on exit code
+- ✅ Title uses `summary` field when available
+- ✅ Toggle button for showing/hiding agent events
+- ✅ Existing message styling preserved (user=green, AI=blue)
+
+**Note:** Agent thoughts (`reasoning_content`) display was not implemented - this requires server-side changes to include reasoning content in `AgentAction` events.
+
+**PR is ready for review.**
+
