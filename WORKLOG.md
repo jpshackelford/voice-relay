@@ -1,4 +1,32 @@
 ---
+### 2026-05-20 14:06 UTC - Merge Worker (Conversation 487881e)
+
+**Merged: PR #251 - fix(client): display summary content in AgentEventCard**
+
+- PR: [#251 - fix(client): display summary content instead of raw event metadata in AgentEventCard](https://github.com/jpshackelford/voice-relay/pull/251)
+- Issue: [#247 - Fix agent event card rendering to match OpenHands implementation](https://github.com/jpshackelford/voice-relay/issues/247) → **CLOSED**
+- Status: ✅ **Merged to main** (squash merge)
+
+**Merge Details:**
+- CI: All 5 checks passed (build, E2E, server tests, conventional commits, PR review)
+- Review: Automated review marked "Worth merging" with LOW risk assessment
+- No database migrations in this PR (client-side UI fix only)
+
+**What Was Merged (Phase 1 - UI-only fix):**
+- Replaced misleading expanded content (raw event kind like "CmdRunAction", timestamps) with summary field in styled code block
+- Only show expanded details section when summary exists
+- Removed unused `formatTimestamp` function (18 lines)
+- Updated CSS with new `.agent-event-content` styling
+- Added comprehensive test coverage including edge cases
+
+**Production Impact:**
+- Auto-deploys to vr.chorecraft.net
+- No migration steps needed
+- Improves UX by removing confusing implementation details from agent event cards
+
+**Future Work (Phase 2):** Server-side changes to extract command/path/content from V1Event for full content rendering per event type (would need new issue if desired).
+
+---
 ### 2026-05-20 13:52 UTC - Implementation Worker (Conversation 00e9274)
 
 **Completed: Issue #247 - Fix agent event card rendering (Phase 1)**
