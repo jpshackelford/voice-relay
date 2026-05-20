@@ -94,6 +94,8 @@ export function KioskMode({
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
   const [qrDismissed, setQrDismissed] = useState(false);  // Allow dismissing QR screen without mobile scan
+  // Queue display content when QR has priority (fixes #246)
+  const [queuedDisplayContent, setQueuedDisplayContent] = useState<DisplayContent | null>(null);
 
   // Derive TTS enabled state from session settings (default to false if not set)
   const ttsEnabled = sessionTtsSettings?.enabled ?? false;
@@ -200,6 +202,8 @@ export function KioskMode({
   });
 
   // Image load handlers for display feedback
+  // Note: These use displayContent (the server-sent content) for tracking/reporting,
+  // since handlers are only called when effectiveDisplayContent is actually rendered
   const handleImageLoad = useCallback(() => {
     // Clear timeout since image loaded successfully
     if (imageTimeoutRef.current) {
@@ -239,10 +243,17 @@ export function KioskMode({
     }
   }, [displayContent?.content, onDisplayResult]);
 
-  // Set up timeout for slow-loading images
+  // Compute effective display content for image timeout effect
+  // This needs to be computed early since it's used in the timeout effect
+  // Note: qrHasPriority is computed later; we recalculate it here to avoid forward reference
+  const mobileDevicesForEffect = devices.filter(d => d.mode === 'mobile');
+  const qrHasPriorityForEffect = mobileDevicesForEffect.length === 0 && !qrDismissed;
+  const effectiveDisplayForTimeout = qrHasPriorityForEffect ? null : (displayContent ?? queuedDisplayContent);
+
+  // Set up timeout for slow-loading images (only when content is actually displayed)
   useEffect(() => {
-    // Only set timeout for image content
-    if (displayContent?.type === 'image' && displayContent.content) {
+    // Only set timeout for image content that's actually being displayed
+    if (effectiveDisplayForTimeout?.type === 'image' && effectiveDisplayForTimeout.content) {
       // Clear any existing timeout
       if (imageTimeoutRef.current) {
         clearTimeout(imageTimeoutRef.current);
@@ -256,11 +267,11 @@ export function KioskMode({
       lastReportedDisplayRef.current = null;
       
       // Set timeout for image load
+      const contentUrl = effectiveDisplayForTimeout.content;
       imageTimeoutRef.current = setTimeout(() => {
-        const currentUrl = displayContent.content;
         // Only report timeout if we haven't already reported for this URL
-        if (currentUrl && lastReportedDisplayRef.current !== currentUrl) {
-          lastReportedDisplayRef.current = currentUrl;
+        if (contentUrl && lastReportedDisplayRef.current !== contentUrl) {
+          lastReportedDisplayRef.current = contentUrl;
           setImageLoadError('timeout');
           onDisplayResult?.({
             success: false,
@@ -285,7 +296,7 @@ export function KioskMode({
         imageTimeoutRef.current = null;
       }
     };
-  }, [displayContent?.type, displayContent?.content, onDisplayResult]);
+  }, [effectiveDisplayForTimeout?.type, effectiveDisplayForTimeout?.content, onDisplayResult]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.
@@ -311,6 +322,28 @@ export function KioskMode({
       }
     };
   }, []);
+
+  // Queue display content when QR has priority (fixes #246)
+  // When QR is showing and new display content arrives, queue it for later
+  // When QR is dismissed or mobile joins, clear the queue (displayContent takes precedence)
+  useEffect(() => {
+    // Only queue when QR has priority and there's new content to queue
+    const noMobileDevices = devices.filter(d => d.mode === 'mobile').length === 0;
+    const hasQrPriority = noMobileDevices && !qrDismissed;
+    
+    if (hasQrPriority && displayContent) {
+      // Queue the incoming display content
+      setQueuedDisplayContent(displayContent);
+    } else if (!hasQrPriority && queuedDisplayContent && !displayContent) {
+      // QR priority ended and we have queued content, but no new displayContent
+      // The effectiveDisplayContent logic will use queuedDisplayContent
+      // Clear it once it's been "shown" (after a delay to let render happen)
+      // We don't clear immediately to avoid race conditions
+    } else if (displayContent) {
+      // New displayContent arrived when QR doesn't have priority - clear queue
+      setQueuedDisplayContent(null);
+    }
+  }, [displayContent, devices, qrDismissed, queuedDisplayContent]);
 
   // Sort utterances by received time
   const sortedUtterances = [...utterances.values()].sort(
@@ -356,6 +389,14 @@ export function KioskMode({
   // useWebSocket preserves devices during reconnection, so we can simply filter here
   // without needing additional state preservation logic in KioskMode
   const mobileDevices = devices.filter(d => d.mode === 'mobile');
+
+  // QR has priority when no mobile device has joined AND user hasn't dismissed QR screen
+  // When QR has priority, incoming displayContent is queued rather than shown immediately (fixes #246)
+  const qrHasPriority = mobileDevices.length === 0 && !qrDismissed;
+
+  // Effective display content: show queued content only when QR no longer has priority
+  // This prevents AI greeting messages from dismissing the QR code before user can scan
+  const effectiveDisplayContent = qrHasPriority ? null : (displayContent ?? queuedDisplayContent);
 
   // Validate selected device exists (gracefully fall back to 'all' if device disconnected)
   const selectedDeviceId = sessionTtsSettings?.outputDeviceId ?? null;
@@ -637,13 +678,13 @@ export function KioskMode({
 
       {/* Right side - Display area */}
       <main className={`kiosk-display ${drawerOpen ? '' : 'full-width'}`}>
-        {displayContent ? (
-          displayContent.type === 'image' ? (
+        {effectiveDisplayContent ? (
+          effectiveDisplayContent.type === 'image' ? (
             <div className="display-image">
-              {displayContent.title && <h1 className="display-title">{displayContent.title}</h1>}
+              {effectiveDisplayContent.title && <h1 className="display-title">{effectiveDisplayContent.title}</h1>}
               <img 
-                src={displayContent.content} 
-                alt={displayContent.title || 'Display'} 
+                src={effectiveDisplayContent.content} 
+                alt={effectiveDisplayContent.title || 'Display'} 
                 onLoad={handleImageLoad}
                 onError={handleImageError}
               />
@@ -653,10 +694,10 @@ export function KioskMode({
                 </div>
               )}
             </div>
-          ) : displayContent.type === 'markdown' ? (
+          ) : effectiveDisplayContent.type === 'markdown' ? (
             <div className="display-markdown">
-              {displayContent.title && <h1 className="display-title">{displayContent.title}</h1>}
-              <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(displayContent.content || '') }} />
+              {effectiveDisplayContent.title && <h1 className="display-title">{effectiveDisplayContent.title}</h1>}
+              <div className="markdown-content" dangerouslySetInnerHTML={{ __html: parseMarkdown(effectiveDisplayContent.content || '') }} />
             </div>
           ) : null
         ) : mobileDevices.length > 0 || qrDismissed ? (

@@ -472,7 +472,8 @@ describe('KioskMode', () => {
     });
 
     describe('displayContent priority', () => {
-      it('shows displayContent over large QR when no mobile devices', async () => {
+      // Issue #246: QR code should NOT be dismissed by displayContent when no mobile devices
+      it('queues displayContent when no mobile devices (QR has priority)', async () => {
         const displayContent: DisplayContent = {
           type: 'markdown',
           content: '# Hello World',
@@ -482,7 +483,57 @@ describe('KioskMode', () => {
           render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
         });
         
-        // Should show custom content, not QR
+        // Should still show QR, not displayContent (fix for issue #246)
+        expect(screen.getByText('Join this session')).toBeDefined();
+        expect(screen.queryByText('Custom Display')).toBeNull();
+      });
+
+      it('shows queued displayContent after QR is dismissed', async () => {
+        const displayContent: DisplayContent = {
+          type: 'markdown',
+          content: '# Hello World',
+          title: 'Custom Display',
+        };
+        await act(async () => {
+          render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+        });
+        
+        // Initially should show QR (displayContent is queued)
+        expect(screen.getByText('Join this session')).toBeDefined();
+        expect(screen.queryByText('Custom Display')).toBeNull();
+        
+        // Click Skip to dismiss QR
+        const skipButton = screen.getByRole('button', { name: /skip qr code screen/i });
+        await act(async () => {
+          fireEvent.click(skipButton);
+        });
+        
+        // Now should show the previously queued displayContent
+        expect(screen.getByText('Custom Display')).toBeDefined();
+        expect(screen.queryByText('Join this session')).toBeNull();
+      });
+
+      it('shows queued displayContent when mobile device joins', async () => {
+        const displayContent: DisplayContent = {
+          type: 'markdown',
+          content: '# Hello World',
+          title: 'Custom Display',
+        };
+        const { rerender } = await act(async () => {
+          return render(<KioskMode {...defaultProps} devices={[]} displayContent={displayContent} />);
+        });
+        
+        // Initially should show QR (displayContent is queued)
+        expect(screen.getByText('Join this session')).toBeDefined();
+        expect(screen.queryByText('Custom Display')).toBeNull();
+        
+        // Mobile device joins
+        const devices = [createMobileDevice('mobile-1')];
+        await act(async () => {
+          rerender(<KioskMode {...defaultProps} devices={devices} displayContent={displayContent} />);
+        });
+        
+        // Now should show the displayContent
         expect(screen.getByText('Custom Display')).toBeDefined();
         expect(screen.queryByText('Join this session')).toBeNull();
       });
@@ -670,6 +721,10 @@ describe('KioskMode', () => {
   });
 
   describe('image display feedback', () => {
+    // Image tests need a mobile device present so QR doesn't have priority
+    // (QR has priority when no mobile devices AND qrDismissed is false)
+    const mobileDeviceForTests = [createMobileDevice('mobile-1')];
+    
     beforeEach(() => {
       setWindowWidth(1024); // Desktop width
       vi.useFakeTimers();
@@ -691,6 +746,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -723,6 +779,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -756,6 +813,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -786,6 +844,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -826,6 +885,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
           />
         );
@@ -850,6 +910,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
           />
         );
@@ -874,6 +935,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -905,6 +967,7 @@ describe('KioskMode', () => {
         render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             // onDisplayResult not provided
           />
@@ -932,6 +995,7 @@ describe('KioskMode', () => {
         return render(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
@@ -954,6 +1018,7 @@ describe('KioskMode', () => {
         rerender(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={{ type: 'markdown', content: '# Test' }}
             onDisplayResult={onDisplayResult}
           />
@@ -965,6 +1030,7 @@ describe('KioskMode', () => {
         rerender(
           <KioskMode 
             {...defaultProps} 
+            devices={mobileDeviceForTests}
             displayContent={displayContent}
             onDisplayResult={onDisplayResult}
           />
