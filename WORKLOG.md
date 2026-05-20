@@ -1,4 +1,38 @@
 ---
+### 2026-05-20 13:30 UTC - Implementation Worker (Conversation c7b622c)
+
+**Completed: Issue #245 - bug: duplicate device added**
+
+- Issue: [#245 - bug: duplicate device added](https://github.com/jpshackelford/voice-relay/issues/245)
+- PR: [#250 - fix(client): preserve deviceId when token expires to prevent duplicates](https://github.com/jpshackelford/voice-relay/pull/250)
+- Status: Ready for review (CI passing: all 4 checks ✓)
+
+**Implementation Summary:**
+When a device token expires and `clearDeviceToken()` was called, it was also deleting the deviceId, causing a new device to be created on reconnection and resulting in duplicate devices in the workspace.
+
+**Changes Made:**
+1. Modified `clearDeviceToken()` to save deviceId to `voice_relay_device_id_{workspaceId}` before clearing token data
+2. Added `getPreservedDeviceId()` to retrieve preserved deviceId  
+3. Added `clearPreservedDeviceId()` for explicit device deletion (prevents orphaned IDs)
+4. Updated `getOrCreateDeviceId()` to check preserved deviceId before generating new UUID
+
+**Order of Precedence for Device ID:**
+1. Session storage (current tab)
+2. Stored device token (localStorage)
+3. Preserved device ID (from previous token clear) ← NEW
+4. Generate new UUID
+
+**Testing:**
+- Added 9 new tests for deviceId preservation behavior
+- All 483 client tests passing
+- All CI checks passing (build, E2E, server tests, conventional commits)
+
+**Files Modified:**
+- `client/src/utils/deviceToken.ts` - Core fix: preserve deviceId on token clear
+- `client/src/hooks/useDeviceRestoration.ts` - Check preserved deviceId before generating new
+- `client/src/utils/deviceToken.test.ts` - 9 new tests
+
+---
 ### 2026-05-20 12:37 UTC - Review Worker (Conversation 83eb10e)
 
 **Completed: PR #248 Review Feedback**
