@@ -353,3 +353,26 @@ PR #248 and PR #249 both fix issue #246. Review worker has been directed to addr
 - Priority: low
 
 ---
+
+---
+### 2026-05-20 14:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `487881e` | merge | PR #251 - AgentEventCard fix | **NEW** |
+
+**Spawned: Merge Worker**
+- PR: [#251 - fix(client): display summary content in AgentEventCard](https://github.com/jpshackelford/voice-relay/pull/251)
+- Issue: [#247 - Fix agent event card rendering](https://github.com/jpshackelford/voice-relay/issues/247)
+- Conversation: [`487881e`](https://app.all-hands.dev/conversations/487881ee11aa436394a059428d5a7091)
+
+**Current State:**
+- PR #251: CI green ✅, positive automated review ✅, ready to merge
+- PR #221: Stuck (needs-human label) - skipped
+- No other ready issues (remaining issues are on-hold)
+
+**Action Taken:**
+🚀 **Spawned merge worker** for PR #251
+- All checks passing, positive review received
+- Will squash-merge and close Issue #247
