@@ -289,3 +289,32 @@ export interface Utterance {
   partial: boolean;
   receivedAt: Date;
 }
+
+/**
+ * Unified timeline entry for displaying utterances and agent events inline.
+ * Used to chronologically interleave messages with agent actions in the conversation view.
+ */
+export type TimelineEntry =
+  | { type: 'utterance'; data: Utterance }
+  | { type: 'agent-event'; data: AgentAction };
+
+/**
+ * Determine success/timeout/error status from agent event.
+ * Based on OpenHands' get-observation-result.ts logic.
+ */
+export type ObservationStatus = 'success' | 'timeout' | 'error' | 'pending';
+
+/**
+ * Extended agent action with optional exit_code for observations.
+ * This allows determining success/failure status for command outputs.
+ */
+export interface ExtendedAgentAction extends AgentAction {
+  /** Exit code from terminal/command observations (0=success, -1=timeout) */
+  exitCode?: number;
+  /** Whether this is an observation event (has result) vs action event (initiated) */
+  isObservation?: boolean;
+  /** Whether the observation indicates an error */
+  isError?: boolean;
+  /** Agent's reasoning/thinking content to show as a chat bubble */
+  reasoning?: string;
+}

@@ -1003,6 +1003,159 @@ header {
   }
 }
 
+/* ========================================
+   Agent Events Toggle & Inline Cards
+   (Unified Timeline - Issue #242)
+   ======================================== */
+
+.kiosk-agent-toggle {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #222;
+}
+
+.agent-events-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #888;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-events-toggle:hover {
+  background: #222;
+  color: #aaa;
+  border-color: #444;
+}
+
+.agent-events-toggle.active {
+  background: rgba(155, 89, 182, 0.15);
+  border-color: #9b59b6;
+  color: #c39bd3;
+}
+
+/* Agent Event Card - Inline with messages (purple theme) */
+.agent-event-card {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(155, 89, 182, 0.08);
+  border-left: 3px solid #9b59b6;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.agent-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.agent-event-header:hover {
+  opacity: 0.85;
+}
+
+.agent-event-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-event-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.agent-event-summary {
+  color: #c39bd3;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-event-toggle {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.65rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.agent-event-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+/* Success Indicator */
+.success-indicator {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.success-indicator.success {
+  color: #27ae60;
+}
+
+.success-indicator.timeout {
+  color: #f39c12;
+}
+
+/* Agent Event Details (expanded) */
+.agent-event-details {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(155, 89, 182, 0.2);
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.agent-event-kind {
+  font-family: monospace;
+  color: #9b59b6;
+  margin-bottom: 0.25rem;
+}
+
+.agent-event-timestamp {
+  color: #666;
+}
+
+/* Mobile responsive styles for agent event cards */
+@media (max-width: 768px) {
+  .kiosk-agent-toggle {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .agent-events-toggle {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  
+  .agent-event-card {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .agent-event-summary {
+    font-size: 0.75rem;
+  }
+}
+
 .kiosk-messages {
   flex: 1;
   min-height: 0; /* Required for flex child to shrink and scroll */

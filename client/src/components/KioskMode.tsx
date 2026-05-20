@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateUUID } from '../utils/uuid';
 import { QRCodeDisplay } from './QRCode';
-import { getActionIcon } from '../hooks/useAgentActions';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction } from '../types';
+import { AgentEventCard } from './AgentEventCard';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
 
 // Configure marked for GitHub Flavored Markdown with line breaks
@@ -317,6 +317,40 @@ export function KioskMode({
     (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
   );
 
+  // Create unified timeline by merging utterances and agent events
+  const timeline: TimelineEntry[] = useMemo(() => {
+    const entries: TimelineEntry[] = [];
+    
+    // Add utterances
+    for (const utterance of utterances.values()) {
+      entries.push({
+        type: 'utterance',
+        data: utterance,
+      });
+    }
+    
+    // Add agent events (if shown)
+    if (showAgentActions) {
+      for (const action of agentActions) {
+        entries.push({
+          type: 'agent-event',
+          data: action,
+        });
+      }
+    }
+    
+    // Sort by timestamp
+    return entries.sort((a, b) => {
+      const timeA = a.type === 'utterance' 
+        ? a.data.receivedAt.getTime() 
+        : new Date(a.data.timestamp).getTime();
+      const timeB = b.type === 'utterance'
+        ? b.data.receivedAt.getTime()
+        : new Date(b.data.timestamp).getTime();
+      return timeA - timeB;
+    });
+  }, [utterances, agentActions, showAgentActions]);
+
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
   // useWebSocket preserves devices during reconnection, so we can simply filter here
   // without needing additional state preservation logic in KioskMode
@@ -487,54 +521,52 @@ export function KioskMode({
           </div>
         </div>
 
-        {/* Agent Actions Panel */}
-        <div className="kiosk-agent-actions">
+        {/* Agent Events Toggle - Shows/hides agent events inline with messages */}
+        <div className="kiosk-agent-toggle">
           <button
-            className={`agent-actions-toggle ${showAgentActions ? 'active' : ''}`}
+            className={`agent-events-toggle ${showAgentActions ? 'active' : ''}`}
             onClick={onToggleAgentActions}
-            title={showAgentActions ? 'Hide agent actions' : 'Show agent actions'}
+            title={showAgentActions ? 'Hide agent events' : 'Show agent events inline'}
           >
-            🔍 Agent Actions
+            {showAgentActions ? '🔍 Hide Actions' : '🔍 Show Actions'}
             {!showAgentActions && agentActions.length > 0 && (
               <span className="action-badge">{agentActions.length}</span>
             )}
           </button>
-          {showAgentActions && (
-            <div className="agent-actions-list">
-              {agentActions.length === 0 ? (
-                <div className="no-actions">No agent actions yet</div>
-              ) : (
-                agentActions.map((action) => (
-                  <div key={action.id} className="agent-action">
-                    <span className="action-icon">{getActionIcon(action.kind)}</span>
-                    <span className="action-summary">{action.summary}</span>
-                  </div>
-                ))
-              )}
-              <div ref={actionsEndRef} />
-            </div>
-          )}
         </div>
 
+        {/* Unified Timeline - Messages and agent events interleaved */}
         <div className="kiosk-messages">
-          {sortedUtterances.length === 0 ? (
+          {timeline.length === 0 ? (
             <div className="no-messages">No messages yet</div>
           ) : (
-            sortedUtterances.map((utterance) => {
-              const isOwnMessage = utterance.senderId === deviceId;
-              return (
-                <div 
-                  key={utterance.id} 
-                  className={`kiosk-message ${utterance.partial ? 'partial' : 'final'} ${isOwnMessage ? 'own-message' : ''}`}
-                >
-                  <span className="sender">{isOwnMessage ? 'You' : utterance.senderName}:</span>
-                  <span className="text">{utterance.text}</span>
-                  {utterance.partial && <span className="typing-indicator">...</span>}
-                </div>
-              );
+            timeline.map((entry) => {
+              if (entry.type === 'utterance') {
+                const utterance = entry.data;
+                const isOwnMessage = utterance.senderId === deviceId;
+                return (
+                  <div 
+                    key={utterance.id} 
+                    className={`kiosk-message ${utterance.partial ? 'partial' : 'final'} ${isOwnMessage ? 'own-message' : ''}`}
+                  >
+                    <span className="sender">{isOwnMessage ? 'You' : utterance.senderName}:</span>
+                    <span className="text">{utterance.text}</span>
+                    {utterance.partial && <span className="typing-indicator">...</span>}
+                  </div>
+                );
+              } else {
+                // Agent event - render as collapsible card
+                return (
+                  <AgentEventCard 
+                    key={entry.data.id} 
+                    action={entry.data} 
+                  />
+                );
+              }
             })
           )}
           <div ref={messagesEndRef} />
+          <div ref={actionsEndRef} />
         </div>
 
         <div className="kiosk-input-area">
