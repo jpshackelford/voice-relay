@@ -43,17 +43,15 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === 'Enter' && setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={expanded ? 'Collapse details' : 'Expand details'}
       >
         <div className="agent-event-title">
           <span className="agent-event-icon">{icon}</span>
           <span className="agent-event-summary">{title}</span>
-          <button 
-            className="agent-event-toggle"
-            aria-expanded={expanded}
-            aria-label={expanded ? 'Collapse details' : 'Expand details'}
-          >
+          <span className="agent-event-toggle" aria-hidden="true">
             {expanded ? '▲' : '▼'}
-          </button>
+          </span>
         </div>
         <div className="agent-event-status">
           {isObservation && <SuccessIndicator status={status} />}
@@ -74,18 +72,10 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
 
 /**
  * Check if the event kind represents an observation (result) vs action (initiated).
+ * Any kind containing 'Observation' is treated as an observation.
  */
 function isObservationKind(kind: string): boolean {
-  const observationKinds = [
-    'CmdOutputObservation',
-    'TerminalObservation',
-    'FileReadObservation',
-    'FileWriteObservation',
-    'BrowseURLObservation',
-    'BrowseInteractiveObservation',
-    'ObservationEvent',
-  ];
-  return observationKinds.some(k => kind.includes(k) || kind.includes('Observation'));
+  return kind.includes('Observation');
 }
 
 /**

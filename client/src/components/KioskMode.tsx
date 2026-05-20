@@ -319,36 +319,31 @@ export function KioskMode({
 
   // Create unified timeline by merging utterances and agent events
   const timeline: TimelineEntry[] = useMemo(() => {
-    const entries: TimelineEntry[] = [];
+    // Pre-compute timestamps to avoid creating Date objects on every sort comparison
+    const entriesWithTime: Array<{ entry: TimelineEntry; time: number }> = [];
     
-    // Add utterances
+    // Add utterances with pre-computed timestamps
     for (const utterance of utterances.values()) {
-      entries.push({
-        type: 'utterance',
-        data: utterance,
+      entriesWithTime.push({
+        entry: { type: 'utterance', data: utterance },
+        time: utterance.receivedAt.getTime(),
       });
     }
     
-    // Add agent events (if shown)
+    // Add agent events with pre-computed timestamps (if shown)
     if (showAgentActions) {
       for (const action of agentActions) {
-        entries.push({
-          type: 'agent-event',
-          data: action,
+        entriesWithTime.push({
+          entry: { type: 'agent-event', data: action },
+          time: new Date(action.timestamp).getTime(),
         });
       }
     }
     
-    // Sort by timestamp
-    return entries.sort((a, b) => {
-      const timeA = a.type === 'utterance' 
-        ? a.data.receivedAt.getTime() 
-        : new Date(a.data.timestamp).getTime();
-      const timeB = b.type === 'utterance'
-        ? b.data.receivedAt.getTime()
-        : new Date(b.data.timestamp).getTime();
-      return timeA - timeB;
-    });
+    // Sort by pre-computed timestamps, then extract entries
+    return entriesWithTime
+      .sort((a, b) => a.time - b.time)
+      .map(({ entry }) => entry);
   }, [utterances, agentActions, showAgentActions]);
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
