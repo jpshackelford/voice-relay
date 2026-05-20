@@ -102,6 +102,10 @@ export function KioskMode({
   
   const isMobile = useIsMobile();
   
+  // Centralize mobileDevices and qrHasPriority calculation (used in multiple places)
+  const mobileDevices = useMemo(() => devices.filter(d => d.mode === 'mobile'), [devices]);
+  const qrHasPriority = useMemo(() => mobileDevices.length === 0 && !qrDismissed, [mobileDevices.length, qrDismissed]);
+  
   const utteranceIdRef = useRef(generateUUID());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -244,11 +248,7 @@ export function KioskMode({
   }, [displayContent?.content, onDisplayResult]);
 
   // Compute effective display content for image timeout effect
-  // This needs to be computed early since it's used in the timeout effect
-  // Note: qrHasPriority is computed later; we recalculate it here to avoid forward reference
-  const mobileDevicesForEffect = devices.filter(d => d.mode === 'mobile');
-  const qrHasPriorityForEffect = mobileDevicesForEffect.length === 0 && !qrDismissed;
-  const effectiveDisplayForTimeout = qrHasPriorityForEffect ? null : (displayContent ?? queuedDisplayContent);
+  const effectiveDisplayForTimeout = qrHasPriority ? null : (displayContent ?? queuedDisplayContent);
 
   // Set up timeout for slow-loading images (only when content is actually displayed)
   useEffect(() => {
@@ -324,26 +324,22 @@ export function KioskMode({
   }, []);
 
   // Queue display content when QR has priority (fixes #246)
-  // When QR is showing and new display content arrives, queue it for later
-  // When QR is dismissed or mobile joins, clear the queue (displayContent takes precedence)
+  // When QR is showing and new display content arrives, queue it for later.
+  // When new displayContent arrives without QR priority, clear the queue.
+  // Note: We intentionally don't clear queuedDisplayContent when QR priority ends - 
+  // effectiveDisplayContent will use it via the fallback (displayContent ?? queuedDisplayContent).
+  // This preserves queued content across the QR→content transition.
   useEffect(() => {
-    // Only queue when QR has priority and there's new content to queue
-    const noMobileDevices = devices.filter(d => d.mode === 'mobile').length === 0;
-    const hasQrPriority = noMobileDevices && !qrDismissed;
-    
-    if (hasQrPriority && displayContent) {
-      // Queue the incoming display content
+    if (qrHasPriority && displayContent) {
+      // Queue the incoming display content while QR is showing
       setQueuedDisplayContent(displayContent);
-    } else if (!hasQrPriority && queuedDisplayContent && !displayContent) {
-      // QR priority ended and we have queued content, but no new displayContent
-      // The effectiveDisplayContent logic will use queuedDisplayContent
-      // Clear it once it's been "shown" (after a delay to let render happen)
-      // We don't clear immediately to avoid race conditions
-    } else if (displayContent) {
+    } else if (!qrHasPriority && displayContent) {
       // New displayContent arrived when QR doesn't have priority - clear queue
       setQueuedDisplayContent(null);
     }
-  }, [displayContent, devices, qrDismissed, queuedDisplayContent]);
+    // When !qrHasPriority && !displayContent && queuedDisplayContent: 
+    // Intentionally preserve queue - effectiveDisplayContent will show it
+  }, [displayContent, qrHasPriority]);
 
   // Sort utterances by received time
   const sortedUtterances = [...utterances.values()].sort(
@@ -386,13 +382,6 @@ export function KioskMode({
     : timeline.filter(e => e.type === 'utterance');
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
-  // useWebSocket preserves devices during reconnection, so we can simply filter here
-  // without needing additional state preservation logic in KioskMode
-  const mobileDevices = devices.filter(d => d.mode === 'mobile');
-
-  // QR has priority when no mobile device has joined AND user hasn't dismissed QR screen
-  // When QR has priority, incoming displayContent is queued rather than shown immediately (fixes #246)
-  const qrHasPriority = mobileDevices.length === 0 && !qrDismissed;
 
   // Effective display content: show queued content only when QR no longer has priority
   // This prevents AI greeting messages from dismissing the QR code before user can scan
