@@ -25,6 +25,32 @@ The orchestrator will acknowledge with `[ACKNOWLEDGED]` once processed.
 
 ## Log
 
+### 2026-05-20 11:40 UTC - Expansion Worker
+
+✅ **Expanded Issue #247**
+
+- Issue: [bug: agent event layout does not follow design guidance](https://github.com/jpshackelford/voice-relay/issues/247)
+- Type: Bug
+- Status: Ready for implementation
+- Root cause: `AgentEventCard.tsx` expanded section displays raw event kind and timestamp instead of actual content (commands, output)
+
+**Technical Summary:**
+- Current expanded view shows: `action.kind` (e.g., "CmdRunAction") and formatted timestamp
+- Design guidance (issue #242) specifies: Show actual content - commands, file paths, output text
+- Quote from requirements: "We do not need to see event type, timestamps, etc. We need to be focused on the content of those events."
+- The `summary` field IS being generated correctly with good content on the server
+
+**Proposed Fix:**
+Phase 1 (UI-only): Remove kind/timestamp display, show summary in code block when expanded
+Phase 2 (full): Extend AgentAction type to carry command/path/content fields from server
+
+**Files to modify:**
+- `client/src/components/AgentEventCard.tsx` (lines 62-68)
+- `client/src/App.css` (`.agent-event-details` styling)
+- (Phase 2) `server/src/openhands.ts`, `server/src/types.ts`, `client/src/types.ts`
+
+---
+
 ### 2026-05-20 11:38 UTC - Expansion Worker
 
 ✅ **Expanded Issue #245**
