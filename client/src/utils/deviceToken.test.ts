@@ -10,6 +10,9 @@ import {
   getServerSetDeviceToken,
   parseDeviceCookieJson,
   migrateLegacyDeviceToken,
+  getPreservedDeviceId,
+  getPreservedDeviceIdKey,
+  clearPreservedDeviceId,
   // migrateServerSetDeviceCookie is tested via integration tests (Playwright)
   // as it requires cookie manipulation that jsdom doesn't fully support
 } from './deviceToken';
@@ -348,6 +351,147 @@ describe('deviceToken utilities', () => {
     it('handles clearing when nothing stored', () => {
       // Should not throw
       expect(() => clearDeviceToken('workspace-456')).not.toThrow();
+    });
+
+    it('preserves deviceId when clearing workspace-scoped token', () => {
+      storeDeviceToken({
+        deviceId: 'device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile',
+      });
+
+      clearDeviceToken('workspace-456');
+      
+      // Token should be cleared
+      expect(getStoredDeviceToken('workspace-456')).toBeNull();
+      // But deviceId should be preserved
+      expect(getPreservedDeviceId('workspace-456')).toBe('device-123');
+    });
+
+    it('preserves deviceId from legacy storage when clearing', () => {
+      // Legacy storage only (no workspace-scoped storage)
+      localStorage.setItem('voice_relay_device_token', JSON.stringify({
+        deviceId: 'legacy-device-123',
+        deviceToken: 'token-abc',
+        workspaceId: 'workspace-456',
+        name: 'My Phone',
+        mode: 'mobile',
+      }));
+
+      clearDeviceToken('workspace-456');
+      
+      // Legacy key should be cleared
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+      // But deviceId should be preserved
+      expect(getPreservedDeviceId('workspace-456')).toBe('legacy-device-123');
+    });
+
+    it('prefers workspace-scoped deviceId over legacy when both exist', () => {
+      // Workspace-scoped storage
+      storeDeviceToken({
+        deviceId: 'scoped-device-123',
+        deviceToken: 'token-scoped',
+        workspaceId: 'workspace-456',
+        name: 'Scoped Phone',
+        mode: 'mobile',
+      });
+      
+      // Legacy storage with same workspace
+      localStorage.setItem('voice_relay_device_token', JSON.stringify({
+        deviceId: 'legacy-device-999',
+        deviceToken: 'token-legacy',
+        workspaceId: 'workspace-456',
+        name: 'Legacy Phone',
+        mode: 'mobile',
+      }));
+
+      clearDeviceToken('workspace-456');
+      
+      // Workspace-scoped deviceId should be preserved (not legacy)
+      expect(getPreservedDeviceId('workspace-456')).toBe('scoped-device-123');
+    });
+
+    it('does not preserve deviceId when token is malformed', () => {
+      localStorage.setItem('voice_relay_device_token_workspace-456', 'invalid-json');
+
+      clearDeviceToken('workspace-456');
+      
+      // No deviceId should be preserved (malformed data)
+      expect(getPreservedDeviceId('workspace-456')).toBeNull();
+    });
+
+    it('preserves deviceId independently per workspace', () => {
+      storeDeviceToken({
+        deviceId: 'device-111',
+        deviceToken: 'token-aaa',
+        workspaceId: 'workspace-1',
+        name: 'Phone 1',
+        mode: 'mobile',
+      });
+      storeDeviceToken({
+        deviceId: 'device-222',
+        deviceToken: 'token-bbb',
+        workspaceId: 'workspace-2',
+        name: 'Phone 2',
+        mode: 'mobile',
+      });
+
+      clearDeviceToken('workspace-1');
+      
+      // workspace-1 deviceId should be preserved
+      expect(getPreservedDeviceId('workspace-1')).toBe('device-111');
+      // workspace-2 should still have full token (not cleared)
+      expect(getStoredDeviceToken('workspace-2')).not.toBeNull();
+      // workspace-2 should not have preserved deviceId (wasn't cleared)
+      expect(getPreservedDeviceId('workspace-2')).toBeNull();
+    });
+  });
+
+  describe('getPreservedDeviceIdKey', () => {
+    it('returns workspace-scoped key', () => {
+      const key = getPreservedDeviceIdKey('workspace-456');
+      expect(key).toBe('voice_relay_device_id_workspace-456');
+    });
+  });
+
+  describe('getPreservedDeviceId', () => {
+    it('returns stored preserved deviceId', () => {
+      localStorage.setItem('voice_relay_device_id_workspace-456', 'preserved-device-123');
+      
+      const result = getPreservedDeviceId('workspace-456');
+      expect(result).toBe('preserved-device-123');
+    });
+
+    it('returns null when no preserved deviceId exists', () => {
+      const result = getPreservedDeviceId('workspace-456');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('clearPreservedDeviceId', () => {
+    it('removes preserved deviceId for workspace', () => {
+      localStorage.setItem('voice_relay_device_id_workspace-456', 'preserved-device-123');
+      
+      clearPreservedDeviceId('workspace-456');
+      
+      expect(getPreservedDeviceId('workspace-456')).toBeNull();
+    });
+
+    it('only clears specified workspace preserved deviceId', () => {
+      localStorage.setItem('voice_relay_device_id_workspace-1', 'device-1');
+      localStorage.setItem('voice_relay_device_id_workspace-2', 'device-2');
+      
+      clearPreservedDeviceId('workspace-1');
+      
+      expect(getPreservedDeviceId('workspace-1')).toBeNull();
+      expect(getPreservedDeviceId('workspace-2')).toBe('device-2');
+    });
+
+    it('handles clearing when nothing exists', () => {
+      // Should not throw
+      expect(() => clearPreservedDeviceId('workspace-456')).not.toThrow();
     });
   });
 

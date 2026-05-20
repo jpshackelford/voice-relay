@@ -20,6 +20,7 @@
 const LEGACY_DEVICE_TOKEN_KEY = 'voice_relay_device_token';
 const DEVICE_TOKEN_KEY_PREFIX = 'voice_relay_device_token_';
 const DEVICE_ID_KEY = 'voice_relay_device_id';
+const DEVICE_ID_KEY_PREFIX = 'voice_relay_device_id_';
 const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
 
 /**
@@ -27,6 +28,15 @@ const DEVICE_TOKEN_COOKIE_NAME = 'voice_relay_device';
  */
 function getDeviceTokenKey(workspaceId: string): string {
   return `${DEVICE_TOKEN_KEY_PREFIX}${workspaceId}`;
+}
+
+/**
+ * Get workspace-scoped storage key for preserved device ID.
+ * This key stores the deviceId separately when a token is cleared,
+ * allowing the device identity to persist across token expiration.
+ */
+export function getPreservedDeviceIdKey(workspaceId: string): string {
+  return `${DEVICE_ID_KEY_PREFIX}${workspaceId}`;
 }
 
 interface StoredDeviceInfo {
@@ -247,6 +257,10 @@ export function getStoredDeviceToken(workspaceId?: string): StoredDeviceInfo | n
 /**
  * Clear stored device token (on logout or error).
  * 
+ * IMPORTANT: Preserves the deviceId in a separate localStorage key when clearing
+ * workspace-scoped tokens. This prevents duplicate devices from being created when
+ * a device token expires - the device can re-authenticate with its original identity.
+ * 
  * @param workspaceId - The workspace ID to clear the device token for.
  *                      If not provided, clears legacy storage and session device ID.
  */
@@ -254,6 +268,18 @@ export function clearDeviceToken(workspaceId?: string): void {
   try {
     if (workspaceId) {
       const key = getDeviceTokenKey(workspaceId);
+      const stored = localStorage.getItem(key);
+      
+      // Preserve deviceId before clearing (prevents duplicate device creation)
+      if (stored) {
+        const device = parseDeviceJson(stored);
+        if (device?.deviceId) {
+          const preservedIdKey = getPreservedDeviceIdKey(workspaceId);
+          localStorage.setItem(preservedIdKey, device.deviceId);
+          console.log('[DeviceToken] Preserved deviceId for workspace:', workspaceId);
+        }
+      }
+      
       localStorage.removeItem(key);
       
       // Only clear legacy storage if it belongs to this workspace OR is invalid
@@ -263,6 +289,15 @@ export function clearDeviceToken(workspaceId?: string): void {
         // Invalid data (bad JSON or missing fields) is treated as garbage and removed
         const legacyDevice = parseDeviceJson(legacyStored);
         if (!legacyDevice || legacyDevice.workspaceId === workspaceId) {
+          // Also preserve deviceId from legacy storage
+          if (legacyDevice?.deviceId) {
+            const preservedIdKey = getPreservedDeviceIdKey(workspaceId);
+            // Only preserve if not already preserved from workspace-scoped storage
+            if (!localStorage.getItem(preservedIdKey)) {
+              localStorage.setItem(preservedIdKey, legacyDevice.deviceId);
+              console.log('[DeviceToken] Preserved deviceId from legacy storage for workspace:', workspaceId);
+            }
+          }
           localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
         }
         // Valid data for different workspace is preserved (maintains isolation)
@@ -271,9 +306,43 @@ export function clearDeviceToken(workspaceId?: string): void {
       // No workspace specified, clear legacy storage
       localStorage.removeItem(LEGACY_DEVICE_TOKEN_KEY);
     }
-    localStorage.removeItem(DEVICE_ID_KEY);
+    // Note: DEVICE_ID_KEY is used with sessionStorage elsewhere; this line was ineffective
+    // but harmless. Removing it to avoid confusion.
   } catch (e) {
     console.error('[DeviceToken] Failed to clear device token:', e);
+  }
+}
+
+/**
+ * Get preserved device ID for a workspace.
+ * This is the deviceId that was saved when a token was cleared,
+ * allowing device identity to persist across token expiration.
+ * 
+ * @param workspaceId - The workspace ID to get the preserved device ID for.
+ * @returns The preserved device ID, or null if none exists.
+ */
+export function getPreservedDeviceId(workspaceId: string): string | null {
+  try {
+    const key = getPreservedDeviceIdKey(workspaceId);
+    return localStorage.getItem(key);
+  } catch (e) {
+    console.error('[DeviceToken] Failed to get preserved device ID:', e);
+    return null;
+  }
+}
+
+/**
+ * Clear preserved device ID for a workspace.
+ * Call this when a device is explicitly deleted (not just token expiration).
+ * 
+ * @param workspaceId - The workspace ID to clear the preserved device ID for.
+ */
+export function clearPreservedDeviceId(workspaceId: string): void {
+  try {
+    const key = getPreservedDeviceIdKey(workspaceId);
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.error('[DeviceToken] Failed to clear preserved device ID:', e);
   }
 }
 
