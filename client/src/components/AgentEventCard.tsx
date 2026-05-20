@@ -58,12 +58,9 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
         </div>
       </div>
 
-      {expanded && (
+      {expanded && action.summary && (
         <div className="agent-event-details">
-          <div className="agent-event-kind">{action.kind}</div>
-          <div className="agent-event-timestamp">
-            {formatTimestamp(action.timestamp)}
-          </div>
+          <code className="agent-event-content">{action.summary}</code>
         </div>
       )}
     </div>
@@ -89,21 +86,4 @@ function formatActionKind(kind: string): string {
     .replace(/Event$/, '')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .trim();
-}
-
-/**
- * Format timestamp for display.
- */
-function formatTimestamp(timestamp: string): string {
-  try {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-  } catch {
-    return timestamp;
-  }
 }

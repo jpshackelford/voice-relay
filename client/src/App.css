@@ -1125,14 +1125,17 @@ header {
   color: #888;
 }
 
-.agent-event-kind {
+.agent-event-content {
+  display: block;
   font-family: monospace;
-  color: #9b59b6;
-  margin-bottom: 0.25rem;
-}
-
-.agent-event-timestamp {
-  color: #666;
+  font-size: 0.75rem;
+  color: #c39bd3;
+  background: rgba(155, 89, 182, 0.1);
+  padding: 0.5rem;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
 }
 
 /* Mobile responsive styles for agent event cards */

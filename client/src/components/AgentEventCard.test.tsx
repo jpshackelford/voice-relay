@@ -33,12 +33,17 @@ describe('AgentEventCard', () => {
 
     it('starts collapsed by default', () => {
       render(<AgentEventCard action={mockAction} />);
-      expect(screen.queryByText('CmdRunAction')).toBeNull();
+      // When collapsed, the expanded details section should not be visible
+      const details = document.querySelector('.agent-event-details');
+      expect(details).toBeNull();
     });
 
     it('starts expanded when defaultExpanded is true', () => {
       render(<AgentEventCard action={mockAction} defaultExpanded />);
-      expect(screen.getByText('CmdRunAction')).toBeDefined();
+      // When expanded, should show the summary in a code block
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toBe('Run `ls -la` to list files');
     });
   });
 
@@ -47,28 +52,30 @@ describe('AgentEventCard', () => {
       render(<AgentEventCard action={mockAction} />);
       
       // Initially collapsed
-      expect(screen.queryByText('CmdRunAction')).toBeNull();
+      expect(document.querySelector('.agent-event-details')).toBeNull();
       
       // Click to expand
       const toggleBtn = screen.getByRole('button', { name: /expand details/i });
       fireEvent.click(toggleBtn);
       
-      // Now expanded
-      expect(screen.getByText('CmdRunAction')).toBeDefined();
+      // Now expanded - shows summary in code block
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toBe('Run `ls -la` to list files');
     });
 
     it('collapses when expanded toggle is clicked', () => {
       render(<AgentEventCard action={mockAction} defaultExpanded />);
       
       // Initially expanded
-      expect(screen.getByText('CmdRunAction')).toBeDefined();
+      expect(document.querySelector('.agent-event-details')).toBeDefined();
       
       // Click to collapse
       const toggleBtn = screen.getByRole('button', { name: /collapse details/i });
       fireEvent.click(toggleBtn);
       
       // Now collapsed
-      expect(screen.queryByText('CmdRunAction')).toBeNull();
+      expect(document.querySelector('.agent-event-details')).toBeNull();
     });
 
     it('expands with Enter key on header', () => {
@@ -78,7 +85,8 @@ describe('AgentEventCard', () => {
       expect(header).toBeDefined();
       fireEvent.keyDown(header!, { key: 'Enter' });
       
-      expect(screen.getByText('CmdRunAction')).toBeDefined();
+      // Should show expanded details
+      expect(document.querySelector('.agent-event-details')).toBeDefined();
     });
 
     it('expands with Space key on header', () => {
@@ -88,7 +96,19 @@ describe('AgentEventCard', () => {
       expect(header).toBeDefined();
       fireEvent.keyDown(header!, { key: ' ' });
       
-      expect(screen.getByText('CmdRunAction')).toBeDefined();
+      // Should show expanded details
+      expect(document.querySelector('.agent-event-details')).toBeDefined();
+    });
+
+    it('does not show details section when expanded but no summary', () => {
+      const actionWithoutSummary: AgentAction = {
+        ...mockAction,
+        summary: '',  // No summary
+      };
+      render(<AgentEventCard action={actionWithoutSummary} defaultExpanded />);
+      
+      // Should not show details section if summary is empty
+      expect(document.querySelector('.agent-event-details')).toBeNull();
     });
   });
 
@@ -140,13 +160,19 @@ describe('AgentEventCard', () => {
     });
   });
 
-  describe('timestamp display', () => {
-    it('shows formatted timestamp when expanded', () => {
+  describe('expanded content display', () => {
+    it('shows summary in code block when expanded', () => {
       render(<AgentEventCard action={mockAction} defaultExpanded />);
-      // Timestamp should be formatted as time (locale-dependent)
-      const timestampDiv = document.querySelector('.agent-event-timestamp');
-      expect(timestampDiv).toBeDefined();
-      expect(timestampDiv).not.toBeNull();
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.tagName.toLowerCase()).toBe('code');
+      expect(content?.textContent).toBe('Run `ls -la` to list files');
+    });
+
+    it('does not show raw event kind when expanded', () => {
+      render(<AgentEventCard action={mockAction} defaultExpanded />);
+      // Should NOT show raw event kind like "CmdRunAction"
+      expect(screen.queryByText('CmdRunAction')).toBeNull();
     });
   });
 
