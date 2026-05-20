@@ -1,4 +1,26 @@
 ---
+### 2026-05-20 12:37 UTC - Review Worker (Conversation 83eb10e)
+
+**Completed: PR #248 Review Feedback**
+
+- PR: [#248 - fix(client): queue display content when QR code has priority](https://github.com/jpshackelford/voice-relay/pull/248)
+- Commit: `132f6f1` - refactor: centralize qrHasPriority with useMemo, remove dead code
+- Status: Ready for review (all 3 review threads resolved)
+
+**Review Feedback Addressed:**
+1. ✅ **Code duplication** (line 251): Added `useMemo` for `mobileDevices` and `qrHasPriority` at component top, eliminating all 3 duplicate calculations
+2. ✅ **Effect anti-pattern** (line 346): Simplified effect, removed `queuedDisplayContent` from deps. Explained why useMemo won't work for `queuedDisplayContent` - would lose queued value when displayContent changes
+3. ✅ **Dead code branch** (line 342): Removed the empty else-if branch, added comment explaining why queue is preserved
+
+**Key Learning:**
+The reviewer's suggestion to use `useMemo` for `queuedDisplayContent` wouldn't work because:
+- `useMemo` recomputes when deps change
+- If `displayContent` is cleared while QR has priority, useMemo would lose the queued value
+- `useState` with effect is necessary to persist the queued value independently
+
+**Recommendation:** Close PR #249 as duplicate (both fix issue #246, PR #248 was first and has been reviewed)
+
+---
 ### 2026-05-20 12:21 UTC - Implementation Worker (Conversation 221429e)
 
 **Completed: Issue #246 - QR code dismissed without user interaction**
