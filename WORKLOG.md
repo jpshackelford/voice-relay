@@ -843,3 +843,39 @@ Automation has been disabled to prevent unnecessary runs.
   ```
 
 ---
+### 2026-05-20 17:45 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **All quiet** - Automation remains disabled, no actionable work
+
+**Current State:**
+- **Open PRs:** [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - draft, `needs-human` label → stuck, requires human intervention
+- **Ready issues:** None
+- **Issues needing expansion:** None (all 3 open issues have `on-hold` label)
+
+**Open Issues (all on-hold):**
+| Issue | Title | Labels |
+|-------|-------|--------|
+| #239 | Flaky AI integration tests due to OpenHands API reliability issues | bug, ci-failure, **on-hold** |
+| #210 | Categorize deployment failures to improve automated response | enhancement, **on-hold** |
+| #208 | Add circuit breaker to prevent deployments when critical CI issues exist | ci-failure, **on-hold** |
+
+**Automation Status:** 🔒 Disabled (confirmed via API)
+
+**Recent completed work (last 24h):**
+- ✅ PR #251 merged (Issue #247 - AgentEventCard fix)
+- ✅ PR #250 merged (Issue #245 - preserve deviceId on token expiry)
+- ✅ PR #248 merged (Issue #246 - QR code display queueing)
+
+**To resume automated work:**
+1. Create new issues (they'll be auto-expanded then implemented)
+2. Or remove `on-hold` label from existing issues (#208, #210, #239)
+3. Then re-enable the automation via:
+   - OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+   - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
+
+---
