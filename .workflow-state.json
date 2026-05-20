@@ -3,21 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "487881e",
-        "pr": 251,
-        "started": "2026-05-20T14:03:49.128090+00:00",
-        "type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T14:03:49.128100+00:00",
+  "last_updated": "2026-05-20T14:17:14.356353+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -162,6 +155,15 @@
       "finished": "2026-05-20T14:02:25.763850+00:00",
       "status": "success",
       "outcome": "Created PR for issue #247 (check GitHub for details)"
+    },
+    {
+      "conv_id": "487881e",
+      "type": "merge",
+      "pr": 251,
+      "started": "2026-05-20T14:03:49.128090+00:00",
+      "finished": "2026-05-20T14:17:14.356353+00:00",
+      "status": "success",
+      "outcome": "Merged PR #251 - fix(client): display summary content instead of raw event metadata"
     }
   ]
 }

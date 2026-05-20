@@ -404,3 +404,37 @@ PR #248 and PR #249 both fix issue #246. Review worker has been directed to addr
 🚀 **Spawned merge worker** for PR #251
 - All checks passing, positive review received
 - Will squash-merge and close Issue #247
+
+---
+### 2026-05-20 14:17 UTC - Orchestrator
+
+**Worker Completed:** `487881e` (merge)
+- ✅ **Merged:** [PR #251](https://github.com/jpshackelford/voice-relay/pull/251) - fix(client): display summary content instead of raw event metadata in AgentEventCard
+- Issue #247 auto-closed on merge
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **All quiet** - No work available to dispatch
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label - **stuck**
+- No `ready` labeled issues
+- Issues on-hold: #208, #210, #239 (all blocked/paused)
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review | 0 | 2 | 2 |
+
+**Summary:**
+All tracked issues completed or on-hold. Workflow is idle pending:
+1. Human intervention on PR #221
+2. New issues to be filed
+3. On-hold issues to be resumed
+
+Next check in ~30 minutes.
