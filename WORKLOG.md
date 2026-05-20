@@ -754,3 +754,41 @@ Automation is disabled. All 3 pending issues have `on-hold` labels, and PR #221 
 1. Create new issues (they'll be auto-expanded then implemented)
 2. Or remove `on-hold` label from existing issues (#208, #210, #239)
 3. Then re-enable the automation
+
+---
+### 2026-05-20 17:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **All quiet** - No actionable work available
+
+**Current State:**
+- **Open PRs:** [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - `draft`, `needs-human` label → stuck, requires human intervention
+- **Ready issues:** None
+- **Issues needing expansion:** None (all 3 open issues are `on-hold`)
+
+**Open Issues (all on-hold):**
+| Issue | Title | Labels |
+|-------|-------|--------|
+| #239 | Flaky AI integration tests due to OpenHands API reliability issues | bug, ci-failure, **on-hold** |
+| #210 | Categorize deployment failures to improve automated response | enhancement, **on-hold** |
+| #208 | Add circuit breaker to prevent deployments when critical CI issues exist | ci-failure, **on-hold** |
+
+**Why no action:**
+1. All issues have `on-hold` label - cannot expand or implement
+2. PR #221 has `needs-human` label - stuck, requires human intervention
+3. No ready issues to implement
+
+**Automation Status:** ⚠️ Disabled (5 consecutive quiet periods detected)
+
+**To re-enable automation:**
+Remove `on-hold` labels from issues or add new issues, then:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
