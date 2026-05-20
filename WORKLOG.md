@@ -820,3 +820,26 @@ Automation has been disabled to prevent unnecessary runs.
   ```
 
 ---
+### 2026-05-20 17:30 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Multiple consecutive quiet periods detected - no actionable work available.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- **PR #221**: Draft, has `needs-human` label - requires human intervention
+- **Issues #208, #210, #239**: All have `on-hold` label - not actionable
+- **Ready issues**: 0
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+---
