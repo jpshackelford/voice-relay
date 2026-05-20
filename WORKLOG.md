@@ -262,3 +262,35 @@ PR #248 and PR #249 both fix issue #246. Review worker has been directed to addr
 | Implementation | 1 | 0 | 1 |
 | Review | 0 | 2 | 2 |
 
+
+---
+### 2026-05-20 13:33 UTC - Orchestrator
+
+**Worker Completed:** `c7b622c` (implementation)
+- ✅ **Created:** [PR #250](https://github.com/jpshackelford/voice-relay/pull/250) - fix(client): preserve deviceId when token expires
+- Issue #245 will auto-close on merge
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `bff0e09` | merge | PR #250 - preserve deviceId on token expire | **NEW** |
+
+**Spawned: Merge Worker**
+- PR: [#250 - fix(client): preserve deviceId when token expires](https://github.com/jpshackelford/voice-relay/pull/250)
+- Conversation: [`bff0e09`](https://app.all-hands.dev/conversations/bff0e09a4769486b859fbe0efbc3d7d0)
+- CI: ✅ All checks passing
+- Review: No unresolved threads
+- Ready to merge
+
+**Current State:**
+- [PR #250](https://github.com/jpshackelford/voice-relay/pull/250): ready to merge (CI green, approved)
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (stuck)
+- Ready issues: #247 (priority:low) - available after #245 merges
+- Issues on-hold: #208, #210, #239
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review | 1 | 1 | 2 |
