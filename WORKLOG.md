@@ -879,3 +879,39 @@ Automation has been disabled to prevent unnecessary runs.
    - Or API: `curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" -H "Authorization: Bearer ${OPENHANDS_API_KEY}" -H "Content-Type: application/json" -d '{"enabled": true}'`
 
 ---
+
+---
+### 2026-05-20 18:03 UTC - Orchestrator
+
+🔒 **Auto-disabled due to extended inactivity**
+
+Multiple consecutive quiet periods detected - no new work to pick up.
+Both automations have been disabled to prevent unnecessary runs.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- **Open PRs:** [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - draft, `needs-human` label → **STUCK** (requires human intervention)
+- **Ready issues:** None
+- **Issues needing expansion:** #208, #210, #239 (all have `on-hold` label)
+
+**Automation Status:** 
+- Voice Relay Workflow Orchestrator (old): 🔒 Disabled
+- Voice Relay Workflow Orchestrator v2: 🔒 **Disabled** (just now)
+
+**To re-enable and resume automated work:**
+1. Create new issues (they'll be auto-expanded then implemented)
+2. Or remove `on-hold` label from existing issues (#208, #210, #239)
+3. Or resolve PR #221 if needed
+4. Then re-enable automation via:
+   - OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
+   - Or via API:
+     ```bash
+     curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+       -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+       -H "Content-Type: application/json" \
+       -d '{"enabled": true}'
+     ```
