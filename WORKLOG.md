@@ -415,3 +415,39 @@ Implemented the Unified Timeline approach from Issue #242, displaying agent even
 - Only open PR (#221) requires human intervention
 
 ---
+### 2026-05-20 03:15 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected - no new work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (stuck - requires human intervention)
+- Open issues: #208, #210, #239 (all `on-hold`)
+- No `ready` issues to implement
+- No issues needing expansion (all on-hold)
+
+**Automation Status:** Disabled (`a0219382...` - Voice Relay Workflow Orchestrator (old))
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator (old)" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**To resume work:**
+1. File new issues or remove `on-hold` labels from existing ones (#208, #210, #239)
+2. Close or address PR #221 (linked issue #220 already closed, consider closing this draft PR)
+3. Re-enable automation when ready
+
+---
