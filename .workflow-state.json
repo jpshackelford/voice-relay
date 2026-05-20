@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "4fa0e32",
+        "conv_id": "4461c0c",
         "issue": 246,
-        "started": "2026-05-20T11:48:48.334761+00:00"
+        "started": "2026-05-20T12:07:20.888064+00:00"
       }
     ],
     "review": []
@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-20T11:48:48.334772+00:00",
+  "last_updated": "2026-05-20T12:07:20.888064+00:00",
   "completed": [
     {
       "conv_id": "a0a5d9d",
@@ -89,6 +89,15 @@
       "finished": "2026-05-20T11:47:50.844895+00:00",
       "status": "success",
       "outcome": "Expanded issue #247 - added ready label"
+    },
+    {
+      "conv_id": "4fa0e32",
+      "type": "implementation",
+      "issue": 246,
+      "started": "2026-05-20T11:48:48.334761+00:00",
+      "finished": "2026-05-20T12:06:19.758344+00:00",
+      "status": "failed",
+      "outcome": "Conversation spawn failed - conversation ID not found in API"
     }
   ]
 }

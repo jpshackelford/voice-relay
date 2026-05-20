@@ -804,3 +804,42 @@ No ready issues to implement, no issues needing expansion, no PRs to review or m
 1. File new issues or remove `on-hold` labels from existing ones
 2. Close or address PR #221 (linked issue #220 already closed, consider closing this draft PR)
 3. Re-enable automation when ready
+
+---
+### 2026-05-19 05:31 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+🔒 **Auto-disabled due to inactivity**
+
+Multiple consecutive quiet periods detected - no actionable work available.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): Draft, `needs-human` label (stuck - requires human intervention; linked issue #220 already closed)
+- Issue #208: on-hold
+- Issue #210: on-hold
+- Issue #239: on-hold
+
+All 3 open issues are marked `on-hold`. The only open PR (#221) requires human intervention.
+No ready issues to implement, no issues needing expansion, no PRs to review or merge.
+
+**Automation Status:** Disabled (`5f180989-...` - Voice Relay Workflow Orchestrator v2)
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**To resume work:**
+1. File new issues or remove `on-hold` labels from existing ones
+2. Close or address PR #221 (linked issue #220 already closed, consider closing this draft PR)
+3. Re-enable automation when ready
