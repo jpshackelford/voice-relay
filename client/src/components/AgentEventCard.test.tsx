@@ -24,11 +24,11 @@ describe('AgentEventCard', () => {
       expect(screen.getByText('🔧')).toBeDefined();
     });
 
-    it('renders expand/collapse toggle button', () => {
+    it('renders expand/collapse toggle indicator', () => {
       render(<AgentEventCard action={mockAction} />);
-      const toggleBtn = screen.getByRole('button', { name: /expand details/i });
-      expect(toggleBtn).toBeDefined();
-      expect(toggleBtn.textContent).toBe('▼');
+      const toggle = document.querySelector('.agent-event-toggle');
+      expect(toggle).toBeDefined();
+      expect(toggle?.textContent).toBe('▼');
     });
 
     it('starts collapsed by default', () => {
@@ -77,6 +77,16 @@ describe('AgentEventCard', () => {
       const header = document.querySelector('.agent-event-header');
       expect(header).toBeDefined();
       fireEvent.keyDown(header!, { key: 'Enter' });
+      
+      expect(screen.getByText('CmdRunAction')).toBeDefined();
+    });
+
+    it('expands with Space key on header', () => {
+      render(<AgentEventCard action={mockAction} />);
+      
+      const header = document.querySelector('.agent-event-header');
+      expect(header).toBeDefined();
+      fireEvent.keyDown(header!, { key: ' ' });
       
       expect(screen.getByText('CmdRunAction')).toBeDefined();
     });

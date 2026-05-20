@@ -42,7 +42,7 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
         onClick={() => setExpanded(!expanded)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && setExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
         aria-expanded={expanded}
         aria-label={expanded ? 'Collapse details' : 'Expand details'}
       >

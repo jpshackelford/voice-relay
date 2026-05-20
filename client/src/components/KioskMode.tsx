@@ -318,6 +318,8 @@ export function KioskMode({
   );
 
   // Create unified timeline by merging utterances and agent events
+  // Compute full timeline unconditionally - visibility filtering happens during render
+  // This avoids re-sorting when toggling agent actions visibility
   const timeline: TimelineEntry[] = useMemo(() => {
     // Pre-compute timestamps to avoid creating Date objects on every sort comparison
     const entriesWithTime: Array<{ entry: TimelineEntry; time: number }> = [];
@@ -330,21 +332,25 @@ export function KioskMode({
       });
     }
     
-    // Add agent events with pre-computed timestamps (if shown)
-    if (showAgentActions) {
-      for (const action of agentActions) {
-        entriesWithTime.push({
-          entry: { type: 'agent-event', data: action },
-          time: new Date(action.timestamp).getTime(),
-        });
-      }
+    // Add agent events with pre-computed timestamps
+    for (const action of agentActions) {
+      const actionTime = new Date(action.timestamp).getTime();
+      entriesWithTime.push({
+        entry: { type: 'agent-event', data: action },
+        time: actionTime,
+      });
     }
     
     // Sort by pre-computed timestamps, then extract entries
     return entriesWithTime
       .sort((a, b) => a.time - b.time)
       .map(({ entry }) => entry);
-  }, [utterances, agentActions, showAgentActions]);
+  }, [utterances, agentActions]);
+
+  // Filter timeline based on visibility - cheap operation compared to re-sorting
+  const visibleTimeline = showAgentActions 
+    ? timeline 
+    : timeline.filter(e => e.type === 'utterance');
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
   // useWebSocket preserves devices during reconnection, so we can simply filter here
@@ -532,10 +538,10 @@ export function KioskMode({
 
         {/* Unified Timeline - Messages and agent events interleaved */}
         <div className="kiosk-messages">
-          {timeline.length === 0 ? (
+          {visibleTimeline.length === 0 ? (
             <div className="no-messages">No messages yet</div>
           ) : (
-            timeline.map((entry) => {
+            visibleTimeline.map((entry) => {
               if (entry.type === 'utterance') {
                 const utterance = entry.data;
                 const isOwnMessage = utterance.senderId === deviceId;
