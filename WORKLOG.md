@@ -1,4 +1,40 @@
 ---
+### 2026-05-20 13:52 UTC - Implementation Worker (Conversation 00e9274)
+
+**Completed: Issue #247 - Fix agent event card rendering (Phase 1)**
+
+- Issue: [#247 - Fix agent event card rendering to match OpenHands implementation](https://github.com/jpshackelford/voice-relay/issues/247)
+- PR: [#251 - fix(client): display summary content instead of raw event metadata in AgentEventCard](https://github.com/jpshackelford/voice-relay/pull/251)
+- Status: Ready for review (CI passing: all 4 checks ✓)
+
+**Implementation Summary (Phase 1 - UI-only fix):**
+Agent event cards were showing wrong information when expanded - displaying raw event types like "CmdRunAction" and timestamps instead of meaningful content.
+
+**Changes Made:**
+1. `client/src/components/AgentEventCard.tsx`:
+   - Replaced kind/timestamp display with summary in `<code>` block
+   - Only show expanded details section when summary exists
+   - Removed unused `formatTimestamp` function
+
+2. `client/src/App.css`:
+   - Replaced `.agent-event-kind` and `.agent-event-timestamp` with `.agent-event-content`
+   - Styled code block with monospace font, light purple background, proper spacing
+
+3. `client/src/components/AgentEventCard.test.tsx`:
+   - Updated tests to verify new behavior
+   - Added test for edge case when summary is empty
+   - Added test verifying raw event kind is NOT shown when expanded
+
+**Testing:**
+- All 19 AgentEventCard tests passing
+- All 485 client tests passing
+- All 681 server tests passing
+- TypeScript compilation passes
+
+**Future Work (Phase 2):**
+Full implementation to show proper content like OpenHands does would require backend changes to extract command/path/content from V1Event.
+
+---
 ### 2026-05-20 13:30 UTC - Implementation Worker (Conversation c7b622c)
 
 **Completed: Issue #245 - bug: duplicate device added**
