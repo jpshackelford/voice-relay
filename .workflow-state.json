@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "8dd477d",
+        "conv_id": "1ef0a2c",
         "pr": 258,
-        "started": "2026-05-21T12:34:05.306902+00:00"
+        "started": "2026-05-21T12:50:54.572516+00:00"
       }
     ]
   },
@@ -16,17 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T12:34:05.306902+00:00",
+  "last_updated": "2026-05-21T12:50:54.572516+00:00",
   "completed": [
-    {
-      "conv_id": "83eb10e",
-      "type": "review",
-      "pr": 248,
-      "started": "2026-05-20T12:33:15.188307+00:00",
-      "finished": "2026-05-20T12:47:31.116162+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #248"
-    },
     {
       "conv_id": "9a14c91",
       "type": "merge",
@@ -242,6 +233,15 @@
       "finished": "2026-05-21T12:33:24.083702+00:00",
       "status": "success",
       "outcome": "Created PR #258 for Issue #257 - fix rich content rendering"
+    },
+    {
+      "conv_id": "8dd477d",
+      "type": "review",
+      "pr": 258,
+      "started": "2026-05-21T12:34:05.306902+00:00",
+      "finished": "2026-05-21T12:49:44.168481+00:00",
+      "status": "success",
+      "outcome": "Review complete - PR #258 ready for merge"
     }
   ]
 }
