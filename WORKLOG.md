@@ -915,3 +915,32 @@ Both automations have been disabled to prevent unnecessary runs.
        -H "Content-Type: application/json" \
        -d '{"enabled": true}'
      ```
+
+---
+### 2026-05-21 02:03 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `140849d` | expansion | Issue #252 - Server: Extract V1Event fields | **NEW** |
+| `47fad73` | expansion | Issue #253 - Client: Implement rich content rendering | **NEW** |
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): STUCK (draft + `needs-human` label) - skipped
+- Issues needing expansion: #252, #253 (now being expanded)
+- Ready issues: none (awaiting expansion completion)
+- On-hold issues: #239, #210, #208 (skipped)
+
+**Action Taken:**
+🚀 **Spawned 2 expansion workers** (parallel)
+
+1. **Expansion Worker**
+   - Issue: [#252 - Server: Extract V1Event fields](https://github.com/jpshackelford/voice-relay/issues/252)
+   - Conversation: [`140849d`](https://app.all-hands.dev/conversations/140849d)
+
+2. **Expansion Worker**  
+   - Issue: [#253 - Client: Implement rich content rendering](https://github.com/jpshackelford/voice-relay/issues/253)
+   - Conversation: [`47fad73`](https://app.all-hands.dev/conversations/47fad73)
+
+**Note:** Issues #252 and #253 were just created with detailed specs. Expansion workers will validate and add `ready` label.
+
