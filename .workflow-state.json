@@ -2,31 +2,22 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "efae880",
-        "issue": 257,
-        "started": "2026-05-21T12:18:30.077252+00:00"
+        "conv_id": "8dd477d",
+        "pr": 258,
+        "started": "2026-05-21T12:34:05.306902+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T12:18:30.077252+00:00",
+  "last_updated": "2026-05-21T12:34:05.306902+00:00",
   "completed": [
-    {
-      "conv_id": "4461c0c",
-      "type": "implementation",
-      "issue": 246,
-      "started": "2026-05-20T12:07:20.888064+00:00",
-      "finished": "2026-05-20T12:19:05.986503+00:00",
-      "status": "success",
-      "outcome": "Created PR #248 for issue #246 - QR code display queueing"
-    },
     {
       "conv_id": "83eb10e",
       "type": "review",
@@ -242,6 +233,15 @@
       "finished": "2026-05-21T12:17:37.547441+00:00",
       "status": "success",
       "outcome": "Expanded Issue #257 - added ready and priority:high labels"
+    },
+    {
+      "conv_id": "efae880",
+      "type": "implementation",
+      "issue": 257,
+      "started": "2026-05-21T12:18:30.077252+00:00",
+      "finished": "2026-05-21T12:33:24.083702+00:00",
+      "status": "success",
+      "outcome": "Created PR #258 for Issue #257 - fix rich content rendering"
     }
   ]
 }
