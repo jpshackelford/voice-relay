@@ -715,3 +715,39 @@ Automation has been disabled to prevent unnecessary runs.
 3. Automation is re-enabled manually
 
 ---
+
+---
+### 2026-05-21 22:21 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3727caa` | review (finalize) | PR #259 - lint title + promote to ready | **NEW** |
+
+**Context:**
+- Automation was auto-disabled at 13:15 UTC, then re-enabled by the "Enable Voice Relay Orchestrator on New Issue or PR" workflow when PR #259 was opened at 22:15 UTC.
+- PR #259 ("fix: PR #258 follow-up — honor event.summary...") was created by another OH conversation (`f73af328`, now `finished`) that did NOT promote it to ready or fix the failing `lint-pr-title` check.
+- All CI green ✅ except `lint-pr-title` ❌ (subject must start lowercase; currently begins with "PR").
+
+🚀 **Spawned: Finalization Worker (review slot)**
+- PR: [#259 - fix: PR #258 follow-up — honor event.summary...](https://github.com/jpshackelford/voice-relay/pull/259)
+- Conversation: [`3727caa`](https://app.all-hands.dev/conversations/3727caae618b4c1a9ba9b4aaed422e6d)
+- Task: Fix PR title to lowercase subject, run quick sanity check, promote draft → ready (triggers pr-review bot). Exits without addressing review-bot feedback — that's a separate cycle.
+
+**Current State:**
+- **Open PRs:** 2
+  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) - Draft, being finalized (worker `3727caa`)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - Draft, `needs-human` (STUCK, skipped)
+- **Open Issues:** 3 (all `on-hold`)
+  - #208 - Add circuit breaker for deployments
+  - #210 - Categorize deployment failures
+  - #239 - Flaky AI integration tests
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | Available (but nothing to implement) |
+| Review/Merge | 1 | 2 | `3727caa` finalizing PR #259 |
+
+---
