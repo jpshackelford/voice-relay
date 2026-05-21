@@ -3,30 +3,15 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "1ef0a2c",
-        "pr": 258,
-        "started": "2026-05-21T12:50:54.572516+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T12:50:54.572516+00:00",
+  "last_updated": "2026-05-21T13:02:46.057918+00:00",
   "completed": [
-    {
-      "conv_id": "9a14c91",
-      "type": "merge",
-      "pr": 248,
-      "started": "2026-05-20T12:48:30.102269+00:00",
-      "finished": "2026-05-20T13:01:57.402107+00:00",
-      "status": "success",
-      "outcome": "Merged PR #248 - fix(client): queue display content when QR code has priority"
-    },
     {
       "conv_id": "d6e2c92",
       "type": "implementation",
@@ -242,6 +227,15 @@
       "finished": "2026-05-21T12:49:44.168481+00:00",
       "status": "success",
       "outcome": "Review complete - PR #258 ready for merge"
+    },
+    {
+      "conv_id": "1ef0a2c",
+      "type": "merge",
+      "pr": 258,
+      "started": "2026-05-21T12:50:54.572516+00:00",
+      "finished": "2026-05-21T13:02:46.057918+00:00",
+      "status": "success",
+      "outcome": "Merged PR #258 - fix rich content rendering; closes #257"
     }
   ]
 }
