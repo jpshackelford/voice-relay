@@ -3,67 +3,15 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "0df29e2",
-        "pr": 259,
-        "type": "merge",
-        "started": "2026-05-21T22:53:16.626140+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T22:53:16.626140+00:00",
+  "last_updated": "2026-05-21T23:04:35.178888+00:00",
   "completed": [
-    {
-      "conv_id": "d6e2c92",
-      "type": "implementation",
-      "issue": 245,
-      "started": "2026-05-20T13:02:57.333926+00:00",
-      "finished": "2026-05-20T13:18:16.507821+00:00",
-      "status": "failed",
-      "outcome": "Conversation not found in API - likely spawn failure"
-    },
-    {
-      "conv_id": "c7b622c",
-      "type": "implementation",
-      "issue": 245,
-      "started": "2026-05-20T13:19:40.125181+00:00",
-      "finished": "2026-05-20T13:32:21.455299+00:00",
-      "status": "success",
-      "outcome": "Created PR #250 for issue #245 - preserve deviceId on token expiry"
-    },
-    {
-      "conv_id": "bff0e09",
-      "type": "merge",
-      "pr": 250,
-      "started": "2026-05-20T13:33:28.012725+00:00",
-      "finished": "2026-05-20T13:47:05.697865+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #250"
-    },
-    {
-      "conv_id": "00e9274",
-      "type": "implementation",
-      "issue": 247,
-      "started": "2026-05-20T13:48:29.200731+00:00",
-      "finished": "2026-05-20T14:02:25.763850+00:00",
-      "status": "success",
-      "outcome": "Created PR for issue #247 (check GitHub for details)"
-    },
-    {
-      "conv_id": "487881e",
-      "type": "merge",
-      "pr": 251,
-      "started": "2026-05-20T14:03:49.128090+00:00",
-      "finished": "2026-05-20T14:17:14.356353+00:00",
-      "status": "success",
-      "outcome": "Merged PR #251 - fix(client): display summary content instead of raw event metadata"
-    },
     {
       "conv_id": "140849d",
       "type": "expansion",
@@ -261,6 +209,15 @@
       "finished": "2026-05-21T22:53:16.626140+00:00",
       "status": "ghost",
       "outcome": "Conversation ID not found in OpenHands API; likely silent spawn failure. PR #259 still open, was not merged."
+    },
+    {
+      "conv_id": "0df29e2",
+      "type": "merge",
+      "pr": 259,
+      "started": "2026-05-21T22:53:16.626140+00:00",
+      "finished": "2026-05-21T23:04:35.178888+00:00",
+      "status": "success",
+      "outcome": "Merged PR #259 - fix: honor event.summary and render missing event content (squash 480ddd8)"
     }
   ]
 }
