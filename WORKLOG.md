@@ -751,3 +751,25 @@ Automation has been disabled to prevent unnecessary runs.
 | Review/Merge | 1 | 2 | `3727caa` finalizing PR #259 |
 
 ---
+
+## 2026-05-21 22:23 UTC — Finalization Worker (review slot) ✅
+
+**Conversation:** `3727caa` (finalizing PR #259)
+
+**Actions taken:**
+- Checked out `fix/258-followup-summary-and-missing-event-content`.
+- Renamed PR title `fix: PR #258 follow-up — honor event.summary...` → `fix: honor event.summary and render missing event content (#258 follow-up)` to satisfy Conventional Commits subject pattern (`^[a-z].+$`).
+- Sanity check: `npm test -w server` → 744 pass ✅ · `npm test -w client` → 544 pass ✅ · `npm run build` → clean ✅.
+- Promoted draft → ready via `gh pr ready 259`. `pr-review` bot is now running.
+
+**Result:**
+| Check | Status |
+|-------|--------|
+| `lint-pr-title` | ✅ pass (was ❌) |
+| Server Tests | ✅ pass |
+| Build Client | ✅ pass |
+| E2E Tests | ✅ pass |
+| `pr-review` bot | ⏳ pending (left for next review-worker cycle) |
+
+PR #259 is now in ready state with all blocking checks green. Addressing `pr-review` bot feedback is intentionally **out of scope** for this worker — that's the next review-worker cycle.
+
