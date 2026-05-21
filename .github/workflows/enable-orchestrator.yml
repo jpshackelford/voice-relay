@@ -1,8 +1,10 @@
-name: Enable Voice Relay Orchestrator on New Issue
+name: Enable Voice Relay Orchestrator on New Issue or PR
 
 on:
   issues:
     types: [opened]
+  pull_request:
+    types: [opened, ready_for_review, reopened]
   workflow_dispatch:
 
 jobs:
