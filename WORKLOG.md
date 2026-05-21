@@ -1,3 +1,34 @@
+### 2026-05-21 10:48 UTC - Merge Worker
+
+✅ **Merged PR #256 to main → Production deployment triggered**
+
+- PR: [#256 - feat(client): implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/pull/256)
+- Issue: [#253 - Client: Implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/issues/253) → Closed ✅
+
+**Squash Merge Summary:**
+- Implements client-side rich content rendering for agent event cards
+- Port of OpenHands frontend helpers for content formatting
+- Builds on PR #254 (server-side V1Event field extraction)
+
+**Key Changes:**
+- New `getEventContent.ts` with formatters for 20+ V1Event action/observation types
+- Markdown rendering in AgentEventCard using `marked` + `DOMPurify` (XSS-safe)
+- Event icons for terminal, file, MCP, browser, search, think, finish, task tracker
+- CSS styling for code blocks, inline code, lists, and error states
+- Content truncation at 1000 chars with "(truncated)" indicator
+
+**Technical Decisions:**
+1. Snake_case field names (`exit_code`, `is_error`, `tool_name`, `file_text`) match OpenHands conventions for portability
+2. Set-based event kind classification for O(1) lookups
+3. Backward compatible with legacy ExtendedAgentAction fields
+
+**Testing:** 67 new tests + all 534 client + 718 server tests passing
+
+**Migration:** None - pure client-side UI feature, no database changes
+
+**Deployment:** Auto-deploys to vr.chorecraft.net on merge to main ✅
+
+---
 ### 2026-05-21 03:55 UTC - Review Feedback Worker
 
 ✅ **Addressed visual evidence request for PR #255**
