@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "33551cf",
+        "conv_id": "efae880",
         "issue": 257,
-        "started": "2026-05-21T12:03:59.833667+00:00"
+        "started": "2026-05-21T12:18:30.077252+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,17 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T12:03:59.833681+00:00",
+  "last_updated": "2026-05-21T12:18:30.077252+00:00",
   "completed": [
-    {
-      "conv_id": "4fa0e32",
-      "type": "implementation",
-      "issue": 246,
-      "started": "2026-05-20T11:48:48.334761+00:00",
-      "finished": "2026-05-20T12:06:19.758344+00:00",
-      "status": "failed",
-      "outcome": "Conversation spawn failed - conversation ID not found in API"
-    },
     {
       "conv_id": "4461c0c",
       "type": "implementation",
@@ -242,6 +233,15 @@
       "finished": "2026-05-21T10:50:36.513065+00:00",
       "status": "success",
       "outcome": "Merged PR #256 - feat(client): rich content rendering; closes #253"
+    },
+    {
+      "conv_id": "33551cf",
+      "type": "expansion",
+      "issue": 257,
+      "started": "2026-05-21T12:03:59.833667+00:00",
+      "finished": "2026-05-21T12:17:37.547441+00:00",
+      "status": "success",
+      "outcome": "Expanded Issue #257 - added ready and priority:high labels"
     }
   ]
 }
