@@ -766,6 +766,18 @@ function extractBoolean(obj: Record<string, unknown> | undefined, key: string): 
 }
 
 /**
+ * Helper to safely extract a data object field from an object.
+ * Returns undefined if value is not a plain object (rejects null, arrays, primitives).
+ */
+function extractData(obj: Record<string, unknown> | undefined, key: string): Record<string, unknown> | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  return (typeof value === 'object' && value !== null && !Array.isArray(value))
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+/**
  * Helper to safely extract a string array field from an object.
  */
 function extractStringArray(obj: Record<string, unknown> | undefined, key: string): string[] | undefined {
@@ -946,7 +958,7 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   const isMCPEvent = MCP_KINDS.has(kind);
   if (isMCPEvent) {
     result.tool_name = extractString(eventObj, 'tool_name') ?? extractString(actionObj, 'tool_name') ?? extractString(obsObj, 'tool_name');
-    result.data = (eventObj.data as Record<string, unknown>) ?? (actionObj?.data as Record<string, unknown>);
+    result.data = extractData(eventObj, 'data') ?? extractData(actionObj, 'data');
     // Priority: terminal/file content > MCP content (preserves earlier extraction)
     result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
     result.is_error = extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
