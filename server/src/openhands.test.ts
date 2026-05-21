@@ -1,9 +1,9 @@
 /**
- * Tests for OpenHands module - loadPrompt function, AISessionManager, and formatEventSummary
+ * Tests for OpenHands module - loadPrompt function, AISessionManager, formatEventSummary, and extractEventFields
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -863,6 +863,460 @@ describe('formatEventSummary', () => {
     test('formats event with no kind', () => {
       const event = {};
       expect(formatEventSummary(event)).toBe('Unknown');
+    });
+  });
+});
+
+describe('extractEventFields', () => {
+  describe('terminal actions/observations', () => {
+    test('extracts fields from ExecuteBashAction', () => {
+      const event = {
+        kind: 'ExecuteBashAction',
+        command: 'npm test',
+        source: 'agent'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('npm test');
+    });
+
+    test('extracts fields from TerminalObservation', () => {
+      const event = {
+        kind: 'TerminalObservation',
+        command: 'npm test',
+        content: 'All tests passed',
+        exit_code: 0,
+        timeout: false
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('npm test');
+      expect(fields.content).toBe('All tests passed');
+      expect(fields.exit_code).toBe(0);
+      expect(fields.timeout).toBe(false);
+    });
+
+    test('extracts content array from observation', () => {
+      const event = {
+        kind: 'ExecuteBashObservation',
+        content: [
+          { type: 'text' as const, text: 'Hello, World!' }
+        ],
+        exit_code: 0
+      };
+      const fields = extractEventFields(event);
+      expect(Array.isArray(fields.content)).toBe(true);
+      expect((fields.content as { type: string; text: string }[])[0].text).toBe('Hello, World!');
+      expect(fields.exit_code).toBe(0);
+    });
+
+    test('extracts from wrapped ActionEvent with run action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          action: 'run',
+          command: 'ls -la'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('ls -la');
+    });
+
+    test('extracts from wrapped ObservationEvent with cmd_output', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          observation: 'cmd_output',
+          content: 'file1.txt\nfile2.txt',
+          exit_code: 0
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.content).toBe('file1.txt\nfile2.txt');
+      expect(fields.exit_code).toBe(0);
+    });
+  });
+
+  describe('file actions/observations', () => {
+    test('extracts fields from FileEditorAction', () => {
+      const event = {
+        kind: 'FileEditorAction',
+        path: '/workspace/test.ts',
+        file_text: 'console.log("hello");'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.path).toBe('/workspace/test.ts');
+      expect(fields.file_text).toBe('console.log("hello");');
+    });
+
+    test('extracts fields from StrReplaceEditorAction', () => {
+      const event = {
+        kind: 'StrReplaceEditorAction',
+        path: '/workspace/test.ts',
+        old_str: 'hello',
+        new_str: 'world'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.path).toBe('/workspace/test.ts');
+      expect(fields.old_str).toBe('hello');
+      expect(fields.new_str).toBe('world');
+    });
+
+    test('extracts fields from FileEditorObservation', () => {
+      const event = {
+        kind: 'FileEditorObservation',
+        path: '/workspace/test.ts',
+        content: 'File content here',
+        error: undefined
+      };
+      const fields = extractEventFields(event);
+      expect(fields.path).toBe('/workspace/test.ts');
+      expect(fields.content).toBe('File content here');
+    });
+
+    test('extracts error from file observation', () => {
+      const event = {
+        kind: 'FileEditorObservation',
+        path: '/workspace/missing.ts',
+        error: 'File not found'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.error).toBe('File not found');
+    });
+
+    test('extracts from wrapped ActionEvent with read action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          action: 'read',
+          path: '/workspace/config.json'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.path).toBe('/workspace/config.json');
+    });
+  });
+
+  describe('MCP actions/observations', () => {
+    test('extracts fields from MCPToolAction', () => {
+      const event = {
+        kind: 'MCPToolAction',
+        tool_name: 'search_files',
+        data: { query: 'test', path: '/workspace' }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.tool_name).toBe('search_files');
+      expect(fields.data).toEqual({ query: 'test', path: '/workspace' });
+    });
+
+    test('extracts fields from MCPToolObservation', () => {
+      const event = {
+        kind: 'MCPToolObservation',
+        tool_name: 'search_files',
+        content: [{ type: 'text' as const, text: 'Found 5 files' }],
+        is_error: false
+      };
+      const fields = extractEventFields(event);
+      expect(fields.tool_name).toBe('search_files');
+      expect(Array.isArray(fields.content)).toBe(true);
+      expect(fields.is_error).toBe(false);
+    });
+
+    test('extracts error flag from MCP observation', () => {
+      const event = {
+        kind: 'MCPToolObservation',
+        tool_name: 'invalid_tool',
+        is_error: true
+      };
+      const fields = extractEventFields(event);
+      expect(fields.is_error).toBe(true);
+    });
+  });
+
+  describe('browser actions', () => {
+    test('extracts fields from BrowserNavigateAction', () => {
+      const event = {
+        kind: 'BrowserNavigateAction',
+        url: 'https://example.com',
+        new_tab: true
+      };
+      const fields = extractEventFields(event);
+      expect(fields.url).toBe('https://example.com');
+      expect(fields.new_tab).toBe(true);
+    });
+
+    test('extracts fields from BrowserClickAction', () => {
+      const event = {
+        kind: 'BrowserClickAction',
+        index: 5,
+        new_tab: false
+      };
+      const fields = extractEventFields(event);
+      expect(fields.index).toBe(5);
+      expect(fields.new_tab).toBe(false);
+    });
+
+    test('extracts fields from BrowserTypeAction', () => {
+      const event = {
+        kind: 'BrowserTypeAction',
+        index: 2,
+        text: 'search query'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.index).toBe(2);
+      expect(fields.text).toBe('search query');
+    });
+
+    test('extracts fields from BrowserScrollAction', () => {
+      const event = {
+        kind: 'BrowserScrollAction',
+        direction: 'down'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.direction).toBe('down');
+    });
+
+    test('extracts fields from BrowserSwitchTabAction', () => {
+      const event = {
+        kind: 'BrowserSwitchTabAction',
+        tab_id: 'tab-123'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.tab_id).toBe('tab-123');
+    });
+
+    test('extracts fields from wrapped browse action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          action: 'browse',
+          url: 'https://test.com'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.url).toBe('https://test.com');
+    });
+  });
+
+  describe('search actions/observations', () => {
+    test('extracts fields from GrepAction', () => {
+      const event = {
+        kind: 'GrepAction',
+        pattern: 'TODO',
+        path: '/workspace',
+        include: '*.ts'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.pattern).toBe('TODO');
+      expect(fields.path).toBe('/workspace');
+      expect(fields.include).toBe('*.ts');
+    });
+
+    test('extracts fields from GrepObservation', () => {
+      const event = {
+        kind: 'GrepObservation',
+        pattern: 'TODO',
+        search_path: '/workspace',
+        matches: ['file1.ts:10: // TODO: fix this', 'file2.ts:20: // TODO: review'],
+        is_error: false
+      };
+      const fields = extractEventFields(event);
+      expect(fields.pattern).toBe('TODO');
+      expect(fields.search_path).toBe('/workspace');
+      expect(fields.matches).toEqual(['file1.ts:10: // TODO: fix this', 'file2.ts:20: // TODO: review']);
+      expect(fields.is_error).toBe(false);
+    });
+
+    test('extracts fields from GlobObservation', () => {
+      const event = {
+        kind: 'GlobObservation',
+        pattern: '*.ts',
+        search_path: '/workspace/src',
+        files: ['index.ts', 'utils.ts', 'types.ts']
+      };
+      const fields = extractEventFields(event);
+      expect(fields.pattern).toBe('*.ts');
+      expect(fields.search_path).toBe('/workspace/src');
+      expect(fields.files).toEqual(['index.ts', 'utils.ts', 'types.ts']);
+    });
+  });
+
+  describe('think/finish actions', () => {
+    test('extracts thought from ThinkAction', () => {
+      const event = {
+        kind: 'ThinkAction',
+        thought: 'I need to analyze the code structure first.'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.thought).toBe('I need to analyze the code structure first.');
+    });
+
+    test('extracts message from FinishAction', () => {
+      const event = {
+        kind: 'FinishAction',
+        message: 'Task completed successfully.'
+      };
+      const fields = extractEventFields(event);
+      expect(fields.message).toBe('Task completed successfully.');
+    });
+
+    test('extracts from wrapped think action', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          action: 'think',
+          thought: 'Let me consider the options.'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.thought).toBe('Let me consider the options.');
+    });
+  });
+
+  describe('task tracker', () => {
+    test('extracts task list from TaskTrackerAction', () => {
+      const event = {
+        kind: 'TaskTrackerAction',
+        command: 'plan',
+        task_list: [
+          { title: 'Task 1', status: 'done' as const },
+          { title: 'Task 2', status: 'in_progress' as const },
+          { title: 'Task 3', status: 'todo' as const, notes: 'Pending review' }
+        ]
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('plan');
+      expect(fields.task_list).toHaveLength(3);
+      expect(fields.task_list?.[0].title).toBe('Task 1');
+      expect(fields.task_list?.[0].status).toBe('done');
+      expect(fields.task_list?.[2].notes).toBe('Pending review');
+    });
+
+    test('extracts task list from TaskTrackerObservation', () => {
+      const event = {
+        kind: 'TaskTrackerObservation',
+        task_list: [
+          { title: 'Updated task', status: 'done' as const }
+        ]
+      };
+      const fields = extractEventFields(event);
+      expect(fields.task_list).toHaveLength(1);
+    });
+  });
+
+  describe('observation linkage', () => {
+    test('extracts action_id from observations', () => {
+      const event = {
+        kind: 'ExecuteBashObservation',
+        action_id: 'action-uuid-123',
+        content: 'Command output',
+        exit_code: 0
+      };
+      const fields = extractEventFields(event);
+      expect(fields.action_id).toBe('action-uuid-123');
+    });
+
+    test('extracts action_id from wrapped ObservationEvent', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          observation: 'run',
+          action_id: 'action-uuid-456',
+          content: 'Output'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.action_id).toBe('action-uuid-456');
+    });
+  });
+
+  describe('error handling', () => {
+    test('extracts error content from error observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          observation: 'error',
+          content: 'Permission denied'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.error).toBe('Permission denied');
+      expect(fields.content).toBe('Permission denied');
+    });
+
+    test('returns empty object for unknown event kind', () => {
+      const event = {
+        kind: 'UnknownEvent',
+        someField: 'someValue'
+      };
+      const fields = extractEventFields(event);
+      expect(Object.keys(fields).length).toBe(0);
+    });
+
+    test('handles event with no kind', () => {
+      const event = {};
+      const fields = extractEventFields(event);
+      expect(Object.keys(fields).length).toBe(0);
+    });
+
+    test('ignores invalid content array', () => {
+      // Intentionally use invalid content format to test error handling
+      const event = {
+        kind: 'ExecuteBashObservation',
+        content: [{ invalid: 'format' }] as unknown,
+        exit_code: 0
+      } as Parameters<typeof extractEventFields>[0];
+      const fields = extractEventFields(event);
+      expect(fields.content).toBeUndefined();
+      expect(fields.exit_code).toBe(0);
+    });
+
+    test('ignores invalid task list', () => {
+      // Intentionally use invalid task format to test error handling
+      const event = {
+        kind: 'TaskTrackerAction',
+        task_list: [{ invalid: 'task' }] as unknown
+      } as Parameters<typeof extractEventFields>[0];
+      const fields = extractEventFields(event);
+      expect(fields.task_list).toBeUndefined();
+    });
+  });
+
+  describe('field priority', () => {
+    test('prefers top-level fields over nested in direct events', () => {
+      const event = {
+        kind: 'ExecuteBashAction',
+        command: 'top-level-command',
+        action: {
+          command: 'nested-command'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('top-level-command');
+    });
+
+    test('extracts from nested action in wrapped ActionEvent', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          action: 'run',
+          command: 'nested-command-only'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('nested-command-only');
+    });
+
+    test('extracts from nested observation in wrapped ObservationEvent', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          observation: 'run',
+          content: 'nested-content-only',
+          exit_code: 1
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.content).toBe('nested-content-only');
+      expect(fields.exit_code).toBe(1);
     });
   });
 });

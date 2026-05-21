@@ -344,15 +344,97 @@ export interface SessionAIStatusMessage {
 }
 
 /**
+ * Content part in OpenHands observations (text or image).
+ * Uses OpenHands field naming conventions for client portability.
+ * See: https://github.com/All-Hands-AI/OpenHands/blob/main/frontend/src/types/v1/core/base/common.ts
+ */
+export interface ContentPart {
+  type: 'text' | 'image';
+  text?: string;
+  image_urls?: string[];  // snake_case per OpenHands convention
+}
+
+/**
+ * Task in a task tracker action/observation.
+ * Uses OpenHands field naming conventions.
+ */
+export interface TaskItem {
+  title: string;
+  status: 'todo' | 'in_progress' | 'done';
+  notes?: string;
+}
+
+/**
  * Agent action event from OpenHands event stream.
  * Represents actions the AI agent performs (running commands, reading files, etc.)
+ * 
+ * IMPORTANT: Field names use snake_case to match OpenHands conventions exactly.
+ * This is intentional for client portability - the client will port rendering
+ * functions directly from OpenHands that expect these exact field names.
+ * See issue #252 for context on why we adopted OpenHands naming conventions.
+ * 
+ * References:
+ * - https://github.com/All-Hands-AI/OpenHands/blob/main/frontend/src/types/v1/core/base/observation.ts
+ * - https://github.com/All-Hands-AI/OpenHands/blob/main/frontend/src/types/v1/core/base/action.ts
  */
 export interface AgentAction {
   id: string;
   timestamp: string;
-  kind: string;  // Event kind: CmdRunAction, FileReadAction, AgentStateChangeEvent, etc.
+  kind: string;  // Exact V1Event kind, e.g., "ExecuteBashObservation"
   source: string;  // Event source: agent, user, environment, hook
   summary: string;  // Human-readable description
+
+  // === Terminal actions/observations ===
+  command?: string;
+  /**
+   * Content from observations. Can be:
+   * - Array of ContentPart objects (native OpenHands format)
+   * - String (flattened for convenience)
+   * Client code should handle both formats.
+   */
+  content?: ContentPart[] | string;
+  exit_code?: number;      // snake_case per OpenHands convention
+  timeout?: boolean;
+
+  // === File actions/observations ===
+  path?: string;
+  file_text?: string;      // snake_case per OpenHands convention
+  old_str?: string;
+  new_str?: string;
+  error?: string;
+
+  // === MCP actions/observations ===
+  tool_name?: string;      // snake_case per OpenHands convention
+  data?: Record<string, unknown>;
+  is_error?: boolean;      // snake_case per OpenHands convention
+
+  // === Browser actions ===
+  url?: string;
+  index?: number;
+  text?: string;
+  direction?: string;
+  tab_id?: string;         // snake_case per OpenHands convention
+  new_tab?: boolean;       // snake_case per OpenHands convention
+  include_screenshot?: boolean;
+  extract_links?: boolean;
+  start_from_char?: number;
+
+  // === Search actions/observations ===
+  pattern?: string;
+  include?: string;
+  search_path?: string;
+  files?: string[];        // Glob results
+  matches?: string[];      // Grep results
+
+  // === Think/Finish actions ===
+  thought?: string;
+  message?: string;
+
+  // === Task tracker ===
+  task_list?: TaskItem[];
+
+  // === Observation linkage ===
+  action_id?: string;  // For observations, links to corresponding action
 }
 
 /**

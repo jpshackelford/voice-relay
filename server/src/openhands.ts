@@ -356,21 +356,92 @@ interface V1ConversationStateUpdateEvent {
   value: Record<string, unknown>;
 }
 
-/** Generic OpenHands event shape for action forwarding */
+/**
+ * Content part in OpenHands events (text or image).
+ * Uses OpenHands field naming conventions for client portability.
+ */
+interface V1ContentPart {
+  type: 'text' | 'image';
+  text?: string;
+  image_urls?: string[];  // snake_case per OpenHands convention
+}
+
+/**
+ * Task item in task tracker events.
+ */
+interface V1TaskItem {
+  title: string;
+  status: 'todo' | 'in_progress' | 'done';
+  notes?: string;
+}
+
+/**
+ * Generic OpenHands event shape for action forwarding.
+ * Extended to capture all fields needed for rich content rendering.
+ * 
+ * IMPORTANT: Field names use snake_case to match OpenHands conventions exactly.
+ * This is intentional for client portability - see issue #252.
+ */
 interface V1Event {
   id?: string;
   timestamp?: string;
   kind?: string;
   source?: string;
-  // Action-specific fields (direct event format)
+  
+  // === Direct event fields ===
   command?: string;
   path?: string;
   thought?: string;
   args?: Record<string, unknown>;
-  // V1 wrapped event format - nested action/observation objects
+  
+  // === V1 wrapped event format - nested action/observation objects ===
   action?: Record<string, unknown> | string;
   observation?: Record<string, unknown>;
-  // For nested structures
+  
+  // === Terminal action/observation fields ===
+  content?: V1ContentPart[] | string;
+  exit_code?: number;
+  timeout?: boolean;
+  
+  // === File action/observation fields ===
+  file_text?: string;
+  old_str?: string;
+  new_str?: string;
+  error?: string;
+  
+  // === MCP action/observation fields ===
+  tool_name?: string;
+  data?: Record<string, unknown>;
+  is_error?: boolean;
+  
+  // === Browser action fields ===
+  url?: string;
+  index?: number;
+  text?: string;
+  direction?: string;
+  tab_id?: string;
+  new_tab?: boolean;
+  include_screenshot?: boolean;
+  extract_links?: boolean;
+  start_from_char?: number;
+  
+  // === Search action/observation fields ===
+  pattern?: string;
+  include?: string;
+  search_path?: string;
+  files?: string[];
+  matches?: string[];
+  
+  // === Think/Finish action fields ===
+  message?: string;
+  
+  // === Task tracker fields ===
+  task_list?: V1TaskItem[];
+  
+  // === Observation linkage ===
+  action_id?: string;
+  
+  // For nested structures and unknown fields
   [key: string]: unknown;
 }
 
@@ -612,6 +683,364 @@ export function formatEventSummary(event: V1Event): string {
       // For unknown types, use the kind as the summary with cleaned name
       return kind.replace(/Action$|Observation$|Event$/i, '');
   }
+}
+
+/**
+ * Extracted fields from a V1Event for rich content rendering.
+ * Uses snake_case field names to match OpenHands conventions for client portability.
+ * See issue #252 for context on why we adopted OpenHands naming conventions.
+ */
+export interface ExtractedEventFields {
+  // Terminal actions/observations
+  command?: string;
+  content?: V1ContentPart[] | string;
+  exit_code?: number;
+  timeout?: boolean;
+  
+  // File actions/observations
+  path?: string;
+  file_text?: string;
+  old_str?: string;
+  new_str?: string;
+  error?: string;
+  
+  // MCP actions/observations
+  tool_name?: string;
+  data?: Record<string, unknown>;
+  is_error?: boolean;
+  
+  // Browser actions
+  url?: string;
+  index?: number;
+  text?: string;
+  direction?: string;
+  tab_id?: string;
+  new_tab?: boolean;
+  include_screenshot?: boolean;
+  extract_links?: boolean;
+  start_from_char?: number;
+  
+  // Search actions/observations
+  pattern?: string;
+  include?: string;
+  search_path?: string;
+  files?: string[];
+  matches?: string[];
+  
+  // Think/Finish actions
+  thought?: string;
+  message?: string;
+  
+  // Task tracker
+  task_list?: V1TaskItem[];
+  
+  // Observation linkage
+  action_id?: string;
+}
+
+/**
+ * Helper to safely extract a string field from an object.
+ */
+function extractString(obj: Record<string, unknown> | undefined, key: string): string | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * Helper to safely extract a number field from an object.
+ */
+function extractNumber(obj: Record<string, unknown> | undefined, key: string): number | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  return typeof value === 'number' ? value : undefined;
+}
+
+/**
+ * Helper to safely extract a boolean field from an object.
+ */
+function extractBoolean(obj: Record<string, unknown> | undefined, key: string): boolean | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+/**
+ * Helper to safely extract a data object field from an object.
+ * Returns undefined if value is not a plain object (rejects null, arrays, primitives).
+ */
+function extractData(obj: Record<string, unknown> | undefined, key: string): Record<string, unknown> | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  return (typeof value === 'object' && value !== null && !Array.isArray(value))
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+/**
+ * Helper to safely extract a string array field from an object.
+ */
+function extractStringArray(obj: Record<string, unknown> | undefined, key: string): string[] | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  if (Array.isArray(value) && value.every(item => typeof item === 'string')) {
+    return value as string[];
+  }
+  return undefined;
+}
+
+/**
+ * Helper to safely extract content which can be an array of content parts or a string.
+ * Validates that content parts have the correct structure including field types.
+ */
+function extractContent(obj: Record<string, unknown> | undefined, key: string): V1ContentPart[] | string | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    // Check if it's an array of content parts with strict type validation
+    const isContentParts = value.every(item => {
+      if (typeof item !== 'object' || item === null || !('type' in item)) return false;
+      const partItem = item as Record<string, unknown>;
+      if (partItem.type === 'text') {
+        // text field must be string if present
+        return !('text' in partItem) || typeof partItem.text === 'string';
+      }
+      if (partItem.type === 'image') {
+        // image_urls must be array of strings if present
+        return !('image_urls' in partItem) || 
+          (Array.isArray(partItem.image_urls) && partItem.image_urls.every(u => typeof u === 'string'));
+      }
+      return false;
+    });
+    if (isContentParts) {
+      return value as V1ContentPart[];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Helper to safely extract task list from an object.
+ * Validates that task items have the correct structure including optional notes field.
+ * Returns empty array for empty input arrays (to distinguish "no tasks yet" from "field absent").
+ */
+function extractTaskList(obj: Record<string, unknown> | undefined, key: string): V1TaskItem[] | undefined {
+  if (!obj) return undefined;
+  const value = obj[key];
+  if (Array.isArray(value)) {
+    const validTasks = value.filter(item => {
+      if (typeof item !== 'object' || item === null) return false;
+      const taskItem = item as Record<string, unknown>;
+      // Required: title must be string
+      if (!('title' in taskItem) || typeof taskItem.title !== 'string') return false;
+      // Required: status must be valid enum value
+      if (!('status' in taskItem) || !['todo', 'in_progress', 'done'].includes(taskItem.status as string)) return false;
+      // Optional: notes must be string if present
+      if ('notes' in taskItem && typeof taskItem.notes !== 'string') return false;
+      return true;
+    });
+    // Return array if we have valid tasks OR if input was an empty array
+    // This preserves the semantic distinction: [] means "no tasks yet", undefined means "field absent"
+    if (validTasks.length > 0 || value.length === 0) {
+      return validTasks as V1TaskItem[];
+    }
+  }
+  return undefined;
+}
+
+// Sets of known event kinds for exact matching - more maintainable than string.includes()
+// and prevents false matches (e.g., 'Terminal' matching hypothetical 'TerminalEmulator')
+//
+// MAINTENANCE NOTE: These event kinds must be kept in sync with OpenHands upstream.
+// When OpenHands adds new action/observation types, update the relevant Set below.
+// Reference: https://github.com/All-Hands-AI/OpenHands/tree/main/openhands/events
+// See also: openhands/events/action/ and openhands/events/observation/ directories
+// for the canonical list of event types in the OpenHands codebase.
+const TERMINAL_KINDS = new Set([
+  'TerminalAction', 'TerminalObservation',
+  'ExecuteBashAction', 'ExecuteBashObservation',
+  'CmdRunAction', 'CmdOutputObservation'
+]);
+const FILE_KINDS = new Set([
+  'FileReadAction', 'FileReadObservation',
+  'FileWriteAction', 'FileWriteObservation',
+  'FileEditAction', 'FileEditObservation',
+  'EditorAction', 'EditorObservation',
+  'FileEditorAction', 'FileEditorObservation',
+  'StrReplaceAction', 'StrReplaceObservation',
+  'StrReplaceEditorAction', 'StrReplaceEditorObservation'
+]);
+const MCP_KINDS = new Set([
+  'MCPAction', 'MCPObservation',
+  'MCPToolAction', 'MCPToolObservation',
+  'ToolAction', 'ToolObservation'
+]);
+const BROWSER_KINDS = new Set([
+  'BrowserAction', 'BrowserObservation',
+  'BrowseAction', 'BrowseObservation',
+  'BrowserNavigateAction', 'BrowserClickAction', 'BrowserTypeAction',
+  'BrowserScrollAction', 'BrowserGetStateAction', 'BrowserGetContentAction',
+  'BrowserSwitchTabAction', 'BrowserCloseTabAction', 'BrowserListTabsAction',
+  'BrowserGoBackAction', 'BrowserGetStorageAction', 'BrowserSetStorageAction',
+  'BrowserStartRecordingAction', 'BrowserStopRecordingAction'
+]);
+const SEARCH_KINDS = new Set([
+  'GrepAction', 'GrepObservation',
+  'GlobAction', 'GlobObservation',
+  'SearchAction', 'SearchObservation'
+]);
+const THINK_KINDS = new Set(['ThinkAction', 'AgentThinkAction']);
+const FINISH_KINDS = new Set(['FinishAction', 'AgentFinishAction']);
+const TASK_TRACKER_KINDS = new Set(['TaskTrackerAction', 'TaskTrackerObservation']);
+const OBSERVATION_KINDS = new Set([
+  'ObservationEvent', 'TerminalObservation', 'ExecuteBashObservation',
+  'CmdOutputObservation', 'FileReadObservation', 'FileWriteObservation',
+  'FileEditObservation', 'EditorObservation', 'FileEditorObservation',
+  'StrReplaceObservation', 'StrReplaceEditorObservation',
+  'MCPObservation', 'MCPToolObservation', 'ToolObservation',
+  'BrowserObservation', 'BrowseObservation',
+  'GrepObservation', 'GlobObservation', 'SearchObservation', 'TaskTrackerObservation'
+]);
+
+/**
+ * Extract relevant fields from a V1Event based on its kind.
+ * 
+ * This function examines the event kind and extracts the appropriate fields
+ * from either the top-level event object or nested action/observation objects.
+ * 
+ * IMPORTANT: Field names use snake_case to match OpenHands conventions exactly.
+ * This is intentional for client portability - see issue #252.
+ * 
+ * @param event - The V1Event to extract fields from
+ * @returns Object containing only the relevant extracted fields
+ */
+export function extractEventFields(event: V1Event): ExtractedEventFields {
+  const kind = event.kind || '';
+  const result: ExtractedEventFields = {};
+  
+  // Cast event to Record for extraction helpers (V1Event has index signature)
+  const eventObj = event as Record<string, unknown>;
+  
+  // Get nested action/observation objects if present
+  const actionObj = typeof event.action === 'object' ? event.action as Record<string, unknown> : undefined;
+  const obsObj = typeof event.observation === 'object' ? event.observation as Record<string, unknown> : undefined;
+  
+  // For wrapped events (ActionEvent, ObservationEvent), prefer nested object fields
+  // For direct events (TerminalAction, etc.), use top-level fields
+  const isActionEvent = kind === 'ActionEvent';
+  const isObservationEvent = kind === 'ObservationEvent';
+  
+  // Determine the actual action/observation type for wrapped events
+  const actionType = isActionEvent ? extractString(actionObj, 'action') : undefined;
+  const obsType = isObservationEvent ? extractString(obsObj, 'observation') : undefined;
+  
+  // === Terminal actions/observations ===
+  // Matches: TerminalAction, ExecuteBashAction, CmdRunAction, and their observations
+  const isTerminalEvent = TERMINAL_KINDS.has(kind) || actionType === 'run' || obsType === 'run' || obsType === 'cmd_output';
+  if (isTerminalEvent) {
+    result.command = extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
+    result.content = extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
+    result.exit_code = extractNumber(eventObj, 'exit_code') ?? extractNumber(obsObj, 'exit_code');
+    result.timeout = extractBoolean(eventObj, 'timeout') ?? extractBoolean(obsObj, 'timeout');
+  }
+  
+  // === File actions/observations ===
+  // Matches: FileReadAction, FileWriteAction, FileEditAction, EditorAction, StrReplaceAction
+  const isFileEvent = FILE_KINDS.has(kind) ||
+      actionType === 'read' || actionType === 'write' || actionType === 'edit' ||
+      obsType === 'read' || obsType === 'write' || obsType === 'edit';
+  if (isFileEvent) {
+    result.path = extractString(eventObj, 'path') ?? extractString(actionObj, 'path') ?? extractString(obsObj, 'path');
+    result.file_text = extractString(eventObj, 'file_text') ?? extractString(actionObj, 'file_text') ?? extractString(obsObj, 'file_text');
+    result.old_str = extractString(eventObj, 'old_str') ?? extractString(actionObj, 'old_str');
+    result.new_str = extractString(eventObj, 'new_str') ?? extractString(actionObj, 'new_str');
+    // Priority: terminal content > file content (preserves earlier extraction)
+    result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
+    result.error = extractString(eventObj, 'error') ?? extractString(obsObj, 'error');
+  }
+  
+  // === MCP actions/observations ===
+  // Matches: MCPAction, MCPObservation, ToolAction, ToolObservation
+  const isMCPEvent = MCP_KINDS.has(kind);
+  if (isMCPEvent) {
+    result.tool_name = extractString(eventObj, 'tool_name') ?? extractString(actionObj, 'tool_name') ?? extractString(obsObj, 'tool_name');
+    result.data = extractData(eventObj, 'data') ?? extractData(actionObj, 'data');
+    // Priority: terminal/file content > MCP content (preserves earlier extraction)
+    result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
+    result.is_error = extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
+  }
+  
+  // === Browser actions ===
+  // Matches: BrowserAction, BrowseAction, and specific browser action types
+  const isBrowserEvent = BROWSER_KINDS.has(kind) || actionType === 'browse' || actionType === 'browse_url' || actionType === 'browse_interactive' ||
+      obsType === 'browse' || obsType === 'browser';
+  if (isBrowserEvent) {
+    result.url = extractString(eventObj, 'url') ?? extractString(actionObj, 'url') ?? extractString(obsObj, 'url');
+    result.index = extractNumber(eventObj, 'index') ?? extractNumber(actionObj, 'index');
+    result.text = extractString(eventObj, 'text') ?? extractString(actionObj, 'text');
+    result.direction = extractString(eventObj, 'direction') ?? extractString(actionObj, 'direction');
+    result.tab_id = extractString(eventObj, 'tab_id') ?? extractString(actionObj, 'tab_id');
+    result.new_tab = extractBoolean(eventObj, 'new_tab') ?? extractBoolean(actionObj, 'new_tab');
+    result.include_screenshot = extractBoolean(eventObj, 'include_screenshot') ?? extractBoolean(actionObj, 'include_screenshot');
+    result.extract_links = extractBoolean(eventObj, 'extract_links') ?? extractBoolean(actionObj, 'extract_links');
+    result.start_from_char = extractNumber(eventObj, 'start_from_char') ?? extractNumber(actionObj, 'start_from_char');
+  }
+  
+  // === Search actions/observations (Grep, Glob) ===
+  // Matches: GrepAction, GlobAction, SearchAction and their observations
+  const isSearchEvent = SEARCH_KINDS.has(kind);
+  if (isSearchEvent) {
+    result.pattern = extractString(eventObj, 'pattern') ?? extractString(actionObj, 'pattern') ?? extractString(obsObj, 'pattern');
+    result.include = extractString(eventObj, 'include') ?? extractString(actionObj, 'include');
+    result.search_path = extractString(eventObj, 'search_path') ?? extractString(obsObj, 'search_path');
+    // Priority: file path > search path (preserves earlier extraction)
+    result.path = result.path ?? extractString(eventObj, 'path') ?? extractString(actionObj, 'path');
+    result.files = extractStringArray(eventObj, 'files') ?? extractStringArray(obsObj, 'files');
+    result.matches = extractStringArray(eventObj, 'matches') ?? extractStringArray(obsObj, 'matches');
+    // Priority: MCP is_error > search is_error (preserves earlier extraction)
+    result.is_error = result.is_error ?? extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
+  }
+  
+  // === Think actions ===
+  // Matches: ThinkAction
+  const isThinkEvent = THINK_KINDS.has(kind) || actionType === 'think';
+  if (isThinkEvent) {
+    result.thought = extractString(eventObj, 'thought') ?? extractString(actionObj, 'thought');
+  }
+  
+  // === Finish actions ===
+  // Matches: FinishAction
+  const isFinishEvent = FINISH_KINDS.has(kind) || actionType === 'finish';
+  if (isFinishEvent) {
+    result.message = extractString(eventObj, 'message') ?? extractString(actionObj, 'message') ?? extractString(actionObj, 'content');
+  }
+  
+  // === Task tracker ===
+  // Matches: TaskTrackerAction, TaskTrackerObservation
+  const isTaskTrackerEvent = TASK_TRACKER_KINDS.has(kind);
+  if (isTaskTrackerEvent) {
+    // Priority: terminal command > task tracker command (preserves earlier extraction)
+    result.command = result.command ?? extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
+    result.task_list = extractTaskList(eventObj, 'task_list') ?? extractTaskList(actionObj, 'task_list') ?? extractTaskList(obsObj, 'task_list');
+  }
+  
+  // === Observation linkage ===
+  // Matches: ObservationEvent and all *Observation kinds
+  const isObservation = isObservationEvent || OBSERVATION_KINDS.has(kind);
+  if (isObservation) {
+    result.action_id = extractString(eventObj, 'action_id') ?? extractString(obsObj, 'action_id');
+  }
+  
+  // === Error handling for any observation ===
+  if (obsType === 'error') {
+    result.error = result.error ?? extractString(obsObj, 'content');
+    result.content = result.content ?? extractContent(obsObj, 'content');
+  }
+  
+  return result;
 }
 
 /** Callback type for thinking state changes */
@@ -923,12 +1352,17 @@ export class AISessionManager {
           
           // Forward action events to the session via callback
           if (this.onAction && session.sessionId) {
+            // Extract relevant fields based on event kind for rich content rendering
+            const extractedFields = extractEventFields(event as V1Event);
+            
             const action: AgentAction = {
               id: event.id || crypto.randomUUID(),
               timestamp: event.timestamp || new Date().toISOString(),
               kind: event.kind,
               source: event.source || 'unknown',
               summary: formatEventSummary(event as V1Event),
+              // Spread extracted fields (only non-undefined values will be present)
+              ...extractedFields,
             };
             this.onAction(session.sessionId, action);
           }
