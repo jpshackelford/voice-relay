@@ -1541,3 +1541,174 @@ describe('extractEffectiveKind', () => {
     });
   });
 });
+
+// =============================================================================
+// Follow-up to PR #258: validation against real production event structures
+// surfaced several gaps the original PR did not address. The tests below pin
+// the fixes for:
+//   1. formatEventSummary honoring the top-level `event.summary` field
+//   2. extractEventFields populating file_editor `command` and InvokeSkill
+//      `skill_name`
+//   3. Linkage of ThinkObservation / InvokeSkillObservation via action_id
+// =============================================================================
+describe('PR #258 follow-up: summary + missing event content', () => {
+  describe('formatEventSummary prefers top-level event.summary', () => {
+    test('ActionEvent returns event.summary when present', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        summary: 'Display greeting on kiosk to confirm AI connection',
+        action: {
+          kind: 'TerminalAction',
+          command: 'curl ...'
+        }
+      };
+      expect(formatEventSummary(event)).toBe(
+        'Display greeting on kiosk to confirm AI connection'
+      );
+    });
+
+    test('ObservationEvent returns event.summary when present', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'environment',
+        summary: 'Result of greeting render',
+        observation: {
+          kind: 'TerminalObservation',
+          content: 'ok'
+        }
+      };
+      expect(formatEventSummary(event)).toBe('Result of greeting render');
+    });
+
+    test('truncates long summaries', () => {
+      const longSummary = 'x'.repeat(200);
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        summary: longSummary,
+        action: { kind: 'TerminalAction' }
+      };
+      const result = formatEventSummary(event);
+      expect(result.length).toBeLessThanOrEqual(80);
+      expect(result.endsWith('...')).toBe(true);
+    });
+
+    test('falls back to legacy formatting when summary is empty', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        summary: '   ',
+        action: { action: 'finish' }
+      };
+      expect(formatEventSummary(event)).toBe('Task completed');
+    });
+
+    test('falls back to legacy formatting when summary is absent', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: { action: 'run', command: 'ls' }
+      };
+      expect(formatEventSummary(event)).toBe('ls');
+    });
+
+    test('does not short-circuit on direct-event kinds', () => {
+      // Direct kinds like CmdRunAction never carry a top-level `summary`
+      // in practice; ensure the new short-circuit only fires on wrapped events.
+      const event = {
+        kind: 'CmdRunAction',
+        source: 'agent',
+        summary: 'should be ignored for direct events',
+        command: 'echo hi'
+      };
+      expect(formatEventSummary(event)).toBe('echo hi');
+    });
+  });
+
+  describe('extractEventFields for FileEditor actions', () => {
+    test('extracts command + path for view operations', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          kind: 'FileEditorAction',
+          command: 'view',
+          path: '/workspace/README.md'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('view');
+      expect(fields.path).toBe('/workspace/README.md');
+    });
+
+    test('extracts command + old_str/new_str for str_replace', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          kind: 'FileEditorAction',
+          command: 'str_replace',
+          path: '/workspace/README.md',
+          old_str: '# Project',
+          new_str: '# My Project'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('str_replace');
+      expect(fields.old_str).toBe('# Project');
+      expect(fields.new_str).toBe('# My Project');
+    });
+  });
+
+  describe('extractEventFields for InvokeSkill events', () => {
+    test('extracts skill_name from action.name', () => {
+      const event = {
+        kind: 'ActionEvent',
+        source: 'agent',
+        action: {
+          kind: 'InvokeSkillAction',
+          name: 'github'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.skill_name).toBe('github');
+    });
+
+    test('extracts skill_name + content + action_id from observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'environment',
+        action_id: 'a-1',
+        observation: {
+          kind: 'InvokeSkillObservation',
+          skill_name: 'github',
+          is_error: false,
+          content: [{ type: 'text', text: 'Skill complete.' }]
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.skill_name).toBe('github');
+      expect(fields.content).toEqual([{ type: 'text', text: 'Skill complete.' }]);
+      expect(fields.is_error).toBe(false);
+      expect(fields.action_id).toBe('a-1');
+    });
+  });
+
+  describe('extractEventFields for ThinkObservation', () => {
+    test('forwards content + action_id', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        source: 'environment',
+        action_id: 'think-1',
+        observation: {
+          kind: 'ThinkObservation',
+          content: [{ type: 'text', text: 'Thought recorded.' }]
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.content).toEqual([{ type: 'text', text: 'Thought recorded.' }]);
+      expect(fields.action_id).toBe('think-1');
+    });
+  });
+});

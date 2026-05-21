@@ -590,7 +590,16 @@ function formatObservationEvent(event: V1Event): string {
  */
 export function formatEventSummary(event: V1Event): string {
   const kind = event.kind || 'Unknown';
-  
+
+  // Real OpenHands ActionEvents carry a top-level descriptive `summary` field
+  // (e.g. "Display greeting on kiosk to confirm AI connection"). Prefer it over
+  // the generic "Action" fallback we would otherwise derive from the nested
+  // action object. See PR #258 follow-up for validation details.
+  if ((kind === 'ActionEvent' || kind === 'ObservationEvent') &&
+      typeof event.summary === 'string' && event.summary.trim()) {
+    return truncate(event.summary, 80);
+  }
+
   // Handle V1 wrapped event formats first
   switch (kind) {
     case 'ActionEvent':
@@ -730,7 +739,10 @@ export interface ExtractedEventFields {
   // Think/Finish actions
   thought?: string;
   message?: string;
-  
+
+  // Invoke skill actions/observations
+  skill_name?: string;
+
   // Task tracker
   task_list?: V1TaskItem[];
   
@@ -893,8 +905,10 @@ const SEARCH_KINDS = new Set([
   'SearchAction', 'SearchObservation'
 ]);
 const THINK_KINDS = new Set(['ThinkAction', 'AgentThinkAction']);
+const THINK_OBSERVATION_KINDS = new Set(['ThinkObservation']);
 const FINISH_KINDS = new Set(['FinishAction', 'AgentFinishAction']);
 const TASK_TRACKER_KINDS = new Set(['TaskTrackerAction', 'TaskTrackerObservation']);
+const INVOKE_SKILL_KINDS = new Set(['InvokeSkillAction', 'InvokeSkillObservation']);
 const OBSERVATION_KINDS = new Set([
   'ObservationEvent', 'TerminalObservation', 'ExecuteBashObservation',
   'CmdOutputObservation', 'FileReadObservation', 'FileWriteObservation',
@@ -902,7 +916,8 @@ const OBSERVATION_KINDS = new Set([
   'StrReplaceObservation', 'StrReplaceEditorObservation',
   'MCPObservation', 'MCPToolObservation', 'ToolObservation',
   'BrowserObservation', 'BrowseObservation',
-  'GrepObservation', 'GlobObservation', 'SearchObservation', 'TaskTrackerObservation'
+  'GrepObservation', 'GlobObservation', 'SearchObservation', 'TaskTrackerObservation',
+  'ThinkObservation', 'InvokeSkillObservation'
 ]);
 
 /**
@@ -994,6 +1009,10 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
     result.file_text = extractString(eventObj, 'file_text') ?? extractString(actionObj, 'file_text') ?? extractString(obsObj, 'file_text');
     result.old_str = extractString(eventObj, 'old_str') ?? extractString(actionObj, 'old_str');
     result.new_str = extractString(eventObj, 'new_str') ?? extractString(actionObj, 'new_str');
+    // FileEditor actions use `command` to indicate the operation
+    // (view | create | str_replace | insert). Distinct from the terminal
+    // shell command - the client routes by `kind`.
+    result.command = result.command ?? extractString(eventObj, 'command') ?? extractString(actionObj, 'command');
     // Priority: terminal content > file content (preserves earlier extraction)
     result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
     result.error = extractString(eventObj, 'error') ?? extractString(obsObj, 'error');
@@ -1052,6 +1071,29 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
       (actionKind && THINK_KINDS.has(actionKind));
   if (isThinkEvent) {
     result.thought = extractString(eventObj, 'thought') ?? extractString(actionObj, 'thought');
+  }
+
+  // === Think observations ===
+  // Matches: ThinkObservation - just needs content forwarded for rendering
+  const isThinkObservation = THINK_OBSERVATION_KINDS.has(kind) ||
+      (obsKind && THINK_OBSERVATION_KINDS.has(obsKind));
+  if (isThinkObservation) {
+    result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
+  }
+
+  // === Invoke skill actions/observations ===
+  // Matches: InvokeSkillAction, InvokeSkillObservation
+  // Real events have `name` on the action and `skill_name` on the observation.
+  const isInvokeSkillEvent = INVOKE_SKILL_KINDS.has(kind) ||
+      (actionKind && INVOKE_SKILL_KINDS.has(actionKind)) ||
+      (obsKind && INVOKE_SKILL_KINDS.has(obsKind));
+  if (isInvokeSkillEvent) {
+    result.skill_name = extractString(eventObj, 'name')
+      ?? extractString(actionObj, 'name')
+      ?? extractString(eventObj, 'skill_name')
+      ?? extractString(obsObj, 'skill_name');
+    result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
+    result.is_error = result.is_error ?? extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
   }
   
   // === Finish actions ===
