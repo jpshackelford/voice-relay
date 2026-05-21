@@ -21,10 +21,16 @@ interface AgentEventCardProps {
 /**
  * Parse markdown to sanitized HTML.
  * Uses marked for parsing and DOMPurify for XSS protection.
+ * Falls back to sanitized plaintext if parsing fails.
  */
 function parseMarkdown(text: string): string {
-  const rawHtml = marked.parse(text) as string;
-  return DOMPurify.sanitize(rawHtml);
+  try {
+    const rawHtml = marked.parse(text) as string;
+    return DOMPurify.sanitize(rawHtml);
+  } catch (error) {
+    console.error('Markdown parsing failed:', error);
+    return DOMPurify.sanitize(text);
+  }
 }
 
 /**
