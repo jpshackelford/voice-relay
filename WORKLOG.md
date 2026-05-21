@@ -908,3 +908,43 @@ Automation has been disabled to prevent unnecessary runs.
 3. Automation is re-enabled manually
 
 ---
+
+### 2026-05-21 06:45 UTC - Orchestrator (Manual)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **Status Check** - Manual `/orchestrate` invocation
+
+**Current State:**
+- **Automation:** DISABLED (auto-disabled at 06:30 UTC)
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - Draft, `needs-human` label (STUCK)
+- **Open Issues:** 3 (all `on-hold`)
+  - #208 - Add circuit breaker for deployments (`ci-failure`, `on-hold`)
+  - #210 - Categorize deployment failures (`enhancement`, `on-hold`)
+  - #239 - Flaky AI integration tests (`bug`, `ci-failure`, `on-hold`)
+- **Ready Issues:** 0
+- **Issues Needing Expansion:** 0 (all on-hold)
+
+**Recent Completed Work (last 24h):**
+- ✅ PR #254 merged - Server: Extract V1Event fields (Issue #252)
+- ✅ PR #255 merged - Client: Rich content rendering (Issue #253)
+
+**Action Taken:** None - no actionable work available
+
+**To resume automated workflow:**
+1. **Create new issues** for the automation to expand and implement, OR
+2. **Remove `on-hold` label** from existing issues (#208, #210, #239), OR
+3. **Address PR #221** and remove `needs-human` label
+4. **Re-enable automation** via API:
+   ```bash
+   curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+     -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+     -H "Content-Type: application/json" \
+     -d '{"enabled": true}'
+   ```
+
+---
