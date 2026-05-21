@@ -1121,21 +1121,106 @@ header {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
   border-top: 1px solid rgba(155, 89, 182, 0.2);
-  font-size: 0.75rem;
-  color: #888;
+  font-size: 0.8rem;
+  color: #ccc;
 }
 
 .agent-event-content {
   display: block;
-  font-family: monospace;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #c39bd3;
-  background: rgba(155, 89, 182, 0.1);
   padding: 0.5rem;
   border-radius: 4px;
-  white-space: pre-wrap;
   word-break: break-word;
   overflow-x: auto;
+}
+
+/* Markdown rendering in agent event content */
+.agent-event-content p {
+  margin: 0 0 0.5rem 0;
+}
+
+.agent-event-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Code blocks in agent event content */
+.agent-event-content pre {
+  background: rgba(155, 89, 182, 0.15);
+  border: 1px solid rgba(155, 89, 182, 0.3);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agent-event-content pre code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  color: #e0d4eb;
+  background: none;
+  padding: 0;
+}
+
+/* Inline code in agent event content */
+.agent-event-content code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  background: rgba(155, 89, 182, 0.2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  color: #d4a5e8;
+}
+
+/* Bold text in agent event content */
+.agent-event-content strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Italic text in agent event content */
+.agent-event-content em {
+  color: #b8a8c8;
+  font-style: italic;
+}
+
+/* Lists in agent event content (task lists, file lists, etc.) */
+.agent-event-content ul,
+.agent-event-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.agent-event-content li {
+  margin: 0.25rem 0;
+  line-height: 1.4;
+}
+
+/* Task list items with status icons */
+.agent-event-content li::marker {
+  color: #9b59b6;
+}
+
+/* Headings in agent event content (for task list headers) */
+.agent-event-content h1,
+.agent-event-content h2,
+.agent-event-content h3 {
+  font-size: 0.85rem;
+  color: #fff;
+  margin: 0.5rem 0 0.25rem 0;
+  font-weight: 600;
+}
+
+/* Links in agent event content */
+.agent-event-content a {
+  color: #a66bbe;
+  text-decoration: none;
+}
+
+.agent-event-content a:hover {
+  text-decoration: underline;
 }
 
 /* Mobile responsive styles for agent event cards */
