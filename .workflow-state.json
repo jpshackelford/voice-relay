@@ -1,7 +1,13 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "33551cf",
+        "issue": 257,
+        "started": "2026-05-21T12:03:59.833667+00:00"
+      }
+    ],
     "implementation": [],
     "review": []
   },
@@ -10,35 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T10:50:36.513065+00:00",
+  "last_updated": "2026-05-21T12:03:59.833681+00:00",
   "completed": [
-    {
-      "conv_id": "033ea38",
-      "type": "expansion",
-      "issue": 245,
-      "started": "2026-05-20T11:31:58.437483+00:00",
-      "finished": "2026-05-20T11:47:50.844895+00:00",
-      "status": "success",
-      "outcome": "Expanded issue #245 - added ready label"
-    },
-    {
-      "conv_id": "8530b64",
-      "type": "expansion",
-      "issue": 246,
-      "started": "2026-05-20T11:32:11.179341+00:00",
-      "finished": "2026-05-20T11:47:50.844895+00:00",
-      "status": "success",
-      "outcome": "Expanded issue #246 - added ready label"
-    },
-    {
-      "conv_id": "e28bbe1",
-      "type": "expansion",
-      "issue": 247,
-      "started": "2026-05-20T11:32:19.764546+00:00",
-      "finished": "2026-05-20T11:47:50.844895+00:00",
-      "status": "success",
-      "outcome": "Expanded issue #247 - added ready label"
-    },
     {
       "conv_id": "4fa0e32",
       "type": "implementation",
