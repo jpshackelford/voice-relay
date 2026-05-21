@@ -1,3 +1,33 @@
+### 2026-05-21 10:42 UTC - Manual Intervention (jpshackelford + OpenHands)
+
+⚠️ **Created PR #256 to properly merge client-side changes to main**
+
+- PR: [#256 - feat(client): implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/pull/256)
+- Branch: `feature/252-extract-v1event-fields` → `main`
+
+**Context:**
+PR #255 (client-side rich content rendering) was merged to the `feature/252-extract-v1event-fields` branch instead of `main`. This bypassed the automated review process since PR reviews only trigger on PRs targeting `main`.
+
+The client-side changes implementing issue #253 are complete and tested (67 new tests), but have not been reviewed against the original requirements or deployed to production.
+
+**PR #256 Purpose:**
+- Merge the client-side changes from `feature/252-extract-v1event-fields` to `main`
+- Frame the implementation against issue #253's acceptance criteria for proper review
+- Enable automated review to validate implementation matches requirements
+
+**Review Focus:**
+1. Verify rendering templates match spec from issue #247/#253
+2. Check all event types render correctly (terminal, file, MCP, browser, search, task tracker)
+3. Confirm success indicators work with `exit_code`, `is_error`, `timeout` fields
+4. Validate XSS protection via DOMPurify
+5. Ensure backward compatibility with legacy fields
+
+**Also in this session:**
+- Updated `enable-orchestrator.yml` to trigger on PR events (opened, ready_for_review, reopened)
+- This ensures orchestrator wakes up for PRs, not just issues
+
+---
+
 ### 2026-05-21 04:05 UTC - Merge Worker
 
 ✅ **Merged PR #255 → feature/252-extract-v1event-fields**
