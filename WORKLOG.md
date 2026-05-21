@@ -328,3 +328,41 @@ Both automations have been disabled to prevent unnecessary runs.
 | Review | 1 | 1 | 2 |
 
 ---
+
+### 2026-05-21 03:30 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6f93c0c` | review | PR #254 - V1Event field extraction | **NEW** |
+| `7b96649` | review | PR #255 - Client rich content rendering | **NEW** |
+
+**Worker Completed:** `d077822` (review)
+- ✅ Addressed documentation review comment for PR #254
+
+**Spawned: 2 Review Workers (parallel)**
+
+1. **Review Worker (PR #254)**
+   - PR: [#254 - feat: extract V1Event fields](https://github.com/jpshackelford/voice-relay/pull/254)
+   - Task: Address 1 unresolved review thread (empty array handling consistency)
+   - Conversation: [`6f93c0c`](https://app.all-hands.dev/conversations/6f93c0cf7b354862a0c3105d8a0f849f)
+
+2. **Review Worker (PR #255)**
+   - PR: [#255 - feat(client): rich content rendering](https://github.com/jpshackelford/voice-relay/pull/255)
+   - Task: Address 3 unresolved review threads (error handling, map-based dispatch, useMemo optimization)
+   - Conversation: [`7b96649`](https://app.all-hands.dev/conversations/7b96649954644683a93e317615102c1a)
+
+**Current State:**
+- Open PRs: #254 (1 unresolved thread), #255 (3 unresolved threads), #221 (draft, needs-human)
+- Ready issues: #252 (has PR #254), #253 (has PR #255)
+- Issues on-hold: #208, #210, #239
+- No issues need expansion
+
+**Available Slots:**
+| Type | Active | Available | Max |
+|------|--------|-----------|-----|
+| Expansion | 0 | 4 | 4 |
+| Implementation | 0 | 1 | 1 |
+| Review | 2 | 0 | 2 |
+
+---
