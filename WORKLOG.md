@@ -808,3 +808,42 @@ PR #259 is now in ready state with all blocking checks green. Addressing `pr-rev
 
 ---
 
+
+### 2026-05-21 22:53 UTC - Orchestrator
+
+**⚠️ Ghost Worker Detected & Replaced**
+
+Previous merge worker `f9ebd19` (logged at 22:33 UTC) does **not exist** in the OpenHands conversations API. Likely a silent spawn failure — the conv ID was logged but no conversation was actually created. PR #259 was still open and unmerged.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0df29e2` | merge | PR #259 | **NEW** (replacement) |
+
+🚀 **Spawned: Merge Worker (replacement)**
+- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
+- Conversation: [`0df29e2`](https://app.all-hands.dev/conversations/0df29e2ec1694860bd6210effa231e43)
+- Verified: `execution_status=running`, `sandbox_status=RUNNING`
+- Re-verified PR ready to merge: not draft, MERGEABLE, mergeStateStatus CLEAN, all CI green, no review threads pending
+- Note: Previous spawn at 22:33 UTC apparently silently failed; ghost `f9ebd19` moved to completed with status `ghost`
+
+**Current State:**
+- **Open PRs:** 2
+  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) — being merged (worker `0df29e2`)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, draft, CONFLICTING; skipped)
+- **Open Issues:** 3 (all `on-hold`)
+  - #208 — Add circuit breaker for deployments
+  - #210 — Categorize deployment failures
+  - #239 — Flaky AI integration tests
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | Available (no `ready` issues to implement) |
+| Review/Merge | 1 | 2 | `0df29e2` merging PR #259 |
+
+**Action Taken:**
+🚀 Spawned replacement merge worker for PR #259; moved ghost worker `f9ebd19` to completed log with status=ghost.
+
+---
