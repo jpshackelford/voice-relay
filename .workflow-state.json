@@ -1,13 +1,19 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "d7d64b2",
+        "issue": 253,
+        "started": "2026-05-21T02:50:04.977708+00:00"
+      }
+    ],
     "implementation": [],
     "review": [
       {
-        "conv_id": "481b95f",
+        "conv_id": "359cd69",
         "pr": 254,
-        "started": "2026-05-21T02:35:52.705387+00:00"
+        "started": "2026-05-21T02:50:04.977708+00:00"
       }
     ]
   },
@@ -16,26 +22,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T02:35:52.705387+00:00",
+  "last_updated": "2026-05-21T02:50:04.977708+00:00",
   "completed": [
-    {
-      "conv_id": "8072d6a",
-      "type": "review",
-      "pr": 244,
-      "started": "2026-05-20T02:19:11.202298+00:00",
-      "finished": "2026-05-20T02:32:29.250422+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #244"
-    },
-    {
-      "conv_id": "596b1db",
-      "type": "merge",
-      "pr": 244,
-      "started": "2026-05-20T02:33:32.277551+00:00",
-      "finished": "2026-05-20T02:47:26.518938+00:00",
-      "status": "success",
-      "outcome": "Merged PR #244 - feat(client): display agent events inline"
-    },
     {
       "conv_id": "033ea38",
       "type": "expansion",
@@ -170,6 +158,15 @@
       "finished": "2026-05-21T02:32:27.943970+00:00",
       "status": "success",
       "outcome": "Created PR #254 for Issue #252 - Server: Extract V1Event fields"
+    },
+    {
+      "conv_id": "481b95f",
+      "type": "review",
+      "pr": 254,
+      "started": "2026-05-21T02:35:52.705387+00:00",
+      "finished": "2026-05-21T02:48:39.629731+00:00",
+      "status": "incomplete",
+      "outcome": "Worker finished but review threads still unresolved"
     }
   ]
 }
