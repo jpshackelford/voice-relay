@@ -5,14 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "9cdaa41",
-        "pr": 254,
-        "started": "2026-05-21T03:49:30.527541+00:00"
-      },
-      {
-        "conv_id": "60b2e13",
+        "conv_id": "4d7f576",
         "pr": 255,
-        "started": "2026-05-21T03:49:30.527541+00:00"
+        "started": "2026-05-21T04:04:39.597848+00:00"
       }
     ]
   },
@@ -21,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T03:49:30.527541+00:00",
+  "last_updated": "2026-05-21T04:04:39.597858+00:00",
   "completed": [
     {
       "conv_id": "033ea38",
@@ -238,6 +233,24 @@
       "finished": "2026-05-21T03:47:00.926494+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #255"
+    },
+    {
+      "conv_id": "9cdaa41",
+      "type": "review",
+      "pr": 254,
+      "started": "2026-05-21T03:49:30.527541+00:00",
+      "finished": "2026-05-21T04:01:56.853854+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback"
+    },
+    {
+      "conv_id": "60b2e13",
+      "type": "review",
+      "pr": 255,
+      "started": "2026-05-21T03:49:30.527541+00:00",
+      "finished": "2026-05-21T04:01:56.853854+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback"
     }
   ]
 }

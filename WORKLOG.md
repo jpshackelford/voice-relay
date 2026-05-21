@@ -486,3 +486,27 @@ Both automations have been disabled to prevent unnecessary runs.
 **Previous Workers Completed:**
 - `6f93c0c` (review/PR #254) - finished ✓
 - `7b96649` (review/PR #255) - finished ✓
+### 2026-05-21 04:04 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4d7f576` | merge | PR #255 - feat(client): rich content rendering | **NEW** |
+
+**Worker Status Updates:**
+- ✅ `9cdaa41` (review for PR #254) → completed: PR merged
+- ✅ `60b2e13` (review for PR #255) → completed: feedback addressed
+
+**Current State:**
+- [PR #255](https://github.com/jpshackelford/voice-relay/pull/255): Mergeable ✅, all threads resolved ✅, CI passing ✅
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): `needs-human` label - skipped (stuck)
+- Ready issues: #253 (linked to PR #255)
+- Issues on-hold: #208, #210, #239 (all have `on-hold` label)
+
+**Action Taken:**
+🚀 **Spawned merge worker** for PR #255
+- Conversation: [`4d7f576`](https://app.all-hands.dev/conversations/4d7f5768de52415f9fbad6f307ff26f3)
+- PR ready: All 4 review threads resolved, 🟢 Good taste rating
+- Will auto-close Issue #253 on merge
+
+---
