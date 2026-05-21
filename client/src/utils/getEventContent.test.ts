@@ -1,0 +1,424 @@
+import { describe, it, expect } from 'vitest';
+import {
+  getActionContent,
+  getObservationContent,
+  getEventContent,
+  extractTextContent,
+  MAX_CONTENT_LENGTH,
+} from './getEventContent';
+import type { AgentAction, ContentPart } from '../types';
+
+describe('getEventContent utilities', () => {
+  // Helper to create a base action
+  const baseAction = (overrides: Partial<AgentAction> = {}): AgentAction => ({
+    id: 'test-1',
+    timestamp: '2024-05-20T10:30:00.000Z',
+    kind: 'Unknown',
+    source: 'agent',
+    summary: 'Test summary',
+    ...overrides,
+  });
+
+  describe('extractTextContent', () => {
+    it('returns empty string for undefined', () => {
+      expect(extractTextContent(undefined)).toBe('');
+    });
+
+    it('returns string content as-is', () => {
+      expect(extractTextContent('hello world')).toBe('hello world');
+    });
+
+    it('extracts text from ContentPart array', () => {
+      const content: ContentPart[] = [
+        { type: 'text', text: 'Line 1' },
+        { type: 'text', text: 'Line 2' },
+      ];
+      expect(extractTextContent(content)).toBe('Line 1\nLine 2');
+    });
+
+    it('filters out image parts', () => {
+      const content: ContentPart[] = [
+        { type: 'text', text: 'Hello' },
+        { type: 'image', image_urls: ['http://example.com/img.png'] },
+        { type: 'text', text: 'World' },
+      ];
+      expect(extractTextContent(content)).toBe('Hello\nWorld');
+    });
+  });
+
+  describe('getActionContent', () => {
+    describe('ExecuteBashAction', () => {
+      it('formats command', () => {
+        const action = baseAction({
+          kind: 'ExecuteBashAction',
+          command: 'ls -la',
+        });
+        const content = getActionContent(action);
+        expect(content).toBe('Command:\n`ls -la`');
+      });
+
+      it('returns empty for missing command', () => {
+        const action = baseAction({
+          kind: 'ExecuteBashAction',
+        });
+        expect(getActionContent(action)).toBe('');
+      });
+    });
+
+    describe('FileEditorAction', () => {
+      it('formats file creation with path and content', () => {
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          path: '/src/test.ts',
+          file_text: 'const x = 1;',
+        });
+        const content = getActionContent(action);
+        expect(content).toBe('/src/test.ts\nconst x = 1;');
+      });
+
+      it('returns empty for edit without file_text', () => {
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          path: '/src/test.ts',
+        });
+        expect(getActionContent(action)).toBe('');
+      });
+
+      it('truncates long file content', () => {
+        const longText = 'x'.repeat(MAX_CONTENT_LENGTH + 100);
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          path: '/src/test.ts',
+          file_text: longText,
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('...(truncated)');
+        expect(content.length).toBeLessThan(longText.length + 50);
+      });
+    });
+
+    describe('MCPToolAction', () => {
+      it('formats MCP tool call with arguments', () => {
+        const action = baseAction({
+          kind: 'MCPToolAction',
+          data: { param1: 'value1', param2: 42 },
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**MCP Tool Call**');
+        expect(content).toContain('**Arguments:**');
+        expect(content).toContain('```json');
+        expect(content).toContain('"param1": "value1"');
+      });
+    });
+
+    describe('ThinkAction', () => {
+      it('returns thought content', () => {
+        const action = baseAction({
+          kind: 'ThinkAction',
+          thought: 'I need to analyze this code...',
+        });
+        expect(getActionContent(action)).toBe('I need to analyze this code...');
+      });
+    });
+
+    describe('FinishAction', () => {
+      it('returns message content trimmed', () => {
+        const action = baseAction({
+          kind: 'FinishAction',
+          message: '  Task completed successfully  ',
+        });
+        expect(getActionContent(action)).toBe('Task completed successfully');
+      });
+    });
+
+    describe('TaskTrackerAction', () => {
+      it('formats task list with status icons', () => {
+        const action = baseAction({
+          kind: 'TaskTrackerAction',
+          task_list: [
+            { title: 'Task 1', status: 'done' },
+            { title: 'Task 2', status: 'in_progress' },
+            { title: 'Task 3', status: 'todo' },
+          ],
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Command:** `plan`');
+        expect(content).toContain('**Task List (3 items):**');
+        expect(content).toContain('✅');
+        expect(content).toContain('🔄');
+        expect(content).toContain('⏳');
+        expect(content).toContain('Task 1');
+        expect(content).toContain('[DONE]');
+        expect(content).toContain('[IN PROGRESS]');
+        expect(content).toContain('[TODO]');
+      });
+
+      it('formats task with notes', () => {
+        const action = baseAction({
+          kind: 'TaskTrackerAction',
+          task_list: [
+            { title: 'Task 1', status: 'todo', notes: 'Important note' },
+          ],
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('*Notes: Important note*');
+      });
+
+      it('shows empty task list', () => {
+        const action = baseAction({
+          kind: 'TaskTrackerAction',
+          task_list: [],
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Task List:** Empty');
+      });
+    });
+
+    describe('BrowserNavigateAction', () => {
+      it('formats URL', () => {
+        const action = baseAction({
+          kind: 'BrowserNavigateAction',
+          url: 'https://example.com',
+        });
+        expect(getActionContent(action)).toBe('Browsing https://example.com');
+      });
+
+      it('includes new tab indicator', () => {
+        const action = baseAction({
+          kind: 'BrowserNavigateAction',
+          url: 'https://example.com',
+          new_tab: true,
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**New Tab:** Yes');
+      });
+    });
+
+    describe('GrepAction', () => {
+      it('formats pattern and path', () => {
+        const action = baseAction({
+          kind: 'GrepAction',
+          pattern: 'TODO',
+          path: '/src',
+          include: '*.ts',
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Pattern:** `TODO`');
+        expect(content).toContain('**Path:** `/src`');
+        expect(content).toContain('**Include:** `*.ts`');
+      });
+    });
+  });
+
+  describe('getObservationContent', () => {
+    describe('ExecuteBashObservation', () => {
+      it('formats command and output', () => {
+        const action = baseAction({
+          kind: 'ExecuteBashObservation',
+          command: 'echo hello',
+          content: 'hello',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('Command: `echo hello`');
+        expect(content).toContain('```sh');
+        expect(content).toContain('hello');
+      });
+
+      it('shows no output message for empty output', () => {
+        const action = baseAction({
+          kind: 'ExecuteBashObservation',
+          command: 'touch file.txt',
+          content: '',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('(no output)');
+      });
+
+      it('handles ContentPart array', () => {
+        const action = baseAction({
+          kind: 'ExecuteBashObservation',
+          command: 'ls',
+          content: [
+            { type: 'text', text: 'file1.txt' },
+            { type: 'text', text: 'file2.txt' },
+          ],
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('file1.txt');
+        expect(content).toContain('file2.txt');
+      });
+    });
+
+    describe('FileEditorObservation', () => {
+      it('formats error message', () => {
+        const action = baseAction({
+          kind: 'FileEditorObservation',
+          error: 'File not found',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Error:**');
+        expect(content).toContain('File not found');
+      });
+
+      it('formats file content in code block', () => {
+        const action = baseAction({
+          kind: 'FileEditorObservation',
+          content: 'const x = 1;',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('```');
+        expect(content).toContain('const x = 1;');
+      });
+    });
+
+    describe('MCPToolObservation', () => {
+      it('formats successful result', () => {
+        const action = baseAction({
+          kind: 'MCPToolObservation',
+          tool_name: 'file_editor',
+          content: 'File created successfully',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Tool:** file_editor');
+        expect(content).toContain('**Result:**');
+        expect(content).toContain('File created successfully');
+      });
+
+      it('formats error result', () => {
+        const action = baseAction({
+          kind: 'MCPToolObservation',
+          tool_name: 'file_editor',
+          content: 'Permission denied',
+          is_error: true,
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Tool:** file_editor');
+        expect(content).toContain('**Error:**');
+        expect(content).toContain('Permission denied');
+      });
+    });
+
+    describe('GrepObservation', () => {
+      it('formats matches list', () => {
+        const action = baseAction({
+          kind: 'GrepObservation',
+          pattern: 'TODO',
+          search_path: '/src',
+          matches: ['src/file1.ts:10', 'src/file2.ts:20'],
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Pattern:** `TODO`');
+        expect(content).toContain('**Search Path:** `/src`');
+        expect(content).toContain('**Matches (2):**');
+        expect(content).toContain('`src/file1.ts:10`');
+      });
+
+      it('shows no matches message', () => {
+        const action = baseAction({
+          kind: 'GrepObservation',
+          pattern: 'NONEXISTENT',
+          search_path: '/src',
+          matches: [],
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('No matches found');
+      });
+    });
+
+    describe('GlobObservation', () => {
+      it('formats files list', () => {
+        const action = baseAction({
+          kind: 'GlobObservation',
+          pattern: '*.ts',
+          search_path: '/src',
+          files: ['src/app.ts', 'src/index.ts'],
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Files Found (2):**');
+        expect(content).toContain('`src/app.ts`');
+      });
+
+      it('shows no files message', () => {
+        const action = baseAction({
+          kind: 'GlobObservation',
+          pattern: '*.xyz',
+          search_path: '/src',
+          files: [],
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('No files found');
+      });
+    });
+
+    describe('BrowserObservation', () => {
+      it('formats output', () => {
+        const action = baseAction({
+          kind: 'BrowserObservation',
+          content: 'Page loaded successfully',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Output:**');
+        expect(content).toContain('Page loaded successfully');
+      });
+
+      it('formats error', () => {
+        const action = baseAction({
+          kind: 'BrowserObservation',
+          error: 'Connection refused',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Error:**');
+        expect(content).toContain('Connection refused');
+      });
+    });
+  });
+
+  describe('getEventContent', () => {
+    it('routes actions to getActionContent', () => {
+      const action = baseAction({
+        kind: 'ExecuteBashAction',
+        command: 'ls',
+      });
+      expect(getEventContent(action)).toBe(getActionContent(action));
+    });
+
+    it('routes observations to getObservationContent', () => {
+      const action = baseAction({
+        kind: 'ExecuteBashObservation',
+        command: 'ls',
+        content: 'output',
+      });
+      expect(getEventContent(action)).toBe(getObservationContent(action));
+    });
+
+    it('returns empty for unknown action types', () => {
+      const action = baseAction({
+        kind: 'UnknownAction',
+      });
+      expect(getEventContent(action)).toBe('');
+    });
+
+    it('extracts text content for unknown observation types', () => {
+      const action = baseAction({
+        kind: 'UnknownObservation',
+        content: 'Some content',
+      });
+      expect(getEventContent(action)).toBe('Some content');
+    });
+  });
+
+  describe('content truncation', () => {
+    it('truncates long content at MAX_CONTENT_LENGTH', () => {
+      const longContent = 'x'.repeat(MAX_CONTENT_LENGTH + 500);
+      const action = baseAction({
+        kind: 'ExecuteBashObservation',
+        command: 'cat largefile.txt',
+        content: longContent,
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('...(truncated)');
+      // Content should be truncated
+      expect(content.indexOf('x'.repeat(100))).toBeGreaterThanOrEqual(0);
+    });
+  });
+});

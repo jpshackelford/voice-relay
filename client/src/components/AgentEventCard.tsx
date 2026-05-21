@@ -1,7 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { SuccessIndicator, getObservationStatus } from './SuccessIndicator';
 import { getActionIcon } from '../hooks/useAgentActions';
+import { getEventContent } from '../utils/getEventContent';
 import type { AgentAction, ExtendedAgentAction } from '../types';
+
+// Configure marked for code blocks and basic markdown
+marked.setOptions({
+  gfm: true,
+  breaks: true,
+});
 
 interface AgentEventCardProps {
   action: AgentAction | ExtendedAgentAction;
@@ -10,12 +19,27 @@ interface AgentEventCardProps {
 }
 
 /**
+ * Parse markdown to sanitized HTML.
+ * Uses marked for parsing and DOMPurify for XSS protection.
+ * Falls back to sanitized plaintext if parsing fails.
+ */
+function parseMarkdown(text: string): string {
+  try {
+    const rawHtml = marked.parse(text) as string;
+    return DOMPurify.sanitize(rawHtml);
+  } catch (error) {
+    console.error('Markdown parsing failed:', error);
+    return DOMPurify.sanitize(text);
+  }
+}
+
+/**
  * Collapsible card for displaying agent events inline with conversation.
  * Based on OpenHands' GenericEventMessage patterns.
  * 
  * Features:
  * - Purple left border to distinguish from user/AI messages
- * - Collapsible details section
+ * - Collapsible details section with rich markdown content
  * - Success/timeout indicator for observations
  * - Action icon based on event kind
  */
@@ -23,10 +47,18 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   // Determine if this is an extended action with observation data
+  // Now use V1Event field names (exit_code, is_error, timeout)
   const extendedAction = action as ExtendedAgentAction;
   const isObservation = extendedAction.isObservation ?? isObservationKind(action.kind);
+  
+  // Use V1Event fields from AgentAction (exit_code, is_error, timeout)
+  // with fallback to ExtendedAgentAction fields for backward compatibility
+  const exitCode = action.exit_code ?? extendedAction.exitCode;
+  const isError = action.is_error ?? extendedAction.isError;
+  const isTimeout = action.timeout;
+  
   const status = isObservation 
-    ? getObservationStatus(extendedAction.exitCode, extendedAction.isError)
+    ? getObservationStatus(exitCode, isError, isTimeout)
     : 'pending';
 
   // Get icon for the action kind
@@ -34,6 +66,24 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
 
   // Get formatted title (use summary if available)
   const title = action.summary || formatActionKind(action.kind);
+
+  // Get rich content for expanded view (memoized for performance)
+  const expandedContent = useMemo(() => {
+    if (!expanded) return '';
+    
+    // Get formatted content from helper
+    const content = getEventContent(action);
+    
+    // If we got content from the helper, use it
+    // Otherwise fall back to summary
+    return content || action.summary || '';
+  }, [expanded, action]);
+
+  // Parse markdown content (memoized)
+  const renderedContent = useMemo(() => {
+    if (!expandedContent) return '';
+    return parseMarkdown(expandedContent);
+  }, [expandedContent]);
 
   return (
     <div className="agent-event-card">
@@ -58,9 +108,12 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
         </div>
       </div>
 
-      {expanded && action.summary && (
+      {expanded && renderedContent && (
         <div className="agent-event-details">
-          <code className="agent-event-content">{action.summary}</code>
+          <div 
+            className="agent-event-content"
+            dangerouslySetInnerHTML={{ __html: renderedContent }}
+          />
         </div>
       )}
     </div>
