@@ -1,3 +1,20 @@
+### 2026-05-21 12:07 UTC - Expansion Worker (`33551cf`)
+
+✅ **Expanded Issue #257**
+
+- Issue: [#257 - Bug: Rich content rendering fails](https://github.com/jpshackelford/voice-relay/issues/257)
+- Type: Bug
+- Status: **Ready for implementation**
+- Labels Applied: `ready`, `priority:high`
+
+**Verification Summary:**
+- Root cause confirmed: `getEventContent.ts` checks `action.kind` expecting `TerminalAction`, but real events have `kind: ActionEvent` with nested `action.action.kind`
+- All identified files exist and match the issue description
+- Production event fixtures in `test-fixtures/raw-events-real.json` confirm the data structure mismatch
+
+**Issue was well-specified** - no expansion needed, just verification.
+
+---
 ### 2026-05-21 12:04 UTC - Orchestrator
 
 **Active Workers:**
