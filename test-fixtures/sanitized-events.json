@@ -1,0 +1,122 @@
+{
+  "description": "Sanitized real OpenHands events for testing. Structure preserved, values anonymized.",
+  "captured_from": "Voice Relay conversation 2026-05-21",
+  "events": [
+    {
+      "id": "action-001",
+      "timestamp": "2026-01-01T12:00:00.000000",
+      "source": "agent",
+      "kind": "ActionEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test001",
+      "summary": "Run test command to verify connection",
+      "action": {
+        "command": "echo 'Hello World'",
+        "is_input": false,
+        "timeout": null,
+        "reset": false,
+        "kind": "TerminalAction"
+      },
+      "reasoning_content": "Testing terminal command execution"
+    },
+    {
+      "id": "observation-001",
+      "timestamp": "2026-01-01T12:00:01.000000",
+      "source": "environment",
+      "kind": "ObservationEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test001",
+      "action_id": "action-001",
+      "observation": {
+        "content": [
+          {
+            "cache_prompt": false,
+            "type": "text",
+            "text": "Hello World"
+          }
+        ],
+        "is_error": false,
+        "command": "echo 'Hello World'",
+        "exit_code": 0,
+        "timeout": false,
+        "kind": "TerminalObservation"
+      }
+    },
+    {
+      "id": "action-002",
+      "timestamp": "2026-01-01T12:01:00.000000",
+      "source": "agent",
+      "kind": "ActionEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test002",
+      "summary": "List files in current directory",
+      "action": {
+        "command": "ls -la /workspace",
+        "is_input": false,
+        "timeout": null,
+        "reset": false,
+        "kind": "TerminalAction"
+      }
+    },
+    {
+      "id": "observation-002",
+      "timestamp": "2026-01-01T12:01:02.000000",
+      "source": "environment",
+      "kind": "ObservationEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test002",
+      "action_id": "action-002",
+      "observation": {
+        "content": [
+          {
+            "type": "text",
+            "text": "total 8\ndrwxr-xr-x 2 user user 4096 Jan 1 12:00 .\ndrwxr-xr-x 3 user user 4096 Jan 1 12:00 ..\n-rw-r--r-- 1 user user  100 Jan 1 12:00 README.md"
+          }
+        ],
+        "is_error": false,
+        "command": "ls -la /workspace",
+        "exit_code": 0,
+        "timeout": false,
+        "kind": "TerminalObservation"
+      }
+    },
+    {
+      "id": "action-003",
+      "timestamp": "2026-01-01T12:02:00.000000",
+      "source": "agent",
+      "kind": "ActionEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test003",
+      "summary": "Run failing command",
+      "action": {
+        "command": "cat /nonexistent/file.txt",
+        "is_input": false,
+        "timeout": null,
+        "reset": false,
+        "kind": "TerminalAction"
+      }
+    },
+    {
+      "id": "observation-003",
+      "timestamp": "2026-01-01T12:02:01.000000",
+      "source": "environment",
+      "kind": "ObservationEvent",
+      "tool_name": "terminal",
+      "tool_call_id": "toolu_test003",
+      "action_id": "action-003",
+      "observation": {
+        "content": [
+          {
+            "type": "text",
+            "text": "cat: /nonexistent/file.txt: No such file or directory"
+          }
+        ],
+        "is_error": true,
+        "command": "cat /nonexistent/file.txt",
+        "exit_code": 1,
+        "timeout": false,
+        "kind": "TerminalObservation"
+      }
+    }
+  ]
+}
