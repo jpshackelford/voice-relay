@@ -1,3 +1,41 @@
+### 2026-05-21 04:05 UTC - Merge Worker
+
+✅ **Merged PR #255 → feature/252-extract-v1event-fields**
+
+- PR: [#255 - feat(client): implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/pull/255)
+- Issue: [#253 - Client: Implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/issues/253) → Closed ✅
+
+**Squash Merge Summary:**
+- Added `getEventContent.ts` with formatters for 20+ V1Event kinds
+- Renders markdown with `marked` + `DOMPurify` for XSS protection
+- Displays status indicators using `exit_code`, `is_error`, `timeout` fields
+- Added CSS styling for code blocks, lists, and inline code
+- Supports backward compatibility with legacy ExtendedAgentAction fields
+- Added error handling for markdown parsing with graceful fallback
+
+**New Event Icons:**
+- 🔧/📤 Terminal/Bash actions and observations
+- 📁/✏️ File operations
+- 🌐/🖥️ Browser actions
+- 🔌/📋 MCP tools
+- 🔍/📜 Search (grep/glob)
+- 💭/✅ Think/Finish
+- 📋 Task tracker
+
+**Key Review Feedback Addressed:**
+1. Added try-catch around markdown parsing with fallback to sanitized plaintext
+2. Kept switch-case dispatch (clear, maintainable for ~12 cases)
+3. Confirmed action objects are immutable (useMemo dependencies appropriate)
+4. Added comprehensive visual evidence section to PR description
+
+**Testing:** 67 new tests covering all formatting scenarios (534 client + 718 server tests passing)
+
+**No database changes** - client-side rendering only. Safe for immediate production deployment.
+
+**Note:** PR merged to feature/252-extract-v1event-fields base branch. Will deploy to production when that branch is merged to main.
+
+---
+
 ### 2026-05-21 03:55 UTC - Review Feedback Worker
 
 ✅ **Addressed visual evidence request for PR #255**
