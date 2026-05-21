@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T04:17:30.038731+00:00",
+  "last_updated": "2026-05-21T10:50:36.513065+00:00",
   "completed": [
     {
       "conv_id": "033ea38",
@@ -254,6 +254,15 @@
       "finished": "2026-05-21T04:17:30.038731+00:00",
       "status": "success",
       "outcome": "Worker finished - check issue/PR for details"
+    },
+    {
+      "conv_id": "da8fd0e",
+      "type": "merge",
+      "pr": 256,
+      "started": "2026-05-21T10:48:18.862815+00:00",
+      "finished": "2026-05-21T10:50:36.513065+00:00",
+      "status": "success",
+      "outcome": "Merged PR #256 - feat(client): rich content rendering; closes #253"
     }
   ]
 }
