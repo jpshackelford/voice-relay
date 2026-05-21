@@ -1,3 +1,42 @@
+### 2026-05-21 22:55 UTC - Merge Worker
+
+✅ **Merged PR #259**
+
+- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
+- Issue: None linked (follow-up to #258, which already closed #257)
+- Squash commit: [`480ddd8`](https://github.com/jpshackelford/voice-relay/commit/480ddd85ea2ddd7f3189f300125a68dea02a1a0f)
+- Merged by: jpshackelford
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Follow-up to #258 closing four rendering gaps surfaced by post-merge validation against captured production events:
+1. Server `formatEventSummary` now honors top-level `event.summary` on wrapped ActionEvent / ObservationEvent (was showing generic "Action" string).
+2. Server `extractEventFields` now extracts file_editor `command`, ThinkObservation content, and InvokeSkill `skill_name` / `content` / `is_error`.
+3. Client `getFileEditorActionContent` renders all four file_editor commands (view / create / str_replace / insert) — was create-only.
+4. New client handlers for `InvokeSkillAction` / `InvokeSkillObservation`; `ThinkObservation` falls back to "Thought recorded." for empty content.
+
+**Migration / Deployment Safety:**
+- ✅ No DB migrations; SQLite schema untouched
+- ✅ No new runtime dependencies; no package.json / lockfile changes
+- ✅ No new config or env vars
+- ✅ Additive change — legacy event paths preserved; already-stored events render unchanged
+- ✅ Safe to auto-deploy
+
+**Test Results:**
+- 744 server tests pass (+11 new)
+- 544 client tests pass (+8 new, 2 updated for corrected behavior)
+- `npx tsx scripts/comprehensive-validation.ts` → 12/12 events pass, 0 summary issues
+
+**Review Notes:**
+- pr-review bot: 🟡 Acceptable — Recommended for approval
+- All 6 CI checks green on first push; mergeStateStatus CLEAN, MERGEABLE
+- No human-requested changes; replaces ghost worker `f9ebd19...` that failed silently
+
+**Follow-up Items:**
+- Watch vr.chorecraft.net deploy logs for healthy startup
+- Spot-check live UI to confirm action cards now show real summaries and skill/think/file-editor cards render content
+
+---
 ### 2026-05-21 12:50 UTC - Merge Worker
 
 ✅ **Merged PR #258**
