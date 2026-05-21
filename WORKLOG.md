@@ -1084,3 +1084,30 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-99
        -H "Content-Type: application/json" \
        -d '{"enabled": true}'
      ```
+
+---
+
+### 2026-05-21 08:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **All quiet** - No actionable work available (Manual /orchestrate invocation)
+
+**Current State:**
+- Open PRs: [#221](https://github.com/jpshackelford/voice-relay/pull/221) - `needs-human` label (stuck)
+- Open Issues: 3 (all `on-hold`)
+  - #239 - Flaky AI integration tests (on-hold)
+  - #210 - Categorize deployment failures (on-hold)
+  - #208 - Add circuit breaker (on-hold)
+
+**Automation Status:** 
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66` already disabled
+- This was a manual /orchestrate invocation
+
+**To resume work:**
+1. Create new issues without `on-hold` label, OR
+2. Remove `on-hold` label from existing issues, OR  
+3. Address `needs-human` on PR #221 and remove the label
