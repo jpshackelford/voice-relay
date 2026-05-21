@@ -1,28 +1,36 @@
+### 2026-05-21 12:50 UTC - Merge Worker
+
+✅ **Merged PR #258**
+
+- PR: [#258 - fix: rich content rendering works with real OpenHands event structure](https://github.com/jpshackelford/voice-relay/pull/258)
+- Issue: [#257 - Bug: Rich content rendering fails](https://github.com/jpshackelford/voice-relay/issues/257) → **AUTO-CLOSED**
+- Merge: Squash merge with conventional commit message
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Fixed bug where server was checking `action.action` (non-existent) instead of `action.kind`.
+Added `extractEffectiveKind()` to handle wrapped ActionEvent/ObservationEvent structures.
+
+**Review Notes:**
+- Automated review: "✅ Worth merging - Core logic is sound"
+- 1 unresolved thread with optional helper function suggestion (doesn't block merge, logged for follow-up)
+
+**Follow-up Items:**
+- Consider extracting `matchesAnyKind()` helper function (optional code cleanup)
+
+---
 ### 2026-05-21 12:33 UTC - Orchestrator
 
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `8dd477d` | merge | PR #258 - fix rich content rendering | **NEW** |
+**Worker Completed:** `8dd477d` (merge)
+- ✅ Merged PR #258, Issue #257 closed
 
 **Worker Completed:** `efae880` (implementation)
 - ✅ Created PR #258 for Issue #257 - fix rich content rendering
 
-🚀 **Spawned: Merge Worker**
-- PR: [#258 - fix: rich content rendering works with real OpenHands event structure](https://github.com/jpshackelford/voice-relay/pull/258)
-- Conversation: [`8dd477d`](https://app.all-hands.dev/conversations/8dd477dabefd4312af3422d2ac123660)
-
-**PR #258 Status:**
-- CI: ✅ All key checks passing (Server Tests, Build Client, E2E Tests)
-- Review: 🟡 Acceptable with verdict "✅ Worth merging"
-- 1 unresolved thread with optional suggestion (doesn't block merge)
-
 **Current State:**
-- **Open PRs:** 2
-  - [PR #258](https://github.com/jpshackelford/voice-relay/pull/258) - Ready to merge, worker spawned
+- **Open PRs:** 1
   - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - Draft, `needs-human` label (STUCK)
-- **Open Issues:** 4
-  - #257 - Ready, `priority:high` → PR #258 in merge process
+- **Open Issues:** 3
   - #208, #210, #239 - All have `on-hold` label (skipped)
 
 **Slot Usage:**
@@ -30,7 +38,7 @@
 |------|--------|-------|-------|
 | Expansion | 0 | 4 | No issues to expand |
 | Implementation | 0 | 1 | Available |
-| Review/Merge | 1 | 2 | PR #258 merge in progress |
+| Review/Merge | 0 | 2 | Available |
 
 ---
 ### 2026-05-21 12:30 UTC - Implementation Worker
