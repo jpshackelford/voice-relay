@@ -773,3 +773,38 @@ Automation has been disabled to prevent unnecessary runs.
 
 PR #259 is now in ready state with all blocking checks green. Addressing `pr-review` bot feedback is intentionally **out of scope** for this worker — that's the next review-worker cycle.
 
+
+---
+### 2026-05-21 22:33 UTC - Orchestrator
+
+**Worker Completed:** `3727caa` (review/finalization)
+- ✅ Promoted PR #259 to ready, fixed lint-pr-title; all CI green; pr-review bot: 🟡 Acceptable — *Recommended for approval*
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f9ebd19` | merge | PR #259 | **NEW** |
+
+🚀 **Spawned: Merge Worker (review slot)**
+- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
+- Conversation: [`f9ebd19`](https://app.all-hands.dev/conversations/f9ebd19c58a240538c40c4edbbf8f19f)
+- Rationale: PR is ready (not draft), mergeable, 0 unresolved review threads, all CI green, pr-review bot recommended approval. No linked issue (this is a follow-up to #258 which already closed #257).
+
+**Current State:**
+- **Open PRs:** 2
+  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) — being merged (worker `f9ebd19`)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped)
+- **Open Issues:** 3 (all `on-hold`)
+  - #208 — Add circuit breaker for deployments
+  - #210 — Categorize deployment failures
+  - #239 — Flaky AI integration tests
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | Available (no `ready` issues to implement) |
+| Review/Merge | 1 | 2 | `f9ebd19` merging PR #259 |
+
+---
+
