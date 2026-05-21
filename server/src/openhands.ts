@@ -906,6 +906,40 @@ const OBSERVATION_KINDS = new Set([
 ]);
 
 /**
+ * Extract the effective kind from a V1Event.
+ * 
+ * For wrapped events (ActionEvent, ObservationEvent), returns the nested kind
+ * (e.g., TerminalAction, TerminalObservation) which the client uses for content formatting.
+ * For direct events, returns the original kind.
+ * 
+ * This is critical for client-side rich content rendering - the client's
+ * getEventContent() dispatches based on kinds like "TerminalAction", not "ActionEvent".
+ * 
+ * @param event - The V1Event to extract effective kind from
+ * @returns The effective kind for client-side content formatting
+ */
+export function extractEffectiveKind(event: V1Event): string {
+  const kind = event.kind || 'Unknown';
+  
+  // For ActionEvent, use the nested action.kind
+  if (kind === 'ActionEvent') {
+    const actionObj = typeof event.action === 'object' ? event.action as Record<string, unknown> : undefined;
+    const nestedKind = extractString(actionObj, 'kind');
+    if (nestedKind) return nestedKind;
+  }
+  
+  // For ObservationEvent, use the nested observation.kind
+  if (kind === 'ObservationEvent') {
+    const obsObj = typeof event.observation === 'object' ? event.observation as Record<string, unknown> : undefined;
+    const nestedKind = extractString(obsObj, 'kind');
+    if (nestedKind) return nestedKind;
+  }
+  
+  // For direct events (TerminalAction, etc.), return as-is
+  return kind;
+}
+
+/**
  * Extract relevant fields from a V1Event based on its kind.
  * 
  * This function examines the event kind and extracts the appropriate fields
@@ -934,12 +968,15 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   const isObservationEvent = kind === 'ObservationEvent';
   
   // Determine the actual action/observation type for wrapped events
-  const actionType = isActionEvent ? extractString(actionObj, 'action') : undefined;
-  const obsType = isObservationEvent ? extractString(obsObj, 'observation') : undefined;
+  // Real events have action.kind = "TerminalAction" and observation.kind = "TerminalObservation"
+  const actionKind = isActionEvent ? extractString(actionObj, 'kind') : undefined;
+  const obsKind = isObservationEvent ? extractString(obsObj, 'kind') : undefined;
   
   // === Terminal actions/observations ===
   // Matches: TerminalAction, ExecuteBashAction, CmdRunAction, and their observations
-  const isTerminalEvent = TERMINAL_KINDS.has(kind) || actionType === 'run' || obsType === 'run' || obsType === 'cmd_output';
+  const isTerminalEvent = TERMINAL_KINDS.has(kind) || 
+      (actionKind && TERMINAL_KINDS.has(actionKind)) || 
+      (obsKind && TERMINAL_KINDS.has(obsKind));
   if (isTerminalEvent) {
     result.command = extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
     result.content = extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
@@ -950,8 +987,8 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   // === File actions/observations ===
   // Matches: FileReadAction, FileWriteAction, FileEditAction, EditorAction, StrReplaceAction
   const isFileEvent = FILE_KINDS.has(kind) ||
-      actionType === 'read' || actionType === 'write' || actionType === 'edit' ||
-      obsType === 'read' || obsType === 'write' || obsType === 'edit';
+      (actionKind && FILE_KINDS.has(actionKind)) ||
+      (obsKind && FILE_KINDS.has(obsKind));
   if (isFileEvent) {
     result.path = extractString(eventObj, 'path') ?? extractString(actionObj, 'path') ?? extractString(obsObj, 'path');
     result.file_text = extractString(eventObj, 'file_text') ?? extractString(actionObj, 'file_text') ?? extractString(obsObj, 'file_text');
@@ -964,7 +1001,9 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   
   // === MCP actions/observations ===
   // Matches: MCPAction, MCPObservation, ToolAction, ToolObservation
-  const isMCPEvent = MCP_KINDS.has(kind);
+  const isMCPEvent = MCP_KINDS.has(kind) ||
+      (actionKind && MCP_KINDS.has(actionKind)) ||
+      (obsKind && MCP_KINDS.has(obsKind));
   if (isMCPEvent) {
     result.tool_name = extractString(eventObj, 'tool_name') ?? extractString(actionObj, 'tool_name') ?? extractString(obsObj, 'tool_name');
     result.data = extractData(eventObj, 'data') ?? extractData(actionObj, 'data');
@@ -975,8 +1014,9 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   
   // === Browser actions ===
   // Matches: BrowserAction, BrowseAction, and specific browser action types
-  const isBrowserEvent = BROWSER_KINDS.has(kind) || actionType === 'browse' || actionType === 'browse_url' || actionType === 'browse_interactive' ||
-      obsType === 'browse' || obsType === 'browser';
+  const isBrowserEvent = BROWSER_KINDS.has(kind) ||
+      (actionKind && BROWSER_KINDS.has(actionKind)) ||
+      (obsKind && BROWSER_KINDS.has(obsKind));
   if (isBrowserEvent) {
     result.url = extractString(eventObj, 'url') ?? extractString(actionObj, 'url') ?? extractString(obsObj, 'url');
     result.index = extractNumber(eventObj, 'index') ?? extractNumber(actionObj, 'index');
@@ -991,7 +1031,9 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   
   // === Search actions/observations (Grep, Glob) ===
   // Matches: GrepAction, GlobAction, SearchAction and their observations
-  const isSearchEvent = SEARCH_KINDS.has(kind);
+  const isSearchEvent = SEARCH_KINDS.has(kind) ||
+      (actionKind && SEARCH_KINDS.has(actionKind)) ||
+      (obsKind && SEARCH_KINDS.has(obsKind));
   if (isSearchEvent) {
     result.pattern = extractString(eventObj, 'pattern') ?? extractString(actionObj, 'pattern') ?? extractString(obsObj, 'pattern');
     result.include = extractString(eventObj, 'include') ?? extractString(actionObj, 'include');
@@ -1006,21 +1048,25 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   
   // === Think actions ===
   // Matches: ThinkAction
-  const isThinkEvent = THINK_KINDS.has(kind) || actionType === 'think';
+  const isThinkEvent = THINK_KINDS.has(kind) ||
+      (actionKind && THINK_KINDS.has(actionKind));
   if (isThinkEvent) {
     result.thought = extractString(eventObj, 'thought') ?? extractString(actionObj, 'thought');
   }
   
   // === Finish actions ===
   // Matches: FinishAction
-  const isFinishEvent = FINISH_KINDS.has(kind) || actionType === 'finish';
+  const isFinishEvent = FINISH_KINDS.has(kind) ||
+      (actionKind && FINISH_KINDS.has(actionKind));
   if (isFinishEvent) {
     result.message = extractString(eventObj, 'message') ?? extractString(actionObj, 'message') ?? extractString(actionObj, 'content');
   }
   
   // === Task tracker ===
   // Matches: TaskTrackerAction, TaskTrackerObservation
-  const isTaskTrackerEvent = TASK_TRACKER_KINDS.has(kind);
+  const isTaskTrackerEvent = TASK_TRACKER_KINDS.has(kind) ||
+      (actionKind && TASK_TRACKER_KINDS.has(actionKind)) ||
+      (obsKind && TASK_TRACKER_KINDS.has(obsKind));
   if (isTaskTrackerEvent) {
     // Priority: terminal command > task tracker command (preserves earlier extraction)
     result.command = result.command ?? extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
@@ -1029,13 +1075,14 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   
   // === Observation linkage ===
   // Matches: ObservationEvent and all *Observation kinds
-  const isObservation = isObservationEvent || OBSERVATION_KINDS.has(kind);
+  const isObservation = isObservationEvent || OBSERVATION_KINDS.has(kind) ||
+      (obsKind && OBSERVATION_KINDS.has(obsKind));
   if (isObservation) {
     result.action_id = extractString(eventObj, 'action_id') ?? extractString(obsObj, 'action_id');
   }
   
-  // === Error handling for any observation ===
-  if (obsType === 'error') {
+  // === Error handling for any observation with is_error flag ===
+  if (extractBoolean(obsObj, 'is_error')) {
     result.error = result.error ?? extractString(obsObj, 'content');
     result.content = result.content ?? extractContent(obsObj, 'content');
   }
@@ -1355,10 +1402,15 @@ export class AISessionManager {
             // Extract relevant fields based on event kind for rich content rendering
             const extractedFields = extractEventFields(event as V1Event);
             
+            // Use effective kind (nested kind for wrapped events) for client-side rendering
+            // This is critical: client's getEventContent() dispatches on kinds like
+            // "TerminalAction", not "ActionEvent" - see issue #257
+            const effectiveKind = extractEffectiveKind(event as V1Event);
+            
             const action: AgentAction = {
               id: event.id || crypto.randomUUID(),
               timestamp: event.timestamp || new Date().toISOString(),
-              kind: event.kind,
+              kind: effectiveKind,
               source: event.source || 'unknown',
               summary: formatEventSummary(event as V1Event),
               // Spread extracted fields (only non-undefined values will be present)

@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -908,11 +908,11 @@ describe('extractEventFields', () => {
       expect(fields.exit_code).toBe(0);
     });
 
-    test('extracts from wrapped ActionEvent with run action', () => {
+    test('extracts from wrapped ActionEvent with TerminalAction kind', () => {
       const event = {
         kind: 'ActionEvent',
         action: {
-          action: 'run',
+          kind: 'TerminalAction',
           command: 'ls -la'
         }
       };
@@ -920,11 +920,11 @@ describe('extractEventFields', () => {
       expect(fields.command).toBe('ls -la');
     });
 
-    test('extracts from wrapped ObservationEvent with cmd_output', () => {
+    test('extracts from wrapped ObservationEvent with TerminalObservation kind', () => {
       const event = {
         kind: 'ObservationEvent',
         observation: {
-          observation: 'cmd_output',
+          kind: 'TerminalObservation',
           content: 'file1.txt\nfile2.txt',
           exit_code: 0
         }
@@ -982,11 +982,11 @@ describe('extractEventFields', () => {
       expect(fields.error).toBe('File not found');
     });
 
-    test('extracts from wrapped ActionEvent with read action', () => {
+    test('extracts from wrapped ActionEvent with FileReadAction kind', () => {
       const event = {
         kind: 'ActionEvent',
         action: {
-          action: 'read',
+          kind: 'FileReadAction',
           path: '/workspace/config.json'
         }
       };
@@ -1083,11 +1083,11 @@ describe('extractEventFields', () => {
       expect(fields.tab_id).toBe('tab-123');
     });
 
-    test('extracts fields from wrapped browse action', () => {
+    test('extracts fields from wrapped BrowserNavigateAction', () => {
       const event = {
         kind: 'ActionEvent',
         action: {
-          action: 'browse',
+          kind: 'BrowserNavigateAction',
           url: 'https://test.com'
         }
       };
@@ -1158,11 +1158,11 @@ describe('extractEventFields', () => {
       expect(fields.message).toBe('Task completed successfully.');
     });
 
-    test('extracts from wrapped think action', () => {
+    test('extracts from wrapped ThinkAction kind', () => {
       const event = {
         kind: 'ActionEvent',
         action: {
-          action: 'think',
+          kind: 'ThinkAction',
           thought: 'Let me consider the options.'
         }
       };
@@ -1229,12 +1229,15 @@ describe('extractEventFields', () => {
   });
 
   describe('error handling', () => {
-    test('extracts error content from error observation', () => {
+    test('extracts error content from observation with is_error flag', () => {
+      // Real structure: is_error flag indicates error, not observation type
       const event = {
         kind: 'ObservationEvent',
         observation: {
-          observation: 'error',
-          content: 'Permission denied'
+          kind: 'TerminalObservation',
+          is_error: true,
+          content: 'Permission denied',
+          exit_code: 1
         }
       };
       const fields = extractEventFields(event);
@@ -1297,7 +1300,7 @@ describe('extractEventFields', () => {
       const event = {
         kind: 'ActionEvent',
         action: {
-          action: 'run',
+          kind: 'TerminalAction',
           command: 'nested-command-only'
         }
       };
@@ -1309,7 +1312,7 @@ describe('extractEventFields', () => {
       const event = {
         kind: 'ObservationEvent',
         observation: {
-          observation: 'run',
+          kind: 'TerminalObservation',
           content: 'nested-content-only',
           exit_code: 1
         }
@@ -1317,6 +1320,224 @@ describe('extractEventFields', () => {
       const fields = extractEventFields(event);
       expect(fields.content).toBe('nested-content-only');
       expect(fields.exit_code).toBe(1);
+    });
+  });
+
+  // Tests for real OpenHands event structures (issue #257)
+  // These tests verify the fix works with actual event structures from production
+  describe('real event structures (issue #257)', () => {
+    test('extracts command from real TerminalAction wrapped in ActionEvent', () => {
+      // Real structure captured from production - action.kind is the type, not action.action
+      const event = {
+        kind: 'ActionEvent',
+        tool_name: 'terminal',
+        action: {
+          command: 'echo "Hello World"',
+          is_input: false,
+          timeout: null,
+          reset: false,
+          kind: 'TerminalAction'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.command).toBe('echo "Hello World"');
+    });
+
+    test('extracts content from real TerminalObservation wrapped in ObservationEvent', () => {
+      // Real structure captured from production
+      const event = {
+        kind: 'ObservationEvent',
+        tool_name: 'terminal',
+        action_id: 'action-001',
+        observation: {
+          content: [
+            { type: 'text', text: 'Hello World' }
+          ],
+          is_error: false,
+          command: 'echo "Hello World"',
+          exit_code: 0,
+          timeout: false,
+          kind: 'TerminalObservation'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.content).toEqual([{ type: 'text', text: 'Hello World' }]);
+      expect(fields.command).toBe('echo "Hello World"');
+      expect(fields.exit_code).toBe(0);
+      expect(fields.action_id).toBe('action-001');
+    });
+
+    test('extracts error status from real failed observation', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        tool_name: 'terminal',
+        observation: {
+          content: [
+            { type: 'text', text: 'cat: /nonexistent: No such file or directory' }
+          ],
+          is_error: true,
+          command: 'cat /nonexistent',
+          exit_code: 1,
+          timeout: false,
+          kind: 'TerminalObservation'
+        }
+      };
+      const fields = extractEventFields(event);
+      expect(fields.exit_code).toBe(1);
+      // Note: is_error is only extracted for MCP/search events, not terminal
+      // The exit_code is what's used for terminal success/failure
+    });
+  });
+});
+
+describe('extractEffectiveKind', () => {
+  describe('wrapped events', () => {
+    test('returns nested action.kind for ActionEvent', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          kind: 'TerminalAction',
+          command: 'ls -la'
+        }
+      };
+      expect(extractEffectiveKind(event)).toBe('TerminalAction');
+    });
+
+    test('returns nested observation.kind for ObservationEvent', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          kind: 'TerminalObservation',
+          content: 'output',
+          exit_code: 0
+        }
+      };
+      expect(extractEffectiveKind(event)).toBe('TerminalObservation');
+    });
+
+    test('returns ActionEvent when action has no kind', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: {
+          command: 'ls'
+          // missing kind field
+        }
+      };
+      expect(extractEffectiveKind(event)).toBe('ActionEvent');
+    });
+
+    test('returns ObservationEvent when observation has no kind', () => {
+      const event = {
+        kind: 'ObservationEvent',
+        observation: {
+          content: 'output'
+          // missing kind field
+        }
+      };
+      expect(extractEffectiveKind(event)).toBe('ObservationEvent');
+    });
+  });
+
+  describe('direct events', () => {
+    test('returns kind as-is for TerminalAction', () => {
+      const event = {
+        kind: 'TerminalAction',
+        command: 'ls -la'
+      };
+      expect(extractEffectiveKind(event)).toBe('TerminalAction');
+    });
+
+    test('returns kind as-is for ExecuteBashObservation', () => {
+      const event = {
+        kind: 'ExecuteBashObservation',
+        content: 'output',
+        exit_code: 0
+      };
+      expect(extractEffectiveKind(event)).toBe('ExecuteBashObservation');
+    });
+
+    test('returns kind as-is for ThinkAction', () => {
+      const event = {
+        kind: 'ThinkAction',
+        thought: 'Let me consider...'
+      };
+      expect(extractEffectiveKind(event)).toBe('ThinkAction');
+    });
+  });
+
+  describe('edge cases', () => {
+    test('returns Unknown for event without kind', () => {
+      const event = {};
+      expect(extractEffectiveKind(event)).toBe('Unknown');
+    });
+
+    test('handles non-object action in ActionEvent', () => {
+      const event = {
+        kind: 'ActionEvent',
+        action: 'not-an-object'
+      };
+      expect(extractEffectiveKind(event)).toBe('ActionEvent');
+    });
+
+    test('handles non-object observation in ObservationEvent', () => {
+      // Use type assertion to test runtime handling of malformed data
+      const event = {
+        kind: 'ObservationEvent',
+        observation: null as unknown as Record<string, unknown>
+      };
+      expect(extractEffectiveKind(event)).toBe('ObservationEvent');
+    });
+  });
+
+  describe('real event examples from production (issue #257)', () => {
+    test('extracts TerminalAction from real production ActionEvent', () => {
+      // Exact structure from test-fixtures/sanitized-events.json
+      const event = {
+        id: 'action-001',
+        timestamp: '2026-01-01T12:00:00.000000',
+        source: 'agent',
+        kind: 'ActionEvent',
+        tool_name: 'terminal',
+        tool_call_id: 'toolu_test001',
+        summary: 'Run test command to verify connection',
+        action: {
+          command: "echo 'Hello World'",
+          is_input: false,
+          timeout: null,
+          reset: false,
+          kind: 'TerminalAction'
+        },
+        reasoning_content: 'Testing terminal command execution'
+      };
+      expect(extractEffectiveKind(event)).toBe('TerminalAction');
+    });
+
+    test('extracts TerminalObservation from real production ObservationEvent', () => {
+      // Exact structure from test-fixtures/sanitized-events.json
+      const event = {
+        id: 'observation-001',
+        timestamp: '2026-01-01T12:00:01.000000',
+        source: 'environment',
+        kind: 'ObservationEvent',
+        tool_name: 'terminal',
+        tool_call_id: 'toolu_test001',
+        action_id: 'action-001',
+        observation: {
+          content: [
+            {
+              cache_prompt: false,
+              type: 'text',
+              text: 'Hello World'
+            }
+          ],
+          is_error: false,
+          command: "echo 'Hello World'",
+          exit_code: 0,
+          timeout: false,
+          kind: 'TerminalObservation'
+        }
+      };
+      expect(extractEffectiveKind(event)).toBe('TerminalObservation');
     });
   });
 });
