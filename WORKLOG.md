@@ -1,3 +1,38 @@
+### 2026-05-21 03:15 UTC - Implementation Worker (`a4f689d`)
+
+✅ **Implemented Issue #253 - Client: Rich content rendering for agent events**
+
+- PR: [#255 - feat(client): implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/pull/255)
+- Issue: [#253 - Client: Implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/issues/253)
+
+**Changes:**
+1. **New utility** (`client/src/utils/getEventContent.ts`):
+   - `getActionContent()` - formats action events (commands, file ops, MCP tools, etc.)
+   - `getObservationContent()` - formats observation events (terminal output, grep/glob results)
+   - Content truncation at 1000 chars with "(truncated)" indicator
+
+2. **AgentEventCard enhancements**:
+   - Markdown rendering using `marked` + `DOMPurify`
+   - V1Event field support (`exit_code`, `is_error`, `timeout`)
+   - Memoized content generation for performance
+
+3. **Extended getActionIcon** for V1Event kinds:
+   - 🔧 ExecuteBashAction, 📤 ExecuteBashObservation
+   - 📁 FileEditorAction, ✏️ FileEditorObservation
+   - 🔌 MCPToolAction, 📋 MCPToolObservation
+   - 🔍 GrepAction, 📜 GrepObservation
+   - 📋 TaskTrackerAction with ⏳/🔄/✅ icons
+
+4. **CSS styling** for rich content in expanded event cards
+
+**Tests:** 36 new tests for getEventContent, 534 client tests passing
+
+**Dependency:** Based on PR #254 branch (V1Event field extraction)
+
+**Status:** PR ready for review ✅
+
+---
+
 ### 2026-05-21 03:05 UTC - Review Feedback Worker
 
 ✅ **Addressed final review comment for PR #254**
