@@ -850,6 +850,12 @@ function extractTaskList(obj: Record<string, unknown> | undefined, key: string):
 
 // Sets of known event kinds for exact matching - more maintainable than string.includes()
 // and prevents false matches (e.g., 'Terminal' matching hypothetical 'TerminalEmulator')
+//
+// MAINTENANCE NOTE: These event kinds must be kept in sync with OpenHands upstream.
+// When OpenHands adds new action/observation types, update the relevant Set below.
+// Reference: https://github.com/All-Hands-AI/OpenHands/tree/main/openhands/events
+// See also: openhands/events/action/ and openhands/events/observation/ directories
+// for the canonical list of event types in the OpenHands codebase.
 const TERMINAL_KINDS = new Set([
   'TerminalAction', 'TerminalObservation',
   'ExecuteBashAction', 'ExecuteBashObservation',
