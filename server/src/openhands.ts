@@ -779,6 +779,7 @@ function extractStringArray(obj: Record<string, unknown> | undefined, key: strin
 
 /**
  * Helper to safely extract content which can be an array of content parts or a string.
+ * Validates that content parts have the correct structure including field types.
  */
 function extractContent(obj: Record<string, unknown> | undefined, key: string): V1ContentPart[] | string | undefined {
   if (!obj) return undefined;
@@ -787,13 +788,21 @@ function extractContent(obj: Record<string, unknown> | undefined, key: string): 
     return value;
   }
   if (Array.isArray(value)) {
-    // Check if it's an array of content parts
-    const isContentParts = value.every(item => 
-      typeof item === 'object' && 
-      item !== null && 
-      'type' in item && 
-      (item.type === 'text' || item.type === 'image')
-    );
+    // Check if it's an array of content parts with strict type validation
+    const isContentParts = value.every(item => {
+      if (typeof item !== 'object' || item === null || !('type' in item)) return false;
+      const partItem = item as Record<string, unknown>;
+      if (partItem.type === 'text') {
+        // text field must be string if present
+        return !('text' in partItem) || typeof partItem.text === 'string';
+      }
+      if (partItem.type === 'image') {
+        // image_urls must be array of strings if present
+        return !('image_urls' in partItem) || 
+          (Array.isArray(partItem.image_urls) && partItem.image_urls.every(u => typeof u === 'string'));
+      }
+      return false;
+    });
     if (isContentParts) {
       return value as V1ContentPart[];
     }
@@ -803,25 +812,77 @@ function extractContent(obj: Record<string, unknown> | undefined, key: string): 
 
 /**
  * Helper to safely extract task list from an object.
+ * Validates that task items have the correct structure including optional notes field.
  */
 function extractTaskList(obj: Record<string, unknown> | undefined, key: string): V1TaskItem[] | undefined {
   if (!obj) return undefined;
   const value = obj[key];
   if (Array.isArray(value)) {
-    const validTasks = value.filter(item =>
-      typeof item === 'object' &&
-      item !== null &&
-      'title' in item &&
-      typeof (item as Record<string, unknown>).title === 'string' &&
-      'status' in item &&
-      ['todo', 'in_progress', 'done'].includes((item as Record<string, unknown>).status as string)
-    );
+    const validTasks = value.filter(item => {
+      if (typeof item !== 'object' || item === null) return false;
+      const taskItem = item as Record<string, unknown>;
+      // Required: title must be string
+      if (!('title' in taskItem) || typeof taskItem.title !== 'string') return false;
+      // Required: status must be valid enum value
+      if (!('status' in taskItem) || !['todo', 'in_progress', 'done'].includes(taskItem.status as string)) return false;
+      // Optional: notes must be string if present
+      if ('notes' in taskItem && typeof taskItem.notes !== 'string') return false;
+      return true;
+    });
     if (validTasks.length > 0) {
       return validTasks as V1TaskItem[];
     }
   }
   return undefined;
 }
+
+// Sets of known event kinds for exact matching - more maintainable than string.includes()
+// and prevents false matches (e.g., 'Terminal' matching hypothetical 'TerminalEmulator')
+const TERMINAL_KINDS = new Set([
+  'TerminalAction', 'TerminalObservation',
+  'ExecuteBashAction', 'ExecuteBashObservation',
+  'CmdRunAction', 'CmdOutputObservation'
+]);
+const FILE_KINDS = new Set([
+  'FileReadAction', 'FileReadObservation',
+  'FileWriteAction', 'FileWriteObservation',
+  'FileEditAction', 'FileEditObservation',
+  'EditorAction', 'EditorObservation',
+  'FileEditorAction', 'FileEditorObservation',
+  'StrReplaceAction', 'StrReplaceObservation',
+  'StrReplaceEditorAction', 'StrReplaceEditorObservation'
+]);
+const MCP_KINDS = new Set([
+  'MCPAction', 'MCPObservation',
+  'MCPToolAction', 'MCPToolObservation',
+  'ToolAction', 'ToolObservation'
+]);
+const BROWSER_KINDS = new Set([
+  'BrowserAction', 'BrowserObservation',
+  'BrowseAction', 'BrowseObservation',
+  'BrowserNavigateAction', 'BrowserClickAction', 'BrowserTypeAction',
+  'BrowserScrollAction', 'BrowserGetStateAction', 'BrowserGetContentAction',
+  'BrowserSwitchTabAction', 'BrowserCloseTabAction', 'BrowserListTabsAction',
+  'BrowserGoBackAction', 'BrowserGetStorageAction', 'BrowserSetStorageAction',
+  'BrowserStartRecordingAction', 'BrowserStopRecordingAction'
+]);
+const SEARCH_KINDS = new Set([
+  'GrepAction', 'GrepObservation',
+  'GlobAction', 'GlobObservation',
+  'SearchAction', 'SearchObservation'
+]);
+const THINK_KINDS = new Set(['ThinkAction', 'AgentThinkAction']);
+const FINISH_KINDS = new Set(['FinishAction', 'AgentFinishAction']);
+const TASK_TRACKER_KINDS = new Set(['TaskTrackerAction', 'TaskTrackerObservation']);
+const OBSERVATION_KINDS = new Set([
+  'ObservationEvent', 'TerminalObservation', 'ExecuteBashObservation',
+  'CmdOutputObservation', 'FileReadObservation', 'FileWriteObservation',
+  'FileEditObservation', 'EditorObservation', 'FileEditorObservation',
+  'StrReplaceObservation', 'StrReplaceEditorObservation',
+  'MCPObservation', 'MCPToolObservation', 'ToolObservation',
+  'BrowserObservation', 'BrowseObservation',
+  'GrepObservation', 'GlobObservation', 'SearchObservation', 'TaskTrackerObservation'
+]);
 
 /**
  * Extract relevant fields from a V1Event based on its kind.
@@ -856,8 +917,9 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   const obsType = isObservationEvent ? extractString(obsObj, 'observation') : undefined;
   
   // === Terminal actions/observations ===
-  if (kind.includes('Terminal') || kind.includes('Bash') || kind === 'CmdRunAction' || kind === 'CmdOutputObservation' ||
-      actionType === 'run' || obsType === 'run' || obsType === 'cmd_output') {
+  // Matches: TerminalAction, ExecuteBashAction, CmdRunAction, and their observations
+  const isTerminalEvent = TERMINAL_KINDS.has(kind) || actionType === 'run' || obsType === 'run' || obsType === 'cmd_output';
+  if (isTerminalEvent) {
     result.command = extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
     result.content = extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
     result.exit_code = extractNumber(eventObj, 'exit_code') ?? extractNumber(obsObj, 'exit_code');
@@ -865,28 +927,36 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   }
   
   // === File actions/observations ===
-  if (kind.includes('File') || kind.includes('Editor') || kind.includes('StrReplace') ||
+  // Matches: FileReadAction, FileWriteAction, FileEditAction, EditorAction, StrReplaceAction
+  const isFileEvent = FILE_KINDS.has(kind) ||
       actionType === 'read' || actionType === 'write' || actionType === 'edit' ||
-      obsType === 'read' || obsType === 'write' || obsType === 'edit') {
+      obsType === 'read' || obsType === 'write' || obsType === 'edit';
+  if (isFileEvent) {
     result.path = extractString(eventObj, 'path') ?? extractString(actionObj, 'path') ?? extractString(obsObj, 'path');
     result.file_text = extractString(eventObj, 'file_text') ?? extractString(actionObj, 'file_text') ?? extractString(obsObj, 'file_text');
     result.old_str = extractString(eventObj, 'old_str') ?? extractString(actionObj, 'old_str');
     result.new_str = extractString(eventObj, 'new_str') ?? extractString(actionObj, 'new_str');
+    // Priority: terminal content > file content (preserves earlier extraction)
     result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
     result.error = extractString(eventObj, 'error') ?? extractString(obsObj, 'error');
   }
   
   // === MCP actions/observations ===
-  if (kind.includes('MCP') || kind.includes('Tool')) {
+  // Matches: MCPAction, MCPObservation, ToolAction, ToolObservation
+  const isMCPEvent = MCP_KINDS.has(kind);
+  if (isMCPEvent) {
     result.tool_name = extractString(eventObj, 'tool_name') ?? extractString(actionObj, 'tool_name') ?? extractString(obsObj, 'tool_name');
     result.data = (eventObj.data as Record<string, unknown>) ?? (actionObj?.data as Record<string, unknown>);
+    // Priority: terminal/file content > MCP content (preserves earlier extraction)
     result.content = result.content ?? extractContent(eventObj, 'content') ?? extractContent(obsObj, 'content');
     result.is_error = extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
   }
   
   // === Browser actions ===
-  if (kind.includes('Browser') || actionType === 'browse' || actionType === 'browse_url' || actionType === 'browse_interactive' ||
-      obsType === 'browse' || obsType === 'browser') {
+  // Matches: BrowserAction, BrowseAction, and specific browser action types
+  const isBrowserEvent = BROWSER_KINDS.has(kind) || actionType === 'browse' || actionType === 'browse_url' || actionType === 'browse_interactive' ||
+      obsType === 'browse' || obsType === 'browser';
+  if (isBrowserEvent) {
     result.url = extractString(eventObj, 'url') ?? extractString(actionObj, 'url') ?? extractString(obsObj, 'url');
     result.index = extractNumber(eventObj, 'index') ?? extractNumber(actionObj, 'index');
     result.text = extractString(eventObj, 'text') ?? extractString(actionObj, 'text');
@@ -899,34 +969,47 @@ export function extractEventFields(event: V1Event): ExtractedEventFields {
   }
   
   // === Search actions/observations (Grep, Glob) ===
-  if (kind.includes('Grep') || kind.includes('Glob') || kind.includes('Search')) {
+  // Matches: GrepAction, GlobAction, SearchAction and their observations
+  const isSearchEvent = SEARCH_KINDS.has(kind);
+  if (isSearchEvent) {
     result.pattern = extractString(eventObj, 'pattern') ?? extractString(actionObj, 'pattern') ?? extractString(obsObj, 'pattern');
     result.include = extractString(eventObj, 'include') ?? extractString(actionObj, 'include');
     result.search_path = extractString(eventObj, 'search_path') ?? extractString(obsObj, 'search_path');
+    // Priority: file path > search path (preserves earlier extraction)
     result.path = result.path ?? extractString(eventObj, 'path') ?? extractString(actionObj, 'path');
     result.files = extractStringArray(eventObj, 'files') ?? extractStringArray(obsObj, 'files');
     result.matches = extractStringArray(eventObj, 'matches') ?? extractStringArray(obsObj, 'matches');
+    // Priority: MCP is_error > search is_error (preserves earlier extraction)
     result.is_error = result.is_error ?? extractBoolean(eventObj, 'is_error') ?? extractBoolean(obsObj, 'is_error');
   }
   
   // === Think actions ===
-  if (kind.includes('Think') || actionType === 'think') {
+  // Matches: ThinkAction
+  const isThinkEvent = THINK_KINDS.has(kind) || actionType === 'think';
+  if (isThinkEvent) {
     result.thought = extractString(eventObj, 'thought') ?? extractString(actionObj, 'thought');
   }
   
   // === Finish actions ===
-  if (kind.includes('Finish') || actionType === 'finish') {
+  // Matches: FinishAction
+  const isFinishEvent = FINISH_KINDS.has(kind) || actionType === 'finish';
+  if (isFinishEvent) {
     result.message = extractString(eventObj, 'message') ?? extractString(actionObj, 'message') ?? extractString(actionObj, 'content');
   }
   
   // === Task tracker ===
-  if (kind.includes('TaskTracker')) {
+  // Matches: TaskTrackerAction, TaskTrackerObservation
+  const isTaskTrackerEvent = TASK_TRACKER_KINDS.has(kind);
+  if (isTaskTrackerEvent) {
+    // Priority: terminal command > task tracker command (preserves earlier extraction)
     result.command = result.command ?? extractString(eventObj, 'command') ?? extractString(actionObj, 'command') ?? extractString(obsObj, 'command');
     result.task_list = extractTaskList(eventObj, 'task_list') ?? extractTaskList(actionObj, 'task_list') ?? extractTaskList(obsObj, 'task_list');
   }
   
   // === Observation linkage ===
-  if (isObservationEvent || kind.includes('Observation')) {
+  // Matches: ObservationEvent and all *Observation kinds
+  const isObservation = isObservationEvent || OBSERVATION_KINDS.has(kind);
+  if (isObservation) {
     result.action_id = extractString(eventObj, 'action_id') ?? extractString(obsObj, 'action_id');
   }
   
