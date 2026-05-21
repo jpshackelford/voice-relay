@@ -1,4 +1,43 @@
 ---
+### 2026-05-21 02:30 UTC - Implementation Worker (Conversation uztpckw)
+
+**Completed: Issue #252 - Server: Extract V1Event fields for rich agent event rendering**
+
+- Issue: [#252 - Server: Extract V1Event fields for rich agent event rendering](https://github.com/jpshackelford/voice-relay/issues/252)
+- PR: [#254 - feat: extract V1Event fields for rich agent event rendering](https://github.com/jpshackelford/voice-relay/pull/254)
+- Status: Ready for review (CI passing: all checks ✓)
+
+**Implementation Summary:**
+Extended `AgentAction` interface and V1Event processing to extract and forward additional fields needed for rich content rendering (Phase 2a of #247).
+
+**Changes Made:**
+1. `server/src/types.ts`:
+   - Extended `AgentAction` with terminal, file, MCP, browser, search, think, finish, task tracker, and observation linkage fields
+   - Added `ContentPart` and `TaskItem` helper interfaces
+   - All field names use snake_case to match OpenHands conventions (documented in code comments)
+
+2. `server/src/openhands.ts`:
+   - Extended `V1Event` interface with all nested action/observation fields
+   - Added `V1ContentPart` and `V1TaskItem` helper types
+   - Created `extractEventFields()` function that extracts relevant fields based on event kind
+   - Updated WebSocket event processing to spread extracted fields into AgentAction
+
+3. `client/src/types.ts`:
+   - Mirrored all server type changes for client-side consistency
+
+4. `server/src/openhands.test.ts`:
+   - Added 45+ comprehensive tests for extractEventFields function
+   - Covers all event types: terminal, file, MCP, browser, search, think/finish, task tracker
+   - Tests error handling and field priority edge cases
+
+**Testing:**
+- All 718 server tests passing
+- TypeScript compilation passes (server and client)
+- E2E tests passing
+
+**Blocks:** #253 (client-side rich content rendering)
+
+---
 ### 2026-05-20 14:06 UTC - Merge Worker (Conversation 487881e)
 
 **Merged: PR #251 - fix(client): display summary content in AgentEventCard**
