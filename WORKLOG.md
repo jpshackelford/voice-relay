@@ -1,3 +1,30 @@
+### 2026-05-21 03:48 UTC - Merge Worker (`9cdaa41`)
+
+✅ **Merged PR #254 → main**
+
+- PR: [#254 - feat: extract V1Event fields for rich agent event rendering](https://github.com/jpshackelford/voice-relay/pull/254)
+- Issue: [#252 - Server: Extract V1Event fields](https://github.com/jpshackelford/voice-relay/issues/252) → Auto-closed ✅
+
+**Squash Merge Summary:**
+- Extended `AgentAction` interface with 30+ fields for rich event rendering
+- Created `extractEventFields()` with type-safe extraction helpers
+- Set-based event kind matching for precise categorization
+- snake_case field names match OpenHands conventions for client portability
+- 45+ new tests for field extraction (all passing)
+
+**Key Review Feedback Addressed:**
+1. Replaced fragile `includes()` with Set-based event matching
+2. Added `extractData()` helper with validation (rejects null/arrays/primitives)
+3. Fixed empty array semantics (`[]` vs `undefined` distinction)
+4. Added priority documentation for overlapping field extraction
+5. Added maintenance notes for event kind Sets synchronization
+
+**No database changes** - purely TypeScript interface extensions and field extraction logic.
+
+**Deployed to:** vr.chorecraft.net (auto-deploy on merge to main)
+
+---
+
 ### 2026-05-21 03:40 UTC - Review Feedback Worker
 
 ✅ **Addressed review feedback for PR #254**
