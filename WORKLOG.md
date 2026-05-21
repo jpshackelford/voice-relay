@@ -400,3 +400,36 @@ Both automations have been disabled to prevent unnecessary runs.
 | Review | 2 | 0 | 2 |
 
 ---
+
+---
+
+### 2026-05-21 03:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9cdaa41` | merge | PR #254 - V1Event field extraction | **NEW** |
+| `60b2e13` | review | PR #255 - Rich content rendering | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker**
+   - PR: [#254 - feat: extract V1Event fields for rich agent event rendering](https://github.com/jpshackelford/voice-relay/pull/254)
+   - Issue: [#252](https://github.com/jpshackelford/voice-relay/issues/252)
+   - Status: CI passing ✅, no unresolved review threads, ready to merge
+   - Conversation: [`9cdaa41`](https://app.all-hands.dev/conversations/9cdaa417c0a44d8dbfd603514c667b11)
+
+2. **Review Worker**
+   - PR: [#255 - feat(client): implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/pull/255)
+   - Issue: [#253](https://github.com/jpshackelford/voice-relay/issues/253)
+   - Status: 1 unresolved review thread (screenshot suggestion)
+   - Conversation: [`60b2e13`](https://app.all-hands.dev/conversations/60b2e13fe0de43d2907d1c4024cff9f0)
+
+**Current State:**
+- Open PRs: #254 (merge ready), #255 (needs screenshot evidence), #221 (draft - skip)
+- Issues on-hold: #208, #210, #239
+- Ready issues with PRs: #252 (PR #254), #253 (PR #255)
+
+**Previous Workers Completed:**
+- `6f93c0c` (review/PR #254) - finished ✓
+- `7b96649` (review/PR #255) - finished ✓
