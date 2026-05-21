@@ -1,5 +1,28 @@
 
 
+### 2026-05-21 02:50 UTC - Expansion Worker (`47fad73`)
+
+✅ **Expanded Issue #253**
+
+- Issue: [#253 - Client: Implement rich content rendering for agent event cards](https://github.com/jpshackelford/voice-relay/issues/253)
+- Type: Enhancement (Phase 2b of agent event rendering)
+- Status: **Ready for implementation** ✓
+
+**Changes Made:**
+- Rewrote issue body with structured Problem Statement, Proposed Solution, Acceptance Criteria
+- Added technical comment with Implementation Plan, Files Affected, Event Kind → Content Mapping
+- Added `ready` label
+
+**Summary:**
+- Create `client/src/utils/getEventContent.ts` with content formatting helpers (~200 lines)
+- Update `AgentEventCard.tsx` to render markdown in expanded section
+- Sync `AgentAction` type with server-side changes from PR #254
+- Use existing `marked` + `DOMPurify` for markdown rendering
+
+**Blocked by:** PR #254 must merge first (provides V1Event field extraction on server)
+
+---
+
 ### 2026-05-20 18:03 UTC - Orchestrator
 
 🔒 **Auto-disabled due to extended inactivity**
