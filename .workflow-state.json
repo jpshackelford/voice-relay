@@ -1,19 +1,29 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "d7d64b2",
+        "conv_id": "a4f689d",
         "issue": 253,
-        "started": "2026-05-21T02:50:04.977708+00:00"
+        "started": "2026-05-21T03:05:32.083979+00:00"
+      },
+      {
+        "conv_id": "a4f689d",
+        "issue": 253,
+        "started": "2026-05-21T03:05:36.398045+00:00"
       }
     ],
-    "implementation": [],
     "review": [
       {
-        "conv_id": "359cd69",
+        "conv_id": "d30163a",
         "pr": 254,
-        "started": "2026-05-21T02:50:04.977708+00:00"
+        "started": "2026-05-21T03:05:32.083979+00:00"
+      },
+      {
+        "conv_id": "d30163a",
+        "pr": 254,
+        "started": "2026-05-21T03:05:36.398045+00:00"
       }
     ]
   },
@@ -22,7 +32,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-21T02:50:04.977708+00:00",
+  "last_updated": "2026-05-21T03:05:36.398045+00:00",
   "completed": [
     {
       "conv_id": "033ea38",
@@ -167,6 +177,24 @@
       "finished": "2026-05-21T02:48:39.629731+00:00",
       "status": "incomplete",
       "outcome": "Worker finished but review threads still unresolved"
+    },
+    {
+      "conv_id": "d7d64b2",
+      "type": "expansion",
+      "issue": 253,
+      "started": "2026-05-21T02:50:04.977708+00:00",
+      "finished": "2026-05-21T03:04:00.052229+00:00",
+      "status": "finished",
+      "outcome": "Worker finished - check issue/PR for details"
+    },
+    {
+      "conv_id": "359cd69",
+      "type": "review",
+      "pr": 254,
+      "started": "2026-05-21T02:50:04.977708+00:00",
+      "finished": "2026-05-21T03:04:00.052229+00:00",
+      "status": "finished",
+      "outcome": "Worker finished - check issue/PR for details"
     }
   ]
 }
