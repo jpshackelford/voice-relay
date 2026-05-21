@@ -1,3 +1,29 @@
+### 2026-05-21 12:30 UTC - Implementation Worker
+
+✅ **Implemented Issue #257**
+
+- Issue: [#257 - Bug: Rich content rendering fails](https://github.com/jpshackelford/voice-relay/issues/257)
+- PR: [#258 - fix: rich content rendering works with real OpenHands event structure](https://github.com/jpshackelford/voice-relay/pull/258)
+- Status: **Ready for review**
+
+**Root Cause:**
+- OpenHands API sends events with `kind: 'ActionEvent'` at top level
+- Nested `action.kind: 'TerminalAction'` contains the actual type
+- Server was passing `'ActionEvent'` to client, but `getEventContent()` expected `'TerminalAction'`
+
+**Changes:**
+1. Added `extractEffectiveKind()` function to extract nested kind from wrapped events
+2. Fixed `extractEventFields()` detection logic to use `action.kind` instead of `action.action`
+3. Updated WebSocket handler to pass effective kind to client
+4. Updated all tests to use real event structures from production fixtures
+
+**Testing:**
+- ✅ 733 server tests pass
+- ✅ 534 client tests pass
+- ✅ Build succeeds
+- ✅ CI checks pass
+
+---
 ### 2026-05-21 12:07 UTC - Expansion Worker (`33551cf`)
 
 ✅ **Expanded Issue #257**
