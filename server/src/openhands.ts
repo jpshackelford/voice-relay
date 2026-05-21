@@ -825,6 +825,7 @@ function extractContent(obj: Record<string, unknown> | undefined, key: string): 
 /**
  * Helper to safely extract task list from an object.
  * Validates that task items have the correct structure including optional notes field.
+ * Returns empty array for empty input arrays (to distinguish "no tasks yet" from "field absent").
  */
 function extractTaskList(obj: Record<string, unknown> | undefined, key: string): V1TaskItem[] | undefined {
   if (!obj) return undefined;
@@ -841,7 +842,9 @@ function extractTaskList(obj: Record<string, unknown> | undefined, key: string):
       if ('notes' in taskItem && typeof taskItem.notes !== 'string') return false;
       return true;
     });
-    if (validTasks.length > 0) {
+    // Return array if we have valid tasks OR if input was an empty array
+    // This preserves the semantic distinction: [] means "no tasks yet", undefined means "field absent"
+    if (validTasks.length > 0 || value.length === 0) {
       return validTasks as V1TaskItem[];
     }
   }
