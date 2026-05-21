@@ -66,34 +66,93 @@ describe('getEventContent utilities', () => {
     });
 
     describe('FileEditorAction', () => {
-      it('formats file creation with path and content', () => {
+      it('formats create command with path and content', () => {
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          command: 'create',
+          path: '/src/test.ts',
+          file_text: 'const x = 1;',
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Create:** `/src/test.ts`');
+        expect(content).toContain('const x = 1;');
+      });
+
+      it('infers create from file_text when command is absent', () => {
         const action = baseAction({
           kind: 'FileEditorAction',
           path: '/src/test.ts',
           file_text: 'const x = 1;',
         });
         const content = getActionContent(action);
-        expect(content).toBe('/src/test.ts\nconst x = 1;');
+        expect(content).toContain('**Create:** `/src/test.ts`');
+        expect(content).toContain('const x = 1;');
       });
 
-      it('returns empty for edit without file_text', () => {
+      it('renders view command (regression: previously empty)', () => {
         const action = baseAction({
           kind: 'FileEditorAction',
+          command: 'view',
           path: '/src/test.ts',
         });
-        expect(getActionContent(action)).toBe('');
+        // Previously returned '' which made the card empty in production.
+        expect(getActionContent(action)).toBe('**View:** `/src/test.ts`');
       });
 
-      it('truncates long file content', () => {
+      it('renders str_replace with old/new snippets', () => {
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          command: 'str_replace',
+          path: '/src/test.ts',
+          old_str: 'foo',
+          new_str: 'bar',
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Edit:** `/src/test.ts`');
+        expect(content).toContain('**Old:**');
+        expect(content).toContain('foo');
+        expect(content).toContain('**New:**');
+        expect(content).toContain('bar');
+      });
+
+      it('renders insert with new_str body', () => {
+        const action = baseAction({
+          kind: 'FileEditorAction',
+          command: 'insert',
+          path: '/src/test.ts',
+          new_str: 'new line',
+        });
+        const content = getActionContent(action);
+        expect(content).toContain('**Insert into:** `/src/test.ts`');
+        expect(content).toContain('new line');
+      });
+
+      it('truncates long create content', () => {
         const longText = 'x'.repeat(MAX_CONTENT_LENGTH + 100);
         const action = baseAction({
           kind: 'FileEditorAction',
+          command: 'create',
           path: '/src/test.ts',
           file_text: longText,
         });
         const content = getActionContent(action);
         expect(content).toContain('...(truncated)');
-        expect(content.length).toBeLessThan(longText.length + 50);
+        expect(content.length).toBeLessThan(longText.length + 100);
+      });
+    });
+
+    describe('InvokeSkillAction (regression for PR #258 follow-up)', () => {
+      it('shows the invoked skill name', () => {
+        const action = baseAction({
+          kind: 'InvokeSkillAction',
+          skill_name: 'github',
+        });
+        expect(getActionContent(action)).toBe('**Invoke skill:** `github`');
+      });
+
+      it('falls back to a generic label when name is missing', () => {
+        const action = baseAction({ kind: 'InvokeSkillAction' });
+        expect(getActionContent(action)).toBe('**Invoke skill**');
       });
     });
 
@@ -268,6 +327,57 @@ describe('getEventContent utilities', () => {
         const content = getObservationContent(action);
         expect(content).toContain('```');
         expect(content).toContain('const x = 1;');
+      });
+    });
+
+    describe('InvokeSkillObservation (regression for PR #258 follow-up)', () => {
+      it('formats successful skill result with name + content', () => {
+        const action = baseAction({
+          kind: 'InvokeSkillObservation',
+          skill_name: 'github',
+          content: 'Skill ran successfully.',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Skill:** `github`');
+        expect(content).toContain('**Result:**');
+        expect(content).toContain('Skill ran successfully.');
+      });
+
+      it('formats error result', () => {
+        const action = baseAction({
+          kind: 'InvokeSkillObservation',
+          skill_name: 'github',
+          is_error: true,
+          content: 'auth failed',
+        });
+        const content = getObservationContent(action);
+        expect(content).toContain('**Error:**');
+        expect(content).toContain('auth failed');
+      });
+
+      it('produces non-empty content even when no body is sent', () => {
+        const action = baseAction({
+          kind: 'InvokeSkillObservation',
+          skill_name: 'github',
+        });
+        const content = getObservationContent(action);
+        expect(content.length).toBeGreaterThan(0);
+        expect(content).toContain('github');
+      });
+    });
+
+    describe('ThinkObservation (regression for PR #258 follow-up)', () => {
+      it('renders content text when present', () => {
+        const action = baseAction({
+          kind: 'ThinkObservation',
+          content: 'Thought recorded.',
+        });
+        expect(getObservationContent(action)).toBe('Thought recorded.');
+      });
+
+      it('produces a fallback when content is empty (previously empty card)', () => {
+        const action = baseAction({ kind: 'ThinkObservation' });
+        expect(getObservationContent(action)).toBe('Thought recorded.');
       });
     });
 

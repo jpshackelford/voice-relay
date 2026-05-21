@@ -239,6 +239,9 @@ export interface AgentAction {
   thought?: string;
   message?: string;
 
+  // === Invoke skill actions/observations ===
+  skill_name?: string;     // snake_case per OpenHands convention
+
   // === Task tracker ===
   task_list?: TaskItem[];
 

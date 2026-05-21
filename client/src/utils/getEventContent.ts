@@ -75,19 +75,79 @@ function getExecuteBashActionContent(action: AgentAction): string {
 }
 
 /**
- * Get content for FileEditorAction (create command only shows file content).
+ * Get content for FileEditorAction.
+ *
+ * The OpenHands file_editor tool dispatches on its `command` field
+ * (view | create | str_replace | insert). We render an appropriate preview for
+ * each so the card is never empty when the agent is operating on a file.
  */
 function getFileEditorActionContent(action: AgentAction): string {
-  // Only show content for create commands that have file_text
-  // For view/edit commands, details are in the observation
-  if (!action.file_text) return '';
-  
-  let content = action.file_text;
-  if (content.length > MAX_CONTENT_LENGTH) {
-    content = truncateContent(content);
+  const path = action.path || 'file';
+  const command = action.command;
+
+  // create: show the full new file body (truncated for long files)
+  if (command === 'create' || (!command && action.file_text)) {
+    const body = action.file_text ? truncateContent(action.file_text) : '';
+    return body ? `**Create:** \`${path}\`\n\n\`\`\`\n${body}\n\`\`\`` : `**Create:** \`${path}\``;
   }
-  
-  return `${action.path || 'file'}\n${content}`;
+
+  // insert: show the inserted text. Checked before str_replace because both
+  // can carry `new_str`.
+  if (command === 'insert') {
+    const body = action.new_str ? truncateContent(action.new_str) : '';
+    return body
+      ? `**Insert into:** \`${path}\`\n\n\`\`\`\n${body}\n\`\`\``
+      : `**Insert into:** \`${path}\``;
+  }
+
+  // str_replace: show the before/after diff snippets
+  if (command === 'str_replace' || action.old_str !== undefined || action.new_str !== undefined) {
+    const parts: string[] = [`**Edit:** \`${path}\``];
+    if (action.old_str !== undefined) {
+      parts.push(`**Old:**\n\`\`\`\n${truncateContent(action.old_str)}\n\`\`\``);
+    }
+    if (action.new_str !== undefined) {
+      parts.push(`**New:**\n\`\`\`\n${truncateContent(action.new_str)}\n\`\`\``);
+    }
+    return parts.join('\n\n');
+  }
+
+  // view (and unknown commands): announce the operation so the card has content
+  // Full file contents arrive in the FileEditorObservation.
+  if (command === 'view') {
+    return `**View:** \`${path}\``;
+  }
+
+  return `**${command || 'File'}:** \`${path}\``;
+}
+
+/**
+ * Get content for InvokeSkillAction.
+ *
+ * Shows which skill is being invoked. The actual skill output arrives in the
+ * InvokeSkillObservation.
+ */
+function getInvokeSkillActionContent(action: AgentAction): string {
+  const name = action.skill_name;
+  return name ? `**Invoke skill:** \`${name}\`` : '**Invoke skill**';
+}
+
+/**
+ * Get content for InvokeSkillObservation.
+ */
+function getInvokeSkillObservationContent(action: AgentAction): string {
+  const textContent = extractTextContent(action.content);
+  const header = action.skill_name ? `**Skill:** \`${action.skill_name}\`\n\n` : '';
+
+  if (action.is_error) {
+    return truncateContent(`${header}**Error:**\n${textContent}`);
+  }
+
+  if (!textContent) {
+    return truncateContent(`${header}Skill completed.`);
+  }
+
+  return truncateContent(`${header}**Result:**\n${textContent}`);
 }
 
 /**
@@ -224,7 +284,10 @@ export function getActionContent(action: AgentAction): string {
     
     case 'MCPToolAction':
       return getMCPToolActionContent(action);
-    
+
+    case 'InvokeSkillAction':
+      return getInvokeSkillActionContent(action);
+
     case 'ThinkAction':
       return getThinkActionContent(action);
     
@@ -402,9 +465,14 @@ function getGrepObservationContent(action: AgentAction): string {
 
 /**
  * Get content for ThinkObservation.
+ *
+ * Real ThinkObservations carry a short acknowledgement (e.g. "Thought
+ * recorded."). Fall back to a descriptive placeholder rather than an empty
+ * string when no content is present.
  */
 function getThinkObservationContent(action: AgentAction): string {
-  return extractTextContent(action.content);
+  const text = extractTextContent(action.content).trim();
+  return text || 'Thought recorded.';
 }
 
 /**
@@ -441,7 +509,10 @@ export function getObservationContent(action: AgentAction): string {
     
     case 'MCPToolObservation':
       return getMCPToolObservationContent(action);
-    
+
+    case 'InvokeSkillObservation':
+      return getInvokeSkillObservationContent(action);
+
     case 'TaskTrackerObservation':
       return getTaskTrackerObservationContent(action);
     
