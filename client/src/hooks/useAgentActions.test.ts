@@ -229,19 +229,65 @@ describe('useAgentActions hook', () => {
 
 describe('getActionIcon function', () => {
   it('returns correct icons for known action kinds', () => {
+    // Terminal actions/observations (legacy kinds)
     expect(getActionIcon('CmdRunAction')).toBe('🔧');
     expect(getActionIcon('CmdOutputObservation')).toBe('📤');
+    
+    // File actions - all use 📁 for actions, ✏️ for observations (legacy kinds)
     expect(getActionIcon('FileReadAction')).toBe('📁');
-    expect(getActionIcon('FileWriteAction')).toBe('✏️');
-    expect(getActionIcon('FileEditAction')).toBe('✏️');
+    expect(getActionIcon('FileWriteAction')).toBe('📁');
+    expect(getActionIcon('FileEditAction')).toBe('📁');
+    
+    // Browser actions (legacy kinds)
     expect(getActionIcon('BrowseURLAction')).toBe('🌐');
     expect(getActionIcon('BrowseInteractiveAction')).toBe('🌐');
+    
+    // Agent actions (legacy kinds)
     expect(getActionIcon('AgentThinkAction')).toBe('💭');
     expect(getActionIcon('AgentStateChangeEvent')).toBe('🔄');
     expect(getActionIcon('AgentFinishAction')).toBe('✅');
     expect(getActionIcon('AgentDelegateAction')).toBe('🤝');
     expect(getActionIcon('AgentRejectAction')).toBe('⛔');
     expect(getActionIcon('MessageAction')).toBe('💬');
+  });
+
+  it('returns correct icons for V1Event kinds', () => {
+    // Terminal actions/observations (V1Event kinds)
+    expect(getActionIcon('ExecuteBashAction')).toBe('🔧');
+    expect(getActionIcon('TerminalAction')).toBe('🔧');
+    expect(getActionIcon('ExecuteBashObservation')).toBe('📤');
+    expect(getActionIcon('TerminalObservation')).toBe('📤');
+    
+    // File actions/observations (V1Event kinds)
+    expect(getActionIcon('FileEditorAction')).toBe('📁');
+    expect(getActionIcon('StrReplaceEditorAction')).toBe('📁');
+    expect(getActionIcon('FileEditorObservation')).toBe('✏️');
+    expect(getActionIcon('StrReplaceEditorObservation')).toBe('✏️');
+    
+    // Browser actions/observations
+    expect(getActionIcon('BrowserNavigateAction')).toBe('🌐');
+    expect(getActionIcon('BrowserClickAction')).toBe('🌐');
+    expect(getActionIcon('BrowserObservation')).toBe('🖥️');
+    
+    // MCP tools
+    expect(getActionIcon('MCPToolAction')).toBe('🔌');
+    expect(getActionIcon('MCPToolObservation')).toBe('📋');
+    
+    // Search
+    expect(getActionIcon('GrepAction')).toBe('🔍');
+    expect(getActionIcon('GlobAction')).toBe('🔍');
+    expect(getActionIcon('GrepObservation')).toBe('📜');
+    expect(getActionIcon('GlobObservation')).toBe('📜');
+    
+    // Think/Finish
+    expect(getActionIcon('ThinkAction')).toBe('💭');
+    expect(getActionIcon('ThinkObservation')).toBe('💡');
+    expect(getActionIcon('FinishAction')).toBe('✅');
+    expect(getActionIcon('FinishObservation')).toBe('🏁');
+    
+    // Task tracker
+    expect(getActionIcon('TaskTrackerAction')).toBe('📋');
+    expect(getActionIcon('TaskTrackerObservation')).toBe('📋');
   });
 
   it('returns default icon for unknown action kinds', () => {

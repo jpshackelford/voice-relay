@@ -83,33 +83,93 @@ export function useAgentActions(sessionId?: string) {
 /**
  * Get an emoji icon for an action kind.
  * Used for visual distinction in the UI.
+ * 
+ * Supports both V1Event kinds (ExecuteBashAction, etc.) and
+ * legacy kinds (CmdRunAction, etc.) for backward compatibility.
  */
 export function getActionIcon(kind: string): string {
   switch (kind) {
-    case 'CmdRunAction':
+    // === Terminal actions/observations ===
+    case 'ExecuteBashAction':
+    case 'TerminalAction':
+    case 'CmdRunAction':  // Legacy
       return '🔧';
-    case 'CmdOutputObservation':
+    case 'ExecuteBashObservation':
+    case 'TerminalObservation':
+    case 'CmdOutputObservation':  // Legacy
       return '📤';
-    case 'FileReadAction':
+
+    // === File actions/observations ===
+    case 'FileEditorAction':
+    case 'StrReplaceEditorAction':
+    case 'FileReadAction':  // Legacy
+    case 'FileWriteAction':  // Legacy
+    case 'FileEditAction':  // Legacy
       return '📁';
-    case 'FileWriteAction':
-    case 'FileEditAction':
+    case 'FileEditorObservation':
+    case 'StrReplaceEditorObservation':
       return '✏️';
-    case 'BrowseURLAction':
-    case 'BrowseInteractiveAction':
+
+    // === Browser actions/observations ===
+    case 'BrowserNavigateAction':
+    case 'BrowserClickAction':
+    case 'BrowserTypeAction':
+    case 'BrowserGetStateAction':
+    case 'BrowserGetContentAction':
+    case 'BrowserScrollAction':
+    case 'BrowserGoBackAction':
+    case 'BrowserListTabsAction':
+    case 'BrowserSwitchTabAction':
+    case 'BrowserCloseTabAction':
+    case 'BrowseURLAction':  // Legacy
+    case 'BrowseInteractiveAction':  // Legacy
       return '🌐';
-    case 'AgentThinkAction':
+    case 'BrowserObservation':
+      return '🖥️';
+
+    // === MCP tool actions/observations ===
+    case 'MCPToolAction':
+      return '🔌';
+    case 'MCPToolObservation':
+      return '📋';
+
+    // === Search actions/observations ===
+    case 'GrepAction':
+    case 'GlobAction':
+      return '🔍';
+    case 'GrepObservation':
+    case 'GlobObservation':
+      return '📜';
+
+    // === Think/Finish actions/observations ===
+    case 'ThinkAction':
+    case 'AgentThinkAction':  // Legacy
       return '💭';
+    case 'ThinkObservation':
+      return '💡';
+    case 'FinishAction':
+    case 'AgentFinishAction':  // Legacy
+      return '✅';
+    case 'FinishObservation':
+      return '🏁';
+
+    // === Task tracker ===
+    case 'TaskTrackerAction':
+    case 'TaskTrackerObservation':
+      return '📋';
+
+    // === State/delegate actions ===
     case 'AgentStateChangeEvent':
       return '🔄';
-    case 'AgentFinishAction':
-      return '✅';
     case 'AgentDelegateAction':
       return '🤝';
     case 'AgentRejectAction':
       return '⛔';
+
+    // === Message/communication ===
     case 'MessageAction':
       return '💬';
+
     default:
       return '⚡';
   }

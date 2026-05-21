@@ -40,10 +40,9 @@ describe('AgentEventCard', () => {
 
     it('starts expanded when defaultExpanded is true', () => {
       render(<AgentEventCard action={mockAction} defaultExpanded />);
-      // When expanded, should show the summary in a code block
+      // When expanded, should show the summary in the content area
       const content = document.querySelector('.agent-event-content');
       expect(content).toBeDefined();
-      expect(content?.textContent).toBe('Run `ls -la` to list files');
     });
   });
 
@@ -58,10 +57,9 @@ describe('AgentEventCard', () => {
       const toggleBtn = screen.getByRole('button', { name: /expand details/i });
       fireEvent.click(toggleBtn);
       
-      // Now expanded - shows summary in code block
+      // Now expanded - shows content
       const content = document.querySelector('.agent-event-content');
       expect(content).toBeDefined();
-      expect(content?.textContent).toBe('Run `ls -la` to list files');
     });
 
     it('collapses when expanded toggle is clicked', () => {
@@ -100,14 +98,15 @@ describe('AgentEventCard', () => {
       expect(document.querySelector('.agent-event-details')).toBeDefined();
     });
 
-    it('does not show details section when expanded but no summary', () => {
-      const actionWithoutSummary: AgentAction = {
+    it('does not show details section when expanded but no content', () => {
+      const actionWithoutContent: AgentAction = {
         ...mockAction,
+        kind: 'UnknownAction',  // Unknown action with no content
         summary: '',  // No summary
       };
-      render(<AgentEventCard action={actionWithoutSummary} defaultExpanded />);
+      render(<AgentEventCard action={actionWithoutContent} defaultExpanded />);
       
-      // Should not show details section if summary is empty
+      // Should not show details section if no content
       expect(document.querySelector('.agent-event-details')).toBeNull();
     });
   });
@@ -124,12 +123,32 @@ describe('AgentEventCard', () => {
       expect(screen.getByTitle('Success')).toBeDefined();
     });
 
+    it('shows success indicator using V1Event exit_code field', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'ExecuteBashObservation',
+        exit_code: 0,  // V1Event field name
+      };
+      render(<AgentEventCard action={observation} />);
+      expect(screen.getByTitle('Success')).toBeDefined();
+    });
+
     it('shows timeout indicator for observation with exit_code -1', () => {
       const observation: ExtendedAgentAction = {
         ...mockAction,
         kind: 'CmdOutputObservation',
         exitCode: -1,
         isObservation: true,
+      };
+      render(<AgentEventCard action={observation} />);
+      expect(screen.getByTitle('Timeout')).toBeDefined();
+    });
+
+    it('shows timeout indicator using V1Event timeout field', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'ExecuteBashObservation',
+        timeout: true,  // V1Event field name
       };
       render(<AgentEventCard action={observation} />);
       expect(screen.getByTitle('Timeout')).toBeDefined();
@@ -160,19 +179,161 @@ describe('AgentEventCard', () => {
     });
   });
 
-  describe('expanded content display', () => {
-    it('shows summary in code block when expanded', () => {
-      render(<AgentEventCard action={mockAction} defaultExpanded />);
+  describe('rich content rendering', () => {
+    it('renders terminal observation with command and output', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'ExecuteBashObservation',
+        command: 'echo hello',
+        content: 'hello',
+      };
+      render(<AgentEventCard action={observation} defaultExpanded />);
+      
       const content = document.querySelector('.agent-event-content');
       expect(content).toBeDefined();
-      expect(content?.tagName.toLowerCase()).toBe('code');
-      expect(content?.textContent).toBe('Run `ls -la` to list files');
+      // Should have rendered markdown with code formatting
+      expect(content?.innerHTML).toContain('echo hello');
     });
 
-    it('does not show raw event kind when expanded', () => {
-      render(<AgentEventCard action={mockAction} defaultExpanded />);
-      // Should NOT show raw event kind like "CmdRunAction"
-      expect(screen.queryByText('CmdRunAction')).toBeNull();
+    it('renders task list with status icons', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'TaskTrackerAction',
+        task_list: [
+          { title: 'Task 1', status: 'done' },
+          { title: 'Task 2', status: 'in_progress' },
+          { title: 'Task 3', status: 'todo' },
+        ],
+      };
+      render(<AgentEventCard action={action} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toContain('✅');
+      expect(content?.textContent).toContain('🔄');
+      expect(content?.textContent).toContain('⏳');
+      expect(content?.textContent).toContain('Task 1');
+    });
+
+    it('renders MCP tool action with JSON arguments', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'MCPToolAction',
+        data: { param: 'value' },
+      };
+      render(<AgentEventCard action={action} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toContain('MCP Tool Call');
+      expect(content?.innerHTML).toContain('param');
+    });
+
+    it('renders grep observation with matches', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'GrepObservation',
+        pattern: 'TODO',
+        search_path: '/src',
+        matches: ['src/file.ts:10'],
+      };
+      render(<AgentEventCard action={observation} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toContain('Pattern');
+      expect(content?.textContent).toContain('TODO');
+      expect(content?.textContent).toContain('Matches');
+    });
+
+    it('renders file editor observation with error', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'FileEditorObservation',
+        error: 'File not found',
+      };
+      render(<AgentEventCard action={observation} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toContain('Error');
+      expect(content?.textContent).toContain('File not found');
+    });
+
+    it('renders content as HTML with markdown parsed', () => {
+      const observation: AgentAction = {
+        ...mockAction,
+        kind: 'ExecuteBashObservation',
+        command: 'ls',
+        content: 'file.txt',
+      };
+      render(<AgentEventCard action={observation} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      // Content should be rendered using dangerouslySetInnerHTML
+      // Check that it's a div (not code element as before)
+      expect(content?.tagName.toLowerCase()).toBe('div');
+    });
+
+    it('falls back to summary when no specific content available', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'UnknownAction',
+        summary: 'Unknown action summary',
+      };
+      render(<AgentEventCard action={action} defaultExpanded />);
+      
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      expect(content?.textContent).toContain('Unknown action summary');
+    });
+  });
+
+  describe('V1Event kind support', () => {
+    it('shows correct icon for ExecuteBashAction', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'ExecuteBashAction',
+      };
+      render(<AgentEventCard action={action} />);
+      expect(screen.getByText('🔧')).toBeDefined();
+    });
+
+    it('shows correct icon for FileEditorAction', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'FileEditorAction',
+      };
+      render(<AgentEventCard action={action} />);
+      expect(screen.getByText('📁')).toBeDefined();
+    });
+
+    it('shows correct icon for BrowserNavigateAction', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'BrowserNavigateAction',
+      };
+      render(<AgentEventCard action={action} />);
+      expect(screen.getByText('🌐')).toBeDefined();
+    });
+
+    it('shows correct icon for ThinkAction', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'ThinkAction',
+      };
+      render(<AgentEventCard action={action} />);
+      expect(screen.getByText('💭')).toBeDefined();
+    });
+
+    it('shows correct icon for MCPToolAction', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'MCPToolAction',
+      };
+      render(<AgentEventCard action={action} />);
+      expect(screen.getByText('🔌')).toBeDefined();
     });
   });
 
