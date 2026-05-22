@@ -588,3 +588,60 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 - #261 still needs `/assess-priority` before it can be picked up — handle inline when impl slot next frees and #261 is the front of the queue.
 
 ---
+
+---
+### 2026-05-22 02:21 UTC - Orchestrator
+
+**Workers Completed (this cycle):**
+- `f0caf18` (implementation, Issue #262) — finished → opened/merged [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) `fix(db): enforce SQLite FK + WAL` (squash-merged 02:12 UTC, issue #262 auto-closed).
+- `003c227` (review, PR #266) — finished → resolved the 1 outstanding github-actions thread (PR description TTL doc mismatch) at 02:10 UTC; CI green; PR flipped back to ready.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8a5f4bd` | review (conflict-resolution) | PR #266 — agent events persistence | **NEW** |
+| `68c1ccd` | implementation | Issue #264 — Kiosk timeline TZ parse + clock-source bug (priority:high) | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review/Conflict-Resolution Worker** — [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) `feat(server): persist OpenHands agent events with TTL and REST rehydration`
+   - Conversation: https://app.all-hands.dev/conversations/8a5f4bd23cbc465e8bdac715465cd343
+   - Reason: PR #266 mergeable=CONFLICTING / DIRTY after PR #267 squash-merged to main. CI is green and all review threads resolved — only blocker is rebase/merge against new `PRAGMA foreign_keys=ON` + migration 013. Worker will rebase onto main, renumber migration if needed, verify FK-on behavior, push, re-ready.
+2. **Implementation Worker** — Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) `Kiosk timeline TZ parse + clock-source mismatch` (priority:high, bug, client)
+   - Conversation: https://app.all-hands.dev/conversations/68c1ccd592fe485b80913d4e327586a3
+   - Reason: Highest-priority `ready` issue; expansion is complete (root cause + fix shape confirmed by reporter at `e304e3d`). Worker will fix server-side timestamp normalization (`server/src/openhands.ts:1454`) + client-side merge ordering (`client/src/components/KioskMode.tsx:352-377`), add tests covering non-UTC TZ.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `o pending dirty` (conflicts; worker `8a5f4bd` resolving)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped; awaiting manual conflict resolution since 2026-05-18)
+- **Recently merged:**
+  - [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) — `fix(db): enforce SQLite FK + WAL + migration 013 fk_orphan_cleanup` (merged 02:12 UTC; issue #262 closed)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling improvements)
+  - #265 — `priority:medium` client bug (action+observation pairing)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+  - #260 — `priority:medium` — being implemented by PR #266 in flight (will auto-close on merge)
+- **On-hold (skipped):** #208, #210, #239
+- **In progress (impl):** #264 — `68c1ccd`
+- **All issues are now `ready` or on-hold** — no expansion work pending.
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion |
+| Implementation | 1 | 1 | #264 — `68c1ccd` |
+| Review/Merge | 1 | 2 | PR #266 conflict-resolution — `8a5f4bd`; 1 slot still free |
+
+**Decision rationale:**
+- Both prior workers had finished (state file was stale from the 01:36 entry). State file cleaned up; 30 completed entries retained (24h audit window).
+- PR #266: CI green + reviews resolved + only blocker is a mechanical merge conflict from #267 → review worker (not merge worker yet — must clear conflict + verify FK-on first).
+- Spawned impl in parallel because PR slot conflict-resolution doesn't block new implementation work; #264 is independent (client bug + server timestamp normalization) and shouldn't collide with the agent-events code in PR #266 if based on current main.
+- Did NOT spawn a second review worker (only PR #266 is actionable; PR #221 stuck on `needs-human`).
+- Did NOT spawn expansion workers — every open non-on-hold issue already has `ready`.
+
+**Next cycle:**
+- If `8a5f4bd` finishes and PR #266 is mergeable+approved → spawn merge worker.
+- If `8a5f4bd` hits gnarly conflicts and adds `needs-human` → defer PR #266, free the review slot.
+- If `68c1ccd` produces a PR and CI not green or comments appear → spawn review worker for that PR.
+- After #264 impl, the remaining priority-tagged `ready` queue is: #263 → #265 → (#261 once `/assess-priority` is run).
