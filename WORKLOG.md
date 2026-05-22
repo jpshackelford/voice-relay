@@ -1,3 +1,28 @@
+### 2026-05-22 04:15 UTC - Implementation Worker (issue #263, PR #274)
+
+🛠️ **Opened PR [#274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Implements issue [#263](https://github.com/jpshackelford/voice-relay/issues/263) end-to-end: six related improvements to the in-house migrator without swapping it out for a library.
+
+**Shipped:**
+- `MigrationLock` interface + `SQLiteTableLock` impl (`_migrations_lock` sentinel row, `BEGIN IMMEDIATE`, 5-min stale TTL, owner-check on release).
+- `Migrator` gets `sql_hash` + `duration_ms` columns on `_migrations` (idempotent ALTER, sql_hash backfilled for pre-existing rows), `detectDrift()`, optional `destructive: true` field, and `migrateUp/Down/To` now run under the lock.
+- `SQLiteStore.connect()` honors `AUTO_MIGRATE` (default `true` to preserve prod auto-deploy behaviour; `false` refuses to start when pending migrations exist) and logs drift warnings on startup.
+- New CLI: `server/scripts/db-cli.ts` exposes `npm run db:status | db:migrate | db:rollback | db:new <name>`. Rollback gates `destructive: true` migrations behind `--confirm-destructive` (exit 2 on refusal).
+- 8 existing migrations annotated `destructive: true` (001 messages, 002 users, 003 workspaces, 005 devices_sessions, 006 device_token_security, 008 qr_tokens, 009 join_requests, 012 agent_events).
+- New runbook: `docs/runbooks/database-migrations.md`.
+
+**Production-safety verification:** simulated a pre-#263 SQLite shape (11 applied migrations, no `sql_hash`/`duration_ms`) — backfill ran on first `db:status`, then `db:migrate` cleanly applied 12 + 13 with no data touched. Ran two concurrent `npm run db:migrate` against the same DB; one applied all 13, the other was a clean no-op — never double-applied. `AUTO_MIGRATE` defaults to `true` so existing `vr.chorecraft.net` deploys keep working without any env-var change; flipping to `false` is a deliberate post-merge follow-up.
+
+**Tests:** 845 server tests pass (was 839 on main; +6 new: lock contention / stale takeover / owner check; migrator drift / backfill / destructive; sqlite `AUTO_MIGRATE` enforcement and startup drift). Build clean. CI on `2d7edf8`: Build Client 25s, Server Tests 30s, E2E Tests 1m46s, lint-pr-title 4s — all green.
+
+**Coordination:** no overlap with PRs #273 (client-only) or #272 (paused on `server/src/openhands.ts`, not touched here). `MigrationLock` is the abstraction #261's Postgres driver will plug into; redis/firestore/memory drivers were untouched so the storage-driver cleanup is unblocked.
+
+**Follow-ups noted (not blocking this PR):**
+1. After merge, set `AUTO_MIGRATE=false` in the prod env and add `npm run db:migrate` to the deploy pipeline before the app restart, so schema changes become an explicit deploy step.
+2. Postgres `MigrationLock` impl will land with #261 — interface is ready.
+3. The CLI prints index.ts wiring instructions on `db:new` rather than editing the file. Revisit if it becomes a friction point.
+
+---
+
 ### 2026-05-22 03:55 UTC - Review-Feedback Worker (PR #273, issue #269)
 
 📝 **Addressed review feedback on PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — one unresolved review thread from `github-actions[bot]` on `client/src/hooks/useAgentActions.ts:17` flagging a stale JSDoc comment on `mergeAndDedupe`. The comment claimed the helper was used by both `seedActions` and `handleAgentAction`, but `seedActions` actually has its own inline dedupe loop (it requires the opposite ordering — historical seed inserted *before* existing live events — so it can't share the helper).
