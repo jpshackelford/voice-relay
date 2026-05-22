@@ -9,7 +9,12 @@ import { readFileSync, existsSync } from 'fs';
 import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
-import { aiSessionManager, getWorkspaceApiKey } from './openhands.js';
+import { AgentEventRepository } from './storage/agent-event-repository.js';
+import { aiSessionManager, getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
+import {
+  AgentEventRehydrator,
+  createAgentEventRouter,
+} from './agent-events/index.js';
 import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
@@ -134,6 +139,9 @@ let joinRequestRepository: JoinRequestRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
+let agentEventRepository: AgentEventRepository | null = null;
+let agentEventRehydrator: AgentEventRehydrator | null = null;
+let agentEventTtlInterval: ReturnType<typeof setInterval> | null = null;
 
 // TTS service for AI response speech synthesis (set up after workspace repository)
 let ttsService: TtsService | null = null;
@@ -931,7 +939,8 @@ async function start() {
       deviceRepository = new DeviceRepository(db);
       sessionRepository = new SessionRepository(db);
       qrTokenRepository = new QrTokenRepository(db);
-      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken repositories initialized');
+      agentEventRepository = new AgentEventRepository(db);
+      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent repositories initialized');
 
       // Initialize TTS service for AI response speech synthesis
       ttsService = new TtsService({
@@ -940,6 +949,72 @@ async function start() {
         decryptApiKey,
       });
       console.log('[TTS] Service initialized');
+
+      // Wire live-ingest of upstream OH events into agent_events.
+      // Errors are swallowed so DB hiccups can't block device broadcast —
+      // see AISessionManager WS handler for the surrounding try/catch.
+      aiSessionManager.setEventCallback((vrSessionId, conversationId, rawEvent) => {
+        if (!agentEventRepository) return;
+        const session = sessionRepository?.findById(vrSessionId);
+        if (!session) {
+          // Best effort: skip events for sessions we don't recognise. This
+          // can happen during shutdown or for the anonymous session.
+          return;
+        }
+        try {
+          agentEventRepository.insert({
+            conversationId,
+            sessionId: vrSessionId,
+            workspaceId: session.workspaceId,
+            rawEvent,
+          });
+        } catch (err) {
+          console.error('[AgentEvents] Failed to persist live event:', err);
+        }
+      });
+
+      // Rehydrator for on-demand REST backfill when a session is read after
+      // pruning. Uses workspace API key (encrypted in workspace_settings).
+      agentEventRehydrator = new AgentEventRehydrator({
+        repo: agentEventRepository,
+        buildClient: (apiKey) => new OpenHandsClient(apiKey),
+        getWorkspaceApiKey: async (wsId) =>
+          workspaceRepository
+            ? await getWorkspaceApiKey(
+                wsId,
+                (id) => workspaceRepository?.getSettings(id) ?? null,
+                decryptApiKey
+              )
+            : null,
+      });
+      console.log('[AgentEvents] Rehydrator initialized');
+
+      // TTL pruning loop. Defaults: 7-day retention, hourly sweep. Setting
+      // AGENT_EVENTS_TTL_DAYS=0 disables pruning entirely.
+      const ttlDays = Number(process.env.AGENT_EVENTS_TTL_DAYS ?? 7);
+      const ttlIntervalMs = Number(process.env.AGENT_EVENTS_TTL_INTERVAL_MS ?? 60 * 60 * 1000);
+      if (Number.isFinite(ttlDays) && ttlDays > 0 && Number.isFinite(ttlIntervalMs) && ttlIntervalMs > 0) {
+        const ttlMs = ttlDays * 24 * 60 * 60 * 1000;
+        const runPrune = () => {
+          if (!agentEventRepository) return;
+          const cutoff = new Date(Date.now() - ttlMs).toISOString();
+          try {
+            const deleted = agentEventRepository.deleteOlderThan(cutoff);
+            if (deleted > 0) {
+              console.log(`[AgentEvents] TTL prune removed ${deleted} rows older than ${cutoff}`);
+            }
+          } catch (err) {
+            console.error('[AgentEvents] TTL prune failed:', err);
+          }
+        };
+        agentEventTtlInterval = setInterval(runPrune, ttlIntervalMs);
+        // `setInterval` in Node holds the event loop open; unref so it doesn't
+        // block graceful shutdown.
+        agentEventTtlInterval.unref?.();
+        console.log(`[AgentEvents] TTL prune enabled (${ttlDays}d retention, every ${ttlIntervalMs}ms)`);
+      } else {
+        console.log('[AgentEvents] TTL prune disabled (AGENT_EVENTS_TTL_DAYS=0)');
+      }
     }
   }
 
@@ -1152,7 +1227,22 @@ async function start() {
       });
       app.use('/api/workspaces/:workspaceId/sessions', sessionRouter);
       console.log('[Sessions] API enabled');
-      
+
+      // Set up agent-events read API. Top-level mount: a sessionId already
+      // resolves to its workspace via SessionRepository.findById, so we
+      // don't need the redundant /api/workspaces/:workspaceId prefix here.
+      if (agentEventRepository && agentEventRehydrator) {
+        const agentEventRouter = createAgentEventRouter({
+          agentEventRepository,
+          rehydrator: agentEventRehydrator,
+          sessionRepository,
+          workspaceRepository,
+          authConfig: { jwtService, userRepository },
+        });
+        app.use('/api/sessions', agentEventRouter);
+        console.log('[AgentEvents] Read API enabled at /api/sessions/:sessionId/agent-events');
+      }
+
       if (qrTokenRepository) {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');
       }
@@ -1192,6 +1282,10 @@ async function start() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Server] Shutting down...');
+    if (agentEventTtlInterval) {
+      clearInterval(agentEventTtlInterval);
+      agentEventTtlInterval = null;
+    }
     deviceAuthManager?.shutdown();
     await aiSessionManager.shutdown();
     await store.disconnect();

@@ -68,6 +68,42 @@ interface EventsSearchResponse {
   next_page_id?: string;
 }
 
+/**
+ * Raw OH event as it appears on the REST event-search response. We index a
+ * couple of fields for storage but otherwise treat the payload as opaque so
+ * it can be replayed through new client code as-is.
+ */
+export interface RawOpenHandsEvent {
+  id?: string;
+  kind?: string;
+  source?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface EventsSearchPage {
+  items: RawOpenHandsEvent[];
+  next_page_id?: string;
+}
+
+/**
+ * Error class used for OH REST failures that include HTTP status and the raw
+ * `Retry-After` header (if any) so retry logic can react appropriately.
+ */
+export class OpenHandsApiError extends Error {
+  readonly status: number;
+  readonly retryAfter: string | null;
+  readonly transient: boolean;
+
+  constructor(status: number, message: string, retryAfter: string | null) {
+    super(message);
+    this.name = 'OpenHandsApiError';
+    this.status = status;
+    this.retryAfter = retryAfter;
+    this.transient = status === 0 || status === 429 || status >= 500;
+  }
+}
+
 export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
@@ -107,10 +143,19 @@ export class OpenHandsClient {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(`OpenHands API error ${response.status}: ${text}`);
+        throw new OpenHandsApiError(
+          response.status,
+          `OpenHands API error ${response.status}: ${text}`,
+          response.headers.get('retry-after')
+        );
       }
 
       return await response.json() as T;
+    } catch (err) {
+      if (err instanceof OpenHandsApiError) throw err;
+      // AbortError, network errors → transient (status 0)
+      const message = err instanceof Error ? err.message : String(err);
+      throw new OpenHandsApiError(0, `OpenHands network error: ${message}`, null);
     } finally {
       clearTimeout(timeoutId);
     }
@@ -219,6 +264,26 @@ export class OpenHandsClient {
     return this.request<EventsSearchResponse>(
       'GET',
       `/conversation/${conversationId}/events/search?limit=${limit}`
+    );
+  }
+
+  /**
+   * Get a single page of raw events for rehydration. Returns events untouched
+   * so callers can persist them verbatim. Uses a 60s per-call timeout per the
+   * rehydration retry model.
+   */
+  async getEventsPage(
+    conversationId: string,
+    options: { pageId?: string; limit?: number } = {}
+  ): Promise<EventsSearchPage> {
+    const params = new URLSearchParams();
+    params.set('limit', String(options.limit ?? 100));
+    if (options.pageId) params.set('page_id', options.pageId);
+    return this.request<EventsSearchPage>(
+      'GET',
+      `/conversation/${conversationId}/events/search?${params.toString()}`,
+      undefined,
+      60_000
     );
   }
 
@@ -1139,6 +1204,20 @@ export type ThinkingChangeCallback = (sessionId: string, isThinking: boolean) =>
 export type ActionCallback = (sessionId: string, action: AgentAction) => void;
 
 /**
+ * Callback type for raw agent events arriving on the upstream WebSocket.
+ * Fired at the *top* of the WS message handler, before any kind-specific
+ * branch, so persistence captures everything that could be broadcast.
+ *
+ * Errors thrown by the callback are swallowed by the WS handler so they
+ * cannot block downstream broadcast logic.
+ */
+export type EventCallback = (
+  sessionId: string,
+  conversationId: string,
+  rawEvent: RawOpenHandsEvent
+) => void;
+
+/**
  * Manager for AI sessions using WebSocket
  */
 export class AISessionManager {
@@ -1149,6 +1228,8 @@ export class AISessionManager {
   private onThinkingChange?: ThinkingChangeCallback;
   /** Callback invoked when agent performs an action */
   private onAction?: ActionCallback;
+  /** Callback invoked for every raw event on the upstream WS */
+  private onEvent?: EventCallback;
 
   constructor() {
     try {
@@ -1176,6 +1257,20 @@ export class AISessionManager {
    */
   setActionCallback(callback: ActionCallback | undefined): void {
     this.onAction = callback;
+  }
+
+  /**
+   * Set callback fired for *every* raw event arriving on the upstream WS,
+   * before any kind-specific dispatch. Callers are expected to handle their
+   * own errors — see {@link EventCallback}.
+   */
+  setEventCallback(callback: EventCallback | undefined): void {
+    this.onEvent = callback;
+  }
+
+  /** Expose current event callback (for tests). */
+  getEventCallback(): EventCallback | undefined {
+    return this.onEvent;
   }
 
   // ==================== Session-Centric Methods (NEW) ====================
@@ -1399,7 +1494,22 @@ export class AISessionManager {
     ws.on('message', (data: WebSocket.Data) => {
       try {
         const event = JSON.parse(data.toString());
-        
+
+        // Persist EVERY raw event before any kind-specific dispatch so live
+        // ingest captures the full stream. Errors are swallowed here so
+        // persistence failures (e.g. DB locked) never block broadcast.
+        if (this.onEvent && session.sessionId) {
+          try {
+            this.onEvent(
+              session.sessionId,
+              session.conversationId,
+              event as RawOpenHandsEvent
+            );
+          } catch (persistErr) {
+            console.error('[AI] Event persistence callback threw:', persistErr);
+          }
+        }
+
         // V1 MessageEvent - agent messages have llm_message with role/content
         if (this.isV1MessageEvent(event) && event.source === 'agent') {
           // Update thinking state when agent responds
