@@ -1,3 +1,19 @@
+### 2026-05-22 02:55 UTC - Review-Response Worker (PR #268, issue #264)
+
+🔁 **Addressed all 3 github-actions[bot] review threads on PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** (`fix(client): interleave kiosk timeline by normalizing OH event timestamps`).
+
+All three threads pointed to the same root cause: `parseOhTimestamp` returned an Invalid Date for unparseable strings, but callers (`KioskMode.tsx:374` truthiness check, `SessionView.tsx:174` `??` fallback) assumed `null` meant "invalid". Invalid Date is truthy and non-nullish, so both call sites silently produced `NaN` / Invalid-Date `receivedAt` on garbage input.
+
+**Fix (commit `f91cb7b`):** normalize Invalid Date → `null` inside `parseOhTimestamp` itself. Single source-of-truth helper, no caller churn. Updated the one test that previously documented the Invalid-Date contract. All 558 client tests pass; CI green on all 4 required checks (Server Tests, Build Client, E2E Tests, lint-pr-title).
+
+Resolved all 3 threads via GraphQL with replies pointing to the commit. PR moved back to **Ready for review**.
+
+**Cross-issue reflection:** posted a [heads-up comment on #265](https://github.com/jpshackelford/voice-relay/issues/265#issuecomment-4514602451) — the Action+Observation pairing rework explicitly touches the same `KioskMode.tsx` `timeline` `useMemo` and will be re-using `parseOhTimestamp`. Flagged the new `null` contract and the recommendation to sort the paired entry by the action's timestamp (not the observation's) to avoid timeline reordering on slow observations.
+
+No production-DB or migration impact — change is client-side only.
+
+---
+
 ### 2026-05-22 02:38 UTC - Expansion Worker (Issue #269)
 
 📋 **Expanded issue [#269](https://github.com/jpshackelford/voice-relay/issues/269)** — `feat(client): hydrate agent event timeline from persisted store and rehydrate on session render`.
