@@ -1,20 +1,20 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "7c69f80",
-        "issue": 269,
-        "started": "2026-05-22T02:37:51.647397+00:00"
+        "conv_id": "20876eb",
+        "issue": 265,
+        "started": "2026-05-22T02:51:55.495845+00:00"
       }
     ],
-    "implementation": [],
     "review": [
       {
-        "conv_id": "c5e0d50",
-        "pr": 266,
-        "started": "2026-05-22T02:37:51.647397+00:00",
-        "kind": "merge"
+        "conv_id": "be830dd",
+        "pr": 268,
+        "started": "2026-05-22T02:51:55.495845+00:00",
+        "kind": "review"
       }
     ]
   },
@@ -23,17 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T02:40:38.946933+00:00",
+  "last_updated": "2026-05-22T02:51:55.495845+00:00",
   "completed": [
-    {
-      "conv_id": "481b95f",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T02:35:52.705387+00:00",
-      "finished": "2026-05-21T02:48:39.629731+00:00",
-      "status": "incomplete",
-      "outcome": "Worker finished but review threads still unresolved"
-    },
     {
       "conv_id": "d7d64b2",
       "type": "expansion",
@@ -285,6 +276,25 @@
       "finished": "2026-05-22T02:40:38.946933+00:00",
       "status": "success",
       "outcome": "Opened canonical PR #268 (fix(client): interleave kiosk timeline by normalizing OH event timestamps, Fixes #264); also opened parallel PR #271, then self-closed it as duplicate of #268"
+    },
+    {
+      "conv_id": "7c69f80",
+      "type": "expansion",
+      "issue": 269,
+      "started": "2026-05-22T02:37:51.647397+00:00",
+      "finished": "2026-05-22T02:50:42.839264+00:00",
+      "status": "success",
+      "outcome": "Added ready label + priority:medium + client; issue #269 ready for implementation"
+    },
+    {
+      "conv_id": "c5e0d50",
+      "type": "review",
+      "pr": 266,
+      "kind": "merge",
+      "started": "2026-05-22T02:37:51.647397+00:00",
+      "finished": "2026-05-22T02:50:42.839264+00:00",
+      "status": "success",
+      "outcome": "PR #266 squash-merged; issue #260 auto-closed"
     }
   ]
 }

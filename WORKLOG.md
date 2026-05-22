@@ -802,3 +802,60 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 - If `8a5f4bd` hits gnarly conflicts and adds `needs-human` → defer PR #266, free the review slot.
 - If `68c1ccd` produces a PR and CI not green or comments appear → spawn review worker for that PR.
 - After #264 impl, the remaining priority-tagged `ready` queue is: #263 → #265 → (#261 once `/assess-priority` is run).
+
+---
+### 2026-05-22 02:52 UTC - Orchestrator
+
+**Workers Completed (this cycle):**
+- `7c69f80` (expansion, Issue #269) — finished → issue #269 now labeled `ready` + `priority:medium` + `client` (`feat(client): hydrate agent event timeline from persisted store and rehydrate on session render`).
+- `c5e0d50` (merge, PR #266) — finished → **PR #266 squash-merged** at 02:38 UTC; issue #260 auto-closed by `Fixes #260`. Production now has agent_events table (migration 012) and REST rehydration endpoint.
+
+**Active Workers (after this cycle's spawns):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be830dd` | review | PR #268 — kiosk timeline TZ fix (3 unresolved github-actions threads) | **NEW** |
+| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
+   - Conversation: https://app.all-hands.dev/conversations/be830dd241674ba2995bd73af16107dc
+   - Rationale: 3 unresolved github-actions review threads (all suggesting Invalid Date guards / consistent handling around `parseOhTimestamp`). CI green, PR ready, age 25m. Worker will draft-→address-→ready and resolve threads via GraphQL.
+2. **Implementation Worker** — [Issue #265](https://github.com/jpshackelford/voice-relay/issues/265) `Bug: Agent event cards render Action and Observation as separate entries (should be paired)` (priority:medium, bug, client)
+   - Conversation: https://app.all-hands.dev/conversations/20876ebaa9b249c69f760972cdb8b047
+   - Rationale: Highest-priority `ready` issue not in flight (#264 owned by PR #268). Prompt includes coordination note to read PR #268 first, since both PRs touch client agent-event rendering and a rebase may be needed if PR #268 merges first.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oR green ready 💬3` (review worker `be830dd` addressing threads)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Recently merged (this cycle):**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `feat(server): persist OpenHands agent events with TTL and REST rehydration` (merged 02:38 UTC; issue #260 auto-closed)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` (migration tooling improvements)
+  - #269 — `priority:medium` (just expanded; client hydration of agent event timeline; depends on the new REST endpoint from #266)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #265 — `20876eb`
+- **On-hold (skipped):** #208, #210, #239
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion (all `ready` or `on-hold`) |
+| Implementation | 1 | 1 | #265 — `20876eb` |
+| Review/Merge | 1 | 2 | PR #268 — `be830dd`; PR #221 stuck; 1 review slot free |
+
+**Decision rationale:**
+- PR #266 fully cleared; #260 closed; nothing further to do on that thread.
+- PR #268 has CI green and only feedback to address → spawn review worker (not merge worker — feedback unresolved).
+- Impl slot freed (`68c1ccd` finished in prior cycle) → spawn highest-priority ready issue. #264 owned by PR #268, so next is #265 (priority:medium client bug). Chose #265 over #263 because both are `priority:medium` but #265 is a bug (preferred over enhancement at same priority).
+- #269 left in queue: it's a client feature that depends on the just-merged REST endpoint and conceptually overlaps with #265's rendering changes; better to let #265 land first to avoid double-rebase on the same files.
+- No new expansion work — every open non-on-hold issue is labeled `ready`.
+
+**Next cycle:**
+- If `be830dd` finishes with all threads resolved + CI green → spawn merge worker for PR #268.
+- If `20876eb` opens a PR → review/CI handling next cycle.
+- After #265 merges, dispatch impl for #263 (or #269 if PR #266 endpoint is now consumable client-side).
+- #261 still needs `/assess-priority` before it can be picked up.
+
+---
