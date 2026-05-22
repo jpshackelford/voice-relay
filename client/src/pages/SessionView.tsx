@@ -9,6 +9,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useAI } from '../hooks/useAI';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
 import { useAgentActions } from '../hooks/useAgentActions';
+import { useAgentEventHistory } from '../hooks/useAgentEventHistory';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
@@ -89,6 +90,27 @@ export function SessionView() {
 
   // Agent actions for showing AI activity in kiosk sidebar
   const agentActions = useAgentActions(sessionId);
+
+  // Hydrate the agent-event timeline from the persisted store on session
+  // render (issue #269). Gated on auth + session presence so we don't fire
+  // a fetch that's guaranteed to 401/404. The hook itself manages the
+  // sessionId-change refetch path.
+  const agentEventHistory = useAgentEventHistory({
+    sessionId,
+    enabled: !!sessionId && isAuthenticated,
+  });
+
+  // Forward fetched history into the live-state hook. The dedupe-by-id rule
+  // inside `seedActions` handles the WS-arrived-during-fetch race so live
+  // events that beat the seed survive (and history events that overlap them
+  // are skipped). Empty seed is a no-op (see `seedActions`).
+  const { seedActions } = agentActions;
+  const historyEvents = agentEventHistory.history;
+  useEffect(() => {
+    if (historyEvents.length > 0) {
+      seedActions(historyEvents);
+    }
+  }, [historyEvents, seedActions]);
 
   // Memoize extractors to avoid unnecessary re-fetches
   const extractWorkspace = useCallback((data: unknown) => data as WorkspaceInfo, []);
@@ -492,6 +514,11 @@ export function SessionView() {
           agentActions={agentActions.actions}
           showAgentActions={agentActions.showActions}
           onToggleAgentActions={agentActions.toggleShowActions}
+          agentHistoryLoading={agentEventHistory.loading}
+          agentHistoryRehydrationComplete={agentEventHistory.rehydrationComplete}
+          agentHistoryError={agentEventHistory.error}
+          agentHistoryConversationId={agentEventHistory.conversationId}
+          onRetryAgentHistory={agentEventHistory.retry}
         />
       </>
     );

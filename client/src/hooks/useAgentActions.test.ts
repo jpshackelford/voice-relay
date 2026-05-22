@@ -1,7 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAgentActions, getActionIcon } from './useAgentActions';
-import type { AgentActionMessage } from '../types';
+import type { AgentAction, AgentActionMessage } from '../types';
+
+/** Test fixture builder for AgentAction. */
+function makeAction(id: string, overrides: Partial<AgentAction> = {}): AgentAction {
+  return {
+    id,
+    timestamp: `2026-05-21T10:00:${id.padStart(2, '0').slice(-2)}.000Z`,
+    kind: 'CmdRunAction',
+    source: 'agent',
+    summary: `Action ${id}`,
+    ...overrides,
+  };
+}
 
 // Mock localStorage with proper reset between tests
 let localStorageStore: Record<string, string> = {};
@@ -224,6 +236,155 @@ describe('useAgentActions hook', () => {
     });
 
     expect(result.current.actions).toHaveLength(0);
+  });
+
+  // === Issue #269: history hydration + dedupe ===
+
+  it('handleAgentAction dedupes by id (live event with already-seen id is a no-op)', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    const message: AgentActionMessage = {
+      type: 'agent-action',
+      sessionId: 'session-123',
+      action: makeAction('act-1', { summary: 'first' }),
+    };
+
+    act(() => {
+      result.current.handleAgentAction(message);
+      // Same id, different summary — should be ignored.
+      result.current.handleAgentAction({
+        ...message,
+        action: makeAction('act-1', { summary: 'second' }),
+      });
+    });
+
+    expect(result.current.actions).toHaveLength(1);
+    expect(result.current.actions[0].summary).toBe('first');
+  });
+
+  it('seedActions populates empty state', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    const seed: AgentAction[] = [makeAction('h1'), makeAction('h2'), makeAction('h3')];
+
+    act(() => {
+      result.current.seedActions(seed);
+    });
+
+    expect(result.current.actions).toHaveLength(3);
+    expect(result.current.actions.map(a => a.id)).toEqual(['h1', 'h2', 'h3']);
+  });
+
+  it('seedActions is a no-op when given an empty array', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    act(() => {
+      result.current.handleAgentAction({
+        type: 'agent-action',
+        sessionId: 'session-123',
+        action: makeAction('live-1'),
+      });
+      result.current.seedActions([]);
+    });
+
+    expect(result.current.actions).toHaveLength(1);
+    expect(result.current.actions[0].id).toBe('live-1');
+  });
+
+  it('seedActions dedupes against live events that arrived before hydration (live wins)', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    const liveAction = makeAction('shared-1', { summary: 'live version' });
+    const seedDuplicate = makeAction('shared-1', { summary: 'historical version' });
+    const seedNew = makeAction('hist-only');
+
+    act(() => {
+      // Live event arrives first (race condition)
+      result.current.handleAgentAction({
+        type: 'agent-action',
+        sessionId: 'session-123',
+        action: liveAction,
+      });
+      // Then history hydration completes
+      result.current.seedActions([seedDuplicate, seedNew]);
+    });
+
+    // Expect: historical-only entry first, then live entry. Live wins on
+    // id-collision (its summary "live version" remains).
+    expect(result.current.actions).toHaveLength(2);
+    const idToAction = new Map(result.current.actions.map(a => [a.id, a]));
+    expect(idToAction.get('shared-1')?.summary).toBe('live version');
+    expect(idToAction.get('hist-only')?.summary).toBe('Action hist-only');
+    // History ordered before live
+    expect(result.current.actions[0].id).toBe('hist-only');
+    expect(result.current.actions[1].id).toBe('shared-1');
+  });
+
+  it('live events that overlap seeded history do not double-render (history-then-live)', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    act(() => {
+      result.current.seedActions([makeAction('h1'), makeAction('h2')]);
+    });
+
+    expect(result.current.actions).toHaveLength(2);
+
+    act(() => {
+      // Server replays h2 over WS — should be ignored.
+      result.current.handleAgentAction({
+        type: 'agent-action',
+        sessionId: 'session-123',
+        action: makeAction('h2', { summary: 'duplicated over ws' }),
+      });
+      // And a brand new live event arrives.
+      result.current.handleAgentAction({
+        type: 'agent-action',
+        sessionId: 'session-123',
+        action: makeAction('live-1'),
+      });
+    });
+
+    expect(result.current.actions.map(a => a.id)).toEqual(['h1', 'h2', 'live-1']);
+    // h2 keeps its original summary, not the WS replay's.
+    expect(result.current.actions[1].summary).toBe('Action h2');
+  });
+
+  it('seedActions trims to MAX_ACTIONS keeping the most recent (tail)', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    // 60 historical events. Cap is 50 — should keep entries 10..59.
+    const seed: AgentAction[] = [];
+    for (let i = 0; i < 60; i++) {
+      seed.push(makeAction(`h-${String(i).padStart(2, '0')}`));
+    }
+
+    act(() => {
+      result.current.seedActions(seed);
+    });
+
+    expect(result.current.actions).toHaveLength(50);
+    expect(result.current.actions[0].id).toBe('h-10');
+    expect(result.current.actions[49].id).toBe('h-59');
+  });
+
+  it('seedActions is idempotent (calling twice with the same seed yields the same state)', () => {
+    const { result } = renderHook(() => useAgentActions('session-123'));
+
+    const seed: AgentAction[] = [makeAction('h1'), makeAction('h2')];
+
+    act(() => {
+      result.current.seedActions(seed);
+    });
+    const firstSnapshot = result.current.actions;
+
+    act(() => {
+      result.current.seedActions(seed);
+    });
+
+    expect(result.current.actions).toHaveLength(2);
+    expect(result.current.actions.map(a => a.id)).toEqual(['h1', 'h2']);
+    // Object refs preserved (no mutation cascade through React).
+    expect(result.current.actions[0]).toBe(firstSnapshot[0]);
   });
 });
 
