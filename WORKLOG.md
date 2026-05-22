@@ -1,3 +1,29 @@
+### 2026-05-22 02:41 UTC - Merge Worker (PR #266 → main → deploy)
+
+🚀 **Squash-merged PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — `feat(server): persist OpenHands agent events with TTL and REST rehydration`. Merge commit `0dbd66a8` at 2026-05-22T02:40:32Z. Issue [#260](https://github.com/jpshackelford/voice-relay/issues/260) auto-closed via `Fixes #260`.
+
+**What landed on `main` / `vr.chorecraft.net`:**
+- Migration `012_agent_events.ts` — purely additive (`CREATE TABLE IF NOT EXISTS agent_events` + 3 indexes incl. partial unique on `(conversation_id, event_id) WHERE event_id IS NOT NULL`). Both `up` and `down` defined. No FK constraints, so PRAGMA `foreign_keys=ON` enforced by #267's migration 013 is a no-op for this code path. Final migration order on main: `…011 → 012 (agent_events) → 013 (fk_orphan_cleanup)`.
+- New `server/src/agent-events/` package: repository (`agent-event-repository.ts` w/ INSERT OR IGNORE + `pruneOlderThan`), REST rehydrator (`rehydrator.ts` — pagination, bounded retry/backoff honoring `Retry-After`, incremental persistence, single-flight per session), and router (`router.ts` — `GET /api/sessions/:sessionId/agent-events`, JWT + workspace-scoped, auto-rehydrates when local store empty + conversation id known).
+- Live-ingest wiring in `openhands.ts` (event callback runs before kind dispatch) + `auto-connect.ts` (records `aiConversationId` on session metadata so rehydration knows what to fetch).
+- Hourly TTL pruning loop in `index.ts`, default 7 days, tunable via `AGENT_EVENTS_TTL_DAYS`. Interval cleared on shutdown.
+
+**Production safety check (pre-merge):**
+- mergeStateStatus `CLEAN`, mergeable `MERGEABLE`, all 7 required CI checks green (Server Tests, Build Client, E2E Tests, lint-pr-title ×2, pr-review, enable-orchestrator).
+- Verified locally: `npm test -w server` → 800/800 pass on the rebased branch.
+- Reviewed migration 012 by hand: only `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS` — no `ALTER`, no data backfill, no destructive ops. Safe to run against the live `sqlite.db`.
+- Reviewed migration 013 coexistence: 013 (`fk_orphan_cleanup`) operates only on pre-existing tables (`workspace_settings`, `workspace_members`, `devices`, `sessions`, `qr_tokens`, `workspace_join_requests`, `session_devices`, `messages`) — it does not touch `agent_events`. No interaction.
+- One review thread total on the PR (a github-actions TTL doc nit), resolved before the rebase and not reintroduced by the rebase.
+
+**Ops notes for next restart of `vr.chorecraft.net`:**
+- Migrator will apply 012 then 013 in order on the existing SQLite DB. Backup of `sqlite.db` recommended but not required (012 is additive; 013's only destructive ops target orphan rows that violate already-declared FKs, see #267 worklog).
+- No new env vars required; `AGENT_EVENTS_TTL_DAYS` defaults to 7 if unset.
+- No new runtime deps.
+
+PR description was updated pre-merge to reflect the final rebased state (migration order, FK-interaction note, 800-test count). Squash commit body captures TTL behavior, rehydration endpoint, and migration 012 details for the changelog.
+
+---
+
 ### 2026-05-22 02:36 UTC - Implementation Worker (PR #271 → closed as dup of #268, issue #264)
 
 🔁 **Opened then closed PR [#271](https://github.com/jpshackelford/voice-relay/pull/271) as a duplicate** of [#268](https://github.com/jpshackelford/voice-relay/pull/268).
