@@ -4,17 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "1b68706",
-        "issue": 269,
-        "started": "2026-05-22T03:22:27.477789+00:00"
+        "conv_id": "a4900d9",
+        "issue": 263,
+        "started": "2026-05-22T03:51:42.871231+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "91b977c",
-        "pr": 272,
-        "kind": "merge",
-        "started": "2026-05-22T03:37:07.658223+00:00"
+        "conv_id": "4157041",
+        "pr": 273,
+        "kind": "review",
+        "started": "2026-05-22T03:51:42.871231+00:00"
       }
     ]
   },
@@ -23,26 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T03:37:07.658223+00:00",
+  "last_updated": "2026-05-22T03:51:42.871231+00:00",
   "completed": [
-    {
-      "conv_id": "6f93c0c",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T03:34:05.032318+00:00",
-      "finished": "2026-05-21T03:47:00.926494+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #254"
-    },
-    {
-      "conv_id": "7b96649",
-      "type": "review",
-      "pr": 255,
-      "started": "2026-05-21T03:34:05.032318+00:00",
-      "finished": "2026-05-21T03:47:00.926494+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #255"
-    },
     {
       "conv_id": "9cdaa41",
       "type": "review",
@@ -278,6 +260,24 @@
       "finished": "2026-05-22T03:37:07.658223+00:00",
       "status": "success",
       "outcome": "Rebased PR #272 onto main (resolved KioskMode.tsx conflicts from PR #268), CI back to green, no unresolved review threads"
+    },
+    {
+      "conv_id": "1b68706",
+      "type": "implementation",
+      "issue": 269,
+      "started": "2026-05-22T03:22:27.477789+00:00",
+      "finished": "2026-05-22T03:51:42.871231+00:00",
+      "status": "success",
+      "outcome": "Opened PR #273 (feat(client): hydrate agent event timeline)"
+    },
+    {
+      "conv_id": "91b977c",
+      "type": "merge",
+      "pr": 272,
+      "started": "2026-05-22T03:37:07.658223+00:00",
+      "finished": "2026-05-22T03:51:42.871231+00:00",
+      "status": "halted-needs-human",
+      "outcome": "Halted PR #272 merge: diff contained out-of-scope server changes (server/src/openhands.ts shouldSkipForKioskTimel... helper). Added needs-human label per guardrail."
     }
   ]
 }
