@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, unlinkSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import Database from 'better-sqlite3';
 import { SQLiteStore } from './sqlite.js';
 import type { RelayedTextMessage } from '../types.js';
 
@@ -443,6 +444,158 @@ describe('SQLiteStore', () => {
         await store.disconnect();
         await expect(store.getRecentBySession(10, 'session-a')).rejects.toThrow('not connected');
       });
+    });
+  });
+
+  describe('foreign key enforcement (#262)', () => {
+    beforeEach(async () => {
+      await store.connect();
+    });
+
+    // Seed helpers — duplicate of `createTestSession` above kept local to
+    // this block so the FK tests stand on their own.
+    const seedUser = (id: string, githubId: number) => {
+      store.getDatabase()!
+        .prepare(`
+          INSERT INTO users (id, github_id, username, created_at, last_login_at)
+          VALUES (?, ?, ?, datetime('now'), datetime('now'))
+        `)
+        .run(id, githubId, `user-${id}`);
+    };
+    const seedWorkspace = (id: string, ownerId: string) => {
+      store.getDatabase()!
+        .prepare(`
+          INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+          VALUES (?, ?, 'WS', ?, ?, datetime('now'), datetime('now'))
+        `)
+        .run(id, ownerId, `slug-${id}`, `code-${id}`);
+    };
+    const seedDevice = (id: string, workspaceId: string) => {
+      store.getDatabase()!
+        .prepare(`
+          INSERT INTO devices (id, workspace_id, name, mode, created_at)
+          VALUES (?, ?, 'dev', 'speaker', datetime('now'))
+        `)
+        .run(id, workspaceId);
+    };
+    const seedSession = (id: string, workspaceId: string) => {
+      store.getDatabase()!
+        .prepare(`
+          INSERT INTO sessions (id, workspace_id, name, status, started_at)
+          VALUES (?, ?, 'sess', 'active', datetime('now'))
+        `)
+        .run(id, workspaceId);
+    };
+
+    it('enables PRAGMA foreign_keys on the active connection', () => {
+      const db = store.getDatabase()!;
+      const fk = db.pragma('foreign_keys', { simple: true });
+      expect(fk).toBe(1);
+    });
+
+    it('configures WAL journal mode for the database file', () => {
+      const db = store.getDatabase()!;
+      const journalMode = db.pragma('journal_mode', { simple: true });
+      expect(String(journalMode).toLowerCase()).toBe('wal');
+    });
+
+    it('sets synchronous=NORMAL and a 5s busy_timeout', () => {
+      const db = store.getDatabase()!;
+      expect(db.pragma('synchronous', { simple: true })).toBe(1); // 1 = NORMAL
+      expect(db.pragma('busy_timeout', { simple: true })).toBe(5000);
+    });
+
+    it('cascades parent deletes through declared FKs', () => {
+      const db = store.getDatabase()!;
+      seedUser('u1', 1);
+      seedWorkspace('w1', 'u1');
+      seedDevice('d1', 'w1');
+      seedSession('s1', 'w1');
+      db.prepare(`
+        INSERT INTO session_devices (session_id, device_id, joined_at)
+        VALUES ('s1', 'd1', datetime('now'))
+      `).run();
+
+      // Sanity: every child row was inserted
+      expect(db.prepare('SELECT COUNT(*) AS c FROM devices').get()).toEqual({ c: 1 });
+      expect(db.prepare('SELECT COUNT(*) AS c FROM sessions').get()).toEqual({ c: 1 });
+      expect(db.prepare('SELECT COUNT(*) AS c FROM session_devices').get()).toEqual({ c: 1 });
+
+      // Delete the workspace — declared CASCADEs must fire
+      db.prepare('DELETE FROM workspaces WHERE id = ?').run('w1');
+
+      expect(db.prepare('SELECT COUNT(*) AS c FROM devices').get()).toEqual({ c: 0 });
+      expect(db.prepare('SELECT COUNT(*) AS c FROM sessions').get()).toEqual({ c: 0 });
+      expect(db.prepare('SELECT COUNT(*) AS c FROM session_devices').get()).toEqual({ c: 0 });
+    });
+
+    it('rejects INSERTs that violate a FK constraint', () => {
+      const db = store.getDatabase()!;
+      expect(() =>
+        db.prepare(`
+          INSERT INTO devices (id, workspace_id, name, mode, created_at)
+          VALUES ('orphan-device', 'does-not-exist', 'dev', 'speaker', datetime('now'))
+        `).run()
+      ).toThrow(/FOREIGN KEY constraint failed/);
+    });
+
+    it('nulls messages.session_id when its session is deleted (SET NULL)', async () => {
+      const db = store.getDatabase()!;
+      seedUser('u1', 1);
+      seedWorkspace('w1', 'u1');
+      seedSession('s1', 'w1');
+      await store.append({
+        type: 'text',
+        utteranceId: 'utt-1',
+        workspaceId: 'w1',
+        sessionId: 's1',
+        senderId: 'sender-1',
+        senderName: 'Sender',
+        text: 'hi',
+        partial: false,
+      });
+
+      const before = db
+        .prepare('SELECT session_id FROM messages WHERE utterance_id = ?')
+        .get('utt-1') as { session_id: string | null };
+      expect(before.session_id).toBe('s1');
+
+      db.prepare('DELETE FROM sessions WHERE id = ?').run('s1');
+
+      const after = db
+        .prepare('SELECT session_id FROM messages WHERE utterance_id = ?')
+        .get('utt-1') as { session_id: string | null };
+      expect(after.session_id).toBeNull();
+    });
+
+    it('throws on startup if PRAGMA foreign_keys cannot be turned on', async () => {
+      // Spy on the better-sqlite3 prototype so the *real* connect() path runs
+      // but the readback for `foreign_keys` returns 0 — exactly the scenario
+      // the assertion exists to catch (a future binary where the compile-time
+      // default flips, or a SET pragma that silently no-ops).
+      const realPragma = Database.prototype.pragma;
+      const spy = vi
+        .spyOn(Database.prototype, 'pragma')
+        .mockImplementation(function (this: Database.Database, src, opts?: { simple?: boolean }) {
+          if (
+            typeof src === 'string' &&
+            src.trim() === 'foreign_keys' &&
+            opts !== undefined &&
+            opts.simple === true
+          ) {
+            return 0;
+          }
+          // Pass-through for everything else (set-pragmas, other reads).
+          return realPragma.call(this, src, opts as never);
+        });
+
+      try {
+        const failPath = join(testDir, 'fk-off.db');
+        const failStore = new SQLiteStore({ path: failPath, skipMigrations: true });
+        await expect(failStore.connect()).rejects.toThrow(/foreign_keys pragma not enabled/);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 });
