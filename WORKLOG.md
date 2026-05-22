@@ -1,3 +1,15 @@
+### 2026-05-22 01:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #261**
+
+- Issue: [Remove unused storage drivers (redis, firestore, memory) in preparation for Postgres](https://github.com/jpshackelford/voice-relay/issues/261)
+- Type: Enhancement / Cleanup
+- Status: Ready for implementation (`ready` label applied)
+- Approach: Delete `memory.ts`, `redis.ts`, `firestore.ts`, `memory.test.ts`; narrow `StoreConfig['driver']` to `'sqlite'`; uninstall `redis` dep; clean README/JSDoc; reject unknown `STORE_DRIVER` at startup. Multi-driver pattern (`MessageStore` + `createStore` switch) preserved so Postgres (#263) can plug in cleanly.
+- Verified: only `server/src/storage/` files reference the dead drivers; consumers (`server/src/index.ts`, `server/src/auto-connect.ts`) use only `MessageStore` + `SQLiteStore`; `.env.example`, `docs/DEPLOYMENT.md`, `tests/global-setup.ts` already pin `sqlite`.
+
+---
+
 ### 2026-05-21 13:15 UTC - Orchestrator
 
 🔒 **Auto-disabled due to inactivity**
