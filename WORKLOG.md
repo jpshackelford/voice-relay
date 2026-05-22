@@ -1,3 +1,25 @@
+### 2026-05-22 03:09 UTC - Merge Worker (PR #268 → main → deploy)
+
+🚀 **Squash-merged PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** — `fix(client): interleave kiosk timeline by normalizing OH event timestamps`. Merge commit `0aac2a2e` at 2026-05-22T03:09:25Z. Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) auto-closed at 2026-05-22T03:09:27Z via `Fixes #264`.
+
+**What landed on `main` / `vr.chorecraft.net`:**
+- Server: new `server/src/utils/timestamp.ts#normalizeOhTimestamp` — ISO Zulu for any parseable input, `null` for garbage. Applied in `openhands.ts` before stamping `AgentAction.timestamp` and the new `serverTimestamp` arg on the AI-relay callback. `auto-connect.ts` plumbs `serverTimestamp` onto `RelayedTextMessage`. `storage/sqlite.ts` now returns `created_at` as `createdAt` (Zulu); `memory.ts`/`redis.ts` stamp `createdAt` at append for parity.
+- Client: new `client/src/utils/parseOhTimestamp.ts` — mirrors server contract (returns `null` for unparseable input, post-review hardening in `f91cb7b`). `KioskMode.tsx` parses `AgentAction.timestamp` before sorting the unified timeline. `SessionView.tsx`/`Workspace.tsx` consume `serverTimestamp`/`createdAt`.
+- Types: `RelayedTextMessage` (both server + client) extended with optional `serverTimestamp` / `createdAt`.
+
+**Production safety check (pre-merge):**
+- mergeStateStatus `CLEAN`, mergeable `MERGEABLE`, all 6 required CI checks green (Server Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator).
+- All 3 github-actions[bot] review threads (Invalid-Date guard) resolved against commit `f91cb7b` which made the client `parseOhTimestamp` return `null` for unparseable input — single source-of-truth contract.
+- **No DB migration touched** (verified by `gh pr diff 268 -- 'server/src/db/migrations/**'` returning empty). New fields (`serverTimestamp`, `createdAt`) are optional → cross-version-deploy safe. Backwards compatible with older clients (ignore new fields, fall back to `new Date()` at receive time).
+- 12 server unit tests for `normalizeOhTimestamp` + 11 client unit tests for `parseOhTimestamp` + 3 KioskMode TZ regression tests (verified passing under `TZ=America/New_York`, where the original bug manifested) + updated `sqlite.test.ts` round-trip.
+
+**Cross-issue heads-up:** PR [#272](https://github.com/jpshackelford/voice-relay/pull/272) (Action+Observation pairing, fixes #265) is open and touches the same `KioskMode.tsx` `timeline` `useMemo`. Left a comment on #272 flagging the merge so the worker rebases onto current `main`.
+
+Production auto-deploy triggered by the push to `main`.
+
+---
+
+
 ### 2026-05-22 03:08 UTC - Implementation Worker (PR #272, issue #265)
 
 🛠️ **Opened PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** — `fix(client): pair ActionEvent + ObservationEvent into a single agent event card` — for issue [#265](https://github.com/jpshackelford/voice-relay/issues/265).
@@ -18,6 +40,7 @@ Each tool invocation now renders as **one** collapsible `AgentEventCard` whose e
 No DB / migration impact — client-side render + server-side forwarder filter only. All 5 CI checks green (Server Tests, Build Client, E2E Tests, enable-orchestrator, lint-pr-title). PR moved from draft to **Ready for review**.
 
 ---
+
 
 
 ### 2026-05-22 02:55 UTC - Review-Response Worker (PR #268, issue #264)
