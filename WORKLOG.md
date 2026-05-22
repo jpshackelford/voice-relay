@@ -84,6 +84,98 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 
 ---
 
+### 2026-05-22 04:55 UTC - Orchestrator
+
+⚠️ **Previous cycle's 3 workers all ghosted — re-dispatched**
+
+The 3 workers spawned ~13 minutes ago in the 04:41 UTC cycle (`cd43b83` impl #261, `1cd89bd` merge PR #273, `dfc3f34` review PR #274) all returned `execution_status=error` with `title="Conversation <prefix>"` and `created_at == updated_at` — the same silent spawn-failure signature seen with `f9ebd19` (merge PR #259) on 2026-05-21. None of them did any work. All 3 moved to `completed[]` with `status="ghost"`.
+
+**Active Workers (after re-dispatch):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `18aa19b` | merge | PR #273 — hydrate agent event timeline (closes #269) | **NEW** running |
+| `ef341f4` | review | PR #274 — migration tooling (1 unresolved critical thread) | **NEW** running |
+| `6078efe` | implementation | Issue #261 — Remove unused storage drivers | **NEW** running |
+
+**Spawn verification:** All 3 conversations confirmed READY by start-task polling and `execution_status=running` via `/app-conversations?ids=`. Plugin loaded: `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin`.
+
+**Current State (unchanged from previous cycle since ghosts did nothing):**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, `needs-human`, CONFLICTING — STUCK
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272): `needs-human` (out-of-scope server changes flagged 2026-05-22 03:50) — STUCK
+- [PR #273](https://github.com/jpshackelford/voice-relay/pull/273): `oRFC` green, CLEAN, MERGEABLE, 0 unresolved threads → **merge worker dispatched** (`18aa19b`)
+- [PR #274](https://github.com/jpshackelford/voice-relay/pull/274): `oR` green, CLEAN, MERGEABLE, `reviewDecision=CHANGES_REQUESTED`, 1 unresolved critical bot thread about missing `destructive: true` on migrations 010_display_api_secrets + 2 others → **review worker dispatched** (`ef341f4`)
+- Issue #261: `ready` + `priority:medium` + `audit`, no PR → **impl worker dispatched** (`6078efe`)
+- Issues #263, #265, #269: already represented by open PRs (#274, #272, #273)
+- Issues #208, #210, #239: `on-hold` — skipped
+
+**Action Taken:**
+🚀 **Re-spawned 3 workers** (same targets as ghosted cycle):
+
+1. **Merge Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273)
+   - Conversation: [`18aa19b`](https://app.all-hands.dev/conversations/18aa19b12cdf447da651a21f668367b4)
+   - Includes scope-check guardrail (must be client-only or HALT + `needs-human`, matching the rule that correctly caught PR #272 scope creep).
+
+2. **Review Worker** — [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)
+   - Conversation: [`ef341f4`](https://app.all-hands.dev/conversations/ef341f4d2b90488b84b6f11cb733954e)
+   - Add `destructive: true` to 010_display_api_secrets + 2 other migrations flagged by github-actions reviewer; resolve the thread.
+
+3. **Implementation Worker** — [Issue #261](https://github.com/jpshackelford/voice-relay/issues/261)
+   - Conversation: [`6078efe`](https://app.all-hands.dev/conversations/6078efe5f6b94ed2a4a7d10da261615d)
+   - Remove `memory`, `redis`, `firestore` storage drivers + `redis` dep; leave clean seam for future Postgres driver (must NOT touch SQLite driver — that's production).
+
+**Slots:** expansion 0/4 idle (no issues need expansion), impl 1/1, review 2/2 full.
+
+**Ghost root cause:** Two ghost events in ~24h (`f9ebd19` + this cycle's 3). Pattern: API returns `{id, status: WORKING}` but the resulting conversation never leaves error state and has no real title. Worth raising with OpenHands platform team if it recurs. Mitigation: this cycle's spawn waited for `execution_status=running` before recording in state — the ghosted cycle did not.
+
+**Next cycle:**
+- Check `18aa19b` (merge #273), `ef341f4` (review #274), `6078efe` (impl #261) statuses.
+- If `ef341f4` finishes successfully → spawn merge worker for #274.
+- If `6078efe` opens a PR → review/CI cycle.
+- PR #272 and #221 remain STUCK pending human review.
+
+---
+
+### 2026-05-22 04:41 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cd43b83` | implementation | Issue #261 — Remove unused storage drivers | **NEW** |
+| `1cd89bd` | review (merge) | PR #273 — hydrate agent event timeline | **NEW** |
+| `dfc3f34` | review | PR #274 — migration tooling (1 unresolved critical thread) | **NEW** |
+
+**Previous workers finished:** `a4900d9` (impl #263 → opened PR #274) and `4157041` (review PR #273 → CI green, no threads). Both moved to `completed[]` in state file.
+
+**Current State:**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): `needs-human`, CONFLICTING — deferred to human
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272): `needs-human` (halted: out-of-scope server changes during merge attempt) — deferred to human. Issue #265 (linked) is on hold pending #272 resolution.
+- [PR #273](https://github.com/jpshackelford/voice-relay/pull/273): `oRFC` green ready, 0 unresolved threads → **merge worker dispatched**
+- [PR #274](https://github.com/jpshackelford/voice-relay/pull/274): `oR` green ready, 1 unresolved critical thread (github-actions: missing `destructive: true` on migrations 010_display_api_se… plus 2 others) → **review worker dispatched**
+- Issue #261: `ready` + `audit`, had no priority → **assessed `priority:medium`** inline (cleanup that unblocks Postgres adoption, low-risk dead-code removal) → **impl worker dispatched**
+- Issues #263, #265, #269: ready, already represented by open PRs (#274, #272, #273 respectively).
+- Issues #208, #210, #239: `on-hold` — skipped.
+
+**Action Taken:**
+🚀 **Spawned 3 workers (parallel)**
+
+1. **Merge Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273)
+   - Conversation: [`1cd89bd`](https://app.all-hands.dev/conversations/1cd89bd6fc90430fbcd6864c57cf40f5)
+   - Includes scope-check guardrail (must be client-only or HALT + `needs-human`).
+
+2. **Review Worker** — [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)
+   - Conversation: [`dfc3f34`](https://app.all-hands.dev/conversations/dfc3f340cd724894a21acab20a2d6206)
+   - Fix destructive-migration annotations on migrations 010 + 2 others called out by github-actions reviewer.
+
+3. **Implementation Worker** — [Issue #261](https://github.com/jpshackelford/voice-relay/issues/261)
+   - Conversation: [`cd43b83`](https://app.all-hands.dev/conversations/cd43b83202804d6ca8d0265467ee5cf2)
+   - Remove `memory`, `redis`, `firestore` storage drivers and the `redis` dep; leave clean seam for future Postgres driver to plug into `MigrationLock` abstraction landed in PR #266 / #274.
+
+**Slots:** expansion 0/4 idle (no issues need expansion), impl 1/1 full, review 2/2 full. 4 expansion slots idle is expected — all open issues are either implemented in PRs or `on-hold`.
+
+**Worklog housekeeping:** Truncation script ran. Productive entries span 15 hours of continuous work (no 6h+ gap), so nothing met the archive criterion this cycle; WORKLOG.md kept at 37 entries / 1229 lines. Archives from prior days remain on disk.
+
+---
+
 ### 2026-05-22 04:15 UTC - Implementation Worker (issue #263, PR #274)
 
 🛠️ **Opened PR [#274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Implements issue [#263](https://github.com/jpshackelford/voice-relay/issues/263) end-to-end: six related improvements to the in-house migrator without swapping it out for a library.
@@ -128,6 +220,64 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 
 ---
 
+### 2026-05-22 03:50 UTC - Orchestrator
+
+🚀 **Spawned 2 workers (parallel)**
+
+**Workers completed since last cycle:**
+- `1b68706` (implementation, Issue #269) → finished → opened [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) `feat(client): hydrate agent event timeline from persisted store`; CI green, 1 unresolved github-actions bot review thread.
+- `91b977c` (merge, PR #272) → finished → **HALTED, added `needs-human` label**. The merge worker's guardrail caught out-of-scope server changes in `server/src/openhands.ts` (`shouldSkipForKioskTimel...` helper) that were not part of the stated client-only scope for issue #265. Correctly refused to force-merge; PR #272 now awaits human review.
+
+**Active Workers (after this cycle's spawns):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a4900d9` | implementation | Issue #263 — Migration tooling improvements (priority:medium) | **NEW** |
+| `4157041` | review | PR #273 — hydrate agent event timeline (1 unresolved bot thread) | **NEW** |
+
+**Spawned: 2 Workers**
+
+1. **Review Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) `feat(client): hydrate agent event timeline from persisted store`
+   - Conversation: https://app.all-hands.dev/conversations/415704184573424eae37f3607e682f84
+   - Rationale: CI fully green (Server Tests, Build Client, E2E Tests, lint-pr-title, pr-review), `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, 1 unresolved github-actions bot thread about a stale JSDoc comment on `mergeAndDedupe` (claims `seedActions` calls it when it has its own dedupe logic — looks like a valid clarity fix). Worker will draft→address→reply+resolve thread→ready.
+
+2. **Implementation Worker** — [Issue #263](https://github.com/jpshackelford/voice-relay/issues/263) `Migration tooling improvements: CLI, drift detection, advisory locking` (priority:medium, enhancement)
+   - Conversation: https://app.all-hands.dev/conversations/a4900d9a6ebd4e36a34a9061ec6070e4
+   - Rationale: Highest-priority `ready` issue with no in-flight PR. #265 owned by stuck PR #272; #269 owned by PR #273; #261 still unprioritized. #263 is server-side (migration runner) — no file overlap with the open client PRs (#272, #273). Prompt includes guardrails: must be additive, must not break the migration runner production depends on, and avoid `server/src/openhands.ts` (which #272 already touched).
+
+**Current State:**
+- **Open PRs:**
+  - [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) — `oR green ready 💬1` (review worker `4157041` addressing bot thread; fixes #269)
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `ocFC green ready` but **`needs-human`** (STUCK; out-of-scope server change flagged by merge guardrail; fixes #265 once resolved)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (STUCK since 2026-05-18)
+- **Ready issues queued (awaiting impl slot):**
+  - #261 — `audit`, ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #263 — `a4900d9`
+- **In progress (review):** PR #273 — `4157041`
+- **On-hold (skipped):** #208, #210, #239 — all carry `on-hold`
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion |
+| Implementation | 1 | 1 | #263 — `a4900d9` |
+| Review/Merge | 1 | 2 | PR #273 — `4157041`; PR #272 & #221 stuck; 1 review slot free |
+
+**Decision rationale:**
+- PR #272 correctly flagged `needs-human` by the previous merge worker — that's a STUCK PR per workflow rules. Continue work on independent items rather than wait.
+- PR #273 is the next merge candidate but has 1 unresolved bot thread → review worker (not merge worker) to handle the feedback first.
+- Impl slot was freed by `1b68706` finishing → spawn next-priority `ready` issue. #265 and #269 already have PRs in flight; the remaining priority-tagged option is #263. #261 lacks a priority label and is a non-blocking audit cleanup; can be assessed inline next cycle if needed.
+- No second review/merge worker spawned: only one PR (#273) is actionable; the other two are stuck pending human review.
+- No expansion workers spawned: every non-on-hold open issue already has `ready`.
+- Bookkeeping: moved both finished workers (`1b68706`, `91b977c`) into `completed` array; pruned to 28 entries within 24h.
+
+**Next cycle:**
+- If `4157041` finishes with bot thread resolved + CI green → spawn merge worker for PR #273.
+- If `a4900d9` opens a PR for #263 → review/CI handling next cycle.
+- After both clear (and if #261 is still the only remaining ready issue): run `/assess-priority` inline for #261, then dispatch its impl.
+- PR #272 and #221 remain STUCK awaiting human review/intervention. They do not block other work.
+
+---
+
 ### 2026-05-22 03:40 UTC - Implementation Worker (issue #269, PR #273)
 
 🛠️ **Opened PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — `feat(client): hydrate agent event timeline from persisted store`. Implements issue [#269](https://github.com/jpshackelford/voice-relay/issues/269): the kiosk session view now fetches `GET /api/sessions/:sessionId/agent-events?limit=500` on mount, seeds `useAgentActions` state with the persisted history, and dedupes the live WebSocket against the seed by `AgentAction.id`. Devices joining mid-session, refreshing, or reconnecting after a WS drop now see the full historical timeline instead of an empty panel.
@@ -164,7 +314,6 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 
 ---
 
-
 ### 2026-05-22 03:30 UTC - Rebase Worker (PR #272, issue #265)
 
 🔧 **Rebased PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** onto `main` after PR #268 landed at `0aac2a2e`. Both PRs touch the same `client/src/components/KioskMode.tsx` `timeline` `useMemo`, creating a textual merge conflict — the two concerns are orthogonal so the resolution kept **both** changes.
@@ -191,6 +340,92 @@ No review threads opened on the rebased SHA. PR moved back to **Ready for review
 
 ---
 
+### 2026-05-22 03:23 UTC - Orchestrator
+
+🚀 **Spawned 2 workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b8f99f6` | review/rebase | PR #272 - resolve merge conflict from #268 | **NEW** |
+| `1b68706` | implementation | Issue #269 - hydrate agent event timeline | **NEW** |
+
+**Workers completed since last run:**
+- `20876eb` (implementation, issue #265) → finished, opened PR #272 (now needs rebase)
+- `e7848d7` (merge, PR #268) → finished, squash-merged `0aac2a2e`, issue #264 auto-closed
+
+**Current State:**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) (Issue #265): ready, all CI green pre-rebase, **mergeStateStatus=DIRTY** — conflicts with #268 in `KioskMode.tsx` timeline `useMemo`. Review/rebase worker dispatched.
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, 3 days old, no activity — left as-is (intentional draft).
+- Issues needing expansion: #208, #210, #239 — **all `on-hold`, skipped per workflow rules**.
+- Ready prioritized issues: #263 (priority:medium, migration tooling), #265 (has PR #272), #269 → **picked for impl**.
+- 1 ready issue still unprioritized: #261 (Remove unused storage drivers) — defer priority assessment until current PRs resolve.
+
+**Action Taken:**
+
+1. **Review/Rebase Worker** — [`b8f99f6`](https://app.all-hands.dev/conversations/b8f99f69b4d44b74bfc37ddea97cacd9)
+   - Target: [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair ActionEvent + ObservationEvent (fixes #265)
+   - Reason: Merge conflict introduced by #268 merge in `KioskMode.tsx` timeline `useMemo`. Worker will rebase onto current main, preserve both timestamp normalization (#268) and event pairing (#272), re-run tests, get CI green, mark ready.
+
+2. **Implementation Worker** — [`1b68706`](https://app.all-hands.dev/conversations/1b68706c12b649c4ba794954697c52af)
+   - Target: [Issue #269](https://github.com/jpshackelford/voice-relay/issues/269) — hydrate agent event timeline from persisted store (priority:medium, client)
+   - Reason: Highest-priority ready issue with no in-flight PR. Server endpoint already exists (PR #266 landed it); client-only work. Scoped to `useAgentActions.ts` + fetch/seed/dedupe — explicitly warned to avoid `KioskMode.tsx` timeline `useMemo` to minimize conflict with #272.
+
+**Slot Usage:** expansion=0/4, implementation=1/1, review=1/2
+
+
+
+### 2026-05-22 03:37 UTC - Orchestrator
+
+🚀 **Spawned: Merge Worker for PR #272**
+
+**Workers completed since last cycle:**
+- `b8f99f6` (review/rebase, PR #272) → finished → rebase landed; PR #272 now `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks green, 0 unresolved review threads.
+
+**Active Workers (after this cycle's spawn):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1b68706` | implementation | Issue #269 - hydrate agent event timeline from persisted store | running |
+| `91b977c` | merge | PR #272 - pair ActionEvent + ObservationEvent | **NEW** |
+
+**Spawned Worker:**
+- **Merge Worker** — [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) `fix(client): pair ActionEvent + ObservationEvent into a single agent event card`
+  - Conversation: https://app.all-hands.dev/conversations/91b977ca331345489b28d8cbd459a794
+  - Rationale: Every merge criterion is satisfied. The previous rebase worker (`b8f99f6`) cleared the conflicts introduced by PR #268. No human reviewer required (bot-only). Worker will verify the diff is client-only (no surprise server/migration changes), update the PR description to reflect the final state, squash-merge with conventional commit (`fix(client):`), and confirm issue #265 auto-closes via `Fixes #265`.
+  - Guardrail: if the diff includes any server/schema changes, the worker is instructed to add `needs-human` and STOP rather than force-merging.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `ocFC green ready 💬--` (merge worker `91b977c` taking it over the line; fixes #265)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling improvements)
+  - #261 — ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #269 — `1b68706` (client hydration of agent event timeline)
+- **Closing soon (when PR #272 merges):** #265 (will auto-close via `Fixes #265`)
+- **On-hold (skipped):** #208, #210, #239 — all carry the `on-hold` label
+- **No issues need expansion** (all open non-on-hold issues already have `ready`)
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all unexpanded ones are `on-hold`) |
+| Implementation | 1 | 1 | #269 — `1b68706` (running) |
+| Review/Merge | 1 | 2 | PR #272 merge — `91b977c`; PR #221 stuck; 1 slot free |
+
+**Decision rationale:**
+- PR #272 is the clearest possible merge candidate: rebase finished, CI green, no unresolved threads, no human reviewer required. Merge worker chosen over review worker because there is nothing left to address.
+- Implementation slot still occupied by `1b68706` on #269 — cannot spawn second impl worker. Once #272 merges, #269's client work will rebase cleanly because the merge worker's commit and #269's branch don't touch the same `KioskMode.tsx` `timeline` `useMemo` (#269 is scoped to `useAgentActions.ts` per its expansion).
+- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#272) is being merged. No new PRs in flight.
+- No expansion workers spawned: every non-on-hold open issue already has `ready`.
+- `#261` (`Remove unused storage drivers`) still needs `/assess-priority`. Will run inline at next wake-up if impl slot frees and no higher-priority work is ready. Not urgent — it's an audit cleanup, not a blocking dependency.
+
+**Next cycle:**
+- If `91b977c` merges PR #272 → #265 auto-closes; impl slot still owned by `1b68706`. No new impl spawn until #269's PR opens (or `1b68706` finishes) to avoid branch pile-up.
+- If `1b68706` opens a PR for #269 → review/CI handling next cycle; coordinate with PR #272 merge state.
+- After both clear: dispatch impl for #263 (priority:medium, migration tooling). #261 needs `/assess-priority` before it can be picked.
+
+---
 
 ### 2026-05-22 03:09 UTC - Merge Worker (PR #268 → main → deploy)
 
@@ -213,7 +448,6 @@ Production auto-deploy triggered by the push to `main`.
 
 ---
 
-
 ### 2026-05-22 03:08 UTC - Implementation Worker (PR #272, issue #265)
 
 🛠️ **Opened PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** — `fix(client): pair ActionEvent + ObservationEvent into a single agent event card` — for issue [#265](https://github.com/jpshackelford/voice-relay/issues/265).
@@ -235,7 +469,56 @@ No DB / migration impact — client-side render + server-side forwarder filter o
 
 ---
 
+### 2026-05-22 03:08 UTC - Orchestrator
 
+**Workers Completed (this cycle):**
+- `be830dd` (review, PR #268) — finished → addressed all 3 github-actions Invalid-Date threads (commit `f91cb7b`); resolved threads via GraphQL; CI green on all 4 required checks; PR back to ready.
+
+**Active Workers (after this cycle's spawn):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | running |
+| `e7848d7` | merge | PR #268 — kiosk timeline TZ fix | **NEW** |
+
+**Spawned: 1 Worker (merge)**
+
+- **Merge Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
+  - Conversation: https://app.all-hands.dev/conversations/e7848d755746461bb7b25934290178e9
+  - Rationale: PR #268 is fully green — `isDraft=false`, `mergeable=MERGEABLE`, CI=SUCCESS, all 3 review threads resolved, `reviewDecision=null` (bot-only reviewer). Cleanest merge candidate. Worker will update PR description, squash-merge with `Fixes #264`, verify auto-close, and post a heads-up on #265 if its PR is open by then (to flag the shared `KioskMode.tsx` `timeline` `useMemo` touchpoint).
+
+**Current State:**
+- **Open PRs:**
+  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oRFC green ready` (merge worker `e7848d7` taking it over the line)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling)
+  - #269 — `priority:medium` client (timeline hydration; depends on REST endpoint from PR #266 — now merged, so unblocked)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #265 — `20876eb`
+- **On-hold (skipped):** #208, #210, #239
+- **No issues need expansion** (all open non-on-hold issues already have `ready`)
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion |
+| Implementation | 1 | 1 | #265 — `20876eb` (running) |
+| Review/Merge | 1 | 2 | PR #268 merge — `e7848d7`; PR #221 stuck; 1 review slot free |
+
+**Decision rationale:**
+- PR #268 was the obvious next action: all merge criteria satisfied (CI green, no human reviewer, threads resolved, no conflicts). Merge worker (not review worker) because there's nothing left to address.
+- Impl slot still occupied by `20876eb` (#265). Cannot spawn second impl.
+- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#268) is being merged. No new PRs in flight.
+- No expansion workers spawned: every non-on-hold open issue already has `ready` label.
+- Bookkeeping: cleaned up stale `be830dd` slot entry (worker had finished but state hadn't been updated). Completed array now holds 29 entries within the 24h audit window.
+
+**Next cycle:**
+- If `e7848d7` merges PR #268: dispatch impl for next priority `ready` issue (`#263` or `#269` — preference is `#269` since it can now consume the REST endpoint from PR #266 that just merged, and the kiosk timeline base in PR #268 will also be on main). But hold if `20876eb` (issue #265) hasn't opened its PR yet — wait one cycle to avoid pile-up.
+- If `20876eb` opens a PR: review/CI handling next cycle. Coordinate rebase if PR #268 already merged.
+- #261 still needs `/assess-priority` before it can be picked up.
+- No new productive work would be a quiet cycle → check auto-disable threshold at next wake-up.
+
+---
 
 ### 2026-05-22 02:55 UTC - Review-Response Worker (PR #268, issue #264)
 
@@ -250,6 +533,62 @@ Resolved all 3 threads via GraphQL with replies pointing to the commit. PR moved
 **Cross-issue reflection:** posted a [heads-up comment on #265](https://github.com/jpshackelford/voice-relay/issues/265#issuecomment-4514602451) — the Action+Observation pairing rework explicitly touches the same `KioskMode.tsx` `timeline` `useMemo` and will be re-using `parseOhTimestamp`. Flagged the new `null` contract and the recommendation to sort the paired entry by the action's timestamp (not the observation's) to avoid timeline reordering on slow observations.
 
 No production-DB or migration impact — change is client-side only.
+
+---
+
+### 2026-05-22 02:52 UTC - Orchestrator
+
+**Workers Completed (this cycle):**
+- `7c69f80` (expansion, Issue #269) — finished → issue #269 now labeled `ready` + `priority:medium` + `client` (`feat(client): hydrate agent event timeline from persisted store and rehydrate on session render`).
+- `c5e0d50` (merge, PR #266) — finished → **PR #266 squash-merged** at 02:38 UTC; issue #260 auto-closed by `Fixes #260`. Production now has agent_events table (migration 012) and REST rehydration endpoint.
+
+**Active Workers (after this cycle's spawns):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `be830dd` | review | PR #268 — kiosk timeline TZ fix (3 unresolved github-actions threads) | **NEW** |
+| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
+   - Conversation: https://app.all-hands.dev/conversations/be830dd241674ba2995bd73af16107dc
+   - Rationale: 3 unresolved github-actions review threads (all suggesting Invalid Date guards / consistent handling around `parseOhTimestamp`). CI green, PR ready, age 25m. Worker will draft-→address-→ready and resolve threads via GraphQL.
+2. **Implementation Worker** — [Issue #265](https://github.com/jpshackelford/voice-relay/issues/265) `Bug: Agent event cards render Action and Observation as separate entries (should be paired)` (priority:medium, bug, client)
+   - Conversation: https://app.all-hands.dev/conversations/20876ebaa9b249c69f760972cdb8b047
+   - Rationale: Highest-priority `ready` issue not in flight (#264 owned by PR #268). Prompt includes coordination note to read PR #268 first, since both PRs touch client agent-event rendering and a rebase may be needed if PR #268 merges first.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oR green ready 💬3` (review worker `be830dd` addressing threads)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Recently merged (this cycle):**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `feat(server): persist OpenHands agent events with TTL and REST rehydration` (merged 02:38 UTC; issue #260 auto-closed)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` (migration tooling improvements)
+  - #269 — `priority:medium` (just expanded; client hydration of agent event timeline; depends on the new REST endpoint from #266)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #265 — `20876eb`
+- **On-hold (skipped):** #208, #210, #239
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion (all `ready` or `on-hold`) |
+| Implementation | 1 | 1 | #265 — `20876eb` |
+| Review/Merge | 1 | 2 | PR #268 — `be830dd`; PR #221 stuck; 1 review slot free |
+
+**Decision rationale:**
+- PR #266 fully cleared; #260 closed; nothing further to do on that thread.
+- PR #268 has CI green and only feedback to address → spawn review worker (not merge worker — feedback unresolved).
+- Impl slot freed (`68c1ccd` finished in prior cycle) → spawn highest-priority ready issue. #264 owned by PR #268, so next is #265 (priority:medium client bug). Chose #265 over #263 because both are `priority:medium` but #265 is a bug (preferred over enhancement at same priority).
+- #269 left in queue: it's a client feature that depends on the just-merged REST endpoint and conceptually overlaps with #265's rendering changes; better to let #265 land first to avoid double-rebase on the same files.
+- No new expansion work — every open non-on-hold issue is labeled `ready`.
+
+**Next cycle:**
+- If `be830dd` finishes with all threads resolved + CI green → spawn merge worker for PR #268.
+- If `20876eb` opens a PR → review/CI handling next cycle.
+- After #265 merges, dispatch impl for #263 (or #269 if PR #266 endpoint is now consumable client-side).
+- #261 still needs `/assess-priority` before it can be picked up.
 
 ---
 
@@ -392,7 +731,6 @@ PR description was updated pre-merge to reflect the final rebased state (migrati
 
 ---
 
-
 ### 2026-05-22 02:26 UTC - Conflict Worker (PR #266)
 
 🔧 **Resolved merge conflict on PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — feat(server): persist OpenHands agent events with TTL and REST rehydration
@@ -409,6 +747,63 @@ PR description was updated pre-merge to reflect the final rebased state (migrati
 
 ---
 
+### 2026-05-22 02:21 UTC - Orchestrator
+
+**Workers Completed (this cycle):**
+- `f0caf18` (implementation, Issue #262) — finished → opened/merged [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) `fix(db): enforce SQLite FK + WAL` (squash-merged 02:12 UTC, issue #262 auto-closed).
+- `003c227` (review, PR #266) — finished → resolved the 1 outstanding github-actions thread (PR description TTL doc mismatch) at 02:10 UTC; CI green; PR flipped back to ready.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8a5f4bd` | review (conflict-resolution) | PR #266 — agent events persistence | **NEW** |
+| `68c1ccd` | implementation | Issue #264 — Kiosk timeline TZ parse + clock-source bug (priority:high) | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review/Conflict-Resolution Worker** — [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) `feat(server): persist OpenHands agent events with TTL and REST rehydration`
+   - Conversation: https://app.all-hands.dev/conversations/8a5f4bd23cbc465e8bdac715465cd343
+   - Reason: PR #266 mergeable=CONFLICTING / DIRTY after PR #267 squash-merged to main. CI is green and all review threads resolved — only blocker is rebase/merge against new `PRAGMA foreign_keys=ON` + migration 013. Worker will rebase onto main, renumber migration if needed, verify FK-on behavior, push, re-ready.
+2. **Implementation Worker** — Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) `Kiosk timeline TZ parse + clock-source mismatch` (priority:high, bug, client)
+   - Conversation: https://app.all-hands.dev/conversations/68c1ccd592fe485b80913d4e327586a3
+   - Reason: Highest-priority `ready` issue; expansion is complete (root cause + fix shape confirmed by reporter at `e304e3d`). Worker will fix server-side timestamp normalization (`server/src/openhands.ts:1454`) + client-side merge ordering (`client/src/components/KioskMode.tsx:352-377`), add tests covering non-UTC TZ.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `o pending dirty` (conflicts; worker `8a5f4bd` resolving)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped; awaiting manual conflict resolution since 2026-05-18)
+- **Recently merged:**
+  - [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) — `fix(db): enforce SQLite FK + WAL + migration 013 fk_orphan_cleanup` (merged 02:12 UTC; issue #262 closed)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling improvements)
+  - #265 — `priority:medium` client bug (action+observation pairing)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+  - #260 — `priority:medium` — being implemented by PR #266 in flight (will auto-close on merge)
+- **On-hold (skipped):** #208, #210, #239
+- **In progress (impl):** #264 — `68c1ccd`
+- **All issues are now `ready` or on-hold** — no expansion work pending.
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion |
+| Implementation | 1 | 1 | #264 — `68c1ccd` |
+| Review/Merge | 1 | 2 | PR #266 conflict-resolution — `8a5f4bd`; 1 slot still free |
+
+**Decision rationale:**
+- Both prior workers had finished (state file was stale from the 01:36 entry). State file cleaned up; 30 completed entries retained (24h audit window).
+- PR #266: CI green + reviews resolved + only blocker is a mechanical merge conflict from #267 → review worker (not merge worker yet — must clear conflict + verify FK-on first).
+- Spawned impl in parallel because PR slot conflict-resolution doesn't block new implementation work; #264 is independent (client bug + server timestamp normalization) and shouldn't collide with the agent-events code in PR #266 if based on current main.
+- Did NOT spawn a second review worker (only PR #266 is actionable; PR #221 stuck on `needs-human`).
+- Did NOT spawn expansion workers — every open non-on-hold issue already has `ready`.
+
+**Next cycle:**
+- If `8a5f4bd` finishes and PR #266 is mergeable+approved → spawn merge worker.
+- If `8a5f4bd` hits gnarly conflicts and adds `needs-human` → defer PR #266, free the review slot.
+- If `68c1ccd` produces a PR and CI not green or comments appear → spawn review worker for that PR.
+- After #264 impl, the remaining priority-tagged `ready` queue is: #263 → #265 → (#261 once `/assess-priority` is run).
+
+---
 
 ### 2026-05-22 02:12 UTC - Merge Worker (PR #267)
 
@@ -488,7 +883,6 @@ PR description was updated pre-merge to reflect the final rebased state (migrati
 - Full server suite green (759 tests). CI green (lint-pr-title, Build Client, Server Tests, E2E Tests).
 - Follow-up logged (out of scope here): `messages.workspace_id` has no FK declaration (added as plain TEXT in migration 004); fixing it needs a table rebuild — worth a separate issue.
 
-
 ---
 
 ### 2026-05-22 01:38 UTC - Expansion Worker
@@ -505,454 +899,6 @@ PR description was updated pre-merge to reflect the final rebased state (migrati
 
 ---
 
-### 2026-05-22 01:35 UTC - Implementation Worker
-
-✅ **Implemented Issue #260** — Persist OpenHands agent events with TTL and on-demand REST rehydration
-
-- Issue: [#260](https://github.com/jpshackelford/voice-relay/issues/260)
-- PR: [#266](https://github.com/jpshackelford/voice-relay/pull/266) (ready for review)
-- Scope: schema migration 012 + repository + live WS ingest + REST rehydrator + read API + TTL pruning
-- Files (net +1777 LOC): `server/src/storage/migrations/012_agent_events.ts`, `server/src/storage/agent-event-repository.{ts,test.ts}`, `server/src/agent-events/{index,router,rehydrator}.ts` (+ tests), `server/src/openhands.ts` (added `OpenHandsApiError` + `getEventsPage` pagination + `EventCallback`), `server/src/auto-connect.ts` (persists `aiConversationId` on session metadata), `server/src/index.ts` (wires repo, callback, router, TTL interval), `server/src/storage/migrations/index.ts`
-- Design highlights:
-  - Partial unique index `(conversation_id, event_id) WHERE event_id IS NOT NULL` gives natural-key dedup so `INSERT OR IGNORE` works identically for live and REST writes.
-  - `event_timestamp` (OH clock) drives read ordering; `hydrated_at` (our clock) drives TTL.
-  - Rehydrator does bounded exponential backoff (5 retries) honoring `Retry-After`, single-flights concurrent requests per session, and persists each page incrementally so a late failure doesn't lose earlier pages.
-  - Read endpoint auto-triggers rehydration only when local store is empty AND `aiConversationId` is known — avoids redundant API calls on every read.
-  - TTL configurable via `AGENT_EVENTS_TTL_DAYS` (default 14), pruned hourly; interval cleared on shutdown.
-- Tests (41 new): repository (19), rehydrator (12), router (10). Coverage on new code aggregate **87.6% lines / 90% functions / 83.4% branches** — above the 80% bar.
-- Verified migration on fresh DB + an existing-data DB at v11 + a down-then-up cycle; no rows lost.
-- Full suite (785 existing + 41 new) green; CI green (lint-pr-title, Build Client, Server Tests, E2E Tests).
-
----
-
-
-### 2026-05-22 01:15 UTC - Expansion Worker
-
-✅ **Expanded Issue #262**
-
-- Issue: [Bug: SQLite foreign keys not enforced in production (PRAGMA foreign_keys=0)](https://github.com/jpshackelford/voice-relay/issues/262)
-- Type: Bug (data integrity)
-- Status: Ready for implementation (`ready` label applied)
-- Root cause: `SQLiteStore.connect()` (server/src/storage/sqlite.ts) opens the DB with `new Database(path)` and never issues any PRAGMA. FK enforcement currently depends implicitly on the better-sqlite3 prebuilt binary's `SQLITE_DEFAULT_FOREIGN_KEYS=1` compile flag, with no startup assertion. Persistent `journal_mode = delete` on prod confirms no PRAGMA setup is happening; WAL is also missing.
-- Verified: reproduced locally with better-sqlite3 v11.10.0 — fresh connection reports `foreign_keys=1`, `journal_mode=delete`. Clarified in the rewritten body that the production `PRAGMA foreign_keys=0` reading is from an external sqlite3 CLI (per-connection setting) — useful evidence but the actual app connection state is implicit, not asserted. Fix still required for defense-in-depth + WAL + orphan audit.
-- Approach: set `journal_mode=WAL`, `foreign_keys=ON`, `synchronous=NORMAL`, `busy_timeout=5000` in `connect()` before migrations; add startup assertion that aborts if FK not enabled; add `scripts/audit-orphans.ts` to enumerate orphan rows for every declared FK; gate the PRAGMA deploy on running the audit + a cleanup migration (proposed `012_fk_orphan_cleanup.ts`); add unit tests for cascade-fires and FK-violation-rejected.
-- Noted: `messages.workspace_id` has no FK declaration (added as plain TEXT in migration 004) — flagged as optional follow-up.
-
----
-
-### 2026-05-22 01:15 UTC - Expansion Worker
-
-✅ **Expanded Issue #263** — Migration tooling improvements: CLI, drift detection, advisory locking
-
-- Issue: [#263](https://github.com/jpshackelford/voice-relay/issues/263)
-- Type: Enhancement (operational hardening)
-- Status: Ready for implementation (added `ready` label)
-- Approach: Restructured body into Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope. Added a technical-approach comment covering per-feature design, ordered implementation plan, files affected, and risks.
-- Key design decision: Introduced a `MigrationLock` interface with a `SQLiteTableLock` (BEGIN IMMEDIATE + sentinel-row + 5-min stale TTL) implementation that ports cleanly to `pg_advisory_lock()` for the future Postgres driver (#261). Interface intentionally minimal (`acquire(timeoutMs)` / `release()`) so callers cannot depend on driver-specific semantics.
-- Dropped `error` column from original scope (transactions roll back; logs are the right surface). Kept `sql_hash` + `duration_ms`.
-- Scope size: ~400–600 LOC + tests across 8 implementation steps; recommended ordering keeps each step PR-sized.
-
----
-
-### 2026-05-22 01:15 UTC - Expansion Worker
-
-✅ **Expanded Issue #261**
-
-- Issue: [Remove unused storage drivers (redis, firestore, memory) in preparation for Postgres](https://github.com/jpshackelford/voice-relay/issues/261)
-- Type: Enhancement / Cleanup
-- Status: Ready for implementation (`ready` label applied)
-- Approach: Delete `memory.ts`, `redis.ts`, `firestore.ts`, `memory.test.ts`; narrow `StoreConfig['driver']` to `'sqlite'`; uninstall `redis` dep; clean README/JSDoc; reject unknown `STORE_DRIVER` at startup. Multi-driver pattern (`MessageStore` + `createStore` switch) preserved so Postgres (#263) can plug in cleanly.
-- Verified: only `server/src/storage/` files reference the dead drivers; consumers (`server/src/index.ts`, `server/src/auto-connect.ts`) use only `MessageStore` + `SQLiteStore`; `.env.example`, `docs/DEPLOYMENT.md`, `tests/global-setup.ts` already pin `sqlite`.
-
----
-
-### 2026-05-21 13:15 UTC - Orchestrator
-
-🔒 **Auto-disabled due to inactivity**
-
-Two consecutive quiet periods detected - no new work to pick up.
-Automation has been disabled to prevent unnecessary runs.
-
-**Current State:**
-- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - **STUCK**: `needs-human` label, draft mode
-- All open issues have `on-hold` label: #208, #210, #239
-- No issues needing expansion
-- No `ready` issues available
-
-**To re-enable:**
-- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
-- Or via API:
-  ```bash
-  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
-    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"enabled": true}'
-  ```
-
-**Workflow will resume when:**
-1. A human creates new issues (or removes `on-hold` from existing ones)
-2. A human resolves PR #221's blocking condition
-3. Automation is re-enabled manually
-
----
-
----
-
-### 2026-05-21 22:21 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `3727caa` | review (finalize) | PR #259 - lint title + promote to ready | **NEW** |
-
-**Context:**
-- Automation was auto-disabled at 13:15 UTC, then re-enabled by the "Enable Voice Relay Orchestrator on New Issue or PR" workflow when PR #259 was opened at 22:15 UTC.
-- PR #259 ("fix: PR #258 follow-up — honor event.summary...") was created by another OH conversation (`f73af328`, now `finished`) that did NOT promote it to ready or fix the failing `lint-pr-title` check.
-- All CI green ✅ except `lint-pr-title` ❌ (subject must start lowercase; currently begins with "PR").
-
-🚀 **Spawned: Finalization Worker (review slot)**
-- PR: [#259 - fix: PR #258 follow-up — honor event.summary...](https://github.com/jpshackelford/voice-relay/pull/259)
-- Conversation: [`3727caa`](https://app.all-hands.dev/conversations/3727caae618b4c1a9ba9b4aaed422e6d)
-- Task: Fix PR title to lowercase subject, run quick sanity check, promote draft → ready (triggers pr-review bot). Exits without addressing review-bot feedback — that's a separate cycle.
-
-**Current State:**
-- **Open PRs:** 2
-  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) - Draft, being finalized (worker `3727caa`)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) - Draft, `needs-human` (STUCK, skipped)
-- **Open Issues:** 3 (all `on-hold`)
-  - #208 - Add circuit breaker for deployments
-  - #210 - Categorize deployment failures
-  - #239 - Flaky AI integration tests
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | Available (but nothing to implement) |
-| Review/Merge | 1 | 2 | `3727caa` finalizing PR #259 |
-
----
-
-## 2026-05-21 22:23 UTC — Finalization Worker (review slot) ✅
-
-**Conversation:** `3727caa` (finalizing PR #259)
-
-**Actions taken:**
-- Checked out `fix/258-followup-summary-and-missing-event-content`.
-- Renamed PR title `fix: PR #258 follow-up — honor event.summary...` → `fix: honor event.summary and render missing event content (#258 follow-up)` to satisfy Conventional Commits subject pattern (`^[a-z].+$`).
-- Sanity check: `npm test -w server` → 744 pass ✅ · `npm test -w client` → 544 pass ✅ · `npm run build` → clean ✅.
-- Promoted draft → ready via `gh pr ready 259`. `pr-review` bot is now running.
-
-**Result:**
-| Check | Status |
-|-------|--------|
-| `lint-pr-title` | ✅ pass (was ❌) |
-| Server Tests | ✅ pass |
-| Build Client | ✅ pass |
-| E2E Tests | ✅ pass |
-| `pr-review` bot | ⏳ pending (left for next review-worker cycle) |
-
-PR #259 is now in ready state with all blocking checks green. Addressing `pr-review` bot feedback is intentionally **out of scope** for this worker — that's the next review-worker cycle.
-
----
-
-### 2026-05-21 22:33 UTC - Orchestrator
-
-**Worker Completed:** `3727caa` (review/finalization)
-- ✅ Promoted PR #259 to ready, fixed lint-pr-title; all CI green; pr-review bot: 🟡 Acceptable — *Recommended for approval*
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `f9ebd19` | merge | PR #259 | **NEW** |
-
-🚀 **Spawned: Merge Worker (review slot)**
-- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
-- Conversation: [`f9ebd19`](https://app.all-hands.dev/conversations/f9ebd19c58a240538c40c4edbbf8f19f)
-- Rationale: PR is ready (not draft), mergeable, 0 unresolved review threads, all CI green, pr-review bot recommended approval. No linked issue (this is a follow-up to #258 which already closed #257).
-
-**Current State:**
-- **Open PRs:** 2
-  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) — being merged (worker `f9ebd19`)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped)
-- **Open Issues:** 3 (all `on-hold`)
-  - #208 — Add circuit breaker for deployments
-  - #210 — Categorize deployment failures
-  - #239 — Flaky AI integration tests
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | Available (no `ready` issues to implement) |
-| Review/Merge | 1 | 2 | `f9ebd19` merging PR #259 |
-
----
-
-### 2026-05-21 22:53 UTC - Orchestrator
-
-**⚠️ Ghost Worker Detected & Replaced**
-
-Previous merge worker `f9ebd19` (logged at 22:33 UTC) does **not exist** in the OpenHands conversations API. Likely a silent spawn failure — the conv ID was logged but no conversation was actually created. PR #259 was still open and unmerged.
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `0df29e2` | merge | PR #259 | **NEW** (replacement) |
-
-🚀 **Spawned: Merge Worker (replacement)**
-- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
-- Conversation: [`0df29e2`](https://app.all-hands.dev/conversations/0df29e2ec1694860bd6210effa231e43)
-- Verified: `execution_status=running`, `sandbox_status=RUNNING`
-- Re-verified PR ready to merge: not draft, MERGEABLE, mergeStateStatus CLEAN, all CI green, no review threads pending
-- Note: Previous spawn at 22:33 UTC apparently silently failed; ghost `f9ebd19` moved to completed with status `ghost`
-
-**Current State:**
-- **Open PRs:** 2
-  - [PR #259](https://github.com/jpshackelford/voice-relay/pull/259) — being merged (worker `0df29e2`)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, draft, CONFLICTING; skipped)
-- **Open Issues:** 3 (all `on-hold`)
-  - #208 — Add circuit breaker for deployments
-  - #210 — Categorize deployment failures
-  - #239 — Flaky AI integration tests
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | Available (no `ready` issues to implement) |
-| Review/Merge | 1 | 2 | `0df29e2` merging PR #259 |
-
-**Action Taken:**
-🚀 Spawned replacement merge worker for PR #259; moved ghost worker `f9ebd19` to completed log with status=ghost.
-
----
-
-### 2026-05-21 22:55 UTC - Merge Worker
-
-✅ **Merged PR #259**
-
-- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
-- Issue: None linked (follow-up to #258, which already closed #257)
-- Squash commit: [`480ddd8`](https://github.com/jpshackelford/voice-relay/commit/480ddd85ea2ddd7f3189f300125a68dea02a1a0f)
-- Merged by: jpshackelford
-- Deploy: Auto-deploying to vr.chorecraft.net
-
-**Summary:**
-Follow-up to #258 closing four rendering gaps surfaced by post-merge validation against captured production events:
-1. Server `formatEventSummary` now honors top-level `event.summary` on wrapped ActionEvent / ObservationEvent (was showing generic "Action" string).
-2. Server `extractEventFields` now extracts file_editor `command`, ThinkObservation content, and InvokeSkill `skill_name` / `content` / `is_error`.
-3. Client `getFileEditorActionContent` renders all four file_editor commands (view / create / str_replace / insert) — was create-only.
-4. New client handlers for `InvokeSkillAction` / `InvokeSkillObservation`; `ThinkObservation` falls back to "Thought recorded." for empty content.
-
-**Migration / Deployment Safety:**
-- ✅ No DB migrations; SQLite schema untouched
-- ✅ No new runtime dependencies; no package.json / lockfile changes
-- ✅ No new config or env vars
-- ✅ Additive change — legacy event paths preserved; already-stored events render unchanged
-- ✅ Safe to auto-deploy
-
-**Test Results:**
-- 744 server tests pass (+11 new)
-- 544 client tests pass (+8 new, 2 updated for corrected behavior)
-- `npx tsx scripts/comprehensive-validation.ts` → 12/12 events pass, 0 summary issues
-
-**Review Notes:**
-- pr-review bot: 🟡 Acceptable — Recommended for approval
-- All 6 CI checks green on first push; mergeStateStatus CLEAN, MERGEABLE
-- No human-requested changes; replaces ghost worker `f9ebd19...` that failed silently
-
-**Follow-up Items:**
-- Watch vr.chorecraft.net deploy logs for healthy startup
-- Spot-check live UI to confirm action cards now show real summaries and skill/think/file-editor cards render content
-
-
----
-
-### 2026-05-21 23:05 UTC - Orchestrator
-
-**Worker Completed:** `0df29e2` (merge) → ✅ **Merged PR #259** (squash `480ddd8` at 22:55:15Z) — auto-deploying to vr.chorecraft.net
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | — | — | — |
-
-✅ **All quiet** - No actionable work available
-
-**Current State:**
-- **Open PRs:** 1
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING; **STUCK** — skipped, awaiting human intervention)
-- **Open Issues:** 3 (all `on-hold`, deferred by humans)
-  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
-  - #210 — Categorize deployment failures to improve automated response
-  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | No `ready` issues to implement |
-| Review/Merge | 0 | 2 | PR #221 is stuck (`needs-human`); no other PRs |
-
-**Decision:** All available work is either stuck (PR #221 needs human) or deferred (3 on-hold issues). No workers spawned. Previous orchestrator runs at 22:21/22:33/22:53 UTC were productive — this is the **first** quiet entry in the current streak (no auto-disable triggered).
-
-**Housekeeping:** WORKLOG.md was 888 lines — archived 23 older entries to `WORKLOG_ARCHIVE_2026-05-21.md` (kept 6h+ productive window: 13:15 UTC → 22:55 UTC). WORKLOG.md now 199 lines (+ this entry).
-
----
-
-### 2026-05-21 23:17 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | — | — | — |
-
-✅ **All quiet** - No actionable work available
-
-**Current State:**
-- **Open PRs:** 1
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING/DIRTY; **STUCK** — last updated 2026-05-18, awaiting human conflict resolution)
-- **Open Issues:** 3 (all `on-hold`, deferred by humans)
-  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
-  - #210 — Categorize deployment failures to improve automated response
-  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | No `ready` issues to implement |
-| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
-
-**Decision:** State unchanged since 23:05 UTC orchestrator run. All available work is either stuck (PR #221) or on-hold (3 issues). No workers spawned.
-
-**Quiet Streak:** This is the **2nd consecutive** quiet entry (prior: 23:05 UTC). One more consecutive quiet run will trigger auto-disable of automation `a0219382-2e7c-4156-9991-7b9976739a66`.
-
----
-
-
-### 2026-05-21 23:34 UTC - Orchestrator
-
-🔒 **Auto-disabled due to inactivity**
-
-Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new actionable work to pick up. Automation has been disabled to prevent unnecessary runs.
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| (none) | — | — | — |
-
-**Current State (unchanged since 23:05 UTC):**
-- **Open PRs:** 1
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, last updated 2026-05-18; **STUCK** — awaiting human conflict resolution)
-- **Open Issues:** 3 (all `on-hold`, deferred by humans)
-  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
-  - #210 — Categorize deployment failures to improve automated response
-  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all on-hold) |
-| Implementation | 0 | 1 | No `ready` issues to implement |
-| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
-
-**Disabled Automation:** `5f180989-ed9c-42b4-ac9f-5f30f0623316` — "Voice Relay Workflow Orchestrator v2" (cron `*/15 * * * *`, America/New_York)
-
-> ⚠️ **Note:** The skill documented automation ID `a0219382-2e7c-4156-9991-7b9976739a66` (renamed "(old)") was already disabled. The currently active orchestrator is `5f180989-...` ("v2"). Skill text should be updated to reference the v2 ID.
-
-**To re-enable:**
-- OpenHands UI: https://app.all-hands.dev/automations → find "Voice Relay Workflow Orchestrator v2" → toggle on
-- Or via API:
-  ```bash
-  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
-    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{"enabled": true}'
-  ```
-
-**Re-enable triggers:**
-- Human resolves merge conflicts on PR #221, OR
-- Any `on-hold` label is removed from issues #208/#210/#239, OR
-- New issues / PRs are filed
-
----
-
-### 2026-05-22 01:12 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `7960a5b` | implementation | Issue #260 — Persist OpenHands agent events (priority:medium) | **NEW** |
-| `227081b` | expansion | Issue #261 — Remove unused storage drivers | **NEW** |
-| `71bff4b` | expansion | Issue #262 — SQLite FK not enforced (priority:high bug) | **NEW** |
-| `fb5fe6f` | expansion | Issue #263 — Migration tooling improvements (priority:medium) | **NEW** |
-
-**Spawned: 4 Workers (parallel)**
-
-1. **Implementation Worker** — Issue [#260](https://github.com/jpshackelford/voice-relay/issues/260)
-   - Conversation: https://app.all-hands.dev/conversations/7960a5ba03a443f58eaa46c5c9734afb
-   - Priority assessed inline as `priority:medium` (feature work, well-expanded design)
-2. **Expansion Worker** — Issue [#261](https://github.com/jpshackelford/voice-relay/issues/261)
-   - Conversation: https://app.all-hands.dev/conversations/227081b8be384806a7f7d1c2aa32b596
-3. **Expansion Worker** — Issue [#262](https://github.com/jpshackelford/voice-relay/issues/262)
-   - Conversation: https://app.all-hands.dev/conversations/71bff4b00c624163837fa953fab5a04c
-4. **Expansion Worker** — Issue [#263](https://github.com/jpshackelford/voice-relay/issues/263)
-   - Conversation: https://app.all-hands.dev/conversations/fb5fe6f24d2e478e887e7e66aeb7f2de
-
-**Current State:**
-- **Open PRs:** 1 — [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) `needs-human` (STUCK, skipped — awaiting human conflict resolution since 2026-05-18)
-- **Open Issues (active):** #260 (ready→impl), #261, #262, #263 (all → expansion)
-- **Open Issues (on-hold, skipped):** #208, #210, #239
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 3 | 4 | #261, #262, #263 |
-| Implementation | 1 | 1 | #260 |
-| Review/Merge | 0 | 2 | PR #221 stuck — only open PR; not assigned a review worker |
-
-**Decision:** Automation was re-triggered after being auto-disabled at 23:34 UTC on 2026-05-21. Since then, four new issues have appeared (#260–#263). Spawned 4 workers to clear the backlog in parallel — 1 implementation (only `ready` issue) + 3 expansion (the remaining non-on-hold issues). PR #221 is still stuck and is left for human intervention. Quiet streak is broken — this is a productive run.
-
-**Notes:**
-- One spawn attempt hit a 429 rate limit (10 req/sec) on the first try; succeeded on retry.
-- `.workflow-state.json` updated to reflect the 4 new workers.
-
----
-### 2026-05-22 01:19 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `7960a5b` | implementation | Issue #260 — Persist OpenHands agent events | running |
-| `227081b` | expansion | Issue #261 — Remove unused storage drivers | finished ✓ |
-| `71bff4b` | expansion | Issue #262 — SQLite FK not enforced | finished ✓ |
-| `fb5fe6f` | expansion | Issue #263 — Migration tooling improvements | finished ✓ |
-
-**Workers Completed:** 3 expansion workers all finished — issues #261, #262, #263 now carry the `ready` label.
-
-**Current State:**
-- **Open PRs:** 1 — [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) `needs-human` (STUCK, skipped)
-- **Ready issues queued for impl:**
-  - #262 — `priority:high` bug (SQLite FK) ← next up when impl slot frees
-  - #261 — `audit` (no priority label yet; needs `/assess-priority`)
-  - #263 — `priority:medium` enhancement
-- **In progress:** #260 — `priority:medium` (impl worker `7960a5b` still running)
-- **On-hold (skipped):** #208, #210, #239
-
-**Slot Usage:**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (others on-hold) |
-| Implementation | 1 | 1 | #260 — `7960a5b` still running |
-| Review/Merge | 0 | 2 | PR #221 stuck; no other PRs |
-
-**Action Taken:** ⏳ **Waiting** — impl slot occupied; cannot start another implementation until `7960a5b` completes. Three newly-ready issues are queued. PR #221 remains stuck (needs human). State file updated to move the 3 finished expansion workers to `completed`.
-
-**Next cycle:** When `7960a5b` finishes, spawn an impl worker for #262 (highest priority `ready` issue). If #260 produced a PR, spawn a review worker once it's ready.
-
----
 ### 2026-05-22 01:36 UTC - Orchestrator
 
 **Active Workers:**
@@ -1001,409 +947,285 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 
 ---
 
----
-### 2026-05-22 02:21 UTC - Orchestrator
+### 2026-05-22 01:35 UTC - Implementation Worker
 
-**Workers Completed (this cycle):**
-- `f0caf18` (implementation, Issue #262) — finished → opened/merged [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) `fix(db): enforce SQLite FK + WAL` (squash-merged 02:12 UTC, issue #262 auto-closed).
-- `003c227` (review, PR #266) — finished → resolved the 1 outstanding github-actions thread (PR description TTL doc mismatch) at 02:10 UTC; CI green; PR flipped back to ready.
+✅ **Implemented Issue #260** — Persist OpenHands agent events with TTL and on-demand REST rehydration
+
+- Issue: [#260](https://github.com/jpshackelford/voice-relay/issues/260)
+- PR: [#266](https://github.com/jpshackelford/voice-relay/pull/266) (ready for review)
+- Scope: schema migration 012 + repository + live WS ingest + REST rehydrator + read API + TTL pruning
+- Files (net +1777 LOC): `server/src/storage/migrations/012_agent_events.ts`, `server/src/storage/agent-event-repository.{ts,test.ts}`, `server/src/agent-events/{index,router,rehydrator}.ts` (+ tests), `server/src/openhands.ts` (added `OpenHandsApiError` + `getEventsPage` pagination + `EventCallback`), `server/src/auto-connect.ts` (persists `aiConversationId` on session metadata), `server/src/index.ts` (wires repo, callback, router, TTL interval), `server/src/storage/migrations/index.ts`
+- Design highlights:
+  - Partial unique index `(conversation_id, event_id) WHERE event_id IS NOT NULL` gives natural-key dedup so `INSERT OR IGNORE` works identically for live and REST writes.
+  - `event_timestamp` (OH clock) drives read ordering; `hydrated_at` (our clock) drives TTL.
+  - Rehydrator does bounded exponential backoff (5 retries) honoring `Retry-After`, single-flights concurrent requests per session, and persists each page incrementally so a late failure doesn't lose earlier pages.
+  - Read endpoint auto-triggers rehydration only when local store is empty AND `aiConversationId` is known — avoids redundant API calls on every read.
+  - TTL configurable via `AGENT_EVENTS_TTL_DAYS` (default 14), pruned hourly; interval cleared on shutdown.
+- Tests (41 new): repository (19), rehydrator (12), router (10). Coverage on new code aggregate **87.6% lines / 90% functions / 83.4% branches** — above the 80% bar.
+- Verified migration on fresh DB + an existing-data DB at v11 + a down-then-up cycle; no rows lost.
+- Full suite (785 existing + 41 new) green; CI green (lint-pr-title, Build Client, Server Tests, E2E Tests).
+
+---
+
+### 2026-05-22 01:19 UTC - Orchestrator
 
 **Active Workers:**
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
-| `8a5f4bd` | review (conflict-resolution) | PR #266 — agent events persistence | **NEW** |
-| `68c1ccd` | implementation | Issue #264 — Kiosk timeline TZ parse + clock-source bug (priority:high) | **NEW** |
+| `7960a5b` | implementation | Issue #260 — Persist OpenHands agent events | running |
+| `227081b` | expansion | Issue #261 — Remove unused storage drivers | finished ✓ |
+| `71bff4b` | expansion | Issue #262 — SQLite FK not enforced | finished ✓ |
+| `fb5fe6f` | expansion | Issue #263 — Migration tooling improvements | finished ✓ |
 
-**Spawned: 2 Workers (parallel)**
-
-1. **Review/Conflict-Resolution Worker** — [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) `feat(server): persist OpenHands agent events with TTL and REST rehydration`
-   - Conversation: https://app.all-hands.dev/conversations/8a5f4bd23cbc465e8bdac715465cd343
-   - Reason: PR #266 mergeable=CONFLICTING / DIRTY after PR #267 squash-merged to main. CI is green and all review threads resolved — only blocker is rebase/merge against new `PRAGMA foreign_keys=ON` + migration 013. Worker will rebase onto main, renumber migration if needed, verify FK-on behavior, push, re-ready.
-2. **Implementation Worker** — Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) `Kiosk timeline TZ parse + clock-source mismatch` (priority:high, bug, client)
-   - Conversation: https://app.all-hands.dev/conversations/68c1ccd592fe485b80913d4e327586a3
-   - Reason: Highest-priority `ready` issue; expansion is complete (root cause + fix shape confirmed by reporter at `e304e3d`). Worker will fix server-side timestamp normalization (`server/src/openhands.ts:1454`) + client-side merge ordering (`client/src/components/KioskMode.tsx:352-377`), add tests covering non-UTC TZ.
+**Workers Completed:** 3 expansion workers all finished — issues #261, #262, #263 now carry the `ready` label.
 
 **Current State:**
-- **Open PRs:**
-  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `o pending dirty` (conflicts; worker `8a5f4bd` resolving)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped; awaiting manual conflict resolution since 2026-05-18)
-- **Recently merged:**
-  - [PR #267](https://github.com/jpshackelford/voice-relay/pull/267) — `fix(db): enforce SQLite FK + WAL + migration 013 fk_orphan_cleanup` (merged 02:12 UTC; issue #262 closed)
-- **Ready issues queued (awaiting impl slot):**
-  - #263 — `priority:medium` enhancement (migration tooling improvements)
-  - #265 — `priority:medium` client bug (action+observation pairing)
-  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
-  - #260 — `priority:medium` — being implemented by PR #266 in flight (will auto-close on merge)
+- **Open PRs:** 1 — [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) `needs-human` (STUCK, skipped)
+- **Ready issues queued for impl:**
+  - #262 — `priority:high` bug (SQLite FK) ← next up when impl slot frees
+  - #261 — `audit` (no priority label yet; needs `/assess-priority`)
+  - #263 — `priority:medium` enhancement
+- **In progress:** #260 — `priority:medium` (impl worker `7960a5b` still running)
 - **On-hold (skipped):** #208, #210, #239
-- **In progress (impl):** #264 — `68c1ccd`
-- **All issues are now `ready` or on-hold** — no expansion work pending.
 
 **Slot Usage:**
 | Type | Active | Limit | Notes |
 |------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues need expansion |
-| Implementation | 1 | 1 | #264 — `68c1ccd` |
-| Review/Merge | 1 | 2 | PR #266 conflict-resolution — `8a5f4bd`; 1 slot still free |
+| Expansion | 0 | 4 | No issues to expand (others on-hold) |
+| Implementation | 1 | 1 | #260 — `7960a5b` still running |
+| Review/Merge | 0 | 2 | PR #221 stuck; no other PRs |
 
-**Decision rationale:**
-- Both prior workers had finished (state file was stale from the 01:36 entry). State file cleaned up; 30 completed entries retained (24h audit window).
-- PR #266: CI green + reviews resolved + only blocker is a mechanical merge conflict from #267 → review worker (not merge worker yet — must clear conflict + verify FK-on first).
-- Spawned impl in parallel because PR slot conflict-resolution doesn't block new implementation work; #264 is independent (client bug + server timestamp normalization) and shouldn't collide with the agent-events code in PR #266 if based on current main.
-- Did NOT spawn a second review worker (only PR #266 is actionable; PR #221 stuck on `needs-human`).
-- Did NOT spawn expansion workers — every open non-on-hold issue already has `ready`.
+**Action Taken:** ⏳ **Waiting** — impl slot occupied; cannot start another implementation until `7960a5b` completes. Three newly-ready issues are queued. PR #221 remains stuck (needs human). State file updated to move the 3 finished expansion workers to `completed`.
 
-**Next cycle:**
-- If `8a5f4bd` finishes and PR #266 is mergeable+approved → spawn merge worker.
-- If `8a5f4bd` hits gnarly conflicts and adds `needs-human` → defer PR #266, free the review slot.
-- If `68c1ccd` produces a PR and CI not green or comments appear → spawn review worker for that PR.
-- After #264 impl, the remaining priority-tagged `ready` queue is: #263 → #265 → (#261 once `/assess-priority` is run).
-
----
-### 2026-05-22 02:52 UTC - Orchestrator
-
-**Workers Completed (this cycle):**
-- `7c69f80` (expansion, Issue #269) — finished → issue #269 now labeled `ready` + `priority:medium` + `client` (`feat(client): hydrate agent event timeline from persisted store and rehydrate on session render`).
-- `c5e0d50` (merge, PR #266) — finished → **PR #266 squash-merged** at 02:38 UTC; issue #260 auto-closed by `Fixes #260`. Production now has agent_events table (migration 012) and REST rehydration endpoint.
-
-**Active Workers (after this cycle's spawns):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `be830dd` | review | PR #268 — kiosk timeline TZ fix (3 unresolved github-actions threads) | **NEW** |
-| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | **NEW** |
-
-**Spawned: 2 Workers (parallel)**
-
-1. **Review Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
-   - Conversation: https://app.all-hands.dev/conversations/be830dd241674ba2995bd73af16107dc
-   - Rationale: 3 unresolved github-actions review threads (all suggesting Invalid Date guards / consistent handling around `parseOhTimestamp`). CI green, PR ready, age 25m. Worker will draft-→address-→ready and resolve threads via GraphQL.
-2. **Implementation Worker** — [Issue #265](https://github.com/jpshackelford/voice-relay/issues/265) `Bug: Agent event cards render Action and Observation as separate entries (should be paired)` (priority:medium, bug, client)
-   - Conversation: https://app.all-hands.dev/conversations/20876ebaa9b249c69f760972cdb8b047
-   - Rationale: Highest-priority `ready` issue not in flight (#264 owned by PR #268). Prompt includes coordination note to read PR #268 first, since both PRs touch client agent-event rendering and a rebase may be needed if PR #268 merges first.
-
-**Current State:**
-- **Open PRs:**
-  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oR green ready 💬3` (review worker `be830dd` addressing threads)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
-- **Recently merged (this cycle):**
-  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `feat(server): persist OpenHands agent events with TTL and REST rehydration` (merged 02:38 UTC; issue #260 auto-closed)
-- **Ready issues queued (awaiting impl slot):**
-  - #263 — `priority:medium` (migration tooling improvements)
-  - #269 — `priority:medium` (just expanded; client hydration of agent event timeline; depends on the new REST endpoint from #266)
-  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
-- **In progress (impl):** #265 — `20876eb`
-- **On-hold (skipped):** #208, #210, #239
-
-**Slot Usage (after spawn):**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues need expansion (all `ready` or `on-hold`) |
-| Implementation | 1 | 1 | #265 — `20876eb` |
-| Review/Merge | 1 | 2 | PR #268 — `be830dd`; PR #221 stuck; 1 review slot free |
-
-**Decision rationale:**
-- PR #266 fully cleared; #260 closed; nothing further to do on that thread.
-- PR #268 has CI green and only feedback to address → spawn review worker (not merge worker — feedback unresolved).
-- Impl slot freed (`68c1ccd` finished in prior cycle) → spawn highest-priority ready issue. #264 owned by PR #268, so next is #265 (priority:medium client bug). Chose #265 over #263 because both are `priority:medium` but #265 is a bug (preferred over enhancement at same priority).
-- #269 left in queue: it's a client feature that depends on the just-merged REST endpoint and conceptually overlaps with #265's rendering changes; better to let #265 land first to avoid double-rebase on the same files.
-- No new expansion work — every open non-on-hold issue is labeled `ready`.
-
-**Next cycle:**
-- If `be830dd` finishes with all threads resolved + CI green → spawn merge worker for PR #268.
-- If `20876eb` opens a PR → review/CI handling next cycle.
-- After #265 merges, dispatch impl for #263 (or #269 if PR #266 endpoint is now consumable client-side).
-- #261 still needs `/assess-priority` before it can be picked up.
+**Next cycle:** When `7960a5b` finishes, spawn an impl worker for #262 (highest priority `ready` issue). If #260 produced a PR, spawn a review worker once it's ready.
 
 ---
 
----
+### 2026-05-22 01:15 UTC - Expansion Worker
 
-### 2026-05-22 03:08 UTC - Orchestrator
+✅ **Expanded Issue #262**
 
-**Workers Completed (this cycle):**
-- `be830dd` (review, PR #268) — finished → addressed all 3 github-actions Invalid-Date threads (commit `f91cb7b`); resolved threads via GraphQL; CI green on all 4 required checks; PR back to ready.
-
-**Active Workers (after this cycle's spawn):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | running |
-| `e7848d7` | merge | PR #268 — kiosk timeline TZ fix | **NEW** |
-
-**Spawned: 1 Worker (merge)**
-
-- **Merge Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
-  - Conversation: https://app.all-hands.dev/conversations/e7848d755746461bb7b25934290178e9
-  - Rationale: PR #268 is fully green — `isDraft=false`, `mergeable=MERGEABLE`, CI=SUCCESS, all 3 review threads resolved, `reviewDecision=null` (bot-only reviewer). Cleanest merge candidate. Worker will update PR description, squash-merge with `Fixes #264`, verify auto-close, and post a heads-up on #265 if its PR is open by then (to flag the shared `KioskMode.tsx` `timeline` `useMemo` touchpoint).
-
-**Current State:**
-- **Open PRs:**
-  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oRFC green ready` (merge worker `e7848d7` taking it over the line)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
-- **Ready issues queued (awaiting impl slot):**
-  - #263 — `priority:medium` enhancement (migration tooling)
-  - #269 — `priority:medium` client (timeline hydration; depends on REST endpoint from PR #266 — now merged, so unblocked)
-  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
-- **In progress (impl):** #265 — `20876eb`
-- **On-hold (skipped):** #208, #210, #239
-- **No issues need expansion** (all open non-on-hold issues already have `ready`)
-
-**Slot Usage (after spawn):**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues need expansion |
-| Implementation | 1 | 1 | #265 — `20876eb` (running) |
-| Review/Merge | 1 | 2 | PR #268 merge — `e7848d7`; PR #221 stuck; 1 review slot free |
-
-**Decision rationale:**
-- PR #268 was the obvious next action: all merge criteria satisfied (CI green, no human reviewer, threads resolved, no conflicts). Merge worker (not review worker) because there's nothing left to address.
-- Impl slot still occupied by `20876eb` (#265). Cannot spawn second impl.
-- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#268) is being merged. No new PRs in flight.
-- No expansion workers spawned: every non-on-hold open issue already has `ready` label.
-- Bookkeeping: cleaned up stale `be830dd` slot entry (worker had finished but state hadn't been updated). Completed array now holds 29 entries within the 24h audit window.
-
-**Next cycle:**
-- If `e7848d7` merges PR #268: dispatch impl for next priority `ready` issue (`#263` or `#269` — preference is `#269` since it can now consume the REST endpoint from PR #266 that just merged, and the kiosk timeline base in PR #268 will also be on main). But hold if `20876eb` (issue #265) hasn't opened its PR yet — wait one cycle to avoid pile-up.
-- If `20876eb` opens a PR: review/CI handling next cycle. Coordinate rebase if PR #268 already merged.
-- #261 still needs `/assess-priority` before it can be picked up.
-- No new productive work would be a quiet cycle → check auto-disable threshold at next wake-up.
+- Issue: [Bug: SQLite foreign keys not enforced in production (PRAGMA foreign_keys=0)](https://github.com/jpshackelford/voice-relay/issues/262)
+- Type: Bug (data integrity)
+- Status: Ready for implementation (`ready` label applied)
+- Root cause: `SQLiteStore.connect()` (server/src/storage/sqlite.ts) opens the DB with `new Database(path)` and never issues any PRAGMA. FK enforcement currently depends implicitly on the better-sqlite3 prebuilt binary's `SQLITE_DEFAULT_FOREIGN_KEYS=1` compile flag, with no startup assertion. Persistent `journal_mode = delete` on prod confirms no PRAGMA setup is happening; WAL is also missing.
+- Verified: reproduced locally with better-sqlite3 v11.10.0 — fresh connection reports `foreign_keys=1`, `journal_mode=delete`. Clarified in the rewritten body that the production `PRAGMA foreign_keys=0` reading is from an external sqlite3 CLI (per-connection setting) — useful evidence but the actual app connection state is implicit, not asserted. Fix still required for defense-in-depth + WAL + orphan audit.
+- Approach: set `journal_mode=WAL`, `foreign_keys=ON`, `synchronous=NORMAL`, `busy_timeout=5000` in `connect()` before migrations; add startup assertion that aborts if FK not enabled; add `scripts/audit-orphans.ts` to enumerate orphan rows for every declared FK; gate the PRAGMA deploy on running the audit + a cleanup migration (proposed `012_fk_orphan_cleanup.ts`); add unit tests for cascade-fires and FK-violation-rejected.
+- Noted: `messages.workspace_id` has no FK declaration (added as plain TEXT in migration 004) — flagged as optional follow-up.
 
 ---
 
+### 2026-05-22 01:15 UTC - Expansion Worker
 
-### 2026-05-22 03:23 UTC - Orchestrator
+✅ **Expanded Issue #263** — Migration tooling improvements: CLI, drift detection, advisory locking
 
-🚀 **Spawned 2 workers (parallel)**
+- Issue: [#263](https://github.com/jpshackelford/voice-relay/issues/263)
+- Type: Enhancement (operational hardening)
+- Status: Ready for implementation (added `ready` label)
+- Approach: Restructured body into Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope. Added a technical-approach comment covering per-feature design, ordered implementation plan, files affected, and risks.
+- Key design decision: Introduced a `MigrationLock` interface with a `SQLiteTableLock` (BEGIN IMMEDIATE + sentinel-row + 5-min stale TTL) implementation that ports cleanly to `pg_advisory_lock()` for the future Postgres driver (#261). Interface intentionally minimal (`acquire(timeoutMs)` / `release()`) so callers cannot depend on driver-specific semantics.
+- Dropped `error` column from original scope (transactions roll back; logs are the right surface). Kept `sql_hash` + `duration_ms`.
+- Scope size: ~400–600 LOC + tests across 8 implementation steps; recommended ordering keeps each step PR-sized.
+
+---
+
+### 2026-05-22 01:15 UTC - Expansion Worker
+
+✅ **Expanded Issue #261**
+
+- Issue: [Remove unused storage drivers (redis, firestore, memory) in preparation for Postgres](https://github.com/jpshackelford/voice-relay/issues/261)
+- Type: Enhancement / Cleanup
+- Status: Ready for implementation (`ready` label applied)
+- Approach: Delete `memory.ts`, `redis.ts`, `firestore.ts`, `memory.test.ts`; narrow `StoreConfig['driver']` to `'sqlite'`; uninstall `redis` dep; clean README/JSDoc; reject unknown `STORE_DRIVER` at startup. Multi-driver pattern (`MessageStore` + `createStore` switch) preserved so Postgres (#263) can plug in cleanly.
+- Verified: only `server/src/storage/` files reference the dead drivers; consumers (`server/src/index.ts`, `server/src/auto-connect.ts`) use only `MessageStore` + `SQLiteStore`; `.env.example`, `docs/DEPLOYMENT.md`, `tests/global-setup.ts` already pin `sqlite`.
+
+---
+
+### 2026-05-22 01:12 UTC - Orchestrator
 
 **Active Workers:**
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
-| `b8f99f6` | review/rebase | PR #272 - resolve merge conflict from #268 | **NEW** |
-| `1b68706` | implementation | Issue #269 - hydrate agent event timeline | **NEW** |
+| `7960a5b` | implementation | Issue #260 — Persist OpenHands agent events (priority:medium) | **NEW** |
+| `227081b` | expansion | Issue #261 — Remove unused storage drivers | **NEW** |
+| `71bff4b` | expansion | Issue #262 — SQLite FK not enforced (priority:high bug) | **NEW** |
+| `fb5fe6f` | expansion | Issue #263 — Migration tooling improvements (priority:medium) | **NEW** |
 
-**Workers completed since last run:**
-- `20876eb` (implementation, issue #265) → finished, opened PR #272 (now needs rebase)
-- `e7848d7` (merge, PR #268) → finished, squash-merged `0aac2a2e`, issue #264 auto-closed
+**Spawned: 4 Workers (parallel)**
 
-**Current State:**
-- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) (Issue #265): ready, all CI green pre-rebase, **mergeStateStatus=DIRTY** — conflicts with #268 in `KioskMode.tsx` timeline `useMemo`. Review/rebase worker dispatched.
-- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, 3 days old, no activity — left as-is (intentional draft).
-- Issues needing expansion: #208, #210, #239 — **all `on-hold`, skipped per workflow rules**.
-- Ready prioritized issues: #263 (priority:medium, migration tooling), #265 (has PR #272), #269 → **picked for impl**.
-- 1 ready issue still unprioritized: #261 (Remove unused storage drivers) — defer priority assessment until current PRs resolve.
-
-**Action Taken:**
-
-1. **Review/Rebase Worker** — [`b8f99f6`](https://app.all-hands.dev/conversations/b8f99f69b4d44b74bfc37ddea97cacd9)
-   - Target: [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair ActionEvent + ObservationEvent (fixes #265)
-   - Reason: Merge conflict introduced by #268 merge in `KioskMode.tsx` timeline `useMemo`. Worker will rebase onto current main, preserve both timestamp normalization (#268) and event pairing (#272), re-run tests, get CI green, mark ready.
-
-2. **Implementation Worker** — [`1b68706`](https://app.all-hands.dev/conversations/1b68706c12b649c4ba794954697c52af)
-   - Target: [Issue #269](https://github.com/jpshackelford/voice-relay/issues/269) — hydrate agent event timeline from persisted store (priority:medium, client)
-   - Reason: Highest-priority ready issue with no in-flight PR. Server endpoint already exists (PR #266 landed it); client-only work. Scoped to `useAgentActions.ts` + fetch/seed/dedupe — explicitly warned to avoid `KioskMode.tsx` timeline `useMemo` to minimize conflict with #272.
-
-**Slot Usage:** expansion=0/4, implementation=1/1, review=1/2
-
-
-
-### 2026-05-22 03:37 UTC - Orchestrator
-
-🚀 **Spawned: Merge Worker for PR #272**
-
-**Workers completed since last cycle:**
-- `b8f99f6` (review/rebase, PR #272) → finished → rebase landed; PR #272 now `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks green, 0 unresolved review threads.
-
-**Active Workers (after this cycle's spawn):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `1b68706` | implementation | Issue #269 - hydrate agent event timeline from persisted store | running |
-| `91b977c` | merge | PR #272 - pair ActionEvent + ObservationEvent | **NEW** |
-
-**Spawned Worker:**
-- **Merge Worker** — [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) `fix(client): pair ActionEvent + ObservationEvent into a single agent event card`
-  - Conversation: https://app.all-hands.dev/conversations/91b977ca331345489b28d8cbd459a794
-  - Rationale: Every merge criterion is satisfied. The previous rebase worker (`b8f99f6`) cleared the conflicts introduced by PR #268. No human reviewer required (bot-only). Worker will verify the diff is client-only (no surprise server/migration changes), update the PR description to reflect the final state, squash-merge with conventional commit (`fix(client):`), and confirm issue #265 auto-closes via `Fixes #265`.
-  - Guardrail: if the diff includes any server/schema changes, the worker is instructed to add `needs-human` and STOP rather than force-merging.
+1. **Implementation Worker** — Issue [#260](https://github.com/jpshackelford/voice-relay/issues/260)
+   - Conversation: https://app.all-hands.dev/conversations/7960a5ba03a443f58eaa46c5c9734afb
+   - Priority assessed inline as `priority:medium` (feature work, well-expanded design)
+2. **Expansion Worker** — Issue [#261](https://github.com/jpshackelford/voice-relay/issues/261)
+   - Conversation: https://app.all-hands.dev/conversations/227081b8be384806a7f7d1c2aa32b596
+3. **Expansion Worker** — Issue [#262](https://github.com/jpshackelford/voice-relay/issues/262)
+   - Conversation: https://app.all-hands.dev/conversations/71bff4b00c624163837fa953fab5a04c
+4. **Expansion Worker** — Issue [#263](https://github.com/jpshackelford/voice-relay/issues/263)
+   - Conversation: https://app.all-hands.dev/conversations/fb5fe6f24d2e478e887e7e66aeb7f2de
 
 **Current State:**
-- **Open PRs:**
-  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `ocFC green ready 💬--` (merge worker `91b977c` taking it over the line; fixes #265)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
-- **Ready issues queued (awaiting impl slot):**
-  - #263 — `priority:medium` enhancement (migration tooling improvements)
-  - #261 — ready, **no priority label** (needs `/assess-priority` before impl)
-- **In progress (impl):** #269 — `1b68706` (client hydration of agent event timeline)
-- **Closing soon (when PR #272 merges):** #265 (will auto-close via `Fixes #265`)
-- **On-hold (skipped):** #208, #210, #239 — all carry the `on-hold` label
-- **No issues need expansion** (all open non-on-hold issues already have `ready`)
+- **Open PRs:** 1 — [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) `needs-human` (STUCK, skipped — awaiting human conflict resolution since 2026-05-18)
+- **Open Issues (active):** #260 (ready→impl), #261, #262, #263 (all → expansion)
+- **Open Issues (on-hold, skipped):** #208, #210, #239
 
-**Slot Usage (after spawn):**
+**Slot Usage:**
 | Type | Active | Limit | Notes |
 |------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues to expand (all unexpanded ones are `on-hold`) |
-| Implementation | 1 | 1 | #269 — `1b68706` (running) |
-| Review/Merge | 1 | 2 | PR #272 merge — `91b977c`; PR #221 stuck; 1 slot free |
+| Expansion | 3 | 4 | #261, #262, #263 |
+| Implementation | 1 | 1 | #260 |
+| Review/Merge | 0 | 2 | PR #221 stuck — only open PR; not assigned a review worker |
 
-**Decision rationale:**
-- PR #272 is the clearest possible merge candidate: rebase finished, CI green, no unresolved threads, no human reviewer required. Merge worker chosen over review worker because there is nothing left to address.
-- Implementation slot still occupied by `1b68706` on #269 — cannot spawn second impl worker. Once #272 merges, #269's client work will rebase cleanly because the merge worker's commit and #269's branch don't touch the same `KioskMode.tsx` `timeline` `useMemo` (#269 is scoped to `useAgentActions.ts` per its expansion).
-- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#272) is being merged. No new PRs in flight.
-- No expansion workers spawned: every non-on-hold open issue already has `ready`.
-- `#261` (`Remove unused storage drivers`) still needs `/assess-priority`. Will run inline at next wake-up if impl slot frees and no higher-priority work is ready. Not urgent — it's an audit cleanup, not a blocking dependency.
+**Decision:** Automation was re-triggered after being auto-disabled at 23:34 UTC on 2026-05-21. Since then, four new issues have appeared (#260–#263). Spawned 4 workers to clear the backlog in parallel — 1 implementation (only `ready` issue) + 3 expansion (the remaining non-on-hold issues). PR #221 is still stuck and is left for human intervention. Quiet streak is broken — this is a productive run.
 
-**Next cycle:**
-- If `91b977c` merges PR #272 → #265 auto-closes; impl slot still owned by `1b68706`. No new impl spawn until #269's PR opens (or `1b68706` finishes) to avoid branch pile-up.
-- If `1b68706` opens a PR for #269 → review/CI handling next cycle; coordinate with PR #272 merge state.
-- After both clear: dispatch impl for #263 (priority:medium, migration tooling). #261 needs `/assess-priority` before it can be picked.
+**Notes:**
+- One spawn attempt hit a 429 rate limit (10 req/sec) on the first try; succeeded on retry.
+- `.workflow-state.json` updated to reflect the 4 new workers.
 
 ---
 
-### 2026-05-22 03:50 UTC - Orchestrator
+### 2026-05-21 23:34 UTC - Orchestrator
 
-🚀 **Spawned 2 workers (parallel)**
+🔒 **Auto-disabled due to inactivity**
 
-**Workers completed since last cycle:**
-- `1b68706` (implementation, Issue #269) → finished → opened [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) `feat(client): hydrate agent event timeline from persisted store`; CI green, 1 unresolved github-actions bot review thread.
-- `91b977c` (merge, PR #272) → finished → **HALTED, added `needs-human` label**. The merge worker's guardrail caught out-of-scope server changes in `server/src/openhands.ts` (`shouldSkipForKioskTimel...` helper) that were not part of the stated client-only scope for issue #265. Correctly refused to force-merge; PR #272 now awaits human review.
-
-**Active Workers (after this cycle's spawns):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a4900d9` | implementation | Issue #263 — Migration tooling improvements (priority:medium) | **NEW** |
-| `4157041` | review | PR #273 — hydrate agent event timeline (1 unresolved bot thread) | **NEW** |
-
-**Spawned: 2 Workers**
-
-1. **Review Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) `feat(client): hydrate agent event timeline from persisted store`
-   - Conversation: https://app.all-hands.dev/conversations/415704184573424eae37f3607e682f84
-   - Rationale: CI fully green (Server Tests, Build Client, E2E Tests, lint-pr-title, pr-review), `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, 1 unresolved github-actions bot thread about a stale JSDoc comment on `mergeAndDedupe` (claims `seedActions` calls it when it has its own dedupe logic — looks like a valid clarity fix). Worker will draft→address→reply+resolve thread→ready.
-
-2. **Implementation Worker** — [Issue #263](https://github.com/jpshackelford/voice-relay/issues/263) `Migration tooling improvements: CLI, drift detection, advisory locking` (priority:medium, enhancement)
-   - Conversation: https://app.all-hands.dev/conversations/a4900d9a6ebd4e36a34a9061ec6070e4
-   - Rationale: Highest-priority `ready` issue with no in-flight PR. #265 owned by stuck PR #272; #269 owned by PR #273; #261 still unprioritized. #263 is server-side (migration runner) — no file overlap with the open client PRs (#272, #273). Prompt includes guardrails: must be additive, must not break the migration runner production depends on, and avoid `server/src/openhands.ts` (which #272 already touched).
-
-**Current State:**
-- **Open PRs:**
-  - [PR #273](https://github.com/jpshackelford/voice-relay/pull/273) — `oR green ready 💬1` (review worker `4157041` addressing bot thread; fixes #269)
-  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `ocFC green ready` but **`needs-human`** (STUCK; out-of-scope server change flagged by merge guardrail; fixes #265 once resolved)
-  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (STUCK since 2026-05-18)
-- **Ready issues queued (awaiting impl slot):**
-  - #261 — `audit`, ready, **no priority label** (needs `/assess-priority` before impl)
-- **In progress (impl):** #263 — `a4900d9`
-- **In progress (review):** PR #273 — `4157041`
-- **On-hold (skipped):** #208, #210, #239 — all carry `on-hold`
-
-**Slot Usage (after spawn):**
-| Type | Active | Limit | Notes |
-|------|--------|-------|-------|
-| Expansion | 0 | 4 | No issues need expansion |
-| Implementation | 1 | 1 | #263 — `a4900d9` |
-| Review/Merge | 1 | 2 | PR #273 — `4157041`; PR #272 & #221 stuck; 1 review slot free |
-
-**Decision rationale:**
-- PR #272 correctly flagged `needs-human` by the previous merge worker — that's a STUCK PR per workflow rules. Continue work on independent items rather than wait.
-- PR #273 is the next merge candidate but has 1 unresolved bot thread → review worker (not merge worker) to handle the feedback first.
-- Impl slot was freed by `1b68706` finishing → spawn next-priority `ready` issue. #265 and #269 already have PRs in flight; the remaining priority-tagged option is #263. #261 lacks a priority label and is a non-blocking audit cleanup; can be assessed inline next cycle if needed.
-- No second review/merge worker spawned: only one PR (#273) is actionable; the other two are stuck pending human review.
-- No expansion workers spawned: every non-on-hold open issue already has `ready`.
-- Bookkeeping: moved both finished workers (`1b68706`, `91b977c`) into `completed` array; pruned to 28 entries within 24h.
-
-**Next cycle:**
-- If `4157041` finishes with bot thread resolved + CI green → spawn merge worker for PR #273.
-- If `a4900d9` opens a PR for #263 → review/CI handling next cycle.
-- After both clear (and if #261 is still the only remaining ready issue): run `/assess-priority` inline for #261, then dispatch its impl.
-- PR #272 and #221 remain STUCK awaiting human review/intervention. They do not block other work.
-
----
-
----
-
-### 2026-05-22 04:41 UTC - Orchestrator
+Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new actionable work to pick up. Automation has been disabled to prevent unnecessary runs.
 
 **Active Workers:**
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
-| `cd43b83` | implementation | Issue #261 — Remove unused storage drivers | **NEW** |
-| `1cd89bd` | review (merge) | PR #273 — hydrate agent event timeline | **NEW** |
-| `dfc3f34` | review | PR #274 — migration tooling (1 unresolved critical thread) | **NEW** |
+| (none) | — | — | — |
 
-**Previous workers finished:** `a4900d9` (impl #263 → opened PR #274) and `4157041` (review PR #273 → CI green, no threads). Both moved to `completed[]` in state file.
+**Current State (unchanged since 23:05 UTC):**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, last updated 2026-05-18; **STUCK** — awaiting human conflict resolution)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
 
-**Current State:**
-- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): `needs-human`, CONFLICTING — deferred to human
-- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272): `needs-human` (halted: out-of-scope server changes during merge attempt) — deferred to human. Issue #265 (linked) is on hold pending #272 resolution.
-- [PR #273](https://github.com/jpshackelford/voice-relay/pull/273): `oRFC` green ready, 0 unresolved threads → **merge worker dispatched**
-- [PR #274](https://github.com/jpshackelford/voice-relay/pull/274): `oR` green ready, 1 unresolved critical thread (github-actions: missing `destructive: true` on migrations 010_display_api_se… plus 2 others) → **review worker dispatched**
-- Issue #261: `ready` + `audit`, had no priority → **assessed `priority:medium`** inline (cleanup that unblocks Postgres adoption, low-risk dead-code removal) → **impl worker dispatched**
-- Issues #263, #265, #269: ready, already represented by open PRs (#274, #272, #273 respectively).
-- Issues #208, #210, #239: `on-hold` — skipped.
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
 
-**Action Taken:**
-🚀 **Spawned 3 workers (parallel)**
+**Disabled Automation:** `5f180989-ed9c-42b4-ac9f-5f30f0623316` — "Voice Relay Workflow Orchestrator v2" (cron `*/15 * * * *`, America/New_York)
 
-1. **Merge Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273)
-   - Conversation: [`1cd89bd`](https://app.all-hands.dev/conversations/1cd89bd6fc90430fbcd6864c57cf40f5)
-   - Includes scope-check guardrail (must be client-only or HALT + `needs-human`).
+> ⚠️ **Note:** The skill documented automation ID `a0219382-2e7c-4156-9991-7b9976739a66` (renamed "(old)") was already disabled. The currently active orchestrator is `5f180989-...` ("v2"). Skill text should be updated to reference the v2 ID.
 
-2. **Review Worker** — [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)
-   - Conversation: [`dfc3f34`](https://app.all-hands.dev/conversations/dfc3f340cd724894a21acab20a2d6206)
-   - Fix destructive-migration annotations on migrations 010 + 2 others called out by github-actions reviewer.
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → find "Voice Relay Workflow Orchestrator v2" → toggle on
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
 
-3. **Implementation Worker** — [Issue #261](https://github.com/jpshackelford/voice-relay/issues/261)
-   - Conversation: [`cd43b83`](https://app.all-hands.dev/conversations/cd43b83202804d6ca8d0265467ee5cf2)
-   - Remove `memory`, `redis`, `firestore` storage drivers and the `redis` dep; leave clean seam for future Postgres driver to plug into `MigrationLock` abstraction landed in PR #266 / #274.
-
-**Slots:** expansion 0/4 idle (no issues need expansion), impl 1/1 full, review 2/2 full. 4 expansion slots idle is expected — all open issues are either implemented in PRs or `on-hold`.
-
-**Worklog housekeeping:** Truncation script ran. Productive entries span 15 hours of continuous work (no 6h+ gap), so nothing met the archive criterion this cycle; WORKLOG.md kept at 37 entries / 1229 lines. Archives from prior days remain on disk.
+**Re-enable triggers:**
+- Human resolves merge conflicts on PR #221, OR
+- Any `on-hold` label is removed from issues #208/#210/#239, OR
+- New issues / PRs are filed
 
 ---
 
-### 2026-05-22 04:55 UTC - Orchestrator
+### 2026-05-21 23:17 UTC - Orchestrator
 
-⚠️ **Previous cycle's 3 workers all ghosted — re-dispatched**
-
-The 3 workers spawned ~13 minutes ago in the 04:41 UTC cycle (`cd43b83` impl #261, `1cd89bd` merge PR #273, `dfc3f34` review PR #274) all returned `execution_status=error` with `title="Conversation <prefix>"` and `created_at == updated_at` — the same silent spawn-failure signature seen with `f9ebd19` (merge PR #259) on 2026-05-21. None of them did any work. All 3 moved to `completed[]` with `status="ghost"`.
-
-**Active Workers (after re-dispatch):**
+**Active Workers:**
 | Conv ID | Type | Working On | Status |
 |---------|------|------------|--------|
-| `18aa19b` | merge | PR #273 — hydrate agent event timeline (closes #269) | **NEW** running |
-| `ef341f4` | review | PR #274 — migration tooling (1 unresolved critical thread) | **NEW** running |
-| `6078efe` | implementation | Issue #261 — Remove unused storage drivers | **NEW** running |
+| (none) | — | — | — |
 
-**Spawn verification:** All 3 conversations confirmed READY by start-task polling and `execution_status=running` via `/app-conversations?ids=`. Plugin loaded: `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin`.
+✅ **All quiet** - No actionable work available
 
-**Current State (unchanged from previous cycle since ghosts did nothing):**
-- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, `needs-human`, CONFLICTING — STUCK
-- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272): `needs-human` (out-of-scope server changes flagged 2026-05-22 03:50) — STUCK
-- [PR #273](https://github.com/jpshackelford/voice-relay/pull/273): `oRFC` green, CLEAN, MERGEABLE, 0 unresolved threads → **merge worker dispatched** (`18aa19b`)
-- [PR #274](https://github.com/jpshackelford/voice-relay/pull/274): `oR` green, CLEAN, MERGEABLE, `reviewDecision=CHANGES_REQUESTED`, 1 unresolved critical bot thread about missing `destructive: true` on migrations 010_display_api_secrets + 2 others → **review worker dispatched** (`ef341f4`)
-- Issue #261: `ready` + `priority:medium` + `audit`, no PR → **impl worker dispatched** (`6078efe`)
-- Issues #263, #265, #269: already represented by open PRs (#274, #272, #273)
-- Issues #208, #210, #239: `on-hold` — skipped
+**Current State:**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING/DIRTY; **STUCK** — last updated 2026-05-18, awaiting human conflict resolution)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
 
-**Action Taken:**
-🚀 **Re-spawned 3 workers** (same targets as ghosted cycle):
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
 
-1. **Merge Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273)
-   - Conversation: [`18aa19b`](https://app.all-hands.dev/conversations/18aa19b12cdf447da651a21f668367b4)
-   - Includes scope-check guardrail (must be client-only or HALT + `needs-human`, matching the rule that correctly caught PR #272 scope creep).
+**Decision:** State unchanged since 23:05 UTC orchestrator run. All available work is either stuck (PR #221) or on-hold (3 issues). No workers spawned.
 
-2. **Review Worker** — [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)
-   - Conversation: [`ef341f4`](https://app.all-hands.dev/conversations/ef341f4d2b90488b84b6f11cb733954e)
-   - Add `destructive: true` to 010_display_api_secrets + 2 other migrations flagged by github-actions reviewer; resolve the thread.
-
-3. **Implementation Worker** — [Issue #261](https://github.com/jpshackelford/voice-relay/issues/261)
-   - Conversation: [`6078efe`](https://app.all-hands.dev/conversations/6078efe5f6b94ed2a4a7d10da261615d)
-   - Remove `memory`, `redis`, `firestore` storage drivers + `redis` dep; leave clean seam for future Postgres driver (must NOT touch SQLite driver — that's production).
-
-**Slots:** expansion 0/4 idle (no issues need expansion), impl 1/1, review 2/2 full.
-
-**Ghost root cause:** Two ghost events in ~24h (`f9ebd19` + this cycle's 3). Pattern: API returns `{id, status: WORKING}` but the resulting conversation never leaves error state and has no real title. Worth raising with OpenHands platform team if it recurs. Mitigation: this cycle's spawn waited for `execution_status=running` before recording in state — the ghosted cycle did not.
-
-**Next cycle:**
-- Check `18aa19b` (merge #273), `ef341f4` (review #274), `6078efe` (impl #261) statuses.
-- If `ef341f4` finishes successfully → spawn merge worker for #274.
-- If `6078efe` opens a PR → review/CI cycle.
-- PR #272 and #221 remain STUCK pending human review.
+**Quiet Streak:** This is the **2nd consecutive** quiet entry (prior: 23:05 UTC). One more consecutive quiet run will trigger auto-disable of automation `a0219382-2e7c-4156-9991-7b9976739a66`.
 
 ---
+
+### 2026-05-21 23:05 UTC - Orchestrator
+
+**Worker Completed:** `0df29e2` (merge) → ✅ **Merged PR #259** (squash `480ddd8` at 22:55:15Z) — auto-deploying to vr.chorecraft.net
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+✅ **All quiet** - No actionable work available
+
+**Current State:**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING; **STUCK** — skipped, awaiting human intervention)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 is stuck (`needs-human`); no other PRs |
+
+**Decision:** All available work is either stuck (PR #221 needs human) or deferred (3 on-hold issues). No workers spawned. Previous orchestrator runs at 22:21/22:33/22:53 UTC were productive — this is the **first** quiet entry in the current streak (no auto-disable triggered).
+
+**Housekeeping:** WORKLOG.md was 888 lines — archived 23 older entries to `WORKLOG_ARCHIVE_2026-05-21.md` (kept 6h+ productive window: 13:15 UTC → 22:55 UTC). WORKLOG.md now 199 lines (+ this entry).
+
+---
+
+### 2026-05-21 22:55 UTC - Merge Worker
+
+✅ **Merged PR #259**
+
+- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
+- Issue: None linked (follow-up to #258, which already closed #257)
+- Squash commit: [`480ddd8`](https://github.com/jpshackelford/voice-relay/commit/480ddd85ea2ddd7f3189f300125a68dea02a1a0f)
+- Merged by: jpshackelford
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Follow-up to #258 closing four rendering gaps surfaced by post-merge validation against captured production events:
+1. Server `formatEventSummary` now honors top-level `event.summary` on wrapped ActionEvent / ObservationEvent (was showing generic "Action" string).
+2. Server `extractEventFields` now extracts file_editor `command`, ThinkObservation content, and InvokeSkill `skill_name` / `content` / `is_error`.
+3. Client `getFileEditorActionContent` renders all four file_editor commands (view / create / str_replace / insert) — was create-only.
+4. New client handlers for `InvokeSkillAction` / `InvokeSkillObservation`; `ThinkObservation` falls back to "Thought recorded." for empty content.
+
+**Migration / Deployment Safety:**
+- ✅ No DB migrations; SQLite schema untouched
+- ✅ No new runtime dependencies; no package.json / lockfile changes
+- ✅ No new config or env vars
+- ✅ Additive change — legacy event paths preserved; already-stored events render unchanged
+- ✅ Safe to auto-deploy
+
+**Test Results:**
+- 744 server tests pass (+11 new)
+- 544 client tests pass (+8 new, 2 updated for corrected behavior)
+- `npx tsx scripts/comprehensive-validation.ts` → 12/12 events pass, 0 summary issues
+
+**Review Notes:**
+- pr-review bot: 🟡 Acceptable — Recommended for approval
+- All 6 CI checks green on first push; mergeStateStatus CLEAN, MERGEABLE
+- No human-requested changes; replaces ghost worker `f9ebd19...` that failed silently
+
+**Follow-up Items:**
+- Watch vr.chorecraft.net deploy logs for healthy startup
+- Spot-check live UI to confirm action cards now show real summaries and skill/think/file-editor cards render content
