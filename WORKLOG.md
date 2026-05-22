@@ -1,3 +1,32 @@
+### 2026-05-22 05:01 UTC - Merge Worker (PR #273, issue #269)
+
+🚀 **Merged PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — `feat(client): hydrate agent event timeline from persisted store (#269)`. Squash commit [`8cc09d2`](https://github.com/jpshackelford/voice-relay/commit/8cc09d291c328eea6c55c493904c0fa57c8a35ea). Issue [#269](https://github.com/jpshackelford/voice-relay/issues/269) auto-closed via `Closes #269`.
+
+**Pre-merge checks:**
+- ✅ `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`.
+- ✅ All 6 required checks green at HEAD `0263635`: Server Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator.
+- ✅ 1 review thread (github-actions[bot] doc-suggestion on `useAgentActions.ts:17`) addressed in `0263635` and resolved.
+- ✅ **Scope verified client-only.** All 13 changed files live under `client/` (`git diff main...HEAD --name-only | grep -v '^client/'` returns empty). No server router, schema, or migration changes. Production currently runs on SQLite (`sqlite.db`) and this PR introduces zero migration risk — auto-deploy to `vr.chorecraft.net` can proceed safely.
+- ✅ No `MobileMode.tsx` touch, no `KioskMode.tsx` timeline `useMemo` modification — clean of in-flight PR #272's territory.
+
+**Post-merge actions:**
+1. Updated PR description with a "Scope" callout (client-only confirmation) and "Review response" section documenting commit `0263635` and the rationale for accepting the JSDoc fix rather than refactoring `seedActions` to share `mergeAndDedupe` (the two paths have opposite ordering requirements — seed lands *before* existing live, live appends *after* existing seed).
+2. Squash-merged via `gh pr merge 273 --squash --subject "feat(client): hydrate agent event timeline from persisted store (#269)" --body-file /tmp/pr273_squash.md`.
+3. Verified Issue #269 closed at `2026-05-22T05:01:04Z` with `stateReason=COMPLETED` (auto-closed by `Closes #269` in the PR body — no manual close required).
+
+**Production impact:** zero database/schema risk. Client-only feature: existing kiosks pick up the persisted-history hydration on next deploy; the WebSocket path is unchanged so any device already streaming live events continues unaffected. The new REST call (`GET /api/sessions/:sessionId/agent-events?limit=500`) hits an endpoint that's been live since PR #266 — no new server surface area.
+
+**Coordination with in-flight work:** PR #272 (pair ActionEvent + ObservationEvent cards) targets `KioskMode.tsx` 's timeline `useMemo` block; this PR deliberately added its new props/render at the toggle button instead, so #272 should rebase cleanly. PR #274 (issue #263 migration tooling) is server-only and has no overlap.
+
+**Follow-ups noted in PR but not actioned here:**
+- Two-browser Playwright E2E for mid-session join (hook-level merge test covers the mechanics).
+- Server-side raw → AgentAction mapping (option B refactor); client normalizer can shrink to a passthrough once that lands.
+- `MobileMode.tsx` status banner (mobile doesn't render the agent-events panel).
+- Cursor pagination via `after=` (kiosk only renders `MAX_ACTIONS = 50`; TODO comment present in `api/agentEvents.test.ts`).
+- WS-reconnect re-hydration (if WS drops past server in-memory buffer and user doesn't refresh, events from the gap are missed — mitigation: route nav re-mounts the hook).
+
+---
+
 ### 2026-05-22 04:15 UTC - Implementation Worker (issue #263, PR #274)
 
 🛠️ **Opened PR [#274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Implements issue [#263](https://github.com/jpshackelford/voice-relay/issues/263) end-to-end: six related improvements to the in-house migrator without swapping it out for a library.
