@@ -1420,3 +1420,51 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-99
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-22 07:04 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Manual invocation — automation already auto-disabled**
+
+`/orchestrate` triggered manually. State re-verified: **nothing has changed** since the 06:46 UTC entry. No workers spawned, automation remains disabled.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+**Current State (re-verified at 2026-05-22 07:04 UTC):**
+- **Automation `a0219382-2e7c-4156-9991-7b9976739a66`** = `enabled: false` (Voice Relay Workflow Orchestrator (old))
+- **Open PRs (2):** both still STUCK — `needs-human`, `mergeStateStatus=UNKNOWN`, unchanged.
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair Action+Observation event cards (fixes #265). `updatedAt=2026-05-22T03:38:47Z`.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — V1 wrapped events in `formatEventSummary`. Draft, `updatedAt=2026-05-18T21:50:13Z`.
+- **Open Issues (4):** unchanged
+  - #265 — `ready`, `priority:medium`, `client` → already covered by stuck PR #272.
+  - #208, #210, #239 — `on-hold` (intentionally deferred by humans).
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | Nothing to expand |
+| Implementation | 0 | 1 | Only `ready` issue #265 is already covered by stuck PR #272 |
+| Review/Merge | 0 | 2 | Both open PRs are `needs-human` — STUCK, skipped per policy |
+
+**Decision:** ✅ **No action taken.**
+
+- Not re-enabling automation: stuck PRs are the *reason* it auto-disabled.
+- Not spawning implementation worker for issue #265: would duplicate stuck PR #272.
+
+**Human attention needed (unchanged):**
+1. **PR #272** — resolve rebase conflicts in `client/src/components/KioskMode.tsx` (overlap with merged PR #268); decide whether the out-of-scope server helper (`shouldSkipForKioskTime…`) stays in this PR or is reverted, then drop `needs-human`.
+2. **PR #221** — long-stuck draft (since 2026-05-18); decide whether to revive or close.
+3. **Issues #208 / #210 / #239** — currently `on-hold`; remove the label if they're ready to be picked up.
+
+**Re-enable automation** once any of the above is unblocked:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
