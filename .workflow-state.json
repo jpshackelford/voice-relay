@@ -1,23 +1,7 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "227081b",
-        "issue": 261,
-        "started": "2026-05-22T01:11:25.250900+00:00"
-      },
-      {
-        "conv_id": "71bff4b",
-        "issue": 262,
-        "started": "2026-05-22T01:11:25.250900+00:00"
-      },
-      {
-        "conv_id": "fb5fe6f",
-        "issue": 263,
-        "started": "2026-05-22T01:11:25.250900+00:00"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
         "conv_id": "7960a5b",
@@ -32,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T01:11:25.250900+00:00",
+  "last_updated": "2026-05-22T01:18:47.342614+00:00",
   "completed": [
     {
       "conv_id": "140849d",
@@ -240,6 +224,33 @@
       "finished": "2026-05-21T23:04:35.178888+00:00",
       "status": "success",
       "outcome": "Merged PR #259 - fix: honor event.summary and render missing event content (squash 480ddd8)"
+    },
+    {
+      "conv_id": "227081b",
+      "type": "expansion",
+      "started": "2026-05-22T01:11:25.250900+00:00",
+      "finished": "2026-05-22T01:18:47.342614+00:00",
+      "status": "success",
+      "outcome": "Worker finished",
+      "issue": 261
+    },
+    {
+      "conv_id": "71bff4b",
+      "type": "expansion",
+      "started": "2026-05-22T01:11:25.250900+00:00",
+      "finished": "2026-05-22T01:18:47.342614+00:00",
+      "status": "success",
+      "outcome": "Worker finished",
+      "issue": 262
+    },
+    {
+      "conv_id": "fb5fe6f",
+      "type": "expansion",
+      "started": "2026-05-22T01:11:25.250900+00:00",
+      "finished": "2026-05-22T01:18:47.342614+00:00",
+      "status": "success",
+      "outcome": "Worker finished",
+      "issue": 263
     }
   ]
 }
