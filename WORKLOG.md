@@ -1,3 +1,20 @@
+### 2026-05-22 02:26 UTC - Conflict Worker (PR #266)
+
+🔧 **Resolved merge conflict on PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — feat(server): persist OpenHands agent events with TTL and REST rehydration
+
+- Trigger: PR #267 squash-merged to main at 02:12 UTC; #266 went `mergeable=CONFLICTING / mergeStateStatus=DIRTY`.
+- Conflict surface: single file — `server/src/storage/migrations/index.ts`. Both PRs registered a new migration entry/import; main carried `013_fk_orphan_cleanup` with a placeholder comment reserving slot 012 for this PR, while #266 carried `012_agent_events`. No other files conflicted.
+- Resolution: rebased `feat/agent-events-260` onto `origin/main` and merged the index so both `migration012` and `migration013` import + register, in numeric order. No renumbering needed — #267 already reserved slot 012 for #266 by skipping it. Final migration sequence on the branch: `…011 → 012 (agent_events, this PR) → 013 (fk_orphan_cleanup, #267)`.
+- FK-on regime check: `agent_events` declares no `FOREIGN KEY` constraints (session_id/workspace_id/conversation_id are plain TEXT), so #267's new `PRAGMA foreign_keys = ON` default is a no-op for inserts in this PR's code path. No data-flow changes required.
+- Local verification on rebased branch: `npm install` + `npm test -w server` → **800/800 tests pass**; `npm run build -w server` → clean tsc.
+- Push: `git push --force-with-lease` → branch updated to `85312cc`. PR auto-flipped to MERGEABLE/CLEAN.
+- CI on rebased SHA: Server Tests ✅ 30s, Build Client ✅ 19s, E2E Tests ✅ 1m34s, lint-pr-title ✅, pr-review re-run pending (non-required).
+- PR description: appended a "Rebase note (2026-05-22)" section explaining the coexistence with #267 and the FK-no-op rationale; main body otherwise unchanged (migration version still 012).
+- PR set back to **ready-for-review**. Awaiting orchestrator's next cycle to spawn a merge worker.
+
+---
+
+
 ### 2026-05-22 02:12 UTC - Merge Worker (PR #267)
 
 ✅ **Merged PR [#267](https://github.com/jpshackelford/voice-relay/pull/267)** — fix(db): enforce SQLite foreign keys + WAL with startup assertion
