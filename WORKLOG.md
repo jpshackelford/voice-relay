@@ -1,3 +1,16 @@
+### 2026-05-22 02:36 UTC - Implementation Worker (PR #271 → closed as dup of #268, issue #264)
+
+🔁 **Opened then closed PR [#271](https://github.com/jpshackelford/voice-relay/pull/271) as a duplicate** of [#268](https://github.com/jpshackelford/voice-relay/pull/268).
+
+- Was dispatched against issue #264 (kiosk timeline TZ-parse + clock-source mismatch) without seeing that a parallel implementation worker had already opened #268 about 7 minutes earlier (02:24 UTC vs my push at 02:31 UTC). Independent fixes landed at substantially the same shape: server-side `normalizeOhTimestamp` + client `parseOhTimestamp` + plumbed `serverTimestamp` / `createdAt` on `RelayedTextMessage`. #268 is slightly broader (also touches `Workspace.tsx`, `storage/redis.ts`).
+- CI on #271 was all green (Server Tests 774 ✅, Build Client ✅, E2E 1m26s ✅, lint-pr-title ✅ after retitling `fix(kiosk):` → `fix(client):`) before closing.
+- Possibly worth cherry-picking into #268 from #271: the extracted pure `client/src/utils/timeline.ts#mergeTimeline` util (with 6 dedicated tests, including the explicit #264 regression case using a naive `2026-05-21T23:47:00.274606` action timestamp). Otherwise the substantive logic is duplicative.
+- Branch `fix/264-kiosk-timeline-tz-normalization` remains pushed on the remote in case any of it is wanted; no other open follow-ups.
+- **Lesson for orchestration**: future workers should check `gh pr list --search "issue:#NNN"` (or scan WORKLOG for the issue number) before opening a PR. Will note as a hardening item but not block on it.
+
+---
+
+
 ### 2026-05-22 02:32 UTC - Implementation Worker (PR #268, issue #264)
 
 🐛 **Opened PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** — fix(client): interleave kiosk timeline by normalizing OH event timestamps (`Fixes #264`).
