@@ -29,6 +29,26 @@
 
 ---
 
+### 2026-05-22 01:50 UTC - Implementation Worker
+
+✅ **Implemented Issue #262** — SQLite foreign keys not enforced in production
+
+- Issue: [#262](https://github.com/jpshackelford/voice-relay/issues/262)
+- PR: [#267](https://github.com/jpshackelford/voice-relay/pull/267) (ready for review)
+- Scope: explicit pragmas + startup assertion + orphan cleanup migration + read-only audit script
+- Files (+917 LOC): `server/src/storage/sqlite.ts` (4 pragmas + fail-fast assertion), `server/src/storage/migrations/013_fk_orphan_cleanup.ts` (sweep CASCADE/SET-NULL orphans inside the migrator's transaction), `server/src/storage/audit-orphans.ts` (library + tests), `scripts/audit-orphans.ts` (CLI wrapper, exits 1 on orphans), `docs/runbooks/sqlite-fk-enforcement.md`, plus FK tests in `server/src/storage/sqlite.test.ts`.
+- Design highlights:
+  - `journal_mode=WAL` (persistent), `foreign_keys=ON`, `synchronous=NORMAL`, `busy_timeout=5000` set BEFORE migrations run; readback asserts `foreign_keys=1` and throws otherwise.
+  - Migration `013` skips number `012` intentionally (PR #266 has reserved 012 for the in-flight `agent_events` work; merge order isn't guaranteed). The migrator tracks applied versions by exact number, so gaps are fine.
+  - Cleanup migration leaves `workspaces.owner_id → users.id` orphans alone (declared RESTRICT — deleting a whole workspace because a user record disappeared would be more destructive than the orphan ref). All other FKs are CASCADE/SET-NULL and are swept clean.
+  - Cleanup is non-reversible by construction; down migration is a no-op `SELECT 1` and the runbook documents the rationale.
+- Tests (15 new): cascade fires, FK violations rejected, SET NULL on `messages.session_id`, startup assertion throws when pragma readback is 0 (via `vi.spyOn` of `better-sqlite3` prototype), pragma readbacks, audit detects every FK category, audit ignores legitimate NULLs, migration 013 round-trip cleans what the audit reports, forward-compat skips for missing tables/columns, formatter renders non-zero counts. Coverage on changed code: `sqlite.ts` 100/91, `audit-orphans.ts` 100/80, `013_*` 100/100 (lines/branches).
+- Full server suite green (759 tests). CI green (lint-pr-title, Build Client, Server Tests, E2E Tests).
+- Follow-up logged (out of scope here): `messages.workspace_id` has no FK declaration (added as plain TEXT in migration 004); fixing it needs a table rebuild — worth a separate issue.
+
+
+---
+
 ### 2026-05-22 01:38 UTC - Expansion Worker
 
 ✅ **Expanded Issue #264** — Kiosk timeline does not interleave utterances and agent events (TZ parse + clock-source mismatch)
