@@ -1,12 +1,18 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "8076d90",
+        "issue": 264,
+        "started": "2026-05-22T01:35:57.319681+00:00"
+      }
+    ],
     "implementation": [
       {
-        "conv_id": "7960a5b",
-        "issue": 260,
-        "started": "2026-05-22T01:11:25.250900+00:00"
+        "conv_id": "f0caf18",
+        "issue": 262,
+        "started": "2026-05-22T01:35:57.319681+00:00"
       }
     ],
     "review": []
@@ -16,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T01:18:47.342614+00:00",
+  "last_updated": "2026-05-22T01:35:57.319681+00:00",
   "completed": [
     {
       "conv_id": "140849d",
@@ -251,6 +257,15 @@
       "status": "success",
       "outcome": "Worker finished",
       "issue": 263
+    },
+    {
+      "conv_id": "7960a5b",
+      "type": "implementation",
+      "issue": 260,
+      "started": "2026-05-22T01:11:25.250900+00:00",
+      "finished": "2026-05-22T01:34:32.250362+00:00",
+      "status": "success",
+      "outcome": "Created PR #266 - feat(server): persist OpenHands agent events with TTL and REST rehydration"
     }
   ]
 }

@@ -446,3 +446,50 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 **Next cycle:** When `7960a5b` finishes, spawn an impl worker for #262 (highest priority `ready` issue). If #260 produced a PR, spawn a review worker once it's ready.
 
 ---
+### 2026-05-22 01:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f0caf18` | implementation | Issue #262 — SQLite FK not enforced (priority:high bug) | **NEW** |
+| `8076d90` | expansion | Issue #264 — Kiosk timeline TZ parse bug (priority:high) | **NEW** |
+
+**Worker Completed (this cycle):**
+- `7960a5b` (implementation, Issue #260) — finished → opened [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) `feat(server): persist OpenHands agent events with TTL and REST rehydration` (ready, CI pending, no review comments yet)
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker** — Issue [#262](https://github.com/jpshackelford/voice-relay/issues/262) (priority:high bug, ready)
+   - Conversation: https://app.all-hands.dev/conversations/f0caf181d96c4c548fa2930fe5fda41b
+   - Note: enabling `PRAGMA foreign_keys=ON` can surface latent FK violations in the live sqlite.db; prompt emphasises data-safe migration.
+2. **Expansion Worker** — Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) (priority:high bug, no ready label yet)
+   - Conversation: https://app.all-hands.dev/conversations/8076d90c63b84eb68096e3232b830d3b
+   - Note: issue body already contains a detailed root-cause analysis — worker just needs to verify and label `ready`.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `o pending ready --` (just opened by `7960a5b`, CI not green yet, no reviews requested → no review worker spawned)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK, skipped; awaiting human conflict resolution since 2026-05-18)
+- **Ready issues queued (awaiting impl slot):**
+  - #261 — `audit`, no priority label yet (needs `/assess-priority` before impl)
+  - #263 — `priority:medium` enhancement (migration tooling)
+  - #265 — `priority:medium` client bug (action+observation pairing)
+- **Open issues being expanded:** #264 → expansion worker `8076d90`
+- **On-hold (skipped):** #208, #210, #239
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 1 | 4 | #264 |
+| Implementation | 1 | 1 | #262 (highest-priority ready issue) |
+| Review/Merge | 0 | 2 | PR #266 too new (no review feedback yet); PR #221 stuck |
+
+**Decision:** Impl slot freed when `7960a5b` finished → spawned impl for the highest-priority ready issue (#262, priority:high bug). #264 was the only open issue lacking `ready` → spawned expansion. Did NOT spawn a review worker for PR #266: it was just opened (~4 min ago), CI is still pending, and no human/bot review comments exist; a review worker would have nothing to address. Will reassess next cycle.
+
+**Next cycle:**
+- If PR #266 has CI failures or new review comments, spawn a review worker.
+- When `f0caf18` (impl #262) finishes, spawn impl for next priority ready issue (likely #263 or #265).
+- If `8076d90` adds `ready` to #264, it joins the impl queue.
+- #261 still needs `/assess-priority` before it can be picked up — handle inline when impl slot next frees and #261 is the front of the queue.
+
+---
