@@ -117,6 +117,19 @@ export interface RelayedTextMessage {
   text: string;
   partial: boolean;
   sessionId?: string;  // Session the message belongs to
+  /**
+   * For AI utterances: the OpenHands-server-emitted event timestamp
+   * (ISO Zulu after server-side normalization). Use this in preference to
+   * `new Date()` so the message lies on the same clock as agent events on
+   * the kiosk timeline (issue #264).
+   */
+  serverTimestamp?: string;
+  /**
+   * For history payloads: when the row was persisted (ISO Zulu after
+   * server-side normalization). Use this in preference to `new Date()` on
+   * reconnect so historical messages keep their original ordering.
+   */
+  createdAt?: string;
 }
 
 export interface HistoryMessage {

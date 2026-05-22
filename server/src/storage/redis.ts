@@ -40,8 +40,13 @@ export class RedisStore implements MessageStore {
   async append(message: RelayedTextMessage): Promise<void> {
     if (!this.client) throw new Error('RedisStore not connected');
 
-    const serialized = JSON.stringify(message);
-    
+    // Stamp createdAt at append time if not set, so reconnected clients can
+    // render historical messages with their original time (issue #264).
+    const stamped: RelayedTextMessage = message.createdAt
+      ? message
+      : { ...message, createdAt: new Date().toISOString() };
+    const serialized = JSON.stringify(stamped);
+
     // Push to list and trim to max size
     await this.client
       .multi()

@@ -3,6 +3,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateUUID } from '../utils/uuid';
+import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
@@ -361,9 +362,16 @@ export function KioskMode({
       });
     }
     
-    // Add agent events with pre-computed timestamps
+    // Add agent events with pre-computed timestamps.
+    // Use `parseOhTimestamp` instead of `new Date(...)` directly: OH historically
+    // emits naive UTC ISO strings (no `Z`), which `new Date()` interprets as
+    // local time in non-UTC browsers and pushes every agent event forward by
+    // the local UTC offset (issue #264). The server now normalizes these on
+    // the way out, but this is defense-in-depth in case a stray naive value
+    // sneaks through (e.g. cross-version deploys).
     for (const action of agentActions) {
-      const actionTime = new Date(action.timestamp).getTime();
+      const parsed = parseOhTimestamp(action.timestamp);
+      const actionTime = parsed ? parsed.getTime() : Date.now();
       entriesWithTime.push({
         entry: { type: 'agent-event', data: action },
         time: actionTime,

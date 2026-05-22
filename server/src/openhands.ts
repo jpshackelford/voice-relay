@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket from 'ws';
+import { normalizeOhTimestamp } from './utils/timestamp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -391,7 +392,15 @@ export interface AISession {
   agentServerUrl?: string;
   sessionApiKey?: string;
   lastEventId?: string;
-  onMessage?: (message: string) => void;
+  /**
+   * Callback for agent messages (AI responses).
+   *
+   * `serverTimestamp` is the OH-server-emitted event timestamp (normalized
+   * to ISO Zulu by {@link normalizeOhTimestamp}), if present. Callers should
+   * prefer this over the local receipt time so utterances and agent actions
+   * share a single clock — see issue #264.
+   */
+  onMessage?: (message: string, serverTimestamp?: string) => void;
   /** Callback for agent action events */
   onAction?: (action: AgentAction) => void;
   reconnectAttempts: number;
@@ -1299,7 +1308,7 @@ export class AISessionManager {
   async getOrCreateForSession(
     sessionId: string,
     workspaceId: string,
-    onMessage: (message: string) => void,
+    onMessage: (message: string, serverTimestamp?: string) => void,
     options: {
       displayLines?: number;
       apiKey?: string;
@@ -1530,7 +1539,11 @@ export class AISessionManager {
 
           if (text && session.onMessage) {
             console.log(`[AI] Got agent response: "${text.substring(0, 100)}..."`);
-            session.onMessage(text);
+            // Normalize OH's naive UTC timestamp before forwarding (issue #264).
+            // Without this, downstream consumers parsing the string with
+            // `new Date()` interpret it as local time in non-UTC browsers.
+            const serverTimestamp = normalizeOhTimestamp(event.timestamp);
+            session.onMessage(text, serverTimestamp);
           }
         } 
         // V1 ConversationStateUpdateEvent - status updates
@@ -1561,7 +1574,12 @@ export class AISessionManager {
             
             const action: AgentAction = {
               id: event.id || crypto.randomUUID(),
-              timestamp: event.timestamp || new Date().toISOString(),
+              // Normalize OH's naive UTC timestamps before forwarding (issue #264).
+              // OH's events endpoint and WS event stream emit timestamps without
+              // a `Z` or offset; the client parses these as local time, which
+              // pushes every agent event forward by the local UTC offset and
+              // breaks kiosk timeline interleaving in non-UTC browsers.
+              timestamp: normalizeOhTimestamp(event.timestamp) || new Date().toISOString(),
               kind: effectiveKind,
               source: event.source || 'unknown',
               summary: formatEventSummary(event as V1Event),

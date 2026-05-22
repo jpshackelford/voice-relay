@@ -129,7 +129,7 @@ describe('SQLiteStore', () => {
       await store.append(message);
       
       const messages = await store.getRecent();
-      expect(messages[0]).toEqual({
+      expect(messages[0]).toMatchObject({
         type: 'text',
         utteranceId: 'utt-123',
         workspaceId: 'workspace-123',
@@ -138,6 +138,9 @@ describe('SQLiteStore', () => {
         text: 'Hello!',
         partial: false,
       });
+      // createdAt is populated from the SQLite `created_at` column on read
+      // (issue #264) — assert ISO Zulu form (with `Z` suffix).
+      expect(messages[0].createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     });
 
     it('stores partial messages', async () => {
