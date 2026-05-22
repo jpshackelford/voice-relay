@@ -1,3 +1,25 @@
+### 2026-05-22 03:08 UTC - Implementation Worker (PR #272, issue #265)
+
+🛠️ **Opened PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** — `fix(client): pair ActionEvent + ObservationEvent into a single agent event card` — for issue [#265](https://github.com/jpshackelford/voice-relay/issues/265).
+
+Each tool invocation now renders as **one** collapsible `AgentEventCard` whose expanded view contains both the action (Command/Tool/Args) and the matching observation (Output/Result/exit code), matching the OpenHands cloud UI. Previously every tool call surfaced as two separate cards — the action followed by a bare "📋 Observation" with no title or back-link.
+
+**Implementation:**
+- New `client/src/utils/pairAgentEvents.ts` — pure, order-independent pairing pass. Indexes observations by `action_id` back-pointer, emits one `PairedAgentEvent` per action, falls orphans through.
+- `TimelineEntry` gains optional `observation` field; `KioskMode.tsx`'s `useMemo` calls `pairAgentEvents` before timestamp-sorting the unified timeline (entry sorts by the **action's** timestamp so the response is anchored under its request).
+- `AgentEventCard` accepts optional `observation` prop; title from action, status from observation (or `'pending'` while in flight), expanded body renders both halves under an `**Output:**` header.
+- `SuccessIndicator` extended to render explicit badges for all four states: ✓ success, ⏱ timeout, ✗ error (new), ⋯ pending (new, with slow pulse so in-flight ≠ silent success).
+- New `shouldSkipForKioskTimeline(event)` in `server/src/openhands.ts` drops `SystemPromptEvent` and `MessageEvent` with `source !== 'agent'` before the WebSocket forwarder turns them into agent cards — they were leaking into the kiosk sidebar as duplicate/infrastructure noise.
+
+**Tests:** 11 unit tests for `pairAgentEvents` (ordered/unordered/missing/orphan + verbatim shape from `test-fixtures/raw-events-real.json`); 4 KioskMode regression tests; 4 new AgentEventCard tests; 8 server tests for `shouldSkipForKioskTimeline`; updated SuccessIndicator tests for the new icons. All **559 client + 808 server tests pass**, `tsc --noEmit` clean, `npm run build` succeeds.
+
+**Coordination note:** PR #268 (issue #264) is still in review and touches the same `useMemo`. Branched off current main; rebase will be a single-conflict merge if #268 lands first (keep `parseOhTimestamp(action.timestamp)` inside the new paired-entries loop).
+
+No DB / migration impact — client-side render + server-side forwarder filter only. All 5 CI checks green (Server Tests, Build Client, E2E Tests, enable-orchestrator, lint-pr-title). PR moved from draft to **Ready for review**.
+
+---
+
+
 ### 2026-05-22 02:55 UTC - Review-Response Worker (PR #268, issue #264)
 
 🔁 **Addressed all 3 github-actions[bot] review threads on PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** (`fix(client): interleave kiosk timeline by normalizing OH event timestamps`).
