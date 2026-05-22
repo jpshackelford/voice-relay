@@ -1,3 +1,40 @@
+### 2026-05-22 03:40 UTC - Implementation Worker (issue #269, PR #273)
+
+🛠️ **Opened PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — `feat(client): hydrate agent event timeline from persisted store`. Implements issue [#269](https://github.com/jpshackelford/voice-relay/issues/269): the kiosk session view now fetches `GET /api/sessions/:sessionId/agent-events?limit=500` on mount, seeds `useAgentActions` state with the persisted history, and dedupes the live WebSocket against the seed by `AgentAction.id`. Devices joining mid-session, refreshing, or reconnecting after a WS drop now see the full historical timeline instead of an empty panel.
+
+**Design choice — option A (client-side normalizer).** The issue's technical comment listed two options for the raw OH event → `AgentAction` projection: server-side mapping (B) vs. client-side (A). The user prompt explicitly scoped this PR to client-only changes (`This issue is client-only — no schema changes expected`), so the projection lives in `client/src/utils/normalizeAgentEvent.ts` and the server router stays unchanged. The normalizer mirrors a compact subset of the server's `extractEventFields` / `extractEffectiveKind` / `formatEventSummary` / `normalizeOhTimestamp` helpers (~300 lines vs. the server's ~600) — enough fidelity for the renderer to dispatch on `kind` and surface displayable fields. Option B can land later as a refactor; the two implementations would then be drop-in equivalents and the client normalizer could shrink to a passthrough.
+
+**Files added:**
+- `client/src/utils/normalizeAgentEvent.ts` — raw `RawAgentEvent` → `AgentAction` with `ActionEvent`/`ObservationEvent` unwrapping. Timestamps route through `parseOhTimestamp` to keep historical events sorting correctly in non-UTC browsers (regression guard for issue #264 / PR #268).
+- `client/src/api/agentEvents.ts` — typed fetch client. `AgentEventFetchError` preserves HTTP status; `AbortError` re-thrown unchanged so callers can detect cancellation.
+- `client/src/hooks/useAgentEventHistory.ts` — owns the network fetch (loading / error / `rehydrationComplete` / `conversationId` / `retry`). `retry()` re-fetches with `rehydrate=force`.
+- `client/src/components/AgentHistoryStatus.tsx` — small inline status row (loading / partial / error / no-mapping). Rendered next to the agent-events toggle, **does not touch the timeline `useMemo`** — keeps clear of in-flight PR #272 on the same file.
+
+**Files modified:**
+- `client/src/hooks/useAgentActions.ts` — added `seedActions(seed)` for the history-then-live merge. Live events that arrived before hydration win on id-collision (preserves React refs). `handleAgentAction` also now dedupes by `AgentAction.id` so a live message overlapping the seed is a no-op instead of a duplicate render. Trimming to `MAX_ACTIONS = 50` is preserved on both paths.
+- `client/src/pages/SessionView.tsx` — wires `useAgentEventHistory` to `agentActions.seedActions` via a single effect, and forwards history-status props down to `KioskMode`.
+- `client/src/components/KioskMode.tsx` — additive only: 5 new optional props with safe defaults + render `AgentHistoryStatus` between the toggle button and the timeline. The timeline `useMemo` block (which PR #272 also touches) is **not modified** here.
+
+**Tests added (88 new tests; full suite 635/635 client + 812/812 server):**
+- `normalizeAgentEvent.test.ts` — 33 cases covering effective-kind unwrapping, summary truncation/fallbacks, per-kind field extraction (terminal / file / browser / MCP / task tracker / grep / glob / skill / observation linkage), naive-UTC timestamp normalization, synthetic-id UUID generation, and order preservation.
+- `api/agentEvents.test.ts` — 16 cases covering URL building, 200 success, partial-rehydration, no-mapping, 401/403/404/5xx error mapping, network failure wrapping, `AbortError` pass-through, signal forwarding, and the `<=500` pagination assertion (TODO comment in source for `after=` follow-up).
+- `useAgentEventHistory.test.ts` — 12 cases covering initial fetch, refetch on `sessionId` change, disabled / undefined-session no-fetch, partial rehydration surfacing, `retry()` flipping to `rehydrate=force`, 5xx preserving prior history, 404 / 403 / network error paths, TTL-pruned response, and no-mapping success.
+- `useAgentActions.test.ts` — +8 cases: live-dedupe by id, seed-into-empty, empty-seed no-op, live-before-seed merge (live wins), history-then-live (no double-render), seed cap to MAX_ACTIONS, idempotency.
+- `AgentHistoryStatus.test.tsx` — 9 cases covering each render branch (loading / error / partial / empty / steady-state / undefined-conversation-id flicker guard / priority of loading > error > partial / retry button presence).
+
+**CI on `737c582` (PR #273):** all 5 required checks green at first push — Server Tests (30s), Build Client (28s), E2E Tests (1m41s), lint-pr-title (3s), enable-orchestrator (2s). `pr-review` skipped during draft phase; will run on the ready-for-review transition. PR moved to **Ready for review**.
+
+**Things intentionally deferred (noted in PR description):**
+- Two-browser Playwright E2E for mid-session join. The hook-level test mechanically verifies the merge logic; a full E2E harness is a larger change.
+- Server-side raw → `AgentAction` mapping (option B refactor).
+- `MobileMode.tsx` status banner (mobile doesn't render the agent-events panel today).
+- Cursor pagination via `after=` (kiosk only renders `MAX_ACTIONS = 50` anyway; flagged with TODO).
+
+**Learning:** the OH `ActionEvent` / `ObservationEvent` wrapper convention (with the actual kind nested under `action.kind` / `observation.kind`) is the single most error-prone shape in the OH event model. The client and server both have to remember to unwrap before dispatching on kind (issue #257 is the original bug from this same trap). Centralizing the unwrap in `getEffectiveKind` on each side keeps the renderer dispatch tables simple — but it does mean the dedupe key (`AgentAction.id`) has to be the **outer** event id, not the nested one, which the server is already doing.
+
+---
+
+
 ### 2026-05-22 03:30 UTC - Rebase Worker (PR #272, issue #265)
 
 🔧 **Rebased PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** onto `main` after PR #268 landed at `0aac2a2e`. Both PRs touch the same `client/src/components/KioskMode.tsx` `timeline` `useMemo`, creating a textual merge conflict — the two concerns are orthogonal so the resolution kept **both** changes.
