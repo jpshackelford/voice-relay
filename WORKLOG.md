@@ -1,3 +1,30 @@
+### 2026-05-22 03:30 UTC - Rebase Worker (PR #272, issue #265)
+
+🔧 **Rebased PR [#272](https://github.com/jpshackelford/voice-relay/pull/272)** onto `main` after PR #268 landed at `0aac2a2e`. Both PRs touch the same `client/src/components/KioskMode.tsx` `timeline` `useMemo`, creating a textual merge conflict — the two concerns are orthogonal so the resolution kept **both** changes.
+
+**Conflict resolution (commit `3602751`):**
+- `KioskMode.tsx` imports: kept `parseOhTimestamp` (from #268) **and** `pairAgentEvents` (from #272) side by side.
+- `timeline` `useMemo`: call `pairAgentEvents(agentActions)` first, then in the per-pair loop use `parseOhTimestamp(action.timestamp)` (with `?? Date.now()` fallback) to compute the sort key. Order matters: pairing collapses the n-events-per-invocation into one entry, timestamp normalization fixes naive-UTC ordering in non-UTC browsers — they compose cleanly when applied in that order, and the paired entry sorts by the **action's** timestamp so the response stays anchored under its request even if the observation arrives milliseconds later.
+- `KioskMode.test.tsx`: kept both `describe` blocks side by side — `timeline interleaving (issue #264)` (3 tests, from #268) and `agent event pairing (issue #265)` (4 tests, from #272). No test was rewritten; the conflict was a pure interleave of two newly-added blocks that happened to land at the same line.
+
+**Verification:**
+- `npm run -w client test -- --run pairAgentEvents` → 11/11 ✓
+- `npm run -w client test -- --run parseOhTimestamp` → 11/11 ✓
+- `npm run -w client test -- --run KioskMode` → 71/71 ✓ (includes both regression suites)
+- Full client suite: **577/577 tests passing**
+- `npm run -w client build` → clean (`tsc -b` + Vite production bundle)
+
+**CI on rebased SHA `3602751`:** mergeStateStatus `CLEAN`, mergeable `MERGEABLE`. All 4 active required checks green — Server Tests (35s), Build Client (27s), E2E Tests (1m37s), lint-pr-title (4s). (`pr-review`/`enable-orchestrator` will fire on the ready-for-review transition.)
+
+**Issue #265 acceptance criteria — no change.** Pairing is still the user-visible deliverable; the merged timestamp-normalization is a transparent dependency that only affects *sort order* of the paired entries, not their composition. Production-safety unchanged: no DB / migration touched, client-side render + server-side WebSocket-filter only, backwards-compatible with older clients.
+
+**Learning:** when two PRs add new `describe` blocks at the same line in a test file, `git rebase` produces a single noisy `<<<<<<<` blob spanning ~250 lines that *looks* like overlapping content but is actually two adjacent additions that should both be kept. Pattern: scan for the structural braces (`describe(` / closing `});`) on each side of `=======` before merging — usually you want both blocks in series, not one or a hand-merge.
+
+No review threads opened on the rebased SHA. PR moved back to **Ready for review**.
+
+---
+
+
 ### 2026-05-22 03:09 UTC - Merge Worker (PR #268 → main → deploy)
 
 🚀 **Squash-merged PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** — `fix(client): interleave kiosk timeline by normalizing OH event timestamps`. Merge commit `0aac2a2e` at 2026-05-22T03:09:25Z. Issue [#264](https://github.com/jpshackelford/voice-relay/issues/264) auto-closed at 2026-05-22T03:09:27Z via `Fixes #264`.
