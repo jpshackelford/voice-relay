@@ -21,6 +21,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 8,
   name: 'qr_tokens',
+  destructive: true,
   
   up: `
     -- Create qr_tokens table for time-limited QR code verification

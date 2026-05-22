@@ -16,6 +16,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 6,
   name: 'device_token_security',
+  destructive: true,
   
   up: `
     -- SQLite compatibility: recreate devices table without device_token column

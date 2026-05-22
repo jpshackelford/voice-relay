@@ -3,6 +3,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 2,
   name: 'users',
+  destructive: true,
   
   up: `
     CREATE TABLE IF NOT EXISTS users (

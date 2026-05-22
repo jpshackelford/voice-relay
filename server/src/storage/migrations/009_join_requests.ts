@@ -22,6 +22,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 9,
   name: 'join_requests',
+  destructive: true,
   
   up: `
     -- Create workspace_join_requests table for approval-based workspace access
