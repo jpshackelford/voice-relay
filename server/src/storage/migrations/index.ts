@@ -9,6 +9,7 @@ import { migration as migration008 } from './008_qr_tokens.js';
 import { migration as migration009 } from './009_join_requests.js';
 import { migration as migration010 } from './010_display_api_secrets.js';
 import { migration as migration011 } from './011_elevenlabs.js';
+import { migration as migration013 } from './013_fk_orphan_cleanup.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -23,6 +24,9 @@ export const migrations: Migration[] = [
   migration009,
   migration010,
   migration011,
+  // Version 012 is reserved for the in-flight agent_events PR (#266); this
+  // migration intentionally skips that version to avoid a number collision.
+  migration013,
 ];
 
 export function getMigrations(): Migration[] {

@@ -25,9 +25,33 @@ export class SQLiteStore implements MessageStore {
   async connect(): Promise<void> {
     // Ensure directory exists
     mkdirSync(dirname(this.path), { recursive: true });
-    
+
     this.db = new Database(this.path);
-    
+
+    // Configure pragmas BEFORE migrations run. journal_mode is persisted to
+    // the database header (so it sticks across opens); the other three are
+    // per-connection and must be re-applied every time connect() runs.
+    //
+    // Order:
+    //   journal_mode=WAL    persistent; better read/write concurrency
+    //   foreign_keys=ON     per-connection; enforces declared FKs + cascades
+    //   synchronous=NORMAL  per-connection; safe pairing with WAL
+    //   busy_timeout=5000   per-connection; explicit retry window on lock contention
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('foreign_keys = ON');
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('busy_timeout = 5000');
+
+    // Fail-fast: if FK enforcement is not actually on we want to know at
+    // startup rather than discovering a silent integrity issue in production.
+    const fk = this.db.pragma('foreign_keys', { simple: true });
+    if (fk !== 1) {
+      throw new Error(
+        `[SQLiteStore] foreign_keys pragma not enabled (got ${String(fk)}). ` +
+          'Refusing to start to avoid silent referential integrity loss.'
+      );
+    }
+
     // Run migrations
     if (!this.skipMigrations) {
       const migrator = new Migrator({
