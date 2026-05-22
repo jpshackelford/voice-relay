@@ -972,3 +972,39 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 - #261 still needs `/assess-priority` before it can be picked up.
 - No new productive work would be a quiet cycle → check auto-disable threshold at next wake-up.
 
+---
+
+
+### 2026-05-22 03:23 UTC - Orchestrator
+
+🚀 **Spawned 2 workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b8f99f6` | review/rebase | PR #272 - resolve merge conflict from #268 | **NEW** |
+| `1b68706` | implementation | Issue #269 - hydrate agent event timeline | **NEW** |
+
+**Workers completed since last run:**
+- `20876eb` (implementation, issue #265) → finished, opened PR #272 (now needs rebase)
+- `e7848d7` (merge, PR #268) → finished, squash-merged `0aac2a2e`, issue #264 auto-closed
+
+**Current State:**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) (Issue #265): ready, all CI green pre-rebase, **mergeStateStatus=DIRTY** — conflicts with #268 in `KioskMode.tsx` timeline `useMemo`. Review/rebase worker dispatched.
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, 3 days old, no activity — left as-is (intentional draft).
+- Issues needing expansion: #208, #210, #239 — **all `on-hold`, skipped per workflow rules**.
+- Ready prioritized issues: #263 (priority:medium, migration tooling), #265 (has PR #272), #269 → **picked for impl**.
+- 1 ready issue still unprioritized: #261 (Remove unused storage drivers) — defer priority assessment until current PRs resolve.
+
+**Action Taken:**
+
+1. **Review/Rebase Worker** — [`b8f99f6`](https://app.all-hands.dev/conversations/b8f99f69b4d44b74bfc37ddea97cacd9)
+   - Target: [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair ActionEvent + ObservationEvent (fixes #265)
+   - Reason: Merge conflict introduced by #268 merge in `KioskMode.tsx` timeline `useMemo`. Worker will rebase onto current main, preserve both timestamp normalization (#268) and event pairing (#272), re-run tests, get CI green, mark ready.
+
+2. **Implementation Worker** — [`1b68706`](https://app.all-hands.dev/conversations/1b68706c12b649c4ba794954697c52af)
+   - Target: [Issue #269](https://github.com/jpshackelford/voice-relay/issues/269) — hydrate agent event timeline from persisted store (priority:medium, client)
+   - Reason: Highest-priority ready issue with no in-flight PR. Server endpoint already exists (PR #266 landed it); client-only work. Scoped to `useAgentActions.ts` + fetch/seed/dedupe — explicitly warned to avoid `KioskMode.tsx` timeline `useMemo` to minimize conflict with #272.
+
+**Slot Usage:** expansion=0/4, implementation=1/1, review=1/2
+

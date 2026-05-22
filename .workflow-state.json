@@ -4,17 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "20876eb",
-        "issue": 265,
-        "started": "2026-05-22T02:51:55.495845+00:00"
+        "conv_id": "1b68706",
+        "issue": 269,
+        "started": "2026-05-22T03:22:27.477789+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "e7848d7",
-        "pr": 268,
-        "started": "2026-05-22T03:08:07.768927+00:00",
-        "kind": "merge"
+        "conv_id": "b8f99f6",
+        "pr": 272,
+        "started": "2026-05-22T03:22:27.477789+00:00",
+        "kind": "rebase"
       }
     ]
   },
@@ -23,35 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T03:08:07.768927+00:00",
+  "last_updated": "2026-05-22T03:22:27.477789+00:00",
   "completed": [
-    {
-      "conv_id": "d30163a",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T03:05:32.083979+00:00",
-      "finished": "2026-05-21T03:16:30.695916+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback"
-    },
-    {
-      "conv_id": "d30163a",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T03:05:36.398045+00:00",
-      "finished": "2026-05-21T03:16:30.695916+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback"
-    },
-    {
-      "conv_id": "a4f689d",
-      "type": "implementation",
-      "issue": 253,
-      "started": "2026-05-21T03:05:32.083979+00:00",
-      "finished": "2026-05-21T03:17:50.824995+00:00",
-      "status": "success",
-      "outcome": "Created PR #255 for issue #253 - Client rich content rendering"
-    },
     {
       "conv_id": "d077822",
       "type": "review",
@@ -286,6 +259,24 @@
       "finished": "2026-05-22T03:06:20.882108+00:00",
       "status": "success",
       "outcome": "Addressed all 3 github-actions review threads on PR #268 (commit f91cb7b); resolved threads; CI green; PR back to ready"
+    },
+    {
+      "conv_id": "20876eb",
+      "type": "implementation",
+      "issue": 265,
+      "started": "2026-05-22T02:51:55.495845+00:00",
+      "finished": "2026-05-22T03:22:27.477789+00:00",
+      "status": "success",
+      "outcome": "Created PR #272 for issue #265 - Pair Action+Observation cards (has merge conflict from #268)"
+    },
+    {
+      "conv_id": "e7848d7",
+      "type": "review",
+      "pr": 268,
+      "started": "2026-05-22T03:08:07.768927+00:00",
+      "finished": "2026-05-22T03:22:27.477789+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #268 (kiosk TZ fix), issue #264 auto-closed"
     }
   ]
 }
