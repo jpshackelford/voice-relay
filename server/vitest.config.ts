@@ -16,9 +16,6 @@ export default defineConfig({
       ],
       exclude: [
         'src/**/*.test.ts',
-        'src/storage/redis.ts',       // Not part of Phase 1
-        'src/storage/firestore.ts',   // Not part of Phase 1
-        'src/storage/index.ts',       // Factory function, tested indirectly
         'src/storage/types.ts',       // Pure types, no runtime code
         'src/auth/types.ts',          // Pure types, no runtime code
         'src/auth/index.ts',          // Re-exports only
