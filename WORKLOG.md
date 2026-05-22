@@ -10,6 +10,74 @@
 
 ---
 
+### 2026-05-22 02:36 UTC - Orchestrator
+
+> ✏️  **Edit note** (post-rebase): when this entry was authored I believed PR #271 was still open and the impl worker `68c1ccd` was still running. By push time, `68c1ccd` had already self-corrected by **closing PR #271 as a duplicate of PR #268** (see the worker's entry directly above). Status reflected below has been corrected; the original decision-time uncertainty is preserved in the rationale section for the audit trail.
+
+**Workers Completed (this cycle):**
+- `8a5f4bd` (review/conflict-resolution, PR #266) — finished → rebased `feat/agent-events-260` onto main, kept migration 012 (agent_events) + 013 (fk_orphan_cleanup) coexisting in order, CI green on rebased SHA `85312cc`, PR back to MERGEABLE/CLEAN and ready-for-review.
+- `68c1ccd` (implementation, Issue #264) — **also finished** during this cycle. Opened [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps` at 02:24 UTC (ready, MERGEABLE/CLEAN, CI green). Concurrently a parallel impl worker also dispatched against #264 opened [PR #271](https://github.com/jpshackelford/voice-relay/pull/271) at 02:31 UTC, then self-recognized the duplication and closed #271 in favor of #268 around 02:36 UTC. Final state for #264: a single canonical PR #268, ready, CLEAN, CI green.
+
+**Active Workers (after this cycle's spawns):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c5e0d50` | review (merge) | PR #266 — agent events persistence | **NEW** |
+| `7c69f80` | expansion | Issue #269 — client agent-event hydration | **NEW** |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker** — [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) `feat(server): persist OpenHands agent events with TTL and REST rehydration`
+   - Conversation: https://app.all-hands.dev/conversations/c5e0d507962b4c4a9f74cd75168737d3
+   - Rationale: MERGEABLE/CLEAN, ready, CI green (Server Tests/Build Client/E2E/lint-pr-title/pr-review), all review threads resolved, conflict resolved by `8a5f4bd`. Closes #260 (priority:medium). Prompt emphasises additive migration-only schema (012) and FK-on no-op confirmation before squash-merge.
+2. **Expansion Worker** — [Issue #269](https://github.com/jpshackelford/voice-relay/issues/269) `feat(client): hydrate agent event timeline from persisted store and rehydrate on session render` (priority:medium, client)
+   - Conversation: https://app.all-hands.dev/conversations/7c69f80fa75849558fa8d0c3f14a2a91
+   - Rationale: Only open non-on-hold issue lacking `ready` label after #270 dup-close. Depends on PR #266 endpoint contract; prompt instructs worker to coordinate with #264 timestamp-normalization fix (#268/#271).
+
+**Housekeeping:**
+- 🗑️  Closed [Issue #270](https://github.com/jpshackelford/voice-relay/issues/270) as a duplicate of #269 (identical body filed 6 seconds apart by the reporter).
+
+**Current State (corrected post-rebase):**
+- **Open PRs:**
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — `oRCFC green ready --` (merge in progress, worker `c5e0d50`)
+  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — ready, CLEAN, CI green, **canonical fix for #264** (impl worker now finished)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Open Issues (active):**
+  - #264 — fix posted in PR #268, awaiting review + merge
+  - #269 — expansion in progress (`7c69f80`)
+- **Ready issues queued (awaiting impl slot):**
+  - #261 — `audit`, **no priority label** (needs `/assess-priority` before impl)
+  - #263 — `priority:medium` (migration tooling)
+  - #265 — `priority:medium` (client bug: action+observation card pairing)
+- **On-hold (skipped):** #208, #210, #239
+- **Closed this cycle:** #270 (dup of #269), PR #271 (dup of #268 — closed by impl worker `68c1ccd`)
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 1 | 4 | #269 — `7c69f80` |
+| Implementation | 0 | 1 | `68c1ccd` finished. Slot free; deferred to next cycle for priority-aware dispatch (likely #265 or #263). |
+| Review/Merge | 1 | 2 | Merge worker for PR #266 — `c5e0d50`. PR #268 review/merge deferred to next cycle. |
+
+**Decision rationale (at the moment the spawn decisions were made):**
+- PR #266 has cleared every merge gate (rebased, CI green, reviews resolved). Spawning a merge worker is the obvious next action.
+- Did not spawn a 2nd review/merge worker for PR #268 in this cycle: at decision time, the impl worker `68c1ccd` was still running and had just opened a 2nd PR (#271) with the same `Fixes #264`. Touching either PR while the worker was mid-flight risked a race. (Post-rebase update: `68c1ccd` resolved this itself by closing #271; next cycle can safely spawn a review/merge worker for #268.)
+- Did not spawn an impl worker: the impl slot was held by `68c1ccd` at decision time. (Post-rebase: slot is now free, but we don't backfill mid-cycle — next orchestrator wake-up handles that.)
+- Did spawn expansion for #269 (only remaining unexpanded non-on-hold issue), and closed #270 as a duplicate so we don't waste a slot on it.
+- PR #221 still stuck on `needs-human` — left for human intervention.
+
+**Notes / Risks:**
+- Two impl workers were independently dispatched against issue #264 by an earlier cycle, producing the #268 / #271 race. The lesson logged by `68c1ccd` itself (worker entry above) — "future workers should check `gh pr list --search 'issue:#NNN'` (or scan WORKLOG for the issue number) before opening a PR" — is a real orchestration hardening item; tracked in the next cycle's TODO.
+- Possibly worth a small follow-up: cherry-pick the standalone `client/src/utils/timeline.ts#mergeTimeline` util (with its 6 dedicated tests, including the explicit naive-ISO `2026-05-21T23:47:00.274606` regression) from the now-closed PR #271 into #268. Not a blocker — #268 already fixes #264 and has CI green.
+- Worklog file is at ~750 lines — approaching the housekeeping window again but the 6-hour productive span isn't fully behind us yet, so deferring full archival to a future cycle.
+
+**Next cycle:**
+- If `c5e0d50` merges PR #266 → #260 auto-closes; reassess for #261/#263/#265 priorities.
+- PR #268 (#264 fix) is now a clean merge candidate (ready, CLEAN, CI green) — spawn a review or merge worker.
+- If `7c69f80` adds `ready` to #269 → joins the impl queue.
+- #261 still needs `/assess-priority` inline before being eligible for the impl slot.
+- Impl slot is free — next cycle will dispatch highest-priority ready issue (#263 or #265).
+
+---
 
 ### 2026-05-22 02:32 UTC - Implementation Worker (PR #268, issue #264)
 

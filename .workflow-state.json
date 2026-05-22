@@ -1,20 +1,20 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [
+    "expansion": [
       {
-        "conv_id": "68c1ccd",
-        "issue": 264,
-        "started": "2026-05-22T02:20:55.217132+00:00"
+        "conv_id": "7c69f80",
+        "issue": 269,
+        "started": "2026-05-22T02:37:51.647397+00:00"
       }
     ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "8a5f4bd",
+        "conv_id": "c5e0d50",
         "pr": 266,
-        "started": "2026-05-22T02:20:55.217132+00:00",
-        "kind": "conflict-resolution"
+        "started": "2026-05-22T02:37:51.647397+00:00",
+        "kind": "merge"
       }
     ]
   },
@@ -23,35 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T02:20:55.217132+00:00",
+  "last_updated": "2026-05-22T02:40:38.946933+00:00",
   "completed": [
-    {
-      "conv_id": "140849d",
-      "type": "expansion",
-      "issue": 252,
-      "started": "2026-05-21T02:02:48.983828+00:00",
-      "finished": "2026-05-21T02:18:22.464050+00:00",
-      "status": "finished",
-      "outcome": "Worker finished (issues already well-specified)"
-    },
-    {
-      "conv_id": "47fad73",
-      "type": "expansion",
-      "issue": 253,
-      "started": "2026-05-21T02:02:49.172187+00:00",
-      "finished": "2026-05-21T02:18:22.464050+00:00",
-      "status": "finished",
-      "outcome": "Worker finished (issues already well-specified)"
-    },
-    {
-      "conv_id": "5fff710",
-      "type": "implementation",
-      "issue": 252,
-      "started": "2026-05-21T02:19:32.112711+00:00",
-      "finished": "2026-05-21T02:32:27.943970+00:00",
-      "status": "success",
-      "outcome": "Created PR #254 for Issue #252 - Server: Extract V1Event fields"
-    },
     {
       "conv_id": "481b95f",
       "type": "review",
@@ -293,6 +266,25 @@
       "started": "2026-05-22T01:51:26Z",
       "finished": "2026-05-22T02:18:13.829506+00:00",
       "outcome": "Conversation 003c2"
+    },
+    {
+      "conv_id": "8a5f4bd",
+      "type": "review",
+      "pr": 266,
+      "started": "2026-05-22T02:20:55.217132+00:00",
+      "finished": "2026-05-22T02:36:03.412595+00:00",
+      "status": "success",
+      "outcome": "Resolved merge conflict on PR #266 (rebased on main, kept migrations 012+013 ordered, CI green, ready)",
+      "kind": "conflict-resolution"
+    },
+    {
+      "conv_id": "68c1ccd",
+      "type": "implementation",
+      "issue": 264,
+      "started": "2026-05-22T02:20:55.217132+00:00",
+      "finished": "2026-05-22T02:40:38.946933+00:00",
+      "status": "success",
+      "outcome": "Opened canonical PR #268 (fix(client): interleave kiosk timeline by normalizing OH event timestamps, Fixes #264); also opened parallel PR #271, then self-closed it as duplicate of #268"
     }
   ]
 }
