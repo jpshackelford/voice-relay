@@ -1,3 +1,17 @@
+### 2026-05-22 01:38 UTC - Expansion Worker
+
+✅ **Expanded Issue #264** — Kiosk timeline does not interleave utterances and agent events (TZ parse + clock-source mismatch)
+
+- Issue: [#264](https://github.com/jpshackelford/voice-relay/issues/264)
+- Type: Bug (client symptom; root cause is server-side timestamp emission, fix spans both)
+- Status: Ready for implementation (`ready` label applied)
+- Verification: cited code paths confirmed at HEAD `e304e3d` — `KioskMode.tsx:352-377` mixes browser `Date` with naive OH ISO string; `server/src/openhands.ts:1454` forwards `event.timestamp` unmodified; `SessionView.tsx:159-191` re-stamps history to `new Date()`. Reproduced TZ parse skew with V8 under `TZ=America/New_York` (+4 h delta = 14,400,000 ms, matches issue body's trace).
+- Minor correction to author's analysis: `messages.created_at` exists in SQLite but is NOT in current SELECTs or `RelayedTextMessage`; step (2) of the fix needs to also add the column to the SELECTs and the type. Also flagged that SQLite's `datetime('now')` emits a space-separated form — normalizer must handle both `T` and space variants.
+- Recommended fix surface posted as a comment: `normalizeOhTimestamp` helper in server; plumb `serverTimestamp` onto `RelayedTextMessage`; include `createdAt` in history payload; client uses server timestamps when present, falls back to `new Date()`; defensive `parseOhTimestamp` util on client.
+- Sequencing: lands before #265 (which sorts paired entries by `action.timestamp`); ideally before/with #260 so new `agent_events.event_timestamp` rows inherit normalized `Z` values.
+
+---
+
 ### 2026-05-22 01:35 UTC - Implementation Worker
 
 ✅ **Implemented Issue #260** — Persist OpenHands agent events with TTL and on-demand REST rehydration
