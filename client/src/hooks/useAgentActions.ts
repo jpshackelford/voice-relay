@@ -8,13 +8,14 @@ const MAX_ACTIONS = 50;
 const STORAGE_KEY = 'showAgentActions';
 
 /**
- * Merge a seed array (historical events fetched on mount) and a live array
- * (events appended after mount) into a single dedupe-by-id list, preserving
- * insertion order and trimming to {@link MAX_ACTIONS} from the *tail* (most
- * recent kept).
+ * Merge an existing list and one or more incoming events into a single
+ * dedupe-by-id list, preserving insertion order (base first, then incoming)
+ * and trimming to {@link MAX_ACTIONS} from the *tail* (most recent kept).
  *
- * Used by both `seedActions` (history → existing live) and `handleAgentAction`
- * (existing → new live event). See issue #269 — dedupe strategy.
+ * Used by `handleAgentAction` to fold a new live event into existing state.
+ * `seedActions` does *not* use this helper because it needs the opposite
+ * ordering (historical seed inserted *before* existing live events) — see
+ * its own inline dedupe loop below. See issue #269 — dedupe strategy.
  *
  * Note: synthetic events with no upstream id receive a fresh UUID each time
  * the normalizer runs, so they cannot dedupe across the live ↔ history
