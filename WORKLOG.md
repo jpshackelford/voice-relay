@@ -1,3 +1,24 @@
+### 2026-05-22 01:35 UTC - Implementation Worker
+
+✅ **Implemented Issue #260** — Persist OpenHands agent events with TTL and on-demand REST rehydration
+
+- Issue: [#260](https://github.com/jpshackelford/voice-relay/issues/260)
+- PR: [#266](https://github.com/jpshackelford/voice-relay/pull/266) (ready for review)
+- Scope: schema migration 012 + repository + live WS ingest + REST rehydrator + read API + TTL pruning
+- Files (net +1777 LOC): `server/src/storage/migrations/012_agent_events.ts`, `server/src/storage/agent-event-repository.{ts,test.ts}`, `server/src/agent-events/{index,router,rehydrator}.ts` (+ tests), `server/src/openhands.ts` (added `OpenHandsApiError` + `getEventsPage` pagination + `EventCallback`), `server/src/auto-connect.ts` (persists `aiConversationId` on session metadata), `server/src/index.ts` (wires repo, callback, router, TTL interval), `server/src/storage/migrations/index.ts`
+- Design highlights:
+  - Partial unique index `(conversation_id, event_id) WHERE event_id IS NOT NULL` gives natural-key dedup so `INSERT OR IGNORE` works identically for live and REST writes.
+  - `event_timestamp` (OH clock) drives read ordering; `hydrated_at` (our clock) drives TTL.
+  - Rehydrator does bounded exponential backoff (5 retries) honoring `Retry-After`, single-flights concurrent requests per session, and persists each page incrementally so a late failure doesn't lose earlier pages.
+  - Read endpoint auto-triggers rehydration only when local store is empty AND `aiConversationId` is known — avoids redundant API calls on every read.
+  - TTL configurable via `AGENT_EVENTS_TTL_DAYS` (default 14), pruned hourly; interval cleared on shutdown.
+- Tests (41 new): repository (19), rehydrator (12), router (10). Coverage on new code aggregate **87.6% lines / 90% functions / 83.4% branches** — above the 80% bar.
+- Verified migration on fresh DB + an existing-data DB at v11 + a down-then-up cycle; no rows lost.
+- Full suite (785 existing + 41 new) green; CI green (lint-pr-title, Build Client, Server Tests, E2E Tests).
+
+---
+
+
 ### 2026-05-22 01:15 UTC - Expansion Worker
 
 ✅ **Expanded Issue #262**
