@@ -1270,3 +1270,54 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 **Worklog housekeeping:** Truncation script ran. Productive entries span 15 hours of continuous work (no 6h+ gap), so nothing met the archive criterion this cycle; WORKLOG.md kept at 37 entries / 1229 lines. Archives from prior days remain on disk.
 
 ---
+
+### 2026-05-22 04:55 UTC - Orchestrator
+
+⚠️ **Previous cycle's 3 workers all ghosted — re-dispatched**
+
+The 3 workers spawned ~13 minutes ago in the 04:41 UTC cycle (`cd43b83` impl #261, `1cd89bd` merge PR #273, `dfc3f34` review PR #274) all returned `execution_status=error` with `title="Conversation <prefix>"` and `created_at == updated_at` — the same silent spawn-failure signature seen with `f9ebd19` (merge PR #259) on 2026-05-21. None of them did any work. All 3 moved to `completed[]` with `status="ghost"`.
+
+**Active Workers (after re-dispatch):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `18aa19b` | merge | PR #273 — hydrate agent event timeline (closes #269) | **NEW** running |
+| `ef341f4` | review | PR #274 — migration tooling (1 unresolved critical thread) | **NEW** running |
+| `6078efe` | implementation | Issue #261 — Remove unused storage drivers | **NEW** running |
+
+**Spawn verification:** All 3 conversations confirmed READY by start-task polling and `execution_status=running` via `/app-conversations?ids=`. Plugin loaded: `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin`.
+
+**Current State (unchanged from previous cycle since ghosts did nothing):**
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221): draft, `needs-human`, CONFLICTING — STUCK
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272): `needs-human` (out-of-scope server changes flagged 2026-05-22 03:50) — STUCK
+- [PR #273](https://github.com/jpshackelford/voice-relay/pull/273): `oRFC` green, CLEAN, MERGEABLE, 0 unresolved threads → **merge worker dispatched** (`18aa19b`)
+- [PR #274](https://github.com/jpshackelford/voice-relay/pull/274): `oR` green, CLEAN, MERGEABLE, `reviewDecision=CHANGES_REQUESTED`, 1 unresolved critical bot thread about missing `destructive: true` on migrations 010_display_api_secrets + 2 others → **review worker dispatched** (`ef341f4`)
+- Issue #261: `ready` + `priority:medium` + `audit`, no PR → **impl worker dispatched** (`6078efe`)
+- Issues #263, #265, #269: already represented by open PRs (#274, #272, #273)
+- Issues #208, #210, #239: `on-hold` — skipped
+
+**Action Taken:**
+🚀 **Re-spawned 3 workers** (same targets as ghosted cycle):
+
+1. **Merge Worker** — [PR #273](https://github.com/jpshackelford/voice-relay/pull/273)
+   - Conversation: [`18aa19b`](https://app.all-hands.dev/conversations/18aa19b12cdf447da651a21f668367b4)
+   - Includes scope-check guardrail (must be client-only or HALT + `needs-human`, matching the rule that correctly caught PR #272 scope creep).
+
+2. **Review Worker** — [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)
+   - Conversation: [`ef341f4`](https://app.all-hands.dev/conversations/ef341f4d2b90488b84b6f11cb733954e)
+   - Add `destructive: true` to 010_display_api_secrets + 2 other migrations flagged by github-actions reviewer; resolve the thread.
+
+3. **Implementation Worker** — [Issue #261](https://github.com/jpshackelford/voice-relay/issues/261)
+   - Conversation: [`6078efe`](https://app.all-hands.dev/conversations/6078efe5f6b94ed2a4a7d10da261615d)
+   - Remove `memory`, `redis`, `firestore` storage drivers + `redis` dep; leave clean seam for future Postgres driver (must NOT touch SQLite driver — that's production).
+
+**Slots:** expansion 0/4 idle (no issues need expansion), impl 1/1, review 2/2 full.
+
+**Ghost root cause:** Two ghost events in ~24h (`f9ebd19` + this cycle's 3). Pattern: API returns `{id, status: WORKING}` but the resulting conversation never leaves error state and has no real title. Worth raising with OpenHands platform team if it recurs. Mitigation: this cycle's spawn waited for `execution_status=running` before recording in state — the ghosted cycle did not.
+
+**Next cycle:**
+- Check `18aa19b` (merge #273), `ef341f4` (review #274), `6078efe` (impl #261) statuses.
+- If `ef341f4` finishes successfully → spawn merge worker for #274.
+- If `6078efe` opens a PR → review/CI cycle.
+- PR #272 and #221 remain STUCK pending human review.
+
+---
