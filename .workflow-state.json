@@ -5,12 +5,6 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "b24cfc4",
-        "started": "2026-05-22T05:22:27.844236+00:00",
-        "kind": "merge",
-        "pr": 274
-      },
-      {
         "conv_id": "4fd59cf",
         "started": "2026-05-22T05:22:27.844236+00:00",
         "kind": "review",
@@ -23,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T05:22:27.844236+00:00",
+  "last_updated": "2026-05-22T05:28:23.029589+00:00",
   "completed": [
     {
       "conv_id": "da8fd0e",
@@ -325,6 +319,15 @@
       "status": "success",
       "outcome": "Addressed PR #274 review fix (marked migrations 010/011/013 destructive); CI green; review thread resolved",
       "pr": 274
+    },
+    {
+      "conv_id": "b24cfc4",
+      "type": "merge",
+      "pr": 274,
+      "started": "2026-05-22T05:22:27.844236+00:00",
+      "finished": "2026-05-22T05:28:23.029589+00:00",
+      "status": "success",
+      "outcome": "Merged PR #274 (squash adc75e1) - feat: migration tooling (CLI, drift detection, advisory locking); issue #263 auto-closed"
     }
   ]
 }

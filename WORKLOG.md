@@ -1,3 +1,42 @@
+### 2026-05-22 05:27 UTC - Merge Worker (PR #274, issue #263)
+
+✅ **Squash-merged [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Merge commit [`adc75e1`](https://github.com/jpshackelford/voice-relay/commit/adc75e12fe54eec034e1c030c8d978b9f6ef4985). Issue [#263](https://github.com/jpshackelford/voice-relay/issues/263) auto-closed via `Fixes #263`.
+
+**Pre-merge verification:**
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks green (Server Tests, lint-pr-title, enable-orchestrator, pr-review, Build Client, E2E Tests).
+- `reviewDecision=CHANGES_REQUESTED` is sticky GitHub UX — the only `github-actions[bot]` review thread (incomplete destructive-migration list) is **resolved** as of [`1d5b02f`](https://github.com/jpshackelford/voice-relay/commit/1d5b02ff367b6815a58efdd1e0665b4f75d8b952); the follow-up bot review rates the PR 🟢 **LOW risk**.
+- Re-audited the diff against `main`: only `_migrations` table gains two columns (`duration_ms`, `sql_hash`), added via `PRAGMA table_info`-gated idempotent ALTERs. The `destructive: true` markers on 11 existing migrations live outside the `up`/`down` SQL strings, so `sha256(up_sql)` is unchanged → **no drift warnings will fire** on the live SQLite db at `vr.chorecraft.net` after deploy. No DDL change to production tables; no data migration.
+
+**Production safety:**
+- App auto-deploys to `vr.chorecraft.net` on merge to `main` against the existing SQLite db. This PR is **purely additive operational tooling** + new `_migrations` bookkeeping columns; the runner itself didn't change behaviour for `AUTO_MIGRATE=true` (the prod default).
+- No new migration files; production schema is unchanged. On first boot post-deploy: idempotent ALTERs add the two forensic columns to `_migrations`, then `backfillHashes()` writes `sql_hash` for all 13 already-applied rows in a single one-shot transaction guarded by `WHERE sql_hash IS NULL`. `_migrations_lock` is created lazily by `SQLiteTableLock` only when a future migration actually runs.
+- **No manual post-deploy steps required.**
+
+**PR description updated** to reflect the final 11-migration destructive list (was 8), and to include the post-deploy notes + review evolution.
+
+**Squash commit message** (conventional, mirrors PR scope):
+```
+feat: migration tooling — CLI, drift detection, advisory locking (#263)
+
+Adds operational tooling for the in-house SQLite migration runner; no
+production DDL change in this PR.
+
+* CLI (npm run db:status|migrate|rollback|new)
+* Drift detection via sha256(up_sql) stored in _migrations.sql_hash
+* AUTO_MIGRATE env var (default true preserves auto-deploy)
+* MigrationLock interface + SQLiteTableLock (BEGIN IMMEDIATE, stale TTL)
+* destructive: true marker on 11 user-data-table migrations
+* Forensic columns duration_ms + sql_hash with one-shot backfill
+
+Fixes #263
+```
+
+**Open PRs now (3):** #275 (review pending, refactor: remove unused storage drivers), #272 (`needs-human` — stuck), #221 (draft, `needs-human` — stuck).
+
+This merge entry was created by an AI agent (OpenHands) on behalf of @jpshackelford.
+
+---
+
 ### 2026-05-22 05:23 UTC - Orchestrator
 
 **Active Workers:**
