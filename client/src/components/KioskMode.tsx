@@ -7,6 +7,7 @@ import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
+import { mergeTimeline } from '../utils/timeline';
 
 // Configure marked for GitHub Flavored Markdown with line breaks
 marked.setOptions({
@@ -346,35 +347,15 @@ export function KioskMode({
     (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
   );
 
-  // Create unified timeline by merging utterances and agent events
-  // Compute full timeline unconditionally - visibility filtering happens during render
-  // This avoids re-sorting when toggling agent actions visibility
-  const timeline: TimelineEntry[] = useMemo(() => {
-    // Pre-compute timestamps to avoid creating Date objects on every sort comparison
-    const entriesWithTime: Array<{ entry: TimelineEntry; time: number }> = [];
-    
-    // Add utterances with pre-computed timestamps
-    for (const utterance of utterances.values()) {
-      entriesWithTime.push({
-        entry: { type: 'utterance', data: utterance },
-        time: utterance.receivedAt.getTime(),
-      });
-    }
-    
-    // Add agent events with pre-computed timestamps
-    for (const action of agentActions) {
-      const actionTime = new Date(action.timestamp).getTime();
-      entriesWithTime.push({
-        entry: { type: 'agent-event', data: action },
-        time: actionTime,
-      });
-    }
-    
-    // Sort by pre-computed timestamps, then extract entries
-    return entriesWithTime
-      .sort((a, b) => a.time - b.time)
-      .map(({ entry }) => entry);
-  }, [utterances, agentActions]);
+  // Create unified timeline by merging utterances and agent events.
+  // Compute full timeline unconditionally - visibility filtering happens
+  // during render. This avoids re-sorting when toggling agent actions
+  // visibility. The merge itself is extracted into `mergeTimeline` so the
+  // chronological invariant can be unit-tested under non-UTC TZ. See #264.
+  const timeline: TimelineEntry[] = useMemo(
+    () => mergeTimeline(utterances.values(), agentActions),
+    [utterances, agentActions]
+  );
 
   // Filter timeline based on visibility - cheap operation compared to re-sorting
   const visibleTimeline = showAgentActions 

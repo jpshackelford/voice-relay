@@ -159,13 +159,20 @@ export function SessionView() {
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {
       const next = new Map(prev);
+      // For AI utterances, the server now plumbs through the upstream
+      // OH event.timestamp as `serverTimestamp` so the timeline uses a
+      // single tz-aware clock instead of WS-frame arrival time. See #264.
+      const existing = prev.get(message.utteranceId);
+      const receivedAt = existing?.receivedAt
+        ?? (message.serverTimestamp ? new Date(message.serverTimestamp) : new Date());
       next.set(message.utteranceId, {
         id: message.utteranceId,
         senderId: message.senderId,
         senderName: message.senderName,
         text: message.text,
         partial: message.partial,
-        receivedAt: prev.get(message.utteranceId)?.receivedAt || new Date(),
+        receivedAt,
+        ...(message.serverTimestamp ? { serverTimestamp: message.serverTimestamp } : {}),
       });
       return next;
     });
@@ -176,13 +183,20 @@ export function SessionView() {
       const next = new Map(prev);
       for (const msg of message.messages) {
         if (!next.has(msg.utteranceId)) {
+          // Use persisted createdAt (server) when available so historical
+          // messages render at their original time, not (re)connect "now".
+          // See #264.
+          const receivedAt = msg.createdAt
+            ? new Date(msg.createdAt)
+            : (msg.serverTimestamp ? new Date(msg.serverTimestamp) : new Date());
           next.set(msg.utteranceId, {
             id: msg.utteranceId,
             senderId: msg.senderId,
             senderName: msg.senderName,
             text: msg.text,
             partial: msg.partial,
-            receivedAt: new Date(),
+            receivedAt,
+            ...(msg.serverTimestamp ? { serverTimestamp: msg.serverTimestamp } : {}),
           });
         }
       }

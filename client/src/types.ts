@@ -117,6 +117,19 @@ export interface RelayedTextMessage {
   text: string;
   partial: boolean;
   sessionId?: string;  // Session the message belongs to
+  /**
+   * For AI utterances: the upstream OpenHands `event.timestamp` (normalized
+   * to a tz-aware UTC ISO string) at emit time. When present, the client
+   * uses this as the timeline clock instead of the WS frame arrival time,
+   * so utterances and agent-action events sort against the same reference.
+   * See #264.
+   */
+  serverTimestamp?: string;
+  /**
+   * Persistence timestamp for historical messages (when replayed via the
+   * `history` payload on (re)connect). UTC ISO string. See #264.
+   */
+  createdAt?: string;
 }
 
 export interface HistoryMessage {
@@ -373,6 +386,14 @@ export interface Utterance {
   text: string;
   partial: boolean;
   receivedAt: Date;
+  /**
+   * Optional upstream OpenHands event timestamp (tz-aware UTC ISO string),
+   * present on AI utterances when the server can plumb it through. When
+   * available, the timeline merge prefers this over `receivedAt` so AI
+   * utterances and agent-action events share the same clock source.
+   * See #264.
+   */
+  serverTimestamp?: string;
 }
 
 /**

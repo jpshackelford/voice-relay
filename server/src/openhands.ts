@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket from 'ws';
+import { normalizeOhTimestamp } from './utils/timestamp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -326,7 +327,13 @@ export interface AISession {
   agentServerUrl?: string;
   sessionApiKey?: string;
   lastEventId?: string;
-  onMessage?: (message: string) => void;
+  /**
+   * Callback for agent-emitted text responses. `serverTimestamp`, when
+   * present, is the upstream OH event.timestamp normalized to a tz-aware
+   * UTC ISO string. Callers should prefer it over `new Date()` for any
+   * timeline ordering on the client. See #264.
+   */
+  onMessage?: (message: string, serverTimestamp?: string) => void;
   /** Callback for agent action events */
   onAction?: (action: AgentAction) => void;
   reconnectAttempts: number;
@@ -1198,13 +1205,16 @@ export class AISessionManager {
    * Get or create an AI session for a VR session
    * @param sessionId - VR session ID
    * @param workspaceId - Workspace ID for context
-   * @param onMessage - Callback for agent responses
+   * @param onMessage - Callback for agent responses. Receives an optional
+   *   second arg `serverTimestamp` (tz-aware UTC ISO) from the upstream OH
+   *   event so the client can use a single clock for timeline ordering.
+   *   See #264.
    * @param options - Optional configuration
    */
   async getOrCreateForSession(
     sessionId: string,
     workspaceId: string,
-    onMessage: (message: string) => void,
+    onMessage: (message: string, serverTimestamp?: string) => void,
     options: {
       displayLines?: number;
       apiKey?: string;
@@ -1420,7 +1430,10 @@ export class AISessionManager {
 
           if (text && session.onMessage) {
             console.log(`[AI] Got agent response: "${text.substring(0, 100)}..."`);
-            session.onMessage(text);
+            // Normalize OH-emitted timestamp so the client has a single,
+            // tz-aware UTC clock for timeline ordering. See #264.
+            const serverTimestamp = normalizeOhTimestamp(event.timestamp as string | undefined);
+            session.onMessage(text, serverTimestamp);
           }
         } 
         // V1 ConversationStateUpdateEvent - status updates
@@ -1449,9 +1462,12 @@ export class AISessionManager {
             // "TerminalAction", not "ActionEvent" - see issue #257
             const effectiveKind = extractEffectiveKind(event as V1Event);
             
+            // Normalize OH-emitted timestamp to tz-aware UTC ISO so the
+            // client doesn't parse a naive string as local time. See #264.
+            const normalizedTimestamp = normalizeOhTimestamp(event.timestamp as string | undefined);
             const action: AgentAction = {
               id: event.id || crypto.randomUUID(),
-              timestamp: event.timestamp || new Date().toISOString(),
+              timestamp: normalizedTimestamp || new Date().toISOString(),
               kind: effectiveKind,
               source: event.source || 'unknown',
               summary: formatEventSummary(event as V1Event),

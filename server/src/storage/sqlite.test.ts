@@ -129,7 +129,9 @@ describe('SQLiteStore', () => {
       await store.append(message);
       
       const messages = await store.getRecent();
-      expect(messages[0]).toEqual({
+      // `createdAt` is stamped by SQLite's `datetime('now')` default and
+      // normalized to ISO-Zulu on read (see #264); assert shape separately.
+      expect(messages[0]).toMatchObject({
         type: 'text',
         utteranceId: 'utt-123',
         workspaceId: 'workspace-123',
@@ -138,6 +140,7 @@ describe('SQLiteStore', () => {
         text: 'Hello!',
         partial: false,
       });
+      expect(messages[0].createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
     });
 
     it('stores partial messages', async () => {

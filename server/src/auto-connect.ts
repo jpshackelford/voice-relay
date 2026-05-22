@@ -88,8 +88,11 @@ export async function autoConnectAI(
     const aiSession = await aiSessionManager.getOrCreateForSession(
       sessionId,
       workspaceId,
-      (text: string) => {
-        // Relay AI responses to all devices in session
+      (text: string, serverTimestamp?: string) => {
+        // Relay AI responses to all devices in session.
+        // `serverTimestamp` is the upstream OH event.timestamp normalized to
+        // tz-aware UTC; the client uses it to put AI utterances on the same
+        // timeline clock as agent-action events. See #264.
         const utteranceId = `ai-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         const aiMessage: RelayedTextMessage = {
           type: 'text',
@@ -100,6 +103,7 @@ export async function autoConnectAI(
           senderName: '✨ AI',
           text,
           partial: false,
+          ...(serverTimestamp ? { serverTimestamp } : {}),
         };
         store.append(aiMessage);
         registry.broadcastToSession(aiMessage, sessionId);

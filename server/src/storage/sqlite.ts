@@ -5,6 +5,33 @@ import type { RelayedTextMessage } from '../types.js';
 import type { MessageStore } from './types.js';
 import { Migrator } from './migrator.js';
 import { getMigrations } from './migrations/index.js';
+import { normalizeSqliteTimestamp } from '../utils/timestamp.js';
+
+interface MessageRow {
+  utterance_id: string;
+  workspace_id: string | null;
+  session_id: string | null;
+  sender_id: string;
+  sender_name: string;
+  text: string;
+  partial: number;
+  created_at: string | null;
+}
+
+function rowToMessage(row: MessageRow): RelayedTextMessage {
+  const createdAt = normalizeSqliteTimestamp(row.created_at);
+  return {
+    type: 'text' as const,
+    utteranceId: row.utterance_id,
+    workspaceId: row.workspace_id || 'default',
+    sessionId: row.session_id ?? undefined,
+    senderId: row.sender_id,
+    senderName: row.sender_name,
+    text: row.text,
+    partial: row.partial === 1,
+    ...(createdAt ? { createdAt } : {}),
+  };
+}
 
 export interface SQLiteStoreOptions {
   path: string;
@@ -105,74 +132,42 @@ export class SQLiteStore implements MessageStore {
   async getRecent(limit: number = 100, workspaceId?: string): Promise<RelayedTextMessage[]> {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
-    // Filter by workspace if provided
+    // Filter by workspace if provided.
+    // Include created_at so the client can render historical messages at
+    // their original time (instead of (re)connect "now"). See #264.
     const sql = workspaceId
-      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
          FROM messages
          WHERE workspace_id = ?
          ORDER BY id DESC
          LIMIT ?`
-      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
          FROM messages
          ORDER BY id DESC
          LIMIT ?`;
 
     const stmt = this.db.prepare(sql);
-    const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as Array<{
-      utterance_id: string;
-      workspace_id: string | null;
-      session_id: string | null;
-      sender_id: string;
-      sender_name: string;
-      text: string;
-      partial: number;
-    }>;
+    const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as Array<MessageRow>;
 
     // Reverse to get oldest-first order
-    return rows.reverse().map(row => ({
-      type: 'text' as const,
-      utteranceId: row.utterance_id,
-      workspaceId: row.workspace_id || 'default',
-      sessionId: row.session_id ?? undefined,
-      senderId: row.sender_id,
-      senderName: row.sender_name,
-      text: row.text,
-      partial: row.partial === 1,
-    }));
+    return rows.reverse().map(rowToMessage);
   }
 
   async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
       FROM messages
       WHERE session_id = ?
       ORDER BY id DESC
       LIMIT ?
     `);
 
-    const rows = stmt.all(sessionId, limit) as Array<{
-      utterance_id: string;
-      workspace_id: string | null;
-      session_id: string | null;
-      sender_id: string;
-      sender_name: string;
-      text: string;
-      partial: number;
-    }>;
+    const rows = stmt.all(sessionId, limit) as Array<MessageRow>;
 
     // Reverse to get oldest-first order
-    return rows.reverse().map(row => ({
-      type: 'text' as const,
-      utteranceId: row.utterance_id,
-      workspaceId: row.workspace_id || 'default',
-      sessionId: row.session_id ?? undefined,
-      senderId: row.sender_id,
-      senderName: row.sender_name,
-      text: row.text,
-      partial: row.partial === 1,
-    }));
+    return rows.reverse().map(rowToMessage);
   }
 
   async clear(): Promise<void> {

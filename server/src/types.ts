@@ -281,6 +281,17 @@ export interface RelayedTextMessage {
   senderName: string;
   text: string;
   partial: boolean;
+  /**
+   * For AI utterances: the upstream OpenHands `event.timestamp` (normalized
+   * to a tz-aware UTC ISO string) at emit time. Lets the client place AI
+   * messages on the same timeline clock as agent-action events. See #264.
+   */
+  serverTimestamp?: string;
+  /**
+   * Persistence timestamp for historical messages (when replayed via the
+   * `history` payload on (re)connect). UTC ISO string. See #264.
+   */
+  createdAt?: string;
 }
 
 /**
