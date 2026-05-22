@@ -1280,3 +1280,45 @@ This merge entry was created by an AI agent (OpenHands) on behalf of @jpshackelf
 
 **Next check:** ~30 minutes (next cron trigger). If still quiet, automation will auto-disable.
 
+
+---
+### 2026-05-22 06:24 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Three consecutive quiet cycles detected (05:50 UTC, 06:03 UTC, and now). State is unchanged — no productive work available.
+
+**Current State (unchanged):**
+- **Open PRs (2):** both STUCK — `needs-human` label
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair Action+Observation event cards (#265). `mergeStateStatus=UNKNOWN`, halted after rebase left conflicts in `KioskMode.tsx` timeline `useMemo`.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — V1 wrapped events in `formatEventSummary`. Draft, long-stuck since 2026-05-18.
+- **Open Issues (4):**
+  - #265 — `bug`, `ready`, `priority:medium` → already covered by stuck PR #272.
+  - #208, #210, #239 — all `on-hold` (deferred by humans).
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | Only `on-hold` issues remain — intentionally deferred |
+| Implementation | 0 | 1 | Only `ready` issue #265 already has stuck PR #272 |
+| Review/Merge | 0 | 2 | Both open PRs are `needs-human` — STUCK, skipped |
+
+**Decision:** 🔒 **Auto-disable triggered** — three consecutive quiet cycles, no new work to pick up.
+
+Automation `a0219382-2e7c-4156-9991-7b9976739a66` ("Voice Relay Workflow Orchestrator (old)") has been disabled via API to prevent unnecessary runs.
+
+**To re-enable** (once a human unblocks PR #272 / PR #221, or moves an `on-hold` issue back to active):
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**Human attention needed for:**
+1. PR #272 — resolve rebase conflicts in `client/src/components/KioskMode.tsx` (overlap with merged PR #268) or close and re-implement.
+2. PR #221 — long-stuck draft, decide whether to revive or close.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
