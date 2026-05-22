@@ -1658,3 +1658,102 @@ Previous merge worker `f9ebd19` (logged at 22:33 UTC) does **not exist** in the 
 
 **Action Taken:**
 🚀 Spawned replacement merge worker for PR #259; moved ghost worker `f9ebd19` to completed log with status=ghost.
+
+---
+### 2026-05-21 22:55 UTC - Merge Worker
+
+✅ **Merged PR #259**
+
+- PR: [#259 - fix: honor event.summary and render missing event content (#258 follow-up)](https://github.com/jpshackelford/voice-relay/pull/259)
+- Issue: None linked (follow-up to #258, which already closed #257)
+- Squash commit: [`480ddd8`](https://github.com/jpshackelford/voice-relay/commit/480ddd85ea2ddd7f3189f300125a68dea02a1a0f)
+- Merged by: jpshackelford
+- Deploy: Auto-deploying to vr.chorecraft.net
+
+**Summary:**
+Follow-up to #258 closing four rendering gaps surfaced by post-merge validation against captured production events:
+1. Server `formatEventSummary` now honors top-level `event.summary` on wrapped ActionEvent / ObservationEvent (was showing generic "Action" string).
+2. Server `extractEventFields` now extracts file_editor `command`, ThinkObservation content, and InvokeSkill `skill_name` / `content` / `is_error`.
+3. Client `getFileEditorActionContent` renders all four file_editor commands (view / create / str_replace / insert) — was create-only.
+4. New client handlers for `InvokeSkillAction` / `InvokeSkillObservation`; `ThinkObservation` falls back to "Thought recorded." for empty content.
+
+**Migration / Deployment Safety:**
+- ✅ No DB migrations; SQLite schema untouched
+- ✅ No new runtime dependencies; no package.json / lockfile changes
+- ✅ No new config or env vars
+- ✅ Additive change — legacy event paths preserved; already-stored events render unchanged
+- ✅ Safe to auto-deploy
+
+**Test Results:**
+- 744 server tests pass (+11 new)
+- 544 client tests pass (+8 new, 2 updated for corrected behavior)
+- `npx tsx scripts/comprehensive-validation.ts` → 12/12 events pass, 0 summary issues
+
+**Review Notes:**
+- pr-review bot: 🟡 Acceptable — Recommended for approval
+- All 6 CI checks green on first push; mergeStateStatus CLEAN, MERGEABLE
+- No human-requested changes; replaces ghost worker `f9ebd19...` that failed silently
+
+**Follow-up Items:**
+- Watch vr.chorecraft.net deploy logs for healthy startup
+- Spot-check live UI to confirm action cards now show real summaries and skill/think/file-editor cards render content
+
+---
+### 2026-05-21 23:05 UTC - Orchestrator
+
+**Worker Completed:** `0df29e2` (merge) → ✅ **Merged PR #259** (squash `480ddd8` at 22:55:15Z) — auto-deploying to vr.chorecraft.net
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+✅ **All quiet** - No actionable work available
+
+**Current State:**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING; **STUCK** — skipped, awaiting human intervention)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 is stuck (`needs-human`); no other PRs |
+
+**Decision:** All available work is either stuck (PR #221 needs human) or deferred (3 on-hold issues). No workers spawned. Previous orchestrator runs at 22:21/22:33/22:53 UTC were productive — this is the **first** quiet entry in the current streak (no auto-disable triggered).
+
+**Housekeeping:** WORKLOG.md was 888 lines — archived 23 older entries to `WORKLOG_ARCHIVE_2026-05-21.md` (kept 6h+ productive window: 13:15 UTC → 22:55 UTC). WORKLOG.md now 199 lines (+ this entry).
+
+---
+### 2026-05-21 23:17 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+✅ **All quiet** - No actionable work available
+
+**Current State:**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, CONFLICTING/DIRTY; **STUCK** — last updated 2026-05-18, awaiting human conflict resolution)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
+
+**Decision:** State unchanged since 23:05 UTC orchestrator run. All available work is either stuck (PR #221) or on-hold (3 issues). No workers spawned.
+
+**Quiet Streak:** This is the **2nd consecutive** quiet entry (prior: 23:05 UTC). One more consecutive quiet run will trigger auto-disable of automation `a0219382-2e7c-4156-9991-7b9976739a66`.
