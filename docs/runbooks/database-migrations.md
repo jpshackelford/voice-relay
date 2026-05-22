@@ -106,10 +106,19 @@ Currently marked destructive:
 - `006_device_token_security`
 - `008_qr_tokens`
 - `009_join_requests`
+- `010_display_api_secrets` — `down` recreates `sessions`, dropping
+  encrypted display API secrets
+- `011_elevenlabs` — `down` recreates `workspace_settings`, dropping
+  encrypted ElevenLabs API keys and voice configuration
 - `012_agent_events`
+- `013_fk_orphan_cleanup` — `up` permanently deletes orphan rows; `down`
+  is documented as non-reversible
 
 When you write a new migration whose `down` would drop a table or column
-holding user data, add `destructive: true` to its definition.
+holding user data, add `destructive: true` to its definition. The same
+applies when `up` is itself irreversible (e.g. deletes data the `down`
+cannot restore) so that operators see the same `--confirm-destructive`
+guardrail when rolling it back.
 
 ## Authoring a new migration
 

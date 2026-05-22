@@ -15,7 +15,11 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 10,
   name: 'display_api_secrets',
-  
+  // Down recreates the `sessions` table to drop the new columns, which
+  // permanently loses the encrypted display API secrets stored on every
+  // active session. Require explicit --confirm-destructive to roll back.
+  destructive: true,
+
   up: `
     -- Add encrypted display API secret columns to sessions table
     ALTER TABLE sessions ADD COLUMN display_api_secret_encrypted TEXT;

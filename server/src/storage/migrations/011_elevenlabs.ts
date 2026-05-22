@@ -20,7 +20,12 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 11,
   name: 'elevenlabs',
-  
+  // Down recreates `workspace_settings` to drop the new columns, which
+  // permanently loses the encrypted ElevenLabs API key, voice selection and
+  // TTS-enabled flag for every workspace. Require explicit
+  // --confirm-destructive to roll back.
+  destructive: true,
+
   up: `
     -- Add ElevenLabs API key encryption columns (same pattern as OpenHands key)
     ALTER TABLE workspace_settings ADD COLUMN elevenlabs_api_key_encrypted TEXT;
