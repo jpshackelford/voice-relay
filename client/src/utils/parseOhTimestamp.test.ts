@@ -78,10 +78,11 @@ describe('parseOhTimestamp', () => {
       expect(parseOhTimestamp('')).toBeNull();
     });
 
-    it('returns an Invalid Date object for garbage input (consistent with new Date)', () => {
-      const result = parseOhTimestamp('not-a-date');
-      expect(result).not.toBeNull();
-      expect(Number.isNaN(result!.getTime())).toBe(true);
+    it('returns null for garbage input', () => {
+      // Normalizes Invalid Date → null so callers' `??` and truthiness checks
+      // behave as expected (an Invalid Date is truthy, which would silently
+      // break timeline sort / fallback logic — see PR #268 review).
+      expect(parseOhTimestamp('not-a-date')).toBeNull();
     });
   });
 });

@@ -15,8 +15,9 @@
  *   - `'2026-05-21T23:46:59.274606Z'`    → returned as-is
  *   - `'2026-05-21T19:46:59.274606-04:00'` → returned as-is
  *
- * Returns `null` for empty / undefined input. Callers can substitute their
- * own fallback (e.g. `new Date()`).
+ * Returns `null` for empty / undefined input, or for garbage strings that
+ * fail to parse. Callers can substitute their own fallback (e.g. `new Date()`)
+ * using `?? fallback` or `parsed ? ... : fallback`.
  */
 export function parseOhTimestamp(value: string | undefined | null): Date | null {
   if (value === undefined || value === null || value === '') {
@@ -26,11 +27,12 @@ export function parseOhTimestamp(value: string | undefined | null): Date | null 
   // Replace space separator (SQLite default) with `T` for ISO compliance.
   const s = value.includes(' ') && !value.includes('T') ? value.replace(' ', 'T') : value;
 
-  if (!s.includes('T') || hasTimezone(s)) {
-    return new Date(s);
-  }
+  const date = (!s.includes('T') || hasTimezone(s)) ? new Date(s) : new Date(`${s}Z`);
 
-  return new Date(`${s}Z`);
+  // Normalize Invalid Date to `null` so callers' truthiness and `??` checks
+  // both behave as expected. Without this, an Invalid Date is truthy but its
+  // `.getTime()` returns NaN, silently breaking sort/fallback logic.
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function hasTimezone(s: string): boolean {
