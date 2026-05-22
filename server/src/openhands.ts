@@ -658,6 +658,39 @@ function formatObservationEvent(event: V1Event): string {
 }
 
 /**
+ * Decide whether to drop an OpenHands event before forwarding it as an agent
+ * action card to the kiosk inline timeline (issue #265).
+ *
+ * The kiosk timeline shows the agent's tool invocations alongside utterances.
+ * Two event classes leak in today but should not appear there:
+ *
+ *   - `SystemPromptEvent`: the agent's system prompt is internal infrastructure.
+ *     Surfacing it as a card just confuses the user.
+ *   - `MessageEvent` with `source !== 'agent'`: user and environment messages
+ *     are already rendered as utterance bubbles by the conversation feed.
+ *     Showing them again as event cards is duplication.
+ *
+ * Agent `MessageEvent`s are handled separately (they update the AI utterance
+ * stream via `isV1MessageEvent` upstream of this filter) so we don't need to
+ * special-case them here.
+ */
+export function shouldSkipForKioskTimeline(event: unknown): boolean {
+  if (typeof event !== 'object' || event === null || !('kind' in event)) {
+    return false;
+  }
+  const obj = event as { kind?: unknown; source?: unknown };
+  const kind = typeof obj.kind === 'string' ? obj.kind : undefined;
+  if (kind === 'SystemPromptEvent') {
+    return true;
+  }
+  if (kind === 'MessageEvent') {
+    const source = typeof obj.source === 'string' ? obj.source : undefined;
+    return source !== 'agent';
+  }
+  return false;
+}
+
+/**
  * Format an OpenHands event into a human-readable summary.
  * Used to create concise descriptions of agent actions.
  * Handles both V1 wrapped events (ActionEvent, ObservationEvent) and direct action types.
@@ -1560,8 +1593,21 @@ export class AISessionManager {
         }
         // Forward other events as agent actions for visibility
         else if (event.kind) {
+          // Drop event classes that should never appear in the kiosk inline
+          // timeline (issue #265):
+          //   - SystemPromptEvent: the agent's system prompt is internal and
+          //     not user-facing.
+          //   - MessageEvent with source !== 'agent': user / environment
+          //     messages are already rendered as utterance bubbles by the
+          //     conversation feed; surfacing them again as ⚡ cards is
+          //     duplication.
+          // Note: agent MessageEvents are handled above via isV1MessageEvent.
+          if (shouldSkipForKioskTimeline(event)) {
+            return;
+          }
+
           console.log(`[AI] Event: ${event.kind} (source: ${event.source || 'unknown'})`);
-          
+
           // Forward action events to the session via callback
           if (this.onAction && session.sessionId) {
             // Extract relevant fields based on event kind for rich content rendering

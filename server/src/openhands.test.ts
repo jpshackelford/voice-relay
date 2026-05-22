@@ -3,7 +3,7 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -1712,3 +1712,63 @@ describe('PR #258 follow-up: summary + missing event content', () => {
     });
   });
 });
+
+describe('shouldSkipForKioskTimeline (issue #265)', () => {
+  test('drops SystemPromptEvent regardless of source', () => {
+    expect(shouldSkipForKioskTimeline({ kind: 'SystemPromptEvent' })).toBe(true);
+    expect(shouldSkipForKioskTimeline({ kind: 'SystemPromptEvent', source: 'agent' })).toBe(true);
+  });
+
+  test('drops MessageEvent from a user source (already shown as utterance)', () => {
+    // Verbatim shape from raw-events-real.json: user typed message arrives as
+    // a MessageEvent with source: "user". The conversation feed already
+    // renders it as an utterance bubble; we don't want a duplicate event card.
+    expect(shouldSkipForKioskTimeline({
+      kind: 'MessageEvent',
+      source: 'user',
+      llm_message: { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+    })).toBe(true);
+  });
+
+  test('drops MessageEvent from environment source', () => {
+    expect(shouldSkipForKioskTimeline({ kind: 'MessageEvent', source: 'environment' })).toBe(true);
+  });
+
+  test('drops MessageEvent with missing source (defensive)', () => {
+    // No source field at all → not 'agent' → skip.
+    expect(shouldSkipForKioskTimeline({ kind: 'MessageEvent' })).toBe(true);
+  });
+
+  test('keeps MessageEvent with source: "agent"', () => {
+    // Agent MessageEvents are handled by the upstream isV1MessageEvent branch
+    // (they update the AI utterance stream). They never reach the timeline
+    // forwarder, but the filter should not claim them either — keep this
+    // contract explicit.
+    expect(shouldSkipForKioskTimeline({
+      kind: 'MessageEvent',
+      source: 'agent',
+      llm_message: { role: 'assistant', content: [{ type: 'text', text: 'reply' }] },
+    })).toBe(false);
+  });
+
+  test('keeps ActionEvent and ObservationEvent', () => {
+    expect(shouldSkipForKioskTimeline({ kind: 'ActionEvent', source: 'agent' })).toBe(false);
+    expect(shouldSkipForKioskTimeline({ kind: 'ObservationEvent', source: 'environment' })).toBe(false);
+  });
+
+  test('keeps unknown event kinds (default-allow)', () => {
+    // The filter is an allow-by-default safety net; only the two known
+    // problematic classes are denied so new OH event kinds remain visible
+    // until a developer makes an explicit decision.
+    expect(shouldSkipForKioskTimeline({ kind: 'SomeFutureEvent', source: 'agent' })).toBe(false);
+  });
+
+  test('returns false for non-object / null / missing kind', () => {
+    expect(shouldSkipForKioskTimeline(null)).toBe(false);
+    expect(shouldSkipForKioskTimeline(undefined)).toBe(false);
+    expect(shouldSkipForKioskTimeline('not an event')).toBe(false);
+    expect(shouldSkipForKioskTimeline({})).toBe(false);
+    expect(shouldSkipForKioskTimeline({ source: 'agent' })).toBe(false);
+  });
+});
+
