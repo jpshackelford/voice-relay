@@ -1516,3 +1516,27 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-99
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-22 07:34 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Manual invocation — automation still auto-disabled, no state change.**
+
+4th consecutive manual `/orchestrate` in ~30 min. Verified at 2026-05-22T07:34Z: identical fully-blocked state vs. the 07:19, 07:04, and 06:46 UTC entries. No workers spawned.
+
+**Active Workers:** none. All slots empty (`.workflow-state.json` last_updated 2026-05-22T06:03:55Z).
+
+**Re-verified, unchanged:**
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66` = `enabled: false`.
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=UNKNOWN`, `updatedAt=2026-05-22T03:38:47Z`.
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issues: #265 (`ready`, already covered by stuck PR #272); #208/#210/#239 (`on-hold`).
+
+**Decision:** ✅ No action. Spawning would either duplicate stuck PR #272 (for #265) or violate `on-hold` (for #208/#210/#239). Re-enabling automation while the same PRs are stuck would just re-trigger another 3 quiet cycles → another auto-disable.
+
+**Housekeeping:** Tried worklog truncation — algorithm kept all 45 entries because the most recent productive entry (06:24 UTC auto-disable) is still within 6hr of all earlier productive entries, so the 6hr window encompasses everything. Will naturally archive once a new productive entry pushes the window forward.
+
+**Blockers (unchanged from 07:19 UTC entry):** PR #272 rebase conflict + out-of-scope server helper, PR #221 long-stuck draft, on-hold labels on #208/#210/#239. See prior entries for the full re-enable `curl`.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
