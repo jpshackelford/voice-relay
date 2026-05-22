@@ -1,3 +1,26 @@
+### 2026-05-22 02:32 UTC - Implementation Worker (PR #268, issue #264)
+
+🐛 **Opened PR [#268](https://github.com/jpshackelford/voice-relay/pull/268)** — fix(client): interleave kiosk timeline by normalizing OH event timestamps (`Fixes #264`).
+
+- RCA confirmed two-cause bug: (1) OH emits naive UTC ISO timestamps (no `Z`), parsed as local time by `new Date()` in non-UTC browsers — every agent event sorted after every utterance in EDT; (2) AI utterances stamped client-side with `new Date()` at receive time, agent events on OH's wall clock — two unrelated clocks mixed on the timeline.
+- Fix surface (server-side normalization + plumbing as source of truth):
+  - New `server/src/utils/timestamp.ts#normalizeOhTimestamp` — appends `Z` to naive ISO strings, returns `null` for garbage. 12 unit tests including the exact failing inputs from the RCA (`2026-05-21T23:46:59.274606`).
+  - `openhands.ts` normalizes `event.timestamp` before stamping `AgentAction.timestamp` and the new `serverTimestamp` arg on the AI-relay callback.
+  - `auto-connect.ts` plumbs `serverTimestamp` onto `RelayedTextMessage`.
+  - `storage/sqlite.ts` now selects `created_at` and emits ISO Zulu `createdAt` so reconnect/history-replay renders historical messages with their original time, not page-load time. `memory.ts` / `redis.ts` stamp `createdAt` at append for parity.
+  - `types.ts` (server + client): optional `serverTimestamp` / `createdAt` on `RelayedTextMessage` — backward compatible.
+- Client-side consumption (defense-in-depth):
+  - New `client/src/utils/parseOhTimestamp.ts` tolerates naive ISO strings if any sneak through cross-version deploys. 11 unit tests.
+  - `SessionView.tsx` / `Workspace.tsx`: `handleTextMessage` uses `serverTimestamp`, `handleHistoryMessage` uses `createdAt` for `Utterance.receivedAt` (was `new Date()`).
+  - `KioskMode.tsx`: parses `AgentAction.timestamp` via `parseOhTimestamp` before sorting the unified timeline.
+- Regression coverage: 3 new KioskMode tests render mixed utterances + agent events and assert chronological interleaving; verified passing under both `TZ=UTC` and `TZ=America/New_York` (where the bug manifests).
+- All checks green on the PR: Server Tests (756 tests) ✅, Build Client ✅, E2E Tests ✅ 1m28s, lint-pr-title ✅ (after retitling to conventional-commits prefix `fix(client):…`).
+- No DB schema migration: SQLite `created_at` column already existed with `DEFAULT datetime('now')`; we just started reading it.
+- PR flipped from draft to ready-for-review. Review handling: separate conversation.
+
+---
+
+
 ### 2026-05-22 02:26 UTC - Conflict Worker (PR #266)
 
 🔧 **Resolved merge conflict on PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — feat(server): persist OpenHands agent events with TTL and REST rehydration
