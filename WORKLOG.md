@@ -2019,3 +2019,32 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-22 12:21 UTC - Orchestrator (manual /orchestrate, addendum)
+
+⚡ **Update to 12:16 UTC entry: PR #276 was squash-merged at 12:19:36 UTC.**
+
+While I was assembling the 12:16 entry, the human (or another agent) moved #276 from draft to ready and it auto-merged. The "Suggested next human action" in that entry is now obsolete — that step already happened.
+
+**State now (re-verified at 2026-05-22T12:21Z):**
+| PR | Status | Labels | mergeStateStatus | Updated |
+|----|--------|--------|------------------|---------|
+| ~~#276~~ | **MERGED** 2026-05-22T12:19:36Z | — | — | — |
+| [#272](https://github.com/jpshackelford/voice-relay/pull/272) | open | `bug`, `priority:medium`, `needs-human`, `client` | UNKNOWN (recomputing post-merge) | 2026-05-22T03:38:47Z |
+| [#221](https://github.com/jpshackelford/voice-relay/pull/221) | draft | `needs-human` | UNKNOWN (recomputing post-merge) | 2026-05-18T21:50:13Z |
+
+**Implications:**
+- The recurring `client/tsconfig.tsbuildinfo` merge-conflict class is now resolved at the repo level — `*.tsbuildinfo` is gitignored on main and the cached file is untracked.
+- PR #272's `DIRTY` merge state was driven (at least in part) by that file. Once GitHub finishes recomputing, #272's mergeStateStatus will likely improve — but the `needs-human` label is still set because of the out-of-scope `shouldSkipForKioskTime…` server helper, which the human still needs to decide on (trim/revert vs. accept scope expansion). The mergeability fix alone doesn't lift `needs-human`.
+- PR #221's `DIRTY` state may also have been partially driven by `tsbuildinfo`, but it's still a 4-day-old draft carrying `needs-human` — revive-or-close decision unchanged.
+
+**Decision:** ✅ Still no worker spawned.
+- Both remaining open PRs still carry `needs-human` → review/merge workers can't act.
+- Issue #265 (the only ready+prioritized issue) is still covered by stuck PR #272.
+- No issues need expansion; #208/#210/#239 still `on-hold`.
+
+**Next-cycle expectation:** If a human drops `needs-human` from PR #272 (after deciding on the helper), the next orchestrator tick can spawn a review/merge worker. Until then, the workflow remains correctly idle.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
