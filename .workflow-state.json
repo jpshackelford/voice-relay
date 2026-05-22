@@ -4,17 +4,23 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "a4900d9",
-        "issue": 263,
-        "started": "2026-05-22T03:51:42.871231+00:00"
+        "conv_id": "cd43b83",
+        "issue": 261,
+        "started": "2026-05-22T04:41:18.685169+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "4157041",
+        "conv_id": "1cd89bd",
         "pr": 273,
+        "kind": "merge",
+        "started": "2026-05-22T04:41:18.685169+00:00"
+      },
+      {
+        "conv_id": "dfc3f34",
+        "pr": 274,
         "kind": "review",
-        "started": "2026-05-22T03:51:42.871231+00:00"
+        "started": "2026-05-22T04:41:18.685169+00:00"
       }
     ]
   },
@@ -23,35 +29,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T03:51:42.871231+00:00",
+  "last_updated": "2026-05-22T04:41:18.685169+00:00",
   "completed": [
-    {
-      "conv_id": "9cdaa41",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T03:49:30.527541+00:00",
-      "finished": "2026-05-21T04:01:56.853854+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback"
-    },
-    {
-      "conv_id": "60b2e13",
-      "type": "review",
-      "pr": 255,
-      "started": "2026-05-21T03:49:30.527541+00:00",
-      "finished": "2026-05-21T04:01:56.853854+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback"
-    },
-    {
-      "conv_id": "4d7f576",
-      "type": "review",
-      "pr": 255,
-      "started": "2026-05-21T04:04:39.597848+00:00",
-      "finished": "2026-05-21T04:17:30.038731+00:00",
-      "status": "success",
-      "outcome": "Worker finished - check issue/PR for details"
-    },
     {
       "conv_id": "da8fd0e",
       "type": "merge",
@@ -278,6 +257,26 @@
       "finished": "2026-05-22T03:51:42.871231+00:00",
       "status": "halted-needs-human",
       "outcome": "Halted PR #272 merge: diff contained out-of-scope server changes (server/src/openhands.ts shouldSkipForKioskTimel... helper). Added needs-human label per guardrail."
+    },
+    {
+      "conv_id": "a4900d9",
+      "type": "implementation",
+      "issue": 263,
+      "pr": null,
+      "started": "2026-05-22T03:51:42.871231+00:00",
+      "finished": "2026-05-22T04:39:07.833028+00:00",
+      "status": "success",
+      "outcome": "Worker finished (API status=finished/null)"
+    },
+    {
+      "conv_id": "4157041",
+      "type": "review",
+      "issue": null,
+      "pr": 273,
+      "started": "2026-05-22T03:51:42.871231+00:00",
+      "finished": "2026-05-22T04:39:07.833028+00:00",
+      "status": "success",
+      "outcome": "Worker finished (API status=finished/null)"
     }
   ]
 }
