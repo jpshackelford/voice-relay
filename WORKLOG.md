@@ -1322,3 +1322,51 @@ Automation `a0219382-2e7c-4156-9991-7b9976739a66` ("Voice Relay Workflow Orchest
 2. PR #221 — long-stuck draft, decide whether to revive or close.
 
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+### 2026-05-22 06:31 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Manual invocation — automation already auto-disabled**
+
+`/orchestrate` was triggered manually 7 minutes after auto-disable (06:24 UTC). Re-verified the state: **nothing has changed**, so no workers spawned and the automation remains disabled (a human still needs to unblock the stuck PRs).
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+**Current State (re-verified at 06:31 UTC):**
+- **Automation `a0219382-2e7c-4156-9991-7b9976739a66`** = `enabled: false` (Voice Relay Workflow Orchestrator (old))
+- **Open PRs (2):** both still STUCK — `needs-human`, `mergeStateStatus=UNKNOWN`
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — pair Action+Observation event cards (issue #265). `updatedAt=2026-05-22T03:38:47Z` (unchanged since human halted the rebase).
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — V1 wrapped events in `formatEventSummary`. Draft, `updatedAt=2026-05-18T21:50:13Z`.
+- **Open Issues (4):** unchanged
+  - #265 — `ready`, `priority:medium` → already covered by stuck PR #272 (would create a duplicate / conflicting PR if implementation worker spawned).
+  - #208, #210, #239 — `on-hold` (intentionally deferred by humans).
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | Nothing to expand (only `ready` + `on-hold` issues open) |
+| Implementation | 0 | 1 | Only `ready` issue #265 is already covered by stuck PR #272 |
+| Review/Merge | 0 | 2 | Both open PRs are `needs-human` — STUCK, skipped per policy |
+
+**Decision:** ✅ **No action taken.**
+
+- Not re-enabling automation: the human disabled-equivalent state (`needs-human` labels) is the *reason* it auto-disabled; auto-re-enabling would just trigger another 3 quiet cycles and another auto-disable.
+- Not spawning an implementation worker for issue #265: would create a duplicate of stuck PR #272 (`fix(client): pair ActionEvent + ObservationEvent into a single agent event card`) which already addresses the same fix — better to resolve the rebase conflict on the existing PR than start from scratch.
+
+**Human attention needed (unchanged from 06:24 UTC entry):**
+1. **PR #272** — resolve rebase conflicts in `client/src/components/KioskMode.tsx` (overlap with merged PR #268), then drop `needs-human` label so review/merge workers can pick it up. Or close it and re-implement on top of current main.
+2. **PR #221** — long-stuck draft (since 2026-05-18); decide whether to revive or close.
+3. **Issues #208 / #210 / #239** — currently `on-hold`; remove the label if they're ready to be picked up.
+
+**Re-enable automation** once any of the above is unblocked:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
