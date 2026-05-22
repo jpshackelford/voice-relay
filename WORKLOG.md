@@ -1,5 +1,19 @@
 ### 2026-05-22 01:15 UTC - Expansion Worker
 
+✅ **Expanded Issue #262**
+
+- Issue: [Bug: SQLite foreign keys not enforced in production (PRAGMA foreign_keys=0)](https://github.com/jpshackelford/voice-relay/issues/262)
+- Type: Bug (data integrity)
+- Status: Ready for implementation (`ready` label applied)
+- Root cause: `SQLiteStore.connect()` (server/src/storage/sqlite.ts) opens the DB with `new Database(path)` and never issues any PRAGMA. FK enforcement currently depends implicitly on the better-sqlite3 prebuilt binary's `SQLITE_DEFAULT_FOREIGN_KEYS=1` compile flag, with no startup assertion. Persistent `journal_mode = delete` on prod confirms no PRAGMA setup is happening; WAL is also missing.
+- Verified: reproduced locally with better-sqlite3 v11.10.0 — fresh connection reports `foreign_keys=1`, `journal_mode=delete`. Clarified in the rewritten body that the production `PRAGMA foreign_keys=0` reading is from an external sqlite3 CLI (per-connection setting) — useful evidence but the actual app connection state is implicit, not asserted. Fix still required for defense-in-depth + WAL + orphan audit.
+- Approach: set `journal_mode=WAL`, `foreign_keys=ON`, `synchronous=NORMAL`, `busy_timeout=5000` in `connect()` before migrations; add startup assertion that aborts if FK not enabled; add `scripts/audit-orphans.ts` to enumerate orphan rows for every declared FK; gate the PRAGMA deploy on running the audit + a cleanup migration (proposed `012_fk_orphan_cleanup.ts`); add unit tests for cascade-fires and FK-violation-rejected.
+- Noted: `messages.workspace_id` has no FK declaration (added as plain TEXT in migration 004) — flagged as optional follow-up.
+
+---
+
+### 2026-05-22 01:15 UTC - Expansion Worker
+
 ✅ **Expanded Issue #263** — Migration tooling improvements: CLI, drift detection, advisory locking
 
 - Issue: [#263](https://github.com/jpshackelford/voice-relay/issues/263)
