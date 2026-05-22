@@ -11,10 +11,10 @@
     ],
     "review": [
       {
-        "conv_id": "be830dd",
+        "conv_id": "e7848d7",
         "pr": 268,
-        "started": "2026-05-22T02:51:55.495845+00:00",
-        "kind": "review"
+        "started": "2026-05-22T03:08:07.768927+00:00",
+        "kind": "merge"
       }
     ]
   },
@@ -23,26 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T02:51:55.495845+00:00",
+  "last_updated": "2026-05-22T03:08:07.768927+00:00",
   "completed": [
-    {
-      "conv_id": "d7d64b2",
-      "type": "expansion",
-      "issue": 253,
-      "started": "2026-05-21T02:50:04.977708+00:00",
-      "finished": "2026-05-21T03:04:00.052229+00:00",
-      "status": "finished",
-      "outcome": "Worker finished - check issue/PR for details"
-    },
-    {
-      "conv_id": "359cd69",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T02:50:04.977708+00:00",
-      "finished": "2026-05-21T03:04:00.052229+00:00",
-      "status": "finished",
-      "outcome": "Worker finished - check issue/PR for details"
-    },
     {
       "conv_id": "d30163a",
       "type": "review",
@@ -295,6 +277,15 @@
       "finished": "2026-05-22T02:50:42.839264+00:00",
       "status": "success",
       "outcome": "PR #266 squash-merged; issue #260 auto-closed"
+    },
+    {
+      "conv_id": "be830dd",
+      "type": "review",
+      "pr": 268,
+      "started": "2026-05-22T02:51:55.495845+00:00",
+      "finished": "2026-05-22T03:06:20.882108+00:00",
+      "status": "success",
+      "outcome": "Addressed all 3 github-actions review threads on PR #268 (commit f91cb7b); resolved threads; CI green; PR back to ready"
     }
   ]
 }

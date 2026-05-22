@@ -875,3 +875,55 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 - #261 still needs `/assess-priority` before it can be picked up.
 
 ---
+
+---
+
+### 2026-05-22 03:08 UTC - Orchestrator
+
+**Workers Completed (this cycle):**
+- `be830dd` (review, PR #268) — finished → addressed all 3 github-actions Invalid-Date threads (commit `f91cb7b`); resolved threads via GraphQL; CI green on all 4 required checks; PR back to ready.
+
+**Active Workers (after this cycle's spawn):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `20876eb` | implementation | Issue #265 — Pair Action+Observation event cards (priority:medium, client) | running |
+| `e7848d7` | merge | PR #268 — kiosk timeline TZ fix | **NEW** |
+
+**Spawned: 1 Worker (merge)**
+
+- **Merge Worker** — [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) `fix(client): interleave kiosk timeline by normalizing OH event timestamps`
+  - Conversation: https://app.all-hands.dev/conversations/e7848d755746461bb7b25934290178e9
+  - Rationale: PR #268 is fully green — `isDraft=false`, `mergeable=MERGEABLE`, CI=SUCCESS, all 3 review threads resolved, `reviewDecision=null` (bot-only reviewer). Cleanest merge candidate. Worker will update PR description, squash-merge with `Fixes #264`, verify auto-close, and post a heads-up on #265 if its PR is open by then (to flag the shared `KioskMode.tsx` `timeline` `useMemo` touchpoint).
+
+**Current State:**
+- **Open PRs:**
+  - [PR #268](https://github.com/jpshackelford/voice-relay/pull/268) — `oRFC green ready` (merge worker `e7848d7` taking it over the line)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling)
+  - #269 — `priority:medium` client (timeline hydration; depends on REST endpoint from PR #266 — now merged, so unblocked)
+  - #261 — `audit` + ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #265 — `20876eb`
+- **On-hold (skipped):** #208, #210, #239
+- **No issues need expansion** (all open non-on-hold issues already have `ready`)
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues need expansion |
+| Implementation | 1 | 1 | #265 — `20876eb` (running) |
+| Review/Merge | 1 | 2 | PR #268 merge — `e7848d7`; PR #221 stuck; 1 review slot free |
+
+**Decision rationale:**
+- PR #268 was the obvious next action: all merge criteria satisfied (CI green, no human reviewer, threads resolved, no conflicts). Merge worker (not review worker) because there's nothing left to address.
+- Impl slot still occupied by `20876eb` (#265). Cannot spawn second impl.
+- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#268) is being merged. No new PRs in flight.
+- No expansion workers spawned: every non-on-hold open issue already has `ready` label.
+- Bookkeeping: cleaned up stale `be830dd` slot entry (worker had finished but state hadn't been updated). Completed array now holds 29 entries within the 24h audit window.
+
+**Next cycle:**
+- If `e7848d7` merges PR #268: dispatch impl for next priority `ready` issue (`#263` or `#269` — preference is `#269` since it can now consume the REST endpoint from PR #266 that just merged, and the kiosk timeline base in PR #268 will also be on main). But hold if `20876eb` (issue #265) hasn't opened its PR yet — wait one cycle to avoid pile-up.
+- If `20876eb` opens a PR: review/CI handling next cycle. Coordinate rebase if PR #268 already merged.
+- #261 still needs `/assess-priority` before it can be picked up.
+- No new productive work would be a quiet cycle → check auto-disable threshold at next wake-up.
+
