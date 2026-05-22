@@ -1941,3 +1941,39 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-22 11:45 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **18th consecutive manual /orchestrate — fully-blocked state unchanged; no workers spawned.**
+
+**Active Workers:** none. `.workflow-state.json` last_updated 2026-05-22T06:03:55Z, all slots empty.
+
+**Re-verified at 2026-05-22T11:45Z (no change since 11:30 UTC entry):**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=DIRTY`, `updatedAt=2026-05-22T03:38:47Z` (no commit activity in ~8h).
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `mergeStateStatus=DIRTY`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issue #265 — `ready`, `priority:medium`; covered by stuck PR #272.
+- Issues #208 / #210 / #239 — `on-hold`.
+- No issues need expansion.
+
+**Decision:** ✅ No action. Same blockers; no slot is dispatchable.
+
+**Per 10:31 UTC entry:** v2 automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` remains human-set `enabled: true`; not flipping it.
+
+**Note on noise:** This is now the 4th consecutive 15-min cycle (11:02 → 11:15 → 11:30 → 11:45) producing the same "all blocked" entry. The next /orchestrate run will halt before writing a new entry if state is still unchanged — the cost of repeated worklog churn now exceeds the value of the audit trail.
+
+**Blockers (unchanged — see 07:19 UTC entry for full detail):**
+1. **PR #272** — out-of-scope `shouldSkipForKioskTime…` server helper + `DIRTY`. Human must trim/revert the helper, resolve conflicts, then drop `needs-human`.
+2. **PR #221** — long-stalled draft (4+ days), `DIRTY`. Decide: revive or close.
+3. **Issues #208 / #210 / #239** — `on-hold`; remove the label to make any actionable.
+
+**For @jpshackelford:** Resolve one blocker above, or disable v2 manually:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
