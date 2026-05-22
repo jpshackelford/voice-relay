@@ -20,26 +20,17 @@ export interface MessageStore {
   disconnect(): Promise<void>;
 }
 
+/**
+ * Storage driver configuration.
+ *
+ * The driver union is intentionally kept as a string literal type so additional
+ * drivers (e.g. Postgres, tracked in #263) can be added by extending the union
+ * and adding a corresponding case in {@link createStore}.
+ */
 export interface StoreConfig {
-  driver: 'memory' | 'sqlite' | 'redis' | 'firestore';
-  
-  memory?: {
-    maxMessages?: number;
-  };
+  driver: 'sqlite';
 
   sqlite?: {
     path: string;
-  };
-
-  redis?: {
-    url: string;
-    maxMessages?: number;
-    keyPrefix?: string;
-  };
-
-  firestore?: {
-    projectId?: string;
-    collection?: string;
-    maxMessages?: number;
   };
 }

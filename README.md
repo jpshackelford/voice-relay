@@ -159,30 +159,14 @@ If upgrading from a previous version, see [docs/MIGRATION.md](docs/MIGRATION.md)
 
 Configure persistence via environment variables:
 
-### SQLite (Recommended for Production)
+### SQLite
+
+SQLite is currently the only supported storage backend. A Postgres driver is
+planned (tracked in [#263](https://github.com/jpshackelford/voice-relay/issues/263)).
 
 ```bash
 STORE_DRIVER=sqlite
 SQLITE_PATH=./data/messages.db
-```
-
-### Memory
-
-In-memory storage. Fast but lost on restart.
-
-```bash
-STORE_DRIVER=memory
-STORE_MAX_MESSAGES=100
-```
-
-### Redis
-
-For multi-instance deployments with shared state.
-
-```bash
-STORE_DRIVER=redis
-REDIS_URL=redis://localhost:6379
-STORE_MAX_MESSAGES=100
 ```
 
 ## AI Assistant Integration
@@ -364,10 +348,8 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `STORE_DRIVER` | Storage backend: `memory`, `sqlite`, `redis` | `memory` |
+| `STORE_DRIVER` | Storage backend: `sqlite` | `sqlite` |
 | `SQLITE_PATH` | SQLite database path | `./data/messages.db` |
-| `REDIS_URL` | Redis connection URL | - |
-| `STORE_MAX_MESSAGES` | Max messages to retain | `100` |
 
 ### Security
 
