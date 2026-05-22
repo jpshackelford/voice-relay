@@ -1,3 +1,13 @@
+### 2026-05-22 02:38 UTC - Expansion Worker (Issue #269)
+
+📋 **Expanded issue [#269](https://github.com/jpshackelford/voice-relay/issues/269)** — `feat(client): hydrate agent event timeline from persisted store and rehydrate on session render`.
+
+- Rewrote issue body with sharpened **Problem Statement**, **Proposed Solution** (data flow + endpoint contract from PR #266's `agent-events/router.ts`), and 9-item **Acceptance Criteria** including a #264 regression guard.
+- Flagged a **shape mismatch** to resolve: PR #266's router returns raw OH event JSON (`agent_events.raw_event`), but the kiosk pipeline consumes the post-processed `AgentAction` shape from `openhands.ts`'s `extractEventFields` / `extractEffectiveKind` / `formatEventSummary` / `normalizeOhTimestamp`. Default plan = small server-side mapping refactor (option B); option A (mirror on client) documented as fallback.
+- Added technical-approach [comment](https://github.com/jpshackelford/voice-relay/issues/269#issuecomment-4514519242) covering: files to add (`useAgentEventHistory`, `api/agentEvents.ts`) + modify (`useAgentActions.ts` w/ `seedActions` + id-based dedupe, `SessionView.tsx`, `KioskMode.tsx`, `MobileMode.tsx`), UI state table, 4 test files (hook/api/component + #264 TZ regression test), risk notes on synthetic-event dedupe and `limit=500` pagination deferral.
+- Cross-PR coordination called out: **hard dep on PR #266** (REST endpoint), **soft dep after PR #268** (`parseOhTimestampMs` + `mergeTimeline` only exist on that branch; landing hydration first would visibly regress #264 in non-UTC browsers). Conflict surface = `useAgentActions.ts` touched by both.
+- Added `ready` label. Duplicate #270 already closed by orchestrator — did not re-file.
+
 ### 2026-05-22 02:41 UTC - Merge Worker (PR #266 → main → deploy)
 
 🚀 **Squash-merged PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — `feat(server): persist OpenHands agent events with TTL and REST rehydration`. Merge commit `0dbd66a8` at 2026-05-22T02:40:32Z. Issue [#260](https://github.com/jpshackelford/voice-relay/issues/260) auto-closed via `Fixes #260`.
