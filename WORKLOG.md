@@ -1903,3 +1903,41 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-22 11:30 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **17th consecutive manual /orchestrate — fully-blocked state unchanged; no workers spawned.**
+
+**Active Workers:** none. `.workflow-state.json` last_updated 2026-05-22T06:03:55Z, all slots empty.
+
+**Re-verified at 2026-05-22T11:30Z (no change since 11:15 UTC entry):**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=DIRTY`, `updatedAt=2026-05-22T03:38:47Z` (no commit activity in ~8h).
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `mergeStateStatus=DIRTY`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issue #265 — `ready`, `priority:medium`; covered by stuck PR #272.
+- Issues #208 / #210 / #239 — `on-hold` (intentional human deferral).
+- No issues need expansion.
+
+**Decision:** ✅ No action.
+- Impl slot: every ready issue is either covered by a stuck PR (#265) or `on-hold` (#208/#210/#239).
+- Review/merge slots: both open PRs carry `needs-human` and are `DIRTY` — workers cannot resolve merge conflicts.
+- Expansion slot: nothing to expand.
+
+**Per 10:31 UTC entry:** v2 automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` remains human-set `enabled: true`; not flipping it.
+
+**Worklog truncation:** Skipped — script reported "Nothing to archive" (all current entries fall within the 6-hour productive-work window).
+
+**Blockers (unchanged):**
+1. **PR #272** — out-of-scope `shouldSkipForKioskTime…` server helper + `DIRTY` merge state. Human must trim/revert the helper, resolve conflicts, then drop `needs-human`.
+2. **PR #221** — long-stalled draft (4+ days), `DIRTY`. Decide: revive (rebase + finish) or close.
+3. **Issues #208 / #210 / #239** — `on-hold`; remove the label to make any of them actionable.
+
+**For @jpshackelford:** Resolve one blocker above so the next cron tick can act, or disable v2 manually:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
