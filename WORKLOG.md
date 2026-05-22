@@ -1,3 +1,16 @@
+### 2026-05-22 02:10 UTC - Review Worker (PR #266)
+
+✅ **Resolved review feedback on PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — feat(server): persist OpenHands agent events with TTL and REST rehydration
+
+- 1 unresolved thread from `github-actions` reviewer: PR description had `Default 14 days` in two spots while code uses `7`. Code is the source of truth (`server/src/index.ts:994` — `AGENT_EVENTS_TTL_DAYS ?? 7`; comment at L992 also says 7-day retention).
+- Fix: updated PR description on both lines (TTL pruning bullet + Deployment notes "Tunable" bullet) to read `default 7`. No code or repo-doc changes — `docs/` and `README.md` have no agent-events TTL references.
+- Replied on the thread (commit reference: PR description edit) and resolved it via GraphQL.
+- CI: green across the board (Build Client, Server Tests, E2E Tests, lint-pr-title, pr-review).
+- PR flipped to draft during edits per workflow, then back to ready-for-review.
+- No follow-up issues created — the inconsistency was confined to the PR body.
+
+---
+
 ### 2026-05-22 01:53 UTC - Orchestrator
 
 **Active Workers:**
