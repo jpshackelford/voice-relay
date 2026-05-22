@@ -1790,3 +1790,40 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 
 ---
 
+
+### 2026-05-22 10:46 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **14th consecutive manual /orchestrate — fully-blocked state unchanged; no workers spawned.**
+
+**Active Workers:** none. `.workflow-state.json` last_updated 2026-05-22T06:03:55Z, all slots empty.
+
+**Re-verified at 2026-05-22T10:46Z (no change since 06:46 → 10:31 UTC entries):**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=UNKNOWN`, `updatedAt=2026-05-22T03:38:47Z` (no change in ~7h).
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issue #265 — `ready`, `priority:medium`; already covered by stuck PR #272.
+- Issues #208 / #210 / #239 — `on-hold` (intentional human deferral).
+- No issues need expansion.
+
+**Decision:** ✅ No action.
+- Impl slot: every ready issue is either covered by a stuck PR (#265) or `on-hold` (#208/#210/#239).
+- Review/merge slots: both open PRs carry `needs-human` — workers are blocked.
+- Expansion slot: nothing to expand.
+
+**Per 10:31 UTC entry:** v2 automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` is `enabled: true` (human-set after I disabled it at 23:34 UTC). I am **not** flipping it again — letting it idle is preferable to fighting a human toggle.
+
+**Blockers (unchanged — see 07:19 UTC entry for full detail):**
+1. **PR #272** — out-of-scope `shouldSkipForKioskTime…` server helper + `mergeStateStatus=UNKNOWN`. Human must trim/revert the helper or accept the scope expansion, then drop `needs-human`.
+2. **PR #221** — long-stalled draft (4+ days). Decide: revive or close.
+3. **Issues #208 / #210 / #239** — `on-hold`; remove the label to make any of them actionable.
+
+**For @jpshackelford:** Resolve one blocker above so the next cron tick can act, or disable v2 manually:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
