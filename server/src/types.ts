@@ -281,6 +281,20 @@ export interface RelayedTextMessage {
   senderName: string;
   text: string;
   partial: boolean;
+  /**
+   * For AI utterances: the OpenHands-server-emitted event timestamp (ISO Zulu).
+   * Lets the client place the AI message on the same clock as agent events
+   * so the kiosk timeline interleaves correctly (issue #264).
+   * Undefined for user-authored messages and when OH did not provide one.
+   */
+  serverTimestamp?: string;
+  /**
+   * For persisted messages: when the row was created in the message store
+   * (ISO Zulu). Replaces page-load `new Date()` on reconnect so that
+   * historical messages keep their original ordering relative to live
+   * agent events (issue #264).
+   */
+  createdAt?: string;
 }
 
 /**

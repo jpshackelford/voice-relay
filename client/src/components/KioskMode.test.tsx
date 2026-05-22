@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { KioskMode, parseMarkdown } from './KioskMode';
-import type { DeviceInfo, Utterance, DisplayContent, SessionTtsSettings } from '../types';
+import type { AgentAction, DeviceInfo, Utterance, DisplayContent, SessionTtsSettings } from '../types';
 
 // Mock hooks that KioskMode uses
 vi.mock('../hooks/useSpeechRecognition', () => ({
@@ -1140,6 +1140,170 @@ describe('KioskMode', () => {
 
       // Should now show device count
       expect(screen.getByText(/📱 1 device connected/)).toBeDefined();
+    });
+  });
+
+  // Regression tests for issue #264 — kiosk timeline must interleave
+  // utterances and agent events chronologically, even when OH emits naive
+  // UTC timestamps and the browser TZ is not UTC.
+  describe('timeline interleaving (issue #264)', () => {
+    const makeUtterance = (id: string, text: string, receivedAt: Date): Utterance => ({
+      id,
+      senderId: 'mobile-1',
+      senderName: 'User',
+      text,
+      partial: false,
+      receivedAt,
+    });
+
+    const makeAction = (id: string, timestamp: string, kind: string = 'CmdRun'): AgentAction => ({
+      id,
+      timestamp,
+      kind,
+      source: 'agent',
+      summary: `${kind} ${id}`,
+    });
+
+    /**
+     * Read the DOM order of timeline entries by walking `.kiosk-message` and
+     * `.agent-event-card` children of `.kiosk-messages`. Returns an array of
+     * tagged ids so the test can assert chronological ordering.
+     */
+    const readTimelineOrder = (): string[] => {
+      const container = document.querySelector('.kiosk-messages');
+      if (!container) return [];
+      const result: string[] = [];
+      for (const child of Array.from(container.children) as HTMLElement[]) {
+        if (child.classList.contains('kiosk-message')) {
+          const text = child.querySelector('.text')?.textContent || '';
+          result.push(`utt:${text}`);
+        } else if (child.classList.contains('agent-event-card')) {
+          const summary = child.querySelector('.agent-event-summary')?.textContent || '';
+          result.push(`evt:${summary}`);
+        }
+      }
+      return result;
+    };
+
+    it('places agent events emitted with naive UTC timestamps in the correct slot', () => {
+      // Three points in time, in chronological order:
+      //   T0 — user says "first"
+      //   T1 — agent runs a command  (naive UTC, no `Z` — the bug case)
+      //   T2 — user says "second"
+      const t0 = new Date('2026-05-21T23:00:00Z');
+      const t1Naive = '2026-05-21T23:30:00';
+      const t2 = new Date('2026-05-21T23:45:00Z');
+
+      const utterances = new Map<string, Utterance>();
+      utterances.set('u1', makeUtterance('u1', 'first', t0));
+      utterances.set('u2', makeUtterance('u2', 'second', t2));
+
+      const agentActions: AgentAction[] = [makeAction('a1', t1Naive)];
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            // Render in desktop layout so the timeline is shown.
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            utterances={utterances}
+            agentActions={agentActions}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      const order = readTimelineOrder();
+
+      // Expect: first → agent event → second. Before the fix, the naive
+      // timestamp was parsed as local time and the agent event sorted after
+      // every utterance in non-UTC browsers.
+      expect(order).toEqual(['utt:first', 'evt:CmdRun a1', 'utt:second']);
+    });
+
+    it('handles a mix of naive and Z-suffixed agent timestamps', () => {
+      const t0 = new Date('2026-05-21T22:00:00Z');
+      const t1Zulu = '2026-05-21T22:15:00.123Z';
+      const t2Naive = '2026-05-21T22:30:00.456';
+      const t3 = new Date('2026-05-21T22:45:00Z');
+
+      const utterances = new Map<string, Utterance>();
+      utterances.set('u1', makeUtterance('u1', 'hello', t0));
+      utterances.set('u2', makeUtterance('u2', 'goodbye', t3));
+
+      const agentActions: AgentAction[] = [
+        // Intentionally out-of-order in the input to verify sorting:
+        makeAction('a-naive', t2Naive, 'FileRead'),
+        makeAction('a-zulu', t1Zulu, 'CmdRun'),
+      ];
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            utterances={utterances}
+            agentActions={agentActions}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      expect(readTimelineOrder()).toEqual([
+        'utt:hello',
+        'evt:CmdRun a-zulu',
+        'evt:FileRead a-naive',
+        'utt:goodbye',
+      ]);
+    });
+
+    it('uses serverTimestamp from utterance.receivedAt when set by SessionView', () => {
+      // Simulates the post-fix state: SessionView.handleTextMessage has
+      // already parsed `message.serverTimestamp` and set utterance.receivedAt
+      // to the corresponding Date. With both AI and agent events on OH's
+      // clock, an out-of-band reordering of utterances is interleaved
+      // correctly with the agent event.
+      const utterances = new Map<string, Utterance>();
+      utterances.set('u-user', {
+        id: 'u-user',
+        senderId: 'mobile-1',
+        senderName: 'User',
+        text: 'question',
+        partial: false,
+        receivedAt: new Date('2026-05-21T23:00:00Z'),
+      });
+      utterances.set('u-ai', {
+        id: 'u-ai',
+        senderId: 'ai',
+        senderName: '✨ AI',
+        text: 'answer',
+        partial: false,
+        // OH event timestamp from the moment the AI emitted the response.
+        receivedAt: new Date('2026-05-21T23:00:05.234Z'),
+      });
+
+      const agentActions: AgentAction[] = [
+        // OH-side timestamp BETWEEN the user question and the AI answer.
+        makeAction('a-thinking', '2026-05-21T23:00:03', 'CmdRun'),
+      ];
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            utterances={utterances}
+            agentActions={agentActions}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      expect(readTimelineOrder()).toEqual([
+        'utt:question',
+        'evt:CmdRun a-thinking',
+        'utt:answer',
+      ]);
     });
   });
 });

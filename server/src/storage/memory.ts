@@ -22,8 +22,14 @@ export class MemoryStore implements MessageStore {
   }
 
   async append(message: RelayedTextMessage): Promise<void> {
-    this.messages.push(message);
-    
+    // Stamp createdAt at append time if the caller didn't provide one, so
+    // that on reconnect the client can render historical messages with their
+    // original time instead of page-load time (issue #264). ISO Zulu only.
+    const stamped: RelayedTextMessage = message.createdAt
+      ? message
+      : { ...message, createdAt: new Date().toISOString() };
+    this.messages.push(stamped);
+
     // Trim to max size
     if (this.messages.length > this.maxMessages) {
       this.messages = this.messages.slice(-this.maxMessages);

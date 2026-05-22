@@ -88,7 +88,7 @@ export async function autoConnectAI(
     const aiSession = await aiSessionManager.getOrCreateForSession(
       sessionId,
       workspaceId,
-      (text: string) => {
+      (text: string, serverTimestamp?: string) => {
         // Relay AI responses to all devices in session
         const utteranceId = `ai-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
         const aiMessage: RelayedTextMessage = {
@@ -100,6 +100,9 @@ export async function autoConnectAI(
           senderName: '✨ AI',
           text,
           partial: false,
+          // Forward OH's normalized event timestamp so clients can place this
+          // utterance on the same clock as agent events (issue #264).
+          ...(serverTimestamp && { serverTimestamp }),
         };
         store.append(aiMessage);
         registry.broadcastToSession(aiMessage, sessionId);

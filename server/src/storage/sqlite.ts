@@ -5,6 +5,7 @@ import type { RelayedTextMessage } from '../types.js';
 import type { MessageStore } from './types.js';
 import { Migrator } from './migrator.js';
 import { getMigrations } from './migrations/index.js';
+import { normalizeOhTimestamp } from '../utils/timestamp.js';
 
 export interface SQLiteStoreOptions {
   path: string;
@@ -83,76 +84,74 @@ export class SQLiteStore implements MessageStore {
 
     // Filter by workspace if provided
     const sql = workspaceId
-      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
          FROM messages
          WHERE workspace_id = ?
          ORDER BY id DESC
          LIMIT ?`
-      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
          FROM messages
          ORDER BY id DESC
          LIMIT ?`;
 
     const stmt = this.db.prepare(sql);
-    const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as Array<{
-      utterance_id: string;
-      workspace_id: string | null;
-      session_id: string | null;
-      sender_id: string;
-      sender_name: string;
-      text: string;
-      partial: number;
-    }>;
+    const rows = (workspaceId ? stmt.all(workspaceId, limit) : stmt.all(limit)) as MessageRow[];
 
     // Reverse to get oldest-first order
-    return rows.reverse().map(row => ({
-      type: 'text' as const,
-      utteranceId: row.utterance_id,
-      workspaceId: row.workspace_id || 'default',
-      sessionId: row.session_id ?? undefined,
-      senderId: row.sender_id,
-      senderName: row.sender_name,
-      text: row.text,
-      partial: row.partial === 1,
-    }));
+    return rows.reverse().map(rowToMessage);
   }
 
   async getRecentBySession(limit: number, sessionId: string): Promise<RelayedTextMessage[]> {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial
+      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
       FROM messages
       WHERE session_id = ?
       ORDER BY id DESC
       LIMIT ?
     `);
 
-    const rows = stmt.all(sessionId, limit) as Array<{
-      utterance_id: string;
-      workspace_id: string | null;
-      session_id: string | null;
-      sender_id: string;
-      sender_name: string;
-      text: string;
-      partial: number;
-    }>;
+    const rows = stmt.all(sessionId, limit) as MessageRow[];
 
     // Reverse to get oldest-first order
-    return rows.reverse().map(row => ({
-      type: 'text' as const,
-      utteranceId: row.utterance_id,
-      workspaceId: row.workspace_id || 'default',
-      sessionId: row.session_id ?? undefined,
-      senderId: row.sender_id,
-      senderName: row.sender_name,
-      text: row.text,
-      partial: row.partial === 1,
-    }));
+    return rows.reverse().map(rowToMessage);
   }
 
   async clear(): Promise<void> {
     if (!this.db) throw new Error('SQLiteStore not connected');
     this.db.exec('DELETE FROM messages');
   }
+}
+
+interface MessageRow {
+  utterance_id: string;
+  workspace_id: string | null;
+  session_id: string | null;
+  sender_id: string;
+  sender_name: string;
+  text: string;
+  partial: number;
+  /**
+   * SQLite stores `created_at` as a string. The default value from
+   * `datetime('now')` is naive UTC with a space separator
+   * (e.g. `2026-05-21 23:46:59`). We normalize on read so consumers always
+   * see an ISO Zulu form (issue #264).
+   */
+  created_at: string | null;
+}
+
+function rowToMessage(row: MessageRow): RelayedTextMessage {
+  const createdAt = normalizeOhTimestamp(row.created_at ?? undefined);
+  return {
+    type: 'text' as const,
+    utteranceId: row.utterance_id,
+    workspaceId: row.workspace_id || 'default',
+    sessionId: row.session_id ?? undefined,
+    senderId: row.sender_id,
+    senderName: row.sender_name,
+    text: row.text,
+    partial: row.partial === 1,
+    ...(createdAt && { createdAt }),
+  };
 }

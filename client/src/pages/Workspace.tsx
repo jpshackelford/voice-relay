@@ -8,6 +8,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { getUserFriendlyMessage } from '../utils/errors';
+import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
 
 interface WorkspaceInfo {
@@ -113,13 +114,16 @@ export function Workspace() {
   const handleTextMessage = useCallback((message: ServerMessage & { type: 'text' }) => {
     setUtterances(prev => {
       const next = new Map(prev);
+      // Prefer the OH-emitted server timestamp (issue #264) so AI utterances
+      // share a clock with agent events on the kiosk timeline.
+      const serverTime = parseOhTimestamp(message.serverTimestamp);
       next.set(message.utteranceId, {
         id: message.utteranceId,
         senderId: message.senderId,
         senderName: message.senderName,
         text: message.text,
         partial: message.partial,
-        receivedAt: prev.get(message.utteranceId)?.receivedAt || new Date(),
+        receivedAt: serverTime ?? prev.get(message.utteranceId)?.receivedAt ?? new Date(),
       });
       return next;
     });
@@ -130,13 +134,17 @@ export function Workspace() {
       const next = new Map(prev);
       for (const msg of message.messages) {
         if (!next.has(msg.utteranceId)) {
+          // Use the persisted createdAt so historical messages render with
+          // their original time on reconnect (issue #264).
+          const createdAt =
+            parseOhTimestamp(msg.createdAt) ?? parseOhTimestamp(msg.serverTimestamp);
           next.set(msg.utteranceId, {
             id: msg.utteranceId,
             senderId: msg.senderId,
             senderName: msg.senderName,
             text: msg.text,
             partial: msg.partial,
-            receivedAt: new Date(),
+            receivedAt: createdAt ?? new Date(),
           });
         }
       }
