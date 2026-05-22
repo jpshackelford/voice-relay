@@ -1300,3 +1300,25 @@ Follow-up to #258 closing four rendering gaps surfaced by post-merge validation 
 **Follow-up Items:**
 - Watch vr.chorecraft.net deploy logs for healthy startup
 - Spot-check live UI to confirm action cards now show real summaries and skill/think/file-editor cards render content
+
+---
+
+### 2026-05-22 05:30 UTC - Review Worker (PR #275)
+
+✅ **Addressed review feedback on PR #275**
+
+- PR: [#275 - refactor(server): remove unused memory, redis, firestore storage drivers](https://github.com/jpshackelford/voice-relay/pull/275)
+- Issue: [#261](https://github.com/jpshackelford/voice-relay/issues/261)
+- Conv: `4fd59cf`
+- Commit: `0ef9660` - `test(storage): cover createStore and createStoreFromEnv driver validation`
+
+**Review threads addressed (both 🟡 suggestions from github-actions[bot]):**
+1. `isSupportedDriver` rejection coverage → added `it.each` over `[memory, redis, firestore, postgres, invalid]` against `createStore`; exercises `isSupportedDriver` indirectly via `createStoreFromEnv`'s parametrized test
+2. `createStoreFromEnv` unsupported value coverage → tests default-to-sqlite, explicit `STORE_DRIVER=sqlite`, and fail-fast error for each removed driver (asserts error message names the bad driver **and** lists `sqlite` as supported)
+
+**Bonus cleanup:** dropped stale coverage excludes for the deleted `redis.ts`/`firestore.ts` and the "tested indirectly" exclude for `storage/index.ts` (now 100% lines/funcs/branches directly).
+
+**CI:** 4/4 green (lint-pr-title, Build Client, Server Tests, E2E Tests). mergeStateStatus=CLEAN, mergeable=MERGEABLE. Both review threads resolved via GraphQL. PR back to ready.
+
+**Production impact:** None — pure test additions + vitest config cleanup. No runtime code changed by this commit.
+
