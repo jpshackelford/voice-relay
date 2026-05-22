@@ -8,6 +8,48 @@ const MAX_ACTIONS = 50;
 const STORAGE_KEY = 'showAgentActions';
 
 /**
+ * Merge a seed array (historical events fetched on mount) and a live array
+ * (events appended after mount) into a single dedupe-by-id list, preserving
+ * insertion order and trimming to {@link MAX_ACTIONS} from the *tail* (most
+ * recent kept).
+ *
+ * Used by both `seedActions` (history → existing live) and `handleAgentAction`
+ * (existing → new live event). See issue #269 — dedupe strategy.
+ *
+ * Note: synthetic events with no upstream id receive a fresh UUID each time
+ * the normalizer runs, so they cannot dedupe across the live ↔ history
+ * boundary. Acceptable for v1 — bias toward "show twice rather than drop"
+ * (see issue #269 risk section).
+ */
+function mergeAndDedupe(
+  base: ReadonlyArray<AgentAction>,
+  incoming: ReadonlyArray<AgentAction>,
+): AgentAction[] {
+  if (incoming.length === 0) return [...base];
+
+  const seen = new Set<string>();
+  const out: AgentAction[] = [];
+
+  // Base entries take precedence on id-collision (preserves the existing
+  // reference so React reconciles minimally). Seed-then-live ordering is the
+  // caller's responsibility — see seedActions.
+  for (const a of base) {
+    if (!seen.has(a.id)) {
+      seen.add(a.id);
+      out.push(a);
+    }
+  }
+  for (const a of incoming) {
+    if (!seen.has(a.id)) {
+      seen.add(a.id);
+      out.push(a);
+    }
+  }
+
+  return out.length > MAX_ACTIONS ? out.slice(-MAX_ACTIONS) : out;
+}
+
+/**
  * Hook to manage agent action events for the kiosk display.
  * Provides state for actions list, toggle visibility, and handles incoming action messages.
  * 
@@ -27,20 +69,59 @@ export function useAgentActions(sessionId?: string) {
 
   /**
    * Handle incoming agent action message from WebSocket.
-   * Filters by sessionId if provided, and maintains max action count.
+   * Filters by sessionId if provided. Dedupes against already-seeded
+   * history (or earlier live events) by `AgentAction.id` and maintains the
+   * {@link MAX_ACTIONS} retention cap (oldest trimmed first).
+   *
+   * Issue #269: dedupe-by-id allows a live message that overlaps the
+   * persisted history to be a no-op rather than render twice.
    */
   const handleAgentAction = useCallback((message: AgentActionMessage) => {
     // Filter by session if we have a sessionId
     if (sessionId && message.sessionId !== sessionId) {
       return;
     }
-    
-    setActions((prev) => {
-      const updated = [...prev, message.action];
-      // Keep only the last MAX_ACTIONS
-      return updated.slice(-MAX_ACTIONS);
-    });
+
+    setActions((prev) => mergeAndDedupe(prev, [message.action]));
   }, [sessionId]);
+
+  /**
+   * Seed the actions state with historical events fetched from
+   * `GET /api/sessions/:sessionId/agent-events` (issue #269).
+   *
+   * Behavior:
+   * - Historical events are placed *before* any live events already in
+   *   state, so the timeline reads chronologically when seed arrives after
+   *   the first live events.
+   * - Dedupe is by `AgentAction.id`. Live events already in state win on
+   *   id-collision (their object reference is preserved so React reconciles
+   *   minimally and any in-flight observation linkage stays intact).
+   * - Respects the {@link MAX_ACTIONS} cap, trimming the *oldest* entries
+   *   first — matches kiosk UX of "show me the most recent N".
+   * - Empty seed is a no-op.
+   *
+   * Idempotent: calling with the same seed twice yields the same state.
+   */
+  const seedActions = useCallback((seed: ReadonlyArray<AgentAction>) => {
+    if (seed.length === 0) return;
+    setActions((prev) => {
+      // Build the live-id set first so we can skip seed entries that have
+      // already been delivered live. Preserves live object references on
+      // id-collision (existing-instance wins).
+      const liveIds = new Set(prev.map(a => a.id));
+      const merged: AgentAction[] = [];
+      for (const a of seed) {
+        if (!liveIds.has(a.id)) merged.push(a);
+      }
+      // Append all existing live events after the historical seed.
+      for (const a of prev) {
+        merged.push(a);
+      }
+      return merged.length > MAX_ACTIONS
+        ? merged.slice(-MAX_ACTIONS)
+        : merged;
+    });
+  }, []);
 
   /**
    * Toggle the visibility of the actions panel.
@@ -77,6 +158,8 @@ export function useAgentActions(sessionId?: string) {
     toggleShowActions,
     /** Clear all stored actions */
     clearActions,
+    /** Seed actions with historical events (issue #269) */
+    seedActions,
   };
 }
 

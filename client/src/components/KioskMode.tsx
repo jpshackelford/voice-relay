@@ -6,6 +6,7 @@ import { generateUUID } from '../utils/uuid';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
+import { AgentHistoryStatus } from './AgentHistoryStatus';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
 
@@ -46,6 +47,17 @@ interface KioskModeProps {
   showAgentActions?: boolean;
   /** Callback to toggle agent actions visibility */
   onToggleAgentActions?: () => void;
+  // === Issue #269: agent-event history hydration status ===
+  /** True while the initial agent-event history fetch is in flight. */
+  agentHistoryLoading?: boolean;
+  /** True when the most recent server-side rehydration completed. */
+  agentHistoryRehydrationComplete?: boolean;
+  /** User-friendly error message from the history fetch (null on success). */
+  agentHistoryError?: string | null;
+  /** OH conversation id mapped to this session, or `null` if unmapped. */
+  agentHistoryConversationId?: string | null;
+  /** Retry the history fetch with `rehydrate=force`. */
+  onRetryAgentHistory?: () => void;
 }
 
 // Hook to detect mobile devices
@@ -85,6 +97,11 @@ export function KioskMode({
   agentActions = [],
   showAgentActions = false,
   onToggleAgentActions,
+  agentHistoryLoading = false,
+  agentHistoryRehydrationComplete = true,
+  agentHistoryError = null,
+  agentHistoryConversationId,
+  onRetryAgentHistory,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -573,6 +590,19 @@ export function KioskMode({
             )}
           </button>
         </div>
+        {/* Issue #269: subtle inline status for the persisted-history hydration.
+            Rendered only when relevant so the empty case stays clean. The live
+            WS path is unaffected by any of these states. */}
+        {showAgentActions && (
+          <AgentHistoryStatus
+            loading={agentHistoryLoading}
+            error={agentHistoryError}
+            rehydrationComplete={agentHistoryRehydrationComplete}
+            conversationId={agentHistoryConversationId}
+            actionCount={agentActions.length}
+            onRetry={onRetryAgentHistory}
+          />
+        )}
 
         {/* Unified Timeline - Messages and agent events interleaved */}
         <div className="kiosk-messages">
