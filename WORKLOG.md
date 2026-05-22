@@ -1,3 +1,34 @@
+### 2026-05-22 01:53 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f0caf18` | implementation | Issue #262 — Persist agent events on socket close | running |
+| `003c227` | review | PR #266 — feat(server): persist OpenHands agent events | **NEW** |
+
+**Worker Completed:** `8076d90` (expansion) — Issue #264 now `ready` (labels: bug, ready, priority:high, client)
+
+**Spawned: Review Worker**
+- PR: [#266](https://github.com/jpshackelford/voice-relay/pull/266) (feat/agent-events-260)
+- Conversation: [`003c227`](https://app.all-hands.dev/conversations/003c227bc8234991a25eff3a2c9798f2)
+- Task: resolve unresolved review thread — TTL default mismatch in PR description (claims 14d; another section says 7d; code uses 14d). Worker to harmonize code/docs/PR description and resolve the thread.
+
+**Current State:**
+- Open PRs:
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (stuck on merge conflicts since 2026-05-18, skipped)
+  - [PR #266](https://github.com/jpshackelford/voice-relay/pull/266) — review worker dispatched
+- Issues:
+  - Ready, prioritized: #264 (priority:high), #260 (in PR #266), others
+  - In flight (impl): #262
+  - Awaiting expansion: #261, #263
+  - On-hold (skip): #208, #210, #239
+- Slots: expansion 0/4, implementation 1/1, review 1/2
+
+**Action Taken:**
+🚀 Spawned review worker for PR #266; moved expansion #264 to completed; impl slot remains occupied by #262.
+
+---
+
 ### 2026-05-22 01:38 UTC - Expansion Worker
 
 ✅ **Expanded Issue #264** — Kiosk timeline does not interleave utterances and agent events (TZ parse + clock-source mismatch)
