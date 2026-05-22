@@ -1,5 +1,19 @@
 ### 2026-05-22 01:15 UTC - Expansion Worker
 
+✅ **Expanded Issue #263** — Migration tooling improvements: CLI, drift detection, advisory locking
+
+- Issue: [#263](https://github.com/jpshackelford/voice-relay/issues/263)
+- Type: Enhancement (operational hardening)
+- Status: Ready for implementation (added `ready` label)
+- Approach: Restructured body into Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope. Added a technical-approach comment covering per-feature design, ordered implementation plan, files affected, and risks.
+- Key design decision: Introduced a `MigrationLock` interface with a `SQLiteTableLock` (BEGIN IMMEDIATE + sentinel-row + 5-min stale TTL) implementation that ports cleanly to `pg_advisory_lock()` for the future Postgres driver (#261). Interface intentionally minimal (`acquire(timeoutMs)` / `release()`) so callers cannot depend on driver-specific semantics.
+- Dropped `error` column from original scope (transactions roll back; logs are the right surface). Kept `sql_hash` + `duration_ms`.
+- Scope size: ~400–600 LOC + tests across 8 implementation steps; recommended ordering keeps each step PR-sized.
+
+---
+
+### 2026-05-22 01:15 UTC - Expansion Worker
+
 ✅ **Expanded Issue #261**
 
 - Issue: [Remove unused storage drivers (redis, firestore, memory) in preparation for Postgres](https://github.com/jpshackelford/voice-relay/issues/261)
