@@ -1749,3 +1749,44 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-22 10:31 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **13th consecutive manual /orchestrate — fully-blocked state unchanged. Correcting prior automation-status reporting.**
+
+**Active Workers:** none. `.workflow-state.json` last_updated 2026-05-22T06:03:55Z, all slots empty.
+
+**Automation status (re-checked the right IDs this time):**
+- `a0219382-2e7c-4156-9991-7b9976739a66` — "Voice Relay Workflow Orchestrator (old)" → `enabled: false` (legacy, the one the skill still references).
+- `5f180989-ed9c-42b4-ac9f-5f30f0623316` — "Voice Relay Workflow Orchestrator v2" → **`enabled: true`** (the actually-live one).
+
+⚠️ **Correction:** The 06:31 → 10:18 UTC manual /orchestrate entries only verified the v1 ID and reported "automation disabled". The live v2 automation has been **enabled** the whole time. The 2026-05-21 23:34 UTC entry disabled v2; it was re-enabled at some point since (likely by @jpshackelford via UI). I am **not** auto-disabling v2 again — flipping a human-set toggle in a loop is worse than letting it idle.
+
+**Re-verified at 2026-05-22T10:31Z (no change since 06:46 UTC):**
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=UNKNOWN`, `updatedAt=2026-05-22T03:38:47Z` (no change in ~7h).
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issue #265 — `ready`, `priority:medium`; already covered by stuck PR #272 → can't spawn impl (would duplicate).
+- Issues #208 / #210 / #239 — `on-hold` (intentional human deferral) → impl slot can't pick them up.
+
+**Decision:** ✅ No action.
+- Impl slot: every ready issue is either covered by a stuck PR or `on-hold`.
+- Review/merge slots: both open PRs carry `needs-human` — workers are blocked.
+- Expansion slot: nothing needs expansion.
+
+**Blockers (unchanged — see 07:19 UTC entry for full detail):**
+1. **PR #272** — out-of-scope `shouldSkipForKioskTime…` server helper + `mergeStateStatus=UNKNOWN`. Human must trim/revert the helper or accept the scope expansion, then drop `needs-human`.
+2. **PR #221** — long-stalled draft (4+ days). Decide: revive or close.
+3. **Issues #208 / #210 / #239** — `on-hold`; remove the label to make any of them actionable.
+
+**For @jpshackelford:** v2 cron is still firing but has no work to pick up. Either resolve one of the blockers above so the next cron tick can act, or disable v2 manually until you're ready:
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
