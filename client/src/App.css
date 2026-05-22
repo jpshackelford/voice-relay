@@ -1116,6 +1116,23 @@ header {
   color: #f39c12;
 }
 
+.success-indicator.error {
+  color: #e74c3c;
+}
+
+/* Pending: in-flight agent action awaiting its observation (issue #265).
+   Uses a subdued color + slow pulse so it's distinguishable from terminal
+   states without competing for attention. */
+.success-indicator.pending {
+  color: #95a5a6;
+  animation: success-indicator-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes success-indicator-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
 /* Agent Event Details (expanded) */
 .agent-event-details {
   margin-top: 0.5rem;

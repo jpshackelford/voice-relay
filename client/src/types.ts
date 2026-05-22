@@ -391,10 +391,14 @@ export interface Utterance {
 /**
  * Unified timeline entry for displaying utterances and agent events inline.
  * Used to chronologically interleave messages with agent actions in the conversation view.
+ *
+ * For agent events, the `data` field holds the action and `observation` (optional)
+ * holds the paired observation if one has been received. See `pairAgentEvents()` in
+ * `utils/pairAgentEvents.ts` for the pairing rules.
  */
 export type TimelineEntry =
   | { type: 'utterance'; data: Utterance }
-  | { type: 'agent-event'; data: AgentAction };
+  | { type: 'agent-event'; data: AgentAction; observation?: AgentAction };
 
 /**
  * Determine success/timeout/error status from agent event.

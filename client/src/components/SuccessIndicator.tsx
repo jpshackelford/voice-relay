@@ -8,10 +8,10 @@ interface SuccessIndicatorProps {
  * Displays success/timeout status icons for agent observations.
  * Based on OpenHands' success-indicator.tsx patterns.
  * 
- * - success: ✅ green checkmark
- * - timeout: 🕐 yellow clock
- * - error: nothing (absence of checkmark implies failure)
- * - pending: nothing (waiting for observation)
+ * - success: ✓ checkmark
+ * - timeout: ⏱ clock
+ * - error:   ✗ cross
+ * - pending: ⋯ ellipsis (action in flight, observation not yet received)
  */
 export function SuccessIndicator({ status }: SuccessIndicatorProps) {
   if (status === 'success') {
@@ -30,9 +30,22 @@ export function SuccessIndicator({ status }: SuccessIndicatorProps) {
     );
   }
 
-  // For 'error' and 'pending' status, render nothing
-  // Absence of checkmark implies failure or still waiting
-  return null;
+  if (status === 'error') {
+    return (
+      <span className="success-indicator error" title="Error">
+        ✗
+      </span>
+    );
+  }
+
+  // Pending: the action has been emitted but no observation has arrived yet.
+  // Show an explicit badge so an in-flight action is visually distinct from a
+  // silently-succeeded one (issue #265).
+  return (
+    <span className="success-indicator pending" title="Pending">
+      ⋯
+    </span>
+  );
 }
 
 /**

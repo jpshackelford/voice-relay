@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { generateUUID } from '../utils/uuid';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
+import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
@@ -364,13 +365,20 @@ export function KioskMode({
     (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
   );
 
-  // Create unified timeline by merging utterances and agent events
+  // Create unified timeline by merging utterances and agent events.
   // Compute full timeline unconditionally - visibility filtering happens during render
-  // This avoids re-sorting when toggling agent actions visibility
+  // (avoids re-sorting when toggling agent actions visibility).
+  //
+  // Agent events are paired before sorting: each ActionEvent is matched to its
+  // matching ObservationEvent by `observation.action_id === action.id`, so the
+  // sidebar renders one card per logical tool invocation (issue #265). The
+  // paired entry sorts by the action's timestamp so the response stays under
+  // the request that produced it even if the observation arrives milliseconds
+  // later.
   const timeline: TimelineEntry[] = useMemo(() => {
     // Pre-compute timestamps to avoid creating Date objects on every sort comparison
     const entriesWithTime: Array<{ entry: TimelineEntry; time: number }> = [];
-    
+
     // Add utterances with pre-computed timestamps
     for (const utterance of utterances.values()) {
       entriesWithTime.push({
@@ -378,23 +386,28 @@ export function KioskMode({
         time: utterance.receivedAt.getTime(),
       });
     }
-    
-    // Add agent events with pre-computed timestamps.
+
+    // Pair agent events first, then add to the timeline. The pairing is
+    // order-independent so it tolerates the WebSocket emitting the observation
+    // immediately after the action with the same wall-clock timestamp
+    // (issue #265).
+    //
     // Use `parseOhTimestamp` instead of `new Date(...)` directly: OH historically
     // emits naive UTC ISO strings (no `Z`), which `new Date()` interprets as
     // local time in non-UTC browsers and pushes every agent event forward by
     // the local UTC offset (issue #264). The server now normalizes these on
     // the way out, but this is defense-in-depth in case a stray naive value
     // sneaks through (e.g. cross-version deploys).
-    for (const action of agentActions) {
+    const pairedEvents = pairAgentEvents(agentActions);
+    for (const { action, observation } of pairedEvents) {
       const parsed = parseOhTimestamp(action.timestamp);
       const actionTime = parsed ? parsed.getTime() : Date.now();
       entriesWithTime.push({
-        entry: { type: 'agent-event', data: action },
+        entry: { type: 'agent-event', data: action, observation },
         time: actionTime,
       });
     }
-    
+
     // Sort by pre-computed timestamps, then extract entries
     return entriesWithTime
       .sort((a, b) => a.time - b.time)
@@ -624,11 +637,14 @@ export function KioskMode({
                   </div>
                 );
               } else {
-                // Agent event - render as collapsible card
+                // Agent event - render as a single collapsible card that
+                // combines the action with its paired observation when one
+                // has arrived (issue #265).
                 return (
-                  <AgentEventCard 
-                    key={entry.data.id} 
-                    action={entry.data} 
+                  <AgentEventCard
+                    key={entry.data.id}
+                    action={entry.data}
+                    observation={entry.observation}
                   />
                 );
               }
