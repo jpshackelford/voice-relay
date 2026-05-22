@@ -59,11 +59,39 @@ export class SQLiteStore implements MessageStore {
         db: this.db,
         migrations: getMigrations(),
       });
-      
+
+      // Drift detection: warn loudly on hash mismatch, never block.
+      for (const drift of migrator.detectDrift()) {
+        if (drift.currentHash === '') {
+          console.warn(
+            `[SQLiteStore] DRIFT: migration ${drift.version}_${drift.name} is applied ` +
+              `but no matching file exists in the codebase`
+          );
+        } else {
+          console.warn(
+            `[SQLiteStore] DRIFT: applied migration ${drift.version}_${drift.name} has been edited ` +
+              `(stored hash=${drift.storedHash?.slice(0, 12)}…, current hash=${drift.currentHash.slice(0, 12)}…)`
+          );
+        }
+      }
+
       const pending = migrator.getPending();
       if (pending.length > 0) {
+        // AUTO_MIGRATE controls whether we apply pending migrations at boot.
+        // Defaults to true to preserve the existing behaviour production
+        // depends on; set AUTO_MIGRATE=false in prod and run `npm run db:migrate`
+        // ahead of the deploy that requires them.
+        const autoMigrate =
+          (process.env.AUTO_MIGRATE ?? 'true').toLowerCase() !== 'false';
+        if (!autoMigrate) {
+          const list = pending.map(m => `${m.version}_${m.name}`).join(', ');
+          throw new Error(
+            `[SQLiteStore] ${pending.length} pending migration(s) and AUTO_MIGRATE=false. ` +
+              `Pending: ${list}. Run: npm run db:migrate`
+          );
+        }
         console.log(`[SQLiteStore] ${pending.length} pending migration(s)`);
-        const result = migrator.migrateUp();
+        const result = await migrator.migrateUp();
         console.log(`[SQLiteStore] Applied ${result.applied} migration(s):`, result.migrations);
       } else {
         console.log(`[SQLiteStore] Schema up to date (version ${migrator.getCurrentVersion()})`);
