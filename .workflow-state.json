@@ -11,10 +11,10 @@
     ],
     "review": [
       {
-        "conv_id": "b8f99f6",
+        "conv_id": "91b977c",
         "pr": 272,
-        "started": "2026-05-22T03:22:27.477789+00:00",
-        "kind": "rebase"
+        "kind": "merge",
+        "started": "2026-05-22T03:37:07.658223+00:00"
       }
     ]
   },
@@ -23,17 +23,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T03:22:27.477789+00:00",
+  "last_updated": "2026-05-22T03:37:07.658223+00:00",
   "completed": [
-    {
-      "conv_id": "d077822",
-      "type": "review",
-      "pr": 254,
-      "started": "2026-05-21T03:18:54.240281+00:00",
-      "finished": "2026-05-21T03:32:47.394290+00:00",
-      "status": "success",
-      "outcome": "Addressed final documentation review comment for PR #254"
-    },
     {
       "conv_id": "6f93c0c",
       "type": "review",
@@ -277,6 +268,16 @@
       "finished": "2026-05-22T03:22:27.477789+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #268 (kiosk TZ fix), issue #264 auto-closed"
+    },
+    {
+      "conv_id": "b8f99f6",
+      "type": "review",
+      "kind": "rebase",
+      "pr": 272,
+      "started": "2026-05-22T03:22:27.477789+00:00",
+      "finished": "2026-05-22T03:37:07.658223+00:00",
+      "status": "success",
+      "outcome": "Rebased PR #272 onto main (resolved KioskMode.tsx conflicts from PR #268), CI back to green, no unresolved review threads"
     }
   ]
 }

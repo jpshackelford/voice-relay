@@ -1035,3 +1035,56 @@ Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new ac
 
 **Slot Usage:** expansion=0/4, implementation=1/1, review=1/2
 
+
+
+### 2026-05-22 03:37 UTC - Orchestrator
+
+🚀 **Spawned: Merge Worker for PR #272**
+
+**Workers completed since last cycle:**
+- `b8f99f6` (review/rebase, PR #272) → finished → rebase landed; PR #272 now `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks green, 0 unresolved review threads.
+
+**Active Workers (after this cycle's spawn):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `1b68706` | implementation | Issue #269 - hydrate agent event timeline from persisted store | running |
+| `91b977c` | merge | PR #272 - pair ActionEvent + ObservationEvent | **NEW** |
+
+**Spawned Worker:**
+- **Merge Worker** — [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) `fix(client): pair ActionEvent + ObservationEvent into a single agent event card`
+  - Conversation: https://app.all-hands.dev/conversations/91b977ca331345489b28d8cbd459a794
+  - Rationale: Every merge criterion is satisfied. The previous rebase worker (`b8f99f6`) cleared the conflicts introduced by PR #268. No human reviewer required (bot-only). Worker will verify the diff is client-only (no surprise server/migration changes), update the PR description to reflect the final state, squash-merge with conventional commit (`fix(client):`), and confirm issue #265 auto-closes via `Fixes #265`.
+  - Guardrail: if the diff includes any server/schema changes, the worker is instructed to add `needs-human` and STOP rather than force-merging.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `ocFC green ready 💬--` (merge worker `91b977c` taking it over the line; fixes #265)
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (STUCK since 2026-05-18, skipped)
+- **Ready issues queued (awaiting impl slot):**
+  - #263 — `priority:medium` enhancement (migration tooling improvements)
+  - #261 — ready, **no priority label** (needs `/assess-priority` before impl)
+- **In progress (impl):** #269 — `1b68706` (client hydration of agent event timeline)
+- **Closing soon (when PR #272 merges):** #265 (will auto-close via `Fixes #265`)
+- **On-hold (skipped):** #208, #210, #239 — all carry the `on-hold` label
+- **No issues need expansion** (all open non-on-hold issues already have `ready`)
+
+**Slot Usage (after spawn):**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all unexpanded ones are `on-hold`) |
+| Implementation | 1 | 1 | #269 — `1b68706` (running) |
+| Review/Merge | 1 | 2 | PR #272 merge — `91b977c`; PR #221 stuck; 1 slot free |
+
+**Decision rationale:**
+- PR #272 is the clearest possible merge candidate: rebase finished, CI green, no unresolved threads, no human reviewer required. Merge worker chosen over review worker because there is nothing left to address.
+- Implementation slot still occupied by `1b68706` on #269 — cannot spawn second impl worker. Once #272 merges, #269's client work will rebase cleanly because the merge worker's commit and #269's branch don't touch the same `KioskMode.tsx` `timeline` `useMemo` (#269 is scoped to `useAgentActions.ts` per its expansion).
+- No second review/merge worker spawned: PR #221 is `needs-human` (STUCK), and the only other open PR (#272) is being merged. No new PRs in flight.
+- No expansion workers spawned: every non-on-hold open issue already has `ready`.
+- `#261` (`Remove unused storage drivers`) still needs `/assess-priority`. Will run inline at next wake-up if impl slot frees and no higher-priority work is ready. Not urgent — it's an audit cleanup, not a blocking dependency.
+
+**Next cycle:**
+- If `91b977c` merges PR #272 → #265 auto-closes; impl slot still owned by `1b68706`. No new impl spawn until #269's PR opens (or `1b68706` finishes) to avoid branch pile-up.
+- If `1b68706` opens a PR for #269 → review/CI handling next cycle; coordinate with PR #272 merge state.
+- After both clear: dispatch impl for #263 (priority:medium, migration tooling). #261 needs `/assess-priority` before it can be picked.
+
+---
