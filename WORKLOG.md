@@ -1,3 +1,20 @@
+### 2026-05-22 02:12 UTC - Merge Worker (PR #267)
+
+✅ **Merged PR [#267](https://github.com/jpshackelford/voice-relay/pull/267)** — fix(db): enforce SQLite foreign keys + WAL with startup assertion
+
+- Squash-merge commit: [`227609e`](https://github.com/jpshackelford/voice-relay/commit/227609e63e4516ec55e8b3b43fde1645a40b71e5)
+- Linked issue **#262** auto-closed by `Fixes #262` trailer (closedAt 02:11:54 UTC, stateReason COMPLETED).
+- CI was green (Server Tests, Build Client, E2E Tests, lint-pr-title, pr-review). Mergeable=CLEAN. Zero unresolved review threads.
+- Production-safety review before merge:
+  - **Startup assertion** is a post-set readback of `PRAGMA foreign_keys`. Enabling FK enforcement only applies prospectively — it does **not** re-validate existing rows, so the assertion cannot fire against latent orphans on first boot.
+  - **Migration 013 (`fk_orphan_cleanup`)** runs in the migrator's per-migration transaction with FK already on. Uses `DELETE … WHERE … NOT IN (SELECT id …)` and `UPDATE … SET col = NULL` patterns — neither can itself violate a FK. Cascade chains may fire and are intended (orphan sessions cascade to `session_devices` + `SET NULL` `messages.session_id`). If the migration throws, the transaction rolls back, the DB is untouched, and `connect()` rejects — systemd restarts the process.
+  - **WAL switch** is persisted in the DB header. Sidecar `*-wal`/`*-shm` files appear next to `sqlite.db`; older builds remain compatible. Rollback safe per the runbook.
+  - PR description updated with an explicit "Migration notes (first boot against existing prod DB)" section before merge.
+- Automated `github-actions` review verdict: 🟢 Worth merging (MEDIUM risk, well mitigated).
+- Production auto-deploys to `vr.chorecraft.net` from main; the runbook at `docs/runbooks/sqlite-fk-enforcement.md` documents the post-deploy verification (`PRAGMA journal_mode;` should report `wal` on the live DB).
+
+---
+
 ### 2026-05-22 02:10 UTC - Review Worker (PR #266)
 
 ✅ **Resolved review feedback on PR [#266](https://github.com/jpshackelford/voice-relay/pull/266)** — feat(server): persist OpenHands agent events with TTL and REST rehydration
