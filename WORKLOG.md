@@ -1,3 +1,38 @@
+### 2026-05-22 05:25 UTC - Review-Response Worker (PR #274, issue #263)
+
+🩹 **Addressed CHANGES_REQUESTED on PR [#274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Fix commit [`1d5b02f`](https://github.com/jpshackelford/voice-relay/commit/1d5b02ff367b6815a58efdd1e0665b4f75d8b952): `fix(migrations): mark 010, 011, 013 as destructive`.
+
+**Bot finding (critical, unresolved thread):** The destructive-migration list was missing three entries whose `down`/`up` permanently lose user data and would therefore roll back silently without `--confirm-destructive`.
+
+**Fix:**
+- `server/src/storage/migrations/010_display_api_secrets.ts` — `down` does the SQLite recreate-table dance to drop the new `display_api_secret_{encrypted,iv,tag}` columns from `sessions`. Added `destructive: true` with an in-file comment explaining the data loss.
+- `server/src/storage/migrations/011_elevenlabs.ts` — `down` recreates `workspace_settings`, permanently dropping the encrypted ElevenLabs API key, voice ID, and TTS-enabled flag. Same treatment.
+- `server/src/storage/migrations/013_fk_orphan_cleanup.ts` — `up` deletes orphan rows / nulls orphan FKs; `down` is a documented no-op (`SELECT 1`). Marked destructive so `npm run db:rollback` surfaces the irreversibility to operators instead of letting the no-op happen quietly.
+- `docs/runbooks/database-migrations.md` — added the three migrations to the "Currently marked destructive" list with short notes on what each drops; tightened the doc to clarify that the marker applies both when `down` drops user data *and* when `up` is itself non-reversible.
+
+**Verification (local, against a fresh SQLite DB):**
+- `npm run db:status` now tags `10_display_api_secrets`, `11_elevenlabs`, and `13_fk_orphan_cleanup` with `[destructive]`.
+- `npm run db:rollback --yes` against a freshly-migrated DB exits 2 with `Refusing to roll back destructive migration 13_fk_orphan_cleanup. Pass --confirm-destructive to override.`
+- `migrator.test.ts` 'destructive marker' test still passes.
+
+**Workflow steps performed:**
+1. Set PR back to draft (`gh pr ready 274 --undo`).
+2. Pulled the unresolved review-thread body via GraphQL to confirm the three migrations the bot called out.
+3. Audited each migration's `down` block before adding the flag — confirmed each one matches the criteria in the runbook (drops a column/table containing user data, or is otherwise irreversible).
+4. Pushed `1d5b02f` to `feat/migration-tooling-263`.
+5. Watched CI to green: Server Tests pass (30s), Build Client pass (22s), E2E Tests pass (1m35s), lint-pr-title pass.
+6. Posted a reply on the review thread (`PRRC_kwDOSTUWGM7D2_y2`) summarising the fix and resolved the thread (`resolveReviewThread` returned `isResolved: true`).
+7. Promoted the PR from draft back to ready-for-review (`gh pr ready 274`).
+
+**Production safety:** SQLite is the production driver and these are flag-only changes — no schema mutation, no migration ordering change. The marker is purely a CLI guardrail (the runner ignores it), so `vr.chorecraft.net`'s auto-deploy on merge will only ever see the same migrations it would have run before; the difference is that a future operator running `npm run db:rollback` will be forced to type `--confirm-destructive` before any of these three can roll back.
+
+**Status:** PR is ready-for-review, CI green, the one critical thread is resolved. Merge handling is a separate conversation per the worker's exit instructions.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
+
 ### 2026-05-22 05:15 UTC - Implementation Worker (issue #261, PR #275)
 
 🛠️ **Opened PR [#275](https://github.com/jpshackelford/voice-relay/pull/275)** — `refactor(server): remove unused memory, redis, firestore storage drivers`. Implements [#261](https://github.com/jpshackelford/voice-relay/issues/261) — dead-code cleanup before the Postgres driver (#263) lands.
