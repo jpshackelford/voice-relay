@@ -1,3 +1,25 @@
+### 2026-05-22 05:15 UTC - Implementation Worker (issue #261, PR #275)
+
+🛠️ **Opened PR [#275](https://github.com/jpshackelford/voice-relay/pull/275)** — `refactor(server): remove unused memory, redis, firestore storage drivers`. Implements [#261](https://github.com/jpshackelford/voice-relay/issues/261) — dead-code cleanup before the Postgres driver (#263) lands.
+
+**Shipped:**
+- Deleted `server/src/storage/{memory,redis,firestore}.ts` and `memory.test.ts` (~400 lines of code that nothing outside the storage directory referenced).
+- Narrowed `StoreConfig['driver']` from `'memory' | 'sqlite' | 'redis' | 'firestore'` to the string literal `'sqlite'`; dropped matching config shapes. `MessageStore` interface (including `connect`/`disconnect`) preserved so a Postgres driver can implement the same contract.
+- `createStore()` reduced to a single `case 'sqlite'`; default arm throws `Unknown STORE_DRIVER "X". Supported values: sqlite` — stale `.env` files with `STORE_DRIVER=memory` (or `redis`/`firestore`) now fail fast at startup.
+- `createStoreFromEnv()` no longer reads `STORE_MAX_MESSAGES`, `REDIS_URL`, or `FIRESTORE_*`; removed the "Default changed from memory to SQLite" transition log message.
+- Removed `redis@^4.6.13` from `server/package.json`; regenerated root `package-lock.json` (this is a workspaces repo).
+- README cleaned: dropped "Memory" and "Redis" subsections, fixed env-var table to show `STORE_DRIVER` default `sqlite` with only `sqlite` valid, removed `REDIS_URL` and `STORE_MAX_MESSAGES` rows, linked SQLite section to the planned Postgres driver (#263).
+
+**Production safety:** SQLite driver and migrations are untouched. `tests/global-setup.ts`, `.env.example`, `docs/DEPLOYMENT.md` already pin `STORE_DRIVER=sqlite`, so the auto-deploy to `vr.chorecraft.net` is unaffected.
+
+**CI:** Server Tests (797 passing), Build Client, E2E Tests, lint-pr-title (after retitling to use the `server` scope), enable-orchestrator — all green. Promoted from draft to ready-for-review.
+
+**Postgres seam preserved:** `MessageStore` interface unchanged, `createStore({ driver })` switch shape unchanged, `connect`/`disconnect` lifecycle kept. Postgres driver (#263) drops in by extending the union to `'sqlite' | 'postgres'` and adding a `case 'postgres'`. The dead siblings are gone so the contract is unambiguous.
+
+**Follow-up flagged in PR (not in scope):** `memory.test.ts` was the only generic contract test of `MessageStore` (every other test exercises SQLite specifics). When the Postgres driver lands it would be worth extracting the contract into a shared helper that runs against both `SQLiteStore` and `PostgresStore`.
+
+---
+
 ### 2026-05-22 05:01 UTC - Merge Worker (PR #273, issue #269)
 
 🚀 **Merged PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — `feat(client): hydrate agent event timeline from persisted store (#269)`. Squash commit [`8cc09d2`](https://github.com/jpshackelford/voice-relay/commit/8cc09d291c328eea6c55c493904c0fa57c8a35ea). Issue [#269](https://github.com/jpshackelford/voice-relay/issues/269) auto-closed via `Closes #269`.
