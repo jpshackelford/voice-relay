@@ -32,6 +32,8 @@ function createMockSessionRepository(
     getDevices: vi.fn().mockReturnValue(devicesInSession),
     getDisplaySecret: vi.fn().mockReturnValue(displaySecret),
     setDisplaySecret: vi.fn().mockReturnValue('generated-secret-123'),
+    updateMetadata: vi.fn().mockReturnValue(null),
+    findById: vi.fn().mockReturnValue(null),
   } as unknown as SessionRepository;
 }
 

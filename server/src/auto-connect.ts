@@ -122,6 +122,20 @@ export async function autoConnectAI(
       }
     );
 
+    // Persist the OH conversation ID to session metadata so we can rehydrate
+    // events from OH REST after the live WS has died and our cached rows
+    // have been pruned. The in-memory map in AISessionManager is lost on
+    // server restart; the DB is the only durable home.
+    try {
+      sessionRepository.updateMetadata(sessionId, {
+        aiConversationId: aiSession.conversationId,
+      });
+    } catch (metaErr) {
+      // Non-fatal: rehydration just won't be possible for this session,
+      // which is the same behaviour we had before this code existed.
+      console.error(`[AI] Failed to persist aiConversationId for session ${sessionId}:`, metaErr);
+    }
+
     // Broadcast connected status
     const connectedStatus: SessionAIStatusMessage = {
       type: 'session-ai-status',
