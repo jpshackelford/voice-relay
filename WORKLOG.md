@@ -1641,3 +1641,38 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-99
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-22 08:32 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **8th consecutive manual /orchestrate — fully-blocked state unchanged; no workers spawned.**
+
+Re-verified at 2026-05-22T08:32Z. Identical state to 08:18, 08:02, 07:46, 07:34, 07:19, 07:04, 06:46 UTC entries.
+
+**Active Workers:** none (`.workflow-state.json` last_updated 2026-05-22T06:03:55Z; all slots empty).
+
+**Re-verified:**
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66` = `enabled: false`.
+- [PR #272](https://github.com/jpshackelford/voice-relay/pull/272) — `needs-human`, `mergeStateStatus=UNKNOWN`, `updatedAt=2026-05-22T03:38:47Z` (no change).
+- [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt=2026-05-18T21:50:13Z`.
+- Issue #265 — `ready`, `priority:medium`, already covered by stuck PR #272.
+- Issues #208 / #210 / #239 — `on-hold` (intentional human deferral).
+
+**Decision:** ✅ No action. Spawning impl for #265 would duplicate stuck PR #272; `on-hold` issues are off-limits; both PRs are `needs-human` so review/merge workers are blocked.
+
+**Blockers (unchanged — see 07:19 UTC entry for full detail):**
+1. PR #272 — out-of-scope `shouldSkipForKioskTime…` server helper + `mergeStateStatus=UNKNOWN`. Human must trim/revert the helper or accept the scope expansion, then drop `needs-human`.
+2. PR #221 — long-stalled draft (4+ days). Decide: revive or close.
+3. Issues #208 / #210 / #239 — `on-hold`; remove the label to make any of them actionable.
+
+**Re-enable** (only after a blocker above is resolved):
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/a0219382-2e7c-4156-9991-7b9976739a66" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
