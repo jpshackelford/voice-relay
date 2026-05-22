@@ -1977,3 +1977,45 @@ curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-22 12:16 UTC - Orchestrator (manual /orchestrate)
+
+🆕 **State change detected: new PR #276 opened ~3 minutes ago — no worker spawned (out of slot scope).**
+
+**Active Workers:** none. `.workflow-state.json` slots all empty (last_updated 2026-05-22T06:03:55Z).
+
+**Current Open PRs (verified at 2026-05-22T12:16Z):**
+| PR | Status | Labels | mergeStateStatus | Updated |
+|----|--------|--------|------------------|---------|
+| [#276](https://github.com/jpshackelford/voice-relay/pull/276) | **NEW**, draft, CI green ✅ | (none) | CLEAN | 2026-05-22T12:12:40Z |
+| [#272](https://github.com/jpshackelford/voice-relay/pull/272) | open | `bug`, `priority:medium`, `needs-human`, `client` | DIRTY | 2026-05-22T03:38:47Z |
+| [#221](https://github.com/jpshackelford/voice-relay/pull/221) | draft | `needs-human` | DIRTY | 2026-05-18T21:50:13Z |
+
+**About PR #276 — `chore: gitignore *.tsbuildinfo and untrack client/tsconfig.tsbuildinfo`:**
+- Created by an AI agent in a separate conversation (`08d45866-40c5-4496-9117-96272ee4b18a`), not by an orchestrator-spawned worker.
+- Small chore: adds `*.tsbuildinfo` to root `.gitignore` and `git rm --cached client/tsconfig.tsbuildinfo`. No code paths touched.
+- Directly addresses the recurring merge-conflict pattern that has been blocking PR #272 (and historically appeared in #256, #244, #233, #206, …).
+- All CI checks green (Server Tests, Build Client, E2E Tests, lint-pr-title). `pr-review` SKIPPED because it's a draft. `mergeable: MERGEABLE`.
+- The PR body invites @jpshackelford to "continue refining the PR" — i.e., it's awaiting human review / move-to-ready, not orchestrator action.
+
+**Decision:** ✅ No worker spawned.
+- **Review slot** is for non-draft PRs with unresolved comments (💬 > 0). PR #276 is a draft with zero comments — out of scope.
+- **Merge slot** is for non-draft PRs with approval and green CI. PR #276 is still a draft.
+- **Implementation slot:** Issue #265 (the only `ready` + prioritized issue) is still nominally covered by PR #272. Spawning a parallel impl on #265 would create a third open PR competing for the same code; better to wait for the human to either (a) merge #276 and rebase #272, or (b) close/redirect #272.
+- **Expansion slot:** Nothing to expand.
+
+**Issues unchanged:**
+- #265 — `ready`, `priority:medium`; logically covered by PR #272 / blocked by it.
+- #208 / #210 / #239 — `on-hold` (intentional human deferral).
+- No issues need expansion.
+
+**Other blockers (unchanged):**
+1. **PR #272** — still `needs-human`, `DIRTY`. Once #276 merges, #272 just needs a rebase to drop the `tsbuildinfo` conflict; the out-of-scope `shouldSkipForKioskTime…` server helper still needs human decision (trim/revert vs. accept scope expansion).
+2. **PR #221** — long-stalled draft (4+ days), `DIRTY`. Decide: revive or close.
+3. **Issues #208 / #210 / #239** — remove `on-hold` to make actionable.
+
+**Suggested next human action:** Mark PR #276 ready-for-review (`gh pr ready 276`). Once merged, rebase #272 to drop the `client/tsconfig.tsbuildinfo` conflict — then a review worker becomes useful.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
