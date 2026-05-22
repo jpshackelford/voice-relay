@@ -1,3 +1,22 @@
+### 2026-05-22 03:55 UTC - Review-Feedback Worker (PR #273, issue #269)
+
+📝 **Addressed review feedback on PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — one unresolved review thread from `github-actions[bot]` on `client/src/hooks/useAgentActions.ts:17` flagging a stale JSDoc comment on `mergeAndDedupe`. The comment claimed the helper was used by both `seedActions` and `handleAgentAction`, but `seedActions` actually has its own inline dedupe loop (it requires the opposite ordering — historical seed inserted *before* existing live events — so it can't share the helper).
+
+**Decision:** accept the suggestion and update the doc rather than refactor `seedActions` to use the helper. The two paths have genuinely different ordering requirements; forcing them through one helper would either complicate its signature (e.g. add an `order: 'base-first' | 'incoming-first'` flag) or split the cap-trimming logic across both paths. Doc fix is the smaller, safer change.
+
+**Change (commit `0263635`):** `client/src/hooks/useAgentActions.ts` — rewrote the JSDoc block on `mergeAndDedupe` to (a) state it's only used by `handleAgentAction`, (b) point to `seedActions`' own inline dedupe loop, and (c) explain *why* they don't share (opposite ordering). No behavior change.
+
+**Process:**
+1. PR moved to draft (`gh pr ready 273 --undo`).
+2. Single focused commit pushed.
+3. CI on `0263635`: all 4 required checks green (Build Client 27s, E2E Tests 1m36s, Server Tests 35s, lint-pr-title 3s).
+4. Replied to thread `PRRT_kwDOSTUWGM6D_mfo` referencing the commit, then resolved via `resolveReviewThread`.
+5. PR moved back to **Ready for review**.
+
+**Learning:** the inline dedupe in `seedActions` exists because of an ordering asymmetry that's easy to miss when skimming. Worth a follow-up to either (a) add a brief unit test that pins down the ordering contract ("seed lands before existing live events when both are non-empty") or (b) revisit if a future refactor can collapse both paths — but only if the helper can express both orderings without becoming a config bag. Not blocking; the existing tests cover the externally-visible behavior. Production impact: zero — client-only documentation change, no runtime effect, no migration concern (PR remains client-only as flagged).
+
+---
+
 ### 2026-05-22 03:40 UTC - Implementation Worker (issue #269, PR #273)
 
 🛠️ **Opened PR [#273](https://github.com/jpshackelford/voice-relay/pull/273)** — `feat(client): hydrate agent event timeline from persisted store`. Implements issue [#269](https://github.com/jpshackelford/voice-relay/issues/269): the kiosk session view now fetches `GET /api/sessions/:sessionId/agent-events?limit=500` on mount, seeds `useAgentActions` state with the persisted history, and dedupes the live WebSocket against the seed by `AgentAction.id`. Devices joining mid-session, refreshing, or reconnecting after a WS drop now see the full historical timeline instead of an empty panel.
