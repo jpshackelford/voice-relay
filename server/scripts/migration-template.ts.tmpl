@@ -1,0 +1,24 @@
+import type { Migration } from '../migrator.js';
+
+/**
+ * Migration {{VERSION}}: {{NAME}}
+ *
+ * TODO: describe what this migration does and why.
+ *
+ * If the `down` SQL drops a table or column containing user data,
+ * set `destructive: true` so the CLI requires `--confirm-destructive`
+ * before rolling back.
+ */
+export const migration: Migration = {
+  version: {{VERSION}},
+  name: '{{NAME}}',
+  // destructive: true,
+
+  up: `
+    -- TODO: write the schema change here
+  `,
+
+  down: `
+    -- TODO: reverse the schema change here
+  `,
+};

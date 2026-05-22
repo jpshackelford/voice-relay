@@ -3,6 +3,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 3,
   name: 'workspaces',
+  destructive: true,
   
   up: `
     -- Workspaces table

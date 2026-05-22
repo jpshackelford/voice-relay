@@ -42,6 +42,11 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 13,
   name: 'fk_orphan_cleanup',
+  // The up migration permanently deletes orphan rows (and nulls orphan FKs);
+  // the down migration is a documented no-op because deleted rows cannot be
+  // resurrected. Mark destructive so `npm run db:rollback` refuses to run it
+  // without --confirm-destructive, making the no-op behaviour visible.
+  destructive: true,
 
   up: `
     -- 1) Orphans referencing workspaces.id

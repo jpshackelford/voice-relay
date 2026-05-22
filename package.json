@@ -21,7 +21,11 @@
     "test:mobile:real": "RUN_REAL_SPEECH_TESTS=1 playwright test --project=mobile-chrome tests/mobile-voice.spec.ts --headed",
     "smoke": "playwright test --config=tests/smoke/playwright.config.ts",
     "smoke:auth": "playwright test --config=tests/smoke/playwright.config.ts --headed",
-    "clean": "rm -rf node_modules server/node_modules server/dist client/node_modules client/dist"
+    "clean": "rm -rf node_modules server/node_modules server/dist client/node_modules client/dist",
+    "db:status": "npm run db:status -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:rollback": "npm run db:rollback -w server --",
+    "db:new": "npm run db:new -w server --"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

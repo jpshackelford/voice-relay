@@ -22,6 +22,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 12,
   name: 'agent_events',
+  destructive: true,
 
   up: `
     CREATE TABLE IF NOT EXISTS agent_events (

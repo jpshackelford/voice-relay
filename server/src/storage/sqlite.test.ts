@@ -86,6 +86,65 @@ describe('SQLiteStore', () => {
       
       await skipStore.disconnect();
     });
+
+    describe('AUTO_MIGRATE flag', () => {
+      const originalEnv = process.env.AUTO_MIGRATE;
+      afterEach(() => {
+        if (originalEnv === undefined) delete process.env.AUTO_MIGRATE;
+        else process.env.AUTO_MIGRATE = originalEnv;
+      });
+
+      it('AUTO_MIGRATE=true (default) applies pending migrations', async () => {
+        delete process.env.AUTO_MIGRATE;
+        await store.connect();
+        const db = store.getDatabase();
+        const tables = db!
+          .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='messages'`)
+          .all();
+        expect(tables).toHaveLength(1);
+      });
+
+      it('AUTO_MIGRATE=false refuses to start when migrations are pending', async () => {
+        process.env.AUTO_MIGRATE = 'false';
+        const refusingStore = new SQLiteStore({ path: testDbPath });
+        await expect(refusingStore.connect()).rejects.toThrow(/AUTO_MIGRATE=false/);
+      });
+
+      it('AUTO_MIGRATE=false still starts when no migrations are pending', async () => {
+        // First boot applies everything.
+        await store.connect();
+        await store.disconnect();
+
+        process.env.AUTO_MIGRATE = 'false';
+        const secondStore = new SQLiteStore({ path: testDbPath });
+        await expect(secondStore.connect()).resolves.toBeUndefined();
+        await secondStore.disconnect();
+      });
+    });
+
+    describe('drift detection on startup', () => {
+      it('warns but does not throw when an applied migration is edited', async () => {
+        await store.connect();
+        // Simulate drift by corrupting the stored hash on disk.
+        const db = store.getDatabase()!;
+        db.prepare(`UPDATE _migrations SET sql_hash = ? WHERE version = 1`).run('deadbeef');
+        await store.disconnect();
+
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+          const restarted = new SQLiteStore({ path: testDbPath });
+          await expect(restarted.connect()).resolves.toBeUndefined();
+          expect(
+            warn.mock.calls.some(args =>
+              args.some(a => typeof a === 'string' && a.includes('DRIFT'))
+            )
+          ).toBe(true);
+          await restarted.disconnect();
+        } finally {
+          warn.mockRestore();
+        }
+      });
+    });
   });
 
   describe('disconnect', () => {

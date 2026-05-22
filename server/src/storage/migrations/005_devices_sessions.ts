@@ -13,6 +13,7 @@ import type { Migration } from '../migrator.js';
 export const migration: Migration = {
   version: 5,
   name: 'devices_sessions',
+  destructive: true,
   
   up: `
     -- Devices table: persists device identity across page refreshes
