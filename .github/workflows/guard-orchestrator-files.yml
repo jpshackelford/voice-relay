@@ -1,0 +1,41 @@
+name: Branch Hygiene
+
+# Fails any PR that modifies orchestrator-managed files. These files may
+# only change on `main` — putting them on a feature branch causes the
+# branch to silently revert main's state on squash-merge.
+#
+# Context: jpshackelford/.openhands#21 (worklog governance).
+# Motivating incident: voice-relay#272 auto-merge halt on 2026-05-22.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'WORKLOG.md'
+      - '.workflow-state.json'
+
+permissions:
+  contents: read
+
+jobs:
+  reject:
+    name: Reject orchestrator file change
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain and fail
+        run: |
+          cat <<'EOF'
+          ::error::This PR modifies orchestrator-managed files (WORKLOG.md and/or .workflow-state.json).
+
+          These files may only change on main. Putting them on a feature branch
+          causes the branch to silently revert main's state on squash-merge.
+
+          To fix:
+            git checkout origin/main -- WORKLOG.md .workflow-state.json
+            git commit --amend --no-edit   # or as a new commit
+            git push --force-with-lease
+
+          Background: jpshackelford/.openhands#21 (worklog governance).
+          Motivating incident: voice-relay#272 auto-merge halt on 2026-05-22.
+          EOF
+          exit 1
