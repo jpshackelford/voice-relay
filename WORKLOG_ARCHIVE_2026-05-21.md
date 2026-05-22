@@ -1757,3 +1757,49 @@ Follow-up to #258 closing four rendering gaps surfaced by post-merge validation 
 **Decision:** State unchanged since 23:05 UTC orchestrator run. All available work is either stuck (PR #221) or on-hold (3 issues). No workers spawned.
 
 **Quiet Streak:** This is the **2nd consecutive** quiet entry (prior: 23:05 UTC). One more consecutive quiet run will trigger auto-disable of automation `a0219382-2e7c-4156-9991-7b9976739a66`.
+
+---
+### 2026-05-21 23:34 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Three consecutive quiet periods detected (23:05, 23:17, 23:34 UTC) — no new actionable work to pick up. Automation has been disabled to prevent unnecessary runs.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | — | — | — |
+
+**Current State (unchanged since 23:05 UTC):**
+- **Open PRs:** 1
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — `needs-human` (draft, last updated 2026-05-18; **STUCK** — awaiting human conflict resolution)
+- **Open Issues:** 3 (all `on-hold`, deferred by humans)
+  - #208 — Add circuit breaker to prevent deployments when critical CI issues exist
+  - #210 — Categorize deployment failures to improve automated response
+  - #239 — Flaky AI integration tests due to OpenHands API reliability issues
+
+**Slot Usage:**
+| Type | Active | Limit | Notes |
+|------|--------|-------|-------|
+| Expansion | 0 | 4 | No issues to expand (all on-hold) |
+| Implementation | 0 | 1 | No `ready` issues to implement |
+| Review/Merge | 0 | 2 | PR #221 stuck (`needs-human`); no other PRs |
+
+**Disabled Automation:** `5f180989-ed9c-42b4-ac9f-5f30f0623316` — "Voice Relay Workflow Orchestrator v2" (cron `*/15 * * * *`, America/New_York)
+
+> ⚠️ **Note:** The skill documented automation ID `a0219382-2e7c-4156-9991-7b9976739a66` (renamed "(old)") was already disabled. The currently active orchestrator is `5f180989-...` ("v2"). Skill text should be updated to reference the v2 ID.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → find "Voice Relay Workflow Orchestrator v2" → toggle on
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**Re-enable triggers:**
+- Human resolves merge conflicts on PR #221, OR
+- Any `on-hold` label is removed from issues #208/#210/#239, OR
+- New issues / PRs are filed
