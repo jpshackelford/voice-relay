@@ -2,25 +2,19 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "6078efe",
-        "started": "2026-05-22T04:54:26.712142+00:00",
-        "issue": 261
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "18aa19b",
-        "started": "2026-05-22T04:54:26.712142+00:00",
+        "conv_id": "b24cfc4",
+        "started": "2026-05-22T05:22:27.844236+00:00",
         "kind": "merge",
-        "pr": 273
+        "pr": 274
       },
       {
-        "conv_id": "ef341f4",
-        "started": "2026-05-22T04:54:26.712142+00:00",
+        "conv_id": "4fd59cf",
+        "started": "2026-05-22T05:22:27.844236+00:00",
         "kind": "review",
-        "pr": 274
+        "pr": 275
       }
     ]
   },
@@ -29,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T04:54:26.712142+00:00",
+  "last_updated": "2026-05-22T05:22:27.844236+00:00",
   "completed": [
     {
       "conv_id": "da8fd0e",
@@ -303,6 +297,33 @@
       "finished": "2026-05-22T04:54:26.712142+00:00",
       "status": "ghost",
       "outcome": "Conversation entered execution_status=error within seconds of spawn; never ran. Title 'Conversation <prefix>' indicates silent spawn failure. Work re-dispatched in next cycle.",
+      "pr": 274
+    },
+    {
+      "conv_id": "6078efe",
+      "type": "implementation",
+      "started": "2026-05-22T04:54:26.712142+00:00",
+      "finished": "2026-05-22T05:20:47.325961+00:00",
+      "status": "success",
+      "outcome": "Opened PR #275 - refactor(server): remove unused storage drivers (memory, redis, firestore)",
+      "issue": 261
+    },
+    {
+      "conv_id": "18aa19b",
+      "type": "merge",
+      "started": "2026-05-22T04:54:26.712142+00:00",
+      "finished": "2026-05-22T05:20:47.325961+00:00",
+      "status": "success",
+      "outcome": "Merged PR #273 (squash 8cc09d2) - hydrate agent event timeline; issue #269 closed",
+      "pr": 273
+    },
+    {
+      "conv_id": "ef341f4",
+      "type": "review",
+      "started": "2026-05-22T04:54:26.712142+00:00",
+      "finished": "2026-05-22T05:20:47.325961+00:00",
+      "status": "success",
+      "outcome": "Addressed PR #274 review fix (marked migrations 010/011/013 destructive); CI green; review thread resolved",
       "pr": 274
     }
   ]
