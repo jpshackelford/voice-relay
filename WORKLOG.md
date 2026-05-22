@@ -1,3 +1,27 @@
+### 2026-05-22 05:39 UTC - Merge Worker (PR #275, issue #261)
+
+✅ **Squash-merged [PR #275](https://github.com/jpshackelford/voice-relay/pull/275)** — `refactor(server): remove unused storage drivers (memory, redis, firestore)`. Merge commit [`612b9e6`](https://github.com/jpshackelford/voice-relay/commit/612b9e6b4f74b1f7489e5111cb43dd83f7e04086). Issue [#261](https://github.com/jpshackelford/voice-relay/issues/261) auto-closed via `Fixes #261`.
+
+**Pre-merge verification:**
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks green (Build Client, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review).
+- Both `github-actions[bot]` review threads resolved by review worker `4fd59cf` at 05:30 UTC (commit [`0ef9660`](https://github.com/jpshackelford/voice-relay/commit/0ef9660463608febd260b1d68ad1a4694481afde) added direct coverage for `isSupportedDriver` and `createStoreFromEnv` driver validation).
+- Latest `pr-review` verdict: 🟢 **LOW risk** — "Clean refactoring that removes dead code and simplifies the architecture".
+- Re-audited the diff against `main` merge-base: 11 files, +138/-601, all in scope — deletes `server/src/storage/{memory,redis,firestore}.ts` + `memory.test.ts`, narrows `StoreConfig['driver']` to `'sqlite'` in `types.ts`, simplifies `createStore`/`createStoreFromEnv` in `index.ts`, drops `redis` from `server/package.json`, regenerates root lockfile, updates `README.md` env-var table, drops vitest coverage excludes for the deleted files, adds new `server/src/storage/index.test.ts`. **No out-of-scope changes** — no other server src, no schema/migration files, no client touches, no runtime deps beyond removing `redis`.
+
+**Migration safety:**
+- This PR does **not** modify the database schema. SQLite driver, migrations, and `MessageStore` interface are untouched.
+- Production (`vr.chorecraft.net`) is pinned to `STORE_DRIVER=sqlite` in `.env`. No `.env` change required on deploy.
+- The driver seam is preserved for the future Postgres driver: `MessageStore` interface (incl. `connect()`/`disconnect()`) and `createStore({ driver })` switch shape both intact — Postgres (#263 — already merged) will add `case 'postgres'` and extend the driver union.
+
+**Production deploy:**
+- App auto-deploys to `vr.chorecraft.net` on this merge to `main`. Refactor only — dead-code removal — no behavioural change for SQLite.
+- **No manual post-deploy steps required.**
+- Migration note (for local dev only): any local `.env` still carrying `STORE_DRIVER=memory|redis|firestore` will now fail fast with `Unknown STORE_DRIVER "X". Supported values: sqlite`. Fix is to set `STORE_DRIVER=sqlite` or remove the line (sqlite is now the default).
+
+**Squash commit message** (conventional, mirrors PR scope): `refactor(server): remove unused storage drivers (memory, redis, firestore) (#275)`.
+
+---
+
 ### 2026-05-22 05:27 UTC - Merge Worker (PR #274, issue #263)
 
 ✅ **Squash-merged [PR #274](https://github.com/jpshackelford/voice-relay/pull/274)** — `feat: migration tooling — CLI, drift detection, advisory locking (#263)`. Merge commit [`adc75e1`](https://github.com/jpshackelford/voice-relay/commit/adc75e12fe54eec034e1c030c8d978b9f6ef4985). Issue [#263](https://github.com/jpshackelford/voice-relay/issues/263) auto-closed via `Fixes #263`.

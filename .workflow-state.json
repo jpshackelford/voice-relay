@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-22T05:30:24.545879+00:00",
+  "last_updated": "2026-05-22T05:39:17.759373+00:00",
   "completed": [
     {
       "conv_id": "da8fd0e",
@@ -330,6 +330,15 @@
       "finished": "2026-05-22T05:30:24.545879+00:00",
       "status": "success",
       "outcome": "Addressed both github-actions review threads on PR #275 (commit 0ef9660 - added direct tests for createStore and createStoreFromEnv driver validation); CI green; threads resolved; PR back to ready"
+    },
+    {
+      "conv_id": "cafeb81",
+      "type": "merge",
+      "pr": 275,
+      "started": "2026-05-22T05:37:00+00:00",
+      "finished": "2026-05-22T05:39:17.759373+00:00",
+      "status": "success",
+      "outcome": "Merged PR #275 (squash 612b9e6) - removed unused storage drivers; issue #261 auto-closed"
     }
   ]
 }
