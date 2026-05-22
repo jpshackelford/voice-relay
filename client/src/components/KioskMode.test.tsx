@@ -1306,4 +1306,123 @@ describe('KioskMode', () => {
       ]);
     });
   });
+
+  // Regression tests for issue #265 — agent action/observation pairing in
+  // the kiosk timeline. The KioskMode component must call pairAgentEvents so
+  // a single tool invocation renders as one card (instead of one action card
+  // plus a separate bare-"Observation" card).
+  describe('agent event pairing (issue #265)', () => {
+    const makeAction = (id: string, summary: string, timestamp: string): AgentAction => ({
+      id,
+      timestamp,
+      kind: 'TerminalAction',
+      source: 'agent',
+      summary,
+      command: `echo ${id}`,
+    });
+
+    const makeObservation = (id: string, actionId: string, timestamp: string): AgentAction => ({
+      id,
+      timestamp,
+      kind: 'TerminalObservation',
+      source: 'environment',
+      summary: '',
+      action_id: actionId,
+      exit_code: 0,
+      content: `output for ${actionId}`,
+    });
+
+    /** Read summary text from every rendered agent-event card. */
+    const readCardSummaries = (): string[] => {
+      const cards = document.querySelectorAll('.agent-event-card .agent-event-summary');
+      return Array.from(cards).map(el => el.textContent || '');
+    };
+
+    it('renders one card per ActionEvent + ObservationEvent pair (not two)', () => {
+      // Two tool invocations, four raw events. Expectation: two cards.
+      const action1 = makeAction('a1', 'First operation', '2026-05-21T11:46:32Z');
+      const obs1 = makeObservation('o1', 'a1', '2026-05-21T11:46:33Z');
+      const action2 = makeAction('a2', 'Second operation', '2026-05-21T11:46:34Z');
+      const obs2 = makeObservation('o2', 'a2', '2026-05-21T11:46:35Z');
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            agentActions={[action1, obs1, action2, obs2]}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      const summaries = readCardSummaries();
+      expect(summaries).toEqual(['First operation', 'Second operation']);
+    });
+
+    it('a pending action (no observation yet) still renders one card', () => {
+      const action = makeAction('a1', 'In-flight operation', '2026-05-21T11:46:32Z');
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            agentActions={[action]}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      const summaries = readCardSummaries();
+      expect(summaries).toEqual(['In-flight operation']);
+      // And it shows the Pending indicator.
+      expect(screen.getByTitle('Pending')).toBeDefined();
+    });
+
+    it('the paired card uses the action title, not the bare "Observation"', () => {
+      const action = makeAction('a1', 'Send greeting to kiosk', '2026-05-21T11:46:32Z');
+      const observation = makeObservation('o1', 'a1', '2026-05-21T11:46:33Z');
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            agentActions={[action, observation]}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      // Before #265 a separate observation card titled "Observation" would
+      // appear; after the fix there is only the action's card.
+      expect(screen.getByText('Send greeting to kiosk')).toBeDefined();
+      expect(screen.queryByText('Observation')).toBeNull();
+    });
+
+    it('orphan observation (no matching action) falls through as its own card', () => {
+      const orphan = makeObservation('o-orphan', 'never-seen-action', '2026-05-21T11:46:33Z');
+      // Override the empty summary so the orphan card title is non-empty for
+      // assertion purposes — the formatActionKind fallback would render
+      // "Terminal" otherwise.
+      orphan.summary = 'Orphan observation';
+
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            agentActions={[orphan]}
+            showAgentActions={true}
+          />
+        );
+      });
+
+      const summaries = readCardSummaries();
+      expect(summaries).toEqual(['Orphan observation']);
+      // Orphan observation reports success.
+      expect(screen.getByTitle('Success')).toBeDefined();
+    });
+  });
 });

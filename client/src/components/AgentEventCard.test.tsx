@@ -154,10 +154,52 @@ describe('AgentEventCard', () => {
       expect(screen.getByTitle('Timeout')).toBeDefined();
     });
 
-    it('does not show indicator for actions (non-observations)', () => {
+    it('shows Pending indicator for an unpaired action (issue #265)', () => {
+      // An action without a paired observation is in-flight and must show a
+      // distinguishable "Pending…" badge so the kiosk sidebar matches the
+      // OpenHands cloud rendering.
       render(<AgentEventCard action={mockAction} />);
+      expect(screen.getByTitle('Pending')).toBeDefined();
       expect(screen.queryByTitle('Success')).toBeNull();
       expect(screen.queryByTitle('Timeout')).toBeNull();
+      expect(screen.queryByTitle('Error')).toBeNull();
+    });
+
+    it('shows status of the paired observation, not the action (issue #265)', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'TerminalAction',
+        command: 'echo hi',
+      };
+      const observation: AgentAction = {
+        ...mockAction,
+        id: 'obs-1',
+        kind: 'TerminalObservation',
+        action_id: mockAction.id,
+        exit_code: 0,
+        content: 'hi',
+      };
+      render(<AgentEventCard action={action} observation={observation} />);
+
+      expect(screen.getByTitle('Success')).toBeDefined();
+      expect(screen.queryByTitle('Pending')).toBeNull();
+    });
+
+    it('shows error indicator when the paired observation reports is_error', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'MCPToolAction',
+      };
+      const observation: AgentAction = {
+        ...mockAction,
+        id: 'obs-1',
+        kind: 'MCPToolObservation',
+        action_id: mockAction.id,
+        is_error: true,
+      };
+      render(<AgentEventCard action={action} observation={observation} />);
+
+      expect(screen.getByTitle('Error')).toBeDefined();
     });
   });
 
@@ -287,6 +329,56 @@ describe('AgentEventCard', () => {
       const content = document.querySelector('.agent-event-content');
       expect(content).toBeDefined();
       expect(content?.textContent).toContain('Unknown action summary');
+    });
+
+    it('renders both action and observation under an Output header when paired (issue #265)', () => {
+      const action: AgentAction = {
+        ...mockAction,
+        kind: 'TerminalAction',
+        command: 'echo hello',
+      };
+      const observation: AgentAction = {
+        id: 'obs-1',
+        timestamp: '2024-05-20T10:30:01.000Z',
+        kind: 'TerminalObservation',
+        source: 'environment',
+        summary: '',
+        action_id: mockAction.id,
+        exit_code: 0,
+        content: 'hello',
+      };
+      render(<AgentEventCard action={action} observation={observation} defaultExpanded />);
+
+      const content = document.querySelector('.agent-event-content');
+      expect(content).toBeDefined();
+      // Action body (Command:) is present
+      expect(content?.textContent).toContain('echo hello');
+      // Observation body is present under an "Output:" header inserted by the
+      // pairing renderer.
+      expect(content?.textContent).toContain('Output:');
+      expect(content?.textContent).toContain('hello');
+    });
+
+    it('keeps the action title (summary) even when an observation is paired (issue #265)', () => {
+      // Before #265 each observation was its own card titled "Observation".
+      // After #265 the paired card must title from the action so the kiosk
+      // sidebar identifies the operation.
+      const action: AgentAction = {
+        ...mockAction,
+        summary: 'Display greeting on kiosk',
+        kind: 'TerminalAction',
+      };
+      const observation: AgentAction = {
+        id: 'obs-1',
+        timestamp: '2024-05-20T10:30:01.000Z',
+        kind: 'TerminalObservation',
+        source: 'environment',
+        summary: '',
+        action_id: mockAction.id,
+        exit_code: 0,
+      };
+      render(<AgentEventCard action={action} observation={observation} />);
+      expect(screen.getByText('Display greeting on kiosk')).toBeDefined();
     });
   });
 

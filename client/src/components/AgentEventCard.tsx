@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify';
 import { SuccessIndicator, getObservationStatus } from './SuccessIndicator';
 import { getActionIcon } from '../hooks/useAgentActions';
 import { getEventContent } from '../utils/getEventContent';
-import type { AgentAction, ExtendedAgentAction } from '../types';
+import type { AgentAction, ExtendedAgentAction, ObservationStatus } from '../types';
 
 // Configure marked for code blocks and basic markdown
 marked.setOptions({
@@ -13,7 +13,16 @@ marked.setOptions({
 });
 
 interface AgentEventCardProps {
+  /** The agent action (request). Card title and icon come from here. */
   action: AgentAction | ExtendedAgentAction;
+  /**
+   * Optional matching observation (response). When present the card renders
+   * both the action and the observation under an "Output:" header, and the
+   * status indicator reflects the observation's exit_code / is_error /
+   * timeout fields. When absent the card shows a "Pending…" indicator while
+   * the agent is waiting for the tool to complete (issue #265).
+   */
+  observation?: AgentAction | ExtendedAgentAction;
   /** Whether to start expanded (default: false) */
   defaultExpanded?: boolean;
 }
@@ -43,41 +52,49 @@ function parseMarkdown(text: string): string {
  * - Success/timeout indicator for observations
  * - Action icon based on event kind
  */
-export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCardProps) {
+export function AgentEventCard({ action, observation, defaultExpanded = false }: AgentEventCardProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  // Determine if this is an extended action with observation data
-  // Now use V1Event field names (exit_code, is_error, timeout)
+  // Decide which event carries the outcome (exit_code / is_error / timeout):
+  //   - paired:     `observation` was passed in
+  //   - orphan obs: `action` is itself an observation (no matching action)
+  //   - pending:    neither — the action is in-flight, status = 'pending'
   const extendedAction = action as ExtendedAgentAction;
-  const isObservation = extendedAction.isObservation ?? isObservationKind(action.kind);
-  
-  // Use V1Event fields from AgentAction (exit_code, is_error, timeout)
-  // with fallback to ExtendedAgentAction fields for backward compatibility
-  const exitCode = action.exit_code ?? extendedAction.exitCode;
-  const isError = action.is_error ?? extendedAction.isError;
-  const isTimeout = action.timeout;
-  
-  const status = isObservation 
+  const actionIsObservation = extendedAction.isObservation ?? isObservationKind(action.kind);
+  const statusSource = observation ?? (actionIsObservation ? action : undefined);
+  const statusExtended = statusSource as ExtendedAgentAction | undefined;
+
+  const exitCode = statusSource?.exit_code ?? statusExtended?.exitCode;
+  const isError = statusSource?.is_error ?? statusExtended?.isError;
+  const isTimeout = statusSource?.timeout;
+
+  const status: ObservationStatus = statusSource
     ? getObservationStatus(exitCode, isError, isTimeout)
     : 'pending';
 
-  // Get icon for the action kind
+  // Icon and title come from the action so the card identifies the operation
+  // (TerminalAction "Display greeting on kiosk" rather than the bare
+  // "Observation" we'd get from the response side).
   const icon = getActionIcon(action.kind);
-
-  // Get formatted title (use summary if available)
   const title = action.summary || formatActionKind(action.kind);
 
-  // Get rich content for expanded view (memoized for performance)
+  // Build expanded content: action body + observation body (if attached)
+  // under an "Output:" header. Memoized so toggling expand state doesn't
+  // re-parse markdown.
   const expandedContent = useMemo(() => {
     if (!expanded) return '';
-    
-    // Get formatted content from helper
-    const content = getEventContent(action);
-    
-    // If we got content from the helper, use it
-    // Otherwise fall back to summary
-    return content || action.summary || '';
-  }, [expanded, action]);
+
+    const actionContent = getEventContent(action) || action.summary || '';
+
+    if (observation) {
+      const observationContent = getEventContent(observation);
+      if (observationContent) {
+        return `${actionContent}\n\n**Output:**\n\n${observationContent}`;
+      }
+    }
+
+    return actionContent;
+  }, [expanded, action, observation]);
 
   // Parse markdown content (memoized)
   const renderedContent = useMemo(() => {
@@ -87,7 +104,7 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
 
   return (
     <div className="agent-event-card">
-      <div 
+      <div
         className="agent-event-header"
         onClick={() => setExpanded(!expanded)}
         role="button"
@@ -103,14 +120,14 @@ export function AgentEventCard({ action, defaultExpanded = false }: AgentEventCa
             {expanded ? '▲' : '▼'}
           </span>
         </div>
-        <div className="agent-event-status">
-          {isObservation && <SuccessIndicator status={status} />}
+        <div className="agent-event-status" data-status={status}>
+          <SuccessIndicator status={status} />
         </div>
       </div>
 
       {expanded && renderedContent && (
         <div className="agent-event-details">
-          <div 
+          <div
             className="agent-event-content"
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />

@@ -22,14 +22,24 @@ describe('SuccessIndicator', () => {
       expect(indicator.textContent).toBe('⏱');
     });
 
-    it('renders nothing for error status', () => {
-      const { container } = render(<SuccessIndicator status="error" />);
-      expect(container.firstChild).toBeNull();
+    it('renders cross for error status', () => {
+      render(<SuccessIndicator status="error" />);
+      const indicator = screen.getByTitle('Error');
+      expect(indicator).toBeDefined();
+      expect(indicator.className).toContain('success-indicator');
+      expect(indicator.className).toContain('error');
+      expect(indicator.textContent).toBe('✗');
     });
 
-    it('renders nothing for pending status', () => {
-      const { container } = render(<SuccessIndicator status="pending" />);
-      expect(container.firstChild).toBeNull();
+    it('renders pending ellipsis for pending status (issue #265)', () => {
+      // In-flight actions (no observation yet) must be visually distinguishable
+      // from silent successes. Previously this rendered nothing.
+      render(<SuccessIndicator status="pending" />);
+      const indicator = screen.getByTitle('Pending');
+      expect(indicator).toBeDefined();
+      expect(indicator.className).toContain('success-indicator');
+      expect(indicator.className).toContain('pending');
+      expect(indicator.textContent).toBe('⋯');
     });
   });
 });
