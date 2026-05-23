@@ -273,4 +273,70 @@ describe('AgentEvent Router', () => {
     expect(res.body.events).toHaveLength(1);
     expect(res.body.events[0].id).toBe('1');
   });
+
+  it('drops kiosk-timeline-noise kinds from the default response (issue #280)', async () => {
+    // Seed one of each filtered kind plus a TerminalAction / TerminalObservation
+    // pair that *must* survive the filter. After the filter the response should
+    // contain only the surviving pair, but `total` should still reflect the raw
+    // stored row count (drives the rehydration-completeness UI from #269).
+    const seed: Array<{ id: string; raw: Record<string, unknown> }> = [
+      { id: 'csu', raw: { id: 'csu', kind: 'ConversationStateUpdateEvent', source: 'environment', timestamp: '2026-05-21T10:00:00Z' } },
+      { id: 'sp', raw: { id: 'sp', kind: 'SystemPromptEvent', source: 'agent', timestamp: '2026-05-21T10:01:00Z' } },
+      { id: 'mu', raw: { id: 'mu', kind: 'MessageEvent', source: 'user', timestamp: '2026-05-21T10:02:00Z' } },
+      { id: 'ma', raw: { id: 'ma', kind: 'MessageEvent', source: 'agent', timestamp: '2026-05-21T10:03:00Z' } },
+      { id: 'cerr', raw: { id: 'cerr', kind: 'ConversationErrorEvent', timestamp: '2026-05-21T10:04:00Z' } },
+      { id: 'serr', raw: { id: 'serr', kind: 'ServerErrorEvent', timestamp: '2026-05-21T10:05:00Z' } },
+      { id: 'act', raw: { id: 'act', kind: 'ActionEvent', source: 'agent', action: { kind: 'TerminalAction', command: 'ls' }, timestamp: '2026-05-21T10:06:00Z' } },
+      { id: 'obs', raw: { id: 'obs', kind: 'ObservationEvent', source: 'environment', observation: { kind: 'TerminalObservation' }, timestamp: '2026-05-21T10:07:00Z' } },
+    ];
+    for (const s of seed) {
+      agentEventRepository.insert({
+        conversationId: 'c1', sessionId: testSessionId, workspaceId: testWorkspaceId,
+        rawEvent: s.raw,
+      });
+    }
+    sessionRepository.updateMetadata(testSessionId, { aiConversationId: 'c1' });
+
+    const res = await request(app)
+      .get(`/api/sessions/${testSessionId}/agent-events`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.events.map((e: { id: string }) => e.id)).toEqual(['act', 'obs']);
+    // total reflects raw stored rows, not filtered count
+    expect(res.body.total).toBe(seed.length);
+  });
+
+  it('honors explicit ?kind= overrides past the kiosk-timeline filter (issue #280)', async () => {
+    // Forensics / debug callers must be able to retrieve filtered kinds via
+    // an explicit `?kind=` query.
+    agentEventRepository.insert({
+      conversationId: 'c1', sessionId: testSessionId, workspaceId: testWorkspaceId,
+      rawEvent: { id: 'm1', kind: 'MessageEvent', source: 'agent', timestamp: '2026-05-21T10:00:00Z' },
+    });
+    sessionRepository.updateMetadata(testSessionId, { aiConversationId: 'c1' });
+
+    const res = await request(app)
+      .get(`/api/sessions/${testSessionId}/agent-events?kind=MessageEvent`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.events.map((e: { id: string }) => e.id)).toEqual(['m1']);
+  });
+
+  it('keeps unknown future event kinds in the default response (regression guard for #280)', async () => {
+    // Default-show behaviour: never silently swallow new event kinds.
+    agentEventRepository.insert({
+      conversationId: 'c1', sessionId: testSessionId, workspaceId: testWorkspaceId,
+      rawEvent: { id: 'fut', kind: 'SomeFutureEvent', source: 'agent', timestamp: '2026-05-21T10:00:00Z' },
+    });
+    sessionRepository.updateMetadata(testSessionId, { aiConversationId: 'c1' });
+
+    const res = await request(app)
+      .get(`/api/sessions/${testSessionId}/agent-events`)
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.events.map((e: { id: string }) => e.id)).toEqual(['fut']);
+  });
 });
