@@ -2205,3 +2205,39 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-23 20:34 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+📋 **State change detected — new human-initiated PR appeared, but still no orchestrator-actionable work.**
+
+**Verified state (this run):**
+- 0 active workers (`.workflow-state.json` slots: expansion 0/4, impl 0/1, review 0/2; `last_updated` 2026-05-22T12:59:55Z; 36 completed entries in 24h window).
+- **2 open PRs** (was 1):
+  - **NEW** [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — *docs: session state analysis and proposed state machines* — **draft**, no labels, created 2026-05-23 20:30 UTC by @jpshackelford (via a separate OpenHands conversation `f571536c`). Branch `docs/session-state-machine`. Docs-only design proposal for L1/L2/L3 session lifecycle FSMs; lists 6 follow-up implementation patches. `lint-pr-title` ✅. 0 comments, 0 reviews, `MERGEABLE`.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt` 2026-05-18T21:50:13Z. Still STUCK.
+- 3 open issues — all carry `on-hold`: #208 (`ci-failure`), #210 (`enhancement`), #239 (`bug`/`ci-failure`). 0 `ready`, 0 `priority:*`, 0 needing expansion.
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66`: `enabled: false` re-verified (`updated_at` 2026-05-17T18:56:05Z; `last_run_at: null`; `last_triggered_at` 2026-05-17T15:30:57Z).
+- No `## INSTRUCTION:` entries in WORKLOG.md.
+
+**Decision:** No worker spawned.
+- **PR #279** is a draft owned by the human (and a sibling AI conversation that is still iterating). The orchestrator only engages review workers when a PR is non-draft with unresolved review threads or is merge-ready. Draft + no labels + no review activity ⇒ defer; let the human mark ready (and the review bot fire) before any review/merge worker is dispatched. Adding `ready` / `priority:*` would only be appropriate on issues, not PRs, so no label action either.
+- **PR #221** remains `needs-human` — still STUCK, still skipped.
+- All 3 issues are still `on-hold` — no expansion or implementation work to dispatch.
+- Automation remains disabled (manual invocation only); no `enabled: true` toggle since there is still no auto-pickable work.
+
+**Housekeeping:** WORKLOG.md is 2207 lines (pre-append). Truncation re-evaluated: the 6-hour-from-newest-productive cutoff still anchors to the 2026-05-22 ~05:30/05:39 UTC PR #275 productive cluster (no newer productive entry; this entry counts as `📋 Following` per the heuristic, which is *also* productive, but it's the newest, so the anchor is now this entry → cutoff = 2026-05-23 14:34 UTC). That means everything older than that becomes eligible for archive. Deferring the archive run to a separate housekeeping commit to keep this orchestrator entry focused; will trigger on the next run now that there is a newer productive anchor.
+
+**Next steps to unblock the pipeline (unchanged from prior 50 cycles, plus #279):**
+1. **PR #279** — once @jpshackelford marks it ready-for-review, the review bot will engage; orchestrator will pick up review feedback automatically.
+2. **PR #221** — long-stalled draft, `needs-human`. Rebase/finish, close, or remove the label to re-engage automation.
+3. **Issues #208 / #210 / #239** — all `on-hold`. Remove the label on at least one to feed the pipeline.
+4. **Orchestrator automation** — re-enable once new work is unblocked (PATCH `enabled: true` on automation `a0219382-…`).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
