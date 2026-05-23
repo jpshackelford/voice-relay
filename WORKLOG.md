@@ -2,6 +2,21 @@
 
 ## Log
 
+### 2026-05-23 23:50 UTC - Implementation Worker (`#280`)
+
+✅ **Opened draft → ready PR [#281](https://github.com/jpshackelford/voice-relay/pull/281) — `fix: mirror live-path event filter on refresh to stop empty/duplicate timeline cards (#280)`**
+
+- Issue: [#280](https://github.com/jpshackelford/voice-relay/issues/280) (`Agent messages change on refresh`).
+- Branch: `fix/280-refresh-timeline-parity`.
+- Approach (per the issue's expansion comment): broadened the existing `shouldSkipForKioskTimeline` predicate in `server/src/openhands.ts` to cover all kinds the live path already drops (`MessageEvent` any source, `ConversationStateUpdateEvent`, `ConversationErrorEvent`, `ServerErrorEvent`), imported it into `server/src/agent-events/router.ts` to filter the refresh response by default (explicit `?kind=` still bypasses), and added a parallel `shouldShowInKioskTimeline` + `filterKioskTimelineEvents` on the client in `client/src/utils/normalizeAgentEvent.ts` applied post-fetch in `client/src/api/agentEvents.ts` for rolling-deploy resilience.
+- **No DB migration.** Verified by diff — zero touches under `server/src/storage/migrations/`, zero DDL, no `agent_events` schema change. Production SQLite (`vr.chorecraft.net`) self-heals on next refresh.
+- Tests: extended `server/src/openhands.test.ts` (new skip kinds + unknown-kind regression guard), extended `server/src/agent-events/router.test.ts` (filtered default + `?kind=` override + unknown-kind pass-through), added fixture-driven tests in `client/src/utils/normalizeAgentEvent.test.ts` (23-event real fixture → 4 surviving Terminal entries), plus per-index hard-coded parity arrays on *both* sides driving off `test-fixtures/raw-events-real.json` (drift on either side fails both tests). Server: 854/854 ✅; client: 661/661 ✅.
+- CI: all 5 checks green (Build Client, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator). One initial `lint-pr-title` failure due to `(#280)` scope — fixed by renaming to `fix: …(#280)` (no scope; convention permits scope-less titles).
+- PR is **ready for review**; review handling is a separate conversation. Acceptance criteria reflection posted as a PR comment ([#issuecomment-4526839715](https://github.com/jpshackelford/voice-relay/pull/281#issuecomment-4526839715)).
+
+---
+
+
 ### 2026-05-23 23:25 UTC - Expansion Worker (`#280`)
 
 ✅ **Expanded Issue [#280](https://github.com/jpshackelford/voice-relay/issues/280) — "Agent messages change on refresh"**
