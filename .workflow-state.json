@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "0db73d3",
+        "conv_id": "3115d15",
         "issue": 280,
-        "started": "2026-05-23T23:19:37.683224Z"
+        "started": "2026-05-23T23:34:29.481424+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,6 +16,16 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-23T23:19:37.683224Z",
-  "completed": []
+  "last_updated": "2026-05-23T23:34:29.481424+00:00",
+  "completed": [
+    {
+      "conv_id": "0db73d3",
+      "type": "expansion",
+      "issue": 280,
+      "started": "2026-05-23T23:19:37.683224Z",
+      "finished": "2026-05-23T23:32:33.287129+00:00",
+      "status": "success",
+      "outcome": "Added ready label + detailed RCA/proposed fix comment on issue #280"
+    }
+  ]
 }

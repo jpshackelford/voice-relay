@@ -2614,3 +2614,46 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-23 23:34 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Implementation Worker** — expansion of #280 complete; issue prioritized & impl dispatched.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3115d15` | implementation | Issue #280 — Agent messages change on refresh | **NEW** (running) |
+
+**Completed since last run:**
+- `0db73d3` (expansion, issue #280) — finished. Added `ready` label + a thorough RCA/proposed-fix comment to #280 (root cause: refresh path in `/api/sessions/:id/agent-events` lacks the live path's `shouldSkipForKioskTimeline` filter; fix is a parity refactor with no DB migration).
+
+**Spawn details (impl worker):**
+- Conversation: [`3115d15`](https://app.all-hands.dev/conversations/3115d15274df4fc198eeab61311001f3) — `execution_status: running`, sandbox `RUNNING`, retitled by agent to "🐛 Fix agent messages changing on refresh (#280)".
+- Start-task `68ee271f…` → READY → conversation `3115d15…`. Initial POST hit `/api/v1/app-conversations` without `initial_message`; recovered by POSTing the prompt to `<conv_url>/events` with `run: true` (status 200, `{"success":true}`). Agent picked up immediately.
+- Plugin: not attached this run (the implementation worker's prompt is fully self-contained; the voice-relay-workflow plugin is orchestrator-facing). Follow-up: switch to `initial_message` shape on the next spawn and attach `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin` for parity.
+
+**Inline priority assessment:** issue #280 had `ready` but no `priority:*`. Assessed as `priority:high` and labeled accordingly — user-visible UX regression, well-scoped fix per the expansion comment (no DB migration, defensive default-show for unknown kinds, regression-guard test included).
+
+**Current State (verified this run via `gh` API):**
+- Issues (4 open):
+  - **#280** — `bug, ready, priority:high` — implementation in flight (`3115d15`).
+  - #239 — `bug, ci-failure, on-hold` — skipped.
+  - #210 — `enhancement, on-hold` — skipped.
+  - #208 — `ci-failure, on-hold` — skipped.
+- PRs (unchanged):
+  - [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — draft, human-owned (@jpshackelford). Not engaged.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, ~5d stale. Stuck, deferred.
+- `.workflow-state.json`: expansion 0/4, **impl 1/1**, review 0/2; `completed: [0db73d3]`.
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66`: `enabled: false` (manual `/orchestrate` only). No toggle action — quiet-streak counter resets naturally on this productive entry.
+- No `## INSTRUCTION:` entries in WORKLOG.md.
+
+**Decision rationale:**
+- Expansion slot: idle — no `on-hold`-free unexpanded issues remain.
+- Implementation slot: filled — only ready+prioritized issue (#280) dispatched after inline priority assessment.
+- Review slots: idle — no non-draft PR with unresolved reviews or merge-ready status.
+
+**Worklog housekeeping:** WORKLOG.md is 2617 lines (pre-append). With this run being the newest productive entry, the 6-hour-from-newest-productive window now anchors here and excludes most older entries. Truncation deferred to the next orchestrator run that needs to spawn work (avoids racing the live impl worker's WORKLOG appends).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
