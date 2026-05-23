@@ -3,6 +3,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
@@ -1804,4 +1807,67 @@ describe('shouldSkipForKioskTimeline (issues #265, #280)', () => {
     expect(shouldSkipForKioskTimeline({ source: 'agent' })).toBe(false);
   });
 });
+
+describe('shouldSkipForKioskTimeline — fixture parity (issue #280)', () => {
+  // Cross-checks the server predicate against the same fixture used in
+  // `client/src/utils/normalizeAgentEvent.test.ts`. If the two ever diverge,
+  // both tests fail in lockstep — that's the parity regression guard the
+  // expansion comment on #280 calls for.
+  function loadFixture(): Array<{ kind?: string; source?: string }> {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const fixturePath = path.resolve(here, '../../test-fixtures/raw-events-real.json');
+    const raw = JSON.parse(readFileSync(fixturePath, 'utf-8')) as { items: Array<{ kind?: string; source?: string }> };
+    return raw.items;
+  }
+
+  test('drops 19 of the 23 fixture events, keeps only the 4 Terminal entries', () => {
+    const items = loadFixture();
+    expect(items).toHaveLength(23);
+    const surviving = items.filter(e => !shouldSkipForKioskTimeline(e));
+    expect(surviving).toHaveLength(4);
+    // Sanity check: the surviving entries are the TerminalAction/Observation
+    // pairs (wrapped ActionEvent/ObservationEvent).
+    expect(surviving.map(e => e.kind)).toEqual([
+      'ActionEvent',
+      'ObservationEvent',
+      'ActionEvent',
+      'ObservationEvent',
+    ]);
+  });
+
+  test('per-index parity outcome matches client predicate (regression guard)', () => {
+    // Identical expected array to the client-side test. If a contributor
+    // changes only one side of the boundary the other test will fail too,
+    // forcing them to update both.
+    const items = loadFixture();
+    const expectedSkip = [
+      true,  // 0 ConversationStateUpdateEvent
+      true,  // 1 ConversationStateUpdateEvent
+      true,  // 2 SystemPromptEvent
+      true,  // 3 MessageEvent user
+      true,  // 4 ConversationStateUpdateEvent
+      true,  // 5 ConversationStateUpdateEvent
+      true,  // 6 ConversationStateUpdateEvent
+      false, // 7 ActionEvent
+      false, // 8 ObservationEvent
+      true,  // 9 ConversationStateUpdateEvent
+      true,  // 10 ConversationStateUpdateEvent
+      true,  // 11 MessageEvent agent
+      true,  // 12 ConversationStateUpdateEvent
+      true,  // 13 ConversationStateUpdateEvent
+      true,  // 14 MessageEvent user
+      true,  // 15 ConversationStateUpdateEvent
+      true,  // 16 ConversationStateUpdateEvent
+      true,  // 17 ConversationStateUpdateEvent
+      false, // 18 ActionEvent
+      false, // 19 ObservationEvent
+      true,  // 20 ConversationStateUpdateEvent
+      true,  // 21 MessageEvent agent
+      true,  // 22 ConversationStateUpdateEvent
+    ];
+    const actual = items.map(e => shouldSkipForKioskTimeline(e));
+    expect(actual).toEqual(expectedSkip);
+  });
+});
+
 

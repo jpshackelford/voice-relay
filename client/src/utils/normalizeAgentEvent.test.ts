@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import {
+  filterKioskTimelineEvents,
   normalizeAgentEvent,
   normalizeAgentEvents,
   getEffectiveKind,
   getEventSummary,
   extractAgentActionFields,
+  shouldShowInKioskTimeline,
   type RawAgentEvent,
 } from './normalizeAgentEvent';
 
@@ -379,5 +384,131 @@ describe('normalizeAgentEvents', () => {
 
   it('returns an empty array for empty input', () => {
     expect(normalizeAgentEvents([])).toEqual([]);
+  });
+});
+
+describe('shouldShowInKioskTimeline (issue #280)', () => {
+  it('drops the kinds the server skip predicate also drops', () => {
+    expect(shouldShowInKioskTimeline({ kind: 'SystemPromptEvent' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'MessageEvent', source: 'agent' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'MessageEvent', source: 'user' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'MessageEvent', source: 'environment' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'ConversationStateUpdateEvent' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'ConversationErrorEvent' })).toBe(false);
+    expect(shouldShowInKioskTimeline({ kind: 'ServerErrorEvent' })).toBe(false);
+  });
+
+  it('keeps wrapped ActionEvent / ObservationEvent and direct *Action / *Observation kinds', () => {
+    expect(shouldShowInKioskTimeline({ kind: 'ActionEvent' })).toBe(true);
+    expect(shouldShowInKioskTimeline({ kind: 'ObservationEvent' })).toBe(true);
+    expect(shouldShowInKioskTimeline({ kind: 'TerminalAction' })).toBe(true);
+    expect(shouldShowInKioskTimeline({ kind: 'TerminalObservation' })).toBe(true);
+  });
+
+  it('keeps unknown future event kinds (default-show regression guard)', () => {
+    expect(shouldShowInKioskTimeline({ kind: 'SomeFutureEvent' })).toBe(true);
+    expect(shouldShowInKioskTimeline({ kind: 'BrandNewAction' })).toBe(true);
+  });
+
+  it('drops malformed inputs safely', () => {
+    expect(shouldShowInKioskTimeline(null)).toBe(false);
+    expect(shouldShowInKioskTimeline(undefined)).toBe(false);
+    // Missing `kind` defaults to show (matches server) but the empty object
+    // here would also pass through — that's fine; the renderer treats kind as
+    // 'Unknown'.
+    expect(shouldShowInKioskTimeline({})).toBe(true);
+  });
+});
+
+describe('filterKioskTimelineEvents (issue #280 — fixture-driven)', () => {
+  // Lazy fixture loader. Path is relative to this test file at runtime, so
+  // we resolve via import.meta.url to stay robust against CWD changes.
+  function loadFixture(): RawAgentEvent[] {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const fixturePath = path.resolve(here, '../../../test-fixtures/raw-events-real.json');
+    const raw = JSON.parse(readFileSync(fixturePath, 'utf-8')) as { items: RawAgentEvent[] };
+    return raw.items;
+  }
+
+  it('reduces the 23-event real fixture to the 4 surviving Terminal events', () => {
+    // The real fixture from a recorded session contains 23 persisted events.
+    // After the kiosk-timeline filter the only events that survive are the
+    // two TerminalAction / TerminalObservation pairs:
+    //   indices 7, 8  → TerminalAction + TerminalObservation
+    //   indices 18, 19 → TerminalAction + TerminalObservation
+    // (See issue #280 RCA — without the filter the refresh path renders 17
+    // empty "Message" / "ConversationStateUpdate" / "SystemPrompt" cards.)
+    const items = loadFixture();
+    expect(items).toHaveLength(23);
+
+    const filtered = filterKioskTimelineEvents(items);
+    expect(filtered).toHaveLength(4);
+
+    const kinds = filtered.map(getEffectiveKind);
+    expect(kinds).toEqual([
+      'TerminalAction',
+      'TerminalObservation',
+      'TerminalAction',
+      'TerminalObservation',
+    ]);
+  });
+
+  it('after pairAgentEvents-style filtering, normalization preserves the 4 actions', () => {
+    // Composition with normalizeAgentEvents — what the live/refresh paths
+    // actually deliver to useAgentActions. We sanity-check that the normalized
+    // shape carries the expected fields so AgentEventCard has something to
+    // render.
+    const items = loadFixture();
+    const filtered = filterKioskTimelineEvents(items);
+    const normalized = normalizeAgentEvents(filtered);
+
+    expect(normalized.map(a => a.kind)).toEqual([
+      'TerminalAction',
+      'TerminalObservation',
+      'TerminalAction',
+      'TerminalObservation',
+    ]);
+    // Both Terminal observations carry observation content; both actions
+    // carry a command. These are what the renderer dispatches on.
+    expect(normalized[0].command).toBeDefined();
+    expect(normalized[2].command).toBeDefined();
+    // action_id links observation → action (issue #258 contract).
+    expect(normalized[1].action_id).toBeDefined();
+    expect(normalized[3].action_id).toBeDefined();
+  });
+
+  it('parity guard: predicate matches expected per-index outcome (regression guard)', () => {
+    // Hard-coded expected outcome per index for the 23 fixture items. If
+    // either the server (`shouldSkipForKioskTimeline`) or the client
+    // (`shouldShowInKioskTimeline`) drifts, this test must be updated in
+    // lockstep — which is exactly the cross-checking we want for #280.
+    const items = loadFixture();
+    const expectedShow = [
+      false, // 0 ConversationStateUpdateEvent
+      false, // 1 ConversationStateUpdateEvent
+      false, // 2 SystemPromptEvent
+      false, // 3 MessageEvent user
+      false, // 4 ConversationStateUpdateEvent
+      false, // 5 ConversationStateUpdateEvent
+      false, // 6 ConversationStateUpdateEvent
+      true,  // 7 ActionEvent (TerminalAction)
+      true,  // 8 ObservationEvent (TerminalObservation)
+      false, // 9 ConversationStateUpdateEvent
+      false, // 10 ConversationStateUpdateEvent
+      false, // 11 MessageEvent agent
+      false, // 12 ConversationStateUpdateEvent
+      false, // 13 ConversationStateUpdateEvent
+      false, // 14 MessageEvent user
+      false, // 15 ConversationStateUpdateEvent
+      false, // 16 ConversationStateUpdateEvent
+      false, // 17 ConversationStateUpdateEvent
+      true,  // 18 ActionEvent (TerminalAction)
+      true,  // 19 ObservationEvent (TerminalObservation)
+      false, // 20 ConversationStateUpdateEvent
+      false, // 21 MessageEvent agent
+      false, // 22 ConversationStateUpdateEvent
+    ];
+    const actual = items.map(e => shouldShowInKioskTimeline(e));
+    expect(actual).toEqual(expectedShow);
   });
 });
