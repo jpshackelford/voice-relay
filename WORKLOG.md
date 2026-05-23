@@ -2,6 +2,18 @@
 
 ## Log
 
+### 2026-05-23 23:25 UTC - Expansion Worker (`#280`)
+
+✅ **Expanded Issue [#280](https://github.com/jpshackelford/voice-relay/issues/280) — "Agent messages change on refresh"**
+
+- Type: bug → confirmed; status: **Ready for implementation** (`ready` label added).
+- Root cause: the live WS path filters non-renderable event kinds (`MessageEvent`, `SystemPromptEvent`, `ConversationStateUpdateEvent`, `ConversationErrorEvent`, `ServerErrorEvent`) before forwarding as kiosk-timeline cards; the refresh path (`GET /api/sessions/:sessionId/agent-events` → `normalizeAgentEvents`) does not. Persistence stores everything by design (correct), but the refresh render path lacks the equivalent of `shouldSkipForKioskTimeline`. Result: after refresh the kiosk timeline gains a swarm of empty generic `💬 Message` / `⚡ ConversationStateUpdate` / `⚡ SystemPrompt` cards that were never shown live, and the agent's chat reply (still correctly rendered as a `✨ AI` utterance bubble from the `messages` table) appears alongside a duplicate empty `Message` card.
+- Verified by replaying `test-fixtures/raw-events-real.json` (23 events) through the client normalizer — 17/23 produce empty bodies on the refresh path; only the 4 `TerminalAction`/`TerminalObservation` events should be cards.
+- Proposed fix: extend `shouldSkipForKioskTimeline` to cover all non-tool kinds, apply it both server-side in `agent-events/router.ts` (default behaviour; explicit `?kind=` still bypasses) and client-side in `client/src/api/agentEvents.ts` / `useAgentEventHistory` for defence-in-depth. **No DB migration** — `agent_events` schema and contents unchanged; production SQLite keeps working; historical sessions self-heal on next refresh. Detailed RCA + fix plan + test strategy posted as comment on the issue.
+
+---
+
+
 ### 2026-05-22 05:30 UTC - Review Worker (PR #275)
 
 ✅ **Addressed review feedback on PR #275**
