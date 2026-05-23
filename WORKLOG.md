@@ -2567,3 +2567,38 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-23 23:19 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Expansion Worker** — quiet streak broken by new bug report.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0db73d3` | expansion | Issue #280 — Agent messages change on refresh | **NEW** (running) |
+
+**Spawn details:**
+- Conversation: [`0db73d3`](https://app.all-hands.dev/conversations/0db73d33973845ad85be4b66f52e0e8f) — `execution_status: running`, sandbox `RUNNING`.
+- Start-task `cc7469e4…` reached `READY` on first poll.
+- Plugin: `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin`.
+
+**Current State (verified this run via `gh` API):**
+- **NEW issue #280** — *Agent messages change on refresh* — `bug`, no `on-hold`, opened 2026-05-23T23:06:22Z by @jpshackelford. Reports that live-rendered agent messages get replaced with "generic" versions after a page refresh (DB round-trip discards detail). Needs expansion → worker dispatched.
+- Other open issues (3, all carry `on-hold`, skipped): #239 (`bug`/`ci-failure`), #210 (`enhancement`), #208 (`ci-failure`).
+- PRs (unchanged):
+  - [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — draft, human-owned (@jpshackelford), no labels. Orchestrator does not engage drafts.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, STUCK (~5d stale). Deferred.
+- `.workflow-state.json`: expansion 1/4 (issue #280), impl 0/1, review 0/2; `completed: []`.
+- Automation `a0219382-…`: `enabled: false` (manual `/orchestrate` only) — no toggle action needed.
+- No `## INSTRUCTION:` entries in WORKLOG.md.
+
+**Decision rationale:**
+- Implementation slot: idle — 0 `ready` issues, so nothing to implement yet.
+- Review slots: both idle — no non-draft PR with unresolved review threads or merge-ready status.
+- Expansion slot: spawned 1 worker for the only non-`on-hold` issue (#280). Other 3 issues are `on-hold` → skipped per skill rules.
+
+**Worklog housekeeping:** WORKLOG.md is 2570 lines (pre-append). Truncation re-evaluated — still a no-op because the prior 6-hour productive window anchor (2026-05-22 ~05:30 UTC) is older than every entry, and the new productive entry just appended (this run) becomes the newest anchor, encompassing the full file. Archive will run naturally once a second productive entry lands >6h after this one.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
