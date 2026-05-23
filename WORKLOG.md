@@ -2241,3 +2241,39 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-23 20:49 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+✅ **All quiet** — no orchestrator-actionable change since the 20:34 UTC entry that first noted PR #279.
+
+**Verified state (this run):**
+- 0 active workers (`.workflow-state.json` slots: expansion 0/4, impl 0/1, review 0/2; `last_updated` 2026-05-22T12:59:55Z; 36 completed entries in 24h window).
+- 2 open PRs (unchanged from 20:34):
+  - [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — *docs: session state analysis and proposed state machines* — **draft**, no labels, `updatedAt` 2026-05-23T20:32:05Z (no new pushes/comments since the 20:34 entry). All 4 CI checks ✅ (Build Client, E2E Tests, Server Tests, lint-pr-title). 0 comments, 0 reviews, `MERGEABLE`. Human-owned draft from sibling conversation `f571536c` — orchestrator continues to defer.
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `updatedAt` 2026-05-18T21:50:13Z. Still STUCK.
+- 3 open issues — all carry `on-hold`: #208 (`ci-failure`), #210 (`enhancement`), #239 (`bug`/`ci-failure`). 0 `ready`, 0 `priority:*`, 0 needing expansion (all are on-hold).
+- Automation `a0219382-2e7c-4156-9991-7b9976739a66`: `enabled: false` re-verified (`updated_at` 2026-05-17T18:56:05Z; `last_run_at: null`; `last_triggered_at` 2026-05-17T15:30:57Z).
+- No `## INSTRUCTION:` entries in WORKLOG.md.
+
+**Decision:** No worker spawned.
+- **PR #279** — draft + 0 review activity + author still iterating in a sibling conversation. Per skill, orchestrator only engages review workers on non-draft PRs with unresolved threads or merge-ready PRs. Deferring until the human marks it ready.
+- **PR #221** — `needs-human`, still STUCK, still skipped.
+- All 3 issues remain `on-hold` — no expansion or implementation work to dispatch.
+- Automation already disabled (manual invocation only); no toggle action needed.
+
+**Housekeeping:** WORKLOG.md is 2243 lines (pre-append). Truncation re-evaluated: the newest productive anchor remains the `🔒 Auto-disabled` entry at 2026-05-22 06:24 UTC; the 6-hour-back cutoff lands at 2026-05-22 00:24 UTC, but the oldest productive-within-window is the PR #275 Review Worker at 2026-05-22 05:30 UTC, which is the actual `oldest_in_window`. Since every entry currently in WORKLOG.md is ≥ 05:30 UTC of 2026-05-22, nothing is older than the cutoff → still a no-op. Archive will trigger naturally on the next productive event (e.g., when PR #279 is marked ready and a review/merge worker logs `🚀 Spawned` or `✅ Merged`).
+
+**Next steps to unblock the pipeline (unchanged):**
+1. **PR #279** — once @jpshackelford marks it ready-for-review, the review bot will engage; orchestrator will pick up review feedback automatically.
+2. **PR #221** — long-stalled draft, `needs-human`. Rebase/finish, close, or remove the label to re-engage automation.
+3. **Issues #208 / #210 / #239** — all `on-hold`. Remove the label on at least one to feed the pipeline.
+4. **Orchestrator automation** — re-enable once new work is unblocked (PATCH `enabled: true` on automation `a0219382-…`).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
