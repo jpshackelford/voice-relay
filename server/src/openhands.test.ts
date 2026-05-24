@@ -2551,6 +2551,53 @@ describe('AISessionManager.rebindSession (#296)', () => {
     expect(session.rebinding).toBe(false);
   });
 
+  test('concurrent rebindSession calls for the same conversation single-flight to one upstream POST', async () => {
+    // Two rapid WS-close events for the same session must not both pass
+    // checkBudget and race on credential updates. The inFlightRebind map
+    // (mirroring inFlightRefresh from #291) dedupes them onto one promise.
+    let resolveRebind!: (info: object) => void;
+    const pending = new Promise<object>((resolve) => {
+      resolveRebind = resolve;
+    });
+    const client = {
+      rebindConversation: vi.fn(() => pending),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    // Fire two concurrent rebindSession calls before the first one settles.
+    const p1 = manager.rebindSession(session);
+    const p2 = manager.rebindSession(session);
+    // Yield so both enter the single-flight wrapper.
+    await Promise.resolve();
+
+    // Only one HTTP call should be queued, not two.
+    expect(client.rebindConversation).toHaveBeenCalledTimes(1);
+
+    resolveRebind({
+      id: 'conv-rb-1',
+      status: 'READY',
+      session_api_key: 'KNEW',
+      conversation_url: 'https://new.example.com/api/v1',
+    });
+    await Promise.all([p1, p2]);
+
+    // Credentials updated exactly once; window counted exactly once;
+    // WS dial happens exactly once.
+    expect(client.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(session.agentServerUrl).toBe('https://new.example.com');
+    expect(session.sessionApiKey).toBe('KNEW');
+    expect(manager.getRebindCount()).toBe(1);
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+
+    // After settle, the in-flight map is cleared so a future genuine
+    // rebind for the same conversation can run again.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((manager as any).inFlightRebind.size).toBe(0);
+  });
+
   // TODO(#297): once memory replay lands, add a test asserting that the
   // post-rebind event stream is rehydrated into the agent's context.
   // The platform already preserves the conversation event log across

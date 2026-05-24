@@ -1369,6 +1369,17 @@ export class AISessionManager {
   private inFlightRefresh = new Map<string, Promise<void>>();
 
   /**
+   * In-flight rebind promises keyed by `conversationId` so two concurrent
+   * `rebindSession` calls for the same conversation (e.g. from rapid WS
+   * close events) share a single upstream POST and a single credential
+   * update — they don't both pass `checkBudget`, double-count window
+   * usage, or race on writes to `session.agentServerUrl` /
+   * `session.sessionApiKey`. Same self-delete-on-settle shape as
+   * {@link inFlightRefresh}.
+   */
+  private inFlightRebind = new Map<string, Promise<void>>();
+
+  /**
    * Per-conversation rolling-window tracker for rebind attempts (#296).
    * Prevents thrash when the platform repeatedly hands us short-lived
    * sandboxes — after `MAX_REBINDS_PER_WINDOW` rebinds in a 5-minute
@@ -1976,10 +1987,27 @@ export class AISessionManager {
    * - During the attempt `session.rebinding` is `true` so the driver
    *   layer reports `reconnecting` to UI consumers.
    *
+   * Concurrent calls for the same `conversationId` (e.g. two rapid-fire
+   * WS-close events on the same session) single-flight onto one in-flight
+   * promise via {@link inFlightRebind}, so the upstream POST fires once
+   * and the window tracker / credential writes only happen once.
+   *
    * Returns nothing — caller observes outcome via `session.degraded` /
    * `session.ws.readyState` / `getRebindCount()`.
    */
   async rebindSession(session: AISession): Promise<void> {
+    const key = session.conversationId;
+    const existing = this.inFlightRebind.get(key);
+    if (existing) return existing;
+
+    const work = this.doRebindSession(session).finally(() => {
+      this.inFlightRebind.delete(key);
+    });
+    this.inFlightRebind.set(key, work);
+    return work;
+  }
+
+  private async doRebindSession(session: AISession): Promise<void> {
     if (!this.client) {
       session.degraded = true;
       session.degradedReason = 'OpenHands client not configured — cannot rebind';
