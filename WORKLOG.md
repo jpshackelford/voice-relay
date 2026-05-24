@@ -2,6 +2,31 @@
 
 ## Log
 
+### 2026-05-24 04:38 UTC - Implementation Worker (Issue #310 → PR #314)
+
+✅ **Implemented Playwright `@slow-keepalive` spec for 5-min WS idle survival — Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310)**
+
+- PR: [#314](https://github.com/jpshackelford/voice-relay/pull/314) — `feat(e2e): add @slow-keepalive Playwright spec for 5-min WS idle survival` (ready for review)
+- Scope: `scope:full-stack` — single Playwright spec, one tiny server-side test-only endpoint, nightly workflow, and one helper refactor.
+- Follow-up to [#286](https://github.com/jpshackelford/voice-relay/issues/286) / [#309](https://github.com/jpshackelford/voice-relay/pull/309): the production server-driven WS keepalive now has unit coverage on both sides; #310 adds the deferred browser-level proof that the kiosk WS actually stays up across a real 5-minute idle window (catches Vite/Apache/ngrok/Cloudflare proxy-timeout regressions that unit tests can't see).
+
+Implementation breakdown:
+
+1. **Playwright spec** `tests/ws-keepalive.spec.ts` — two cases, both tagged `@slow-keepalive`:
+   - **T-1.2-E2E.1**: kiosk → green dot → 5-min `page.waitForTimeout` → assert `.connection-indicator.connected` still visible, `__wsInstances.length` unchanged, last instance `readyState === OPEN`. WS identity is captured via `context.addInitScript()` installing a `Proxy(WebSocket)` shim BEFORE navigation.
+   - **T-1.2-E2E.2**: kiosk → green dot → `POST /auth/test-terminate-ws` with deviceId → assert brief red dot, then green again within 30 s via the #285 reconnect path, and `__wsInstances.length` increased (proof a fresh socket was constructed).
+2. **Test-only server endpoint** `POST /auth/test-terminate-ws` (`server/src/auth/router.ts`) — gated by `X-Test-Auth-Secret` header **and** `NODE_ENV !== 'production'` (defence in depth). Looks up the live WS via `DeviceRegistry.getDevice(deviceId)` and calls `ws.terminate()` — the **same code path** `keepalive.ts` runs when no pong arrives within the heartbeat deadline. Plumbed via new optional `deviceRegistry` field on `AuthRouterConfig`; wired in `server/src/index.ts`.
+3. **Server unit tests** `server/src/auth/test-terminate-ws.test.ts` — 8 cases (happy path, missing/wrong secret, missing deviceId, unknown device, production refusal, registry-not-wired, secret-unset). 8/8 pass. Full server suite still 910/910.
+4. **Playwright config** `playwright.config.ts` — chromium project gains `grepInvert: /@slow-keepalive/` so PR CI stays fast (the spec wall-clocks at ≥5 min). New `slow-keepalive` project picks up only the tagged tests. Listing confirms 60 chromium tests in 6 files (unchanged), 2 slow-keepalive tests in 1 file.
+5. **Nightly workflow** `.github/workflows/nightly-slow-e2e.yml` — `schedule: cron '0 7 * * *'` + `workflow_dispatch`, single Playwright worker (5-min idle is wall-clock-bound, not CPU-bound), 25-min job timeout, uploads `playwright-report-slow-keepalive` artifact.
+6. **Helper refactor** `tests/utils/auth-helper.ts` — extracted `navigateKioskToFirstSession()` from `setupTwoDeviceSession()`. The multi-device helper now calls into it (DRY), and the single-device keepalive spec reuses it without spinning up a phantom mobile context.
+
+CI: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator — all green on head (`7e6886c`). `lint-pr-title` initially failed because the PR title's subject started with `@` (lowercase-letter rule); fixed by retitling to `feat(e2e): add @slow-keepalive …`.
+
+Production safety: the new endpoint is never active in production. Three layers gate it — (a) router-construction-time `if (testAuthSecret)` skips the route entirely when `TEST_AUTH_SECRET` is unset, (b) per-call `process.env.NODE_ENV === 'production'` refusal, (c) `X-Test-Auth-Secret` header match. No DB schema changes; no API contract changes for real clients.
+
+---
+
 ### 2026-05-24 04:32 UTC - Review-feedback Worker (PR #313 round 1)
 
 ✅ **Addressed all three bot review threads on PR [#313](https://github.com/jpshackelford/voice-relay/pull/313) — provision AWS workspace credentials as OH user secrets (#298)**
