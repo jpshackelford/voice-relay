@@ -2,6 +2,29 @@
 
 ## Log
 
+### 2026-05-24 02:42 UTC - Implementation Worker (Issue #304 → PR #308)
+
+✅ **Opened PR [#308](https://github.com/jpshackelford/voice-relay/pull/308) — fix(tests): accept GitHub App install URL in /auth/github smoke redirect (closes #304)**
+
+- Issue: [#304](https://github.com/jpshackelford/voice-relay/issues/304) — 🚨 Smoke test failure after deployment (priority:high, blocking prod redeploy)
+- Branch: `fix/smoke-github-app-install-url`
+- Status: **Ready for review** (CI green: Build Client / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator all pass; pr-review will trigger on ready-flip)
+- Root cause (per #304 RCA): `tests/smoke/smoke.spec.ts:56` was asserting the **legacy** classic-OAuth substring `github.com/login/oauth/authorize`. PR #283 intentionally moved `/auth/github` to redirect to the GitHub App install URL (`https://github.com/apps/<slug>/installations/new?state=<hex>`). Server is correct; the smoke test was stale. Every deploy since #283 was failing this assertion and getting rolled back to `ca54d28`.
+- Fix (single file, +12/-3): retargeted the smoke assertion to a regex matching the new install-URL shape:
+  ```
+  /^https:\/\/github\.com\/apps\/[\w.-]+\/installations\/new\?state=[a-f0-9]+$/i
+  ```
+  - Accepts both the test-mode fallback slug (`test-mode-placeholder` per `server/src/index.ts:274-276`) and any real production slug (e.g. `no-hands-agent-screencast`).
+  - Validates the CSRF `state` hex param is echoed (matches `crypto.randomBytes(32).toString('hex')` from `server/src/auth/router.ts:180` — 64 hex chars).
+  - Added explicit `not.toContain('login/oauth/authorize')` regression guard.
+  - Kept `expect(response.status()).toBe(302)`.
+- Scope discipline: diff confined to `tests/smoke/smoke.spec.ts` per `scope:ci-only`. Zero server / client / migration / env changes — per the #304 RCA, the server-side behavior is intentional.
+- PR title initially `fix(smoke): …` which failed `lint-pr-title` (allowed scopes: client/server/websocket/auth/db/tests/e2e/deps/ci — `smoke` is not allowed). Retitled to `fix(tests): …` and lint passes.
+- Regex validated locally against 6 representative URLs (3 accept, 3 reject including legacy authorize URL).
+- Reflection: all in-scope acceptance criteria from #304 are met. Post-merge verification (smoke job passes on the new prod deploy, `tag-success` runs, migration 014 applies) is human-verified per the #304 out-of-scope notes — not the implementer's job. No follow-ups required; setting a real `GITHUB_APP_SLUG` in production is a separate concern.
+
+---
+
 ### 2026-05-24 02:20 UTC - Implementation Worker (Issue #287 → PR #307)
 
 ✅ **Opened PR [#307](https://github.com/jpshackelford/voice-relay/pull/307) — feat(server): define AgentDriver interface and FakeDriver (closes #287)**
