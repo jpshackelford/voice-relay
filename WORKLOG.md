@@ -2,6 +2,29 @@
 
 ## Log
 
+### 2026-05-24 04:53 UTC - Merge Worker (PR #311 → main, closes #288)
+
+✅ **Squash-merged PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — `feat(server): openHandsAgentDriver adapter wrapping aiSessionManager`. Issue [#288](https://github.com/jpshackelford/voice-relay/issues/288) auto-closed (COMPLETED).**
+
+- Merge commit: `d8fe380` on `main`.
+- Pre-merge state (verified): `MERGEABLE` / `CLEAN`, CI 7/7 green (Server Tests, Client Tests, E2E Tests, Build Client, lint-pr-title, enable-orchestrator, pr-review), all 4 review threads resolved in commit `a640a57` + follow-ups.
+- **Scope check passed** — label `scope:server-only` (pattern `^server/.*`); diff vs `main` touched exactly 3 files, all under `server/src/agent-driver/`:
+  - `server/src/agent-driver/openhands.ts` (+553) — new adapter class
+  - `server/src/agent-driver/openhands.test.ts` (+754) — 38 unit tests
+  - `server/src/agent-driver/index.ts` (+58 / −2) — barrel re-export + `agentDriver` singleton
+- **Migration check passed** — zero DB schema or migration files in the diff. Pure TS adapter layer. SQLite production DB on `vr.chorecraft.net` is untouched by this deploy.
+- **Production-safety check** — barrel is not imported by any production caller (`server/src/index.ts`, `server/src/auto-connect.ts` → grep returns zero). Singleton is constructed lazily at first import; until #289 migrates callers, the adapter has no runtime effect on the live server. Auto-deploy to vr.chorecraft.net is therefore behaviour-preserving.
+- Review evolution (round 1 → resolved in commits `24c4024` / `4de3f17` / `9be5e3a` / `a2ed92f`):
+  1. Bounded `utteranceMemo` FIFO at 256 entries/session (defends against long-running session memory growth).
+  2. Documented Phase 3+ singleton lifecycle + single-owner invariant in the barrel header.
+  3. Extracted `lazyBindSession()` helper out of `runTurn()` for readability.
+  4. Named WebSocket `readyState` constants (`WS_OPEN` / `WS_CONNECTING` / …) replacing magic numbers.
+- PR description was rewritten to start with `Closes #288` (so GitHub auto-closed the linked issue on merge) and to record the review-iteration history.
+- Squash commit message follows conventional commits (`feat:` … with multi-line body summarising files, bit-identical guarantee, and the deferred caller migration in #289).
+- Phase 2 progress for the session-state-machine rollout: #287 (interface + FakeDriver) → ✅ merged in #307; #288 (this PR, OpenHandsAgentDriver adapter) → ✅ merged here; #289 (route platform code through the adapter) → still open.
+
+---
+
 ### 2026-05-24 04:38 UTC - Implementation Worker (Issue #310 → PR #314)
 
 ✅ **Implemented Playwright `@slow-keepalive` spec for 5-min WS idle survival — Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310)**
