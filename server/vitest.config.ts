@@ -3,7 +3,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
-    include: ['src/**/*.test.ts'],
+    // Includes operational script tests under `scripts/` so the suite covers
+    // both runtime code and ops tooling (e.g. provision-aws-secrets.ts).
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     coverage: {
       provider: 'v8',
       include: [
