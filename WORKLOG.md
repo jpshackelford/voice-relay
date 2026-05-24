@@ -918,3 +918,26 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:09 UTC - Merge Worker (PR #326)
+
+✅ **Squash-merged PR #326** — `test(client): cover useWorkspaces, useSessions, useDevices (refs #303)`
+
+- PR: https://github.com/jpshackelford/voice-relay/pull/326
+- Commit on main: `072f1db6acfc5161ab8b2c908e56ef582e41a05c`
+- Scope: `scope:client` — tests-only (3 new `client/src/hooks/*.test.ts` files, +962 LOC) plus 3 removed entries from the `exclude:` list in `client/vite.config.ts`. No production code or server changes.
+- Merge criteria at gate time: CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review), 0 unresolved review threads, `MERGEABLE` / `CLEAN`, not draft. `needs-human` / `on-hold` not present.
+- Production impact: auto-deploys to vr.chorecraft.net; pure test additions with vite config exclude reduction — no runtime behavior, env, or DB schema changes.
+
+**Issue resolution:**
+- `refs #303` — does **not** auto-close. Issue #303 left OPEN.
+- After this PR, **9 modules remain in `client/vite.config.ts` exclude list** (7 hooks: `useAudioPlayback`, `useAudioStreaming`, `useJoinRequests`, `useResourceFetch`, `useWebSocket`, `useWorkspaceAutoJoin`, `useWorkspaceSettings`; 2 utils: `deviceToken`, `getEventContent`).
+- Posted follow-up comment on #303 listing remaining gaps and suggested batch grouping for follow-up PRs (batch 3/4/5).
+
+**Current State:**
+- Open PRs after merge: per `gh pr list` at next orchestrator tick
+- Slots used: merge 0/2 (this slot released)
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
