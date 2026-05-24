@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "39c990b",
-        "issue": 295,
-        "started": "2026-05-24T22:35:42.243554+00:00"
+        "conv_id": "7f3a113",
+        "issue": 297,
+        "started": "2026-05-24T23:07:56.092125Z"
       }
     ],
     "review": []
@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T22:48:49.868795+00:00",
+  "last_updated": "2026-05-24T23:07:56.092125Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -485,7 +485,16 @@
       "finished": "2026-05-24T22:48:49.868795+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #330 (test(client): cover remaining excluded hook modules); issue #303 four-batch backfill complete and auto-closed"
+    },
+    {
+      "conv_id": "39c990b",
+      "type": "implementation",
+      "issue": 295,
+      "started": "2026-05-24T22:35:42.243554+00:00",
+      "finished": "2026-05-24T23:07:56.092125Z",
+      "status": "success",
+      "outcome": "Created PR #331 (feat(websocket): unify session-state wire message and refactor useAI as a reducer); ready-for-review, CI green except pr-review bot still IN_PROGRESS"
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
