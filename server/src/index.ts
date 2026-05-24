@@ -1052,6 +1052,10 @@ async function start() {
         userRepository,
         workspaceRepository,
         deviceRepository,
+        // Used by the test-only /auth/test-terminate-ws endpoint (issue #310)
+        // to look up the live WS for a given deviceId. No-op when
+        // TEST_AUTH_SECRET is unset or NODE_ENV === 'production'.
+        deviceRegistry: registry,
       });
       app.use('/auth', authRouter);
       console.log('[Auth] GitHub OAuth enabled');

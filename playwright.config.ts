@@ -86,9 +86,22 @@ export default defineConfig({
   projects: [
     // Default project for standard E2E tests
     // Excludes mobile-voice.spec.ts and smoke tests
+    // Also excludes any spec tagged `@slow-keepalive` (issue #310) — those
+    // run on a nightly schedule, not per-PR (5-minute real-time waits).
     {
       name: 'chromium',
       testIgnore: ['**/mobile-voice.spec.ts', '**/smoke/**'],
+      grepInvert: /@slow-keepalive/,
+      use: { browserName: 'chromium' },
+    },
+    // Nightly slow keepalive project (issue #310). Picks up ONLY specs
+    // tagged `@slow-keepalive`. Used by `.github/workflows/nightly-slow-e2e.yml`
+    // via `npx playwright test --project=slow-keepalive`. Locally:
+    // `npx playwright test --project=slow-keepalive`.
+    {
+      name: 'slow-keepalive',
+      testIgnore: ['**/mobile-voice.spec.ts', '**/smoke/**'],
+      grep: /@slow-keepalive/,
       use: { browserName: 'chromium' },
     },
     // Mobile voice tests project - run with: npm run test:mobile
