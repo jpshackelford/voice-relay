@@ -313,3 +313,32 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+## 2026-05-24T01:50:00Z — Issue #285: Client WebSocket auto-reconnect with exponential backoff
+
+**Status:** PR #305 opened (ready for review) · CI green
+**Branch:** `feat/285-client-ws-auto-reconnect`
+**PR:** https://github.com/jpshackelford/voice-relay/pull/305
+**Scope:** `scope:client-only` (label applied)
+
+**What landed**
+- `client/src/hooks/useWebSocket.ts` — auto-reconnect with exponential backoff and jitter. Delay formula `min(250 * 2^attempts, 30 000) * (0.75 + 0.5 * random())` per the values agreed in #285. Deliberate-close suppression via `intentionallyClosedRef` (covers hook cleanup, `device-removed`, `workspace-deleted`, and reserved close codes 4xxx). Backoff resets only on the server's `registered` message, never on raw `onopen`. Connect routine refactored into a closure inside the effect so the same path runs on initial mount and on every reconnect.
+- `client/src/hooks/useWebSocket.test.ts` — 18 new unit tests using `vi.useFakeTimers()` and a mocked `Math.random` for deterministic delays. Covers backoff math, exponential growth, the 30 s cap, jitter range, transient vs deliberate closes, 4xxx suppression, unmount-clears-timer, lastKnownDevices preservation, latest-mode re-read on reconnect, and `connected` returning to true on successful reconnect.
+
+**Verification**
+- `cd client && npm test` → 31 files, 679 tests pass (15 → 33 in useWebSocket.test.ts)
+- `cd client && npx tsc --noEmit` → clean
+- `cd client && npm run build` → clean
+- CI on PR #305: Build Client, Server Tests, E2E Tests, enable-orchestrator, lint-pr-title all pass.
+
+**Scope discipline**
+Every path in the diff starts with `client/`. No `server/**`, `.github/**`, `client/vite.config.ts`, or `.workflow-state.json` changes.
+
+**Follow-ups (intentionally not bundled)**
+- #286 — server-driven keepalive. Complements but does not block this PR; the two layer cleanly.
+- #284 — client coverage tooling is still blocked. New tests are thorough vitest units; coverage measurement will land when #284 unblocks.
+- Durable client-side message buffering for messages typed during the reconnect gap — explicit follow-up per the body of #285. Not addressed here.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
