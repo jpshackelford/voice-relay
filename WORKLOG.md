@@ -941,3 +941,27 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:14 UTC - Implementation Worker (issue #303 batch 3)
+
+🚀 **Opened PR #327 (ready for review)** — `test(client): cover deviceToken, getEventContent, useResourceFetch (refs #303)`
+
+- PR: https://github.com/jpshackelford/voice-relay/pull/327
+- Branch: `303-cover-batch-2` (rebased onto `main@072f1db` to resolve `vite.config.ts` conflict with merged batch 2)
+- Scope: `scope:client` — tests-only. Modified `client/src/utils/deviceToken.test.ts`, `client/src/utils/getEventContent.test.ts`; new `client/src/hooks/useResourceFetch.test.ts`; removed 3 entries from `client/vite.config.ts` `exclude:`. No production / server / CI changes.
+- CI status at marking ready: Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅. `MERGEABLE` / clean.
+- Coverage delta (per-file, post-rebase):
+  - `utils/deviceToken.ts`: 74/73/100/74 → **96/96/100/96**
+  - `utils/getEventContent.ts`: 80/64/93/79 → **99/89/100/99**
+  - `hooks/useResourceFetch.ts`: 0/0/0/0 → **96/93/88/98**
+  - Aggregate after merge: 95.95 / 90.37 / 97.63 / 97.28 (well above 80% gate on all four metrics).
+- Test counts: 49 new tests (18 deviceToken + 18 getEventContent + 13 useResourceFetch). Full suite 831/831 passing.
+- Note on `useResourceFetch`: hook lists `extractData` and other callbacks in its `useEffect` deps, so tests pass stable references (defined outside `renderHook`) — matches how real callers would need to consume the hook. Hook is currently unreferenced in `src/`; the contract is tested as written.
+
+**Issue resolution:**
+- `refs #303` — does **not** auto-close. Issue #303 left OPEN.
+- After this PR, **6 modules remain in `client/vite.config.ts` exclude list** (all hooks): `useAudioPlayback`, `useAudioStreaming`, `useJoinRequests`, `useWebSocket`, `useWorkspaceAutoJoin`, `useWorkspaceSettings`. Next batch is a separate conversation.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
