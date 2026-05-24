@@ -151,6 +151,13 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
         setDevices(lastKnownDevicesRef.current);
       }
 
+      // Server keepalive (issue #286) is purely transport-layer: the
+      // server sends WebSocket protocol-level ping frames every ~25 s, and
+      // browsers respond with a pong frame automatically (RFC 6455 §5.5.3).
+      // These frames are invisible to the JS WebSocket API by design — the
+      // hook has nothing to handle for keepalive itself. If the server
+      // decides the peer is dead, it terminates the socket and the
+      // existing onclose/reconnect path (#285) takes over.
       ws.onopen = () => {
         console.log('[WS] Connected');
         setConnected(true);

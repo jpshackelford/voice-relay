@@ -8,6 +8,7 @@ import { networkInterfaces } from 'os';
 import { readFileSync, existsSync } from 'fs';
 import { loadVersionInfo } from './version.js';
 import { DeviceRegistry } from './registry.js';
+import { attachKeepalive } from './keepalive.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { AgentEventRepository } from './storage/agent-event-repository.js';
 import { aiSessionManager, getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
@@ -436,6 +437,20 @@ wss.on('connection', (ws: WebSocket) => {
   let deviceId: string | null = null;
   let workspaceId: string | null = null;
   let sessionId: string | null = null;
+
+  // Keep the connection from being reaped by middleboxes during idle
+  // periods, and detect frozen clients within ~50 s. See server/src/keepalive.ts
+  // for the rationale. Browsers auto-respond to protocol-level pings with
+  // pongs, so this requires no client-side cooperation. The helper wires
+  // its own 'close' cleanup, so we don't need to track the handle here.
+  attachKeepalive(ws, {
+    onTerminate: () => {
+      console.warn('[WS] Keepalive: terminating unresponsive connection', {
+        deviceId,
+        workspaceId,
+      });
+    },
+  });
 
   ws.on('message', async (data) => {
     try {

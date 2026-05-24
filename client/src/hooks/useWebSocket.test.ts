@@ -870,4 +870,114 @@ describe('useWebSocket hook', () => {
       expect(result.current.connected).toBe(true);
     });
   });
+
+  // Pairs with server/src/keepalive.ts (issue #286). The server pings every
+  // 25 s at the WebSocket protocol layer; browsers handle the pong response
+  // transparently — there is no JS-visible event for it. These tests pin
+  // the *client-visible* contract: the hook must not proactively close or
+  // re-create the socket during a long idle window, so the protocol-level
+  // heartbeat can do its job uninterrupted.
+  describe('keepalive heartbeat (issue #286)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('keeps the same WebSocket instance alive across a 5-minute idle period', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+
+      await act(async () => {
+        ws.simulateOpen();
+        ws.simulateMessage({
+          type: 'registered',
+          deviceId: 'device-123',
+          session: { id: 's', name: 's' },
+        });
+      });
+      expect(result.current.connected).toBe(true);
+      expect(MockWebSocket.instances).toHaveLength(1);
+
+      // Advance well past the 60 s proxy threshold. If the client closed
+      // or re-created the socket, the instance count would change and
+      // `connected` would flip false.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+      expect(MockWebSocket.instances[0]).toBe(ws);
+      expect(ws.readyState).toBe(MockWebSocket.OPEN);
+      expect(result.current.connected).toBe(true);
+    });
+
+    it('stays connected if the server only sends keepalive pings (no app messages)', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+
+      await act(async () => {
+        ws.simulateOpen();
+        ws.simulateMessage({
+          type: 'registered',
+          deviceId: 'device-123',
+          session: { id: 's', name: 's' },
+        });
+      });
+
+      // Simulate three full server heartbeat cycles with no application
+      // traffic in between. Protocol-level pings/pongs are invisible to
+      // the WebSocket JS API, so from the hook's perspective these are
+      // genuinely silent windows. The connection must survive.
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(25_000);
+        });
+      }
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+      expect(result.current.connected).toBe(true);
+    });
+
+    it('a server-side terminate (1006 close) triggers the existing reconnect path', async () => {
+      // When the server's keepalive sweep terminates a frozen client, the
+      // socket emits an abnormal close (code 1006). This is the same
+      // transport-layer signal #285 already handles, so we should NOT
+      // need any new reconnect logic for keepalive — just verify the
+      // existing path still fires cleanly.
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+
+      await act(async () => {
+        ws.simulateOpen();
+        ws.simulateMessage({
+          type: 'registered',
+          deviceId: 'device-123',
+          session: { id: 's', name: 's' },
+        });
+      });
+
+      // Server gives up on us and tears down the socket.
+      await act(async () => {
+        ws.simulateClose(1006, 'keepalive timeout');
+      });
+      expect(result.current.connected).toBe(false);
+
+      // Reconnect logic from #285 schedules a fresh attempt. Backoff
+      // resets on a successful `registered`, so this first delay is the
+      // 250 ms base × jitter — advance generously to cover the spread.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+
+      expect(MockWebSocket.instances.length).toBeGreaterThanOrEqual(2);
+      const ws2 = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+      await act(async () => {
+        ws2.simulateOpen();
+      });
+      expect(result.current.connected).toBe(true);
+    });
+  });
 });

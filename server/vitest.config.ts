@@ -9,6 +9,7 @@ export default defineConfig({
       include: [
         'src/storage/**/*.ts', 
         'src/auth/**/*.ts', 
+        'src/keepalive.ts',
         'src/registry.ts',
         'src/devices/**/*.ts',
         'src/sessions/**/*.ts',
