@@ -439,3 +439,32 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
+
+## 2026-05-24T02:11:00Z — PR #306 (Issue #284): Merge HALTED — scope contract violation
+
+**Status:** ❌ Merge refused · `needs-human` label applied · No merge performed
+**PR:** https://github.com/jpshackelford/voice-relay/pull/306
+**Branch:** `feat/284-client-coverage-thresholds`
+**Declared scope:** `scope:client-only`
+
+**Scope check result:** ❌ FAIL — diff escapes `^client/`
+
+Out-of-scope paths flagged by the hard gate:
+- `.github/workflows/ci.yml` (adds the `test-client` CI job — necessary for the coverage gate to actually fail builds)
+- `package-lock.json` (regenerated when `@vitest/coverage-v8` was added to `client/package.json`)
+
+Per the Scope Contract (added after voice-relay#272), the merge worker MUST refuse on diff-escapes-scope and surface `needs-human`. Applied label + posted halt comment laying out three options; recommended option is **relabel to `scope:full-stack`** since the changeset really is cross-cutting (client config + CI job + root lockfile).
+
+**Smoke-test protection check (per #283/#304):** ✅ N/A by inspection. PR touches `client/vite.config.ts`, `client/package.json`, `client/.gitignore`, `.github/workflows/ci.yml`, `package-lock.json`. None of these are runtime code paths exercised by `tests/smoke/smoke.spec.ts` (which asserts on server endpoints / auth behavior). Pure tooling. Documented here even though the merge was halted upstream.
+
+**Migration check:** ✅ N/A. No `server/src/storage/migrations/**` changes in the diff.
+
+**Issue auto-close confirmation:** N/A — no merge performed, #284 remains open.
+
+**Action items for the orchestrator's next tick:**
+1. Decide on the scope re-label (recommend `scope:full-stack`) and remove `needs-human` once the label is corrected.
+2. Re-spawn the merge worker after the label is fixed. CI status, review threads, PR body, and squash-merge message were intentionally NOT touched on this halted run.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Merge Worker for PR #306._
+
+---
