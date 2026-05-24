@@ -3,6 +3,9 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
@@ -1713,7 +1716,7 @@ describe('PR #258 follow-up: summary + missing event content', () => {
   });
 });
 
-describe('shouldSkipForKioskTimeline (issue #265)', () => {
+describe('shouldSkipForKioskTimeline (issues #265, #280)', () => {
   test('drops SystemPromptEvent regardless of source', () => {
     expect(shouldSkipForKioskTimeline({ kind: 'SystemPromptEvent' })).toBe(true);
     expect(shouldSkipForKioskTimeline({ kind: 'SystemPromptEvent', source: 'agent' })).toBe(true);
@@ -1735,20 +1738,42 @@ describe('shouldSkipForKioskTimeline (issue #265)', () => {
   });
 
   test('drops MessageEvent with missing source (defensive)', () => {
-    // No source field at all → not 'agent' → skip.
+    // No source field at all → skip (the live path only forwards utterance
+    // bubbles for source === 'agent', so anything else has no other home).
     expect(shouldSkipForKioskTimeline({ kind: 'MessageEvent' })).toBe(true);
   });
 
-  test('keeps MessageEvent with source: "agent"', () => {
-    // Agent MessageEvents are handled by the upstream isV1MessageEvent branch
-    // (they update the AI utterance stream). They never reach the timeline
-    // forwarder, but the filter should not claim them either — keep this
-    // contract explicit.
+  test('drops MessageEvent with source: "agent" (issue #280)', () => {
+    // Issue #280: the refresh path was rendering agent MessageEvents as
+    // empty "💬 Message" cards because the normalizer doesn't know how to
+    // extract `llm_message.content`. Agent chat replies are already rendered
+    // as `✨ AI` utterance bubbles via the `messages` table on both live and
+    // refresh; surfacing them again as timeline cards is duplication. On the
+    // live path agent MessageEvents are intercepted by the `isV1MessageEvent`
+    // branch upstream of this filter — including them here only affects the
+    // refresh path, where rows are read straight from `agent_events`.
     expect(shouldSkipForKioskTimeline({
       kind: 'MessageEvent',
       source: 'agent',
       llm_message: { role: 'assistant', content: [{ type: 'text', text: 'reply' }] },
-    })).toBe(false);
+    })).toBe(true);
+  });
+
+  test('drops ConversationStateUpdateEvent (issue #280)', () => {
+    // The live path log-only's these and never creates a card; the refresh
+    // path used to render one empty card per state update (14 of them in a
+    // typical short session — see test-fixtures/raw-events-real.json).
+    expect(shouldSkipForKioskTimeline({
+      kind: 'ConversationStateUpdateEvent',
+      source: 'environment',
+      key: 'execution_status',
+      value: { execution_status: 'idle' },
+    })).toBe(true);
+  });
+
+  test('drops ConversationErrorEvent and ServerErrorEvent (issue #280)', () => {
+    expect(shouldSkipForKioskTimeline({ kind: 'ConversationErrorEvent', message: 'boom' })).toBe(true);
+    expect(shouldSkipForKioskTimeline({ kind: 'ServerErrorEvent', error: 'oh-no' })).toBe(true);
   });
 
   test('keeps ActionEvent and ObservationEvent', () => {
@@ -1756,14 +1781,29 @@ describe('shouldSkipForKioskTimeline (issue #265)', () => {
     expect(shouldSkipForKioskTimeline({ kind: 'ObservationEvent', source: 'environment' })).toBe(false);
   });
 
-  test('keeps unknown event kinds (default-allow)', () => {
-    // The filter is an allow-by-default safety net; only the two known
-    // problematic classes are denied so new OH event kinds remain visible
-    // until a developer makes an explicit decision.
-    expect(shouldSkipForKioskTimeline({ kind: 'SomeFutureEvent', source: 'agent' })).toBe(false);
+  test('keeps direct *Action / *Observation kinds', () => {
+    // Direct (non-wrapped) action / observation kinds also pass through.
+    // These are what the OH agent-server emits as the inner `action.kind`,
+    // and the client renderer dispatches on them directly.
+    expect(shouldSkipForKioskTimeline({ kind: 'TerminalAction' })).toBe(false);
+    expect(shouldSkipForKioskTimeline({ kind: 'TerminalObservation' })).toBe(false);
+    expect(shouldSkipForKioskTimeline({ kind: 'FileEditAction' })).toBe(false);
   });
 
-  test('returns false for non-object / null / missing kind', () => {
+  test('keeps unknown event kinds (default-allow regression guard)', () => {
+    // The filter is an allow-by-default safety net; only the known
+    // problematic classes are denied so new OH event kinds remain visible
+    // until a developer makes an explicit decision. Regression guard for
+    // issue #280 — without this we'd silently hide future event types.
+    expect(shouldSkipForKioskTimeline({ kind: 'SomeFutureEvent', source: 'agent' })).toBe(false);
+    expect(shouldSkipForKioskTimeline({ kind: 'BrandNewAction' })).toBe(false);
+  });
+
+  test('returns false (default-show) for non-object / null / missing kind — mirrored by client (issue #280 parity)', () => {
+    // These four edge-case inputs MUST produce the same outcome on both sides
+    // (server: don't skip = client: show). The client test
+    // `shouldShowInKioskTimeline` in normalizeAgentEvent.test.ts asserts the
+    // mirror — see "default-shows malformed inputs to mirror the server".
     expect(shouldSkipForKioskTimeline(null)).toBe(false);
     expect(shouldSkipForKioskTimeline(undefined)).toBe(false);
     expect(shouldSkipForKioskTimeline('not an event')).toBe(false);
@@ -1771,4 +1811,67 @@ describe('shouldSkipForKioskTimeline (issue #265)', () => {
     expect(shouldSkipForKioskTimeline({ source: 'agent' })).toBe(false);
   });
 });
+
+describe('shouldSkipForKioskTimeline — fixture parity (issue #280)', () => {
+  // Cross-checks the server predicate against the same fixture used in
+  // `client/src/utils/normalizeAgentEvent.test.ts`. If the two ever diverge,
+  // both tests fail in lockstep — that's the parity regression guard the
+  // expansion comment on #280 calls for.
+  function loadFixture(): Array<{ kind?: string; source?: string }> {
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const fixturePath = path.resolve(here, '../../test-fixtures/raw-events-real.json');
+    const raw = JSON.parse(readFileSync(fixturePath, 'utf-8')) as { items: Array<{ kind?: string; source?: string }> };
+    return raw.items;
+  }
+
+  test('drops 19 of the 23 fixture events, keeps only the 4 Terminal entries', () => {
+    const items = loadFixture();
+    expect(items).toHaveLength(23);
+    const surviving = items.filter(e => !shouldSkipForKioskTimeline(e));
+    expect(surviving).toHaveLength(4);
+    // Sanity check: the surviving entries are the TerminalAction/Observation
+    // pairs (wrapped ActionEvent/ObservationEvent).
+    expect(surviving.map(e => e.kind)).toEqual([
+      'ActionEvent',
+      'ObservationEvent',
+      'ActionEvent',
+      'ObservationEvent',
+    ]);
+  });
+
+  test('per-index parity outcome matches client predicate (regression guard)', () => {
+    // Identical expected array to the client-side test. If a contributor
+    // changes only one side of the boundary the other test will fail too,
+    // forcing them to update both.
+    const items = loadFixture();
+    const expectedSkip = [
+      true,  // 0 ConversationStateUpdateEvent
+      true,  // 1 ConversationStateUpdateEvent
+      true,  // 2 SystemPromptEvent
+      true,  // 3 MessageEvent user
+      true,  // 4 ConversationStateUpdateEvent
+      true,  // 5 ConversationStateUpdateEvent
+      true,  // 6 ConversationStateUpdateEvent
+      false, // 7 ActionEvent
+      false, // 8 ObservationEvent
+      true,  // 9 ConversationStateUpdateEvent
+      true,  // 10 ConversationStateUpdateEvent
+      true,  // 11 MessageEvent agent
+      true,  // 12 ConversationStateUpdateEvent
+      true,  // 13 ConversationStateUpdateEvent
+      true,  // 14 MessageEvent user
+      true,  // 15 ConversationStateUpdateEvent
+      true,  // 16 ConversationStateUpdateEvent
+      true,  // 17 ConversationStateUpdateEvent
+      false, // 18 ActionEvent
+      false, // 19 ObservationEvent
+      true,  // 20 ConversationStateUpdateEvent
+      true,  // 21 MessageEvent agent
+      true,  // 22 ConversationStateUpdateEvent
+    ];
+    const actual = items.map(e => shouldSkipForKioskTimeline(e));
+    expect(actual).toEqual(expectedSkip);
+  });
+});
+
 

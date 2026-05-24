@@ -41,6 +41,63 @@ export interface RawAgentEvent {
 
 const MAX_SUMMARY_LEN = 80;
 
+/**
+ * Set of OpenHands event kinds that are persisted to `agent_events` for
+ * forensics / rehydration but should NEVER appear as cards in the kiosk
+ * timeline. Mirrors the server's `shouldSkipForKioskTimeline` predicate in
+ * `server/src/openhands.ts` — keep the two in sync. See issues #265, #280.
+ *
+ * Rationale per kind:
+ *   - SystemPromptEvent: agent's system prompt is internal infra.
+ *   - MessageEvent (any source): user / environment / agent chat is already
+ *     rendered as utterance bubbles via the separate `messages` table; a
+ *     second card duplicates the chat bubble.
+ *   - ConversationStateUpdateEvent / ConversationErrorEvent / ServerErrorEvent:
+ *     status / error scaffolding. The live path log-only's these.
+ *
+ * Default-show: unknown kinds pass through so new OH event types remain
+ * visible until a developer makes an explicit decision.
+ */
+const KIOSK_TIMELINE_SKIP_KINDS: ReadonlySet<string> = new Set([
+  'SystemPromptEvent',
+  'MessageEvent',
+  'ConversationStateUpdateEvent',
+  'ConversationErrorEvent',
+  'ServerErrorEvent',
+]);
+
+/**
+ * Whether a raw OpenHands event should appear as a card in the kiosk timeline.
+ * Inverse of the server's `shouldSkipForKioskTimeline`. Defense-in-depth filter
+ * applied in `client/src/api/agentEvents.ts` after the server response — keeps
+ * older clients hitting newer servers (and vice versa) correct during rolling
+ * deploys.
+ *
+ * Parity rule: the server's `shouldSkipForKioskTimeline` returns `false`
+ * (don't skip = SHOW) for null / undefined / non-object / missing-kind inputs.
+ * This predicate mirrors that — anything we can't classify as a known skip
+ * kind passes through to the renderer, where the unknown-kind fallback takes
+ * over. The defense-in-depth point is to drop *known noise kinds*, not to
+ * second-guess the server on malformed payloads.
+ */
+export function shouldShowInKioskTimeline(event: RawAgentEvent | null | undefined): boolean {
+  if (!event || typeof event !== 'object') return true; // default-show — same rule as server.
+  const kind = typeof event.kind === 'string' ? event.kind : undefined;
+  if (!kind) return true; // default-show — same rule as server.
+  return !KIOSK_TIMELINE_SKIP_KINDS.has(kind);
+}
+
+/**
+ * Filter a list of raw events down to the ones that should be rendered as
+ * timeline cards. Preserves order. Convenience wrapper over
+ * `shouldShowInKioskTimeline`.
+ */
+export function filterKioskTimelineEvents(
+  events: ReadonlyArray<RawAgentEvent>,
+): RawAgentEvent[] {
+  return events.filter(shouldShowInKioskTimeline);
+}
+
 /** Truncate to `n` chars with an ellipsis when needed. */
 function truncate(s: string, n: number): string {
   if (s.length <= n) return s;

@@ -11,6 +11,7 @@
  */
 
 import {
+  filterKioskTimelineEvents,
   normalizeAgentEvents,
   type RawAgentEvent,
 } from '../utils/normalizeAgentEvent';
@@ -170,7 +171,16 @@ export async function fetchAgentEventHistory(
   }
 
   const rawEvents = Array.isArray(json.events) ? (json.events as RawAgentEvent[]) : [];
-  const events = normalizeAgentEvents(rawEvents);
+  // Issue #280: defense-in-depth — also filter on the client. The server
+  // (`server/src/agent-events/router.ts`) applies the same predicate, but
+  // mirroring it here keeps live ↔ refresh parity correct during rolling
+  // deploys where an older client may hit a newer server (or vice versa).
+  // When the caller specifies explicit `kinds`, we respect that just like the
+  // server does — no client-side filter so the override remains usable.
+  const visibleEvents = options.kinds && options.kinds.length > 0
+    ? rawEvents
+    : filterKioskTimelineEvents(rawEvents);
+  const events = normalizeAgentEvents(visibleEvents);
 
   const result: AgentEventHistory = {
     events,

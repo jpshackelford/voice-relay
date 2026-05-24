@@ -659,35 +659,48 @@ function formatObservationEvent(event: V1Event): string {
 
 /**
  * Decide whether to drop an OpenHands event before forwarding it as an agent
- * action card to the kiosk inline timeline (issue #265).
+ * action card to the kiosk inline timeline (issues #265, #280).
  *
  * The kiosk timeline shows the agent's tool invocations alongside utterances.
- * Two event classes leak in today but should not appear there:
+ * Several event classes are persisted to `agent_events` for forensics /
+ * rehydration but should never become timeline cards:
  *
  *   - `SystemPromptEvent`: the agent's system prompt is internal infrastructure.
  *     Surfacing it as a card just confuses the user.
- *   - `MessageEvent` with `source !== 'agent'`: user and environment messages
- *     are already rendered as utterance bubbles by the conversation feed.
- *     Showing them again as event cards is duplication.
+ *   - `MessageEvent` (ANY source, including `agent`): user/environment messages
+ *     are already rendered as utterance bubbles by the conversation feed, and
+ *     agent replies are rendered as `✨ AI` utterance bubbles via the separate
+ *     `messages` table. Showing them again as event cards duplicates the chat
+ *     bubble. On the LIVE path, agent `MessageEvent`s are intercepted by the
+ *     `isV1MessageEvent && source === 'agent'` branch upstream of this filter
+ *     and never reach it — so including `source === 'agent'` here only affects
+ *     the REFRESH path, which is what we want.
+ *   - `ConversationStateUpdateEvent`, `ConversationErrorEvent`,
+ *     `ServerErrorEvent`: status / error scaffolding. The live path logs them
+ *     only and never creates a timeline card; the refresh path must do the
+ *     same.
  *
- * Agent `MessageEvent`s are handled separately (they update the AI utterance
- * stream via `isV1MessageEvent` upstream of this filter) so we don't need to
- * special-case them here.
+ * Default-show: any unknown future kind passes through. The filter is an
+ * allow-by-default safety net so new OH event kinds remain visible until a
+ * developer makes an explicit decision.
  */
 export function shouldSkipForKioskTimeline(event: unknown): boolean {
   if (typeof event !== 'object' || event === null || !('kind' in event)) {
     return false;
   }
-  const obj = event as { kind?: unknown; source?: unknown };
+  const obj = event as { kind?: unknown };
   const kind = typeof obj.kind === 'string' ? obj.kind : undefined;
-  if (kind === 'SystemPromptEvent') {
-    return true;
+  if (!kind) return false;
+  switch (kind) {
+    case 'SystemPromptEvent':
+    case 'MessageEvent':
+    case 'ConversationStateUpdateEvent':
+    case 'ConversationErrorEvent':
+    case 'ServerErrorEvent':
+      return true;
+    default:
+      return false;
   }
-  if (kind === 'MessageEvent') {
-    const source = typeof obj.source === 'string' ? obj.source : undefined;
-    return source !== 'agent';
-  }
-  return false;
 }
 
 /**
@@ -1594,14 +1607,14 @@ export class AISessionManager {
         // Forward other events as agent actions for visibility
         else if (event.kind) {
           // Drop event classes that should never appear in the kiosk inline
-          // timeline (issue #265):
-          //   - SystemPromptEvent: the agent's system prompt is internal and
-          //     not user-facing.
-          //   - MessageEvent with source !== 'agent': user / environment
-          //     messages are already rendered as utterance bubbles by the
-          //     conversation feed; surfacing them again as ⚡ cards is
-          //     duplication.
-          // Note: agent MessageEvents are handled above via isV1MessageEvent.
+          // timeline (issues #265, #280). The same predicate is mirrored on
+          // the refresh path (`server/src/agent-events/router.ts` +
+          // `client/src/utils/normalizeAgentEvent.ts::shouldShowInKioskTimeline`)
+          // so live and refresh produce element-wise-equal timelines. See the
+          // `shouldSkipForKioskTimeline` JSDoc for the full skip list. Agent
+          // `MessageEvent`s never reach this point — they're handled above by
+          // the `isV1MessageEvent` branch and routed to the utterance bubble
+          // stream.
           if (shouldSkipForKioskTimeline(event)) {
             return;
           }

@@ -4,6 +4,7 @@ import type { AgentEventRehydrator } from './rehydrator.js';
 import type { SessionRepository } from '../sessions/index.js';
 import type { WorkspaceRepository } from '../workspaces/index.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+import { shouldSkipForKioskTimeline } from '../openhands.js';
 
 export interface AgentEventRouterOptions {
   agentEventRepository: AgentEventRepository;
@@ -118,8 +119,24 @@ export function createAgentEventRouter(options: AgentEventRouterOptions): Router
     });
     const window = options.agentEventRepository.getHydrationWindow(sessionId);
 
+    // Issue #280: filter out events the live path also drops so the
+    // refresh-rehydrated timeline matches the WS-driven timeline element-for-
+    // element. Shared predicate (`shouldSkipForKioskTimeline`) is the single
+    // source of truth — see `server/src/openhands.ts` and the parallel
+    // `shouldShowInKioskTimeline` on the client.
+    //
+    // When the caller explicitly asks for a `kind=...` set (e.g. forensics /
+    // debug tools), we honor the request and skip the kiosk-timeline filter so
+    // it remains possible to retrieve every persisted row. `total` always
+    // reflects raw stored row count (drives the rehydration-completeness UI
+    // from issue #269).
+    const rawEvents = events.map(e => e.rawEvent);
+    const filteredEvents = kinds !== undefined
+      ? rawEvents
+      : rawEvents.filter(e => !shouldSkipForKioskTimeline(e));
+
     res.json({
-      events: events.map(e => e.rawEvent),
+      events: filteredEvents,
       total: window.total,
       rehydrated,
       rehydration_complete: rehydrationComplete,
