@@ -288,3 +288,45 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 18:20 UTC - Implementation worker (Issue #289)
+
+✅ **Routed platform code through `AgentDriver` interface — PR [#320](https://github.com/jpshackelford/voice-relay/pull/320) ready for review.**
+
+Migrated the device WebSocket handler, auto-connect logic, session router, AI conversation endpoints, event/thinking/action callbacks, and shutdown off direct `AISessionManager` use and onto the provider-neutral `AgentDriver` seam introduced in #287 / #288. The `OpenHandsAgentDriver` adapter from PR #311 (commit `d8fe380`) is now the **only** platform consumer of the legacy manager.
+
+| Item | Detail |
+|---|---|
+| Branch | `feat/289-route-platform-through-agentdriver` |
+| PR | [#320](https://github.com/jpshackelford/voice-relay/pull/320) — `feat(server): route platform code through AgentDriver interface` |
+| Scope label | `scope:server-only` |
+| Diff | 13 files changed, +1160/-341 (server/ only; 3 new files) |
+| Tests | **970 passed** (+30 net new), coverage 93.77% statements / 83.04% branches overall; agent-driver folder 93%/83% |
+| CI | Server Tests ✅, Client Tests ✅, Build Client ✅, E2E Tests ✅, lint-pr-title ✅, enable-orchestrator ✅ |
+
+**Key design moves:**
+- Extended `AgentDriver` with `isAvailable()`, `hasSession()`, and fan-out registration (`onRawEvent` / `onThinkingChange` / `onActionEvent` — each returns an unsubscribe handle, throwing listeners isolated).
+- `OpenHandsAgentDriver.openSession()` now eagerly binds upstream so `conversationId` is available immediately for metadata + status broadcast (preserves observable auto-connect behavior).
+- Singleton ownership moved to `server/src/agent-driver/index.ts` — `openhands.ts` no longer exports it.
+- New `relayAgentResponse` helper (`server/src/agent-message-relay.ts`) iterates `agentDriver.sendMessage`'s `AsyncIterable<AgentEvent>` to replace the legacy session-level `onMessage` callback.
+- New driver-substitution proof test (`server/src/auto-connect.fake-driver.test.ts`) exercises auto-connect + relay against `FakeDriver` only — no OH adapter import. If the seam is real, the test passes (it does).
+
+**Migration completeness gates:** All three from the issue's technical-approach comment now empty:
+- T-2.3.M.1 (no platform imports from `openhands.ts`) ✅
+- T-2.3.M.2 (no bare `aiSessionManager` references outside `agent-driver/`) ✅
+- T-2.3.M.3 (singleton not exported from `openhands.ts`) ✅
+
+**Downstream impact:**
+- #290 (text path through driver): naturally consumed here via `relayAgentResponse`.
+- #291 (closeSession on disconnect): `AgentDriver.closeSession` now usable from the disconnect path.
+- #293 (refactor `index.ts` AI bootstrap): done here.
+- #296 (delete legacy `aiSessionManager` usage from platform): platform side complete; the `AISessionManager` class itself remains as the implementation behind the OH adapter, which is the correct architectural position.
+
+**Followups noted, not done in this PR:**
+- The display-result-feedback fallback path now also iterates through the driver but suppresses the AI's response (legacy behavior preserved). Could later be unified with `relayAgentResponse` if we decide to surface those AI responses.
+- E2E happy-path test against the real OpenHands API (T-2.3.E.1) was deliberately deferred — production smoke on Chorecraft post-merge serves as the substitute, consistent with how prior driver work in this chain was validated.
+
+**Production:** Server-side refactor only, no schema changes, no migrations. App will auto-deploy to vr.chorecraft.net on merge.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
