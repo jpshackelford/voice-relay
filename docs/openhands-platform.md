@@ -215,6 +215,47 @@ Content-Type: application/json
 
 After polling the start task to `READY`, the conversation continues at the same id, on a brand-new sandbox, with a fresh agent context. **Voice Relay (or its driver) is responsible for restoring filesystem state from S3 and seeding agent memory via `system_message_suffix`.** OH does neither.
 
+### Rebind on a dead conversation
+
+The recovery primitive above is one HTTP call. The *policy* around that call — how aggressively to retry, how often to allow it per conversation, and how to surface failure to the rest of the system — lives in Voice Relay's agent driver: `server/src/agent-driver/rebind.ts`.
+
+The driver invokes `rebindConversation(client, conversationId)` whenever it observes either:
+
+- `sandbox_status: MISSING` on a `GET /api/v1/app-conversations` poll, or
+- a non-resumable WebSocket close on the agent-server WS that survives a single reconnect attempt.
+
+Behaviour, as currently implemented:
+
+| Concern | Policy |
+|---|---|
+| Total wall-clock budget per rebind | `REBIND_BUDGET_MS = 30_000` ms |
+| Backoff between attempts (transient 5xx / 429 / network 0) | `1s, 2s, 4s, 8s, 16s` (5 backoffs ⇒ up to 6 attempts) |
+| Per-conversation rate cap | `MAX_REBINDS_PER_WINDOW = 3` successful rebinds in any `REBIND_WINDOW_MS = 5 * 60_000` ms window |
+| Response on `403` | Fail fast with `RebindForbidden` — cached `openhands_api_key` is invalid; retry will never succeed |
+| Response on `404` | Fail fast with `RebindConversationGone` — conversation row is gone, not just the sandbox |
+| Response on malformed body | Treated as transient (`OpenHandsApiError(0, ...)`) — the start task may still be filling in `session_api_key` / `conversation_url` |
+
+The three typed errors form a small taxonomy the agent driver pattern-matches on to decide between *retry on the next event*, *transition to `degraded` and prompt the user to restart* (`RebindBudgetExhausted` / `RebindForbidden`), or *tear down the session entirely* (`RebindConversationGone`).
+
+On success the driver receives a `RebindResult`:
+
+```ts
+{
+  conversationId,            // unchanged
+  agentServerUrl,            // new subdomain
+  sessionApiKey,             // freshly minted, do not cache past this
+  sandboxStatus: 'RUNNING',
+}
+```
+
+`agentServerUrl` is normalised to a bare origin (the trailing `/api/...` segment is stripped) because the WS layer wants the origin.
+
+### What rebind does *not* do
+
+- It does **not** restore filesystem state. The sandbox PVC was destroyed with the previous pod; `/workspace/...` is empty. Filesystem restore from S3 is the driver's responsibility (see issues #298–#301).
+- It does **not** restore agent memory. The new agent starts with a fresh system prompt. Memory replay via `system_message_suffix` is issue #297.
+- It does **not** retry forever. Once `RebindBudgetExhausted` fires, the user-facing session moves to `degraded` and only an explicit user-initiated restart will trigger another attempt. This is intentional: sandbox death that immediately recurs after a rebind is almost always an upstream incident, and silent thrash would mask it.
+
 ## Secrets
 
 Three layers, additive at conversation start:
