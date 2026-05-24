@@ -669,3 +669,42 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 20:10 UTC - Implementation worker (#293)
+
+✅ **PR #324 ready for review** — Phase 3 of the session-state-machine rollout.
+
+- Issue: [#293 — Map ConversationExecutionStatus to driver session state](https://github.com/jpshackelford/voice-relay/issues/293) (priority:high)
+- PR: [#324 — feat(server): map ConversationExecutionStatus to driver session state](https://github.com/jpshackelford/voice-relay/pull/324)
+
+**What landed in the PR:**
+- `server/src/agent-driver/openhands.ts` reads `ConversationStateUpdateEvent(key='execution_status')` events off the existing event-callback path and maps `idle/finished/paused/waiting_for_confirmation → ready`, `running → thinking` (with timestamp), `stuck/error → degraded`, `deleting → absent` per `docs/architecture.md` § Session state mapping.
+- 🤔 indicator now clears on the `running → idle` transition regardless of message emission (fixes tool-only-turn stick).
+- Precedence in `synthesizeStatus` is **adapter > upstream > default**: `ai.degraded` (#291/#323) wins, then ws-torn-down → reconnecting, then upstream `execution_status`, then legacy `isThinking`/ws heuristic. Conflict with newly-merged PR #323 (touching same function) resolved during rebase.
+- Consecutive duplicates deduped; unknown statuses + orphan sessionIds logged and dropped. No 5-minute heuristic timer (grep gate clean).
+
+**Verification:**
+| Gate | Result |
+|---|---|
+| `tsc --noEmit -p server/tsconfig.json` | ✅ |
+| `tsc --noEmit -p client/tsconfig.json` | ✅ |
+| Full server suite (`vitest run`) | ✅ 1022/1022 |
+| Coverage `openhands.ts` | ✅ 93.81% (≥80% gate) |
+| CI on `0897e0e` post-rebase | ✅ 5/5 (Server, Client, Build Client, E2E, lint-pr-title) |
+
+**Acceptance criteria checklist (issue body + expansion comment):**
+- ✅ T-3.4.1 .. T-3.4.16 all covered by new tests (T-3.4.14 added after #323 merge made `ai.degraded` available on main)
+- ✅ No 5-minute heuristic timer added (`grep -n 'setTimeout.*5.*60.*1000'` zero hits)
+- ✅ 🤔 turns off on running→idle even for tool-only turns
+- ✅ stuck → degraded with error message
+- Note: `AISessionManager.isThinking` is **deprecated, not removed** — left in as fallback until the first execution_status event arrives. The synthesizeStatus precedence block documents that execution_status now takes over. Full removal can be scoped into a later cleanup.
+
+**Follow-ups for downstream issues:**
+- #294 (Restart Agent UX) can gate its button on `status.state === 'degraded'` — both the `ai.degraded` and `execution_status: stuck/error` paths flow into it.
+- #300 (persistence-snapshot trigger) now has its signal — snapshot on every `execution_status: idle/finished` event.
+
+PR is in **ready-for-review**, pr-review bot triggered. Not merged from this conversation — that's a separate worker.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
