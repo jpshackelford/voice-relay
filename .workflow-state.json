@@ -4,16 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "1d37e68",
-        "issue": 291,
-        "started": "2026-05-24T19:22:32.503842+00:00"
+        "conv_id": "14523c8",
+        "issue": 293,
+        "started": "2026-05-24T19:52:46.664587+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "0cb52bf",
-        "pr": 321,
-        "started": "2026-05-24T19:36:12Z"
+        "conv_id": "e0fc0e4",
+        "pr": 323,
+        "started": "2026-05-24T19:52:46.664587+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T19:36:12Z",
+  "last_updated": "2026-05-24T19:52:46.664587+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -311,6 +311,24 @@
       "finished": "2026-05-24T19:36:12Z",
       "status": "success",
       "outcome": "Addressed bot review thread on PR #321 (documented thinkingSince as reserved for #295 in commit 77fa142); 0 unresolved threads, CI green, MERGEABLE \u2014 ready to merge"
+    },
+    {
+      "conv_id": "1d37e68",
+      "type": "implementation",
+      "issue": 291,
+      "started": "2026-05-24T19:22:32.503842+00:00",
+      "finished": "2026-05-24T19:50:35.164810+00:00",
+      "status": "success",
+      "outcome": "Created PR #323 (fix(server): refresh session_api_key on every OpenHands WS reconnect)"
+    },
+    {
+      "conv_id": "0cb52bf",
+      "type": "merge",
+      "pr": 321,
+      "started": "2026-05-24T19:36:12Z",
+      "finished": "2026-05-24T19:50:35.164810+00:00",
+      "status": "success",
+      "outcome": "Merged PR #321 (squash 192b4f3) \u2192 Issue #290 auto-closed"
     }
   ],
   "quiet_ticks": 0
