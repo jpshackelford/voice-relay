@@ -805,3 +805,25 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 20:53 UTC - Merge Worker (PR #324)
+
+✅ **Merged:** [PR #324 — feat(server): map ConversationExecutionStatus to driver session state](https://github.com/jpshackelford/voice-relay/pull/324) — squash-merged as `ab17f63` at 20:52:30Z. Issue **#293** closed.
+
+**Pre-merge gates:**
+- All 6 CI checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review).
+- `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+- Zero review threads (so trivially zero unresolved).
+- pr-review bot verdict: 🟢 LOW risk, "Worth merging".
+
+**Migration check:** ✅ No DB changes. Diff touches only `server/src/agent-driver/openhands.ts` and `openhands.test.ts` (569 +/6 −, 2 files). No migrations / `*.sql` / schema files; SQLite production storage unaffected.
+
+**Production impact:** Auto-deploy to vr.chorecraft.net triggered by main. Risk is low — change is internal driver state-machine plumbing reading events already on the existing subscription path; the legacy `isThinking` heuristic is preserved as a fallback.
+
+**Downstream unblocked:**
+- #294 (Restart Agent UI/endpoint) — can now read `state === 'degraded'`.
+- #300 (workspace snapshot trigger) — has its `execution_status: idle/finished` signal landed (still on-hold under the S3 persistence freeze).
+- #296, #297 (transitively on #293).
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
