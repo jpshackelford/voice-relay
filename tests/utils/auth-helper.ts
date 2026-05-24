@@ -332,28 +332,8 @@ export async function setupTwoDeviceSession(
   const kioskPage = await kioskContext.newPage();
   const mobilePage = await mobileContext.newPage();
 
-  // Navigate kiosk to dashboard (which redirects to workspace home)
-  await kioskPage.goto(`${baseURL}/dashboard`);
-
-  // Wait for workspace home to load (shows devices section)
-  await expect(kioskPage.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
-
-  // Wait for sessions section to appear
-  await expect(kioskPage.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
-
-  // Click "View →" button to enter the first session
-  const viewButton = kioskPage.getByRole('button', { name: /view/i });
-  await expect(viewButton).toBeVisible({ timeout: 5000 });
-  await viewButton.click();
-
-  // Wait for session view to load
-  await kioskPage.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
-
-  // Get the session URL
-  const sessionUrl = kioskPage.url();
-
-  // Wait for kiosk WebSocket connection to stabilize (uses CI-aware timeout)
-  await waitForStableConnection(kioskPage, WS_STABLE_TIMEOUT);
+  // Navigate kiosk to dashboard → first session and wait for green dot.
+  const sessionUrl = await navigateKioskToFirstSession(kioskPage, baseURL);
 
   // Navigate mobile to the same session URL
   await mobilePage.goto(sessionUrl);
@@ -379,6 +359,49 @@ export async function setupTwoDeviceSession(
       await mobileContext.close();
     },
   };
+}
+
+/**
+ * Navigate an already-authenticated kiosk page to the first session.
+ *
+ * Extracted from setupTwoDeviceSession so single-device specs (e.g. the
+ * keepalive spec, issue #310) can reuse the same dashboard → "View →"
+ * flow without spinning up a second mobile context.
+ *
+ * Assumes:
+ *  - `page` belongs to a context created via createAuthenticatedContext()
+ *    with a kiosk viewport (>= 768px wide).
+ *  - The test workspace has at least one session for the test user
+ *    (the test-session endpoint auto-creates one).
+ *
+ * After this returns:
+ *  - URL matches /workspace/.+/session/.+
+ *  - The kiosk green dot (`.connection-indicator.connected`) has been
+ *    waited on via waitForStableConnection.
+ *
+ * @param page    The kiosk Playwright page
+ * @param baseURL Worker-specific base URL (from fixtures)
+ * @returns       The session URL the page settled on
+ */
+export async function navigateKioskToFirstSession(
+  page: Page,
+  baseURL: string,
+): Promise<string> {
+  await page.goto(`${baseURL}/dashboard`);
+
+  await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
+
+  const viewButton = page.getByRole('button', { name: /view/i });
+  await expect(viewButton).toBeVisible({ timeout: 5000 });
+  await viewButton.click();
+
+  await page.waitForURL(/\/workspace\/[^/]+\/session\/[^/]+/, { timeout: 10000 });
+  const sessionUrl = page.url();
+
+  await waitForStableConnection(page, WS_STABLE_TIMEOUT);
+
+  return sessionUrl;
 }
 
 /**

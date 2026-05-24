@@ -8,6 +8,7 @@ import { requireAuth, type AuthMiddlewareConfig } from './middleware.js';
 import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
 import { generateDeviceName } from '../devices/device-utils.js';
+import type { DeviceRegistry } from '../registry.js';
 
 export interface AuthRouterConfig {
   config: AuthConfig;
@@ -16,6 +17,13 @@ export interface AuthRouterConfig {
   workspaceRepository?: WorkspaceRepository;
   /** Optional device repository for auto-creating first device */
   deviceRepository?: DeviceRepository;
+  /**
+   * Optional device registry. When provided alongside TEST_AUTH_SECRET (and
+   * not running in production), exposes the test-only
+   * `POST /auth/test-terminate-ws` endpoint used by the Playwright
+   * keepalive spec (issue #310) to simulate a stale-client tear-down.
+   */
+  deviceRegistry?: DeviceRegistry;
   /** Where to redirect after successful login (default: /) */
   successRedirect?: string;
   /** Where to redirect after failed login (default: /login?error=1) */
@@ -153,7 +161,7 @@ setInterval(() => {
 
 export function createAuthRouter(options: AuthRouterConfig): Router {
   const router = Router();
-  const { config, userRepository, workspaceRepository, deviceRepository, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
+  const { config, userRepository, workspaceRepository, deviceRepository, deviceRegistry, successRedirect = '/', errorRedirect = '/login?error=1' } = options;
 
   const github = new GitHubOAuth({
     githubClientId: config.githubClientId,
@@ -460,7 +468,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
       res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(isProduction, tokenMaxAge));
       res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
 
-      res.json({ 
+      res.json({
         success: true,
         user: {
           id: testUser.id,
@@ -468,6 +476,60 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           displayName: testUser.displayName,
         }
       });
+    });
+
+    /**
+     * POST /auth/test-terminate-ws (issue #310)
+     * Forcibly terminates the WebSocket connection for a given device.
+     *
+     * Used by the Playwright keepalive spec to simulate a stale-client
+     * tear-down deterministically. The browser cannot suppress its
+     * protocol-level pong (RFC 6455 §5.5.3), so we invoke the exact same
+     * `ws.terminate()` code path the production keepalive
+     * (server/src/keepalive.ts) would take if a real client missed a pong.
+     *
+     * SECURITY: Same gating as /auth/test-session (TEST_AUTH_SECRET header)
+     * plus a hard refusal in production. Returns 503 when the device
+     * registry isn't wired (older entry points) so production deployments
+     * that don't pass it through can't be probed.
+     */
+    router.post('/test-terminate-ws', (req: Request, res: Response) => {
+      if (process.env.NODE_ENV === 'production') {
+        // Defence in depth: even if someone leaks TEST_AUTH_SECRET into a
+        // production env, we still refuse to honour this endpoint.
+        res.status(404).json({ error: 'Not found' });
+        return;
+      }
+
+      const providedSecret = req.headers['x-test-auth-secret'];
+      if (providedSecret !== testAuthSecret) {
+        res.status(403).json({ error: 'Invalid test auth secret' });
+        return;
+      }
+
+      if (!deviceRegistry) {
+        res.status(503).json({ error: 'Device registry not available' });
+        return;
+      }
+
+      const deviceId = typeof req.body?.deviceId === 'string' ? req.body.deviceId : null;
+      if (!deviceId) {
+        res.status(400).json({ error: 'deviceId is required' });
+        return;
+      }
+
+      const device = deviceRegistry.getDevice(deviceId);
+      if (!device || !device.ws) {
+        res.status(404).json({ error: 'Device not connected' });
+        return;
+      }
+
+      console.log(`[Auth] Test-terminating WS for device ${deviceId}`);
+      // ws.terminate() skips the closing handshake — same code path the
+      // production keepalive uses when no pong arrives within the deadline.
+      device.ws.terminate();
+
+      res.json({ success: true, deviceId });
     });
   }
 
