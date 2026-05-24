@@ -170,3 +170,31 @@ The 2nd review slot is intentionally left empty — there's only 1 open PR, so a
 
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
+### 2026-05-24 17:57 UTC - Review worker (PR #319)
+
+✅ Addressed all 6 bot review threads on [PR #319](https://github.com/jpshackelford/voice-relay/pull/319) — `docs: switch persistence design to Path B (VR-proxied S3)`. PR was a docs-only design unblock; all CI was already green and `reviewDecision` was empty (no human-requested changes). Goal of this tick: tighten the doc per bot feedback without re-opening the Path B decision.
+
+Single commit on `docs/path-b-vr-proxied-s3` ([`fd9c527`](https://github.com/jpshackelford/voice-relay/commit/fd9c527e56f7ad39d13a74031ec8d3639c917460)):
+
+| Thread | Severity | Disposition | Edit |
+|---|---|---|---|
+| OH per-conversation custom-secret writability | 🟠 Important | Decline (N/A under Path B — Path B uses no per-user AWS creds) | Reply only; narrowed concern to bearer-Option-1 selection criteria |
+| Decision criteria for sandbox-to-VR auth options | 🟡 Suggestion | Accept + defer | Added "Selection deferred to v1 impl issue" block with explicit gates (OH per-conversation secret writes; OH egress IP stability) and pick-(1)/pick-(3)/pick-(2) criteria |
+| Error handling on restore | 🟡 Suggestion | Accept | New "Error handling" subsection: fail-closed default; 5xx → 3× exp backoff (1/2/4 s); 204 → no-op (preserved); 401/403 → no retry; corrupt tar → fail-closed with `/workspace` recreate |
+| Error handling on snapshot | 🟡 Suggestion | Accept | Mirror subsection with deliberate asymmetry: log+continue, durability lag acceptable, session-loss is not; 60 s backstop covers transient failures |
+| Security blast radius row | 🟡 Suggestion | Accept | New trade-offs row: single VR credential → all-user blast radius; mitigations = IAM permissions boundary + rotation + secret-scanning + CloudTrail alarms. Honest framing as "many small radii → one big one." |
+| Freeze-lift "complete" ambiguity (AGENTS.md) | 🟡 Suggestion | Accept | Split into two distinct triggers: **freeze lifts** when `VR_WORKSPACE_BUCKET` + `AWS_*` set in prod `.env` + `docs/runbooks/s3-bucket-provisioning.md` executed end-to-end (smoke test 200); **section deletable** when #298–#302 all closed |
+
+All 6 threads replied to (with reasoning + commit SHA) and marked resolved via `resolveReviewThread` mutation.
+
+**Diff hygiene:** 2 files (`AGENTS.md`, `docs/architecture.md`); 80 insertions, 9 deletions. No `WORKLOG.md`/`.workflow-state.json` touched on the PR branch. PR moved draft → ready after all 5 CI checks (Build Client, Client Tests, Server Tests, E2E, lint-pr-title) returned green.
+
+**Post-merge follow-ups** for the orchestrator / impl worker to consider:
+
+- Issues #299, #300 should inherit the new error-handling specs from `docs/architecture.md` as acceptance criteria when they're un-frozen — worth cross-referencing in the issue bodies so the impl worker doesn't miss them.
+- The `docs/runbooks/s3-bucket-provisioning.md` runbook is now an explicit dependency of #298 prep; calling that out on #298 would help.
+- The PR title remains accurate after edits — no design decision was changed, only refinements.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
