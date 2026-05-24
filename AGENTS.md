@@ -70,16 +70,40 @@ and a pointer to where the unblocking conversation lives.
 
 ## Active design freeze: workspace persistence (S3 / #298)
 
-As of 2026-05-24: **issue #298 and everything downstream of it is on hold**
-pending a SaaS-credential-model decision. Do not start work on:
+**Status as of 2026-05-24:** Path B (VR proxies S3) selected. PR #313 closed
+as superseded. Issues #298, #299, #300 re-scoped to Path B. Architecture doc
+updated in [`docs/architecture.md` § Persistence layer](docs/architecture.md#persistence-layer).
 
-- PR #313 (implements #298's operator-mediated model — wrong substrate for SaaS)
-- Issues #298, #299, #300, #301, #302
+The freeze remains in effect — **do not start implementation work** on these
+issues yet — because @jpshackelford is provisioning the S3 bucket and the
+single VR-backend AWS credential before any test code runs.
 
-The pending decision is between three credential models. See the WORKLOG.md
-entry dated 2026-05-24 05:15 UTC ("Persistence work freeze") for the full
-context and Paths A / B / C. When this freeze lifts, this section of AGENTS.md
-should be removed.
+**The freeze lifts (and `on-hold` should be removed from #298–#302) when all
+of the following are true:**
+
+1. `VR_WORKSPACE_BUCKET` is set in `/var/www/vr.chorecraft.net/app/.env` on the
+   production server (see [DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+2. The four AWS credential env vars — `AWS_ACCESS_KEY_ID`,
+   `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, and the IAM principal's
+   permissions-boundary attachment — are in place on the same `.env`.
+3. The S3 bucket provisioning runbook
+   (`docs/runbooks/s3-bucket-provisioning.md`, to be added as part of #298's
+   prep work) has been executed end-to-end and a smoke test (`curl
+   $VR_BASE_URL/api/internal/health/s3`) returns 200.
+
+In scope (still `on-hold` until the three conditions above hold):
+
+- Issue #298 — Add VR backend persistence endpoints (`/api/internal/workspaces/:id/restore` + `/snapshot`)
+- Issue #299 — Workspace restore in the OH adapter (now curl-based, not `aws s3 sync`)
+- Issue #300 — Workspace snapshot in the OH adapter (now curl-based)
+- Issue #301 — Dependent on #295 + #299
+- Issue #302 — Dependent on #300
+
+PR #313 (operator-mediated Path A) is closed. Do not reopen.
+
+**When this section can be removed entirely:** once issues #298–#302 are all
+closed (i.e. Path B implementation is *shipped*, not merely started), delete
+this whole "Active design freeze" section from AGENTS.md.
 
 ## Agent disclosure on external surfaces
 
