@@ -209,3 +209,56 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 01:22 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Implementation Worker** for Issue [#284](https://github.com/jpshackelford/voice-relay/issues/284) — *Establish client-side test coverage thresholds*
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ffeef36` | implementation | Issue #284 — client coverage thresholds | **NEW** running |
+
+**Spawned:** [`ffeef36`](https://app.all-hands.dev/conversations/ffeef3621b5d4e67bbd23004968f55c3) — `execution_status=running`, `sandbox_status=RUNNING`, plugin `voice-relay-workflow@main`. Start-task `ae2be7331c534c85b58189871bdc53e3` reached `READY` in 1 poll (~5s).
+
+**Worker that just finished (`8824e36` implementation → issue #282, ~17 min):**
+- Opened [PR #283](https://github.com/jpshackelford/voice-relay/pull/283) — *feat(auth): surface GitHub App install step in /auth/github flow*.
+- PR is ready-for-review (not draft), MERGEABLE, all CI green except the `pr-review` bot which is still IN_PROGRESS.
+- No review threads yet (0 unresolved). Will be picked up by a review worker on a future tick once the bot leaves comments.
+- Moved from `.workflow-state.json` slots → `completed[]` (status: success).
+
+**Current State (verified via `gh` + OH API):**
+- Open PRs (2):
+  - [PR #283](https://github.com/jpshackelford/voice-relay/pull/283) — ready, MERGEABLE, CI green, `pr-review` bot IN_PROGRESS, 0 threads. → **wait for bot review** (no review worker spawned this tick — nothing to address yet).
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (stuck, ~5d stale) — deferred.
+- Open issues (8):
+  - **#284** `enhancement, ready, priority:high, client` — **picked up this tick** for impl.
+  - #285 `enhancement, ready, priority:high, client` — WebSocket auto-reconnect w/ exponential backoff.
+  - #286 `enhancement, ready, priority:high` — Server-driven WebSocket keepalive heartbeat.
+  - #287 `documentation, enhancement, ready, priority:high` — Define AgentDriver TypeScript interface + FakeDriver.
+  - #282 `ready` — already implemented in PR #283.
+  - #208, #210, #239 — all `on-hold`, skipped.
+- 4 new `ready+priority:high` issues (#284-#287) appeared between the previous run and this one (created externally / by a separate process — not by an orchestrator-spawned expansion worker). Backlog is **healthy**.
+- `.workflow-state.json`: expansion **0/4**, impl **1/1**, review 0/2. `completed[]`: 5 entries (#280 cycle ×3, #282 expansion + impl), all <24h. `quiet_ticks: 0` (productive tick).
+
+**Decision rationale:**
+- Expansion slot: 0 issues need expansion (all 4 ready issues already labeled `ready` with full technical detail in comments). → idle.
+- Implementation slot: 0/1 used after `8824e36` finished. 4 ready+priority:high issues, tie-break by oldest → #284. → spawn 1 impl worker. Slot fill: 0/1 → 1/1.
+- Review slots: 0/2 used; PR #283 has 0 unresolved threads (`pr-review` bot still IN_PROGRESS); PR #221 is `needs-human`. → idle. Will revisit PR #283 next tick once bot comments land.
+- Parallel-work model explicitly supports impl worker on #284 while PR #283 awaits review: "Implementation not blocked by review cycle". #284 is client-only (vitest coverage tooling) — zero overlap with #283 (server auth flow), zero conflict risk.
+- Stuck-PR rule satisfied: PR #221 deferred; independent work proceeds.
+
+**Worker prompt highlights** (full text in spawned conversation):
+1. Source of truth = issue body + ALL THREE owner comments on #284 (detailed files-to-change table, config block, acceptance criteria T-0.1.1…T-0.1.S.2).
+2. Branch `feat/284-client-coverage-thresholds` from up-to-date main.
+3. Add `@vitest/coverage-v8` to `client/devDependencies` (pin to vitest's major); add `test:coverage` script; add `coverage:` block in `client/vite.config.ts` exactly as specified (include hooks/utils/api, exclude tests/barrels/types, thresholds 80/80/80/80); update CI workflow to invoke `test:coverage`; add `coverage/` to `client/.gitignore`; commit `package-lock.json`.
+4. **Critical guard:** if coverage on included files is <80% on any metric, STOP and comment on #284. Do NOT lower the threshold (per T-0.1.4).
+5. Verify T-0.1-CI.2 (threshold-blocks-builds) ideally via a synthesized regression push-then-revert on the PR branch; acceptable fallback is documenting the local equivalent (`--coverage.thresholds.lines=99`).
+6. Out-of-scope reminder: do NOT touch `server/vitest.config.ts`; do NOT add `components/`, `pages/`, `contexts/` to include; no external coverage reporters.
+7. Logical commits, draft PR with `Fixes #284`, monitor CI to green, then ready-for-review.
+8. WORKLOG.md / .workflow-state.json updates on **main only** (Branch Hygiene check on voice-relay will reject the PR otherwise).
+
+**No production / DB risk for this PR:** client-only tooling change, no schema modifications, no server changes. PR #283 (parallel) handles the auth/DB migration concern separately.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
