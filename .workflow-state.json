@@ -9,25 +9,14 @@
         "started": "2026-05-24T02:09:16.513139+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "db695b2",
-        "pr": 305,
-        "started": "2026-05-24T02:09:16.513139+00:00"
-      },
-      {
-        "conv_id": "34a6f95",
-        "pr": 306,
-        "started": "2026-05-24T02:09:16.513139+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T02:09:16.513139+00:00",
+  "last_updated": "2026-05-24T02:20:32.261516Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -82,7 +71,25 @@
       "finished": "2026-05-24T02:09:16.513139+00:00",
       "status": "success",
       "outcome": "Created PR #306 (feat(client): establish coverage thresholds, closes #284); ready-for-review, all CI green, MERGEABLE, 0 review threads"
+    },
+    {
+      "conv_id": "db695b2",
+      "type": "review",
+      "pr": 305,
+      "started": "2026-05-24T02:09:16.513139+00:00",
+      "finished": "2026-05-24T02:20:32.261516Z",
+      "status": "success",
+      "outcome": "Merged PR #305 (feat(client): auto-reconnect WebSocket with exponential backoff); commit fb2b337; issue #285 auto-closed"
+    },
+    {
+      "conv_id": "34a6f95",
+      "type": "review",
+      "pr": 306,
+      "started": "2026-05-24T02:09:16.513139+00:00",
+      "finished": "2026-05-24T02:20:32.261516Z",
+      "status": "success",
+      "outcome": "Halted merge of PR #306 \u2014 scope:client-only diff escaped scope (.github/workflows/ci.yml + package-lock.json); applied needs-human label; recommended scope:full-stack"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
