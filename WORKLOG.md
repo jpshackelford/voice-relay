@@ -965,3 +965,22 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:20 UTC - Merge Worker (PR #327)
+
+✅ **Merged** PR #327 — test(client): cover deviceToken, getEventContent, useResourceFetch (refs #303)
+
+- Squash-merge commit: `41af612` on `main`
+- Branch merged: `303-cover-batch-2`
+- Pre-merge state: MERGEABLE / CLEAN, all 7 CI checks SUCCESS (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator), 0 unresolved review threads, no `on-hold` / `needs-human` labels.
+- Scope (client-only, no DB/schema/migration): added `client/src/hooks/useResourceFetch.test.ts`, extended `client/src/utils/deviceToken.test.ts` and `client/src/utils/getEventContent.test.ts`, trimmed 3 entries from `client/vite.config.ts` coverage `exclude:` list.
+- Coverage gates raised for: `utils/deviceToken.ts`, `utils/getEventContent.ts`, `hooks/useResourceFetch.ts`.
+- Production safety: SQLite schema unchanged; no server-side code touched. Safe to auto-deploy to vr.chorecraft.net.
+- Issue #303 left **OPEN** (PR used `Refs`, not `Fixes`).
+
+**Remaining coverage-excluded hooks tracked by #303 (6):**
+`useAudioPlayback`, `useAudioStreaming`, `useJoinRequests`, `useWebSocket`, `useWorkspaceAutoJoin`, `useWorkspaceSettings`.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
