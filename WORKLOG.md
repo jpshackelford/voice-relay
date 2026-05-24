@@ -2,6 +2,30 @@
 
 ## Log
 
+### 2026-05-24 01:30 UTC - Implementation Worker (Issue #284 — BLOCKED, no PR)
+
+🚫 **Blocked on Issue [#284](https://github.com/jpshackelford/voice-relay/issues/284) — Establish client-side test coverage thresholds**
+
+- Issue: [#284](https://github.com/jpshackelford/voice-relay/issues/284) — Phase 0 of session-state-machine rollout; client-only infra; no DB changes.
+- Status: **No PR opened.** Posted detailed blocker comment ([issuecomment](https://github.com/jpshackelford/voice-relay/issues/284#issuecomment-)) with numbers + two scope-tweak options + recommendation; reverted all local changes.
+- What was implemented locally (and discarded):
+  - Added `@vitest/coverage-v8@^4.1.5` to `client/devDependencies` (pinned to vitest major); added `test:coverage` script; added the recommended `coverage:` block to `client/vite.config.ts` exactly as spec'd; created `client/.gitignore` with `coverage/`; added a `test-client` job to `.github/workflows/ci.yml` running `npm run test:coverage -w client`; regenerated `package-lock.json` via `npm install --workspaces`.
+- Why blocked: ran `npm run test:coverage -w client` against the full spec'd include set (`src/hooks/**`, `src/utils/**`, `src/api/**`). **Aggregate `All files` row is 58.54 / 61.28 / 55.82 / 59.06 — well below 80 on every metric.** Per the issue's "Verifying current state before committing the threshold" guidance, **STOP, do not weaken the threshold, surface the gap to the human reviewer.**
+- Root cause: `src/api/**` clears 80 easily (97.77 lines); `src/utils/**` is right at the line (83.76 / 77.33); `src/hooks/**` is the dominant pull-down at 45.13% lines because **10 of the 21 production hooks have zero test coverage** (`useAudioPlayback`, `useDeletionPreview`, `useDevices`, `useJoinRequests`, `useResourceFetch`, `useSessions`, `useSpeechRecognition`, `useSpeechSynthesis`, `useWorkspaceAutoJoin`, `useWorkspaces`). Three more (`useAudioStreaming`, `useWebSocket`, `useWorkspaceSettings`) sit between 47–73%. On the utils side `deviceName.ts`, `uuid.ts`, `deviceToken.ts`, `getEventContent.ts` are also under-tested.
+- Bystander verifications captured in the comment:
+  - **T-0.1.5** threshold mechanism verified to block (today's run is itself the failing baseline; the artificial `--coverage.thresholds.lines=99` check is redundant).
+  - **T-0.1.6** `npm test -w client` (no coverage) → 31 files / 661 tests passing.
+  - **T-0.1.S.2** `tsc --noEmit -p client/tsconfig.json` exits 0.
+  - **T-0.1.S.1** No `lint` script exists in `client/`, `server/`, or root `package.json` — pre-existing gap, not introduced by this work.
+- Recommended path forward (in the comment): **Option (b)** — land #284 with a narrower `exclude:` list covering the 14 under-tested files behind `TODO(#NNN)` comments, file ONE follow-up issue tracking the inventory. That makes the gate real on the well-tested set and exposes the gap in the config itself rather than waiting on a long tail of hook tests. Option (a) (split into follow-up first, re-do #284 after) is cleaner but pushes #284 merge out behind significant test-writing work.
+- Branch `feat/284-client-coverage-thresholds` was deleted locally; nothing pushed. Working tree clean on `main`.
+- Follow-ups implied for issues #285 / #286 / #287: once #284 lands, those should be able to assume `npm run test:coverage -w client` blocks on regressions — but only on the (narrower) included set. New hooks/utils added by those issues will land inside the gate; existing untested hooks remain outside until the follow-up issue files tests for them.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
+
 ### 2026-05-24 01:15 UTC - Implementation Worker (Issue #282 → PR #283)
 
 ✅ **Opened PR [#283](https://github.com/jpshackelford/voice-relay/pull/283) — feat(auth): surface GitHub App install step in `/auth/github` flow**
