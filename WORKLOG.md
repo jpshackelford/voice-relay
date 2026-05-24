@@ -2,6 +2,27 @@
 
 ## Log
 
+### 2026-05-24 04:05 UTC - Implementation Worker (Issue #298 → PR #313)
+
+✅ **Opened PR [#313](https://github.com/jpshackelford/voice-relay/pull/313) — feat(server): provision AWS workspace credentials as OH user secrets (closes #298)**
+
+- Issue: [#298](https://github.com/jpshackelford/voice-relay/issues/298) — Provision AWS credentials to OpenHands sandboxes as user-level secrets (priority:medium, documentation + enhancement)
+- Branch: `issue-298-aws-secrets-provisioning`
+- Status: **Ready for review** (CI fully green: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator all pass)
+- Scope label: `scope:full-stack` (touches `server/scripts/` and `docs/runbooks/`). Coverage config unchanged — scripts excluded from coverage by convention.
+- **Design**: Operational script + runbook. No request-time code paths change. The script writes three OpenHands user-level secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`) which OH then injects as env vars into every sandbox the user starts. Sets up #299 / #300 to consume those creds.
+- **API path correction**: issue text referenced `POST /api/secrets/secrets`; the real production API (verified against live OpenAPI on 2026-05-24) is `POST /api/v1/secrets`, `GET /api/v1/secrets/search`, `DELETE /api/v1/secrets/{secret_id}`, `PUT /api/v1/secrets/{secret_id}`. PUT only updates name/description (schema is `CustomSecretWithoutValue`), so value rotation requires DELETE + POST. Documented in script + runbook.
+- Files (4 changed, all in-scope):
+  - `server/scripts/provision-aws-secrets.ts` (new, ~480 lines) — idempotent CLI: arg parser, listSecretNames (paginated GET), createSecret / deleteSecret, requestWithRetry (linear backoff for 408/429/5xx), provisionAwsSecrets orchestrator, runCli entrypoint. Never logs values.
+  - `server/scripts/provision-aws-secrets.test.ts` (new) — 21 vitest tests covering T-5.1.U.1..U.7 from the issue plus pagination, retry-exhaustion, dry-run, and CLI error paths.
+  - `server/vitest.config.ts` — `include` now picks up `scripts/**/*.test.ts`; coverage `include` unchanged.
+  - `docs/runbooks/aws-secrets-provisioning.md` (new) — full runbook: prerequisites, IAM scoping (with policy template), invocation, expected output, dry-run, rotation cadence, in-sandbox verification commands, failure modes table, security checklist.
+- Static gates: `tsc --noEmit -p server/tsconfig.json` clean; direct `tsc` on the script + test clean. No lint script in this workspace.
+- Tests: server full suite 944 / 944 pass; coverage 94.97% on runtime tree.
+- Smoke tests T-5.1.M.* deferred to first onboarded user (require live IAM principal + OH account, out-of-scope per issue).
+
+---
+
 ### 2026-05-24 03:43 UTC - Expansion Worker (`local`)
 
 ✅ **Expanded Issue #312** — closed as `wontfix`/`duplicate`
