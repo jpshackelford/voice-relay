@@ -397,3 +397,14 @@ Built on top of [PR #320](https://github.com/jpshackelford/voice-relay/pull/320)
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 19:13 UTC - Implementation Worker (#290 duplicate detection)
+
+🛑 **Duplicate work caught on PR submission — closed [PR #322](https://github.com/jpshackelford/voice-relay/pull/322) in favor of [PR #321](https://github.com/jpshackelford/voice-relay/pull/321).**
+
+A second implementation worker for #290 was dispatched while [PR #321](https://github.com/jpshackelford/voice-relay/pull/321) was already open and CI-green. PR #322 reached CI-green independently with 11 unit tests (T-3.1.1 → T-3.1.10), a `server/src/ai-resync.ts` helper, and the same `register`-handler hook. PR #321 was opened ~12 min earlier (18:50 UTC vs 19:03 UTC), so #322 was closed as a duplicate; #321 remains the canonical implementation.
+
+**Learning for the orchestrator:** when dispatching implementation workers, re-check `gh pr list --search "linked:issue#NNN"` (or scan `WORKLOG.md`) right before spawning to avoid wasted parallel work on the same issue. The window between #321 being recorded in WORKLOG and #322 being dispatched was on the order of minutes.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
