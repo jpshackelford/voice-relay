@@ -2775,3 +2775,20 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+## ![](slack_date:2026-05-24) — Merged PR #281 (issue #280)
+
+✅ **Merged: PR #281** — `fix(timeline): mirror live-path event filter on refresh (#280)`
+
+- **Squash commit:** `a5e621ed3f65fc8996ba9e8abf81ce4aca06d4e7` on `main`.
+- **PR:** https://github.com/jpshackelford/voice-relay/pull/281
+- **Issue #280:** auto-closed (state=CLOSED, reason=COMPLETED) via `Fixes #280`.
+- **Pre-merge gate (re-verified):** `isDraft=false`, `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 6 CI checks SUCCESS (Server Tests, lint-pr-title, enable-orchestrator, pr-review, Build Client, E2E Tests), zero blocking labels, only review thread `PRRT_kwDOSTUWGM6EV7RK` (predicate parity nit) — resolved + outdated. Latest `pr-review` verdict 🟢 Good taste / LOW risk.
+- **Migration check:** ✅ confirmed no migration files, no SQL DDL, no `agent_events` schema changes in the diff. Pure client-side filter helper + server-side parity comment + tests. Production SQLite (`sqlite.db` on `vr.chorecraft.net`) needs no backfill — existing rows are filtered at API/render time on next refresh.
+- **Production impact:** auto-deploy to `vr.chorecraft.net` on merge. Safe: read/render-only change; chat utterance bubble path (`messages` table) untouched; unknown future event kinds still default-show.
+- **Feature branch:** `fix/280-refresh-timeline-parity` — manually deleted post-merge via `gh api -X DELETE /repos/jpshackelford/voice-relay/git/refs/heads/fix/280-refresh-timeline-parity` (auto-delete on merge not configured on this repo).
+- **Post-merge:** orchestrator will pick up the next cycle; no further work spawned from this merge worker.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
