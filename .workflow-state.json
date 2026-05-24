@@ -11,9 +11,9 @@
     ],
     "review": [
       {
-        "conv_id": "e0fc0e4",
+        "conv_id": "f2be125",
         "pr": 323,
-        "started": "2026-05-24T19:52:46.664587+00:00"
+        "started": "2026-05-24T20:05:09.805449+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T19:52:46.664587+00:00",
+  "last_updated": "2026-05-24T20:05:09.805449+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -329,6 +329,15 @@
       "finished": "2026-05-24T19:50:35.164810+00:00",
       "status": "success",
       "outcome": "Merged PR #321 (squash 192b4f3) \u2192 Issue #290 auto-closed"
+    },
+    {
+      "conv_id": "e0fc0e4",
+      "type": "review",
+      "pr": 323,
+      "started": "2026-05-24T19:52:46.664587+00:00",
+      "finished": "2026-05-24T20:05:09.805449+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #323 (refresh session_api_key on WS reconnect) \u2014 all bot review threads resolved; CI green; PR ready to merge"
     }
   ],
   "quiet_ticks": 0

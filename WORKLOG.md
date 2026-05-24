@@ -638,3 +638,34 @@ PR is now waiting on a merge worker — not merged from this conversation.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 20:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `14523c8` | implementation | Issue #293 - Map ConversationExecutionStatus to driver session state | running (PR #324 draft) |
+| `f2be125` | merge | PR #323 - refresh session_api_key on WS reconnect | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+
+- PR: [#323 - fix(server): refresh session_api_key on every OpenHands WS reconnect](https://github.com/jpshackelford/voice-relay/pull/323) (Fixes #291)
+- All CI green, sole bot review thread resolved, MERGEABLE/CLEAN, ready-for-review
+- Conversation: [`f2be125`](https://app.all-hands.dev/conversations/f2be125c03cb4c77be38121b942b9b20)
+
+**Worker Completed (since last tick):** `e0fc0e4` (review on PR #323) — addressed bot review thread, all threads resolved, CI green; PR now merge-ready.
+
+**Current State:**
+- [PR #323](https://github.com/jpshackelford/voice-relay/pull/323): ready-for-review, MERGEABLE/CLEAN, CI green → **being merged**
+- [PR #324](https://github.com/jpshackelford/voice-relay/pull/324): draft, UNSTABLE (impl worker still building for issue #293)
+- Ready issues awaiting impl slot: #303, #297, #296 (priority:high), #295, #294, #292 (#291 closes with PR #323; #293 in-flight)
+- Issues needing expansion: 6 issues all `on-hold` (S3 persistence freeze #299–#302, plus #210, #239) — skipped
+
+**Action Taken:**
+🚀 Spawned merge worker for PR #323 (review slot now 1/2).
+- Implementation slot full (1/1) — worker on #293 still building PR #324.
+- Expansion slots all empty (0/4) — but every unexpanded issue carries `on-hold`, so nothing to spawn.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
