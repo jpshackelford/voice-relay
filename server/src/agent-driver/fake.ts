@@ -36,7 +36,7 @@ interface FakeSession {
   workspaceId: string;
   /** FIFO queue: one entry per future `sendMessage` invocation. */
   scripts: ScriptEntry[][];
-  /** Idempotency cache: utteranceId → terminal `message` or `error` event. */
+  /** Idempotency cache: utteranceId → terminal event (`message`, `error`, or `status`). */
   utteranceMemo: Map<string, AgentEvent>;
 }
 
