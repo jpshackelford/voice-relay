@@ -10,6 +10,7 @@ import { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as displayApiSecretsMigration } from '../storage/migrations/010_display_api_secrets.js';
@@ -51,6 +52,7 @@ describe('AgentEvent Router', () => {
 
     // Required base tables for SessionRepository / WorkspaceRepository
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
     // Sessions / devices schema (minimal subset matching migration 005)

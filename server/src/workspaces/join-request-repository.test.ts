@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { JoinRequestRepository } from './join-request-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as joinRequestsMigration } from '../storage/migrations/009_join_requests.js';
 
@@ -18,6 +19,7 @@ describe('JoinRequestRepository', () => {
     
     // Apply required migrations
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(joinRequestsMigration.up);
     

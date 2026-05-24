@@ -5,6 +5,7 @@ import { requireAuth, optionalAuth } from './middleware.js';
 import { JWTService } from './jwt.js';
 import { UserRepository } from './user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import type { User } from './types.js';
 
 describe('Auth Middleware', () => {
@@ -16,6 +17,7 @@ describe('Auth Middleware', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
     userRepository = new UserRepository(db);
 
