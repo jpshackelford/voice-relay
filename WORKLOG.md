@@ -2,6 +2,37 @@
 
 ## Log
 
+### 2026-05-24 01:55 UTC - Expansion Worker (Issue #304 — CI failure / auto-rollback)
+
+✅ **Expanded Issue [#304](https://github.com/jpshackelford/voice-relay/issues/304) — 🚨 Smoke test failure after deploying `4cedfe8` (PR #283); pipeline auto-rolled back to `ca54d28`**
+
+- Issue: [#304](https://github.com/jpshackelford/voice-relay/issues/304)
+- Type: Bug (CI-failure on production smoke); auto-rollback issue
+- Status: **Ready for implementation** (labels `ready`, `priority:high`, `scope:ci-only` applied; `ci-failure` preserved)
+- Failed workflow run: [actions/runs/26348737784](https://github.com/jpshackelford/voice-relay/actions/runs/26348737784) (operate ✓, smoke-tests ✗ 45s, handle-failure ✓, tag-success skipped)
+- Failed test: `tests/smoke/smoke.spec.ts:56:9 › Production Smoke Tests › Authentication Flow › auth/github redirects to GitHub OAuth`
+- Production state: on `ca54d28` (post-rollback). Migration 014 (`users.github_installation_id`) is **not** applied to prod sqlite; new GitHub App install flow is **not** live.
+
+**RCA (confirmed from workflow logs + diff of `4cedfe8`):**
+
+- Smoke received `302` with `Location: https://github.com/apps/test-mode-placeholder/installations/new?state=901afc00…` — exactly what PR #283's `getAuthorizationUrl()` ([`server/src/auth/github-oauth.ts:52-66`](https://github.com/jpshackelford/voice-relay/blob/4cedfe8/server/src/auth/github-oauth.ts#L52-L66)) promises.
+- The smoke assertion at [`tests/smoke/smoke.spec.ts:63`](https://github.com/jpshackelford/voice-relay/blob/4cedfe8/tests/smoke/smoke.spec.ts#L63) still hardcodes the **legacy** substring `'github.com/login/oauth/authorize'`. PR #283 updated the matching server-side unit test (`server/src/auth/github-oauth.test.ts`) but missed the Playwright smoke spec. **That oversight is the entire failure.**
+- The `test-mode-placeholder` slug in the received `Location` confirms `TEST_AUTH_SECRET` is set on `app.no-hands.dev` and `GITHUB_APP_SLUG` is unset, which legitimately triggers the documented test-mode fallback in [`server/src/index.ts:274-276`](https://github.com/jpshackelford/voice-relay/blob/4cedfe8/server/src/index.ts#L274-L276). **This is correct behavior, not a config bug** — no env-var change is required to unblock the deploy. (Suspected cause #1 from the expansion brief — `GITHUB_APP_SLUG` missing — is ruled out.)
+- Migration 014 ran cleanly (the `operate` job succeeded in 1m27s before smoke started); it is **not** the cause.
+
+**Recommended fix (smoke-test-only, scope:ci-only):**
+
+Replace the hardcoded legacy URL substring at `tests/smoke/smoke.spec.ts:63` with a regex that validates the new GitHub App install URL **shape** (`/apps/<slug>/installations/new?state=<hex>`) so the assertion accepts both `test-mode-placeholder` and a real production slug. Explicit `not.toContain('login/oauth/authorize')` regression guard. Full proposed snippet posted in the issue's RCA comment, plus 6-bullet acceptance criteria and a "do not touch server code / do not redeploy" out-of-scope note for the implementation worker. Alternatives (B) "set real `GITHUB_APP_SLUG` in env" and (C) "soft-fail server" explicitly rejected and explained in the comment.
+
+**Labels applied:** `ready` ✓, `priority:high` ✓, `scope:ci-only` ✓. Did **not** apply `needs-info` — RCA was diagnosable from the workflow logs alone, no open questions for the human reviewer.
+
+**Did NOT push any code.** Expansion-only per the brief; implementation will land in a separate worker on a future tick. No PR opened. No redeploy attempted.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
+
 ### 2026-05-24 01:30 UTC - Implementation Worker (Issue #284 — BLOCKED, no PR)
 
 🚫 **Blocked on Issue [#284](https://github.com/jpshackelford/voice-relay/issues/284) — Establish client-side test coverage thresholds**
