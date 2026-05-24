@@ -91,6 +91,17 @@ interface DriverSessionState {
  */
 const UTTERANCE_MEMO_LIMIT = 256;
 
+/**
+ * WebSocket `readyState` constants. Mirrors the spec values used by both
+ * the browser `WebSocket` and the `ws` package on the server, restated
+ * locally so the status machine in `synthesizeStatus` reads as a
+ * self-documenting state table without relying on a global.
+ */
+const WS_CONNECTING = 0;
+const WS_OPEN = 1;
+const WS_CLOSING = 2;
+const WS_CLOSED = 3;
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -498,12 +509,12 @@ export class OpenHandsAgentDriver implements AgentDriver {
       const wsState = ai.ws?.readyState;
       if (ai.isThinking) {
         agentState = 'thinking';
-      } else if (wsState === 1 /* WebSocket.OPEN */) {
+      } else if (wsState === WS_OPEN) {
         agentState = 'ready';
-      } else if (wsState === 0 /* WebSocket.CONNECTING */ || wsState === undefined) {
+      } else if (wsState === WS_CONNECTING || wsState === undefined) {
         agentState = 'starting';
       } else {
-        // CLOSING (2) or CLOSED (3) — `AISessionManager` will auto-reconnect.
+        // WS_CLOSING or WS_CLOSED — `AISessionManager` will auto-reconnect.
         agentState = 'reconnecting';
       }
     } else if (state?.startingSince !== null && state?.startingSince !== undefined) {
