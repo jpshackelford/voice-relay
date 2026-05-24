@@ -42,13 +42,19 @@ import { OpenHandsApiError, type ConversationInfo } from '../openhands.js';
 function makeClient(responses: Array<ConversationInfo | Error>): {
   client: OpenHandsRebindClient;
   calls: string[];
+  callOpts: Array<{ systemMessageSuffix?: string } | undefined>;
 } {
   const queue = responses.slice();
   const calls: string[] = [];
+  const callOpts: Array<{ systemMessageSuffix?: string } | undefined> = [];
   return {
     client: {
-      async rebindConversation(conversationId: string): Promise<ConversationInfo> {
+      async rebindConversation(
+        conversationId: string,
+        opts?: { systemMessageSuffix?: string },
+      ): Promise<ConversationInfo> {
         calls.push(conversationId);
+        callOpts.push(opts);
         const next = queue.shift();
         if (next === undefined) {
           throw new Error('fake client: no more queued responses');
@@ -58,6 +64,7 @@ function makeClient(responses: Array<ConversationInfo | Error>): {
       },
     },
     calls,
+    callOpts,
   };
 }
 
@@ -392,5 +399,55 @@ describe('RebindWindowTracker', () => {
     tracker.recordSuccess('conv1');
     expect(tracker.countInWindow('conv1')).toBe(3);
     expect(() => tracker.checkBudget('conv1')).toThrow(RebindBudgetExhausted);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// systemMessageSuffix forwarding (#297)
+// ---------------------------------------------------------------------------
+
+describe('rebindConversation systemMessageSuffix forwarding (#297)', () => {
+  test('T-4.2.I.1: forwards a non-empty suffix to the underlying client', async () => {
+    const { client, callOpts } = makeClient([okResponse()]);
+    await rebindConversation(client, 'conv1', {
+      systemMessageSuffix: 'memory replay: user asked about widgets',
+    });
+    expect(callOpts).toHaveLength(1);
+    expect(callOpts[0]).toEqual({
+      systemMessageSuffix: 'memory replay: user asked about widgets',
+    });
+  });
+
+  test('omits opts entirely when no suffix is supplied', async () => {
+    const { client, callOpts } = makeClient([okResponse()]);
+    await rebindConversation(client, 'conv1');
+    expect(callOpts).toHaveLength(1);
+    expect(callOpts[0]).toBeUndefined();
+  });
+
+  test('forwards empty-string suffix as an explicit opts object', async () => {
+    // The HTTP layer drops empty strings before assembling the request
+    // body, but the orchestrator must still forward the option so the
+    // intent ("we tried and got nothing") is observable to tests / the
+    // client layer.
+    const { client, callOpts } = makeClient([okResponse()]);
+    await rebindConversation(client, 'conv1', { systemMessageSuffix: '' });
+    expect(callOpts[0]).toEqual({ systemMessageSuffix: '' });
+  });
+
+  test('same suffix is reused across retry attempts', async () => {
+    const { client, callOpts } = makeClient([
+      new OpenHandsApiError(500, 'transient', null),
+      okResponse(),
+    ]);
+    const time = makeFakeTime();
+    await rebindConversation(client, 'conv1', {
+      systemMessageSuffix: 'replay-A',
+      sleep: time.sleep,
+      clock: time.clock,
+    });
+    expect(callOpts).toHaveLength(2);
+    expect(callOpts[0]).toEqual({ systemMessageSuffix: 'replay-A' });
+    expect(callOpts[1]).toEqual({ systemMessageSuffix: 'replay-A' });
   });
 });

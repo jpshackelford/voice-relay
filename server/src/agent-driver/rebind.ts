@@ -151,7 +151,19 @@ const defaultClock: Clock = () => Date.now();
  * constructing a full client.
  */
 export interface OpenHandsRebindClient {
-  rebindConversation(conversationId: string): Promise<ConversationInfo>;
+  /**
+   * Rebind a conversation on a fresh sandbox.
+   *
+   * The optional `opts.systemMessageSuffix` (#297) is forwarded to the
+   * platform as the `system_message_suffix` field on `POST
+   * /app-conversations`, so the rebound agent's system prompt includes
+   * memory-replay context summarising the prior turns. Empty / omitted
+   * suffix means no memory replay (fresh-agent fallback).
+   */
+  rebindConversation(
+    conversationId: string,
+    opts?: { systemMessageSuffix?: string },
+  ): Promise<ConversationInfo>;
 }
 
 /**
@@ -208,6 +220,13 @@ export interface RebindOptions {
   backoff?: readonly number[];
   /** Override the total time budget for tests. */
   budgetMs?: number;
+  /**
+   * Memory-replay suffix forwarded as `system_message_suffix` on the
+   * rebind POST (#297). Same value is reused across all retry attempts
+   * within a single rebind call so the rebound agent doesn't see a
+   * different prompt depending on which attempt succeeded.
+   */
+  systemMessageSuffix?: string;
 }
 
 /**
@@ -241,6 +260,10 @@ export async function rebindConversation(
   const startedAt = clock();
   let attempts = 0;
   let lastStatus: number | null = null;
+  const clientOpts =
+    options.systemMessageSuffix !== undefined
+      ? { systemMessageSuffix: options.systemMessageSuffix }
+      : undefined;
 
   // Cap attempts at backoff-length + 1: each backoff sits between two
   // consecutive attempts, so N backoffs allow N+1 attempts max.
@@ -248,7 +271,7 @@ export async function rebindConversation(
   for (let i = 0; i < maxAttempts; i++) {
     attempts++;
     try {
-      const info = await client.rebindConversation(conversationId);
+      const info = await client.rebindConversation(conversationId, clientOpts);
       return normalizeRebindResponse(conversationId, info);
     } catch (err) {
       if (err instanceof OpenHandsApiError) {

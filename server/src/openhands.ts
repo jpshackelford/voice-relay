@@ -19,6 +19,11 @@ import {
   type RebindResult,
   type RebindOptions,
 } from './agent-driver/rebind.js';
+import {
+  buildReplaySuffix,
+  noopCondense,
+  type CondenseFn,
+} from './agent-driver/replay.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -285,13 +290,21 @@ export class OpenHandsClient {
    * narrow that into typed errors with retry semantics
    * (`server/src/agent-driver/rebind.ts`).
    */
-  async rebindConversation(conversationId: string): Promise<ConversationInfo> {
-    return this.request<ConversationInfo>(
-      'POST',
-      '/app-conversations',
-      { conversation_id: conversationId },
-      60_000,
-    );
+  async rebindConversation(
+    conversationId: string,
+    opts: { systemMessageSuffix?: string } = {},
+  ): Promise<ConversationInfo> {
+    // `system_message_suffix` is the platform field that drives memory
+    // replay (#297). The agent on the freshly-provisioned sandbox sees it
+    // appended to the base system prompt at conversation start, so the
+    // post-rebind agent can answer "what did we just discuss?" with
+    // continuity from the prior turns.
+    const body: Record<string, unknown> = { conversation_id: conversationId };
+    const suffix = opts.systemMessageSuffix;
+    if (typeof suffix === 'string' && suffix.length > 0) {
+      body.system_message_suffix = suffix;
+    }
+    return this.request<ConversationInfo>('POST', '/app-conversations', body, 60_000);
   }
 
   /**
@@ -1403,6 +1416,16 @@ export class AISessionManager {
   private rebindOptionsForTesting: RebindOptions | undefined;
 
   /**
+   * Memory-replay condense seam (#297). Production currently has no
+   * wired condense path — the OH agent-server condense endpoint requires
+   * a live sandbox, and the rebind path runs precisely when the sandbox
+   * is gone — so this defaults to {@link noopCondense} (always throws,
+   * forcing the event-log-derived fallback suffix). Tests inject a real
+   * impl to verify the condense-driven prompt is forwarded correctly.
+   */
+  private condenseImpl: CondenseFn = noopCondense;
+
+  /**
    * @param client - Optional pre-built client (test seam). When omitted, the
    * manager constructs its own `OpenHandsClient` using ambient env vars.
    */
@@ -1452,6 +1475,14 @@ export class AISessionManager {
    */
   setRebindOptionsForTesting(opts: RebindOptions | undefined): void {
     this.rebindOptionsForTesting = opts;
+  }
+
+  /**
+   * Test seam: install a memory-replay condense impl (#297). Pass
+   * `undefined` to restore the production no-op default.
+   */
+  setCondenseImplForTesting(impl: CondenseFn | undefined): void {
+    this.condenseImpl = impl ?? noopCondense;
   }
 
   /**
@@ -2007,6 +2038,31 @@ export class AISessionManager {
     return work;
   }
 
+  /**
+   * Memory-replay prep (#297). Fetches the platform-side event log for
+   * `conversationId` and turns it into a `system_message_suffix` for the
+   * upcoming rebind POST. Returns `''` (no suffix) on any error or empty
+   * log — replay is strictly best-effort and never blocks the rebind.
+   *
+   * Always feeds the **raw** event log into the condense / fallback
+   * builders, never a previously-generated suffix, so successive rebinds
+   * don't condense an already-condensed summary (lossy iteration).
+   */
+  private async buildRebindReplaySuffix(conversationId: string): Promise<string> {
+    if (!this.client) return '';
+    try {
+      const page = await this.client.getEventsPage(conversationId, { limit: 100 });
+      return await buildReplaySuffix(page.items, this.condenseImpl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[AI] memory replay prep failed for ${conversationId}, ` +
+          `proceeding without suffix: ${message}`,
+      );
+      return '';
+    }
+  }
+
   private async doRebindSession(session: AISession): Promise<void> {
     if (!this.client) {
       session.degraded = true;
@@ -2044,9 +2100,24 @@ export class AISessionManager {
       session.ws = undefined;
     }
 
+    // Memory replay (#297): fetch the platform-side event log for the
+    // dying conversation and build a `system_message_suffix` so the
+    // rebound agent's context starts populated with the prior turns.
+    // The event-log endpoint on the *app* server (not the dead agent
+    // server) survives sandbox death — see
+    // `docs/openhands-platform.md` § Death and recovery. On any failure
+    // we proceed without a suffix; the rebind itself is still useful.
+    const systemMessageSuffix = await this.buildRebindReplaySuffix(session.conversationId);
+
     let result: RebindResult;
     try {
-      result = await rebindHttp(this.client, session.conversationId, this.rebindOptionsForTesting);
+      const httpOptions: RebindOptions = {
+        ...(this.rebindOptionsForTesting ?? {}),
+        // Always pass through (possibly '') so tests can assert exact
+        // forwarding behaviour. The HTTP client drops empty strings.
+        systemMessageSuffix,
+      };
+      result = await rebindHttp(this.client, session.conversationId, httpOptions);
     } catch (err) {
       session.rebinding = false;
       session.degraded = true;
