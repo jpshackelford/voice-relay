@@ -2,6 +2,35 @@
 
 ## Log
 
+### 2026-05-24 04:32 UTC - Review-feedback Worker (PR #313 round 1)
+
+✅ **Addressed all three bot review threads on PR [#313](https://github.com/jpshackelford/voice-relay/pull/313) — provision AWS workspace credentials as OH user secrets (#298)**
+
+- PR: [#313](https://github.com/jpshackelford/voice-relay/pull/313) — `feat(server): provision AWS workspace credentials as OH user secrets (#298)`
+- Scope: `scope:full-stack` (TS script + tests + 0 doc edits this round). All changes confined to `server/scripts/provision-aws-secrets.{ts,test.ts}`.
+- Threads resolved (3/3 unresolved → resolved). All three were github-actions bot suggestions; all accepted (small, high-value defensive improvements, no scope creep):
+
+  1. **Document 100-page pagination safety valve** (`PRRT_kwDOSTUWGM6EWoSm`, line 190) → `e62b14c`.
+     - Added an inline comment explaining the rationale: 100 pages × 100 items/page = 10,000 secrets max; anyone hitting this almost certainly has a configuration / loop bug on the OH side, so bail loudly rather than spin forever. Pure documentation, no behaviour change.
+
+  2. **Pre-flight format validation for AWS args** (`PRRT_kwDOSTUWGM6EWoSk`, line 273) → `34a6e60`.
+     - Added cheap regex validation in `provisionAwsSecrets()` (after the missing-args check) so typos / pasted whitespace fail fast before any HTTP round-trip:
+       - `--aws-access-key-id` → `^(AKIA|ASIA|AIDA)[A-Z0-9]{16}$` (per AWS docs).
+       - `--aws-default-region` → `^[a-z]{2}-[a-z]+(-[a-z]+)?-\d$` — broadened the bot's suggested pattern slightly so GovCloud slugs like `us-gov-east-1` are also accepted.
+       - `--aws-secret-access-key` deliberately not validated (no fixed format in AWS).
+     - 3 new unit tests: malformed-key fast-fail (asserts no HTTP call), malformed-region fast-fail, ASIA + GovCloud happy-path.
+     - Updated 4 existing test fixtures that were using arbitrary short placeholders (`'AKIAEXAMPLE'`, `'AKIA'`, `'AKIA2'`, bare `'a'`/`'r'`) to AWS-docs canonical placeholders (e.g. `'AKIAIOSFODNN7EXAMPLE'`). The "secret never logged" test (T-5.1.U.6) still asserts identical semantics — just with a 20-char placeholder.
+
+  3. **In-script CLI security warning** (`PRRT_kwDOSTUWGM6EWoSj`, line 435) → `24fec68`.
+     - Added a `SECURITY NOTE` block to `HELP_TEXT` (visible from `--help`) calling out that CLI flag values are visible in `ps` / `top` / shell history, and pointing operators at the env-var equivalents. Mirrors the existing runbook §Security checklist guidance so it's visible from `--help` alone (the bot noted operators may not read the runbook first).
+
+- CI: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all green on head (`24fec68`).
+- Tests: `provision-aws-secrets.test.ts` **24 / 24 pass** (was 21; +3 for the new validation tests). tsc clean. No other suites touched.
+- PR back to **ready for review** (was draft during the round).
+- No runtime code paths, no migrations, no API contracts touched — production SQLite deployment on vr.chorecraft.net is unaffected by this round.
+
+---
+
 ### 2026-05-24 04:30 UTC - Review-feedback Worker (PR #311 round 2)
 
 ✅ **Addressed the two remaining bot review threads on PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — OpenHandsAgentDriver adapter (#288)**
