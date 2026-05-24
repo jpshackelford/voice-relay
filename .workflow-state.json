@@ -4,23 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "a1ee5fa",
-        "issue": 303,
-        "started": "2026-05-24T22:05:52.456542+00:00"
+        "conv_id": "39c990b",
+        "issue": 295,
+        "started": "2026-05-24T22:35:42.243554+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "fe9cd71",
-        "pr": 328,
+        "conv_id": "e4c16c2",
+        "pr": 330,
         "type": "merge",
-        "started": "2026-05-24T22:21:22.744806+00:00"
-      },
-      {
-        "conv_id": "e2c8f93",
-        "pr": 329,
-        "type": "merge",
-        "started": "2026-05-24T22:21:22.744806+00:00"
+        "started": "2026-05-24T22:35:42.243554+00:00"
       }
     ]
   },
@@ -29,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T22:21:22.744806+00:00",
+  "last_updated": "2026-05-24T22:35:42.243554+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -462,6 +456,33 @@
       "finished": "2026-05-24T22:21:22.744806+00:00",
       "status": "success",
       "outcome": "Addressed pr-review feedback (safeBroadcast extraction + vitest comment); PR back to ready"
+    },
+    {
+      "conv_id": "a1ee5fa",
+      "type": "implementation",
+      "started": "2026-05-24T22:05:52.456542+00:00",
+      "finished": "2026-05-24T22:35:42.243554+00:00",
+      "status": "success",
+      "outcome": "Created PR #330 (test(client): cover remaining excluded hook modules, closes #303); ready-for-review, all CI green, MERGEABLE/CLEAN, bot review \ud83d\udfe2 Good taste",
+      "issue": 303
+    },
+    {
+      "conv_id": "fe9cd71",
+      "type": "merge",
+      "started": "2026-05-24T22:21:22.744806+00:00",
+      "finished": "2026-05-24T22:35:42.243554+00:00",
+      "status": "success",
+      "outcome": "Merged PR #328 (squash) \u2014 feat(server): rebind MISSING sandbox preserving conversation_id; issue #296 auto-closed",
+      "pr": 328
+    },
+    {
+      "conv_id": "e2c8f93",
+      "type": "merge",
+      "started": "2026-05-24T22:21:22.744806+00:00",
+      "finished": "2026-05-24T22:35:42.243554+00:00",
+      "status": "success",
+      "outcome": "Merged PR #329 (squash 94053d8) \u2014 feat(server): restart agent endpoint and kiosk UI affordance; issue #294 auto-closed",
+      "pr": 329
     }
   ],
   "quiet_ticks": 0
