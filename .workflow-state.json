@@ -2,15 +2,27 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": []
+    "implementation": [
+      {
+        "conv_id": "6751e67",
+        "issue": 289,
+        "started": "2026-05-24T17:51:46.996153+00:00"
+      }
+    ],
+    "review": [
+      {
+        "conv_id": "e785075",
+        "pr": 319,
+        "started": "2026-05-24T17:51:46.996153+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T17:40:25.000243+00:00",
+  "last_updated": "2026-05-24T17:51:46.996153+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
