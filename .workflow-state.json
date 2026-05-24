@@ -11,9 +11,9 @@
     ],
     "review": [
       {
-        "conv_id": "e79b8f3",
+        "conv_id": "314e231",
         "pr": 328,
-        "started": "2026-05-24T21:36:05.446516+00:00"
+        "started": "2026-05-24T21:53:43.417764Z"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T21:36:05.446516+00:00",
+  "last_updated": "2026-05-24T21:53:43.417764Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -419,6 +419,15 @@
       "finished": "2026-05-24T21:36:05.446516+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #327 (test(client): cover deviceToken/getEventContent/useResourceFetch refs #303) commit 41af612; issue #303 stays open for next batches"
+    },
+    {
+      "conv_id": "e79b8f3",
+      "type": "review",
+      "pr": 328,
+      "started": "2026-05-24T21:36:05.446516+00:00",
+      "finished": "2026-05-24T21:53:43.417764Z",
+      "status": "success",
+      "outcome": "Round 1 review: added 'Rebind on a dead conversation' subsection to docs/openhands-platform.md (commit f4990ad); resolved docs reference thread."
     }
   ],
   "quiet_ticks": 0

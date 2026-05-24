@@ -1131,3 +1131,35 @@ Handing off to the orchestrator's next review/merge tick.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:54 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `564ed2f` | implementation | Issue #294 — Restart Agent endpoint & UI affordance | running |
+| `314e231` | review (round 2) | PR #328 — rebind MISSING sandbox (#296) | **NEW** |
+
+**Worker Completed:** `e79b8f3` (review round 1, PR #328)
+- Added `### Rebind on a dead conversation` subsection to `docs/openhands-platform.md` in commit `f4990ad`
+- Resolved review thread `PRRT_kwDOSTUWGM6Ea2ja` (docs reference)
+- Moved to `completed` (status: success)
+
+**Spawned: Review Round 2 Worker**
+- PR: [#328 - feat(server): rebind MISSING sandbox preserving conversation_id (#296)](https://github.com/jpshackelford/voice-relay/pull/328)
+- Conversation: [`314e231`](https://app.all-hands.dev/conversations/314e2310164a48d7a0d5b336298ec36c)
+- Target thread: `PRRT_kwDOSTUWGM6Ea6OD` — pr-review bot's 🟡 suggestion to add a concurrency guard for `rebindSession` mirroring the existing `inFlightRefresh` pattern (created 2026-05-24T21:44:42Z, after round 1 pushed)
+- Disposition guidance: default to implementing — small + idiomatic — but decline & explain if the existing budget + rate cap already serialize per-conversation
+
+**Current State:**
+- [PR #328](https://github.com/jpshackelford/voice-relay/pull/328): MERGEABLE / CLEAN, all 7 CI checks SUCCESS, 1 unresolved review thread → being addressed by `314e231`
+- Ready issues (not in flight): #295 (priority:medium, client), #297 (priority:medium — gated on #296), #303 (priority:medium, client)
+- Implementation slot full (`564ed2f` on #294); next free impl slot will pick up #295 or wait for #297 once #296 merges
+- Issues needing expansion: 0 actionable — 6 open issues all carry `on-hold` (S3 freeze + flaky-CI #239 + #210)
+
+**Action Taken:**
+🚀 Spawned review-round-2 worker for PR #328 (new pr-review thread on `rebind.ts` concurrency guard)
+🧹 Paused orphan sandbox `1cjPh4JaJVs0ZIbVp1kv1a` (prior POST used wrong `initial_message` schema — corrected on retry)
+🧾 Moved `e79b8f3` → `completed`
+
+---
