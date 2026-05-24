@@ -656,3 +656,47 @@ Review: 🟢 LOW risk, "Good taste" — bot approved the change itself.
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Merge Worker._
 
 ---
+
+### 2026-05-24 03:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `114d989` | implementation | Issue #288 - OpenHandsAgentDriver adapter (scope:server-only) | **NEW** |
+
+**Completed since last tick:**
+- `754c436` (impl #304) — created [PR #308](https://github.com/jpshackelford/voice-relay/pull/308); merge worker halted on scope:ci-only escape into `tests/smoke/`; `needs-human` applied. Awaiting human relabel decision (recommended: `scope:full-stack`).
+- `4ad5fd3` (review PR #307) — addressed bot doc thread (a640a57); PR subsequently merged (squash [`0a12358`](https://github.com/jpshackelford/voice-relay/commit/0a123588b05e1f8e3ee66ca91d1400d50885a2fb)); issue #287 auto-closed.
+
+**Current State:**
+- Open PRs (all `needs-human`, deferred):
+  - [PR #308](https://github.com/jpshackelford/voice-relay/pull/308) — `scope:ci-only` halt (smoke test fix); blocks production deploy pipeline; needs human relabel
+  - [PR #306](https://github.com/jpshackelford/voice-relay/pull/306) — `scope:client-only` halt (CI workflow + package-lock.json escaped); recommended `scope:full-stack`
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — long-standing draft, deferred
+- Open issues: 22 total
+  - 3 `on-hold` (#208, #210, #239) — skipped
+  - 19 `ready` — 1 picked (#288), 18 remaining
+- Issues needing expansion: 0
+
+**Spawned: Implementation Worker**
+- Issue: [#288 — OpenHandsAgentDriver: wrap AISessionManager as an AgentDriver adapter](https://github.com/jpshackelford/voice-relay/issues/288) (`priority:high`)
+- Scope: `scope:server-only` (issue body confines work to `server/src/agent-driver/`)
+- Conversation: [`114d989`](https://app.all-hands.dev/conversations/114d98990def40c3bf2e586f491c6ad0)
+- Rationale: #288 was blocked by #287 — #287 just landed via PR #307 (0a12358), so #288 is now the cleanest unblocked Phase 2 step. Doing it now keeps the AgentDriver rollout moving while PRs #306 / #308 wait on human relabel decisions. #288 is `server/`-only and orthogonal to those stuck PRs.
+
+**Decision rationale (other candidates not picked):**
+- #286 (`scope:full-stack`, WebSocket keepalive): plausible next, but #288 is the strictly-narrower follow-up to a freshly-merged dependency (#287) — lower coordination risk.
+- #289 (Route platform callers): logically blocked by #288 (you need the adapter before you can route callers through it).
+- #290 / #291 / #293 / #296: independent `priority:high` items that can pick up after #288 lands.
+- #284's PR (#306) is stuck on scope-halt, so the issue can't close without human action — not eligible to re-implement.
+
+**Stuck PRs Deferred (no new action this tick):**
+- PR #308 — needs human to relabel to `scope:full-stack` (or to amend Scope Contract to admit `tests/**` under `scope:ci-only`). Recommend relabel: it's a one-file test-only change unblocking production deploys.
+- PR #306 — needs human relabel to `scope:full-stack`.
+- PR #221 — long-standing `needs-human` draft.
+
+`quiet_ticks` reset to 0 (productive tick: 1 implementation worker spawned, 2 prior workers reconciled to completed).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Orchestrator._
+
+---

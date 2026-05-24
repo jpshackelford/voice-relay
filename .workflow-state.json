@@ -4,25 +4,19 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "754c436",
-        "issue": 304,
-        "started": "2026-05-24T02:36:23.346389+00:00"
+        "conv_id": "114d989",
+        "issue": 288,
+        "started": "2026-05-24T03:05:13.554708+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "4ad5fd3",
-        "pr": 307,
-        "started": "2026-05-24T02:36:23.346389+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T02:36:23.346389+00:00",
+  "last_updated": "2026-05-24T03:05:13.554708+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -104,6 +98,24 @@
       "finished": "2026-05-24T02:36:23.346389+00:00",
       "status": "success",
       "outcome": "Created PR #307 (feat(server): define AgentDriver interface and FakeDriver, closes #287); ready-for-review, all CI green, MERGEABLE, 1 bot review thread unresolved"
+    },
+    {
+      "conv_id": "754c436",
+      "type": "implementation",
+      "issue": 304,
+      "started": "2026-05-24T02:36:23.346389+00:00",
+      "finished": "2026-05-24T03:05:13.554708+00:00",
+      "status": "success",
+      "outcome": "Created PR #308 (fix(tests): accept GitHub App install URL in /auth/github smoke redirect, closes #304); halted at merge by scope contract (scope:ci-only diff escaped into tests/smoke/), `needs-human` label applied; awaiting relabel decision"
+    },
+    {
+      "conv_id": "4ad5fd3",
+      "type": "review",
+      "pr": 307,
+      "started": "2026-05-24T02:36:23.346389+00:00",
+      "finished": "2026-05-24T03:05:13.554708+00:00",
+      "status": "success",
+      "outcome": "Addressed bot review thread on PR #307 (utteranceMemo doc clarification); commit a640a57; CI green; PR subsequently merged (0a12358) by merge worker; issue #287 auto-closed"
     }
   ],
   "quiet_ticks": 0
