@@ -302,6 +302,42 @@ export class OpenHandsAgentDriver implements AgentDriver {
     state.pending.length = 0;
   }
 
+  /**
+   * Lazily bind an `AISessionManager` session for this driver session,
+   * managing `state.startingSince` and translating thrown errors into a
+   * terminal `AgentEvent`. Extracted from `runTurn` so the hot path stays
+   * a flat sequence of `bind → send → drain queue`.
+   *
+   * Returns `{ kind: 'ok' }` on success or `{ kind: 'error', event }` on
+   * failure; the caller is responsible for memoizing/yielding the event.
+   */
+  private async lazyBindSession(
+    sessionId: string,
+    state: DriverSessionState,
+  ): Promise<{ kind: 'ok' } | { kind: 'error'; event: AgentEvent }> {
+    state.startingSince = nowIso();
+    try {
+      await this.mgr.getOrCreateForSession(
+        sessionId,
+        state.opts.workspaceId,
+        () => {
+          // Messages flow via the event-callback path; nothing to do here.
+        },
+        {
+          displayLines: state.opts.displayLines,
+          apiKey: state.opts.apiKey,
+          displayApiSecret: state.opts.displayApiSecret,
+        },
+      );
+      return { kind: 'ok' };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { kind: 'error', event: { kind: 'error', message, recoverable: false } };
+    } finally {
+      state.startingSince = null;
+    }
+  }
+
   private async *runTurn(
     sessionId: string,
     utteranceId: string,
@@ -354,30 +390,12 @@ export class OpenHandsAgentDriver implements AgentDriver {
     try {
       // Lazy bind. `getOrCreateForSession` returns the existing AI session
       // when one is already running, so this is cheap on the hot path.
-      const hadBinding = this.mgr.getSessionAI(sessionId) !== undefined;
-      if (!hadBinding) {
-        state.startingSince = nowIso();
-        try {
-          await this.mgr.getOrCreateForSession(
-            sessionId,
-            state.opts.workspaceId,
-            () => {
-              // Messages flow via the event-callback path.
-            },
-            {
-              displayLines: state.opts.displayLines,
-              apiKey: state.opts.apiKey,
-              displayApiSecret: state.opts.displayApiSecret,
-            },
-          );
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          const errEvent: AgentEvent = { kind: 'error', message, recoverable: false };
-          this.memoize(state, utteranceId, errEvent);
-          yield errEvent;
+      if (this.mgr.getSessionAI(sessionId) === undefined) {
+        const bind = await this.lazyBindSession(sessionId, state);
+        if (bind.kind === 'error') {
+          this.memoize(state, utteranceId, bind.event);
+          yield bind.event;
           return;
-        } finally {
-          state.startingSince = null;
         }
       }
 
