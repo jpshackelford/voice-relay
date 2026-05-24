@@ -11,9 +11,10 @@
     ],
     "review": [
       {
-        "conv_id": "e785075",
+        "conv_id": "a9691fe",
         "pr": 319,
-        "started": "2026-05-24T17:51:46.996153+00:00"
+        "started": "2026-05-24T18:06:33.062961+00:00",
+        "worker_type": "merge"
       }
     ]
   },
@@ -22,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T17:51:46.996153+00:00",
+  "last_updated": "2026-05-24T18:06:33.062961+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -266,6 +267,15 @@
       "finished": "2026-05-24T17:40:25.000243+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #316"
+    },
+    {
+      "conv_id": "e785075",
+      "type": "review",
+      "pr": 319,
+      "started": "2026-05-24T17:51:46.996153+00:00",
+      "finished": "2026-05-24T18:06:33.062961+00:00",
+      "status": "success",
+      "outcome": "Addressed all 6 github-actions bot review threads on PR #319 in commit fd9c527 (Error handling subsections for restore/snapshot, Security blast radius row, sharpened freeze-lift criteria, decision-criteria block for sandbox-to-VR auth); all threads resolved; CI green; PR ready-for-review and MERGEABLE/CLEAN"
     }
   ],
   "quiet_ticks": 0
