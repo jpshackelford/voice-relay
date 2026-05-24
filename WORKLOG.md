@@ -1326,3 +1326,22 @@ All-files aggregate post-merge: **94.42 stmts / 89.64 branch / 96.72 funcs / 96.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 17:38 UTC - Merge Worker (PR #318)
+
+✅ **Merged** [PR #318](https://github.com/jpshackelford/voice-relay/pull/318) — `docs: correct DEPLOYMENT.md multi-DNS reality, drop false 'legacy' framing`
+
+| Field | Value |
+|---|---|
+| Merge commit | `c4c4c4c` |
+| Strategy | squash |
+| Scope | `docs/DEPLOYMENT.md` only (43 +, 13 −) |
+| CI | 7/7 SUCCESS (Server/Client/E2E/Build/lint-pr-title/enable-orchestrator/pr-review) |
+| Review | 1 bot review (`github-actions`, COMMENTED, "🟢 Good taste"); no unresolved threads |
+| Production | No redeploy — path-ignored by `deploy.yml` (`paths-ignore: ['*.md', 'docs/**']`) |
+
+Fixes the false "legacy chorecraft.net vs. new app.no-hands.dev" framing in `docs/DEPLOYMENT.md`. Replaces it with the SSH-verified reality: a single Ubuntu box, one Node process on `127.0.0.1:3002`, served by Apache vhosts for both `app.no-hands.dev` (preferred) and `vr.chorecraft.net` (alias), with the apex `no-hands.dev` doing a permanent redirect to `app.no-hands.dev`. Adds a vhost-pair table and clarifies which adjacent things on the same server are **not** the VR app (`chorecraft.net` apex static site; `ja.chorecraft.net` on `:3000`).
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
