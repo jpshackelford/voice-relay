@@ -9,7 +9,7 @@
 >
 > A newly-discovered bug not in this original symptom list — **`session_api_key` is sandbox-scoped and rotates on every resume** — is now tracked as a separate fix; the cached key in `AISessionManager` becomes stale after the first OH-side idle pause. This likely contributes to symptom #4 (zombie sessions).
 >
-> The phased implementation plan based on the updated picture is in [`proposals/ISSUE_DRAFTS.md`](./proposals/ISSUE_DRAFTS.md). The architectural target is in [`architecture.md`](./architecture.md).
+> The phased implementation plan based on the updated picture is in [`ISSUE_DRAFTS.md`](./ISSUE_DRAFTS.md). The architectural target is in [`architecture.md`](./architecture.md).
 
 > _This doc was drafted by an AI agent (OpenHands) on behalf of @jpshackelford in response to bug reports about the kiosk connection indicator and AI assistant state going stale. See [Symptoms](#symptoms) for the user-observed behavior that motivated it._
 

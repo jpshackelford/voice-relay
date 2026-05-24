@@ -1,8 +1,6 @@
 # Voice Relay — Future-State Architecture
 
 > Status: **design reference**. Describes the target architecture for Voice Relay's AI session, persistence, and state machine layers. Phased implementation is tracked as GitHub issues; this doc is the picture they're collectively converging on. Read in conjunction with [`openhands-platform.md`](./openhands-platform.md), which is the verified reference on what OpenHands actually does.
->
-> The earlier speculative design drafts that motivated this rewrite are preserved under [`docs/proposals/`](./proposals/) for lineage. They got the direction right but the specifics wrong; this doc replaces them.
 
 ## Goals
 
