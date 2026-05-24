@@ -783,3 +783,25 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 20:40 UTC - Implementation Worker (Issue #292)
+
+✅ Issue #292 — Single-flight conversation start (Phase 3, priority:medium) — implementation complete and pushed for review.
+
+**Summary:**
+- Added a per-`sessionId` `Map<string, Promise<BindResult>>` to `OpenHandsAgentDriver` (`server/src/agent-driver/openhands.ts`) that coalesces concurrent conversation-start callers onto a single shared promise.
+- All three driver entry points (`openSession`, `sendMessage` lazy-bind, `restartSession`) now flow through the same `lazyBindSession` helper, so cross-method races also coalesce.
+- Promise self-deletes on settle (`.finally`); failed starts do not poison the slot — next caller retries. Pattern mirrors the `AISessionManager.inFlightRefresh` single-flight from #291.
+
+**Tests:** Added 11 new T-3.3.* unit tests in `server/src/agent-driver/openhands.test.ts` covering 5-way concurrency, shared rejection fan-out, slot-clearing on failure, `restartSession`/`sendMessage` race, distinct-session isolation, and serial-path no-op. All 60 driver tests + 1008 server tests pass. Coverage on `openhands.ts` lands at **93.16%** (>80% bar).
+
+**Verification gates:**
+- `tsc --noEmit -p server/tsconfig.json` → exit 0
+- `tsc --noEmit -p client/tsconfig.json` → exit 0
+- All 5 CI checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title)
+- `pr-review` bot already ran on the draft and re-triggered on `ready_for_review`.
+
+**PR:** [#325 — fix(server): single-flight conversation start to prevent orphaned upstream conversations](https://github.com/jpshackelford/voice-relay/pull/325) (Fixes #292) — flipped to **ready for review**, labels: `review-this`.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
