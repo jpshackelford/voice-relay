@@ -78,3 +78,45 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 00:50 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Expansion Worker** for Issue [#282](https://github.com/jpshackelford/voice-relay/issues/282) — *Auth flow doesn't surface GitHub App installation step*
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8acbbb2` | expansion | Issue #282 — GitHub App install flow | **NEW** running |
+
+**Spawned:** [`8acbbb2`](https://app.all-hands.dev/conversations/8acbbb26a221456b925aff282b2bbbd6) — `execution_status=running`, `sandbox_status=RUNNING`, plugin `voice-relay-workflow@main`. Start-task `4facf7b799e24a42a285b6946427c049` reached `READY` in 2 polls (~5s).
+
+**Current State (gathered via `gh` + OH API):**
+- Open PRs (2, both deferred):
+  - [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — draft, `on-hold` (human-owned, "session state analysis…").
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (stuck, ~5d stale).
+- Open issues:
+  - **#282 (NEW)** — *no labels*, well-formed `Problem` + `Proposed solution` sections; body explicitly defers `Implementation details to follow in a comment`. → handed to expansion worker.
+  - #208 `ci-failure, on-hold` — skipped.
+  - #210 `enhancement, on-hold` — skipped.
+  - #239 `bug, ci-failure, on-hold` — skipped.
+- Ready issues: **none** (#282 expansion in flight; everything else `on-hold`).
+- `.workflow-state.json`: expansion **1/4**, impl 0/1, review 0/2. `completed[]`: 3 entries from #280 cycle (all <24h).
+
+**Decision rationale:**
+- Previous orchestrator run (00:34 UTC) logged "All quiet" — but issue #282 was opened at `2026-05-24T00:34:31Z`, i.e. in the *same* minute. The prior `gh issue list` raced against the create and missed it. This run catches it, so the "All quiet" streak is broken at 1 — auto-disable threshold (≥2 consecutive quiets) not reached. (Automation is already `enabled: false` and remains so — manual /orchestrate only.)
+- **Expansion slot:** 0/4 used, 1 unlabeled issue available → spawn 1 worker. Slot fill: 0/4 → 1/4.
+- **Implementation slot:** 0/1 used but no `ready` issue → idle.
+- **Review slots:** 0/2 used; both open PRs are `on-hold`/`needs-human` (stuck-PR rule applies — defer, don't spawn). → idle.
+
+**Worker prompt highlights** (full text in spawned conversation):
+1. Ground-truth the proposal in code: `server/src/auth/github-oauth.ts`, the `/auth/github/callback` route handler, `AuthConfig`, and the `users` table model — confirm whether `installation_id` column exists or needs an additive SQLite-safe migration.
+2. Verify GitHub App user-to-server token exchange specifics (callback may receive `installation_id` + `setup_action=install` for new installs, or just `code` for returning users — handler must tolerate either).
+3. Post an **Implementation Plan** comment covering: Technical Approach, Files to modify, Database migration (production = SQLite at `vr.chorecraft.net`), Tests (unit URL-builder + integration callback w/wo `installation_id`), Open questions, Acceptance criteria.
+4. Add `ready` label, update WORKLOG.md on main, exit.
+5. If proposal turns out to be flawed (e.g. would break returning-user flow) → comment + `needs-info`; do NOT add `ready`.
+
+**Production guardrails reminded in prompt:** auto-deploys to `vr.chorecraft.net` on merge; SQLite migrations must be additive/backward-compatible.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
