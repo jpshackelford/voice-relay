@@ -145,6 +145,8 @@ function reducer(s: AIReducerState, a: Action): AIReducerState {
         conversationId: a.conversationId,
         error: a.error,
         thinkingSince: nextThinking ? s.thinkingSince : null,
+        // Preserve original startingSince across repeated `connecting` messages
+        // (e.g., reconnect attempts) so UI timers don't reset mid-reconnect.
         startingSince: a.connecting ? (s.startingSince ?? new Date().toISOString()) : null,
       };
       return next;
