@@ -11,14 +11,10 @@
     ],
     "review": [
       {
-        "conv_id": "09f641b",
-        "started": "2026-05-24T04:21:44.716931+00:00",
-        "pr": 311
-      },
-      {
-        "conv_id": "df9edbf",
-        "started": "2026-05-24T04:21:44.716931+00:00",
-        "pr": 313
+        "conv_id": "db3cb9f",
+        "started": "2026-05-24T04:34:52.040061+00:00",
+        "pr": 313,
+        "type": "merge"
       }
     ]
   },
@@ -27,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T04:21:44.716931+00:00",
+  "last_updated": "2026-05-24T04:34:52.040061+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -190,6 +186,24 @@
       "finished": "2026-05-24T04:21:44.716931+00:00",
       "status": "success",
       "outcome": "Worked on PR #311 (openHandsAgentDriver) \u2014 still has 2 unresolved bot threads, ready-for-review; status verified finished by orchestrator API query"
+    },
+    {
+      "conv_id": "09f641b",
+      "type": "review",
+      "started": "2026-05-24T04:21:44.716931+00:00",
+      "finished": "2026-05-24T04:33:55.213458+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #311 (openHandsAgentDriver) \u2014 all 4 review threads now resolved; CI green except pr-review bot still pending",
+      "pr": 311
+    },
+    {
+      "conv_id": "df9edbf",
+      "type": "review",
+      "started": "2026-05-24T04:21:44.716931+00:00",
+      "finished": "2026-05-24T04:33:55.213458+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #313 (AWS credentials) \u2014 all 3 review threads now resolved; CI green; pr-review bot passed; PR ready to merge",
+      "pr": 313
     }
   ],
   "quiet_ticks": 0
