@@ -2,6 +2,31 @@
 
 ## Log
 
+### 2026-05-24 04:08 UTC - Review-feedback Worker (PR #311 round 1)
+
+✅ **Addressed both bot review threads on PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — OpenHandsAgentDriver adapter (#288)**
+
+- PR: [#311](https://github.com/jpshackelford/voice-relay/pull/311) — `feat(server): openHandsAgentDriver adapter wrapping aiSessionManager`
+- Scope: `scope:server-only`. All changes confined to `server/src/agent-driver/`.
+- Threads resolved (2/2):
+
+  1. **Bound `utteranceMemo` growth in Phase 3+** (`PRRT_kwDOSTUWGM6EWgxC`) → addressed in `24c4024`.
+     - New `UTTERANCE_MEMO_LIMIT = 256` constant.
+     - Centralized memo writes through `memoize(state, utteranceId, event)` helper. FIFO eviction by Map insertion order when at cap; re-inserting an existing key refreshes its position so retries stay "warm".
+     - Evicted utterances re-route through `sendSessionMessage` (matches AISessionManager's existing behaviour for unknown utterances).
+     - New test `T-2.2.11b`: drive 260 utterances, verify u0 evicted → u200 still replays → u259 replays.
+
+  2. **Document Phase 3+ singleton lifecycle** (`PRRT_kwDOSTUWGM6EWgxD`) → addressed in `4de3f17`.
+     - Expanded JSDoc on `server/src/agent-driver/index.ts` with "Singleton lifecycle (Phase 2)" section (why module-eager is correct today) and "Phase 3+ evolution" section (multiple instances → factory, graceful shutdown → `dispose()`, test substitution → `getAgentDriver()` accessor).
+     - No behaviour change.
+
+- CI: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all green.
+- Tests: server full suite 930 / 930 pass (was 929; +1 for `T-2.2.11b`).
+- Cross-issue impact: posted a heads-up [comment on #289](https://github.com/jpshackelford/voice-relay/issues/289#issuecomment-4527341032) — the consumer migration there needs to know the memo is FIFO-bounded (not LRU) and that the singleton's callback hooks **replace** rather than compose, so the platform's existing `setX(...)` registrations in `server/src/index.ts` will be clobbered the moment any caller imports `./agent-driver`. The Phase 3+ JSDoc lists the prerequisite refactors.
+- PR is back to **ready for review** (was draft during the round).
+
+---
+
 ### 2026-05-24 04:05 UTC - Implementation Worker (Issue #298 → PR #313)
 
 ✅ **Opened PR [#313](https://github.com/jpshackelford/voice-relay/pull/313) — feat(server): provision AWS workspace credentials as OH user secrets (closes #298)**
