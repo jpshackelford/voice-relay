@@ -536,3 +536,24 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 19:38 UTC - Implementation worker (#291)
+
+✅ Implemented #291 — Re-fetch `session_api_key` on every OpenHands reconnect. PR **#323** (ready for review).
+
+**Branch:** `fix/291-refresh-session-api-key-on-reconnect` → main
+**Link:** https://github.com/jpshackelford/voice-relay/pull/323
+
+**What landed:**
+
+- New `SandboxMissingError` + `AISessionManager.refreshSessionCredentials()` in `server/src/openhands.ts`. Re-reads conversation before each WS reconnect, refreshes both `session_api_key` and `agent_server_url`, single-flights concurrent refreshes, retries transient 5xx with backoff, and surfaces MISSING / exhausted retries as `SandboxMissingError`.
+- New `keyRotationCount` metric + info-level log on detected rotations so production can confirm the fix is actually firing.
+- `AISession.degraded` / `degradedReason` set when the reconnect loop gives up; `OpenHandsAgentDriver.synthesizeStatus` now surfaces `state: 'degraded'` with the user-facing error populated. The MISSING-rebind path stays out of scope (lands in #296).
+- 13 new unit tests in `openhands.test.ts` (T-3.2.1 .. T-3.2.12) and 3 new tests in `agent-driver/openhands.test.ts` for the `degraded` transition. 986/986 server tests pass; coverage 93.79 % overall, 90.45 % on `agent-driver/openhands.ts`.
+
+**CI:** all checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator). `pr-review` will fire now that the PR is out of draft.
+
+**Followups / out of scope:** the live "leave a real OH session idle for >20 min, then send a message" privileged probe (T-3.2.I.1) is the manual acceptance step before this can be considered shipped end-to-end — the unit-test surface fully covers the refresh / degraded paths but cannot exercise the actual paused-sandbox resume.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
