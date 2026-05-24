@@ -102,21 +102,40 @@ describe('driver-substitution proof (issue #289 / T-2.3.F.*)', () => {
       displayApiSecret: 'secret-1',
     }));
 
-    // Two broadcasts: connecting → connected.
+    // Two legacy `session-ai-status` broadcasts: connecting → connected.
+    // The unified `session-state` emission (issue #295) is interleaved
+    // alongside each — filter to legacy here, assert session-state below.
     const broadcasts = (h.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls;
-    expect(broadcasts).toHaveLength(2);
-    expect(broadcasts[0][1]).toMatchObject({
+    const legacy = broadcasts.filter((c) => (c[1] as { type?: string }).type === 'session-ai-status');
+    expect(legacy).toHaveLength(2);
+    expect(legacy[0][1]).toMatchObject({
       type: 'session-ai-status',
       sessionId: 'session-1',
       connecting: true,
       connected: false,
     });
-    expect(broadcasts[1][1]).toMatchObject({
+    expect(legacy[1][1]).toMatchObject({
       type: 'session-ai-status',
       sessionId: 'session-1',
       connecting: false,
       connected: true,
       conversationId: expect.stringMatching(/^fake-conv-/),
+    });
+    // Issue #295 — also emits unified `session-state` messages.
+    const sessionState = broadcasts.filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    expect(sessionState).toHaveLength(2);
+    expect(sessionState[0][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: 'session-1',
+      ai: expect.objectContaining({ state: 'starting' }),
+    });
+    expect(sessionState[1][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: 'session-1',
+      ai: expect.objectContaining({
+        state: 'ready',
+        conversationId: expect.stringMatching(/^fake-conv-/),
+      }),
     });
 
     // conversationId persisted to session metadata.
@@ -230,12 +249,26 @@ describe('driver-substitution proof (issue #289 / T-2.3.F.*)', () => {
     await autoConnectAI('session-1', 'workspace-1', h.deps);
 
     expect(openSpy).not.toHaveBeenCalled();
+    // Filter to legacy `session-ai-status` — issue #295 adds a unified
+    // `session-state` emission alongside each legacy broadcast.
     const broadcasts = (h.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls;
-    expect(broadcasts).toHaveLength(2);
-    expect(broadcasts[1][1]).toMatchObject({
+    const legacy = broadcasts.filter((c) => (c[1] as { type?: string }).type === 'session-ai-status');
+    expect(legacy).toHaveLength(2);
+    expect(legacy[1][1]).toMatchObject({
       connecting: false,
       connected: false,
       error: 'OpenHands API not configured',
+    });
+    // And the unified session-state reflects degraded.
+    const sessionState = broadcasts.filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    expect(sessionState).toHaveLength(2);
+    expect(sessionState[1][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: 'session-1',
+      ai: expect.objectContaining({
+        state: 'degraded',
+        error: 'OpenHands API not configured',
+      }),
     });
   });
 });

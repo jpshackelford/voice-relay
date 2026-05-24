@@ -228,6 +228,7 @@ export type ServerMessage =
   | WorkspaceDeletedMessage
   | AIThinkingMessage
   | SessionAIStatusMessage
+  | SessionStateMessage
   | AgentActionMessage
   | AudioChunkMessage
   | AudioEndMessage
@@ -361,6 +362,46 @@ export interface SessionAIStatusMessage {
   connecting?: boolean;
   conversationId?: string;
   error?: string;
+}
+
+/**
+ * Server → All devices in session: unified `session-state` message
+ * (issue #295). Carries the full `AgentSessionStatus` so the client can
+ * reduce a single, internally-consistent state object instead of
+ * reconstructing it from the parallel `session-ai-status` + `ai-thinking`
+ * pair.
+ *
+ * Emitted alongside the legacy messages for one release of back-compat;
+ * the next release removes the legacy emit path on the server and the
+ * legacy receive path on the client.
+ *
+ * The `ai` payload is intentionally a 1:1 transport of the driver's
+ * `AgentSessionStatus` — no translation, no re-shaping. Future fields
+ * added to that type (like `startupPhase` for #301) are automatically
+ * available on the wire.
+ */
+export interface SessionStateMessage {
+  type: 'session-state';
+  sessionId: string;
+  ai: AgentSessionStatusWire;
+}
+
+/**
+ * Wire representation of `AgentSessionStatus` from the driver. Kept in
+ * sync with `server/src/agent-driver/types.ts#AgentSessionStatus`.
+ *
+ * Declared here (not imported from the driver) because `types.ts` is the
+ * public wire-shape boundary that other modules — including the client's
+ * mirror in `client/src/types.ts` — compare against.
+ */
+export interface AgentSessionStatusWire {
+  sessionId: string;
+  state: 'absent' | 'starting' | 'ready' | 'thinking' | 'reconnecting' | 'degraded';
+  conversationId: string | null;
+  error: string | null;
+  thinkingSince: string | null;
+  startingSince: string | null;
+  startupPhase?: string;
 }
 
 /**

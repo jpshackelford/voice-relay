@@ -32,6 +32,7 @@ import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import { relayAgentResponse } from './agent-message-relay.js';
 import { resyncAgentSessionStatus } from './resync-agent-status.js';
+import { broadcastSessionState } from './session-state-broadcast.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
 import { 
@@ -136,6 +137,24 @@ onAgentThinkingChange((sessionId: string, thinking: boolean) => {
     thinking,
   };
   registry.broadcastMessageToSession(sessionId, message);
+
+  // Unified `session-state` (issue #295). Read the driver's authoritative
+  // snapshot and broadcast the full status so clients on the new shape
+  // get a single coherent state object instead of reconstructing it from
+  // the parallel `ai-thinking` + `session-ai-status` pair. Fire-and-forget:
+  // a status read failure must not abort the thinking broadcast.
+  void (async () => {
+    try {
+      const status = await agentDriver.getSessionStatus(sessionId);
+      if (status.state === 'absent') return;
+      broadcastSessionState(registry, sessionId, status, 'thinking-change');
+    } catch (err) {
+      console.error(
+        `[SessionState] thinking-change getSessionStatus failed for ${sessionId}:`,
+        err,
+      );
+    }
+  })();
 });
 
 // Wire AI action events to broadcast to session devices

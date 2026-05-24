@@ -306,6 +306,11 @@ export function SessionView() {
     onJoinRequestMessage: handleJoinRequestMessage,
     onSessionAIStatusMessage: ai.handleSessionAIStatus,
     onAIThinkingMessage: ai.handleAIThinking,
+    onSessionStateMessage: ai.handleSessionState,
+    // Reset the AI reducer's "have we seen session-state" preference on
+    // every WS open so reconnects don't carry the previous connection's
+    // decision forward (issue #295).
+    onOpen: ai.reset,
     onAgentActionMessage: agentActions.handleAgentAction,
     onAudioChunkMessage: (msg) => audioPlayback.handleAudioChunk(msg as AudioChunkMessage),
     onAudioEndMessage: (msg) => audioPlayback.handleAudioEnd(msg as AudioEndMessage),

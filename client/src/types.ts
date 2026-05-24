@@ -178,6 +178,50 @@ export interface SessionAIStatusMessage {
 }
 
 /**
+ * Lifecycle states for an agent session, mirrored from
+ * `server/src/agent-driver/types.ts#AgentSessionState`.
+ *
+ * Duplicated here (not imported across the workspace boundary) so the
+ * client TS project has no dependency on server internals.
+ */
+export type AgentSessionState =
+  | 'absent'
+  | 'starting'
+  | 'ready'
+  | 'thinking'
+  | 'reconnecting'
+  | 'degraded';
+
+/**
+ * Wire shape of the driver's `AgentSessionStatus`. The reducer in
+ * `useAI` stores this exact shape — see the issue #295 design notes.
+ */
+export interface AgentSessionStatusWire {
+  sessionId: string;
+  state: AgentSessionState;
+  conversationId: string | null;
+  error: string | null;
+  thinkingSince: string | null;
+  startingSince: string | null;
+  startupPhase?: string;
+}
+
+/**
+ * Server → All devices in session: unified session-state message
+ * (issue #295). Carries the full `AgentSessionStatus` from the driver.
+ *
+ * The client prefers this message when it arrives; if it does, the
+ * legacy `session-ai-status` + `ai-thinking` pair is ignored for the
+ * remainder of the connection. On socket open we reset the flag so a
+ * reconnect re-establishes whichever shape the server chooses to emit.
+ */
+export interface SessionStateMessage {
+  type: 'session-state';
+  sessionId: string;
+  ai: AgentSessionStatusWire;
+}
+
+/**
  * Content part in OpenHands observations (text or image).
  * Uses OpenHands field naming conventions for client portability.
  * See: https://github.com/All-Hands-AI/OpenHands/blob/main/frontend/src/types/v1/core/base/common.ts
@@ -380,6 +424,7 @@ export type ServerMessage =
   | AIStatusMessage
   | AIThinkingMessage
   | SessionAIStatusMessage
+  | SessionStateMessage
   | AgentActionMessage
   | JoinRequestMessage
   | JoinResolvedMessage
