@@ -445,3 +445,24 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 19:30 UTC - Review Worker (PR #321 / #290)
+
+✅ **Addressed all review feedback on PR #321 — back to ready-for-review, all CI green, 0 unresolved threads.**
+
+| Thread | File | Decision | Commit |
+|---|---|---|---|
+| `thinkingSince` field unused client-side (github-actions bot) | `client/src/types.ts:161` | Accept option 2 (document as reserved) | [`77fa142`](https://github.com/jpshackelford/voice-relay/commit/77fa142) |
+
+**Rationale for choosing documentation over UI implementation:** Adding an "Agent thinking for 5s…" indicator would have been meaningful client work belonging in a follow-up, not a doc fix. The whole `ai-thinking` + `session-ai-status` wire shape is slated to consolidate into a single `session-state` message under #295, so investing in UI here would have been wasted. The field is plumbed end-to-end now; the JSDoc on `AIThinkingMessage.thinkingSince` is now explicit that it's currently informational, names the future UI it would enable, and references #295 as the supersession plan.
+
+**CI:** Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all pass on `77fa142`.
+
+**Mergeable:** CLEAN, ready-for-review, 0 unresolved review threads.
+
+**Reflection — anything that impacts other issues?** The relationship between `thinkingSince` and #295 was already noted in the original PR description and is now cross-referenced from the JSDoc itself; no additional comment on #295 needed (would be duplicate noise). When #295 ships, the implementer should ensure equivalent thinking-duration metadata survives into the consolidated `session-state` shape so future UI work isn't blocked on re-plumbing.
+
+Next step (separate conversation): orchestrator can pick up PR #321 for merge.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
