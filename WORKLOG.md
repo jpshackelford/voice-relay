@@ -1028,3 +1028,38 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:25 UTC - Implementation Worker (issue #296)
+
+🚀 **Opened PR #328 (ready for review)** — `feat(server): rebind MISSING sandbox preserving conversation_id (#296)`
+
+- PR: https://github.com/jpshackelford/voice-relay/pull/328
+- Branch: `feat/issue-296-rebind-missing-sandbox` (from `main@9f48497`)
+- Scope: `scope:server` — adds the OpenHands MISSING-sandbox rebind primitive on the AgentDriver / `AISessionManager` seam. No DB schema / migrations. No client touched.
+- CI status at marking ready: Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅. All green.
+
+**What it does:**
+- New `OpenHandsClient.rebindConversation(id)` — POSTs `/api/v1/app-conversations { conversation_id }` (no `parent_conversation_id` — fork is *not* the rebind path).
+- New module `server/src/agent-driver/rebind.ts` — pure-function rebind helper with typed errors (`RebindBudgetExhausted`, `RebindForbidden`, `RebindConversationGone`), exponential backoff (1, 2, 4, 8, 16 s) inside a 30 s total budget, and a per-conversation `RebindWindowTracker` capping at 3 rebinds / 5 min.
+- New `AISessionManager.rebindSession(session)` — orchestrates the rebind: window check → HTTP rebind → update in-memory `agentServerUrl` / `sessionApiKey` → reset `reconnectAttempts` → clear `degraded`/`rebinding` → dial new WS. On failure: `degraded` with user-facing reason matching the issue spec.
+- `reconnectWithRefresh()` now routes `SandboxMissingError` through `rebindSession` instead of immediately degrading.
+- New `AISession.rebinding` flag wired through the driver's `synthesizeStatus` so `rebinding === true` maps to `reconnecting` (precedes `degraded`).
+
+**Tests added:**
+- 21 unit tests in `agent-driver/rebind.test.ts` — backoff sequence (1,2,4,8s before 5th attempt), budget exhaustion = exactly 5 attempts, 4xx fast-fail (403/404/other), malformed-response → transient retry, per-conversation rolling-window tracker.
+- 13 integration tests in `openhands.test.ts` — full reconnect+rebind path, window cap (4th attempt short-circuits without HTTP call), degraded transitions for each failure mode, `conversationId` preservation, in-flight `rebinding` flag contract.
+- 3 driver-level tests in `agent-driver/openhands.test.ts` — `rebinding → reconnecting` precedence over `degraded` / `isThinking` / stale-open ws.
+- Coverage: new `rebind.ts` at 95% lines / 100% functions; aggregate server coverage unchanged at ~94% lines.
+
+**Out of scope (intentionally):**
+- Memory replay — that's #297. A `TODO(#297)` was left in the test file marking where the post-rebind context-rehydration assertion should land. Follow-up note posted on #297.
+- Workspace persistence (#5.x) — untouched.
+- Webhook-driven MISSING detection — webhooks are receiver-only, we observe via REST + WS close (same as before).
+
+**Production safety:** Server-only, no schema migrations, no client changes. The new rebind path is *additive* — it only kicks in on `SandboxMissingError`, which previously degraded immediately. Worst-case regression is the prior behavior (degrade) instead of the new (rebind, then degrade if rebind fails). Safe to auto-deploy to vr.chorecraft.net.
+
+**Issue resolution:** PR uses `Closes #296` — will auto-close on merge.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
