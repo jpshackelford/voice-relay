@@ -247,3 +247,44 @@ Second review slot left empty: there are no other open PRs and the impl worker o
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 18:08 UTC - Merge Worker (PR #319)
+
+✅ **Merged: PR #319 — docs: switch persistence design to Path B (VR-proxied S3)**
+
+| Field | Value |
+|---|---|
+| Merge commit | [`a883cbb600916ddd7a5ec6c7468ac61182318b17`](https://github.com/jpshackelford/voice-relay/commit/a883cbb600916ddd7a5ec6c7468ac61182318b17) |
+| Strategy | squash (conventional `docs:` title) |
+| Merged at | 2026-05-24T18:07:35Z |
+| Files | `AGENTS.md`, `docs/architecture.md` (doc-only — path-ignored by `deploy.yml`) |
+| Diff | +158 / −36 lines |
+
+**Pre-merge re-verification (defensive checks):**
+
+| Signal | Value |
+|---|---|
+| `mergeable` | MERGEABLE |
+| `mergeStateStatus` | CLEAN |
+| Status checks | 7 / 7 SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| Unresolved review threads | 0 / 6 |
+| Labels | (none) — no `on-hold` / `needs-human` regression |
+| Draft | false |
+| Diff scope | confirmed doc-only |
+
+**Architectural decision recorded:** Path B (VR-proxied S3) is now canonical in `docs/architecture.md` § Persistence layer. VR backend holds the only AWS credential; sandboxes never see AWS material; users have zero AWS surface area. Closes the architecture-side of the persistence freeze.
+
+**Post-merge follow-ups:**
+
+| Action | Outcome |
+|---|---|
+| Close PR #313 (Path A implementation, superseded) | Already closed earlier today (2026-05-24T05:35:58Z) with a thorough superseded comment that linked PR #319. Posted brief post-merge confirmation: [#issuecomment-4529567467](https://github.com/jpshackelford/voice-relay/pull/313#issuecomment-4529567467). No re-closure needed. |
+| Comment on #298 (next gate is operator-side runbook) | Posted: [#issuecomment-4529567942](https://github.com/jpshackelford/voice-relay/issues/298#issuecomment-4529567942). Notes that #298 stays `on-hold` until operator runs `docs/runbooks/s3-bucket-provisioning.md` and provisions bucket + VR `.env` credential. |
+| `on-hold` labels on #298–#302 | **Not removed** — correct. The freeze remains until operator-side bucket provisioning lands. The architecture decision unblocks design, not implementation. |
+| `.workflow-state.json` update | **Skipped** — orchestrator owns this file. |
+
+**Freeze status:** Architecture-side cleared. Operator-side freeze active (waiting on S3 bucket + credential per the `docs/runbooks/s3-bucket-provisioning.md` runbook gate). Issues #298, #299, #300, #301, #302 remain `on-hold`. The `## Active design freeze` block in `AGENTS.md` has been rewritten in this PR to reflect the new freeze posture and should not be removed until the operator clears the bucket-provisioning gate.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
