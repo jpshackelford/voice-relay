@@ -133,23 +133,42 @@ Voice Relay uses GitHub OAuth for authentication. All users must sign in to acce
 # Required
 GITHUB_CLIENT_ID=your-github-client-id
 GITHUB_CLIENT_SECRET=your-github-client-secret
+GITHUB_APP_SLUG=your-github-app-slug   # e.g. `no-hands-agent-screencast`
 JWT_SECRET=your-secure-random-secret
-BASE_URL=https://your-domain.com  # For OAuth callbacks
+BASE_URL=https://your-domain.com       # For OAuth callbacks
 
 # Optional
-JWT_EXPIRES_IN=7d                 # Token expiration (default: 7d)
+JWT_EXPIRES_IN=7d                      # Token expiration (default: 7d)
 ```
 
-### Setup GitHub OAuth App
+### Setup GitHub App
 
-1. Go to https://github.com/settings/developers
-2. Click **OAuth Apps** → **New OAuth App**
-3. Fill in:
-   - **Application name:** Voice Relay
+Voice Relay authenticates users via a **GitHub App** (not a classic OAuth App)
+with "Request user authorization (OAuth) during installation" enabled. This
+runs install + identify in a single flow: one click takes a new user through
+install → identify → cookie set → redirect back.
+
+1. Go to https://github.com/settings/apps/new
+2. Fill in:
+   - **GitHub App name:** Voice Relay (or any unique name)
    - **Homepage URL:** `https://your-domain.com`
-   - **Authorization callback URL:** `https://your-domain.com/auth/github/callback`
-4. Copy Client ID and generate Client Secret
-5. Add credentials to your environment
+   - **Callback URL** (under "Identifying and authorizing users"):
+     `https://your-domain.com/auth/github/callback`
+   - ✅ Check **"Request user authorization (OAuth) during installation"**.
+     This is what makes one click do both install and sign-in.
+3. Disable webhooks (not needed for auth).
+4. Permissions: leave at the defaults (no extra repository or org permissions
+   required for sign-in).
+5. Create the App, then:
+   - Copy the **Client ID** → `GITHUB_CLIENT_ID`
+   - **Generate a new client secret** → `GITHUB_CLIENT_SECRET`
+   - The slug at the end of the App URL (e.g. `https://github.com/apps/<slug>`)
+     → `GITHUB_APP_SLUG`
+
+Note: `GITHUB_APP_SLUG` is the URL slug, not the numeric App ID. The slug is
+what GitHub uses in the install URL
+(`https://github.com/apps/<slug>/installations/new`) that Voice Relay redirects
+users to.
 
 ### Migration Guide
 
