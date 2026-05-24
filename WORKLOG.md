@@ -356,3 +356,44 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 **Slots after tick:** expansion 0/4, implementation 1/1, review 0/2
 
 ---
+### 2026-05-24 19:00 UTC - Implementation Worker (Issue #290)
+
+✅ **#290 resync-on-register implemented — [PR #321](https://github.com/jpshackelford/voice-relay/pull/321) (ready for review)**
+
+Built on top of [PR #320](https://github.com/jpshackelford/voice-relay/pull/320) (AgentDriver platform refactor, merged at 18:38 UTC). Confirmed `agentDriver.getSessionStatus(sessionId)` was the right seam to hang the catch-up on — exactly what the issue expansion called for.
+
+**What landed:**
+
+| Path | Change |
+|---|---|
+| `server/src/resync-agent-status.ts` (new) | Pure helper module: converts `AgentSessionStatus` → legacy `session-ai-status` + optional `ai-thinking` pair, sends to a single WS. Handles anonymous/absent/error skips. |
+| `server/src/index.ts` | One-line call from the `register` case after `history` and `session-tts-settings-changed`, before auto-connect. |
+| `server/src/types.ts`, `client/src/types.ts` | Added optional `thinkingSince?: string` to `AIThinkingMessage` — backward-compatible. |
+| `server/src/resync-agent-status.test.ts` (new) | 12 unit tests covering T-3.1.1 → T-3.1.10 via `FakeDriver` substitution. |
+
+**Scope:** `scope:full-stack` — touches `client/src/types.ts` to keep the wire-shape interface in sync. Functional change is server-only.
+
+**Test counts:** 982 server tests pass (+12), 723 client tests pass (unchanged). `tsc --noEmit` clean. `npm run build` clean both workspaces.
+
+**CI summary (PR #321):**
+
+| Check | Result |
+|---|---|
+| Server Tests | ✅ 30s |
+| Client Tests | ✅ 31s |
+| Build Client | ✅ 29s |
+| E2E Tests | ✅ 1m31s |
+| lint-pr-title | ✅ 6s |
+
+**Deliberate scope decisions (called out in PR body):**
+
+- **No Playwright E2E spec added.** The default `playwright.config.ts` project excludes `tests/smoke/**`, and the local `webServer` it boots has no `OPENHANDS_API_KEY`. No existing top-level spec exercises the real AI path; the existing AI E2E lives in `tests/smoke/ai-integration.spec.ts` against a real `SMOKE_TEST_URL`. Adding T-3.1-E2E.* to the default suite would either need a test-mode `AgentDriver` injection point or a CI OH credential — both out of scope. Server-side unit tests + `useAI.test.ts` (client) jointly cover the wire shape end-to-end.
+- **T-3.1.8 (ordering integration test) skipped** in favor of structural enforcement: the call site in `index.ts` is bracketed with an inline comment, and unit tests verify the helper's per-call output ordering.
+
+**Followup candidates** (not opened as issues yet — leaving as PR-description notes pending #295):
+- `tests/smoke/ai-resync.spec.ts` for the three T-3.1-E2E cases.
+- Test-mode `AgentDriver` injection hook.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
