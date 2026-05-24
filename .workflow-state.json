@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "564ed2f",
-        "issue": 294,
-        "started": "2026-05-24T21:36:05.446516+00:00"
+        "conv_id": "a1ee5fa",
+        "issue": 303,
+        "started": "2026-05-24T22:05:52.456542+00:00"
       }
     ],
     "review": [
@@ -14,6 +14,11 @@
         "conv_id": "314e231",
         "pr": 328,
         "started": "2026-05-24T21:53:43.417764Z"
+      },
+      {
+        "conv_id": "dad1910",
+        "pr": 329,
+        "started": "2026-05-24T22:05:52.456542+00:00"
       }
     ]
   },
@@ -22,7 +27,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T21:53:43.417764Z",
+  "last_updated": "2026-05-24T22:05:52.456542+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -428,6 +433,15 @@
       "finished": "2026-05-24T21:53:43.417764Z",
       "status": "success",
       "outcome": "Round 1 review: added 'Rebind on a dead conversation' subsection to docs/openhands-platform.md (commit f4990ad); resolved docs reference thread."
+    },
+    {
+      "conv_id": "564ed2f",
+      "type": "implementation",
+      "issue": 294,
+      "started": "2026-05-24T21:36:05.446516+00:00",
+      "finished": "2026-05-24T22:04:29.403685+00:00",
+      "status": "success",
+      "outcome": "Created PR #329 (feat: restart agent endpoint and UI affordance); ready-for-review, all CI green, has 2 bot review threads + 1 bot review comment to address"
     }
   ],
   "quiet_ticks": 0
