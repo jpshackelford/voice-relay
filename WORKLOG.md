@@ -286,3 +286,30 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+## 2026-05-24T01:38Z — Merge Worker: PR #283 merged ✅
+
+**Action:** Squash-merged PR #283 `feat(auth): surface GitHub App install step in /auth/github flow` into `main`.
+
+**Verification gates (all green):**
+- Scope check: `scope:full-stack` label present → `ALLOWED='.*'` → no out-of-scope paths. ✅
+- Migration safety review on `server/src/storage/migrations/014_user_github_installation.ts`:
+  - `up`: `ALTER TABLE users ADD COLUMN github_installation_id INTEGER` — purely additive, nullable, no default, no UPDATE backfill, no DROP. Safe on live `sqlite.db` with existing users. ✅
+  - `down`: `DROP COLUMN` — flagged `destructive: true` (correct).
+- Migrator harness: `npx vitest run src/storage/migrator.test.ts` → 37/37 passing with 014 registered. ✅
+- CI on PR head: Build Client / E2E Tests / Server Tests / enable-orchestrator / lint-pr-title all green; `pr-review` skipped (self-rerun guard). ✅
+- Reviews: github-actions bot left 🟢 "Good taste" COMMENTED review (verdict: ✅ Worth merging; risk 🟡 MEDIUM, well-mitigated). ✅
+- Unresolved threads: 0 (confirmed via GraphQL). ✅
+- Mergeable state: `MERGEABLE` / `CLEAN`. ✅
+
+**Result:**
+- Merge commit: `4cedfe8e32a6e133bff0f02fb5f7ed0115b3d6e5` on `main`.
+- Issue #282 auto-closed via `Fixes #282` (closed at 2026-05-24T01:38:02Z, `state_reason: COMPLETED`). ✅
+- Migration 014 (`users.github_installation_id INTEGER NULL`) now part of production schema; will apply on next server start.
+- Deploy: `Server Operations` and `CI` workflow runs on `main` (run IDs 26348737784, 26348737811) started at 2026-05-24T01:38:03Z, status `in_progress` at the time this entry was written. Not blocked on per merge-worker brief — vr.chorecraft.net auto-deploys downstream.
+
+**No follow-ups required.** Migration is forward-only safe; pre-existing users pick up `NULL` and the next sign-in populates the column organically (documented backfill strategy in #282). No `needs-human` flag applied. No `.workflow-state.json` changes — that's the orchestrator's job.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
