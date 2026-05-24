@@ -629,3 +629,30 @@ Review: 🟢 LOW risk, "Good taste" — bot approved the change itself.
 **Next:** awaiting human decision. Exiting.
 
 ---
+
+## 2026-05-24T02:55Z — PR #307 merged (closes #287)
+
+**PR:** [#307 feat(server): define AgentDriver interface and FakeDriver](https://github.com/jpshackelford/voice-relay/pull/307)
+**Squashed commit:** [`0a12358`](https://github.com/jpshackelford/voice-relay/commit/0a123588b05e1f8e3ee66ca91d1400d50885a2fb)
+**Scope:** `scope:server-only` — HARD GATE passed (all 5 files under `^server/`).
+**Migration check:** N/A — no DB schema, no migration files touched.
+
+**Pre-merge verification:**
+- Scope check: ✅ diff = `server/src/agent-driver/{fake.test.ts,fake.ts,index.ts,types.ts}` + `server/vitest.config.ts` — all under `^server/`.
+- CI: all checks green (Server Tests / Build Client / E2E Tests / lint-pr-title / pr-review).
+- Mergeable: `CLEAN`.
+- Review history: bot left 🟢 LOW risk "Good taste"; one minor doc thread resolved in [`a640a57`](https://github.com/jpshackelford/voice-relay/commit/a640a57).
+- PR description updated to call out discriminated-union `AgentEvent`, idempotency cache, and FakeDriver test coverage (99% lines / 93% branches / 100% funcs).
+
+**Action Taken:**
+1. Squash-merged via `gh pr merge 307 --squash` with conventional-commit subject `feat(server): define AgentDriver interface and FakeDriver (#307)` and body referencing closes #287 / unlocks #288 + #289.
+2. Verified issue [#287](https://github.com/jpshackelford/voice-relay/issues/287) auto-closed (state=CLOSED, reason=COMPLETED).
+3. No further action — production deploy to `vr.chorecraft.net` will pick this up on next deploy cycle; no runtime behavior change expected (new files only, no platform consumer yet).
+
+**Unblocks:**
+- [#288](https://github.com/jpshackelford/voice-relay/issues/288) — `OpenHandsAgentDriver` adapter that wraps existing OpenHands integration as an `AgentDriver`.
+- [#289](https://github.com/jpshackelford/voice-relay/issues/289) — route platform callers through the new seam.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Merge Worker._
+
+---
