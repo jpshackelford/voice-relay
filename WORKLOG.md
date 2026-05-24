@@ -2,6 +2,31 @@
 
 ## Log
 
+### 2026-05-24 03:05 UTC - Implementation Worker (Issue #286 → PR #309)
+
+✅ **Opened PR [#309](https://github.com/jpshackelford/voice-relay/pull/309) — feat(websocket): server-driven keepalive heartbeat (closes #286)**
+
+- Issue: [#286](https://github.com/jpshackelford/voice-relay/issues/286) — Server-driven WebSocket keepalive heartbeat (priority:high, scope:full-stack)
+- Branch: `feat/286-ws-keepalive`
+- Status: **Ready for review** (CI green: Build Client / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator all pass; pr-review will trigger on ready-flip)
+- Blocker #285 (auto-reconnect) is already on main — verified before starting.
+- **Design choice**: WebSocket protocol-level `ws.ping()` (RFC 6455 §5.5) rather than the JSON-level `{type:'ping'}` design floated in the issue's expansion comments. Rationale: orchestrator explicitly directed protocol-level ping/pong; browsers auto-reply with a pong frame at the protocol layer, so zero client code is required to keep the connection alive; less bandwidth; standard idiom in the `ws` README.
+- Files (transport-layer only, no schema / no API surface / no message-contract change):
+  - `server/src/keepalive.ts` (new) — `attachKeepalive(ws, opts)` per-connection helper. Per-WS `isAlive` flag flipped by the `'pong'` event; tick sends `ws.ping()` if alive else `ws.terminate()`. Configurable interval; injectable scheduler so tests can drive the loop without leaning on `vi.useFakeTimers` globally. Idempotent teardown wired to `ws.on('close')`. `unref()` on the timer to keep graceful shutdown clean.
+  - `server/src/index.ts` — attach the keepalive in `wss.on('connection')`; `onTerminate` logs `deviceId`/`workspaceId` for observability.
+  - `server/vitest.config.ts` — include `src/keepalive.ts` under coverage.
+  - `client/src/hooks/useWebSocket.ts` — single comment block documenting that keepalive is purely transport-layer; the existing #285 reconnect path handles the 1006 close that server-side termination produces. No behavioural change.
+- Tests:
+  - `server/src/keepalive.test.ts` (new, 11 tests, **100 % coverage on `keepalive.ts`** lines/branches/funcs/stmts): ping cadence, custom `intervalMs`, dead-peer terminate after a missed pong, healthy survives 10 cycles, cleanup on close, idempotent teardown, throwing `ws.ping()` / `ws.terminate()` are tolerated, injected scheduler, `unref` on timer handle.
+  - `client/src/hooks/useWebSocket.test.ts` — three new tests under `describe('keepalive heartbeat (issue #286)')`: 5-min idle keeps the same WS instance (no proactive close), 3 full heartbeat cycles with zero app traffic don't flip `connected=false`, 1006 close routes into the #285 reconnect path cleanly.
+  - Server full suite: 878 tests pass. Client full suite: 682 tests pass.
+- Static gates: `tsc --noEmit` clean both projects; `npm run build` green both projects; no `: any` / `as any` in changed code.
+- PR title initially `feat(ws): …` — lint-pr-title rejected because `ws` isn't in the allowed scope list (only `client/server/websocket/auth/db/tests/e2e/deps/ci`). Retitled to `feat(websocket): …` and lint passes.
+- **Scope discipline**: did NOT bundle the Playwright E2E spec (`tests/ws-keepalive.spec.ts`) from the issue body — that spec needs real 5-minute waits and would slow every PR. Filed as follow-up [#310](https://github.com/jpshackelford/voice-relay/issues/310) so it can land under a `@slow` tag or nightly job.
+- **Reflection**: all in-scope acceptance criteria from #286 are met. Heartbeat keeps idle WS green, dead clients are terminated within ~50 s (2 × 25 s ticks, well under the 60 s deadline), no schema change, transport-layer only, both sides unit-tested. The reconnect path remains a #285 concern — keepalive deliberately reuses it rather than duplicating logic. Pairing with #285 means the user-visible reconnect window only fires for genuine transport-layer events, exactly as the issue describes.
+
+---
+
 ### 2026-05-24 02:42 UTC - Implementation Worker (Issue #304 → PR #308)
 
 ✅ **Opened PR [#308](https://github.com/jpshackelford/voice-relay/pull/308) — fix(tests): accept GitHub App install URL in /auth/github smoke redirect (closes #304)**
