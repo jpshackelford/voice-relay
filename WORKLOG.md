@@ -1510,3 +1510,56 @@ Final batch of the Phase-0 client-coverage backfill — **closes #303**.
 **Merge state at gate:** MERGEABLE / CLEAN, all CI green, bot review 🟢 Good taste (round 1, no rework), 0 unresolved threads.
 
 ---
+### 2026-05-24 23:05 UTC - Implementation Worker (issue #295)
+
+🚀 **Opened: [PR #331 — unified session-state wire + useAI reducer](https://github.com/jpshackelford/voice-relay/pull/331)**
+
+Closes #295. The new `session-state` WebSocket message carries the
+driver's full `AgentSessionStatus` 1:1 and the client `useAI` hook is
+now a `useReducer` over that shape. Replaced the temporary `degraded`
+heuristic from PR #329 with a direct read of `state === 'degraded'` and
+consumed the `thinkingSince` field from #290.
+
+| Check | Result |
+|---|---|
+| Server tests | 1088 passing (added `session-state-broadcast.test.ts` + T-3.6.S.1..3; updated 4 existing files to filter by message type) |
+| Client tests | 973 passing (added T-3.6.1..12 reducer-matrix tests; fixed pre-existing flaky `ReleaseNotes` regex on the side — it failed on main too) |
+| Client coverage | useAI **100/92.5/100/100**, useWebSocket **97.5/94.9/94.4/98** |
+| Server coverage | 94.04 / 84.86 / 96.65 / 95.06 |
+| All CI checks | ✅ green |
+| Static gate | `grep -nE 'connected: true,|connected: false,|setConnected|setThinking' useAI.ts` → 0 matches |
+
+PR marked ready for review. Review handling is a separate conversation.
+
+Followups: Playwright e2e tests T-3.6-E2E.{1,2,3} (out of scope); legacy
+`session-ai-status` / `ai-thinking` broadcasts can be retired once
+all clients are on the new wire.
+
+---
+EOF && git add WORKLOG.md && git commit -m "docs(worklog): PR #331 opened (issue #295 unified session-state + useAI reducer)" && git push origin main
+### 2026-05-24 23:05 UTC - Implementation Worker (issue #295)
+
+🚀 **Opened: [PR #331 — unified session-state wire + useAI reducer](https://github.com/jpshackelford/voice-relay/pull/331)**
+
+Closes #295. The new `session-state` WebSocket message carries the
+driver's full `AgentSessionStatus` 1:1 and the client `useAI` hook is
+now a `useReducer` over that shape. Replaced the temporary `degraded`
+heuristic from PR #329 with a direct read of `state === 'degraded'` and
+consumed the `thinkingSince` field from #290.
+
+| Check | Result |
+|---|---|
+| Server tests | 1088 passing (added `session-state-broadcast.test.ts` + T-3.6.S.1..3; updated 4 existing files to filter by message type) |
+| Client tests | 973 passing (added T-3.6.1..12 reducer-matrix tests; fixed pre-existing flaky `ReleaseNotes` regex on the side — it failed on main too) |
+| Client coverage | useAI **100/92.5/100/100**, useWebSocket **97.5/94.9/94.4/98** |
+| Server coverage | 94.04 / 84.86 / 96.65 / 95.06 |
+| All CI checks | ✅ green |
+| Static gate | `grep -nE 'connected: true,|connected: false,|setConnected|setThinking' useAI.ts` → 0 matches |
+
+PR marked ready for review. Review handling is a separate conversation.
+
+Followups: Playwright e2e tests T-3.6-E2E.{1,2,3} (out of scope); legacy
+`session-ai-status` / `ai-thinking` broadcasts can be retired once
+all clients are on the new wire.
+
+---
