@@ -2,6 +2,32 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
+// Reconnect tuning. Matches the values agreed in issue #285.
+//   base   = 250 ms grows as 250 * 2^attempts capped at 30 000 ms
+//   jitter = 0.75 + 0.5 * random()  → multiplier in [0.75, 1.25)
+// The cap keeps worst-case end-to-end recovery under ~30 s per the
+// acceptance criteria, while jitter avoids thundering-herd reconnects
+// when many kiosks come back at once after a proxy blip.
+const RECONNECT_BASE_MS = 250;
+const RECONNECT_MAX_MS = 30_000;
+const JITTER_MIN = 0.75;
+const JITTER_SPREAD = 0.5;
+
+/**
+ * Compute the delay (ms) before the next reconnect attempt.
+ * Exponential backoff with multiplicative jitter, capped at RECONNECT_MAX_MS.
+ *
+ * @param attempts - Number of consecutive failed attempts so far (0-based).
+ *                   Pass 0 for the first reconnect after a close.
+ * @returns Delay in milliseconds, in the range
+ *          [base * jitterMin, RECONNECT_MAX_MS * (jitterMin + jitterSpread)).
+ */
+export function computeReconnectDelay(attempts: number): number {
+  const exp = Math.min(RECONNECT_BASE_MS * Math.pow(2, attempts), RECONNECT_MAX_MS);
+  const jitter = JITTER_MIN + JITTER_SPREAD * Math.random();
+  return exp * jitter;
+}
+
 interface UseWebSocketOptions {
   deviceId: string;
   displayName: string;
@@ -57,6 +83,18 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
   const lastKnownDevicesRef = useRef<DeviceInfo[]>([]);
 
+  // Auto-reconnect state (issue #285).
+  //   reconnectAttemptsRef – consecutive failed attempts; resets only on
+  //     receipt of the server's `registered` message, since an open socket
+  //     that never registers is not a usable connection.
+  //   reconnectTimerRef    – handle for the pending setTimeout, if any.
+  //   intentionallyClosedRef – set to true on deliberate teardowns
+  //     (hook cleanup, device-removed, workspace-deleted, app-layer close
+  //     codes 4xxx). The onclose handler skips scheduling when set.
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intentionallyClosedRef = useRef(false);
+
   // Keep refs up to date
   onTextMessageRef.current = onTextMessage;
   onHistoryMessageRef.current = onHistoryMessage;
@@ -75,157 +113,219 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onTranscriptionResultMessageRef.current = onTranscriptionResultMessage;
   onTranscriptionErrorMessageRef.current = onTranscriptionErrorMessage;
 
-  // Connect WebSocket (only depends on deviceId)
+  // Connect WebSocket with auto-reconnect on transient close (issue #285).
+  //
+  // The connect routine is factored out of useEffect so the same code path
+  // runs for the initial connection and for every reconnect attempt
+  // scheduled from onclose. setTimeout is used to schedule the next attempt
+  // (rather than re-creating the socket synchronously in the close handler)
+  // so the close-handler stack unwinds first.
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    console.log('[WS] Connecting to', wsUrl);
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    registeredRef.current = false;
-    
-    // Preserve last known devices during reconnection to prevent UI flicker.
-    // This is critical for kiosk mode where mobileDevices.length > 0 controls
-    // the display state between mini QR and full-screen QR.
-    // We restore devices immediately and let the server update them once connected.
-    if (lastKnownDevicesRef.current.length > 0) {
-      console.log('[WS] Preserving', lastKnownDevicesRef.current.length, 'devices during reconnection');
-      setDevices(lastKnownDevicesRef.current);
-    }
+    // Effect-scoped guard: prevents a stale timer or in-flight onclose from
+    // touching a socket that belongs to a previous effect run.
+    let cancelled = false;
+    // Reset deliberate-close flag at the start of each effect run. The
+    // cleanup function below sets it back to true when this run unwinds.
+    intentionallyClosedRef.current = false;
+    // New connection attempt → reset the attempt counter so the first
+    // reconnect after a fresh mount uses the base delay.
+    reconnectAttemptsRef.current = 0;
 
-    ws.onopen = () => {
-      console.log('[WS] Connected');
-      setConnected(true);
-      
-      // Register this device with current mode, workspace, session, and screen dimensions
-      const registerMsg: ClientMessage = {
-        type: 'register',
-        deviceId,
-        displayName,
-        mode: currentModeRef.current,
-        workspaceId,
-        sessionId,
-        screenWidth: window.innerWidth,
-        screenHeight: window.innerHeight,
-      };
-      ws.send(JSON.stringify(registerMsg));
-      registeredRef.current = true;
-    };
+    const connect = () => {
+      if (cancelled || intentionallyClosedRef.current) return;
 
-    ws.onmessage = (event) => {
-      try {
-        const message: ServerMessage = JSON.parse(event.data);
-        
-        switch (message.type) {
-          case 'registered':
-            console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
-            setCurrentSession(message.session);
-            
-            // Store device token if provided (first-time registration)
-            if (message.deviceToken && workspaceId) {
-              console.log('[WS] Storing device token for reconnection');
-              storeDeviceToken({
-                deviceId: message.deviceId,
-                deviceToken: message.deviceToken,
-                workspaceId,
-                name: displayName,
-                mode,
-              });
-            }
-            break;
-          case 'device-list':
-            // Update both state and ref to preserve across reconnections
-            setDevices(message.devices);
-            lastKnownDevicesRef.current = message.devices;
-            break;
-          case 'text':
-            onTextMessageRef.current?.(message);
-            break;
-          case 'history':
-            onHistoryMessageRef.current?.(message);
-            break;
-          case 'display':
-            onDisplayMessageRef.current?.(message);
-            break;
-          case 'ai-status':
-            onAIStatusMessageRef.current?.(message);
-            break;
-          case 'ai-thinking':
-            onAIThinkingMessageRef.current?.(message);
-            break;
-          case 'session-ai-status':
-            onSessionAIStatusMessageRef.current?.(message);
-            break;
-          case 'agent-action':
-            onAgentActionMessageRef.current?.(message);
-            break;
-          case 'join-request':
-            onJoinRequestMessageRef.current?.(message);
-            break;
-          case 'join-resolved':
-            onJoinResolvedMessageRef.current?.(message);
-            break;
-          case 'device-removed':
-            console.log('[WS] Device removed from workspace:', message.deviceId);
-            // Clear stored token since it's now invalid
-            clearDeviceToken(workspaceId);
-            // Update state to indicate removal
-            setWasRemoved(true);
-            setConnected(false);
-            // Notify callback if provided
-            onDeviceRemovedMessageRef.current?.(message);
-            break;
-          case 'workspace-deleted':
-            console.log('[WS] Workspace was deleted:', message.reason);
-            // Clear stored token since it's now invalid
-            clearDeviceToken(workspaceId);
-            setConnected(false);
-            // Clear devices since workspace no longer exists
-            setDevices([]);
-            lastKnownDevicesRef.current = [];
-            // Notify callback if provided
-            onWorkspaceDeletedMessageRef.current?.(message);
-            break;
-          case 'audio-chunk':
-            onAudioChunkMessageRef.current?.(message);
-            break;
-          case 'audio-end':
-            onAudioEndMessageRef.current?.(message);
-            break;
-          case 'session-tts-settings-changed':
-            console.log('[WS] Session TTS settings updated:', message);
-            setSessionTtsSettings({
-              enabled: message.enabled,
-              outputDeviceId: message.outputDeviceId,
-            });
-            onSessionTtsSettingsChangedRef.current?.(message);
-            break;
-          case 'transcription-result':
-            onTranscriptionResultMessageRef.current?.(message);
-            break;
-          case 'transcription-error':
-            onTranscriptionErrorMessageRef.current?.(message);
-            break;
-        }
-      } catch (err) {
-        console.error('[WS] Error parsing message:', err);
-      }
-    };
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-    ws.onclose = (event) => {
-      console.log('[WS] Disconnected', event.code, event.reason);
-      setConnected(false);
+      console.log('[WS] Connecting to', wsUrl);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
       registeredRef.current = false;
-      setCurrentSession(null);
+
+      // Preserve last known devices during reconnection to prevent UI flicker.
+      // This is critical for kiosk mode where mobileDevices.length > 0 controls
+      // the display state between mini QR and full-screen QR.
+      // We restore devices immediately and let the server update them once connected.
+      if (lastKnownDevicesRef.current.length > 0) {
+        console.log('[WS] Preserving', lastKnownDevicesRef.current.length, 'devices during reconnection');
+        setDevices(lastKnownDevicesRef.current);
+      }
+
+      ws.onopen = () => {
+        console.log('[WS] Connected');
+        setConnected(true);
+
+        // Register this device with current mode, workspace, session, and screen dimensions.
+        // currentModeRef is used so the latest mode is sent on every reconnect
+        // without requiring `mode` in the effect's dependency array.
+        const registerMsg: ClientMessage = {
+          type: 'register',
+          deviceId,
+          displayName,
+          mode: currentModeRef.current,
+          workspaceId,
+          sessionId,
+          screenWidth: window.innerWidth,
+          screenHeight: window.innerHeight,
+        };
+        ws.send(JSON.stringify(registerMsg));
+        registeredRef.current = true;
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const message: ServerMessage = JSON.parse(event.data);
+
+          switch (message.type) {
+            case 'registered':
+              console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
+              setCurrentSession(message.session);
+              // Backoff resets only when registration completes, not on raw
+              // socket open. open-without-register is not a usable connection.
+              reconnectAttemptsRef.current = 0;
+
+              // Store device token if provided (first-time registration)
+              if (message.deviceToken && workspaceId) {
+                console.log('[WS] Storing device token for reconnection');
+                storeDeviceToken({
+                  deviceId: message.deviceId,
+                  deviceToken: message.deviceToken,
+                  workspaceId,
+                  name: displayName,
+                  mode,
+                });
+              }
+              break;
+            case 'device-list':
+              // Update both state and ref to preserve across reconnections
+              setDevices(message.devices);
+              lastKnownDevicesRef.current = message.devices;
+              break;
+            case 'text':
+              onTextMessageRef.current?.(message);
+              break;
+            case 'history':
+              onHistoryMessageRef.current?.(message);
+              break;
+            case 'display':
+              onDisplayMessageRef.current?.(message);
+              break;
+            case 'ai-status':
+              onAIStatusMessageRef.current?.(message);
+              break;
+            case 'ai-thinking':
+              onAIThinkingMessageRef.current?.(message);
+              break;
+            case 'session-ai-status':
+              onSessionAIStatusMessageRef.current?.(message);
+              break;
+            case 'agent-action':
+              onAgentActionMessageRef.current?.(message);
+              break;
+            case 'join-request':
+              onJoinRequestMessageRef.current?.(message);
+              break;
+            case 'join-resolved':
+              onJoinResolvedMessageRef.current?.(message);
+              break;
+            case 'device-removed':
+              console.log('[WS] Device removed from workspace:', message.deviceId);
+              // Deliberate teardown — do not auto-reconnect when the socket
+              // closes after this message.
+              intentionallyClosedRef.current = true;
+              // Clear stored token since it's now invalid
+              clearDeviceToken(workspaceId);
+              // Update state to indicate removal
+              setWasRemoved(true);
+              setConnected(false);
+              // Notify callback if provided
+              onDeviceRemovedMessageRef.current?.(message);
+              break;
+            case 'workspace-deleted':
+              console.log('[WS] Workspace was deleted:', message.reason);
+              // Deliberate teardown — workspace is gone; reconnecting would
+              // just fail. Suppress auto-reconnect.
+              intentionallyClosedRef.current = true;
+              // Clear stored token since it's now invalid
+              clearDeviceToken(workspaceId);
+              setConnected(false);
+              // Clear devices since workspace no longer exists
+              setDevices([]);
+              lastKnownDevicesRef.current = [];
+              // Notify callback if provided
+              onWorkspaceDeletedMessageRef.current?.(message);
+              break;
+            case 'audio-chunk':
+              onAudioChunkMessageRef.current?.(message);
+              break;
+            case 'audio-end':
+              onAudioEndMessageRef.current?.(message);
+              break;
+            case 'session-tts-settings-changed':
+              console.log('[WS] Session TTS settings updated:', message);
+              setSessionTtsSettings({
+                enabled: message.enabled,
+                outputDeviceId: message.outputDeviceId,
+              });
+              onSessionTtsSettingsChangedRef.current?.(message);
+              break;
+            case 'transcription-result':
+              onTranscriptionResultMessageRef.current?.(message);
+              break;
+            case 'transcription-error':
+              onTranscriptionErrorMessageRef.current?.(message);
+              break;
+          }
+        } catch (err) {
+          console.error('[WS] Error parsing message:', err);
+        }
+      };
+
+      ws.onclose = (event) => {
+        console.log('[WS] Disconnected', event.code, event.reason);
+        setConnected(false);
+        registeredRef.current = false;
+        setCurrentSession(null);
+
+        // If the hook has torn down or a deliberate close has been recorded,
+        // do not attempt to reconnect.
+        if (cancelled || intentionallyClosedRef.current) return;
+
+        // 4xxx close codes are reserved for application-layer deliberate
+        // closes (per RFC 6455 §7.4). Today the server emits none, but
+        // honour the convention so future intent signaling works without a
+        // client change.
+        if (event.code >= 4000 && event.code < 5000) {
+          console.log('[WS] App-layer close code', event.code, '— no reconnect');
+          return;
+        }
+
+        const attempts = reconnectAttemptsRef.current;
+        const delay = computeReconnectDelay(attempts);
+        reconnectAttemptsRef.current = attempts + 1;
+        console.log(`[WS] Scheduling reconnect attempt ${attempts + 1} in ${Math.round(delay)} ms`);
+
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null;
+          connect();
+        }, delay);
+      };
+
+      ws.onerror = (err) => {
+        console.error('[WS] Error:', err);
+      };
     };
 
-    ws.onerror = (err) => {
-      console.error('[WS] Error:', err);
-    };
+    connect();
 
     return () => {
-      ws.close();
+      cancelled = true;
+      intentionallyClosedRef.current = true;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      wsRef.current?.close();
     };
   }, [deviceId, displayName, workspaceId, sessionId]);
 

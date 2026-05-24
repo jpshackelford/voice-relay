@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useWebSocket } from './useWebSocket';
+import { useWebSocket, computeReconnectDelay } from './useWebSocket';
+import type { DeviceMode } from '../types';
 
 // Mock deviceToken utility
 vi.mock('../utils/deviceToken', () => ({
   storeDeviceToken: vi.fn(),
+  clearDeviceToken: vi.fn(),
 }));
 
 // Mock WebSocket
@@ -76,10 +78,16 @@ describe('useWebSocket hook', () => {
     vi.restoreAllMocks();
   });
 
-  const defaultOptions = {
+  const defaultOptions: {
+    deviceId: string;
+    displayName: string;
+    mode: DeviceMode;
+    workspaceId: string;
+    sessionId: string;
+  } = {
     deviceId: 'device-123',
     displayName: 'Test Device',
-    mode: 'kiosk' as const,
+    mode: 'kiosk',
     workspaceId: 'ws-456',
     sessionId: 'sess-789',
   };
@@ -402,6 +410,464 @@ describe('useWebSocket hook', () => {
       });
 
       expect(ws.sentMessages).toHaveLength(0);
+    });
+  });
+
+  describe('computeReconnectDelay', () => {
+    // Lock jitter to 1.0 (middle of the [0.75, 1.25) range) for predictable
+    // expected values. Math.random() = 0.5 → 0.75 + 0.5 * 0.5 = 1.0.
+    beforeEach(() => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    });
+
+    it('uses 250 ms base on first attempt', () => {
+      expect(computeReconnectDelay(0)).toBe(250);
+    });
+
+    it('doubles exponentially per attempt', () => {
+      expect(computeReconnectDelay(0)).toBe(250);
+      expect(computeReconnectDelay(1)).toBe(500);
+      expect(computeReconnectDelay(2)).toBe(1000);
+      expect(computeReconnectDelay(3)).toBe(2000);
+      expect(computeReconnectDelay(4)).toBe(4000);
+    });
+
+    it('caps at 30 000 ms', () => {
+      // 250 * 2^7 = 32 000 → capped to 30 000 (with jitter 1.0)
+      expect(computeReconnectDelay(7)).toBe(30_000);
+      expect(computeReconnectDelay(10)).toBe(30_000);
+      expect(computeReconnectDelay(100)).toBe(30_000);
+    });
+
+    it('applies jitter in the [0.75, 1.25) range', () => {
+      vi.spyOn(Math, 'random').mockReturnValueOnce(0); // jitter = 0.75
+      expect(computeReconnectDelay(0)).toBeCloseTo(250 * 0.75, 5);
+
+      vi.spyOn(Math, 'random').mockReturnValueOnce(0.9999); // jitter ≈ 1.25
+      expect(computeReconnectDelay(0)).toBeLessThan(250 * 1.25);
+      expect(computeReconnectDelay(0)).toBeGreaterThanOrEqual(250 * 0.75);
+    });
+  });
+
+  describe('auto-reconnect (issue #285)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      // Deterministic jitter: 1.0× exactly.
+      vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('schedules a reconnect after a transient close (code 1006)', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+      expect(MockWebSocket.instances).toHaveLength(1);
+
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      // Abnormal close (proxy idle timeout, network blip).
+      await act(async () => {
+        ws.simulateClose(1006, 'Abnormal closure');
+      });
+
+      // No new WS yet — reconnect runs after backoff delay.
+      expect(MockWebSocket.instances).toHaveLength(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(2);
+      expect(MockWebSocket.instances[1].url).toContain('/ws');
+    });
+
+    it('does not reconnect on 4xxx application-layer close codes', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      await act(async () => {
+        ws.simulateClose(4001, 'app-deliberate-close');
+      });
+
+      // No reconnect should be scheduled.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('does not reconnect after unmount (deliberate close)', async () => {
+      const { unmount } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      unmount();
+      // The cleanup function fires close() which the mock emits as code 1000.
+      // intentionallyClosedRef is set first, so onclose must not schedule.
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('does not reconnect after device-removed server message', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      await act(async () => {
+        ws.simulateMessage({ type: 'device-removed', deviceId: 'device-123' });
+      });
+
+      await act(async () => {
+        ws.simulateClose(1006);
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('does not reconnect after workspace-deleted server message', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      await act(async () => {
+        ws.simulateMessage({ type: 'workspace-deleted', reason: 'admin-delete' });
+      });
+
+      await act(async () => {
+        ws.simulateClose(1006);
+      });
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('backoff sequence grows exponentially across repeated failures', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+
+      // Cycle: open → close 1006 → wait delay → next WS appears.
+      // With Math.random = 0.5, jitter is exactly 1.0, so delays are
+      // 250, 500, 1000, 2000.
+      const expectedDelays = [250, 500, 1000, 2000];
+
+      for (let i = 0; i < expectedDelays.length; i++) {
+        const ws = MockWebSocket.instances[i];
+        await act(async () => {
+          ws.simulateOpen();
+        });
+        await act(async () => {
+          ws.simulateClose(1006);
+        });
+
+        // Just before the expected delay, no new socket exists yet.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(expectedDelays[i] - 1);
+        });
+        expect(MockWebSocket.instances).toHaveLength(i + 1);
+
+        // Tick the final 1 ms — the reconnect fires.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1);
+        });
+        expect(MockWebSocket.instances).toHaveLength(i + 2);
+      }
+    });
+
+    it('backoff caps at 30 s after many consecutive failures', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+
+      // Drive 10 consecutive failures so the unclamped curve would be
+      // 250 * 2^10 = 256 000 ms — confirm the cap holds.
+      for (let i = 0; i < 10; i++) {
+        const ws = MockWebSocket.instances[i];
+        await act(async () => {
+          ws.simulateOpen();
+        });
+        await act(async () => {
+          ws.simulateClose(1006);
+        });
+        // Jump well past the largest possible delay so the timer fires.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(40_000);
+        });
+      }
+
+      const lastWs = MockWebSocket.instances.at(-1)!;
+      await act(async () => {
+        lastWs.simulateOpen();
+      });
+      await act(async () => {
+        lastWs.simulateClose(1006);
+      });
+
+      // At 30 s minus 1 ms, the reconnect must not yet have fired.
+      const countBefore = MockWebSocket.instances.length;
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(29_999);
+      });
+      expect(MockWebSocket.instances).toHaveLength(countBefore);
+
+      // One more ms takes us to exactly 30 000 ms — the cap.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(MockWebSocket.instances).toHaveLength(countBefore + 1);
+    });
+
+    it('resets backoff after a successful registered round-trip', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+
+      // Three failures: close after open, never register.
+      for (let i = 0; i < 3; i++) {
+        const ws = MockWebSocket.instances[i];
+        await act(async () => {
+          ws.simulateOpen();
+        });
+        await act(async () => {
+          ws.simulateClose(1006);
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5000);
+        });
+      }
+      expect(MockWebSocket.instances).toHaveLength(4);
+
+      // Now complete a registered cycle on this connection.
+      const ws4 = MockWebSocket.instances[3];
+      await act(async () => {
+        ws4.simulateOpen();
+      });
+      await act(async () => {
+        ws4.simulateMessage({
+          type: 'registered',
+          deviceId: 'device-123',
+          session: { id: 's', name: 's' },
+        });
+      });
+
+      // Close again — the next delay must be base (250 ms), not 2000 ms.
+      await act(async () => {
+        ws4.simulateClose(1006);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(249);
+      });
+      expect(MockWebSocket.instances).toHaveLength(4);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(MockWebSocket.instances).toHaveLength(5);
+    });
+
+    it('does NOT reset backoff if open fires without a registered message', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+
+      // Three failures with onopen but no registered.
+      for (let i = 0; i < 3; i++) {
+        const ws = MockWebSocket.instances[i];
+        await act(async () => {
+          ws.simulateOpen();
+        });
+        await act(async () => {
+          ws.simulateClose(1006);
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5000);
+        });
+      }
+
+      // Fourth socket: open only, no register, then close.
+      const ws4 = MockWebSocket.instances[3];
+      await act(async () => {
+        ws4.simulateOpen();
+      });
+      await act(async () => {
+        ws4.simulateClose(1006);
+      });
+
+      // Next delay is the 4th attempt: 250 * 2^3 = 2000 ms (not reset to 250).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1999);
+      });
+      expect(MockWebSocket.instances).toHaveLength(4);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(MockWebSocket.instances).toHaveLength(5);
+    });
+
+    it('preserves lastKnownDevices across a reconnect cycle', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws1 = MockWebSocket.instances[0];
+
+      await act(async () => {
+        ws1.simulateOpen();
+      });
+
+      const devices = [
+        { id: 'dev-1', displayName: 'Phone 1', mode: 'mobile' },
+        { id: 'dev-2', displayName: 'Phone 2', mode: 'mobile' },
+      ];
+      await act(async () => {
+        ws1.simulateMessage({ type: 'device-list', devices });
+      });
+      expect(result.current.devices).toHaveLength(2);
+
+      await act(async () => {
+        ws1.simulateClose(1006);
+      });
+
+      // After close but before reconnect, devices stay visible.
+      expect(result.current.devices).toHaveLength(2);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250);
+      });
+
+      const ws2 = MockWebSocket.instances[1];
+      expect(ws2).toBeDefined();
+      await act(async () => {
+        ws2.simulateOpen();
+      });
+
+      // UI state survives the gap.
+      expect(result.current.devices).toHaveLength(2);
+      expect(result.current.devices[0].displayName).toBe('Phone 1');
+    });
+
+    it('unmount clears any pending reconnect timer', async () => {
+      const { unmount } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+      await act(async () => {
+        ws.simulateClose(1006);
+      });
+
+      // A reconnect timer is now pending. Unmount before it fires.
+      unmount();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      // Still just the original socket — pending timer was cleared.
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it('re-reads latest mode on each reconnect via the mode ref', async () => {
+      const { rerender } = renderHook(
+        (props) => useWebSocket(props),
+        { initialProps: defaultOptions }
+      );
+      const ws1 = MockWebSocket.instances[0];
+      await act(async () => {
+        ws1.simulateOpen();
+      });
+      expect(JSON.parse(ws1.sentMessages[0]).mode).toBe('kiosk');
+
+      // Update mode prop — the secondary effect mirrors it into the ref.
+      await act(async () => {
+        rerender({ ...defaultOptions, mode: 'mobile' });
+      });
+
+      // Now trigger a transient close to force a reconnect.
+      await act(async () => {
+        ws1.simulateClose(1006);
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250);
+      });
+
+      const ws2 = MockWebSocket.instances[1];
+      await act(async () => {
+        ws2.simulateOpen();
+      });
+
+      // The new register message must carry the updated mode.
+      const newRegister = JSON.parse(ws2.sentMessages[0]);
+      expect(newRegister.type).toBe('register');
+      expect(newRegister.mode).toBe('mobile');
+    });
+
+    it('survives rapid close/reconnect churn without leaking sockets', async () => {
+      renderHook(() => useWebSocket(defaultOptions));
+
+      for (let i = 0; i < 5; i++) {
+        const ws = MockWebSocket.instances[i];
+        await act(async () => {
+          ws.simulateOpen();
+        });
+        await act(async () => {
+          ws.simulateMessage({
+            type: 'registered',
+            deviceId: 'device-123',
+            session: { id: 's', name: 's' },
+          });
+        });
+        await act(async () => {
+          ws.simulateClose(1006);
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(250);
+        });
+      }
+
+      // Five churn cycles → six sockets total (initial + five reconnects).
+      // Each cycle reset backoff via registered, so each delay was 250 ms.
+      expect(MockWebSocket.instances).toHaveLength(6);
+    });
+
+    it('preserves connected state when reconnect succeeds', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws1 = MockWebSocket.instances[0];
+      await act(async () => {
+        ws1.simulateOpen();
+      });
+      expect(result.current.connected).toBe(true);
+
+      await act(async () => {
+        ws1.simulateClose(1006);
+      });
+      expect(result.current.connected).toBe(false);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250);
+      });
+
+      const ws2 = MockWebSocket.instances[1];
+      await act(async () => {
+        ws2.simulateOpen();
+      });
+      // Status indicator returns to green.
+      expect(result.current.connected).toBe(true);
     });
   });
 });
