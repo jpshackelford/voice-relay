@@ -3,20 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "0ec1984",
-        "pr": 281,
-        "started": "2026-05-24T00:05:10.649040+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T00:05:10.649040+00:00",
+  "last_updated": "2026-05-24T00:32:59.688681+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -35,6 +29,15 @@
       "finished": "2026-05-24T00:04:13.446355+00:00",
       "status": "success",
       "outcome": "Created PR #281 (fix: mirror live-path event filter on refresh); ready-for-review, all CI green, MERGEABLE, 1 bot review thread unresolved"
+    },
+    {
+      "conv_id": "0ec1984",
+      "type": "review",
+      "pr": 281,
+      "started": "2026-05-24T00:05:10.649040+00:00",
+      "finished": "2026-05-24T00:32:59.688681+00:00",
+      "status": "success",
+      "outcome": "Addressed bot review thread on PR #281; PR was merged (squash a5e621e), issue #280 auto-closed"
     }
   ]
 }
