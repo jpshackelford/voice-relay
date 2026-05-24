@@ -13,6 +13,7 @@ export default defineConfig({
         'src/devices/**/*.ts',
         'src/sessions/**/*.ts',
         'src/workspaces/**/*.ts',
+        'src/agent-driver/**/*.ts',
       ],
       exclude: [
         'src/**/*.test.ts',
@@ -29,6 +30,8 @@ export default defineConfig({
         'src/workspaces/types.ts',    // Pure types, no runtime code
         'src/workspaces/index.ts',    // Re-exports only
         'src/workspaces/router.ts',   // Integration routes, tested via e2e
+        'src/agent-driver/types.ts',  // Pure types, no runtime code
+        'src/agent-driver/index.ts',  // Re-exports only
       ],
       reporter: ['text', 'html'],
       thresholds: {
