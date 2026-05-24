@@ -32,6 +32,7 @@
               ┌────────────────────────────────┐
               │ OpenHandsAgentDriver (adapter) │
               │  + PersistenceStrategy         │
+              │  + /api/internal/workspaces/*  │  ← S3-proxying endpoints
               └──┬──────────────┬──────────────┘
                  │              │
                  ▼              ▼
@@ -40,6 +41,10 @@
        │ (sandboxes,    │  │ (per-VR-workspace  │
        │ conversations) │  │  persistent state) │
        └────────────────┘  └────────────────────┘
+              ▲                       ▲
+              │ sandbox → VR          │ VR is the only
+              │ via curl              │ S3 client
+              └───────────────────────┘
 ```
 
 - **L1** is the existing client↔server WebSocket protocol (`server/src/index.ts` register/text/etc.). Changes here are additive: a new `session-state` message and an auto-reconnecting client.
@@ -155,7 +160,7 @@ sendMessage(sessionId, utteranceId, text)
 │              ├── poll start-task through WAITING_FOR_SANDBOX → ... → READY
 │              ├── on each phase change, yield status with startupPhase=<phase>
 │              ├── re-fetch app_conversation_id, sandbox_id, agent_server_url, session_api_key
-│              ├── PersistenceStrategy.restore(workspaceId, sandboxId)   ← S3 sync from bucket to /workspace
+│              ├── PersistenceStrategy.restore(workspaceId, sandboxId)   ← fetch tarball from VR (which reads S3) into /workspace
 │              ├── Optionally: seed memory via system_message_suffix from condense or replay
 │              └── return new binding
 │        → retry send-message
@@ -212,64 +217,168 @@ export interface PersistenceStrategy {
 }
 ```
 
-### `S3SyncStrategy` — the v1 implementation
+### `VrProxiedS3Strategy` — the v1 implementation
 
-Pre-conditions:
+**Design choice: VR proxies S3; the sandbox never sees AWS.** Voice Relay holds
+the only AWS credential in the system, and exposes restore / snapshot as
+authenticated HTTP endpoints on its own backend. The sandbox talks to VR;
+VR talks to S3. This is the only credential model compatible with VR's SaaS
+posture (no human operator in the user-onboarding loop, users do not need to
+hold any AWS material).
 
-- AWS credentials live as user-level OH custom secrets (`POST /api/v1/secrets`), present in every sandbox automatically:
-  - `AWS_ACCESS_KEY_ID`
-  - `AWS_SECRET_ACCESS_KEY`
-  - `AWS_DEFAULT_REGION`
-  - `VR_WORKSPACE_BUCKET` (could also be a fixed VR-side config)
-- The agent-server bash endpoint is the execution surface.
+#### Pre-conditions
 
-Layout in S3:
+**On the VR backend** (single set, lives in `/var/www/vr.chorecraft.net/app/.env`,
+see [DEPLOYMENT.md](DEPLOYMENT.md)):
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_DEFAULT_REGION`
+- `VR_WORKSPACE_BUCKET`
+
+The VR backend's IAM principal has `s3:GetObject` / `s3:PutObject` /
+`s3:DeleteObject` / `s3:ListBucket` scoped to `arn:aws:s3:::<bucket>/*`. It does
+not need any IAM-write permission, STS, or per-user identities.
+
+**In every sandbox** (injected via OH user secrets — these are VR-internal,
+not AWS, so leaking them never grants S3 access):
+
+- `VR_BASE_URL` — e.g. `https://app.no-hands.dev`
+- `VR_WORKSPACE_ID` — identifies which Voice Relay workspace this sandbox is
+  bound to (used by VR to route to the right S3 prefix and authorize access)
+- `VR_PERSISTENCE_TOKEN` — bearer credential the sandbox presents on every
+  call. See [Sandbox-to-VR auth model](#sandbox-to-vr-auth-model) below.
+
+#### S3 layout
 
 ```
-s3://<bucket>/<vr_workspace_id>/...
+s3://<bucket>/<vr_workspace_id>/snapshot.tar.gz
 ```
 
-One prefix per Voice Relay Workspace. All Voice Relay Sessions in that workspace share the same prefix (consistent with the VR data model where Workspace owns persistent state and Session is a conversation thread).
+One object per Voice Relay Workspace. All Voice Relay Sessions in that
+workspace share the same object (consistent with the VR data model: Workspace
+owns persistent state, Session is a conversation thread).
 
-`restore(workspaceId, sandboxId, agent)`:
+A single tarball per snapshot (rather than file-per-object as `aws s3 sync`
+would do) is the simplest correct design for v1 — it's atomic from S3's
+perspective (one `PutObject` is one snapshot), no orphaned half-deleted files,
+no per-file diff machinery in either VR or the sandbox. Bandwidth cost is
+"full workspace per snapshot" rather than "changed files only"; for the
+small-workspace scale we're targeting (tested 3.4 MB, expected to stay under
+~50 MB for typical chore-management use cases) this is well under one second
+of upload. If workspace sizes grow materially, switching to file-tree
+replication is a clean evolution (the strategy seam doesn't change).
+
+#### `restore(workspaceId, sandboxId, agent)`
+
+The OH adapter calls the agent-server bash endpoint with:
 
 ```bash
 mkdir -p /workspace
-aws s3 sync --delete s3://${VR_WORKSPACE_BUCKET}/${VR_WORKSPACE_ID}/ /workspace/
+curl -sS -f --fail-with-body \
+  -H "Authorization: Bearer $VR_PERSISTENCE_TOKEN" \
+  "$VR_BASE_URL/api/internal/workspaces/$VR_WORKSPACE_ID/restore" \
+  | tar -xz -C /workspace
 ```
 
-`snapshot(workspaceId, sandboxId, agent)`:
+On the VR side (`GET /api/internal/workspaces/:id/restore`):
+
+1. Validate the bearer; resolve to a user; verify the user owns workspace `:id`.
+2. Stream `s3:GetObject` for `<bucket>/<id>/snapshot.tar.gz` to the response body.
+3. If the object does not exist (first restore for a brand-new workspace),
+   return `204 No Content` and the sandbox-side `tar -xz` becomes a no-op
+   (curl sees empty body, exits 0; tar of empty input exits 0).
+
+#### `snapshot(workspaceId, sandboxId, agent)`
 
 ```bash
-aws s3 sync --delete /workspace/ s3://${VR_WORKSPACE_BUCKET}/${VR_WORKSPACE_ID}/
+tar -czf - -C /workspace . \
+  | curl -sS -f --fail-with-body \
+      -H "Authorization: Bearer $VR_PERSISTENCE_TOKEN" \
+      -H "Content-Type: application/gzip" \
+      --data-binary @- \
+      "$VR_BASE_URL/api/internal/workspaces/$VR_WORKSPACE_ID/snapshot"
 ```
 
-Driven by the OH adapter at these trigger points:
+On the VR side (`POST /api/internal/workspaces/:id/snapshot`):
+
+1. Validate the bearer + workspace ownership (same as restore).
+2. Stream the request body through to `s3:PutObject` at
+   `<bucket>/<id>/snapshot.tar.gz`. S3 `PutObject` is atomic per key, so a
+   concurrent restore either sees the prior snapshot in full or the new one in
+   full — never a partial.
+3. Return `204 No Content` on success.
+
+#### Trigger points (unchanged from prior spec)
+
+The OH adapter drives both operations:
 
 - `restore` — once, on first sandbox provisioning OR on MISSING-triggered rebind, before the first user message is sent.
 - `snapshot` — on every `execution_status: idle/finished` event (i.e., agent finished a turn). Concurrency-safe via a single-flight lock per session.
 - `snapshot` — as a 60-second backstop timer if the agent has been idle and the last snapshot was more than 60 s ago. Bounds durability lag in the abnormal case where idle events are missed.
+
+#### Sandbox-to-VR auth model
+
+The bearer `VR_PERSISTENCE_TOKEN` proves to VR that the calling sandbox is
+authorized to read/write a particular workspace's S3 prefix. Implementation
+options for v1 (the chosen mechanism is a v1 implementation issue, not an
+architecture commitment):
+
+1. **Per-session minted token.** VR generates a fresh random token per OH
+   conversation at conversation-start, stores `{token → user_id, workspace_id,
+   expires_at}` in its own DB, and propagates the token into the sandbox via
+   OH user secrets at the same moment it propagates `VR_BASE_URL`. Token
+   lifetime = sandbox lifetime; revoked on session end. Strongest hygiene.
+   Requires OH to accept per-conversation custom secret writes (open question).
+2. **Long-lived per-user token.** VR mints one token per VR user, refreshed
+   on rotation, stored as a single OH user secret. Same level of access risk
+   as Path A's AWS keys had, but the blast radius is "this user's workspace"
+   not "this user's AWS account."
+3. **OH conversation-id proof.** No token at all; the sandbox sends its OH
+   `conversation_id` (already known to the agent) and VR cross-references its
+   own `{conversation_id → user_id}` mapping. No secret material to leak;
+   exploitable only by someone who already has a valid conversation_id, which
+   is itself sensitive. Egress-IP allow-listing on the VR endpoint
+   (`api/internal/*`) restricted to OpenHands' published egress range tightens
+   this further.
+
+Option (3) is the cleanest if it works in practice; (1) is the most defensible
+in security review; (2) is a fallback. The implementation issue should pick
+one based on what OH actually exposes for custom-secret writes.
+
+The endpoint path prefix `/api/internal/` is a marker that these endpoints are
+not part of VR's public API surface and may be locked down by Apache (IP allow
+list) and/or by VR's auth middleware to refuse requests bearing a normal user
+JWT — only the persistence bearer is accepted.
 
 ### `FuseMountStrategy` — placeholder for future
 
 If OH later exposes `/dev/fuse` to sandboxes, swap the strategy:
 
 ```bash
-s3fs ${VR_WORKSPACE_BUCKET}:/${VR_WORKSPACE_ID} /workspace -o passwd_file=... -o sync_on_flush=true -o max_dirty_data=0 ...
+# Mount a per-workspace virtual filesystem at /workspace; VR backs it.
+# Concrete implementation TBD (s3fs against VR-issued presigned URLs, a small
+# FUSE shim talking to the existing /api/internal/workspaces endpoints, or
+# JuiceFS against a VR-managed metadata service).
 ```
 
-Same `PersistenceStrategy` interface; agent never knows. JuiceFS would be a likely better default than s3fs here for POSIX correctness, but neither is reachable in current OH SaaS. **This branch is not built today.** Documented for the contract.
+Same `PersistenceStrategy` interface; agent never knows. **This branch is not
+built today.** Documented for the contract.
 
-### Trade-offs (sync strategy)
+### Trade-offs (VrProxiedS3Strategy)
 
-| Aspect | S3SyncStrategy |
+| Aspect | Value |
 |---|---|
-| Cold-start cost on new sandbox | ~9 s install awscli + sync time (sync time scales with workspace size; <2 s for tested 3.4 MB) |
-| Per-turn cost | ~600 ms walk + S3 PUT time for changed files |
-| Durability lag on unannounced reap | Bounded by snapshot frequency (~ per agent turn, ≤60 s backstop) |
-| Working set ceiling | 25 GB (PVC limit) |
-| Agent transparency | Agent doesn't know about S3; works in `/workspace` |
-| Failure modes | Sync command stderr surfaced as `degraded` with diagnostic; user can retry |
+| Cold-start cost on new sandbox | ~50 ms install (none — curl + tar are stock); restore time scales with workspace size (<1 s for tested 3.4 MB) |
+| Per-turn cost | tar + upload through VR ≈ ~250 ms for the tested 3.4 MB workspace; full workspace per snapshot (not just changed files — see [S3 layout](#s3-layout)) |
+| Durability lag on unannounced reap | Bounded by snapshot frequency (≈ per agent turn, ≤60 s backstop) |
+| Working set ceiling | 25 GB (sandbox PVC limit); tarball-per-snapshot may make ≥1 GB workspaces costly — switch to file-tree replication before that point |
+| Agent transparency | Agent doesn't know about S3 or AWS; works in `/workspace`. The only "outside" thing the sandbox knows is the VR HTTP endpoint, which it'd talk to for other reasons anyway. |
+| User-visible AWS surface | **None.** Users never see AWS credentials, never authorize anything AWS-related, never have an IAM identity. |
+| AWS credential lifecycle | One static credential on the VR backend. Operator rotates it on the usual cadence. No per-user IAM lifecycle. |
+| Bandwidth on VR backend | Every restore + snapshot streams through VR. Negligible at current workspace sizes; if it becomes a bottleneck, evolution path is to issue presigned S3 URLs from the same endpoints so bytes move sandbox↔S3 directly (VR remains the policy point). |
+| Auditability | VR's own request log captures `{user_id, workspace_id, operation, bytes, timestamp}` for every restore/snapshot. AWS CloudTrail sees only the VR principal — useful for AWS-side ops, less useful than VR's log for product-level audit. |
+| Single point of failure | VR backend availability is a precondition for sandbox restore. Already true: if VR is down, the user can't use the product. |
 
 ## Wire protocol
 
@@ -345,7 +454,7 @@ VR → driver.sendMessage(...)
   driver: yields session-state { state:'starting', startupPhase:'WAITING_FOR_SANDBOX' } → ... → 'starting/RUNNING_SETUP_SCRIPT' → ...
   driver: re-read agentServerUrl, session_api_key, sandbox_id
   driver: persistence.restore(workspaceId, newSandboxId)
-            → bash: aws s3 sync s3://bucket/<workspaceId>/ /workspace/   (~ size-dependent)
+            → bash: curl $VR_BASE_URL/api/internal/workspaces/<workspaceId>/restore | tar -xz -C /workspace   (~ size-dependent)
   driver: (optional) seed memory via system_message_suffix derived from condense + recent N events
   driver: retry send-message
   driver: events stream resumes
