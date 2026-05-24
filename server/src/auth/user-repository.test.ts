@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { UserRepository } from './user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as installationMigration } from '../storage/migrations/014_user_github_installation.js';
 
 describe('UserRepository', () => {
   let db: Database.Database;
@@ -10,6 +11,7 @@ describe('UserRepository', () => {
   beforeEach(() => {
     db = new Database(':memory:');
     db.exec(usersMigration.up);
+    db.exec(installationMigration.up);
     repo = new UserRepository(db);
   });
 
@@ -146,6 +148,52 @@ describe('UserRepository', () => {
       expect(updated.avatarUrl).toBe('https://new-avatar.png');
       // The timestamp should be updated (we can check it's defined instead of comparing)
       expect(updated.lastLoginAt).toBeDefined();
+    });
+  });
+
+  describe('setGitHubInstallationId', () => {
+    it('persists the installation id and exposes it via findById', () => {
+      const user = repo.create({ githubId: 12345, username: 'testuser' });
+
+      // Fresh users have no installation linkage yet.
+      expect(user.githubInstallationId).toBeNull();
+
+      const updated = repo.setGitHubInstallationId(user.id, 9876543);
+      expect(updated).toBe(true);
+
+      const reloaded = repo.findById(user.id);
+      expect(reloaded?.githubInstallationId).toBe(9876543);
+    });
+
+    it('returns false when the user does not exist', () => {
+      const updated = repo.setGitHubInstallationId('non-existent-id', 42);
+      expect(updated).toBe(false);
+    });
+
+    it('explicitly clears the column when called with null', () => {
+      const user = repo.create({ githubId: 12345, username: 'testuser' });
+      repo.setGitHubInstallationId(user.id, 42);
+      expect(repo.findById(user.id)?.githubInstallationId).toBe(42);
+
+      repo.setGitHubInstallationId(user.id, null);
+      expect(repo.findById(user.id)?.githubInstallationId).toBeNull();
+    });
+
+    it('is preserved across upsertFromGitHub (returning user sign-in)', () => {
+      // Simulate: first sign-in installs the App + persists installation_id.
+      const user = repo.upsertFromGitHub({ githubId: 12345, username: 'testuser' });
+      repo.setGitHubInstallationId(user.id, 11111);
+
+      // Returning sign-in: callback has no installation_id, only the
+      // identify portion runs. `upsertFromGitHub` MUST NOT clobber the
+      // previously stored value, otherwise we lose the App link.
+      const returningUser = repo.upsertFromGitHub({
+        githubId: 12345,
+        username: 'testuser',
+        displayName: 'Test User',
+      });
+      expect(returningUser.id).toBe(user.id);
+      expect(returningUser.githubInstallationId).toBe(11111);
     });
   });
 });
