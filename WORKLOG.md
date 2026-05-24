@@ -891,3 +891,30 @@ Issue #303 stays open; next batch is a separate conversation.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:02 UTC - Merge worker (PR #325)
+
+✅ **PR #325 squash-merged to main** — closes [#292](https://github.com/jpshackelford/voice-relay/issues/292)
+
+**Details:**
+- Title: `fix(server): single-flight conversation start to prevent orphaned upstream conversations`
+- Squash commit: per `gh pr merge --squash` (see git log on main)
+- Files: `server/src/agent-driver/openhands.ts` + `server/src/agent-driver/openhands.test.ts` only — no DB migrations, no schema changes
+- Production impact: auto-deploys to vr.chorecraft.net; pure logic fix (per-session `Map<string, Promise<BindResult>>` single-flight) with no runtime config or env changes
+- Issue #292 auto-closed at 21:01:53 UTC
+
+**Conflict resolution note:**
+- Branch was `CONFLICTING` against post-#324 main (both touched `openhands.ts` `restartSession` + appended a new `describe` block to `openhands.test.ts`)
+- Rebased onto `origin/main`; in `restartSession` kept both #324's `state.executionStatus = null; state.executionError = null;` reset and #325's `lazyBindSession` single-flight gateway; in the test file kept both the `T-3.4.*` (execution_status, #293) and `T-3.3.*` (single-flight, #292) `describe` blocks as siblings
+- Server typecheck passed; targeted `agent-driver/openhands` suite: **84/84 tests pass** locally
+- Force-push with `--force-with-lease`; CI rerun all green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title)
+- Replaced an earlier `0e8e344 "Merge main into ..."` commit (likely orchestrator-side merge attempt) with the cleaner rebase
+
+**Current State:**
+- Open PRs: 0
+- Ready issues unblocked by #292 closing: (none directly — #292 itself was the only consumer of the single-flight slot)
+- Slots used: merge 0/2, review 0/2, implementation depends on next dispatcher tick
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
