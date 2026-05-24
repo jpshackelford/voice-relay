@@ -187,6 +187,9 @@ export async function listSecretNames(
     }
     pageId = page.next_page_id ?? null;
     safety += 1;
+    // Safety valve: 100 pages × 100 items/page = 10,000 secrets max. A user
+    // hitting this almost certainly has a configuration/loop bug on the OH
+    // side; bail loudly rather than spin forever.
     if (safety > 100) {
       throw new Error('listSecrets: pagination did not terminate after 100 pages');
     }
