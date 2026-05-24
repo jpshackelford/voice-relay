@@ -337,11 +337,17 @@ export interface JoinResolvedMessage {
 /**
  * Server → All devices in session: AI is processing a response.
  * Broadcast when the AI starts or finishes processing a message.
+ *
+ * `thinkingSince` is an optional ISO timestamp indicating when the current
+ * thinking phase began. Populated by the register-time resync path
+ * (issue #290) so a client rejoining mid-turn knows how long the agent has
+ * been working. Live thinking-transition broadcasts may omit it.
  */
 export interface AIThinkingMessage {
   type: 'ai-thinking';
   sessionId: string;
   thinking: boolean;
+  thinkingSince?: string;
 }
 
 /**
