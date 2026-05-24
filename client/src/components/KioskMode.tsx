@@ -8,6 +8,7 @@ import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
+import { AIRestartButton } from './AIRestartButton';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
 
@@ -514,6 +515,7 @@ export function KioskMode({
 
         {sttError && <div className="stt-error">⚠️ {sttError}</div>}
         {ai?.error && <div className="ai-error">⚠️ AI: {ai?.error}</div>}
+        <AIRestartButton ai={ai} />
 
         {/* Mobile AI status indicator */}
         {(ai?.connecting || ai?.connected || ai?.thinking) && (
@@ -710,6 +712,7 @@ export function KioskMode({
         {ai?.error && (
           <div className="ai-error">⚠️ AI: {ai?.error}</div>
         )}
+        <AIRestartButton ai={ai} />
       </aside>
 
       {/* Drawer open button (visible when closed) */}

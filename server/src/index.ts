@@ -26,7 +26,7 @@ import {
 import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
-import { SessionRepository, createSessionRouter } from './sessions/index.js';
+import { SessionRepository, createSessionRouter, createSessionAIRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
@@ -1321,6 +1321,19 @@ async function start() {
         app.use('/api/sessions', agentEventRouter);
         console.log('[AgentEvents] Read API enabled at /api/sessions/:sessionId/agent-events');
       }
+
+      // Session AI control surface (issue #294) — currently exposes
+      // POST /api/sessions/:sessionId/ai/restart so the kiosk can recover
+      // from a degraded agent without a full page reload.
+      const sessionAIRouter = createSessionAIRouter({
+        sessionRepository,
+        workspaceRepository,
+        agentDriver,
+        registry,
+        authConfig: { jwtService, userRepository },
+      });
+      app.use('/api/sessions', sessionAIRouter);
+      console.log('[Sessions] AI control API enabled at /api/sessions/:sessionId/ai/restart');
 
       if (qrTokenRepository) {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');

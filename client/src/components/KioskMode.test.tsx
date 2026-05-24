@@ -29,9 +29,20 @@ describe('KioskMode', () => {
     connected: false,
     connecting: false,
     thinking: false,
+    degraded: false,
+    restarting: false,
+    restartError: null,
     conversationId: null,
     error: null,
     checkAvailability: vi.fn().mockResolvedValue({ available: false, message: 'Not configured' }),
+    restart: vi.fn().mockResolvedValue({ ok: true, status: {
+      sessionId: 'test',
+      state: 'starting',
+      conversationId: null,
+      error: null,
+      thinkingSince: null,
+      startingSince: null,
+    } }),
   };
 
   const defaultProps = {
