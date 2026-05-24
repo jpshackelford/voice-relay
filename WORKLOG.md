@@ -133,3 +133,50 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 01:05 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Implementation Worker** for Issue [#282](https://github.com/jpshackelford/voice-relay/issues/282) — *Auth flow doesn't surface GitHub App installation step*
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `8824e36` | implementation | Issue #282 — GitHub App install flow | **NEW** running |
+
+**Spawned:** [`8824e36`](https://app.all-hands.dev/conversations/8824e36d82c84d35a04bb71d63488062) — `execution_status=running`, `sandbox_status=RUNNING`, plugin `voice-relay-workflow@main`. Start-task `3cc3a37377df492da50971023de4f04b` reached `READY` in 2 polls (~5s, `STARTING_CONVERSATION` → `READY`).
+
+**Worker that just finished (`8acbbb2` expansion → issue #282, ~13min):**
+- Added `ready` label.
+- Posted a 10.5KB **Implementation Plan** comment (the 2nd comment on #282) that grounds the proposal in `commit b8bf948`: confirms `getAuthorizationUrl()` and `/auth/github/callback` are the right hooks, designs an additive SQLite migration for `users.installation_id`, lists unit + integration tests, calls out `GITHUB_APP_SLUG` env var, README rewrite, and the optional `GitHubOAuth → GitHubAppAuth` rename.
+- Did NOT add `needs-info` / `needs-split` — proposal validated as implementable.
+- Moved from `.workflow-state.json` slots → `completed[]` (status: success).
+
+**Current State (verified via `gh` + OH API):**
+- Open PRs (2, both deferred — same as prior cycle):
+  - [PR #279](https://github.com/jpshackelford/voice-relay/pull/279) — draft, `on-hold` (human-owned).
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (stuck, ~5d stale).
+- Open issues (4):
+  - **#282 `ready`** — now being implemented by `8824e36`.
+  - #208 `ci-failure, on-hold` — skipped.
+  - #210 `enhancement, on-hold` — skipped.
+  - #239 `bug, ci-failure, on-hold` — skipped.
+- `.workflow-state.json`: expansion **0/4**, impl **1/1**, review 0/2. `completed[]`: 4 entries from #280 (3) + #282 expansion (1), all <24h.
+
+**Decision rationale:**
+- Expansion slot: 0/4 used, 0 issues to expand (the 3 `on-hold` ones are paused). → idle.
+- Implementation slot: 0/1 used, exactly 1 `ready` non-`on-hold` issue (#282), no `priority:*` label but it's the **only** ready candidate so priority assessment is trivial — it IS the next item. → spawn 1 impl worker. Slot fill: 0/1 → 1/1.
+- Review slots: 0/2 used; PR #279 is `on-hold`, PR #221 is `needs-human` (stuck-PR rule applies — defer, don't spawn). → idle.
+- Stuck-PR rule satisfied: independent work continues (impl on #282) while #221 / #279 wait for human.
+
+**Worker prompt highlights** (full text in spawned conversation):
+1. Read the **Implementation Plan** comment in full — it's the source of truth.
+2. Branch from up-to-date `main` as `feat/282-github-app-install-flow`.
+3. Touch points: `server/src/auth/github-oauth.ts` (`getAuthorizationUrl` → `/apps/<slug>/installations/new?state=<csrf>`), callback handler (tolerate `code,state` AND `code,state,installation_id,setup_action=install`), `AuthConfig` + `.env.example` (`GITHUB_APP_SLUG`), additive SQLite migration `ALTER TABLE users ADD COLUMN installation_id INTEGER NULL` with up+down, README rewrite (~lines 143–152).
+4. Tests: unit (URL builder) + integration (callback w/ and w/o `installation_id`); >80% coverage on changed lines.
+5. Logical commits, draft PR with `Fixes #282`, monitor CI to green, then move to ready.
+6. WORKLOG.md updates on **main** only (never in feature branch / PR).
+
+**Production guardrails reminded in prompt:** auto-deploys to `vr.chorecraft.net` on merge; SQLite migration MUST be additive (no drops, no NOT NULL on populated tables). Escape hatch: if the migration would break existing rows, stop + comment on #282 + exit (no destructive merge).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
