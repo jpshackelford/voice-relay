@@ -518,3 +518,44 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 No follow-up workers spawned — orchestrator will pick up the next item on its next tick.
 
 ---
+
+### 2026-05-24 02:37 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4ad5fd3` | review | PR #307 — feat(server): AgentDriver interface | **NEW** |
+| `754c436` | implementation | Issue #304 — 🚨 Smoke test failure after deployment | **NEW** |
+
+**Worker Completed Since Last Tick:** `a5211d5` (implementation, issue #287) → opened [PR #307](https://github.com/jpshackelford/voice-relay/pull/307) `feat(server): define AgentDriver interface and FakeDriver (closes #287)` (ready, all CI green, MERGEABLE, 1 bot review thread).
+
+**Current State:**
+- Open PRs:
+  - [PR #307](https://github.com/jpshackelford/voice-relay/pull/307) — `oR` green ready 💬1 — `scope:server-only` — **review worker spawned**
+  - [PR #306](https://github.com/jpshackelford/voice-relay/pull/306) — `needs-human` (scope-violation halt from earlier merge worker; awaiting human relabel to `scope:full-stack`) — **deferred**
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human` (long-standing) — **deferred**
+- Issues needing expansion: 0 (every open issue is either `ready`, `on-hold`, or already in flight)
+- Ready issues remaining (priority:high, not blocked by stuck PRs): #286, #290, #291, #293, #296, plus #288/#289 (which logically depend on PR #307 / issue #287)
+
+**Action Taken:**
+🚀 **Spawned 2 workers (parallel)**
+
+1. **Review worker** for [PR #307](https://github.com/jpshackelford/voice-relay/pull/307)
+   - 1 unresolved bot suggestion (`PRRT_kwDOSTUWGM6EWVFK`) — clarify idempotency-cache comment to reflect that `status` events can also be cached terminally (matches `simulateStuck` behavior)
+   - Conversation: [`4ad5fd3`](https://app.all-hands.dev/conversations/4ad5fd39b66a42308d68cc1911ca27bd)
+
+2. **Implementation worker** for [Issue #304](https://github.com/jpshackelford/voice-relay/issues/304) — `priority:high` `ci-failure` `scope:ci-only`
+   - Smoke spec `tests/smoke/smoke.spec.ts:56` still asserts old classic-OAuth `Location` substring; PR #283 changed `/auth/github` to redirect to the GitHub App install URL. Server is correct, test is stale, deploys keep rolling back. Picking this up first because it unblocks the entire auto-deploy pipeline (prod is currently pinned to `ca54d28` pre-#283).
+   - Conversation: [`754c436`](https://app.all-hands.dev/conversations/754c43683c1d4c97a3b205c7737135bf)
+
+Selected #304 over #286/#290/#291/#293/#296 because it is the only `priority:high` item whose absence is *actively blocking* production deploys. The others are independent feature/bug work that can land once the deploy pipeline is healthy again.
+
+**Stuck PRs Deferred (no new action needed this tick):**
+- PR #306 — relabel/scope decision is a human call per the prior merge-worker halt comment.
+- PR #221 — long-standing `needs-human` draft, no orchestrator action.
+
+`quiet_ticks` reset to 0 (productive tick: 2 workers spawned).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Orchestrator._
+
+---

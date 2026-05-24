@@ -4,19 +4,25 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "a5211d5",
-        "issue": 287,
-        "started": "2026-05-24T02:09:16.513139+00:00"
+        "conv_id": "754c436",
+        "issue": 304,
+        "started": "2026-05-24T02:36:23.346389+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "4ad5fd3",
+        "pr": 307,
+        "started": "2026-05-24T02:36:23.346389+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T02:20:32.261516Z",
+  "last_updated": "2026-05-24T02:36:23.346389+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -89,7 +95,16 @@
       "finished": "2026-05-24T02:20:32.261516Z",
       "status": "success",
       "outcome": "Halted merge of PR #306 \u2014 scope:client-only diff escaped scope (.github/workflows/ci.yml + package-lock.json); applied needs-human label; recommended scope:full-stack"
+    },
+    {
+      "conv_id": "a5211d5",
+      "type": "implementation",
+      "issue": 287,
+      "started": "2026-05-24T02:09:16.513139+00:00",
+      "finished": "2026-05-24T02:36:23.346389+00:00",
+      "status": "success",
+      "outcome": "Created PR #307 (feat(server): define AgentDriver interface and FakeDriver, closes #287); ready-for-review, all CI green, MERGEABLE, 1 bot review thread unresolved"
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
