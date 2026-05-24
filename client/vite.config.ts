@@ -45,14 +45,11 @@ export default defineConfig({
         'src/**/types.ts',
         'src/hooks/useAudioPlayback.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useAudioStreaming.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useDevices.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useJoinRequests.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useResourceFetch.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useSessions.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useWebSocket.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useWorkspaceAutoJoin.ts', // TODO(#303): add tests to remove this exclusion
         'src/hooks/useWorkspaceSettings.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useWorkspaces.ts', // TODO(#303): add tests to remove this exclusion
         'src/utils/deviceToken.ts', // TODO(#303): add tests to remove this exclusion
         'src/utils/getEventContent.ts', // TODO(#303): add tests to remove this exclusion
       ],
