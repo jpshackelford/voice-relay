@@ -342,6 +342,13 @@ export interface AIThinkingMessage {
   type: 'ai-thinking';
   sessionId: string;
   thinking: boolean;
+  /**
+   * ISO timestamp when the current thinking state began (when `thinking` is
+   * true). Optional for backward compatibility with clients that ignore it.
+   * Populated by the register-time AI resync (issue #290); transition-time
+   * broadcasts may omit it.
+   */
+  thinkingSince?: string;
 }
 
 /**

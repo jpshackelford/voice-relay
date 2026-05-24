@@ -30,6 +30,7 @@ import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
+import { resyncAISessionState } from './ai-resync.js';
 import { relayAgentResponse } from './agent-message-relay.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
@@ -612,6 +613,12 @@ wss.on('connection', (ws: WebSocket) => {
               ws.send(JSON.stringify(ttsSettingsMsg));
             }
           }
+
+          // Resync the current AI session state to the registering device only.
+          // After a browser refresh / reconnect the client needs to know the
+          // agent's state immediately — without this, the ✨ AI indicator
+          // never reappears until the next transition fires (#290).
+          await resyncAISessionState(ws, sessionId, agentDriver);
 
           // Auto-connect AI when first device joins session
           if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, agentDriver)) {
