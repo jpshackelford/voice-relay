@@ -14,11 +14,6 @@
         "conv_id": "747de36",
         "started": "2026-05-24T03:51:32.169508+00:00",
         "pr": 311
-      },
-      {
-        "conv_id": "840c951",
-        "started": "2026-05-24T03:51:32.169508+00:00",
-        "pr": 306
       }
     ]
   },
@@ -27,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T03:51:32.169508+00:00",
+  "last_updated": "2026-05-24T04:04:35.344462+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -163,7 +158,16 @@
       "status": "success",
       "outcome": "Worked on PR #309 (WebSocket Keepalive Heartbeat) \u2014 PR subsequently merged; status verified finished by orchestrator API query",
       "pr": 309
+    },
+    {
+      "conv_id": "840c951",
+      "type": "review",
+      "pr": 306,
+      "started": "2026-05-24T03:51:32.169508+00:00",
+      "finished": "2026-05-24T04:04:35.344462+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #306 (client coverage thresholds) \u2014 PR previously merged; conversation status verified finished by orchestrator API query"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
