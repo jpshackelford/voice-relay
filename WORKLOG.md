@@ -1299,3 +1299,30 @@ When those are in place, removing `on-hold` from #298 unblocks the implementatio
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 17:38 UTC - Merge worker (PR #316)
+
+✅ **Merged PR #316** — `test(client): cover uuid, deviceName, and 3 hooks under coverage gate`.
+
+- **Scope**: client-only (6 files: 5 new test files under `client/src/{hooks,utils}/`, plus `client/vite.config.ts` removing the now-covered modules from the coverage-gate exclusion list). Matches `scope:client-only` label.
+- **CI**: all green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator).
+- **Review**: no unresolved threads.
+- **Merge state**: `MERGEABLE` / `CLEAN`, squash-merged.
+- **Issue link**: refs #303 (issue remains **OPEN** — partial coverage uplift; 12 modules still excluded and will be picked up in follow-up batches per the issue's recommended batching workflow).
+- **Production impact**: tests-only addition. Auto-deploy to vr.chorecraft.net is a no-op for runtime behavior; the coverage gate now exercises 5 previously-excluded modules.
+
+Modules now under the 80% gate after this batch:
+
+| Module | Stmts | Branch | Funcs | Lines |
+|---|---|---|---|---|
+| `utils/uuid.ts` | 100 | 100 | 100 | 100 |
+| `utils/deviceName.ts` | 100 | 100 | 100 | 100 |
+| `hooks/useDeletionPreview.ts` | 100 | 100 | 100 | 100 |
+| `hooks/useSpeechSynthesis.ts` | 100 | 100 | 100 | 100 |
+| `hooks/useSpeechRecognition.ts` | 100 | 89 | 100 | 100 |
+
+All-files aggregate post-merge: **94.42 stmts / 89.64 branch / 96.72 funcs / 96.40 lines**.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
