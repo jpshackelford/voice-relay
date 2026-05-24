@@ -2,6 +2,29 @@
 
 ## Log
 
+### 2026-05-24 05:00 UTC - Implementation Worker (Issue #303, batch 1)
+
+🟡 **Opened PR [#316](https://github.com/jpshackelford/voice-relay/pull/316) — `test(client): cover uuid, deviceName, and 3 hooks under coverage gate`. First batch of follow-up coverage work for issue [#303](https://github.com/jpshackelford/voice-relay/issues/303); issue intentionally stays open for subsequent batches.**
+
+- Branch: `feat/303-client-coverage-batch-1`. Scope label `scope:client-only` applied; diff is contained entirely under `client/**` (5 new `*.test.ts` files + `client/vite.config.ts`).
+- CI: all 7 checks green on the latest run (Server / Client / E2E Tests, Build Client, lint-pr-title, enable-orchestrator, pr-review skipping as expected pre-ready).
+- PR marked ready for review after CI green.
+- Modules removed from the `exclude:` list and now under the 80% per-file gate (all four metrics):
+  - `client/src/utils/uuid.ts` — 100 / 100 / 100 / 100
+  - `client/src/utils/deviceName.ts` — 100 / 100 / 100 / 100
+  - `client/src/hooks/useDeletionPreview.ts` — 100 / 100 / 100 / 100
+  - `client/src/hooks/useSpeechSynthesis.ts` — 100 / 100 / 100 / 100
+  - `client/src/hooks/useSpeechRecognition.ts` — 100 / 89 / 100 / 100
+- Aggregate after this batch: **94.42 stmts / 89.64 branch / 96.72 funcs / 96.40 lines** across `client/src/{hooks,utils,api}/**`.
+- Static gates: `tsc --noEmit -p client/tsconfig.json` exits 0; `grep -nE ': any\b| as any\b' client/src/{hooks,utils}/*.test.ts` returns only the pre-existing match in `useWebSocket.test.ts`; no new `eslint-disable` directives.
+- Test-quality stance: every new test exercises real behavior — happy path + at least one error/edge path per file. Browser-API hooks stub `window.speechSynthesis` / `window.SpeechRecognition` (happy-dom doesn't provide them), establishing a pattern for the remaining browser-API-wrapping modules in follow-up batches.
+- Remaining excluded modules (for follow-up PRs): `useAudioPlayback`, `useAudioStreaming`, `useDevices`, `useJoinRequests`, `useResourceFetch`, `useSessions`, `useWebSocket`, `useWorkspaceAutoJoin`, `useWorkspaceSettings`, `useWorkspaces`, `utils/deviceToken`, `utils/getEventContent` — 12 entries still TODO(#303) in `client/vite.config.ts`.
+- Production impact: pure tests + Vite config change to `coverage.exclude`. No runtime code or schema changes; `vr.chorecraft.net` (SQLite-backed) behavior is unaffected by the auto-deploy on merge.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
 ### 2026-05-24 04:54 UTC - Merge Worker (PR #314 → main, closes #310)
 
 ✅ **Squash-merged PR [#314](https://github.com/jpshackelford/voice-relay/pull/314) — `feat(e2e): add @slow-keepalive Playwright spec for 5-min WS idle survival`. Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310) auto-closed (COMPLETED) at 04:53:53 UTC.**
