@@ -43,12 +43,6 @@ export default defineConfig({
         'src/**/*.test.{ts,tsx}',
         'src/**/index.ts',
         'src/**/types.ts',
-        'src/hooks/useAudioPlayback.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useAudioStreaming.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useJoinRequests.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useWebSocket.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useWorkspaceAutoJoin.ts', // TODO(#303): add tests to remove this exclusion
-        'src/hooks/useWorkspaceSettings.ts', // TODO(#303): add tests to remove this exclusion
       ],
       thresholds: {
         lines: 80,
