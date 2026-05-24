@@ -330,6 +330,65 @@ describe('OpenHandsAgentDriver', () => {
       expect(replay).toEqual([{ kind: 'message', text: 'result', serverTimestamp: undefined }]);
     });
 
+    test('T-2.2.11b: utteranceMemo bounded by limit (oldest evicted FIFO)', async () => {
+      // The driver caps memo growth at 256 entries per session. Drive 260
+      // unique utterances and verify:
+      //  - The first utterance is no longer replayed (evicted).
+      //  - A mid-window utterance is still replayed (still memoized).
+      //  - The newest utterance is replayed.
+      await driver.openSession('s1', OPTS);
+      const TOTAL = 260; // > UTTERANCE_MEMO_LIMIT (256)
+      for (let i = 0; i < TOTAL; i++) {
+        await collect(driver.sendMessage('s1', `u${i}`, `msg-${i}`), () => {
+          mgr.fireEvent('s1', 'conv-s1', makeAgentMessageRaw(`reply-${i}`));
+        });
+      }
+      const sendsBeforeReplay = mgr.calls.filter(
+        (c) => c.name === 'sendSessionMessage',
+      ).length;
+
+      // Oldest (u0) evicted: a repeat should hit upstream (no cached replay).
+      // We can't easily await an unterminated turn here, so abort early after
+      // confirming `sendSessionMessage` fires again for the evicted id.
+      const it = driver.sendMessage('s1', 'u0', 'msg-0')[Symbol.asyncIterator]();
+      const firstPromise = it.next();
+      await new Promise((r) => setImmediate(r));
+      const sendsAfterEvicted = mgr.calls.filter(
+        (c) => c.name === 'sendSessionMessage',
+      ).length;
+      expect(sendsAfterEvicted).toBe(sendsBeforeReplay + 1);
+      // Drain the new turn so it doesn't leak across tests.
+      mgr.fireEvent('s1', 'conv-s1', makeAgentMessageRaw('reply-evicted'));
+      await firstPromise;
+      let done = false;
+      while (!done) done = (await it.next()).done === true;
+
+      // Still-memoized mid-window utterance: pure replay, no upstream call.
+      const sendsBeforeMid = mgr.calls.filter(
+        (c) => c.name === 'sendSessionMessage',
+      ).length;
+      const midReplay: AgentEvent[] = [];
+      for await (const ev of driver.sendMessage('s1', 'u200', 'msg-200')) {
+        midReplay.push(ev);
+      }
+      const sendsAfterMid = mgr.calls.filter(
+        (c) => c.name === 'sendSessionMessage',
+      ).length;
+      expect(sendsAfterMid).toBe(sendsBeforeMid);
+      expect(midReplay).toEqual([
+        { kind: 'message', text: 'reply-200', serverTimestamp: undefined },
+      ]);
+
+      // Newest utterance: replay (most recent, definitely in memo).
+      const newestReplay: AgentEvent[] = [];
+      for await (const ev of driver.sendMessage('s1', `u${TOTAL - 1}`, '')) {
+        newestReplay.push(ev);
+      }
+      expect(newestReplay).toEqual([
+        { kind: 'message', text: `reply-${TOTAL - 1}`, serverTimestamp: undefined },
+      ]);
+    });
+
     test('T-2.2.12: concurrent sendMessages do not cross-talk', async () => {
       await driver.openSession('s1', OPTS);
       // First turn: bind and queue up; we won't terminate it until we choose to.

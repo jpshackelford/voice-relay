@@ -68,11 +68,28 @@ interface DriverSessionState {
   opts: OpenSessionOpts;
   /** FIFO of in-flight turns for this session. Oldest receives upstream events. */
   pending: PendingTurn[];
-  /** Per-`utteranceId` cache of the terminal event for idempotent retries. */
+  /**
+   * Per-`utteranceId` cache of the terminal event for idempotent retries.
+   *
+   * Bounded by `UTTERANCE_MEMO_LIMIT` to prevent unbounded growth in
+   * long-running sessions: when full, the oldest entry (by insertion order)
+   * is evicted FIFO. `restartSession` and `closeSession` also clear the map.
+   * Repeats of evicted utteranceIds re-send to upstream rather than replay,
+   * which matches `AISessionManager`'s existing behaviour for unknown
+   * utterances.
+   */
   utteranceMemo: Map<string, AgentEvent>;
   thinkingSince: string | null;
   startingSince: string | null;
 }
+
+/**
+ * Maximum number of `utteranceId → terminal AgentEvent` memo entries kept
+ * per session. Above this, the oldest entry is evicted FIFO. A few hundred
+ * is comfortably above any plausible client retry window while keeping
+ * worst-case memory bounded for chatty long-lived sessions.
+ */
+const UTTERANCE_MEMO_LIMIT = 256;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -249,6 +266,22 @@ export class OpenHandsAgentDriver implements AgentDriver {
     return state;
   }
 
+  /**
+   * Insert a terminal event into the per-session memo, evicting the oldest
+   * entry FIFO when the map is at capacity. Maps preserve insertion order
+   * in JS, so `keys().next().value` is the oldest key.
+   */
+  private memoize(state: DriverSessionState, utteranceId: string, event: AgentEvent): void {
+    if (state.utteranceMemo.has(utteranceId)) {
+      // Refresh insertion order so repeats stay "warm" against eviction.
+      state.utteranceMemo.delete(utteranceId);
+    } else if (state.utteranceMemo.size >= UTTERANCE_MEMO_LIMIT) {
+      const oldest = state.utteranceMemo.keys().next().value;
+      if (oldest !== undefined) state.utteranceMemo.delete(oldest);
+    }
+    state.utteranceMemo.set(utteranceId, event);
+  }
+
   private failPending(state: DriverSessionState, message: string, recoverable: boolean): void {
     for (const turn of state.pending) {
       if (turn.finished) continue;
@@ -329,7 +362,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           const errEvent: AgentEvent = { kind: 'error', message, recoverable: false };
-          state.utteranceMemo.set(utteranceId, errEvent);
+          this.memoize(state, utteranceId, errEvent);
           yield errEvent;
           return;
         } finally {
@@ -342,7 +375,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const errEvent: AgentEvent = { kind: 'error', message, recoverable: false };
-        state.utteranceMemo.set(utteranceId, errEvent);
+        this.memoize(state, utteranceId, errEvent);
         yield errEvent;
         return;
       }
@@ -352,14 +385,14 @@ export class OpenHandsAgentDriver implements AgentDriver {
           const event = queue.shift()!;
           yield event;
           if (event.kind === 'message' || event.kind === 'error') {
-            state.utteranceMemo.set(utteranceId, event);
+            this.memoize(state, utteranceId, event);
             return;
           }
           continue;
         }
         if (finished) {
           if (terminal) {
-            state.utteranceMemo.set(utteranceId, terminal);
+            this.memoize(state, utteranceId, terminal);
           }
           return;
         }
@@ -368,13 +401,13 @@ export class OpenHandsAgentDriver implements AgentDriver {
         });
         if (next.done) {
           if (terminal) {
-            state.utteranceMemo.set(utteranceId, terminal);
+            this.memoize(state, utteranceId, terminal);
           }
           return;
         }
         yield next.value;
         if (next.value.kind === 'message' || next.value.kind === 'error') {
-          state.utteranceMemo.set(utteranceId, next.value);
+          this.memoize(state, utteranceId, next.value);
           return;
         }
       }
