@@ -748,3 +748,48 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Orchestrator._
 
 ---
+
+### 2026-05-24 03:23 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4b1e277` | expansion | Issue #310 — Playwright E2E (5-min idle WS) | **NEW** |
+| `4a2b077` | review (merge) | PR #308 — fix(tests): GitHub App install URL | **NEW** |
+| `9b12d2f` | review (merge) | PR #309 — feat(websocket): server keepalive | **NEW** |
+
+**Worker Completed:** `114d989` (implementation, issue #288)
+- Opened [PR #311 — feat(server): openHandsAgentDriver adapter wrapping aiSessionManager](https://github.com/jpshackelford/voice-relay/pull/311)
+- Implementation slot now empty.
+
+**Action Taken:** 🚀 **Spawned 3 workers** (1 expansion + 2 merge)
+
+1. **Expansion Worker** — [Issue #310](https://github.com/jpshackelford/voice-relay/issues/310)
+   - Follow-up to #286/#309; needs technical detail on Playwright E2E for 5-min idle WS keepalive.
+   - Conv: [`4b1e277`](https://app.all-hands.dev/conversations/4b1e277647414013937c51fc473d3f35)
+2. **Merge Worker** — [PR #308](https://github.com/jpshackelford/voice-relay/pull/308) (priority:high, scope:full-stack)
+   - CI green (latest commit-lint passed at same SHA after title fix), positive bot review, 0 unresolved threads.
+   - Conv: [`4a2b077`](https://app.all-hands.dev/conversations/4a2b077acecf40deafa32988e1d128bc)
+3. **Merge Worker** — [PR #309](https://github.com/jpshackelford/voice-relay/pull/309) (priority:high, scope:full-stack, closes #286)
+   - CI green at latest SHA, positive bot review, 0 unresolved threads.
+   - Conv: [`9b12d2f`](https://app.all-hands.dev/conversations/9b12d2f1afb04b8cba005ff88957c72a)
+
+**Current State:**
+- Open PRs (4):
+  - [#311](https://github.com/jpshackelford/voice-relay/pull/311) — just opened by 114d989, awaiting review/CI. Will pick up next tick.
+  - [#309](https://github.com/jpshackelford/voice-relay/pull/309) — merge worker dispatched.
+  - [#308](https://github.com/jpshackelford/voice-relay/pull/308) — merge worker dispatched.
+  - [#306](https://github.com/jpshackelford/voice-relay/pull/306) — **flagged**: carries both `scope:client-only` and `scope:full-stack`, but diff touches `.github/workflows/ci.yml` + `package-lock.json` (non-client). Scope check would pick `scope:client-only` and halt with `needs-human`. Deferred until a worker/human reconciles the labels (likely drop `scope:client-only`).
+  - [#221](https://github.com/jpshackelford/voice-relay/pull/221) — DRAFT, `needs-human` (skip).
+- Issues needing expansion: 0 after #310 spawn (only #208/#210/#239 remain, all `on-hold`).
+- Ready issues without active worker: many (impl slot now free; next tick can spawn impl for highest-priority untouched ready issue).
+
+**Decision rationale:**
+- Impl slot opened when 114d989 finished; not respawned this tick (one productive tick at a time).
+- Both review slots filled with merge workers — three PRs technically mergeable, picked the two with `scope:full-stack` only and skipped #306's label tangle.
+- Expansion slot used for #310, the only non-`on-hold` issue without `ready`.
+- No `## INSTRUCTION:` entries in WORKLOG.md.
+
+`quiet_ticks` reset to 0.
+
+---

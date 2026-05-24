@@ -1,22 +1,33 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [
+    "expansion": [
       {
-        "conv_id": "114d989",
-        "issue": 288,
-        "started": "2026-05-24T03:05:13.554708+00:00"
+        "conv_id": "4b1e277",
+        "issue": 310,
+        "started": "2026-05-24T03:23:12.867423+00:00"
       }
     ],
-    "review": []
+    "implementation": [],
+    "review": [
+      {
+        "conv_id": "4a2b077",
+        "pr": 308,
+        "started": "2026-05-24T03:23:12.867423+00:00"
+      },
+      {
+        "conv_id": "9b12d2f",
+        "pr": 309,
+        "started": "2026-05-24T03:23:12.867423+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T03:05:13.554708+00:00",
+  "last_updated": "2026-05-24T03:23:12.867423+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -116,6 +127,15 @@
       "finished": "2026-05-24T03:05:13.554708+00:00",
       "status": "success",
       "outcome": "Addressed bot review thread on PR #307 (utteranceMemo doc clarification); commit a640a57; CI green; PR subsequently merged (0a12358) by merge worker; issue #287 auto-closed"
+    },
+    {
+      "conv_id": "114d989",
+      "type": "implementation",
+      "issue": 288,
+      "started": "2026-05-24T03:05:13.554708+00:00",
+      "finished": "2026-05-24T03:23:12.867423+00:00",
+      "status": "success",
+      "outcome": "Created PR #311 - openHandsAgentDriver adapter wrapping aiSessionManager"
     }
   ],
   "quiet_ticks": 0
