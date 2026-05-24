@@ -72,6 +72,45 @@ export type ThinkingListener = (sessionId: string, thinking: boolean) => void;
 export type ActionListener = (sessionId: string, action: OHAgentAction) => void;
 
 /**
+ * OpenHands' `ConversationExecutionStatus` values, as documented in
+ * `docs/openhands-platform.md` § Conversation status. Emitted by the agent
+ * server as the `value.execution_status` field of a
+ * `ConversationStateUpdateEvent` with `key === 'execution_status'`, and
+ * also returned on `GET /api/v1/app-conversations` as a top-level field.
+ *
+ * The driver maps these onto its provider-neutral `AgentSessionState` —
+ * see `mapExecutionStatusToDriverState` and the table in
+ * `docs/architecture.md` § Session state mapping. Reading this directly
+ * replaces the previous "no message in N minutes → assume stuck" heuristic
+ * with the API-native signal (#293).
+ */
+export type ExecutionStatus =
+  | 'idle'
+  | 'running'
+  | 'paused'
+  | 'waiting_for_confirmation'
+  | 'finished'
+  | 'error'
+  | 'stuck'
+  | 'deleting';
+
+/** Recognised execution status values; used to validate inbound events. */
+const EXECUTION_STATUSES: ReadonlySet<ExecutionStatus> = new Set<ExecutionStatus>([
+  'idle',
+  'running',
+  'paused',
+  'waiting_for_confirmation',
+  'finished',
+  'error',
+  'stuck',
+  'deleting',
+]);
+
+function isExecutionStatus(value: unknown): value is ExecutionStatus {
+  return typeof value === 'string' && EXECUTION_STATUSES.has(value as ExecutionStatus);
+}
+
+/**
  * One in-flight `sendMessage` turn. Events received from `AISessionManager`
  * via the forwarder callbacks are pushed into this queue until a terminal
  * event arrives, at which point the iterable completes.
@@ -101,6 +140,19 @@ interface DriverSessionState {
   utteranceMemo: Map<string, AgentEvent>;
   thinkingSince: string | null;
   startingSince: string | null;
+  /**
+   * Most recent `execution_status` reported by the upstream OH server, or
+   * `null` if no status event has arrived yet. Drives the primary path in
+   * `synthesizeStatus` per the mapping table in `docs/architecture.md`
+   * § Session state mapping (#293).
+   */
+  executionStatus: ExecutionStatus | null;
+  /**
+   * Error message captured from the most recent `error`/`stuck`
+   * execution-status event, surfaced through `AgentSessionStatus.error`.
+   * Cleared on the next non-error status event.
+   */
+  executionError: string | null;
 }
 
 /**
@@ -169,6 +221,70 @@ function rawEventErrorMessage(raw: RawOpenHandsEvent): string {
   if (typeof candidate.reason === 'string') return candidate.reason;
   if (typeof candidate.kind === 'string') return candidate.kind;
   return 'agent error';
+}
+
+/**
+ * Shape of the upstream `ConversationStateUpdateEvent` with
+ * `key === 'execution_status'`. The agent server emits this on the
+ * WebSocket every time the conversation's execution status transitions
+ * (e.g. user message → `running`, agent turn done → `idle`).
+ */
+interface RawExecutionStatusEvent {
+  kind: 'ConversationStateUpdateEvent';
+  key: 'execution_status';
+  value: { execution_status?: unknown; error?: unknown; reason?: unknown; message?: unknown };
+  timestamp?: string;
+}
+
+function isExecutionStatusEvent(raw: RawOpenHandsEvent): raw is RawOpenHandsEvent & RawExecutionStatusEvent {
+  const candidate = raw as { kind?: unknown; key?: unknown; value?: unknown };
+  return (
+    candidate.kind === 'ConversationStateUpdateEvent' &&
+    candidate.key === 'execution_status' &&
+    typeof candidate.value === 'object' &&
+    candidate.value !== null
+  );
+}
+
+/**
+ * Extract a human-readable error message from the `value` payload of an
+ * `execution_status: error` event. The upstream platform isn't strict
+ * about which field carries the detail — we accept any of `error`,
+ * `message`, or `reason`. Returns `null` when none are present so the
+ * caller can substitute a default.
+ */
+function extractExecutionError(value: RawExecutionStatusEvent['value']): string | null {
+  if (typeof value.error === 'string' && value.error.length > 0) return value.error;
+  if (typeof value.message === 'string' && value.message.length > 0) return value.message;
+  if (typeof value.reason === 'string' && value.reason.length > 0) return value.reason;
+  return null;
+}
+
+/**
+ * Mapping table from upstream `ConversationExecutionStatus` to the driver's
+ * provider-neutral `AgentSessionState`. Mirrors the table in
+ * `docs/architecture.md` § Session state mapping verbatim.
+ *
+ * `null` means "no opinion" — the caller should fall back to the legacy
+ * ws/`isThinking` heuristic. We do not use that branch today (every
+ * defined `ExecutionStatus` maps to a concrete state), but the function
+ * shape leaves room for future statuses without a runtime crash.
+ */
+function mapExecutionStatusToDriverState(status: ExecutionStatus): AgentSessionState {
+  switch (status) {
+    case 'idle':
+    case 'finished':
+    case 'paused':
+    case 'waiting_for_confirmation':
+      return 'ready';
+    case 'running':
+      return 'thinking';
+    case 'stuck':
+    case 'error':
+      return 'degraded';
+    case 'deleting':
+      return 'absent';
+  }
 }
 
 /**
@@ -249,6 +365,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
         utteranceMemo: new Map(),
         thinkingSince: null,
         startingSince: null,
+        executionStatus: null,
+        executionError: null,
       };
       this.states.set(sessionId, state);
     }
@@ -290,6 +408,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
     this.failPending(state, 'session restarted', true);
     state.utteranceMemo.clear();
     state.thinkingSince = null;
+    state.executionStatus = null;
+    state.executionError = null;
     state.startingSince = nowIso();
     try {
       await this.mgr.getOrCreateForSession(
@@ -394,6 +514,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
         utteranceMemo: new Map(),
         thinkingSince: null,
         startingSince: null,
+        executionStatus: null,
+        executionError: null,
       };
       this.states.set(sessionId, state);
     }
@@ -589,6 +711,17 @@ export class OpenHandsAgentDriver implements AgentDriver {
   }
 
   private onEvent(sessionId: string, raw: RawOpenHandsEvent): void {
+    // ConversationStateUpdateEvent → drive the session-state machine (#293).
+    // Handled *before* the orphan check (`states.get` could be absent for a
+    // valid open binding when the platform calls `closeSession` mid-stream,
+    // and the existing pending-turn check) so a status arriving outside an
+    // in-flight `sendMessage` (e.g. an idle → running transition triggered
+    // by something other than our own send) still updates the snapshot.
+    if (isExecutionStatusEvent(raw)) {
+      this.onExecutionStatusEvent(sessionId, raw);
+      return;
+    }
+
     const state = this.states.get(sessionId);
     if (!state) return;
     const turn = state.pending[0];
@@ -626,6 +759,97 @@ export class OpenHandsAgentDriver implements AgentDriver {
     // wired on `AISessionManager` today.
   }
 
+  /**
+   * Apply an inbound `ConversationStateUpdateEvent(key='execution_status')`
+   * to the driver's session-state machine. Implements the mapping table
+   * documented in `docs/architecture.md` § Session state mapping (#293).
+   *
+   * Behavior:
+   * - Unknown `execution_status` values (e.g. a future upstream addition)
+   *   are logged and ignored — we never invent a state for an unrecognised
+   *   value.
+   * - Events for sessions the driver has no record of are logged once and
+   *   dropped (the platform may have torn down the local state but the
+   *   upstream still emits trailing events).
+   * - Consecutive events with the same status (and same error payload, if
+   *   any) are deduplicated — no listener re-fire, no extra status event
+   *   pushed into an in-flight turn.
+   * - `running` → `thinking` sets `thinkingSince` to the event's `timestamp`
+   *   (or current time as a fallback) only on the *entry* into running.
+   *   Subsequent `running` events while already running are ignored by the
+   *   dedupe path above and therefore do not reset `thinkingSince`.
+   * - Any non-`running` status clears `thinkingSince` and fires
+   *   `thinking=false` to subscribed `thinkingListeners` (regardless of
+   *   whether the turn emitted a user-facing message — fixes the
+   *   tool-only-turn case from the issue).
+   */
+  private onExecutionStatusEvent(sessionId: string, raw: RawExecutionStatusEvent): void {
+    const rawStatus = raw.value.execution_status;
+    if (!isExecutionStatus(rawStatus)) {
+      console.warn(
+        `[AgentDriver] ignoring execution_status event with unknown value: ${JSON.stringify(rawStatus)}`,
+      );
+      return;
+    }
+
+    const state = this.states.get(sessionId);
+    if (!state) {
+      console.warn(
+        `[AgentDriver] orphan execution_status event for unknown sessionId=${sessionId} (status=${rawStatus})`,
+      );
+      return;
+    }
+
+    // Errors carry an optional payload; `null` means "use a default
+    // user-visible message at synthesizeStatus time".
+    const newError =
+      rawStatus === 'error' || rawStatus === 'stuck' ? extractExecutionError(raw.value) : null;
+
+    // Dedupe consecutive identical events. Same status + same error
+    // payload means nothing has changed; skipping avoids redundant
+    // broadcast and stops `thinkingSince` resetting on `running → running`
+    // (the issue calls this out explicitly).
+    if (state.executionStatus === rawStatus && state.executionError === newError) {
+      return;
+    }
+
+    const prevStatus = state.executionStatus;
+    state.executionStatus = rawStatus;
+    state.executionError = newError;
+
+    // Maintain `thinkingSince` on the running entry/exit transitions.
+    if (rawStatus === 'running' && prevStatus !== 'running') {
+      state.thinkingSince =
+        typeof raw.timestamp === 'string' && raw.timestamp.length > 0 ? raw.timestamp : nowIso();
+    } else if (rawStatus !== 'running' && prevStatus === 'running') {
+      state.thinkingSince = null;
+    }
+
+    // Fan out a thinking-change to subscribed listeners on the transition.
+    // This is what flips the 🤔 indicator off when a tool-only turn ends —
+    // `AISessionManager.isThinking` only flips on agent *message* arrival
+    // today, so without this the indicator would stick on indefinitely
+    // (#293 problem statement).
+    const wasRunning = prevStatus === 'running';
+    const isRunning = rawStatus === 'running';
+    if (isRunning !== wasRunning) {
+      for (const listener of this.thinkingListeners) {
+        try {
+          listener(sessionId, isRunning);
+        } catch (err) {
+          console.error('[AgentDriver] thinking listener threw:', err);
+        }
+      }
+    }
+
+    // Emit an intermediate `status` AgentEvent so any in-flight
+    // `sendMessage` turn surfaces the transition to its consumer.
+    const turn = state.pending[0];
+    if (turn) {
+      turn.push({ kind: 'status', status: this.synthesizeStatus(sessionId) });
+    }
+  }
+
   private synthesizeStatus(sessionId: string): AgentSessionStatus {
     const state = this.states.get(sessionId);
     const ai = this.mgr.getSessionAI(sessionId);
@@ -648,21 +872,52 @@ export class OpenHandsAgentDriver implements AgentDriver {
 
     if (ai) {
       conversationId = ai.conversationId;
+      // Precedence (per `docs/architecture.md` § Session state mapping —
+      // "adapter > upstream > default"):
+      //
+      //   1. Adapter overrides — in-flight rebind, MISSING-sandbox
+      //      recovery, ws torn down. These describe states the upstream
+      //      cannot know about, so they take priority.
+      //   2. Upstream `execution_status` — the primary signal from #293.
+      //   3. Default — legacy ws/`isThinking` heuristic, used until the
+      //      first `execution_status` event arrives.
       const wsState = ai.ws?.readyState;
+      const wsTornDown = wsState === WS_CLOSING || wsState === WS_CLOSED;
+
       if (ai.degraded) {
-        // Reconnect loop gave up (sandbox MISSING or refresh exhausted) —
-        // see #291. The user-visible recovery path lives in #294/#296.
+        // Adapter-level override (from #291/#323): the reconnect loop
+        // gave up — sandbox MISSING or refresh-credentials retries
+        // exhausted. The user-visible recovery path lives in #294/#296.
+        // This wins over upstream execution_status because the upstream
+        // wire may still be emitting trailing events on the way out.
         agentState = 'degraded';
         error = ai.degradedReason ?? 'Agent runtime no longer available';
+      } else if (wsTornDown) {
+        // Adapter-level override: the upstream wire is gone but the
+        // reconnect loop hasn't given up yet — `AISessionManager` will
+        // auto-reconnect. Stale `running`/`idle` events sitting in the
+        // buffer must not override this.
+        agentState = 'reconnecting';
+      } else if (state?.executionStatus !== null && state?.executionStatus !== undefined) {
+        // Upstream `execution_status` — the primary signal from #293.
+        agentState = mapExecutionStatusToDriverState(state.executionStatus);
+        if (agentState === 'degraded') {
+          error =
+            state.executionError ??
+            (state.executionStatus === 'stuck'
+              ? 'Agent appears stuck — try restarting the session.'
+              : 'Agent reported an error.');
+        }
       } else if (ai.isThinking) {
+        // Legacy fallback (used until the first execution_status event
+        // arrives) — derived from `AISessionManager.isThinking`, which
+        // flips on send and off on agent-message receipt.
         agentState = 'thinking';
       } else if (wsState === WS_OPEN) {
         agentState = 'ready';
-      } else if (wsState === WS_CONNECTING || wsState === undefined) {
-        agentState = 'starting';
       } else {
-        // WS_CLOSING or WS_CLOSED — `AISessionManager` will auto-reconnect.
-        agentState = 'reconnecting';
+        // wsState === WS_CONNECTING || undefined
+        agentState = 'starting';
       }
     } else if (state?.startingSince !== null && state?.startingSince !== undefined) {
       agentState = 'starting';
