@@ -1689,7 +1689,10 @@ export class AISessionManager {
 }
 
 // Export singleton instance
-export const aiSessionManager = new AISessionManager();
+// Note: the process-lifetime `AISessionManager` singleton is owned by
+// `server/src/agent-driver/index.ts` (see #289). Platform code must consume
+// the `AgentDriver` seam there instead of constructing or importing the
+// manager directly.
 
 /**
  * Helper function to get workspace API key from settings

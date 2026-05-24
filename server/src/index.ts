@@ -11,7 +11,14 @@ import { DeviceRegistry } from './registry.js';
 import { attachKeepalive } from './keepalive.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { AgentEventRepository } from './storage/agent-event-repository.js';
-import { aiSessionManager, getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
+import { getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
+import {
+  agentDriver,
+  onAgentRawEvent,
+  onAgentThinkingChange,
+  onAgentAction,
+  shutdownAgentDriver,
+} from './agent-driver/index.js';
 import {
   AgentEventRehydrator,
   createAgentEventRouter,
@@ -23,6 +30,7 @@ import { SessionRepository, createSessionRouter } from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
+import { relayAgentResponse } from './agent-message-relay.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
 import { 
@@ -113,8 +121,14 @@ const registry = new DeviceRegistry();
 const store: MessageStore = createStoreFromEnv();
 
 // Wire AI thinking state to broadcast to session devices
-// This enables the kiosk display to show 🤔 while AI is processing
-aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+// This enables the kiosk display to show 🤔 while AI is processing.
+//
+// `onAgentThinkingChange` registers a listener on the production
+// `AgentDriver`; the driver fan-outs from its single subscription on
+// `AISessionManager.setThinkingChangeCallback`. Multiple subscribers
+// coexist without clobbering each other (unlike the legacy setter
+// pattern).
+onAgentThinkingChange((sessionId: string, thinking: boolean) => {
   const message: AIThinkingMessage = {
     type: 'ai-thinking',
     sessionId,
@@ -124,8 +138,8 @@ aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean
 });
 
 // Wire AI action events to broadcast to session devices
-// This enables the kiosk to show real-time agent activity
-aiSessionManager.setActionCallback((sessionId: string, action: AgentAction) => {
+// This enables the kiosk to show real-time agent activity.
+onAgentAction((sessionId: string, action: AgentAction) => {
   const message: AgentActionMessage = {
     type: 'agent-action',
     sessionId,
@@ -396,10 +410,11 @@ app.post('/api/display', async (req, res) => {
 
 // AI conversation management endpoints
 app.get('/api/ai/status', (_req, res) => {
-  res.json({ 
-    available: aiSessionManager.isAvailable(),
-    message: aiSessionManager.isAvailable() 
-      ? 'OpenHands AI is available' 
+  const available = agentDriver.isAvailable();
+  res.json({
+    available,
+    message: available
+      ? 'OpenHands AI is available'
       : 'OpenHands API key not configured'
   });
 });
@@ -599,13 +614,13 @@ wss.on('connection', (ws: WebSocket) => {
           }
 
           // Auto-connect AI when first device joins session
-          if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, aiSessionManager)) {
+          if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, agentDriver)) {
             // Start AI connection asynchronously (don't block registration)
             autoConnectAI(sessionId, requestedWorkspaceId, {
               registry,
               sessionRepository,
               workspaceRepository,
-              aiSessionManager,
+              agentDriver,
               store,
               ttsService: ttsService ?? undefined,
               getWorkspaceApiKey: async (wsId) => 
@@ -669,14 +684,31 @@ wss.on('connection', (ws: WebSocket) => {
             registry.broadcastToOutputs(relayMessage, device.workspaceId);
           }
 
-          // Forward final messages to session AI if connected
-          if (device.sessionId && !message.partial && aiSessionManager.hasSessionAI(device.sessionId)) {
-            try {
-              await aiSessionManager.sendSessionMessage(device.sessionId, message.text);
-              console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
-            } catch (err) {
+          // Forward final messages to session AI if connected.
+          //
+          // Note: `relayAgentResponse` iterates the driver's
+          // `AsyncIterable<AgentEvent>` and broadcasts `message` events to
+          // session devices, persists them, and drives TTS (the legacy
+          // session-level `onMessage` callback path lives there now). We
+          // intentionally do not await — the relay completes
+          // out-of-band so subsequent inbound WS frames keep flowing.
+          if (device.sessionId && !message.partial && agentDriver.hasSession(device.sessionId)) {
+            relayAgentResponse(
+              device.sessionId,
+              device.workspaceId,
+              message.utteranceId,
+              message.text,
+              {
+                agentDriver,
+                registry,
+                store,
+                sessionRepository,
+                ttsService: ttsService ?? undefined,
+              }
+            ).catch((err) => {
               console.error(`[AI] Failed to forward message to session AI:`, err);
-            }
+            });
+            console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
           }
           break;
         }
@@ -858,22 +890,35 @@ wss.on('connection', (ws: WebSocket) => {
           } else {
             console.log(`[Display] ✗ ${displayType} failed: ${error || 'unknown error'}`);
             
-            // Forward failure to AI session if connected
-            if (device.sessionId && aiSessionManager.hasSessionAI(device.sessionId)) {
-              const errorDescription = error === 'timeout' 
+            // Forward failure to AI session if connected. The agent's
+            // response is relayed via the standard `relayAgentResponse`
+            // iterable consumer (broadcasts/persists/TTS the AI reply).
+            if (device.sessionId && agentDriver.hasSession(device.sessionId)) {
+              const errorDescription = error === 'timeout'
                 ? 'timed out while loading'
                 : error === 'cors'
                 ? 'failed due to CORS restrictions'
                 : 'failed to load';
-              
+
               const feedbackMessage = `[Display Feedback] Image ${errorDescription}. Consider trying an alternative image URL or describing the content instead.`;
-              
-              try {
-                await aiSessionManager.sendSessionMessage(device.sessionId, feedbackMessage);
-                console.log(`[Display] Forwarded failure feedback to session AI: ${device.sessionId}`);
-              } catch (aiErr) {
+              const feedbackUtteranceId = `display-feedback-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
+              relayAgentResponse(
+                device.sessionId,
+                device.workspaceId,
+                feedbackUtteranceId,
+                feedbackMessage,
+                {
+                  agentDriver,
+                  registry,
+                  store,
+                  sessionRepository,
+                  ttsService: ttsService ?? undefined,
+                }
+              ).catch((aiErr) => {
                 console.error('[Display] Failed to forward feedback to AI:', aiErr);
-              }
+              });
+              console.log(`[Display] Forwarded failure feedback to session AI: ${device.sessionId}`);
             }
           }
           break;
@@ -968,10 +1013,15 @@ async function start() {
       });
       console.log('[TTS] Service initialized');
 
-      // Wire live-ingest of upstream OH events into agent_events.
-      // Errors are swallowed so DB hiccups can't block device broadcast —
-      // see AISessionManager WS handler for the surrounding try/catch.
-      aiSessionManager.setEventCallback((vrSessionId, conversationId, rawEvent) => {
+      // Wire live-ingest of upstream agent events into `agent_events`.
+      //
+      // Subscribes through the `AgentDriver` fan-out (`onAgentRawEvent`)
+      // instead of the legacy manager-level setEventCallback setter
+      // pattern. The driver is the sole subscriber on the manager; this
+      // hook composes (rather than replaces) so multiple listeners
+      // coexist. Errors are swallowed so DB hiccups can't block device
+      // broadcast.
+      onAgentRawEvent((vrSessionId, conversationId, rawEvent) => {
         if (!agentEventRepository) return;
         const session = sessionRepository?.findById(vrSessionId);
         if (!session) {
@@ -1309,7 +1359,7 @@ async function start() {
       agentEventTtlInterval = null;
     }
     deviceAuthManager?.shutdown();
-    await aiSessionManager.shutdown();
+    await shutdownAgentDriver();
     await store.disconnect();
     server.close();
     process.exit(0);

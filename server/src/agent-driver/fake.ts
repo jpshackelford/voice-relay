@@ -48,10 +48,22 @@ export class FakeDriver implements AgentDriver {
   private readonly sessions = new Map<string, FakeSession>();
   /** Monotonic counter used to fabricate fake conversation ids. */
   private conversationCounter = 0;
+  /** Configurable availability flag. Defaults to `true` for tests. */
+  private available = true;
 
   // ---------------------------------------------------------------------------
   // AgentDriver implementation
   // ---------------------------------------------------------------------------
+
+  isAvailable(): boolean {
+    // FakeDriver is always available for tests. Override via `setAvailable`
+    // if a test needs to exercise the unavailable path.
+    return this.available;
+  }
+
+  hasSession(sessionId: string): boolean {
+    return this.sessions.has(sessionId);
+  }
 
   async openSession(sessionId: string, opts: OpenSessionOpts): Promise<AgentSessionStatus> {
     const existing = this.sessions.get(sessionId);
@@ -151,6 +163,12 @@ export class FakeDriver implements AgentDriver {
   reset(): void {
     this.sessions.clear();
     this.conversationCounter = 0;
+    this.available = true;
+  }
+
+  /** Toggle the `isAvailable()` return value (defaults to true). */
+  setAvailable(available: boolean): void {
+    this.available = available;
   }
 
   // ---------------------------------------------------------------------------

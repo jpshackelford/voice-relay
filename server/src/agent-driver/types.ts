@@ -83,8 +83,27 @@ export interface OpenSessionOpts {
  */
 export interface AgentDriver {
   /**
-   * Idempotently register a session with the driver. Does **not** provision
-   * upstream resources; that happens lazily on first `sendMessage`.
+   * True when the driver is configured and can serve requests. Used by the
+   * platform's auto-connect path to skip provisioning entirely when no
+   * credentials are available. Cheap; no upstream calls.
+   */
+  isAvailable(): boolean;
+
+  /**
+   * True when the driver has a registered (and likely upstream-bound)
+   * session for `sessionId`. Cheap synchronous check used by hot-path
+   * dispatch decisions in the WS handler. Equivalent in spirit to
+   * `getSessionStatus(sessionId).state !== 'absent'` but synchronous so
+   * callers don't pay an `await` per inbound text frame.
+   */
+  hasSession(sessionId: string): boolean;
+
+  /**
+   * Idempotently register a session with the driver and provision upstream
+   * resources if the driver requires them. Adapters MAY treat this as
+   * cheap registration (deferring upstream allocation to `sendMessage`),
+   * but the production OpenHands adapter binds eagerly so the returned
+   * status carries a real `conversationId` callers can persist.
    * Calling twice with the same `sessionId` returns the same status.
    */
   openSession(sessionId: string, opts: OpenSessionOpts): Promise<AgentSessionStatus>;

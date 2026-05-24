@@ -8,7 +8,7 @@
  * events synchronously and assert on the resulting `AgentEvent` stream.
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { OpenHandsAgentDriver, type AISessionManagerSurface } from './openhands.js';
 import type {
   AISession,
@@ -40,6 +40,21 @@ class FakeAISessionManager implements AISessionManagerSurface {
   getOrCreateImpl?: (sessionId: string, workspaceId: string) => Promise<FakeAIBinding>;
   /** Optional override of `sendSessionMessage` behavior per test. */
   sendImpl?: (sessionId: string, message: string) => Promise<void>;
+  /** Override of `isAvailable` per test. Defaults to true. */
+  available = true;
+
+  isAvailable(): boolean {
+    return this.available;
+  }
+
+  hasSessionAI(sessionId: string): boolean {
+    return this.bindings.has(sessionId);
+  }
+
+  async shutdown(): Promise<void> {
+    this.calls.push({ name: 'shutdown', args: [] });
+    this.bindings.clear();
+  }
 
   setThinkingChangeCallback(cb: ThinkingChangeCallback | undefined): void {
     this.thinking = cb;
@@ -171,19 +186,20 @@ describe('OpenHandsAgentDriver', () => {
   });
 
   describe('openSession (T-2.2.1 .. T-2.2.4)', () => {
-    test('T-2.2.1: with no upstream binding returns absent', async () => {
+    test('T-2.2.1: eagerly binds upstream and returns ready (issue #289)', async () => {
+      // Migration of the legacy auto-connect path onto the driver requires
+      // openSession to eagerly call `getOrCreateForSession` so callers can
+      // persist the conversation ID. The fake manager's default
+      // `getOrCreateForSession` creates a connected binding.
       const status = await driver.openSession('s1', OPTS);
-      expect(status).toEqual({
-        sessionId: 's1',
-        state: 'absent',
-        conversationId: null,
-        error: null,
-        thinkingSince: null,
-        startingSince: null,
-      });
+      const created = mgr.calls.find((c) => c.name === 'getOrCreateForSession');
+      expect(created).toBeDefined();
+      expect(created?.args).toEqual(['s1', 'wk-1']);
+      expect(status.state).toBe('ready');
+      expect(status.conversationId).toBe('conv-s1');
     });
 
-    test('T-2.2.2: with existing connected binding returns ready', async () => {
+    test('T-2.2.2: with existing connected binding returns ready (no re-bind)', async () => {
       mgr.bindings.set('s1', {
         conversationId: 'conv-s1',
         ws: { readyState: 1 },
@@ -192,6 +208,8 @@ describe('OpenHandsAgentDriver', () => {
       const status = await driver.openSession('s1', OPTS);
       expect(status.state).toBe('ready');
       expect(status.conversationId).toBe('conv-s1');
+      // mgr.hasSessionAI short-circuits the eager-bind path.
+      expect(mgr.calls.find((c) => c.name === 'getOrCreateForSession')).toBeUndefined();
     });
 
     test('T-2.2.3: with thinking binding returns thinking', async () => {
@@ -204,10 +222,20 @@ describe('OpenHandsAgentDriver', () => {
       expect(status.state).toBe('thinking');
     });
 
-    test('T-2.2.4: openSession is idempotent', async () => {
+    test('T-2.2.4: openSession is idempotent — second call does not re-bind', async () => {
       const a = await driver.openSession('s1', OPTS);
+      const initialBindCount = mgr.calls.filter((c) => c.name === 'getOrCreateForSession').length;
       const b = await driver.openSession('s1', OPTS);
+      const finalBindCount = mgr.calls.filter((c) => c.name === 'getOrCreateForSession').length;
       expect(a).toEqual(b);
+      expect(finalBindCount).toBe(initialBindCount);
+    });
+
+    test('T-2.2.4b: openSession propagates upstream bind failures (issue #289)', async () => {
+      mgr.getOrCreateImpl = async () => {
+        throw new Error('no API key');
+      };
+      await expect(driver.openSession('s1', OPTS)).rejects.toThrow(/no API key/);
     });
   });
 
@@ -445,8 +473,10 @@ describe('OpenHandsAgentDriver', () => {
       ]);
     });
 
-    test('getOrCreateForSession failure surfaces as terminal error', async () => {
-      await driver.openSession('s1', OPTS);
+    test('getOrCreateForSession failure during lazy-bind surfaces as terminal error', async () => {
+      // openSession (eager) is skipped here so sendMessage hits the lazy-bind
+      // path. Setup mirrors the original test's intent prior to #289's eager
+      // bind change.
       mgr.getOrCreateImpl = async () => {
         throw new Error('OH not configured');
       };
@@ -469,6 +499,9 @@ describe('OpenHandsAgentDriver', () => {
         ws: { readyState: 1 },
         isThinking: true,
       });
+      // After #289 openSession eagerly bound once; drop the prior call log
+      // so the ordering assertion targets the restartSession turn only.
+      mgr.calls.length = 0;
       mgr.getOrCreateImpl = async () => ({
         conversationId: 'conv-new',
         ws: { readyState: 1 },
@@ -749,6 +782,112 @@ describe('OpenHandsAgentDriver', () => {
       expect(() =>
         mgr.fireEvent('unknown', 'c', makeAgentMessageRaw('hi')),
       ).not.toThrow();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Platform fan-out hooks (issue #289)
+  // ---------------------------------------------------------------------------
+
+  describe('platform fan-out hooks (T-2.3.D.*)', () => {
+    test('T-2.3.D.1: isAvailable delegates to manager.isAvailable', () => {
+      mgr.available = true;
+      expect(driver.isAvailable()).toBe(true);
+      mgr.available = false;
+      expect(driver.isAvailable()).toBe(false);
+    });
+
+    test('T-2.3.D.2: hasSession delegates to manager.hasSessionAI', () => {
+      expect(driver.hasSession('s1')).toBe(false);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      expect(driver.hasSession('s1')).toBe(true);
+    });
+
+    test('T-2.3.D.3: onRawEvent fan-out fires for every upstream event', () => {
+      const received: Array<{ session: string; conv: string }> = [];
+      const unsub = driver.onRawEvent((session, conv, _raw) => {
+        received.push({ session, conv });
+      });
+
+      mgr.fireEvent('s1', 'conv-1', makeAgentMessageRaw('hi'));
+      mgr.fireEvent('s2', 'conv-2', makeAgentMessageRaw('there'));
+
+      expect(received).toEqual([
+        { session: 's1', conv: 'conv-1' },
+        { session: 's2', conv: 'conv-2' },
+      ]);
+
+      unsub();
+      mgr.fireEvent('s3', 'conv-3', makeAgentMessageRaw('after'));
+      expect(received).toHaveLength(2);
+    });
+
+    test('T-2.3.D.4: onThinkingChange fan-out fires for every upstream change', () => {
+      const log: Array<[string, boolean]> = [];
+      const unsub = driver.onThinkingChange((s, t) => log.push([s, t]));
+
+      mgr.fireThinking('s1', true);
+      mgr.fireThinking('s1', false);
+
+      expect(log).toEqual([
+        ['s1', true],
+        ['s1', false],
+      ]);
+      unsub();
+      mgr.fireThinking('s1', true);
+      expect(log).toHaveLength(2);
+    });
+
+    test('T-2.3.D.5: onActionEvent fan-out fires for every upstream action', () => {
+      const log: Array<{ session: string; kind: string }> = [];
+      const unsub = driver.onActionEvent((s, a) => log.push({ session: s, kind: a.kind }));
+
+      mgr.fireAction('s1', {
+        id: 'a1',
+        timestamp: '2026-01-01T00:00:00Z',
+        kind: 'BrowserOpen',
+        source: 'agent',
+        summary: '',
+      });
+
+      expect(log).toEqual([{ session: 's1', kind: 'BrowserOpen' }]);
+      unsub();
+    });
+
+    test('T-2.3.D.6: a throwing listener does not break sibling listeners', () => {
+      const calls: string[] = [];
+      driver.onRawEvent(() => {
+        calls.push('listener-1');
+        throw new Error('boom');
+      });
+      driver.onRawEvent(() => {
+        calls.push('listener-2');
+      });
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      mgr.fireEvent('s1', 'conv-1', makeAgentMessageRaw('hi'));
+      consoleSpy.mockRestore();
+
+      expect(calls).toEqual(['listener-1', 'listener-2']);
+    });
+
+    test('T-2.3.D.7: shutdown delegates to manager.shutdown and clears local state', async () => {
+      mgr.bindings.set('s1', {
+        conversationId: 'c1',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      await driver.openSession('s1', OPTS);
+
+      await driver.shutdown();
+
+      expect(mgr.calls.find((c) => c.name === 'shutdown')).toBeDefined();
+      // After shutdown the driver no longer tracks the session.
+      expect(driver.hasSession('s1')).toBe(false);
     });
   });
 });
