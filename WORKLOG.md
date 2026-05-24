@@ -984,3 +984,47 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:21 UTC - Orchestrator
+
+🚀 **Spawned: 2 workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| `b44a30b` | merge | [PR #327](https://github.com/jpshackelford/voice-relay/pull/327) — test(client): cover deviceToken, getEventContent, useResourceFetch (refs #303) | **NEW** |
+| `ee8d412` | implementation | [Issue #296](https://github.com/jpshackelford/voice-relay/issues/296) — Detect MISSING sandbox and rebind via conversation_id (priority:high) | **NEW** |
+
+**Completed last tick (moved out of slots):**
+- `2eb2157` impl #303 → finished — opened [PR #327](https://github.com/jpshackelford/voice-relay/pull/327) (batch 3 of client coverage, refs #303; #303 stays open with 6 hooks still excluded)
+- `38d025a` merge PR #324 → finished — squash-merged `ab17f63` at 20:52:30Z, closed #293
+- `504457a` merge PR #325 → finished — rebased onto post-#324 main and squash-merged at 21:01:53Z, closed #292
+
+1. **Merge Worker — PR #327** ([`b44a30b`](https://app.all-hands.dev/conversations/b44a30b2d8cd47cc8a3a5582500b9356))
+   - Pre-flight: `MERGEABLE` / `CLEAN`, 7/7 CI green (Server/Client/Build/E2E/lint-pr-title/pr-review/enable-orchestrator), 0 unresolved review threads, not draft, no `on-hold` / `needs-human`.
+   - Scope: client-only — 3 test files + `client/vite.config.ts` exclude-list trim. No DB schema / migrations.
+   - `refs #303` — issue #303 stays OPEN (6 hook modules still excluded; future batches).
+   - **Note:** PR was actually merged mid-tick (squash `41af612` at 21:20:07Z) — worker is finishing its own worklog entry now.
+
+2. **Implementation Worker — Issue #296** ([`ee8d412`](https://app.all-hands.dev/conversations/ee8d412207944c89b31d4903587c6133))
+   - Issue #296 (priority:high) — "Detect MISSING sandbox and rebind via conversation_id". Blocker #293 closed via PR #324 at 20:53Z, so this is now unblocked.
+   - Likely server-only change: extend the `OpenHandsAgentDriver` state machine (where #293 added `execution_status` → `state` mapping) to detect `MISSING` and call the OH rebind primitive, preserving `conversation_id`. Single-flight pattern from #292 will likely be reused for concurrent MISSING events.
+   - Memory replay is explicitly OUT of scope (that is #297, blocked on this).
+
+**Current State:**
+- **Open PRs**: 0 after #327 merge (which landed mid-tick). #324 / #325 / #326 / #318 / #316 all merged within the last ~90 min.
+- **Ready issues**: #294, #295, #296 (now being implemented), #297, #303 (stays open). #294/#295 are priority:medium client work that could be picked up next; #297 is gated on #296.
+- **Issues needing expansion**: 6 — all carry `on-hold` (S3 persistence freeze #299–#302 + #210, #239). Skipped per AGENTS.md.
+- **Slots after tick**: expansion 0/4, implementation 1/1, review 1/2.
+
+**Action Taken:**
+1. 🚀 Spawned merge worker `b44a30b` for PR #327 — all merge criteria satisfied.
+2. 🚀 Spawned implementation worker `ee8d412` for Issue #296 — priority:high, blocker #293 closed.
+3. Did **not** spawn additional expansion workers — all unexpanded issues are `on-hold` under the S3 persistence design freeze (Path B, see AGENTS.md).
+4. Second review slot left open intentionally — no other open PRs need review right now.
+
+`quiet_ticks` reset to 0 (productive tick).
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---

@@ -4,21 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "2eb2157",
-        "issue": 303,
-        "started": "2026-05-24T20:52:21.600684+00:00"
+        "conv_id": "ee8d412",
+        "issue": 296,
+        "started": "2026-05-24T21:20:51.125673+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "38d025a",
-        "pr": 324,
-        "started": "2026-05-24T20:52:21.600684+00:00"
-      },
-      {
-        "conv_id": "504457a",
-        "pr": 325,
-        "started": "2026-05-24T20:52:21.600684+00:00"
+        "conv_id": "b44a30b",
+        "pr": 327,
+        "started": "2026-05-24T21:20:51.125673+00:00"
       }
     ]
   },
@@ -27,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T20:52:21.600684+00:00",
+  "last_updated": "2026-05-24T21:20:51.125673+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -379,6 +374,33 @@
       "finished": "2026-05-24T20:49:37.214705+00:00",
       "status": "success",
       "outcome": "Addressed PR #324 review feedback; all CI green, 0 unresolved review threads, MERGEABLE - ready to merge"
+    },
+    {
+      "conv_id": "2eb2157",
+      "type": "implementation",
+      "issue": 303,
+      "started": "2026-05-24T20:52:21.600684+00:00",
+      "finished": "2026-05-24T21:20:51.125673+00:00",
+      "status": "success",
+      "outcome": "Opened PR #327 (refs #303 \u2014 batch 3: deviceToken/getEventContent/useResourceFetch)"
+    },
+    {
+      "conv_id": "38d025a",
+      "type": "review",
+      "pr": 324,
+      "started": "2026-05-24T20:52:21.600684+00:00",
+      "finished": "2026-05-24T21:20:51.125673+00:00",
+      "status": "success",
+      "outcome": "Merged PR #324 (closes #293) \u2014 squash ab17f63"
+    },
+    {
+      "conv_id": "504457a",
+      "type": "review",
+      "pr": 325,
+      "started": "2026-05-24T20:52:21.600684+00:00",
+      "finished": "2026-05-24T21:20:51.125673+00:00",
+      "status": "success",
+      "outcome": "Merged PR #325 (closes #292) \u2014 single-flight conversation start"
     }
   ],
   "quiet_ticks": 0
