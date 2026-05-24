@@ -1258,3 +1258,44 @@ Label state: PR #313 / issue #298 carry `on-hold` + `needs-human`; issues #299, 
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 05:38 UTC - Persistence design freeze: Path B selected; operator-side work begins
+
+✅ **Design decision made.** Path B (VR proxies S3) selected over Paths A and C. Users will have **zero AWS surface area**: no IAM identity, no credentials, no authorization step. The VR backend holds a single AWS credential and exposes restore/snapshot as authenticated HTTP endpoints; sandboxes call those endpoints via `curl` + `tar`.
+
+**Architecture rewritten in [PR #319](https://github.com/jpshackelford/voice-relay/pull/319)**:
+
+- `docs/architecture.md` § Persistence layer fully respecified. `S3SyncStrategy` → `VrProxiedS3Strategy`. New section "Sandbox-to-VR auth model" documents three candidate bearer mechanisms with the choice deferred to the implementation issue.
+- AGENTS.md `## Active design freeze` updated: freeze remains, but cause shifted from "design decision pending" to "operator-side bucket + creds pending."
+
+**Path A code closed:**
+
+- [PR #313](https://github.com/jpshackelford/voice-relay/pull/313) closed as superseded with explanation. Code quality was fine; substrate was wrong (assumed an operator-mediated onboarding flow that SaaS doesn't have).
+
+**Issues re-scoped:**
+
+| Issue | Change |
+|---|---|
+| [#298](https://github.com/jpshackelford/voice-relay/issues/298) | Title + body rewrite. New title: *"Add VR backend persistence endpoints (/api/internal/workspaces/:id/restore + /snapshot)"*. Scope is now pure server-side (VR backend additions + operator runbook). |
+| [#299](https://github.com/jpshackelford/voice-relay/issues/299) | Title unchanged. Body updated: bash command now `curl ... \| tar -xz`, no AWS creds in sandbox. |
+| [#300](https://github.com/jpshackelford/voice-relay/issues/300) | Title unchanged. Body updated: bash command now `tar -czf - \| curl`, no AWS creds in sandbox. |
+| #301, #302 | No changes — they were agnostic to Path A vs B. Still `on-hold` transitively. |
+
+**Status of the freeze:** still `on-hold`. The remaining gate is operator-side. @jpshackelford is provisioning:
+
+1. The S3 bucket
+2. The single IAM credential scoped to `s3:Get/Put/Delete/List` on `arn:aws:s3:::<bucket>/*`
+3. Adding the four env vars to `/var/www/vr.chorecraft.net/app/.env` on the production server (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `VR_WORKSPACE_BUCKET`)
+
+When those are in place, removing `on-hold` from #298 unblocks the implementation chain.
+
+**Other findings from this work session that affect deployment understanding:**
+
+- [PR #318](https://github.com/jpshackelford/voice-relay/pull/318) corrected `docs/DEPLOYMENT.md` — SSH inspection confirmed `chorecraft.net` and `app.no-hands.dev` are DNS aliases for the same Ubuntu server, not a "legacy / new infrastructure" pair as the doc previously claimed. Same Apache, same single Node process, same `.env`.
+- [PR #317](https://github.com/jpshackelford/voice-relay/pull/317) introduced `AGENTS.md` capturing the orchestrator-managed-files policy (WORKLOG.md and `.workflow-state.json` must change on main only, not via PR) and the lint-pr-title scope vocabulary. This prevents future agents from making the same mistake I made in the closed PR #315.
+
+**Open work that remains independent of the persistence freeze:** issue #303 (client coverage uplift, impl worker dispatched 04:53 UTC, in flight) and the `#289 → #297` chain unblocked by #311 merge.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
