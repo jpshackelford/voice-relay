@@ -72,9 +72,16 @@ const KIOSK_TIMELINE_SKIP_KINDS: ReadonlySet<string> = new Set([
  * applied in `client/src/api/agentEvents.ts` after the server response — keeps
  * older clients hitting newer servers (and vice versa) correct during rolling
  * deploys.
+ *
+ * Parity rule: the server's `shouldSkipForKioskTimeline` returns `false`
+ * (don't skip = SHOW) for null / undefined / non-object / missing-kind inputs.
+ * This predicate mirrors that — anything we can't classify as a known skip
+ * kind passes through to the renderer, where the unknown-kind fallback takes
+ * over. The defense-in-depth point is to drop *known noise kinds*, not to
+ * second-guess the server on malformed payloads.
  */
 export function shouldShowInKioskTimeline(event: RawAgentEvent | null | undefined): boolean {
-  if (!event || typeof event !== 'object') return false;
+  if (!event || typeof event !== 'object') return true; // default-show — same rule as server.
   const kind = typeof event.kind === 'string' ? event.kind : undefined;
   if (!kind) return true; // default-show — same rule as server.
   return !KIOSK_TIMELINE_SKIP_KINDS.has(kind);

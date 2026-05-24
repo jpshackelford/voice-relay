@@ -1799,7 +1799,11 @@ describe('shouldSkipForKioskTimeline (issues #265, #280)', () => {
     expect(shouldSkipForKioskTimeline({ kind: 'BrandNewAction' })).toBe(false);
   });
 
-  test('returns false for non-object / null / missing kind', () => {
+  test('returns false (default-show) for non-object / null / missing kind — mirrored by client (issue #280 parity)', () => {
+    // These four edge-case inputs MUST produce the same outcome on both sides
+    // (server: don't skip = client: show). The client test
+    // `shouldShowInKioskTimeline` in normalizeAgentEvent.test.ts asserts the
+    // mirror — see "default-shows malformed inputs to mirror the server".
     expect(shouldSkipForKioskTimeline(null)).toBe(false);
     expect(shouldSkipForKioskTimeline(undefined)).toBe(false);
     expect(shouldSkipForKioskTimeline('not an event')).toBe(false);

@@ -410,13 +410,17 @@ describe('shouldShowInKioskTimeline (issue #280)', () => {
     expect(shouldShowInKioskTimeline({ kind: 'BrandNewAction' })).toBe(true);
   });
 
-  it('drops malformed inputs safely', () => {
-    expect(shouldShowInKioskTimeline(null)).toBe(false);
-    expect(shouldShowInKioskTimeline(undefined)).toBe(false);
-    // Missing `kind` defaults to show (matches server) but the empty object
-    // here would also pass through — that's fine; the renderer treats kind as
-    // 'Unknown'.
+  it('default-shows malformed inputs to mirror the server (issue #280 parity)', () => {
+    // Server's `shouldSkipForKioskTimeline` returns `false` (= don't skip
+    // = SHOW) for null / undefined / non-object / missing-kind. The client
+    // mirrors that so a malformed payload never gets silently dropped on
+    // one side and kept on the other. The renderer handles "Unknown" kind
+    // gracefully, so default-show is the safer of two safe options.
+    expect(shouldShowInKioskTimeline(null)).toBe(true);
+    expect(shouldShowInKioskTimeline(undefined)).toBe(true);
     expect(shouldShowInKioskTimeline({})).toBe(true);
+    // Non-string `kind` falls back to default-show.
+    expect(shouldShowInKioskTimeline({ kind: 123 } as unknown as RawAgentEvent)).toBe(true);
   });
 });
 
