@@ -2,6 +2,22 @@
 
 ## Log
 
+### 2026-05-24 03:43 UTC - Expansion Worker (`local`)
+
+✅ **Expanded Issue #312** — closed as `wontfix`/`duplicate`
+
+- Issue: [🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/312)
+- Type: CI / post-deploy incident (auto-opened by smoke workflow)
+- Status: **Closed — already resolved on main**
+- Failing commit: `0232538` (PR #309, websocket heartbeat) — **innocent**
+- Failure: `tests/smoke/smoke.spec.ts:63` asserted legacy OAuth substring `github.com/login/oauth/authorize` but `/auth/github` returns the GitHub App install URL (`/apps/<slug>/installations/new?state=<hex>`) since PR #283
+- Root cause: stale smoke-test assertion (same as #304), not a code regression in #309
+- Fix: already landed as commit `6d6e502` (PR #308, "fix(tests): accept GitHub App install URL in /auth/github smoke redirect") which updated the assertion to a regex and added a regression guard
+- Verification: post-fix `deploy-success-60c2e8c…` and `deploy-success-74d9cb78…` tags confirm subsequent deploys are green; the #309 heartbeat code is currently live on main without issue
+- Auto-rollback to `ca54d28` was a false-positive remediation
+
+---
+
 ### 2026-05-24 03:26 UTC - Expansion Worker (`local`)
 
 ✅ **Expanded Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310) — Playwright E2E: 5-minute background-idle keeps the kiosk WS green**
