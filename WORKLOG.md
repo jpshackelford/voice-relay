@@ -1219,3 +1219,39 @@ Handing off to the orchestrator's review/merge tick.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:59 UTC - Review Response Worker (PR #328, round 2)
+
+✅ Addressed the round-2 pr-review suggestion on PR #328 (rebind MISSING
+sandbox preserving `conversation_id`, refs #296):
+
+- **Thread:** `PRRT_kwDOSTUWGM6Ea6OD` — "Consider adding concurrency guard
+  for `rebindSession` similar to `inFlightRefresh`." (bot-flagged impact:
+  low; default-implement per AGENTS.md guidance because the pattern is
+  idiomatic and cheap).
+- **Fix:** commit `6613fb5` — added
+  `private inFlightRebind = new Map<string, Promise<void>>()` on
+  `AISessionManager` and refactored `rebindSession` into a thin
+  single-flight wrapper around a new private `doRebindSession`. Two
+  concurrent rebind calls for the same `conversation_id` now share one
+  upstream POST, one `checkBudget` / `recordSuccess`, and one credential
+  write — eliminating the race window on `agentServerUrl` /
+  `sessionApiKey`. Mirrors the `inFlightRefresh` pattern from #291.
+- **Test:** new `concurrent rebindSession calls for the same conversation
+  single-flight to one upstream POST` in `server/src/openhands.test.ts`
+  asserts the upstream is invoked exactly once, `getRebindCount() === 1`,
+  `connectWebSocket` is dialled once, and the in-flight map drains on
+  settle.
+- **Verification:** `npx tsc --noEmit` clean; `npm test -w server` =
+  1070/1070 pass (181/181 in the rebind suite).
+- **CI on PR #328:** 7/7 checks green after push (Server Tests, Client
+  Tests, Build Client, E2E Tests, lint-pr-title, two pr-review passes).
+  No new pr-review threads spawned by the change.
+- **Thread state:** both round-1 (`PRRT_kwDOSTUWGM6Ea2ja`, docs) and
+  round-2 (`PRRT_kwDOSTUWGM6Ea6OD`, concurrency) threads now resolved.
+- PR converted back to ready-for-review; handing off to the orchestrator
+  for the merge tick.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
