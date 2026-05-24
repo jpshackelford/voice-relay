@@ -53,14 +53,23 @@ test.describe('Production Smoke Tests', () => {
       await expect(page.getByRole('button', { name: /Sign in with GitHub/i })).toBeVisible();
     });
 
-    test('auth/github redirects to GitHub OAuth', async ({ request }) => {
+    test('auth/github redirects to the GitHub App install URL', async ({ request }) => {
       const response = await request.get(`${BASE_URL}/auth/github`, {
         maxRedirects: 0,
       });
-      
+
       expect(response.status()).toBe(302);
       const location = response.headers()['location'];
-      expect(location).toContain('github.com/login/oauth/authorize');
+      // PR #283 moved /auth/github from the classic OAuth `authorize` endpoint
+      // to the GitHub App install URL. Slug varies by environment:
+      //   - test-mode (TEST_AUTH_SECRET set, GITHUB_APP_SLUG unset) → `test-mode-placeholder`
+      //   - production → the configured GitHub App slug (e.g. `no-hands-agent-screencast`)
+      // The CSRF `state` param is echoed back as a hex string.
+      expect(location).toMatch(
+        /^https:\/\/github\.com\/apps\/[\w.-]+\/installations\/new\?state=[a-f0-9]+$/i
+      );
+      // Regression guard: never redirect to the legacy classic-OAuth flow.
+      expect(location).not.toContain('login/oauth/authorize');
     });
   });
 
