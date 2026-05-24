@@ -2,6 +2,30 @@
 
 ## Log
 
+### 2026-05-24 04:30 UTC - Review-feedback Worker (PR #311 round 2)
+
+✅ **Addressed the two remaining bot review threads on PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — OpenHandsAgentDriver adapter (#288)**
+
+- PR: [#311](https://github.com/jpshackelford/voice-relay/pull/311) — `feat(server): openHandsAgentDriver adapter wrapping aiSessionManager`
+- Scope: `scope:server-only`. Both changes confined to `server/src/agent-driver/openhands.ts`.
+- Threads resolved (2/2 unresolved → resolved):
+
+  1. **Named WebSocket readyState constants** (`PRRT_kwDOSTUWGM6EWokI`) → addressed in `a2ed92f`.
+     - Replaced bare `0` / `1` literals (with inline `/* WebSocket.OPEN */` comments) in `synthesizeStatus` with module-level `WS_CONNECTING / WS_OPEN / WS_CLOSING / WS_CLOSED` constants. All four are defined even though only the first two are read in code — pairs with the `// WS_CLOSING or WS_CLOSED` trailing comment in the `else` branch, making the readyState state space self-documenting at a glance.
+     - No behaviour change. Sibling modules (`server/src/index.ts`, `server/src/registry.ts`, `server/src/tts/elevenlabs.ts`, `server/src/transcription/audio-buffer.ts`, `server/src/openhands.ts`) already use the idiomatic `ws.readyState === WebSocket.OPEN` form, so no spillover refactor needed; the numeric literals here were a localized artifact of capturing `readyState` as a number first.
+
+  2. **Extract `lazyBindSession` helper from `runTurn`** (`PRRT_kwDOSTUWGM6EWokE`) → addressed in `9be5e3a`.
+     - Pulled the ~30-line nested try/catch/finally lazy-bind block out of `runTurn` into a dedicated `lazyBindSession(sessionId, state)` helper. Helper owns the `state.startingSince` lifecycle in its own try/finally and translates a thrown `getOrCreateForSession` into a tagged-union return — `{ kind: 'ok' }` or `{ kind: 'error', event }` — so the caller keeps responsibility for memoize + yield of the error event (preserves the seam between binding and the rest of the turn loop).
+     - `runTurn` is now a flat `bind → send → drain queue` with 3-level max nesting in the bind branch instead of 4-5.
+     - Deliberately did **not** route `restartSession` through the same helper: `restartSession` propagates a `getOrCreateForSession` throw to its caller rather than converting it to a yielded event, and its bind block is already flat — refactoring it would change its error semantics.
+
+- CI: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all green on the head commit (`9be5e3a`).
+- Tests: server full suite **930 / 930 pass**, including all 39 tests in `openhands.test.ts`. tsc clean.
+- PR back to **ready for review** (was draft during the round).
+- Cross-issue impact: none. The two refactors are localized code-quality changes inside the new adapter file — they don't touch the `AgentDriver` interface (#287), the consumer-migration plan (#289), or any production caller (#288 acceptance gate T-2.2.E.2 still holds: no caller imports the barrel).
+
+---
+
 ### 2026-05-24 04:08 UTC - Review-feedback Worker (PR #311 round 1)
 
 ✅ **Addressed both bot review threads on PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — OpenHandsAgentDriver adapter (#288)**
