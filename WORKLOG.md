@@ -862,3 +862,34 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 - `quiet_ticks` reset 1 → 0 (productive tick).
 
 ---
+
+## 2026-05-24T03:54Z — Merge Worker: PR #306 merged ✅
+
+**Action:** Squash-merged PR #306 `feat(client): establish 80% coverage gate enforced in CI (closes #284)` into `main`.
+
+**Verification gates (all green):**
+- Scope check: PR labeled `scope:client-only` AND `scope:full-stack` → most permissive wins → `scope:full-stack` → `ALLOWED='.*'`. Mechanical check on 5 changed files (`.github/workflows/ci.yml`, `client/.gitignore`, `client/package.json`, `client/vite.config.ts`, `package-lock.json`): 5/5 allowed, 0 violations. ✅
+- Migration safety review: **N/A** — infrastructure-only PR, no `server/**` or migration files in the diff. ✅
+- CI on PR head: Build Client / Client Tests / E2E Tests / Server Tests / enable-orchestrator / lint-pr-title all green; `pr-review` skipped (self-rerun guard). ✅
+- Reviews: github-actions bot left 🟢 "Good taste" COMMENTED review (verdict: ✅ Worth merging; risk 🟢 LOW). ✅
+- Unresolved threads: 0 (confirmed via GraphQL — PR had no inline review threads). ✅
+- Mergeable state: `MERGEABLE` / `CLEAN`. ✅
+
+**Why scope was widened (`scope:client-only` → `scope:full-stack`):**
+A prior merge attempt was halted because the diff included `.github/workflows/ci.yml` (the new `test-client` job that *enforces* the gate) and a regenerated `package-lock.json` (for the new `@vitest/coverage-v8` dev dep). Both are unavoidable companions to a client coverage gate that actually blocks. The fix was to widen the label, not strip the CI job — without it, the threshold would be advisory only. Per the project's Scope Contract, applying both `scope:client-only` and `scope:full-stack` resolves to the most permissive (`scope:full-stack` → `ALLOWED='.*'`).
+
+**Result:**
+- Merge commit: `fd998518a4e61af1da5b808e033baabbcbf8954e` on `main`.
+- Issue #284 auto-closed via `Closes #284` (closed at 2026-05-24T03:53:52Z, `state_reason: COMPLETED`). ✅
+- New CI gate active: every PR now runs `npm run test:coverage -w client` and fails if any of lines / functions / branches / statements drops below 80% on the narrow include set (`src/hooks/**`, `src/utils/**`, `src/api/**` minus the 17 `TODO(#303)`-tagged exclusions).
+- Deploy: `vr.chorecraft.net` auto-deploys on push to `main`; this PR ships **no runtime code changes** so production behavior is unaffected. Only CI configuration and a client dev dependency landed.
+
+**Follow-ups (already filed):**
+- #303 — add tests for the 17 excluded files and remove the `TODO(#303)` exclusion entries from `client/vite.config.ts`.
+- #304 — restore / fix the `npm run smoke` smoke test that broke during PR #283.
+
+No `needs-human` flag applied. No `.workflow-state.json` changes — that's the orchestrator's job.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
