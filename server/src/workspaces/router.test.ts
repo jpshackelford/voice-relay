@@ -9,6 +9,7 @@ import { QrTokenRepository } from '../qr-tokens/index.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
@@ -18,6 +19,7 @@ import { migration as elevenlabsMigration } from '../storage/migrations/011_elev
 function setupTestEnv() {
   const db = new Database(':memory:');
   db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
   db.exec(workspacesMigration.up);
   db.exec(allowAutoJoinMigration.up);
   db.exec(`
@@ -519,6 +521,7 @@ describe('Workspace Router - GET /:id/devices', () => {
     db = new Database(':memory:');
     // Apply migrations
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
     // Create devices table
@@ -1195,6 +1198,7 @@ describe('Workspace Router - DELETE /:id/devices/:deviceId', () => {
 function setupDeletionTestEnv() {
   const db = new Database(':memory:');
   db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
   db.exec(workspacesMigration.up);
   db.exec(allowAutoJoinMigration.up);
   // Create messages table

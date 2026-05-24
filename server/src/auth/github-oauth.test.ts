@@ -5,21 +5,33 @@ describe('GitHubOAuth', () => {
   const config = {
     githubClientId: 'test-client-id',
     githubClientSecret: 'test-client-secret',
+    githubAppSlug: 'test-app-slug',
     callbackUrl: 'http://localhost:3001/auth/github/callback',
   };
 
   const oauth = new GitHubOAuth(config);
 
   describe('getAuthorizationUrl', () => {
-    it('generates correct authorization URL', () => {
+    it('redirects to the GitHub App install + identify URL with state', () => {
       const state = 'random-state-123';
       const url = oauth.getAuthorizationUrl(state);
 
-      expect(url).toContain('https://github.com/login/oauth/authorize');
-      expect(url).toContain('client_id=test-client-id');
-      expect(url).toContain('state=random-state-123');
-      expect(url).toContain('redirect_uri=http%3A%2F%2Flocalhost%3A3001%2Fauth%2Fgithub%2Fcallback');
-      expect(url).toContain('scope=read%3Auser+user%3Aemail');
+      // GitHub App flow points at `apps/<slug>/installations/new`. The
+      // client_id, redirect_uri, and scopes live on the App settings page,
+      // not in the URL, so we explicitly assert they are NOT present.
+      expect(url).toBe(
+        'https://github.com/apps/test-app-slug/installations/new?state=random-state-123',
+      );
+      expect(url).not.toContain('client_id');
+      expect(url).not.toContain('redirect_uri');
+      expect(url).not.toContain('scope');
+      expect(url).not.toContain('login/oauth/authorize');
+    });
+
+    it('URL-encodes the state parameter', () => {
+      const state = 'state with spaces & symbols';
+      const url = oauth.getAuthorizationUrl(state);
+      expect(url).toContain('state=state+with+spaces+%26+symbols');
     });
   });
 

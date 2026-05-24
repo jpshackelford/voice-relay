@@ -10,6 +10,7 @@ import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { DeviceRepository } from '../devices/device-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
@@ -32,6 +33,7 @@ describe('Session Router', () => {
     db = new Database(':memory:');
     // Apply migrations
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
     // Create devices and sessions tables
@@ -509,6 +511,7 @@ describe('Session Router - QR Token Generation', () => {
     db = new Database(':memory:');
     // Apply migrations
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
     // Create sessions table
@@ -700,6 +703,7 @@ describe('Session Router - QR Token Unavailable', () => {
     db = new Database(':memory:');
     // Apply migrations
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
     // Create sessions table (no QR tokens table - testing 503)

@@ -8,11 +8,13 @@ import { DeviceAuthManager } from './device-auth.js';
 import { JWTService } from './jwt.js';
 import { UserRepository } from './user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 
 // Helper to set up test environment
 function setupTestEnv() {
   const db = new Database(':memory:');
   db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
 
   const userRepository = new UserRepository(db);
   const jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });

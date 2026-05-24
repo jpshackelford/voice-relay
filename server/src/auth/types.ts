@@ -7,6 +7,12 @@ export interface User {
   email: string | null;
   createdAt: string;
   lastLoginAt: string | null;
+  /**
+   * GitHub App installation ID, populated when the user signs in via the
+   * App's install + identify flow. `null` for users who pre-date the
+   * GitHub App migration or who returned via a pure identify callback.
+   */
+  githubInstallationId: number | null;
 }
 
 export interface UserCreateInput {
@@ -41,6 +47,12 @@ export interface GitHubTokenResponse {
 export interface AuthConfig {
   githubClientId: string;
   githubClientSecret: string;
+  /**
+   * Slug of the GitHub App used for auth (e.g. `no-hands-agent-screencast`).
+   * Drives the install + identify URL the user is redirected to from
+   * `GET /auth/github`. Required in non-test mode.
+   */
+  githubAppSlug: string;
   jwtSecret: string;
   jwtExpiresIn?: string; // e.g., '7d'
   callbackUrl: string;

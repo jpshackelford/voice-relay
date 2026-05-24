@@ -219,13 +219,15 @@ const CLIENT_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const jwtSecret = process.env.JWT_SECRET;
   const testAuthSecret = process.env.TEST_AUTH_SECRET;
 
   // For testing: If TEST_AUTH_SECRET is set but GitHub credentials are missing,
   // use placeholder credentials. This allows the test auth endpoint to work
   // without requiring real GitHub OAuth setup.
-  const useTestMode = testAuthSecret && jwtSecret && (!githubClientId || !githubClientSecret);
+  const useTestMode = testAuthSecret && jwtSecret &&
+    (!githubClientId || !githubClientSecret || !githubAppSlug);
 
   // Note: useTestMode requires jwtSecret to be truthy, so this check is sufficient
   if (!jwtSecret) {
@@ -233,11 +235,11 @@ function getAuthConfig(): AuthConfig | null {
     return null;
   }
 
-  if (!githubClientId || !githubClientSecret) {
+  if (!githubClientId || !githubClientSecret || !githubAppSlug) {
     if (useTestMode) {
       console.log('[Auth] Using test mode - TEST_AUTH_SECRET is set, GitHub OAuth disabled');
     } else {
-      console.log('[Auth] Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET - auth disabled');
+      console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or GITHUB_APP_SLUG - auth disabled');
       return null;
     }
   }
@@ -271,6 +273,7 @@ function getAuthConfig(): AuthConfig | null {
     // test mode does NOT bypass the JWT secret requirement.
     githubClientId: githubClientId || 'test-mode-placeholder',
     githubClientSecret: githubClientSecret || 'test-mode-placeholder',
+    githubAppSlug: githubAppSlug || 'test-mode-placeholder',
     jwtSecret,
     jwtExpiresIn,
     callbackUrl: `${baseUrl}/auth/github/callback`,

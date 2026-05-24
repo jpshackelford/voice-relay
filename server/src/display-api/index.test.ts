@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { authenticateDisplayRequest } from './index.js';
 import { SessionRepository } from '../sessions/session-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
+import { migration as userGithubInstallationMigration } from '../storage/migrations/014_user_github_installation.js';
 import { migration as workspacesMigration } from '../storage/migrations/003_workspaces.js';
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 
@@ -29,6 +30,7 @@ describe('Display API Authentication', () => {
     // Set up in-memory database with required migrations
     db = new Database(':memory:');
     db.exec(usersMigration.up);
+    db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
 

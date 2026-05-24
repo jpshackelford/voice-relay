@@ -158,6 +158,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
   const github = new GitHubOAuth({
     githubClientId: config.githubClientId,
     githubClientSecret: config.githubClientSecret,
+    githubAppSlug: config.githubAppSlug,
     callbackUrl: config.callbackUrl,
   });
 
@@ -198,7 +199,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
    * Sets httpOnly cookies instead of passing token in URL (security: prevents token leakage)
    */
   router.get('/github/callback', async (req: Request, res: Response) => {
-    const { code, state } = req.query;
+    const { code, state, installation_id, setup_action } = req.query;
 
     // Validate state
     if (!state || typeof state !== 'string') {
@@ -215,6 +216,18 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
     }
     pendingStates.delete(state);
 
+    // GitHub App install path: when an org owner must approve the install,
+    // GitHub returns `setup_action=request` and *no* `code`. There is no
+    // user to sign in; surface a distinct error so the login page can show
+    // a friendly "awaiting org owner approval" message instead of the
+    // generic auth-failed redirect.
+    if (!code && setup_action === 'request') {
+      console.log('[Auth] GitHub App install awaiting org owner approval (setup_action=request)');
+      const sep = errorRedirect.includes('?') ? '&' : '?';
+      res.redirect(`${errorRedirect}${sep}error=install_pending`);
+      return;
+    }
+
     // Validate code
     if (!code || typeof code !== 'string') {
       console.error('[Auth] Missing code parameter');
@@ -225,10 +238,10 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
     try {
       // Exchange code for token
       const accessToken = await github.exchangeCodeForToken(code);
-      
+
       // Get user info from GitHub
       const githubUser = await github.getUser(accessToken);
-      
+
       // Create or update user in our database
       const user = userRepository.upsertFromGitHub({
         githubId: githubUser.id,
@@ -237,9 +250,25 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
         avatarUrl: githubUser.avatar_url,
         email: githubUser.email,
       });
-      
+
+      // GitHub App install + identify path returns `installation_id` on the
+      // first round-trip. Persist it so future features can mint App
+      // installation tokens without re-prompting. Returning users sign in
+      // without it, and `upsertFromGitHub` already leaves the column alone,
+      // so previously-stored values are preserved.
+      if (typeof installation_id === 'string') {
+        const installationIdNum = Number(installation_id);
+        if (Number.isFinite(installationIdNum) && installationIdNum > 0) {
+          userRepository.setGitHubInstallationId(user.id, installationIdNum);
+          console.log(`[Auth] Stored github_installation_id=${installationIdNum} for ${user.username}`);
+        } else {
+          console.warn(`[Auth] Ignoring invalid installation_id=${String(installation_id)} for ${user.username}`);
+        }
+      }
+
+
       console.log(`[Auth] User ${user.username} logged in (id: ${user.id})`);
-      
+
       // Auto-create default workspace if user doesn't have any
       // Note: In rare race conditions (simultaneous login requests for new user),
       // this could create duplicate workspaces. This is harmless since users can
@@ -257,7 +286,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           console.log(`[Auth] Created default workspace for ${user.username}: ${workspace.name} (id: ${workspace.id})`);
         }
       }
-      
+
       // Auto-create first device in the newly created workspace
       // This reduces friction for first-time users
       if (newlyCreatedWorkspaceId && deviceRepository) {
@@ -271,21 +300,21 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           isProduction,
         });
       }
-      
+
       // Generate JWT access token
       const token = jwtService.sign(user);
-      
+
       // Generate refresh token (longer-lived, for token renewal)
       const refreshToken = jwtService.signRefresh(user);
-      
+
       // Set httpOnly cookies (not accessible via JavaScript - XSS safe)
       res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(isProduction, tokenMaxAge));
       res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
-      
+
       // Redirect without token in URL (security: prevents browser history/referer leakage)
       const redirectTo = pendingState.returnTo || successRedirect;
       res.redirect(redirectTo);
-      
+
     } catch (err) {
       console.error('[Auth] OAuth callback error:', err);
       res.redirect(errorRedirect);
@@ -381,12 +410,12 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
     
     router.post('/test-session', (req: Request, res: Response) => {
       const providedSecret = req.headers['x-test-auth-secret'];
-      
+
       if (providedSecret !== testAuthSecret) {
         res.status(403).json({ error: 'Invalid test auth secret' });
         return;
       }
-      
+
       // Create or get test user
       const testUser = userRepository.upsertFromGitHub({
         githubId: 0, // Special ID for test user
@@ -395,9 +424,9 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
         avatarUrl: null,
         email: 'smoke-test@example.com',
       });
-      
+
       console.log(`[Auth] Test session created for user: ${testUser.username}`);
-      
+
       // Auto-create default workspace if test user doesn't have any
       let testWorkspaceId: string | null = null;
       if (workspaceRepository) {
@@ -409,7 +438,7 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           console.log(`[Auth] Created default workspace for test user: ${workspace.name} (id: ${workspace.id})`);
         }
       }
-      
+
       // Auto-create first device in the newly created workspace
       if (testWorkspaceId && deviceRepository) {
         autoCreateFirstDevice({
@@ -422,15 +451,15 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           isProduction,
         });
       }
-      
+
       // Generate tokens
       const token = jwtService.sign(testUser);
       const refreshToken = jwtService.signRefresh(testUser);
-      
+
       // Set cookies (same as normal OAuth flow)
       res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(isProduction, tokenMaxAge));
       res.cookie(REFRESH_COOKIE_NAME, refreshToken, getAuthCookieOptions(isProduction, refreshMaxAge));
-      
+
       res.json({ 
         success: true,
         user: {
