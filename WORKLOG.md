@@ -606,3 +606,26 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Review Worker._
 
 ---
+### 2026-05-24 02:55 UTC - Merge Worker (PR #308)
+
+🛑 **Halted on Scope Contract HARD GATE**
+
+PR: [#308](https://github.com/jpshackelford/voice-relay/pull/308) — *fix(tests): accept GitHub App install URL in /auth/github smoke redirect*
+Closes: #304 (smoke-test rollback loop)
+Review: 🟢 LOW risk, "Good taste" — bot approved the change itself.
+
+**Scope check failed.**
+- Declared scope: `scope:ci-only`
+- Allowed paths: `^\.github/|^\.gitignore$|^(package\.json|tsconfig\.json|README\.md)$`
+- Diff paths: `tests/smoke/smoke.spec.ts` ← out of scope
+
+**Action taken:**
+1. Applied `needs-human` label.
+2. Posted halt comment on PR explaining the three options (relabel / amend contract / human override).
+3. Did NOT merge.
+
+**Why this matters:** the change unblocks the post-deploy rollback loop, so it's worth resolving quickly. Recommended fix: either relabel to `scope:full-stack` (it's a one-file test-only change with no runtime impact) OR amend the Scope Contract in `/orchestrate` to add `tests/smoke/**` to `scope:ci-only` and re-run the merge worker.
+
+**Next:** awaiting human decision. Exiting.
+
+---
