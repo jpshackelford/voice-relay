@@ -1245,4 +1245,345 @@ describe('OpenHandsAgentDriver', () => {
       expect(after.error).toBe(null);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Single-flight conversation start (#292)
+  //
+  // Two or more devices joining the same session at the same time used to race
+  // on `getOrCreateForSession`, creating orphaned upstream conversations. The
+  // adapter now coalesces concurrent starts onto a single shared promise keyed
+  // by sessionId; these tests pin that contract.
+  // ---------------------------------------------------------------------------
+  describe('single-flight conversation start (T-3.3.*)', () => {
+    /**
+     * Helper that builds a controllable `getOrCreateForSession` impl. The
+     * returned `release` resolves the pending bind with the supplied binding;
+     * `reject` rejects it. Until then, concurrent callers stay parked.
+     */
+    function controlledBind(): {
+      install: () => void;
+      release: (binding?: FakeAIBinding) => void;
+      reject: (err: Error) => void;
+      callCount: () => number;
+    } {
+      let resolveBind: ((b: FakeAIBinding) => void) | null = null;
+      let rejectBind: ((err: Error) => void) | null = null;
+      let calls = 0;
+      return {
+        install: () => {
+          mgr.getOrCreateImpl = (sessionId: string) => {
+            calls += 1;
+            return new Promise<FakeAIBinding>((resolve, reject) => {
+              resolveBind = resolve;
+              rejectBind = reject;
+            }).then((b) => {
+              // Ensure the fake records the binding so subsequent
+              // `hasSessionAI` checks behave realistically.
+              mgr.bindings.set(sessionId, b);
+              return b;
+            });
+          };
+        },
+        release: (binding?: FakeAIBinding) => {
+          resolveBind?.(
+            binding ?? {
+              conversationId: 'conv-shared',
+              ws: { readyState: 1 },
+              isThinking: false,
+            },
+          );
+        },
+        reject: (err: Error) => {
+          rejectBind?.(err);
+        },
+        callCount: () => calls,
+      };
+    }
+
+    test('T-3.3.1: 5 concurrent sendMessages trigger only 1 upstream start', async () => {
+      const ctl = controlledBind();
+      ctl.install();
+      const iters = Array.from({ length: 5 }, (_, i) =>
+        driver.sendMessage('s1', `u${i}`, `msg-${i}`)[Symbol.asyncIterator](),
+      );
+      // Kick all five concurrently — they should all park inside lazyBindSession.
+      iters.forEach((it) => it.next());
+      // Allow microtasks to settle (each one races into getOrCreateForSession).
+      await new Promise((r) => setImmediate(r));
+      expect(ctl.callCount()).toBe(1);
+      // Release the shared bind; all 5 turns then send their distinct text.
+      ctl.release();
+      await new Promise((r) => setImmediate(r));
+      // Each turn issued exactly one sendSessionMessage with its own text.
+      const sendCalls = mgr.calls.filter((c) => c.name === 'sendSessionMessage');
+      expect(sendCalls).toHaveLength(5);
+      expect(sendCalls.map((c) => c.args[1]).sort()).toEqual(
+        ['msg-0', 'msg-1', 'msg-2', 'msg-3', 'msg-4'].sort(),
+      );
+      // Tear down via closeSession — drains the FIFO with a terminal error
+      // event so every iterator completes cleanly without needing 5 events.
+      await driver.closeSession('s1');
+    });
+
+    test('T-3.3.3: all concurrent callers see the same conversationId', async () => {
+      const ctl = controlledBind();
+      ctl.install();
+      const iters = Array.from({ length: 3 }, (_, i) =>
+        driver.sendMessage('s1', `u${i}`, `m${i}`)[Symbol.asyncIterator](),
+      );
+      iters.forEach((it) => it.next());
+      await new Promise((r) => setImmediate(r));
+      ctl.release({
+        conversationId: 'conv-XYZ',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      await new Promise((r) => setImmediate(r));
+      // Status reads the same conversationId.
+      const status = await driver.getSessionStatus('s1');
+      expect(status.conversationId).toBe('conv-XYZ');
+      // Each send call hit the same upstream binding (only 1 getOrCreate).
+      expect(ctl.callCount()).toBe(1);
+      await driver.closeSession('s1');
+    });
+
+    test('T-3.3.4: concurrent sends after success do not re-start', async () => {
+      // First turn binds upstream.
+      await collect(driver.sendMessage('s1', 'u0', 'hi'), () => {
+        mgr.fireEvent('s1', 'conv-s1', makeAgentMessageRaw('reply-0'));
+      });
+      const baselineCreates = mgr.calls.filter(
+        (c) => c.name === 'getOrCreateForSession',
+      ).length;
+      // Fire 3 more concurrent sends — they should reuse the existing binding,
+      // so `getOrCreateForSession` count stays flat.
+      const iters = Array.from({ length: 3 }, (_, i) =>
+        driver.sendMessage('s1', `u-late-${i}`, `late-${i}`)[Symbol.asyncIterator](),
+      );
+      iters.forEach((it) => it.next());
+      await new Promise((r) => setImmediate(r));
+      const afterCreates = mgr.calls.filter(
+        (c) => c.name === 'getOrCreateForSession',
+      ).length;
+      expect(afterCreates).toBe(baselineCreates);
+      await driver.closeSession('s1');
+    });
+
+    test('T-3.3.5: failure clears the in-flight slot (next call re-starts)', async () => {
+      const ctl = controlledBind();
+      ctl.install();
+      // First concurrent batch — all see the same rejection.
+      const it1 = driver.sendMessage('s1', 'u1', 'first')[Symbol.asyncIterator]();
+      const next1 = it1.next();
+      await new Promise((r) => setImmediate(r));
+      ctl.reject(new Error('boom'));
+      const r1 = await next1;
+      expect(r1.done).toBe(false);
+      if (!r1.done) {
+        expect(r1.value).toEqual({ kind: 'error', message: 'boom', recoverable: false });
+      }
+      // Drain to completion.
+      let d = await it1.next();
+      while (!d.done) d = await it1.next();
+      // Slot must be clear: a fresh `sendMessage` triggers a NEW upstream call.
+      const firstCallCount = ctl.callCount();
+      // Replace impl with a successful one for the retry.
+      mgr.getOrCreateImpl = async (sessionId: string) => {
+        const b: FakeAIBinding = {
+          conversationId: `conv-${sessionId}-retry`,
+          ws: { readyState: 1 },
+          isThinking: false,
+        };
+        mgr.bindings.set(sessionId, b);
+        return b;
+      };
+      await collect(driver.sendMessage('s1', 'u2', 'second'), () => {
+        mgr.fireEvent('s1', 'conv-s1-retry', makeAgentMessageRaw('ok'));
+      });
+      const totalCreates = mgr.calls.filter(
+        (c) => c.name === 'getOrCreateForSession',
+      ).length;
+      // One call for the failed start, one for the retry.
+      expect(firstCallCount).toBe(1);
+      expect(totalCreates).toBe(2);
+    });
+
+    test('T-3.3.6: all concurrent callers see the same error on failure', async () => {
+      const ctl = controlledBind();
+      ctl.install();
+      const iters = Array.from({ length: 3 }, (_, i) =>
+        driver.sendMessage('s1', `u${i}`, 'm')[Symbol.asyncIterator](),
+      );
+      const nexts = iters.map((it) => it.next());
+      await new Promise((r) => setImmediate(r));
+      expect(ctl.callCount()).toBe(1);
+      ctl.reject(new Error('upstream 503'));
+      const results = await Promise.all(nexts);
+      for (const r of results) {
+        expect(r.done).toBe(false);
+        if (!r.done) {
+          expect(r.value).toEqual({
+            kind: 'error',
+            message: 'upstream 503',
+            recoverable: false,
+          });
+        }
+      }
+      // Drain.
+      for (const it of iters) {
+        let r = await it.next();
+        while (!r.done) r = await it.next();
+      }
+    });
+
+    test('T-3.3.7: openSession and sendMessage racing share one upstream start', async () => {
+      const ctl = controlledBind();
+      ctl.install();
+      const openP = driver.openSession('s1', OPTS);
+      const it = driver.sendMessage('s1', 'u1', 'hi')[Symbol.asyncIterator]();
+      const sendNext = it.next();
+      await new Promise((r) => setImmediate(r));
+      // Only one upstream call should have been initiated.
+      expect(ctl.callCount()).toBe(1);
+      ctl.release({
+        conversationId: 'conv-once',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      const status = await openP;
+      expect(status.conversationId).toBe('conv-once');
+      // After resolution, only one upstream conversation exists.
+      expect(
+        mgr.calls.filter((c) => c.name === 'getOrCreateForSession'),
+      ).toHaveLength(1);
+      mgr.fireEvent('s1', 'conv-once', makeAgentMessageRaw('ok'));
+      await sendNext;
+      let d = await it.next();
+      while (!d.done) d = await it.next();
+    });
+
+    test('T-3.3.8: distinct sessionIds are independent', async () => {
+      // Use a per-session controlled bind so both sessions can stay parked
+      // independently. Each session gets its own resolver entry.
+      const resolvers = new Map<string, (b: FakeAIBinding) => void>();
+      let calls = 0;
+      mgr.getOrCreateImpl = (sessionId: string) => {
+        calls += 1;
+        return new Promise<FakeAIBinding>((resolve) => {
+          resolvers.set(sessionId, resolve);
+        }).then((b) => {
+          mgr.bindings.set(sessionId, b);
+          return b;
+        });
+      };
+      const it1 = driver.sendMessage('s1', 'u1', 'hi')[Symbol.asyncIterator]();
+      const it2 = driver.sendMessage('s2', 'u2', 'hi')[Symbol.asyncIterator]();
+      it1.next();
+      it2.next();
+      await new Promise((r) => setImmediate(r));
+      // Both sessions started — single-flight is per-session, not global.
+      expect(calls).toBe(2);
+      expect(resolvers.size).toBe(2);
+      // Resolve both independently to confirm no cross-talk on the map.
+      resolvers.get('s1')?.({
+        conversationId: 'conv-s1',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      resolvers.get('s2')?.({
+        conversationId: 'conv-s2',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      await new Promise((r) => setImmediate(r));
+      // Each session has its own binding.
+      const s1 = await driver.getSessionStatus('s1');
+      const s2 = await driver.getSessionStatus('s2');
+      expect(s1.conversationId).toBe('conv-s1');
+      expect(s2.conversationId).toBe('conv-s2');
+      await driver.closeSession('s1');
+      await driver.closeSession('s2');
+    });
+
+    test('T-3.3.9: serial sendMessages do not interact with the in-flight map', async () => {
+      // First call binds and completes; in-flight slot should be empty when
+      // the second call starts so it sees no contention. We don't measure
+      // overhead directly; instead we assert the map is clean by triggering
+      // a second start path that would see the slot if it leaked.
+      await collect(driver.sendMessage('s1', 'u1', 'first'), () => {
+        mgr.fireEvent('s1', 'conv-s1', makeAgentMessageRaw('a'));
+      });
+      // Restart should issue both endSessionAI and getOrCreateForSession.
+      // If the in-flight slot leaked, restartSession would await a stale
+      // promise and never complete.
+      mgr.getOrCreateImpl = async (sessionId: string) => {
+        const b: FakeAIBinding = {
+          conversationId: `conv-${sessionId}-2`,
+          ws: { readyState: 1 },
+          isThinking: false,
+        };
+        mgr.bindings.set(sessionId, b);
+        return b;
+      };
+      const status = await driver.restartSession('s1');
+      expect(status.conversationId).toBe('conv-s1-2');
+    });
+
+    test('restartSession and a concurrent sendMessage share one upstream start', async () => {
+      // Initial binding so endSessionAI has something to tear down.
+      await driver.openSession('s1', OPTS);
+      mgr.calls.length = 0;
+      // Stage a controlled rebind: restartSession's lazyBindSession should
+      // populate the in-flight slot; a concurrent sendMessage joining must
+      // not race a second getOrCreateForSession.
+      const ctl = controlledBind();
+      ctl.install();
+      const restartP = driver.restartSession('s1');
+      // Park microtasks to let restartSession get past endSessionAI.
+      await new Promise((r) => setImmediate(r));
+      const it = driver.sendMessage('s1', 'u-late', 'late')[Symbol.asyncIterator]();
+      const sendNext = it.next();
+      await new Promise((r) => setImmediate(r));
+      // Despite two callers, only one upstream conversation start.
+      expect(ctl.callCount()).toBe(1);
+      ctl.release({
+        conversationId: 'conv-restarted',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+      const status = await restartP;
+      expect(status.conversationId).toBe('conv-restarted');
+      mgr.fireEvent('s1', 'conv-restarted', makeAgentMessageRaw('ok'));
+      await sendNext;
+      let d = await it.next();
+      while (!d.done) d = await it.next();
+      // Final accounting: exactly one getOrCreateForSession after the restart.
+      expect(
+        mgr.calls.filter((c) => c.name === 'getOrCreateForSession'),
+      ).toHaveLength(1);
+    });
+
+    test('restartSession surfaces bind failure as a rejection', async () => {
+      // First bind succeeds.
+      await driver.openSession('s1', OPTS);
+      mgr.calls.length = 0;
+      // Subsequent restart's bind fails.
+      mgr.getOrCreateImpl = async () => {
+        throw new Error('cannot rebind');
+      };
+      await expect(driver.restartSession('s1')).rejects.toThrow('cannot rebind');
+      // Slot must be clear so retries are possible.
+      mgr.getOrCreateImpl = async (sessionId: string) => {
+        const b: FakeAIBinding = {
+          conversationId: `conv-${sessionId}-retry`,
+          ws: { readyState: 1 },
+          isThinking: false,
+        };
+        mgr.bindings.set(sessionId, b);
+        return b;
+      };
+      const status = await driver.restartSession('s1');
+      expect(status.conversationId).toBe('conv-s1-retry');
+    });
+  });
 });

@@ -305,11 +305,34 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
   };
 }
 
+/**
+ * Result of a binding attempt. Either the upstream session is bound and
+ * subsequent `sendSessionMessage` calls are safe, or upstream rejected and
+ * the caller should surface a terminal `error` `AgentEvent`.
+ */
+type BindResult = { kind: 'ok' } | { kind: 'error'; event: AgentEvent };
+
 export class OpenHandsAgentDriver implements AgentDriver {
   private readonly states = new Map<string, DriverSessionState>();
   private readonly rawEventListeners = new Set<RawEventListener>();
   private readonly thinkingListeners = new Set<ThinkingListener>();
   private readonly actionListeners = new Set<ActionListener>();
+  /**
+   * In-flight upstream conversation-start promises keyed by `sessionId` so
+   * concurrent `openSession` / `sendMessage` / `restartSession` callers
+   * single-flight the underlying `getOrCreateForSession` call (#292).
+   *
+   * Two devices joining the same Voice Relay session within a few ms of
+   * each other used to race here and create two orphaned upstream
+   * conversations — the binding the late writer set was paid for but
+   * never used. With this guard, every concurrent caller awaits the
+   * same promise and shares its resolved binding.
+   *
+   * The promise self-deletes on settle (success OR rejection), so a
+   * failed start does not poison the slot — a retry starts a fresh
+   * attempt. Pattern mirrors `AISessionManager.inFlightRefresh` (#291).
+   */
+  private readonly inFlightStart = new Map<string, Promise<BindResult>>();
 
   constructor(private readonly mgr: AISessionManagerSurface) {
     this.mgr.setThinkingChangeCallback((sessionId, thinking) => {
@@ -410,22 +433,16 @@ export class OpenHandsAgentDriver implements AgentDriver {
     state.thinkingSince = null;
     state.executionStatus = null;
     state.executionError = null;
-    state.startingSince = nowIso();
-    try {
-      await this.mgr.getOrCreateForSession(
-        sessionId,
-        state.opts.workspaceId,
-        () => {
-          // Messages flow via the event-callback path; nothing to do here.
-        },
-        {
-          displayLines: state.opts.displayLines,
-          apiKey: state.opts.apiKey,
-          displayApiSecret: state.opts.displayApiSecret,
-        },
-      );
-    } finally {
-      state.startingSince = null;
+    // Use the single-flight slot so a concurrent `sendMessage` arriving
+    // between `endSessionAI` and the new bind does not race a parallel
+    // upstream conversation-start (#292). Throws on bind failure so the
+    // caller (and any concurrent awaiter) sees the same rejection,
+    // matching the legacy `getOrCreateForSession` contract.
+    const bind = await this.lazyBindSession(sessionId, state);
+    if (bind.kind === 'error') {
+      const msg =
+        bind.event.kind === 'error' ? bind.event.message : 'failed to restart agent session';
+      throw new Error(msg);
     }
     return this.synthesizeStatus(sessionId);
   }
@@ -548,18 +565,41 @@ export class OpenHandsAgentDriver implements AgentDriver {
   }
 
   /**
-   * Lazily bind an `AISessionManager` session for this driver session,
-   * managing `state.startingSince` and translating thrown errors into a
-   * terminal `AgentEvent`. Extracted from `runTurn` so the hot path stays
-   * a flat sequence of `bind → send → drain queue`.
+   * Lazily bind an `AISessionManager` session for this driver session.
    *
-   * Returns `{ kind: 'ok' }` on success or `{ kind: 'error', event }` on
-   * failure; the caller is responsible for memoizing/yielding the event.
+   * Single-flight on `sessionId`: if a start is already in flight for this
+   * session, the caller awaits the existing promise rather than racing on
+   * a fresh upstream conversation-start (#292). Concurrent callers see the
+   * same `BindResult` — including the same error event on failure — and a
+   * `.finally` clears the slot so subsequent retries are not blocked.
+   *
+   * Translates thrown errors into a terminal `AgentEvent`; the caller is
+   * responsible for memoizing/yielding it. Pattern mirrors
+   * `AISessionManager.inFlightRefresh` from #291.
    */
-  private async lazyBindSession(
+  private lazyBindSession(
     sessionId: string,
     state: DriverSessionState,
-  ): Promise<{ kind: 'ok' } | { kind: 'error'; event: AgentEvent }> {
+  ): Promise<BindResult> {
+    const existing = this.inFlightStart.get(sessionId);
+    if (existing) return existing;
+
+    const work = this.doBindSession(sessionId, state).finally(() => {
+      this.inFlightStart.delete(sessionId);
+    });
+    this.inFlightStart.set(sessionId, work);
+    return work;
+  }
+
+  /**
+   * Actual upstream bind. Holds `state.startingSince` for the duration so
+   * `synthesizeStatus` reports `starting` for concurrent observers, and
+   * translates rejections into a terminal `error` `AgentEvent`.
+   */
+  private async doBindSession(
+    sessionId: string,
+    state: DriverSessionState,
+  ): Promise<BindResult> {
     state.startingSince = nowIso();
     try {
       await this.mgr.getOrCreateForSession(
