@@ -1,5 +1,13 @@
 # OpenHands AgentDriver Adapter
 
+> ⚠️ **Superseded.** Original speculative draft, preserved for lineage. Written without access to the OpenHands API. Key specifics turned out to be wrong:
+> - `/dev/fuse` is **not** exposed in OH SaaS sandboxes, so s3fs (and JuiceFS, mountpoint-s3, goofys, rclone-mount, etc.) cannot mount. Persistence is done with application-level `aws s3 sync` instead.
+> - Sandbox lifecycle is k8s+PVC+VolumeSnapshot under the hood, but **the SaaS gives no contractual TTL** — sysadmins force-clean under capacity pressure, and any sandbox can vanish at any time. Reactive recovery is the primary defense; the 23-hour proactive-rotation pattern is unnecessary.
+> - Conversation recovery is **native**: `POST /api/v1/app-conversations { conversation_id: <existing> }` resurrects the conversation on a fresh sandbox. No need for parent_conversation_id forking when the parent's sandbox is dead.
+> - History replay across rebind is **on the customer**; OH does not preserve agent memory across the rebind. `condense` endpoint exists for our use as the replay primitive.
+>
+> The grounded design is in [`../openhands-platform.md`](../openhands-platform.md) (verified API reference) and [`../architecture.md`](../architecture.md) (target architecture). The phased plan is in [`./ISSUE_DRAFTS.md`](./ISSUE_DRAFTS.md).
+
 > Status: design draft
 > Implements: `AgentDriver` (see `agent-driver-interface.md`)
 > Provider: OpenHands SaaS (app server v1 API + agent server WebSocket)

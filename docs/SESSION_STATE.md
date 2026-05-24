@@ -1,6 +1,15 @@
 # Session State — Analysis & Proposed State Machines
 
 > Status: **proposal / design doc**. Code changes will land in follow-up PRs that each implement one numbered item from the [Fix Checklist](#fix-checklist) below.
+>
+> 📌 **Update (2026-05-23):** After API probing against OpenHands SaaS, two items in the original Fix Checklist are now implemented differently than this doc proposed:
+>
+> - **Fix #4 (reattach instead of restart)** — the right primitive is OpenHands' `POST /api/v1/app-conversations` with the existing `conversation_id`, which resurrects a conversation on a fresh sandbox transparently. This is broader than just "use the existing conv if alive" (it works even after sandbox death). See [`openhands-platform.md` § Death and recovery](./openhands-platform.md#death-and-recovery).
+> - **Fix #6 (`degraded` state and the 5-minute thinking-deadline timer)** — replaced by reading OpenHands' `ConversationExecutionStatus` (which includes a documented `stuck` value). No heuristic timer needed. See [`architecture.md` § Session state mapping](./architecture.md#session-state-mapping).
+>
+> A newly-discovered bug not in this original symptom list — **`session_api_key` is sandbox-scoped and rotates on every resume** — is now tracked as a separate fix; the cached key in `AISessionManager` becomes stale after the first OH-side idle pause. This likely contributes to symptom #4 (zombie sessions).
+>
+> The phased implementation plan based on the updated picture is in [`proposals/ISSUE_DRAFTS.md`](./proposals/ISSUE_DRAFTS.md). The architectural target is in [`architecture.md`](./architecture.md).
 
 > _This doc was drafted by an AI agent (OpenHands) on behalf of @jpshackelford in response to bug reports about the kiosk connection indicator and AI assistant state going stale. See [Symptoms](#symptoms) for the user-observed behavior that motivated it._
 

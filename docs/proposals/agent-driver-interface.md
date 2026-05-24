@@ -1,5 +1,7 @@
 # AgentDriver Interface
 
+> ⚠️ **Superseded.** This is the original speculative design draft, preserved for lineage. It was written without access to the Voice Relay codebase or the OpenHands API. The current grounded design is in [`../architecture.md`](../architecture.md); the verified picture of OpenHands is in [`../openhands-platform.md`](../openhands-platform.md). The shape proposed here is directionally right but several specifics (workspace lifecycle methods, warm hints, exec-in-sandbox primitives) turned out not to map cleanly onto either Voice Relay or OpenHands. See the [`../proposals/ISSUE_DRAFTS.md`](./ISSUE_DRAFTS.md) for what we're actually building.
+
 > Status: design draft
 > Audience: platform engineers building against the driver, and adapter authors implementing it.
 
