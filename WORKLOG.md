@@ -2,6 +2,19 @@
 
 ## Log
 
+### 2026-05-24 00:55 UTC - Expansion Worker (Issue #282)
+
+✅ **Expanded Issue [#282](https://github.com/jpshackelford/voice-relay/issues/282) — Auth flow doesn't surface GitHub App installation step**
+
+- Type: Enhancement (GitHub OAuth App → GitHub App conversion)
+- Status: **Ready for implementation** (label `ready` applied)
+- Approach: Switch `getAuthorizationUrl()` to `https://github.com/apps/<slug>/installations/new?state=…`, capture `installation_id` from callback, persist on `users` row, add `GITHUB_APP_SLUG` to `AuthConfig`/env, rewrite README "Setup GitHub OAuth App" section.
+- Verification: Confirmed current code only destructures `code`/`state` from callback query — extra GitHub-App params (`installation_id`, `setup_action`) silently ignored today, so change is additive. Confirmed token exchange (`/login/oauth/access_token`) and `GET /user` are unchanged for App user-to-server tokens. Confirmed no `installation_id` column exists on `users` (002_users.ts) — new migration `014_user_github_installation` proposed (additive `ALTER TABLE ADD COLUMN`, SQLite-safe).
+- Posted **Implementation Plan** comment with Technical Approach / Files to modify / Migration SQL (up + down) / Tests (unit + integration) / 4 Open Questions / 9-bullet Acceptance Criteria.
+- Flagged returning-user UX as an open question to verify in staging (the GitHub install URL may show a "Configure" confirmation screen for users who already have the App installed) — proposal still recommended; fallback path (post-callback `GET /user/installations`) documented in the issue body.
+
+---
+
 ### 2026-05-24 00:10 UTC - Review Worker (PR #281)
 
 ✅ **Addressed round-1 review feedback on PR [#281](https://github.com/jpshackelford/voice-relay/pull/281)**
