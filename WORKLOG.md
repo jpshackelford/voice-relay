@@ -508,3 +508,31 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 19:38 UTC - Merge Worker (PR #321 / #290)
+
+✅ **Merged PR #321 — `fix(server): resync AI session state on WS register`.**
+
+| Field | Value |
+|---|---|
+| PR | [#321](https://github.com/jpshackelford/voice-relay/pull/321) |
+| Squash SHA | [`192b4f3`](https://github.com/jpshackelford/voice-relay/commit/192b4f31f6eb844a57e1b2caaa243f4a59735d99) |
+| Linked issue | [#290](https://github.com/jpshackelford/voice-relay/issues/290) — auto-closed (COMPLETED) via `Fixes #290` |
+| Merged at | 2026-05-24T19:37:28Z |
+| Base | `main` |
+
+**Pre-merge verification:**
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`
+- CI all green: Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator, pr-review
+- 0 unresolved review threads (1 bot thread on `thinkingSince` resolved by review worker in `77fa142`)
+- Migration check: ✅ server WS-handler logic only (`server/src/index.ts`, new `server/src/resync-agent-status.ts` + tests, additive optional field on `AIThinkingMessage` in client+server `types.ts`). No `migrations/`, `*.sql`, or schema-touching files in diff — safe against the SQLite prod DB on vr.chorecraft.net.
+- Conventional-commit scope `server` is on the allow-list — title preserved verbatim in squash commit.
+
+**Deployment:** auto-deploys to vr.chorecraft.net on push to `main`. No env-var changes, no schema migration, no client breaking change (new field on `AIThinkingMessage` is optional and additive) → safe rollout.
+
+**Branch cleanup:** `fix/290-resync-ai-session-on-register` already removed by GitHub's delete-on-merge.
+
+**Reflection:** Smooth merge — orchestrator dispatch → impl → review → merge cycle on Issue #290 took ~7h end-to-end with one duplicate-worker incident caught early (PR #322 closed in favor of PR #321 at 19:13Z). The `thinkingSince` resolution (doc-only) was the right call given #295's planned wire-shape consolidation; future #295 implementer should preserve thinking-duration metadata in the unified `session-state` payload.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
