@@ -1413,8 +1413,12 @@ export class AISessionManager {
           // construct a valid WS URL without it.
           throw new SandboxMissingError(session.conversationId);
         }
-        const freshUrl = fresh.conversation_url?.split('/api/')[0];
-        if (!freshUrl) {
+        // Strip any trailing /api/... path to recover the bare agent-server
+        // origin. Using replace() with an anchored regex is more defensive than
+        // split('/api/')[0] for unexpected URL shapes; URL.canParse rejects a
+        // malformed result before we hand it to the WS layer.
+        const freshUrl = fresh.conversation_url?.replace(/\/api\/.*$/, '') || '';
+        if (!freshUrl || !URL.canParse(freshUrl)) {
           throw new SandboxMissingError(session.conversationId);
         }
 
