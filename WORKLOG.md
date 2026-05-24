@@ -1105,3 +1105,29 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:39 UTC - Review Worker (PR #328 review round 1)
+
+✅ **Addressed bot review feedback on PR #328** (`feat(server): rebind MISSING sandbox preserving conversation_id` — #296).
+
+**Thread resolved:** `PRRT_kwDOSTUWGM6Ea2ja` — github-actions flagged that `server/src/agent-driver/rebind.ts` referenced `docs/openhands-platform.md § Rebind on a dead conversation`, but no matching subsection existed.
+
+**Fix (commit `f4990ad`):** Added a focused `### Rebind on a dead conversation` subsection under **Death and recovery** in `docs/openhands-platform.md` (+41 lines). Documents the VR-side policy layer:
+
+- Trigger conditions (`sandbox_status: MISSING`, non-resumable WS close).
+- Budget / backoff / rate-cap tunables, using the same exported constant names from `rebind.ts` (`REBIND_BUDGET_MS`, `REBIND_BACKOFF_MS`, `MAX_REBINDS_PER_WINDOW`, `REBIND_WINDOW_MS`) so the doc and code stay in lockstep.
+- The three-element error taxonomy (`RebindForbidden`, `RebindConversationGone`, `RebindBudgetExhausted`) and how the agent driver pattern-matches on it.
+- An explicit "what rebind does **not** do" callout pointing forward to filesystem restore (#298–#301) and memory replay (#297).
+
+**CI:** All 5 checks ✅ green (Server, Client, Build Client, E2E, lint-pr-title). pr-review skipped on docs-only push (expected).
+
+**State:**
+- PR #328 marked back to **ready for review**.
+- 0 unresolved review threads.
+- mergeable: MERGEABLE.
+
+Handing off to the orchestrator's next review/merge tick.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
