@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -442,6 +442,283 @@ describe('AISession interface', () => {
     };
     
     expect(session.sessionId).toBe('session-456');
+  });
+});
+
+/**
+ * Tests for the reconnect-time credential refresh introduced by issue #291.
+ *
+ * The reconnect WebSocket itself is hard to exercise without a real
+ * `ws` peer, so these tests target the `refreshSessionCredentials`
+ * seam directly. They cover the test IDs T-3.2.1 through T-3.2.12 from
+ * issue #291's expansion comment.
+ */
+describe('AISessionManager.refreshSessionCredentials (#291)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+  }
+
+  function makeSession(overrides: Partial<AISession> = {}): AISession {
+    return {
+      conversationId: 'conv-1',
+      taskId: 'task-1',
+      sessionId: 'sess-1',
+      mode: 'kiosk',
+      agentServerUrl: 'https://agent.example.com',
+      sessionApiKey: 'K1',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+      ...overrides,
+    };
+  }
+
+  function makeClient(responses: unknown[]): FakeClient {
+    const calls = responses.slice();
+    return {
+      getConversation: vi.fn(async () => {
+        if (calls.length === 0) {
+          throw new Error('FakeClient: no more queued responses');
+        }
+        const next = calls.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+  });
+
+  test('T-3.2.1/3.2.2: fetches conversation and uses rotated key', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent2.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session);
+
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+    expect(client.getConversation).toHaveBeenCalledWith('conv-1');
+    expect(session.sessionApiKey).toBe('K2');
+    expect(session.agentServerUrl).toBe('https://agent2.example.com');
+  });
+
+  test('T-3.2.3: unchanged key still works (no rotation increment)', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K1',
+        conversation_url: 'https://agent.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session);
+
+    expect(session.sessionApiKey).toBe('K1');
+    expect(manager.getKeyRotationCount()).toBe(0);
+  });
+
+  test('T-3.2.4: cached key is updated in the in-memory AISession after rotation', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession({ sessionApiKey: 'K1' });
+
+    await manager.refreshSessionCredentials(session);
+
+    expect(session.sessionApiKey).toBe('K2');
+    expect(manager.getKeyRotationCount()).toBe(1);
+  });
+
+  test('T-3.2.5: MISSING sandbox surfaces as SandboxMissingError', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'MISSING',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+    // Cached key/URL must not be mutated on the MISSING branch.
+    expect(session.sessionApiKey).toBe('K1');
+    expect(session.agentServerUrl).toBe('https://agent.example.com');
+  });
+
+  test('T-3.2.5b: null conversation surfaces as SandboxMissingError', async () => {
+    const client = makeClient([null]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+  });
+
+  test('T-3.2.6: repeated MISSING does not retry indefinitely', async () => {
+    // The retry budget only applies to TRANSIENT 5xx errors. A MISSING
+    // sandbox should propagate on the first call without any retries.
+    const client = makeClient([
+      { id: 'conv-1', status: 'READY', sandbox_status: 'MISSING' },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+  });
+
+  test('T-3.2.8: 5xx from fetchConversation retries with backoff and recovers', async () => {
+    const client = makeClient([
+      new OpenHandsApiError(503, 'Service Unavailable', null),
+      {
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session, 3);
+    expect(client.getConversation).toHaveBeenCalledTimes(2);
+    expect(session.sessionApiKey).toBe('K2');
+  });
+
+  test('T-3.2.9: repeated 5xx exhausts retries → throws transient error', async () => {
+    const client = makeClient([
+      new OpenHandsApiError(503, 'Service Unavailable', null),
+      new OpenHandsApiError(503, 'Service Unavailable', null),
+      new OpenHandsApiError(503, 'Service Unavailable', null),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session, 3)).rejects.toBeInstanceOf(OpenHandsApiError);
+    expect(client.getConversation).toHaveBeenCalledTimes(3);
+    expect(session.sessionApiKey).toBe('K1');  // Cache untouched on failure
+  });
+
+  test('T-3.2.10: log line emitted on rotation detected', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/...',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    // Vitest 4 intercepts `console.log` for stdout capture so `vi.spyOn`
+    // doesn't always observe calls. We instead patch the property directly
+    // so calls are recorded regardless of vitest's per-test capture layer.
+    const calls: unknown[][] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]) => { calls.push(args); };
+    try {
+      await manager.refreshSessionCredentials(session);
+    } finally {
+      console.log = original;
+    }
+    const rotationLogged = calls.some(
+      ([first]) => typeof first === 'string' && first.includes('session_api_key rotation detected'),
+    );
+    expect(rotationLogged).toBe(true);
+  });
+
+  test('T-3.2.11: metric counter increments on rotation', async () => {
+    const client = makeClient([
+      { id: 'conv-1', status: 'READY', session_api_key: 'K2', conversation_url: 'https://a/api/v1/' },
+      { id: 'conv-1', status: 'READY', session_api_key: 'K3', conversation_url: 'https://a/api/v1/' },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession({ sessionApiKey: 'K1' });
+
+    expect(manager.getKeyRotationCount()).toBe(0);
+    await manager.refreshSessionCredentials(session);
+    expect(manager.getKeyRotationCount()).toBe(1);
+    await manager.refreshSessionCredentials(session);
+    expect(manager.getKeyRotationCount()).toBe(2);
+  });
+
+  test('T-3.2.12: concurrent refreshes for the same session single-flight the fetch', async () => {
+    let resolveFetch: ((value: unknown) => void) | undefined;
+    const pending = new Promise<unknown>((resolve) => { resolveFetch = resolve; });
+    const client = {
+      getConversation: vi.fn(async () => pending),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    const p1 = manager.refreshSessionCredentials(session);
+    const p2 = manager.refreshSessionCredentials(session);
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+
+    resolveFetch!({
+      id: 'conv-1',
+      status: 'READY',
+      session_api_key: 'K2',
+      conversation_url: 'https://agent.example.com/api/v1/',
+    });
+    await Promise.all([p1, p2]);
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K2');
+
+    // After both settle the in-flight slot must be cleared so a fresh
+    // refresh on the same conversationId fires a new GET.
+    const client2 = {
+      getConversation: vi.fn(async () => ({
+        id: 'conv-1',
+        status: 'READY',
+        session_api_key: 'K3',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      })),
+    };
+    manager.setClientForTesting(client2 as never);
+    await manager.refreshSessionCredentials(session);
+    expect(client2.getConversation).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K3');
+  });
+
+  test('no client configured → throws SandboxMissingError immediately', async () => {
+    // Default constructor in test env leaves the client null. The reconnect
+    // loop must NOT tight-loop on `null` clients; surface as MISSING.
+    manager.setClientForTesting(null);
+    const session = makeSession();
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+  });
+
+  test('missing conversation_url surfaces as SandboxMissingError', async () => {
+    const client = makeClient([
+      { id: 'conv-1', status: 'READY', session_api_key: 'K2' },  // no conversation_url
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
   });
 });
 
