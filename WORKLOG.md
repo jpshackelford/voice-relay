@@ -559,3 +559,27 @@ Selected #304 over #286/#290/#291/#293/#296 because it is the only `priority:hig
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Orchestrator._
 
 ---
+
+## 2026-05-24T02:38Z — PR #307 review round 1 addressed
+
+**PR:** [#307 feat(server): define AgentDriver interface and FakeDriver](https://github.com/jpshackelford/voice-relay/pull/307) — closes #287
+**Branch:** `feat/287-agentdriver-interface`
+**Scope:** `scope:server-only` (compliant — only `server/src/agent-driver/fake.ts` touched)
+
+**Review feedback (1 thread):**
+- `PRRT_kwDOSTUWGM6EWVFK` (github-actions bot, `server/src/agent-driver/fake.ts:39`) — clarify `utteranceMemo` doc comment to include `status` events. Verified: `simulateStuck` does cache a `status` event (`fake.ts:229`). **Accepted.**
+
+**Action Taken:**
+1. Set PR back to draft (`gh pr ready 307 --undo`).
+2. Updated comment to `terminal event (`message`, `error`, or `status`)`.
+3. Committed as [`a640a57`](https://github.com/jpshackelford/voice-relay/commit/a640a57) — `docs(server): clarify utteranceMemo cache covers status events`.
+4. Pushed to `feat/287-agentdriver-interface`; CI re-ran fully green (Build Client / Server Tests / E2E Tests / Conventional Commits).
+5. Replied to + resolved `PRRT_kwDOSTUWGM6EWVFK` via GraphQL.
+6. Marked PR ready (`gh pr ready 307`).
+
+**Next:**
+- PR #307 is ready for re-review / merge; no further reviewer changes outstanding. Orchestrator should pick it up on the next tick (likely a merge worker once a human approves, or auto-merge if labels allow).
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Review Worker._
+
+---
