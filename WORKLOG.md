@@ -2,6 +2,33 @@
 
 ## Log
 
+### 2026-05-24 01:58 UTC - Implementation Worker (Issue #284 → PR #306)
+
+✅ **Opened PR [#306](https://github.com/jpshackelford/voice-relay/pull/306) — feat(client): establish coverage thresholds (closes #284)**
+
+- Issue: [#284](https://github.com/jpshackelford/voice-relay/issues/284) — Establish client-side test coverage thresholds
+- Branch: `feat/284-client-coverage-thresholds`
+- Status: **Ready for review** (CI green: Client Tests / Server Tests / Build Client / E2E Tests / lint-pr-title / enable-orchestrator all pass)
+- Resuming from blocked conversation `ffeef36`; took **path (b)** per repo-owner direction at [01:38:52Z](https://github.com/jpshackelford/voice-relay/issues/284): land the gate now with a narrower include set + per-file `// TODO(#303): ...` exclusions, then close the gap in #303.
+- Commits (in order):
+  - [`0272967`](https://github.com/jpshackelford/voice-relay/commit/0272967) `feat(client): add @vitest/coverage-v8 dev dependency`
+  - [`1b609b4`](https://github.com/jpshackelford/voice-relay/commit/1b609b4) `chore(client): gitignore coverage/ output`
+  - [`b6ab861`](https://github.com/jpshackelford/voice-relay/commit/b6ab861) `feat(client): add coverage config + 80% thresholds to vite.config`
+  - [`2c47f57`](https://github.com/jpshackelford/voice-relay/commit/2c47f57) `feat(ci): invoke test:coverage in client CI job`
+- Key changes:
+  - `client/package.json`: pinned `@vitest/coverage-v8@^4.1.5` (matches vitest major) + new `test:coverage` script.
+  - `client/vite.config.ts`: coverage block, provider `v8`, reporters `text` + `html`, `include: ['src/hooks/**', 'src/utils/**', 'src/api/**']`, 17 file-level excludes each tagged `// TODO(#303): add tests to remove this exclusion`, thresholds `lines/functions/branches/statements: 80`.
+  - `.github/workflows/ci.yml`: new `test-client` job runs `npm run test:coverage -w client` on every PR/push.
+  - `client/.gitignore` (new file): ignores `coverage/`.
+- Coverage result against narrow include set — **All files: 93.49 stmts / 89.04 branch / 95.83 funcs / 95.79 lines** (all ≥80%).
+- T-0.1.5 evidence (gate blocks below threshold): wide-include baseline from `ffeef36`'s 01:24:50Z BLOCKED comment on #284 (58/61/55/59%) is the failing-case proof per human direction; redundant artificial-threshold check skipped.
+- Bystander gates verified locally: `npm test -w client` ✅ 661 tests; `tsc --noEmit -p client/tsconfig.json` ✅ exit 0; `grep -nE ': any\b|as any\b' client/vite.config.ts` ✅ zero matches.
+- Deferred: `npm run smoke` (intentionally — that's the test that broke prod in #304, per direction); `eslint` setup (out of scope, `tsc --noEmit` used as lint proxy).
+- Out of scope (intentionally NOT touched): `server/**`, migrations, `src/components/**`, `src/pages/**`, `src/contexts/**`, the smoke test, any new tests for the 17 excluded files (those belong to #303).
+- Coordination with parallel PR #305 (issue #285, client WS reconnect): zero file overlap; `package-lock.json` regenerated cleanly via `npm install --workspaces`.
+
+---
+
 ### 2026-05-24 01:55 UTC - Expansion Worker (Issue #304 — CI failure / auto-rollback)
 
 ✅ **Expanded Issue [#304](https://github.com/jpshackelford/voice-relay/issues/304) — 🚨 Smoke test failure after deploying `4cedfe8` (PR #283); pipeline auto-rolled back to `ca54d28`**
