@@ -30,6 +30,8 @@ interface FakeAIBinding {
   isThinking: boolean;
   degraded?: boolean;
   degradedReason?: string | null;
+  /** Mirrors `AISession.rebinding` (#296) for driver state-synthesis tests. */
+  rebinding?: boolean;
 }
 
 class FakeAISessionManager implements AISessionManagerSurface {
@@ -654,6 +656,56 @@ describe('OpenHandsAgentDriver', () => {
       });
       const status = await driver.getSessionStatus('s1');
       expect(status.state).toBe('degraded');
+    });
+
+    test('T-4.1.I.3: AISession.rebinding=true → reconnecting (#296)', async () => {
+      // The manager flips `rebinding` to true while attempting a rebind
+      // onto a fresh sandbox. The driver must report `reconnecting` (not
+      // `degraded` and not `ready`) so the kiosk shows a soft indicator
+      // rather than the "restart agent" prompt.
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c-preserved',
+        rebinding: true,
+        // No ws while the rebind is in flight (manager tears it down).
+        isThinking: false,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('reconnecting');
+      expect(status.error).toBeNull();
+      expect(status.conversationId).toBe('c-preserved');
+    });
+
+    test('rebinding=true wins over isThinking and a stale open ws', async () => {
+      // Defensive: if for any reason the WS reference hasn't been
+      // cleared when the manager set `rebinding`, the driver still
+      // reports `reconnecting`, not `thinking` or `ready`.
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        rebinding: true,
+        ws: { readyState: 1 }, // stale OPEN
+        isThinking: true,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('reconnecting');
+    });
+
+    test('rebinding=true wins over a degraded flag (still in-flight)', async () => {
+      // If both flags are set, prefer `reconnecting` — the rebind is in
+      // flight and the session hasn't actually given up yet. (In
+      // practice the manager won't set both at once, but the precedence
+      // matters for any transient overlap.)
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        rebinding: true,
+        degraded: true,
+        degradedReason: 'stale',
+        isThinking: false,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('reconnecting');
     });
   });
 

@@ -924,12 +924,21 @@ export class OpenHandsAgentDriver implements AgentDriver {
       const wsState = ai.ws?.readyState;
       const wsTornDown = wsState === WS_CLOSING || wsState === WS_CLOSED;
 
-      if (ai.degraded) {
-        // Adapter-level override (from #291/#323): the reconnect loop
-        // gave up — sandbox MISSING or refresh-credentials retries
-        // exhausted. The user-visible recovery path lives in #294/#296.
-        // This wins over upstream execution_status because the upstream
-        // wire may still be emitting trailing events on the way out.
+      if (ai.rebinding) {
+        // Adapter-level override (from #296): the manager has detected
+        // MISSING and is mid-flight attempting a rebind onto a fresh
+        // sandbox. We report `reconnecting` (not `degraded`) so the
+        // kiosk shows a reconnecting indicator rather than the more
+        // alarming "agent unavailable" prompt. If the rebind fails the
+        // manager flips `ai.degraded`, which is checked next.
+        agentState = 'reconnecting';
+      } else if (ai.degraded) {
+        // Adapter-level override (from #291/#323/#296): the reconnect
+        // loop gave up — sandbox MISSING with rebind exhausted, or
+        // refresh-credentials retries exhausted. The user-visible
+        // recovery path lives in #294/#296. This wins over upstream
+        // execution_status because the upstream wire may still be
+        // emitting trailing events on the way out.
         agentState = 'degraded';
         error = ai.degradedReason ?? 'Agent runtime no longer available';
       } else if (wsTornDown) {
