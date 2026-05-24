@@ -10,6 +10,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import WebSocket from 'ws';
 import { normalizeOhTimestamp } from './utils/timestamp.js';
+import {
+  rebindConversation as rebindHttp,
+  RebindWindowTracker,
+  RebindBudgetExhausted,
+  RebindForbidden,
+  RebindConversationGone,
+  type RebindResult,
+  type RebindOptions,
+} from './agent-driver/rebind.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,7 +51,7 @@ interface StartTaskResponse {
   error?: string;
 }
 
-interface ConversationInfo {
+export interface ConversationInfo {
   id: string;
   status: string;
   execution_status?: string;
@@ -261,6 +270,31 @@ export class OpenHandsClient {
   }
 
   /**
+   * Rebind a conversation whose sandbox has been reaped onto a fresh sandbox.
+   *
+   * POSTs `/app-conversations` with `{ conversation_id }` (and *no*
+   * `parent_conversation_id` — that path is the fork primitive, which
+   * errors on a dead conversation; see docs/openhands-platform.md
+   * § Rebind on a dead conversation). The response carries the same
+   * `conversation_id`, a new `agent_server_url`, and a new
+   * `session_api_key`. The on-server event log is preserved; the agent's
+   * in-context memory is not (memory replay is #297).
+   *
+   * Returns the rebound conversation info. Throws `OpenHandsApiError` with
+   * the upstream HTTP status on failure; callers in the driver layer
+   * narrow that into typed errors with retry semantics
+   * (`server/src/agent-driver/rebind.ts`).
+   */
+  async rebindConversation(conversationId: string): Promise<ConversationInfo> {
+    return this.request<ConversationInfo>(
+      'POST',
+      '/app-conversations',
+      { conversation_id: conversationId },
+      60_000,
+    );
+  }
+
+  /**
    * Send a message to an existing conversation via pending messages endpoint
    * Uses SendMessageRequest format: { role, content: [{type, text}], run }
    */
@@ -437,6 +471,15 @@ export interface AISession {
   degraded?: boolean;
   /** Human-readable reason for the degraded transition (when `degraded` is true). */
   degradedReason?: string | null;
+  /**
+   * True when the reconnect loop has detected `sandbox_status: MISSING`
+   * and is mid-flight attempting a rebind onto a fresh sandbox (#296).
+   * The driver maps this to the `reconnecting` AgentSessionState so the
+   * kiosk shows a reconnecting indicator instead of the more alarming
+   * `degraded` one. Cleared when the rebind either succeeds (a new WS is
+   * opened) or fails (the session transitions to `degraded`).
+   */
+  rebinding?: boolean;
 }
 
 // V1 Event type interfaces
@@ -1326,6 +1369,29 @@ export class AISessionManager {
   private inFlightRefresh = new Map<string, Promise<void>>();
 
   /**
+   * Per-conversation rolling-window tracker for rebind attempts (#296).
+   * Prevents thrash when the platform repeatedly hands us short-lived
+   * sandboxes — after `MAX_REBINDS_PER_WINDOW` rebinds in a 5-minute
+   * window, the next attempt is short-circuited to `degraded` instead.
+   */
+  private rebindTracker = new RebindWindowTracker();
+
+  /**
+   * Running total of successful rebinds across all sessions, incremented
+   * each time {@link rebindSession} completes a rebind. Exposed for
+   * production metrics + #296 acceptance — mirrors `keyRotationCount`.
+   */
+  private rebindCount = 0;
+
+  /**
+   * Test seam: optional override of the rebind HTTP-orchestration options
+   * (sleep/clock/backoff/budget). Production callers leave this `undefined`;
+   * the integration tests in `openhands.test.ts` set it to drive backoff
+   * deterministically.
+   */
+  private rebindOptionsForTesting: RebindOptions | undefined;
+
+  /**
    * @param client - Optional pre-built client (test seam). When omitted, the
    * manager constructs its own `OpenHandsClient` using ambient env vars.
    */
@@ -1357,6 +1423,24 @@ export class AISessionManager {
    */
   getKeyRotationCount(): number {
     return this.keyRotationCount;
+  }
+
+  /**
+   * Number of successful rebinds performed for any session across the
+   * lifetime of this manager. Exposed for #296 metrics + tests so we can
+   * confirm rebind actually fires in production logs.
+   */
+  getRebindCount(): number {
+    return this.rebindCount;
+  }
+
+  /**
+   * Test seam: install rebind-time injection options (fake sleep/clock/etc.)
+   * The rebind window tracker is left in place — production semantics —
+   * but the HTTP backoff timing becomes deterministic.
+   */
+  setRebindOptionsForTesting(opts: RebindOptions | undefined): void {
+    this.rebindOptionsForTesting = opts;
   }
 
   /**
@@ -1840,10 +1924,12 @@ export class AISessionManager {
    * upstream credentials (so a paused-then-resumed sandbox doesn't get
    * dialled with a stale `session_api_key`, #291) and then re-opens the WS.
    *
-   * On {@link SandboxMissingError} the session is marked `degraded` and the
-   * reconnect loop stops — #296 will turn that into a rebind. On any other
-   * refresh error we also stop, so a hard-down OpenHands app server cannot
-   * keep the reconnect loop alive forever.
+   * On {@link SandboxMissingError} the session is rebound onto a fresh
+   * sandbox via {@link rebindSession} (#296). If rebind succeeds the
+   * reconnect loop continues against the new sandbox; if it fails (budget
+   * exhausted, conversation gone, forbidden) the session is marked
+   * `degraded`. On any other refresh error we also degrade, so a
+   * hard-down OpenHands app server cannot keep the loop alive forever.
    */
   private async reconnectWithRefresh(session: AISession): Promise<void> {
     if (!session.sessionId || !this.sessionAI.has(session.sessionId)) return;
@@ -1851,21 +1937,123 @@ export class AISessionManager {
       await this.refreshSessionCredentials(session);
     } catch (err) {
       if (err instanceof SandboxMissingError) {
-        console.error(
+        console.warn(
           `[AI] Sandbox MISSING for conversation ${session.conversationId} — ` +
-            `transitioning session ${session.sessionId} to degraded`,
+            `attempting rebind (session ${session.sessionId})`,
         );
-        session.degraded = true;
-        session.degradedReason = 'Agent runtime no longer available — restart needed';
-      } else {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(`[AI] Reconnect refresh failed for session ${session.sessionId}: ${message}`);
-        session.degraded = true;
-        session.degradedReason = `Reconnect failed: ${message}`;
+        // Attempt the rebind in-place. `rebindSession` re-opens the WS on
+        // success or marks the session degraded on failure — either way
+        // the reconnect loop is done.
+        await this.rebindSession(session);
+        return;
       }
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[AI] Reconnect refresh failed for session ${session.sessionId}: ${message}`);
+      session.degraded = true;
+      session.degradedReason = `Reconnect failed: ${message}`;
       return;
     }
     // Session may have been ended while we were awaiting the refresh.
+    if (!session.sessionId || !this.sessionAI.has(session.sessionId)) return;
+    this.connectWebSocket(session);
+  }
+
+  /**
+   * Attempt to rebind `session` onto a fresh sandbox, preserving its
+   * `conversationId` (#296). On success the in-memory `agentServerUrl`
+   * and `sessionApiKey` are replaced, the WebSocket is re-dialled against
+   * the new agent server, and the `degraded` / `rebinding` flags are
+   * cleared. On failure the session transitions to `degraded` and the
+   * reconnect loop stops.
+   *
+   * Behavior:
+   * - The per-conversation rebind window (max 3 in 5 min) is consulted
+   *   first. If full, the call short-circuits to `degraded`.
+   * - The HTTP rebind helper applies its own ~30 s budget; on
+   *   `RebindBudgetExhausted` we degrade.
+   * - On `RebindForbidden` / `RebindConversationGone` we degrade with a
+   *   targeted reason — there's no point retrying.
+   * - During the attempt `session.rebinding` is `true` so the driver
+   *   layer reports `reconnecting` to UI consumers.
+   *
+   * Returns nothing — caller observes outcome via `session.degraded` /
+   * `session.ws.readyState` / `getRebindCount()`.
+   */
+  async rebindSession(session: AISession): Promise<void> {
+    if (!this.client) {
+      session.degraded = true;
+      session.degradedReason = 'OpenHands client not configured — cannot rebind';
+      return;
+    }
+
+    // Window cap: if recent rebinds are already at the cap, don't even
+    // try the HTTP call. The user must explicitly restart.
+    try {
+      this.rebindTracker.checkBudget(session.conversationId);
+    } catch (err) {
+      if (err instanceof RebindBudgetExhausted) {
+        console.error(
+          `[AI] Rebind window exhausted for ${session.conversationId} ` +
+            `(${err.attempts} rebinds in the last 5min) — degrading`,
+        );
+        session.degraded = true;
+        session.degradedReason = 'Could not recover the agent runtime. Try restarting.';
+        return;
+      }
+      throw err;
+    }
+
+    session.rebinding = true;
+    // Tear down any lingering ws reference so the driver doesn't synthesize
+    // a stale ready state while we're mid-rebind.
+    if (session.ws) {
+      try {
+        session.ws.removeAllListeners();
+        session.ws.close();
+      } catch {
+        // ignore — best-effort cleanup of a presumed-dead WS
+      }
+      session.ws = undefined;
+    }
+
+    let result: RebindResult;
+    try {
+      result = await rebindHttp(this.client, session.conversationId, this.rebindOptionsForTesting);
+    } catch (err) {
+      session.rebinding = false;
+      session.degraded = true;
+      if (err instanceof RebindConversationGone) {
+        session.degradedReason = 'Conversation no longer exists — restart needed';
+      } else if (err instanceof RebindForbidden) {
+        session.degradedReason = 'Not authorized to recover the agent runtime — restart needed';
+      } else if (err instanceof RebindBudgetExhausted) {
+        session.degradedReason = 'Could not recover the agent runtime. Try restarting.';
+      } else {
+        const message = err instanceof Error ? err.message : String(err);
+        session.degradedReason = `Rebind failed: ${message}`;
+      }
+      console.error(
+        `[AI] Rebind failed for conversation ${session.conversationId}: ` +
+          `${session.degradedReason}`,
+      );
+      return;
+    }
+
+    // Success: update in-memory binding, record in window, dial WS.
+    session.agentServerUrl = result.agentServerUrl;
+    session.sessionApiKey = result.sessionApiKey;
+    session.reconnectAttempts = 0;
+    session.degraded = false;
+    session.degradedReason = null;
+    session.rebinding = false;
+    this.rebindTracker.recordSuccess(session.conversationId);
+    this.rebindCount++;
+    console.log(
+      `[AI] Rebind succeeded for conversation ${session.conversationId} ` +
+        `(rebind count: ${this.rebindCount}); reconnecting WS`,
+    );
+
+    // Session may have been ended while the rebind was in flight.
     if (!session.sessionId || !this.sessionAI.has(session.sessionId)) return;
     this.connectWebSocket(session);
   }

@@ -2151,4 +2151,410 @@ describe('shouldSkipForKioskTimeline — fixture parity (issue #280)', () => {
   });
 });
 
+/**
+ * Tests for {@link AISessionManager.rebindSession} — the MISSING-sandbox
+ * recovery primitive introduced in issue #296.
+ *
+ * The full reconnect-then-rebind path is exercised indirectly through
+ * `rebindSession` (which is what `reconnectWithRefresh` calls); the WS
+ * dial itself is not testable here without a real `ws` peer, but every
+ * state-machine assertion on `session.rebinding` / `session.degraded` /
+ * `agentServerUrl` / `sessionApiKey` is observable from the manager.
+ *
+ * Test IDs T-4.1.I.* match the acceptance matrix in #296.
+ */
+describe('AISessionManager.rebindSession (#296)', () => {
+  interface RebindFakeClient {
+    rebindConversation: ReturnType<typeof vi.fn>;
+  }
+
+  function makeSession(overrides: Partial<AISession> = {}): AISession {
+    return {
+      conversationId: 'conv-rb-1',
+      taskId: 'task-rb-1',
+      sessionId: 'sess-rb-1',
+      mode: 'kiosk',
+      agentServerUrl: 'https://old.example.com',
+      sessionApiKey: 'KOLD',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+      ...overrides,
+    };
+  }
+
+  /** Build a fake `OpenHandsClient` whose `rebindConversation` returns queued responses. */
+  function makeClient(responses: unknown[]): RebindFakeClient {
+    const calls = responses.slice();
+    return {
+      rebindConversation: vi.fn(async () => {
+        if (calls.length === 0) throw new Error('FakeClient: no more queued responses');
+        const next = calls.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+    };
+  }
+
+  /** Deterministic fake clock/sleep pair for rebind backoff tests. */
+  function makeFakeTime() {
+    let now = 0;
+    return {
+      clock: () => now,
+      sleep: async (ms: number) => {
+        now += ms;
+      },
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Inject a fake session into the manager's private session map.
+   * The manager doesn't expose a public setter (sessions are normally
+   * built via `getOrCreateForSession`, which opens a real WS); we reach
+   * into the private map for these tests because the rebind path
+   * cannot legitimately run without a registered session.
+   */
+  function attachSession(session: AISession): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).sessionAI.set(session.sessionId!, session);
+  }
+
+  /**
+   * Replace `connectWebSocket` with a no-op spy so the rebind path
+   * doesn't try to open a real WS — we still assert it was called with
+   * the rebound session, which is the integration point that proves
+   * the new credentials would be used.
+   */
+  function stubConnectWs(): ReturnType<typeof vi.fn> {
+    const spy = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).connectWebSocket = spy;
+    return spy;
+  }
+
+  test('T-4.1.I.1/I.3: successful rebind clears rebinding, updates binding, dials new WS', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1/foo',
+        sandbox_status: 'RUNNING',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    // Capture rebinding flag mid-flight by spying through a promise.
+    let rebindingDuring: boolean | undefined;
+    const originalRebind = client.rebindConversation;
+    client.rebindConversation = vi.fn(async (id: string) => {
+      rebindingDuring = session.rebinding;
+      return await (originalRebind as (id: string) => Promise<unknown>)(id);
+    });
+
+    expect(manager.getRebindCount()).toBe(0);
+    await manager.rebindSession(session);
+
+    expect(rebindingDuring).toBe(true);
+    expect(session.rebinding).toBe(false);
+    expect(session.degraded).toBe(false);
+    expect(session.degradedReason).toBeNull();
+    expect(session.agentServerUrl).toBe('https://new.example.com');
+    expect(session.sessionApiKey).toBe('KNEW');
+    expect(session.reconnectAttempts).toBe(0);
+    expect(manager.getRebindCount()).toBe(1);
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+    expect(connectSpy).toHaveBeenCalledWith(session);
+  });
+
+  test('T-4.1.I.4: rebind preserves conversationId unchanged', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1/foo',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const before = session.conversationId;
+    await manager.rebindSession(session);
+    expect(session.conversationId).toBe(before);
+  });
+
+  test('T-4.1.I.5: rebind exhaustion → degraded with user-facing reason', async () => {
+    const time = makeFakeTime();
+    // Indefinite 503s blow through the 30s budget.
+    const responses: unknown[] = [];
+    for (let i = 0; i < 6; i++) {
+      responses.push(new OpenHandsApiError(503, 'try later', null));
+    }
+    const client = makeClient(responses);
+    manager.setClientForTesting(client as never);
+    manager.setRebindOptionsForTesting({ sleep: time.sleep, clock: time.clock });
+    const session = makeSession();
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    await manager.rebindSession(session);
+
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/recover the agent runtime/i);
+    expect(session.rebinding).toBe(false);
+    expect(connectSpy).not.toHaveBeenCalled();
+    expect(manager.getRebindCount()).toBe(0);
+  });
+
+  test('rebind 404 → degraded with conversation-gone reason', async () => {
+    const client = makeClient([new OpenHandsApiError(404, 'gone', null)]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/conversation no longer exists/i);
+  });
+
+  test('rebind 403 → degraded with authz reason', async () => {
+    const client = makeClient([new OpenHandsApiError(403, 'forbidden', null)]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/not authorized/i);
+  });
+
+  test('T-4.1.I.7: max 3 rebinds in 5min window → 4th degrades without HTTP call', async () => {
+    // Three successful rebinds in quick succession, then a fourth should
+    // short-circuit to degraded *before* the HTTP layer is touched.
+    const client = makeClient([
+      { id: 'conv-rb-1', status: 'READY', session_api_key: 'K1', conversation_url: 'https://r1.example.com/api/v1' },
+      { id: 'conv-rb-1', status: 'READY', session_api_key: 'K2', conversation_url: 'https://r2.example.com/api/v1' },
+      { id: 'conv-rb-1', status: 'READY', session_api_key: 'K3', conversation_url: 'https://r3.example.com/api/v1' },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    await manager.rebindSession(session);
+    await manager.rebindSession(session);
+    expect(manager.getRebindCount()).toBe(3);
+    expect(session.degraded).toBe(false);
+
+    // Fourth attempt — the window tracker fires before the HTTP layer.
+    await manager.rebindSession(session);
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/recover the agent runtime/i);
+    // Still 3 successful rebinds — the 4th never made an HTTP call.
+    expect(manager.getRebindCount()).toBe(3);
+    expect(client.rebindConversation).toHaveBeenCalledTimes(3);
+  });
+
+  test('T-4.1.I.8: post-rebind sessionApiKey is the new value (key-refresh continuity)', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession({ sessionApiKey: 'KOLD' });
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    expect(session.sessionApiKey).toBe('KNEW');
+  });
+
+  test('rebind with no configured client → degraded immediately', async () => {
+    // Manager constructed in beforeEach without ambient env vars has no client.
+    manager.setClientForTesting(null);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/client not configured/i);
+  });
+
+  test('rebind tears down stale WS reference before HTTP call', async () => {
+    // Build a fake WS that records `close` calls; verify it's released
+    // before the new connectWebSocket fires.
+    let closed = false;
+    const fakeWs = {
+      removeAllListeners: vi.fn(),
+      close: vi.fn(() => {
+        closed = true;
+      }),
+    };
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession({ ws: fakeWs as never });
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    expect(closed).toBe(true);
+    expect(fakeWs.removeAllListeners).toHaveBeenCalled();
+  });
+
+  test('rebindSession is safe to call after session end (no connectWebSocket)', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    // Attach then immediately remove to simulate session ended mid-rebind.
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    // Drop the session from the manager mid-flight by replacing the
+    // rebindConversation impl to delete on call.
+    const origImpl = client.rebindConversation;
+    client.rebindConversation = vi.fn(async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (manager as any).sessionAI.delete(session.sessionId!);
+      return await (origImpl as (id: string) => Promise<unknown>)(id);
+    });
+
+    await manager.rebindSession(session);
+    // Rebind succeeded but WS not redialed because session is gone.
+    expect(manager.getRebindCount()).toBe(1);
+    expect(connectSpy).not.toHaveBeenCalled();
+  });
+
+  test('reconnectWithRefresh routes MISSING through rebind (integration)', async () => {
+    // Refresh sees MISSING; the manager should then attempt the rebind
+    // and end up not-degraded with the new key.
+    const refreshClient = {
+      getConversation: vi.fn(async () => ({
+        id: 'conv-rb-1',
+        status: 'READY',
+        sandbox_status: 'MISSING',
+        session_api_key: 'IGNORED',
+        conversation_url: 'https://ignored.example.com/api/v1',
+      })),
+      // rebindConversation provides the recovery response.
+      rebindConversation: vi.fn(async () => ({
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KAFTER',
+        conversation_url: 'https://after.example.com/api/v1',
+      })),
+    };
+    manager.setClientForTesting(refreshClient as never);
+    const session = makeSession();
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    // Drive the private path through the public-ish entry point.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (manager as any).reconnectWithRefresh(session);
+
+    expect(refreshClient.getConversation).toHaveBeenCalledTimes(1);
+    expect(refreshClient.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(session.degraded).toBe(false);
+    expect(session.sessionApiKey).toBe('KAFTER');
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('reconnectWithRefresh: non-MISSING refresh error still degrades (no rebind)', async () => {
+    const client = {
+      getConversation: vi.fn(async () => {
+        throw new OpenHandsApiError(500, 'boom', null);
+      }),
+      rebindConversation: vi.fn(),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (manager as any).reconnectWithRefresh(session);
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toMatch(/reconnect failed/i);
+    // rebind path NOT taken — only the refresh's own retries ran.
+    expect(client.rebindConversation).not.toHaveBeenCalled();
+  });
+
+  test('rebind respects the in-flight `rebinding` flag for driver observers', async () => {
+    // The driver layer maps `ai.rebinding === true` to AgentSessionState
+    // `reconnecting`. This test pins the contract that the flag is true
+    // for the entire HTTP call window, even when the platform takes a
+    // little while to respond.
+    const time = makeFakeTime();
+    let resolveRebind!: (info: object) => void;
+    const pending = new Promise<object>((resolve) => {
+      resolveRebind = resolve;
+    });
+    const client = {
+      rebindConversation: vi.fn(() => pending),
+    };
+    manager.setClientForTesting(client as never);
+    manager.setRebindOptionsForTesting({ sleep: time.sleep, clock: time.clock });
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const promise = manager.rebindSession(session);
+    // Yield so rebindSession enters its try block.
+    await Promise.resolve();
+    expect(session.rebinding).toBe(true);
+
+    resolveRebind({
+      id: 'conv-rb-1',
+      status: 'READY',
+      session_api_key: 'KNEW',
+      conversation_url: 'https://new.example.com/api/v1',
+    });
+    await promise;
+    expect(session.rebinding).toBe(false);
+  });
+
+  // TODO(#297): once memory replay lands, add a test asserting that the
+  // post-rebind event stream is rehydrated into the agent's context.
+  // The platform already preserves the conversation event log across
+  // rebinds (verified manually); replay is the missing piece.
+});
+
 
