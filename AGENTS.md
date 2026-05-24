@@ -76,12 +76,22 @@ updated in [`docs/architecture.md` § Persistence layer](docs/architecture.md#pe
 
 The freeze remains in effect — **do not start implementation work** on these
 issues yet — because @jpshackelford is provisioning the S3 bucket and the
-single VR-backend AWS credential before any test code runs. Once the bucket
-exists, the credential is in `/var/www/vr.chorecraft.net/app/.env` on the
-production server (see [DEPLOYMENT.md](docs/DEPLOYMENT.md)), and the user
-removes the `on-hold` label, the issues become workable.
+single VR-backend AWS credential before any test code runs.
 
-In scope (still `on-hold`):
+**The freeze lifts (and `on-hold` should be removed from #298–#302) when all
+of the following are true:**
+
+1. `VR_WORKSPACE_BUCKET` is set in `/var/www/vr.chorecraft.net/app/.env` on the
+   production server (see [DEPLOYMENT.md](docs/DEPLOYMENT.md)).
+2. The four AWS credential env vars — `AWS_ACCESS_KEY_ID`,
+   `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, and the IAM principal's
+   permissions-boundary attachment — are in place on the same `.env`.
+3. The S3 bucket provisioning runbook
+   (`docs/runbooks/s3-bucket-provisioning.md`, to be added as part of #298's
+   prep work) has been executed end-to-end and a smoke test (`curl
+   $VR_BASE_URL/api/internal/health/s3`) returns 200.
+
+In scope (still `on-hold` until the three conditions above hold):
 
 - Issue #298 — Add VR backend persistence endpoints (`/api/internal/workspaces/:id/restore` + `/snapshot`)
 - Issue #299 — Workspace restore in the OH adapter (now curl-based, not `aws s3 sync`)
@@ -91,8 +101,9 @@ In scope (still `on-hold`):
 
 PR #313 (operator-mediated Path A) is closed. Do not reopen.
 
-When the freeze lifts and Path B work is complete, **remove this entire
-section** of AGENTS.md.
+**When this section can be removed entirely:** once issues #298–#302 are all
+closed (i.e. Path B implementation is *shipped*, not merely started), delete
+this whole "Active design freeze" section from AGENTS.md.
 
 ## Agent disclosure on external surfaces
 

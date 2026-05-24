@@ -289,6 +289,24 @@ On the VR side (`GET /api/internal/workspaces/:id/restore`):
    return `204 No Content` and the sandbox-side `tar -xz` becomes a no-op
    (curl sees empty body, exits 0; tar of empty input exits 0).
 
+##### Error handling
+
+Restore runs before the agent processes any user input, so partial-state risk
+is the dominant concern: a half-extracted tarball is worse than no restore at
+all. The adapter treats restore as fail-closed:
+
+| Condition | Behavior |
+|---|---|
+| `204 No Content` (object missing) | No-op; proceed with empty `/workspace`. First-restore-on-new-workspace case. |
+| `200` with valid tarball | Extract into `/workspace`; proceed. |
+| Connection refused (VR down) | Fail-closed: abort sandbox start and surface `degraded` to the user. Sandbox is *not* reused; no user input is accepted until VR is reachable. |
+| `5xx` (S3 timeout, transient VR error) | Retry up to 3 times with exponential backoff (1 s, 2 s, 4 s). On final failure, fail-closed as above. |
+| `401` / `403` (bearer rejected) | Fail-closed; do not retry. Logged as an auth-config bug, not a transient fault. |
+| Tarball corrupted (`tar` exits non-zero) | Fail-closed. The on-disk `/workspace` is unlinked-and-recreated before the failure surfaces, so the next attempt starts clean. |
+
+Fail-closed is the right default for v1: it's louder, and silently starting
+with an empty workspace would let an agent overwrite a snapshot it never read.
+
 #### `snapshot(workspaceId, sandboxId, agent)`
 
 ```bash
@@ -308,6 +326,26 @@ On the VR side (`POST /api/internal/workspaces/:id/snapshot`):
    concurrent restore either sees the prior snapshot in full or the new one in
    full — never a partial.
 3. Return `204 No Content` on success.
+
+##### Error handling
+
+Snapshot is post-turn and best-effort: a failed snapshot increases durability
+lag but must never crash the agent process or fail the user-visible turn.
+The agent has already produced output by the time snapshot fires.
+
+| Condition | Behavior |
+|---|---|
+| `204 No Content` | Success; reset durability-lag counter. |
+| `5xx` from VR (S3 timeout, transient error) | Retry up to 3 times with exponential backoff (1 s, 2 s, 4 s) in-band. On final failure, log and continue — the 60 s backstop timer will attempt again. |
+| Connection refused (VR briefly unreachable) | Log + continue; rely on the backstop timer. Do not block the agent or transition session state. |
+| `401` / `403` | Log loudly as a config bug; surface as a metric. Do not retry. |
+| `tar` produces a corrupt stream | Log + skip this snapshot; do not retry until the next trigger fires. |
+| Sandbox terminated before snapshot completed | Acceptable — durability lag is acceptable; **session-loss is not.** Snapshot failures never propagate as session-fatal errors. |
+
+The asymmetry with restore is intentional: restore guards against starting
+a session on stale or empty state; snapshot guards only against falling too
+far behind on durability. The 60 s backstop and per-turn cadence together
+keep worst-case lag bounded even when individual snapshots fail.
 
 #### Trigger points (unchanged from prior spec)
 
@@ -343,8 +381,29 @@ architecture commitment):
    this further.
 
 Option (3) is the cleanest if it works in practice; (1) is the most defensible
-in security review; (2) is a fallback. The implementation issue should pick
-one based on what OH actually exposes for custom-secret writes.
+in security review; (2) is a fallback.
+
+**Selection deferred to the v1 implementation issue.** The choice depends on
+two facts that we'd rather verify than assume:
+
+- What OH actually exposes for per-conversation custom-secret writes (gates
+  option 1).
+- Whether OH publishes a stable egress IP range that VR can allow-list
+  (sharpens option 3 materially; without it, option 3 leans on `conversation_id`
+  alone).
+
+Rough decision criteria for the implementation issue:
+
+- Pick (1) if OH supports per-conversation secret writes and the team wants the
+  tightest blast-radius (token lifetime = sandbox lifetime, easy revocation).
+- Pick (3) if OH egress IPs are stable and a no-secret model is acceptable
+  given that `conversation_id` is already a sensitive identifier the sandbox
+  holds.
+- Pick (2) only if both (1) and (3) are ruled out — it's the simplest to ship
+  but has the largest token half-life.
+
+Whichever is chosen, the VR endpoint contract above does not change; only the
+`Authorization` header's contents and the VR-side validator do.
 
 The endpoint path prefix `/api/internal/` is a marker that these endpoints are
 not part of VR's public API surface and may be locked down by Apache (IP allow
@@ -376,6 +435,7 @@ built today.** Documented for the contract.
 | Agent transparency | Agent doesn't know about S3 or AWS; works in `/workspace`. The only "outside" thing the sandbox knows is the VR HTTP endpoint, which it'd talk to for other reasons anyway. |
 | User-visible AWS surface | **None.** Users never see AWS credentials, never authorize anything AWS-related, never have an IAM identity. |
 | AWS credential lifecycle | One static credential on the VR backend. Operator rotates it on the usual cadence. No per-user IAM lifecycle. |
+| Security blast radius | All AWS privilege is concentrated in a single VR backend credential. **If that credential leaks, the blast radius is every user's workspace tarball** (read/write/delete on the entire bucket). Mitigations: (a) an IAM permissions boundary scoping the principal to `s3:{Get,Put,Delete,List}Object` on `arn:aws:s3:::<bucket>/*` only — no IAM, STS, or other S3 buckets; (b) credential rotation on the standard cadence; (c) secret-scanning the deploy pipeline and `.env` distribution path; (d) CloudTrail alarms on access patterns inconsistent with VR's traffic profile (e.g. bulk list, downloads from unexpected source IPs). Compared to Path A (which would have leaked one user's AWS keys at most), Path B trades many small blast radii for one big one — acceptable because the credential never leaves the VR backend, never crosses a user-controlled boundary, and the backend already holds material of equivalent sensitivity (the SQLite DB). |
 | Bandwidth on VR backend | Every restore + snapshot streams through VR. Negligible at current workspace sizes; if it becomes a bottleneck, evolution path is to issue presigned S3 URLs from the same endpoints so bytes move sandbox↔S3 directly (VR remains the policy point). |
 | Auditability | VR's own request log captures `{user_id, workspace_id, operation, bytes, timestamp}` for every restore/snapshot. AWS CloudTrail sees only the VR principal — useful for AWS-side ops, less useful than VR's log for product-level audit. |
 | Single point of failure | VR backend availability is a precondition for sandbox restore. Already true: if VR is down, the user can't use the product. |
