@@ -330,3 +330,44 @@ Migrated the device WebSocket handler, auto-connect logic, session router, AI co
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 18:38 UTC - Merge worker (PR #320)
+
+✅ **Merged: PR #320 — `feat(server): route platform code through AgentDriver interface`**
+
+| Field | Value |
+|---|---|
+| Merge commit | [`afd9db77000542d3de03041c99f2516663bee151`](https://github.com/jpshackelford/voice-relay/commit/afd9db77000542d3de03041c99f2516663bee151) |
+| Strategy | squash (conventional `feat(server):` title) |
+| Merged at | 2026-05-24T18:38:15Z |
+| Branch | `feat/289-route-platform-through-agentdriver` |
+| Closes | #289 (auto-closed via `Fixes #289` at 2026-05-24T18:38:16Z) |
+| Diff | 13 files, +1160 / −341 (server/ only; 3 new files) |
+| Scope | `scope:server-only` — server-only refactor, no schema/migrations |
+
+**Pre-merge re-verification (defensive checks):**
+
+| Signal | Value |
+|---|---|
+| `mergeable` | MERGEABLE |
+| `mergeStateStatus` | CLEAN |
+| Status checks | 7 / 7 SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| Unresolved review threads | 0 / 0 |
+| Bot review verdict | 🟡 Acceptable / ✅ Worth merging |
+| Labels | `scope:server-only` (no `on-hold` / `needs-human`) |
+| Diff scope | confirmed server-only (`git diff --name-only origin/main...HEAD \| awk -F/ '{print $1}' \| sort -u` → `server`); no schema/migration/SQL files |
+
+**Migration completeness gates (T-2.3.M.1 / M.2 / M.3): all green.** Platform code no longer imports `openhands.ts` directly; the `AISessionManager` singleton is owned by `server/src/agent-driver/index.ts` and the legacy module no longer exports it. `OpenHandsAgentDriver` remains the sole consumer of `AISessionManager`, which is the correct architectural position.
+
+**Squash commit body** highlights:
+- `AgentDriver` extensions: `isAvailable()`, `hasSession()`, and fan-out registration (`onRawEvent` / `onThinkingChange` / `onActionEvent`) with unsubscribe handles and isolated listeners.
+- Eager session binding in `OpenHandsAgentDriver.openSession()` preserves the legacy `getOrCreateForSession` bootstrap so `conversationId` is available immediately for metadata + `session-ai-status`.
+- New `relayAgentResponse` helper (`server/src/agent-message-relay.ts`) iterates `agentDriver.sendMessage`'s `AsyncIterable<AgentEvent>`, replacing the session-level `onMessage` callback.
+- Driver-substitution proof: `server/src/auto-connect.fake-driver.test.ts` exercises the full path against `FakeDriver` only, with no OH adapter import.
+
+**Downstream impact:** unblocks #290 (text path through driver), #291 (closeSession on disconnect), #293 (`index.ts` AI bootstrap), #296 (delete legacy platform usage of `aiSessionManager`).
+
+**Production:** App will auto-deploy to vr.chorecraft.net via the merge-to-main pipeline. No schema/migration risk — pure server refactor. Production SQLite (`sqlite.db`) untouched.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
