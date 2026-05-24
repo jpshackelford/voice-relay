@@ -400,3 +400,42 @@ Every path in the diff starts with `client/`. No `server/**`, `.github/**`, `cli
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+## 2026-05-24T02:10Z — Orchestrator: 3 workers spawned (2 merge + 1 impl)
+
+**Active Workers (after this tick):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `db695b2` | merge (review slot) | PR #305 — `feat(client)`: WS auto-reconnect (closes #285) | **NEW** |
+| `34a6f95` | merge (review slot) | PR #306 — `feat(client)`: coverage thresholds (closes #284) | **NEW** |
+| `a5211d5` | implementation | Issue #287 — Define AgentDriver interface + FakeDriver | **NEW** |
+
+**Worker just finished this tick (`ffeef36` impl → #284):**
+- Sandbox `PAUSED`, last updated 2026-05-24T01:25:57Z. Output landed: opened [PR #306](https://github.com/jpshackelford/voice-relay/pull/306) — *feat(client): establish coverage thresholds (closes #284)*.
+- PR #306 ready-for-review, MERGEABLE / CLEAN, 0 unresolved review threads, all CI green (Build Client / Client Tests / Server Tests / E2E / lint-pr-title / pr-review SUCCESS).
+- Moved `.workflow-state.json` slot → `completed[]` (success).
+
+**Current state (verified via `gh` + OH API):**
+- **Open PRs (3):**
+  - [PR #306](https://github.com/jpshackelford/voice-relay/pull/306) — `scope:client-only`, MERGEABLE / CLEAN, 0 threads, CI green — **merge worker spawned** (`34a6f95`).
+  - [PR #305](https://github.com/jpshackelford/voice-relay/pull/305) — `scope:client-only`, MERGEABLE / CLEAN, 0 threads, CI green — **merge worker spawned** (`db695b2`).
+  - [PR #221](https://github.com/jpshackelford/voice-relay/pull/221) — draft, `needs-human`, `CONFLICTING` (~5d stale) — deferred per stuck-PR rule.
+- **Ready+priority:high issues unblocked & unimplemented:**
+  - #287 — Define AgentDriver TS interface + FakeDriver — **picked up this tick** (impl worker `a5211d5`); applied `scope:server-only` label before spawn.
+  - #304 — 🚨 Smoke test failure after deployment (`ci-failure`, `scope:ci-only`) — **NOT** picked this tick. Reason: scope-label mismatch (the fix lives in `tests/smoke/smoke.spec.ts` which doesn't match the `scope:ci-only` allowed-paths regex). Will re-label and pick on a subsequent tick — single-line assertion update, low risk. Production stays on rollback `ca54d28` until then.
+- **Ready+priority:high issues blocked by chain dependencies:**
+  - #286 (blocked by #285), #288 (by #287), #289 (by #288), #290 (by #289), #291 (by #289), #293 (by #289), #296 (by #293). Chain will unspool once PR #305 + #287 land.
+- **On-hold issues (skipped):** #208, #210, #239.
+- `.workflow-state.json`: expansion **0/4**, impl **1/1**, review **2/2**. `completed[]`: 6 entries (last 24h), `quiet_ticks: 0` (productive tick).
+
+**Decision rationale (per /orchestrate decision tree):**
+- Expansion slots (0/4 used): nothing to expand — every open issue already labeled `ready` or `on-hold`. Idle.
+- Implementation slot (0/1 → 1/1): `ffeef36` finished; chose #287 (oldest unblocked priority:high in the architectural chain #287→…→#296). #304 deferred for label hygiene as noted above.
+- Review slots (0/2 → 2/2): both open mergeable PRs are independent and `scope:client-only`; parallel merge workers are safe — no branch conflict risk, no overlap in touched files (`client/vite.config.ts` + `client/.gitignore` for #306 vs `client/src/hooks/useWebSocket*` for #305).
+- Stuck-PR rule satisfied: PR #221 deferred, independent work continues.
+- Smoke-test protection: both merge workers carry an explicit step to audit `tests/smoke/smoke.spec.ts` before merging, learned from the #283/#304 regression.
+
+**No production / DB risk for the merge candidates:** Both PR #305 and PR #306 are client-only with zero server / schema changes. Smoke spec exercises auth endpoints only, which neither PR touches.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+

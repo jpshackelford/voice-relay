@@ -4,19 +4,30 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "ffeef36",
-        "issue": 284,
-        "started": "2026-05-24T01:21:41.440598+00:00"
+        "conv_id": "a5211d5",
+        "issue": 287,
+        "started": "2026-05-24T02:09:16.513139+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "db695b2",
+        "pr": 305,
+        "started": "2026-05-24T02:09:16.513139+00:00"
+      },
+      {
+        "conv_id": "34a6f95",
+        "pr": 306,
+        "started": "2026-05-24T02:09:16.513139+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T01:21:41.440598+00:00",
+  "last_updated": "2026-05-24T02:09:16.513139+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -62,6 +73,15 @@
       "finished": "2026-05-24T01:20:18.174189+00:00",
       "status": "success",
       "outcome": "Created PR #283 (feat(auth): surface GitHub App install step in /auth/github flow); ready-for-review, all CI green except pr-review bot (still IN_PROGRESS), MERGEABLE"
+    },
+    {
+      "conv_id": "ffeef36",
+      "type": "implementation",
+      "issue": 284,
+      "started": "2026-05-24T01:21:41.440598+00:00",
+      "finished": "2026-05-24T02:09:16.513139+00:00",
+      "status": "success",
+      "outcome": "Created PR #306 (feat(client): establish coverage thresholds, closes #284); ready-for-review, all CI green, MERGEABLE, 0 review threads"
     }
   ],
   "quiet_ticks": 0
