@@ -105,6 +105,24 @@ export class OpenHandsApiError extends Error {
   }
 }
 
+/**
+ * Raised when an attempt to refresh the upstream conversation credentials
+ * discovers that the OpenHands sandbox backing the conversation is gone —
+ * either the GET returned no record at all, or `sandbox_status === 'MISSING'`.
+ *
+ * The driver layer treats this as a non-recoverable signal: the session
+ * transitions to `degraded` rather than spinning forever in the reconnect
+ * loop. The MISSING-recovery rebind path lives in #296.
+ */
+export class SandboxMissingError extends Error {
+  readonly conversationId: string;
+  constructor(conversationId: string) {
+    super(`Sandbox MISSING for conversation ${conversationId}`);
+    this.name = 'SandboxMissingError';
+    this.conversationId = conversationId;
+  }
+}
+
 export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
@@ -411,6 +429,14 @@ export interface AISession {
   pendingMessageId?: string;
   /** Timestamp when the last message was sent */
   lastMessageSentAt?: number;
+  /**
+   * True when the reconnect loop has discovered the upstream sandbox is gone
+   * (or unrecoverable) and given up. The driver maps this to the `degraded`
+   * AgentSessionState. See `SandboxMissingError` and #291.
+   */
+  degraded?: boolean;
+  /** Human-readable reason for the degraded transition (when `degraded` is true). */
+  degradedReason?: string | null;
 }
 
 // V1 Event type interfaces
@@ -1285,13 +1311,139 @@ export class AISessionManager {
   private onAction?: ActionCallback;
   /** Callback invoked for every raw event on the upstream WS */
   private onEvent?: EventCallback;
+  /**
+   * Running count of detected `session_api_key` rotations across all sessions,
+   * incremented each time {@link refreshSessionCredentials} observes a
+   * different key from the cached one. Used as a lightweight metric to
+   * confirm whether the #291 fix is actually firing in production.
+   */
+  private keyRotationCount = 0;
+  /**
+   * In-flight credential-refresh promises keyed by `conversationId` so two
+   * concurrent reconnect attempts for the same session single-flight the
+   * GET. The promise self-deletes from the map on settle (success OR error).
+   */
+  private inFlightRefresh = new Map<string, Promise<void>>();
 
-  constructor() {
+  /**
+   * @param client - Optional pre-built client (test seam). When omitted, the
+   * manager constructs its own `OpenHandsClient` using ambient env vars.
+   */
+  constructor(client?: OpenHandsClient) {
+    if (client !== undefined) {
+      this.client = client;
+      return;
+    }
     try {
       this.client = new OpenHandsClient();
     } catch (e) {
       console.warn('OpenHands client not initialized:', (e as Error).message);
     }
+  }
+
+  /**
+   * Test seam: replace the underlying OH HTTP client. Production code paths
+   * inject via the constructor; this method exists so existing tests that
+   * construct the manager with no args can still install a fake afterwards.
+   */
+  setClientForTesting(client: OpenHandsClient | null): void {
+    this.client = client;
+  }
+
+  /**
+   * Number of times the reconnect refresh has observed a rotated
+   * `session_api_key` (i.e. fresh != cached). Exposed so platform metrics
+   * and tests can assert on the counter. See #291.
+   */
+  getKeyRotationCount(): number {
+    return this.keyRotationCount;
+  }
+
+  /**
+   * Refresh the cached `session_api_key` and `agent_server_url` for `session`
+   * by re-reading the conversation from the OpenHands app server. Used by
+   * the reconnect loop so a paused-then-resumed sandbox (which rotates the
+   * key, per docs/openhands-platform.md § Identity and keys) reconnects with
+   * fresh credentials rather than the stale ones we cached at session start.
+   *
+   * Behavior:
+   * - Returns when the cache has been updated (rotated or not).
+   * - Throws {@link SandboxMissingError} if the conversation is gone or
+   *   `sandbox_status === 'MISSING'` — the driver should transition to
+   *   `degraded` rather than retry forever (#296 will handle rebind).
+   * - Retries transient (`OpenHandsApiError.transient`) HTTP errors with
+   *   exponential backoff up to `maxRetries` times before propagating.
+   * - Concurrent calls for the same `conversationId` share a single
+   *   in-flight promise (single-flight).
+   */
+  async refreshSessionCredentials(
+    session: AISession,
+    maxRetries: number = 3,
+  ): Promise<void> {
+    const key = session.conversationId;
+    const existing = this.inFlightRefresh.get(key);
+    if (existing) return existing;
+
+    const work = this.doRefreshSessionCredentials(session, maxRetries).finally(() => {
+      this.inFlightRefresh.delete(key);
+    });
+    this.inFlightRefresh.set(key, work);
+    return work;
+  }
+
+  private async doRefreshSessionCredentials(
+    session: AISession,
+    maxRetries: number,
+  ): Promise<void> {
+    if (!this.client) {
+      // No client means we can't refresh; surface as MISSING so the
+      // reconnect loop stops rather than tight-looping with stale creds.
+      throw new SandboxMissingError(session.conversationId);
+    }
+
+    let lastTransientError: unknown;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const fresh = await this.client.getConversation(session.conversationId);
+        if (!fresh || fresh.sandbox_status === 'MISSING') {
+          throw new SandboxMissingError(session.conversationId);
+        }
+        if (!fresh.session_api_key) {
+          // Treat absence of a fresh key the same as MISSING — we cannot
+          // construct a valid WS URL without it.
+          throw new SandboxMissingError(session.conversationId);
+        }
+        const freshUrl = fresh.conversation_url?.split('/api/')[0];
+        if (!freshUrl) {
+          throw new SandboxMissingError(session.conversationId);
+        }
+
+        const previousKey = session.sessionApiKey;
+        const rotated = previousKey !== undefined && previousKey !== fresh.session_api_key;
+        session.sessionApiKey = fresh.session_api_key;
+        session.agentServerUrl = freshUrl;
+
+        if (rotated) {
+          this.keyRotationCount++;
+          console.log(
+            `[AI] session_api_key rotation detected for conversation ${session.conversationId} ` +
+              `(rotation count: ${this.keyRotationCount})`,
+          );
+        }
+        return;
+      } catch (err) {
+        if (err instanceof SandboxMissingError) throw err;
+        const transient = err instanceof OpenHandsApiError && err.transient;
+        if (!transient || attempt === maxRetries) {
+          throw err;
+        }
+        lastTransientError = err;
+        const delay = Math.min(500 * 2 ** (attempt - 1), 5000);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    // Unreachable: loop body either returns or throws. Kept for type completeness.
+    throw lastTransientError ?? new Error('refresh failed without recorded error');
   }
 
   isAvailable(): boolean {
@@ -1664,18 +1816,54 @@ export class AISessionManager {
       // Check if session still exists for reconnection
       const sessionExists = session.sessionId && this.sessionAI.has(session.sessionId);
 
-      // Attempt reconnect if session still exists and not max attempts
-      if (sessionExists && session.reconnectAttempts < session.maxReconnectAttempts) {
+      // Attempt reconnect if session still exists and not max attempts.
+      // If the session has already been transitioned to `degraded` by a
+      // previous SandboxMissingError, do NOT retry — let it stay degraded
+      // (cf. #291 — repeated MISSING must not retry indefinitely).
+      if (sessionExists && !session.degraded && session.reconnectAttempts < session.maxReconnectAttempts) {
         session.reconnectAttempts++;
         const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 30000);
         console.log(`[AI] Reconnecting in ${delay}ms (attempt ${session.reconnectAttempts}/${session.maxReconnectAttempts})`);
         setTimeout(() => {
-          if (session.sessionId && this.sessionAI.has(session.sessionId)) {
-            this.connectWebSocket(session);
-          }
+          void this.reconnectWithRefresh(session);
         }, delay);
       }
     });
+  }
+
+  /**
+   * Reconnect entry point used by the WS close handler. Refreshes the
+   * upstream credentials (so a paused-then-resumed sandbox doesn't get
+   * dialled with a stale `session_api_key`, #291) and then re-opens the WS.
+   *
+   * On {@link SandboxMissingError} the session is marked `degraded` and the
+   * reconnect loop stops — #296 will turn that into a rebind. On any other
+   * refresh error we also stop, so a hard-down OpenHands app server cannot
+   * keep the reconnect loop alive forever.
+   */
+  private async reconnectWithRefresh(session: AISession): Promise<void> {
+    if (!session.sessionId || !this.sessionAI.has(session.sessionId)) return;
+    try {
+      await this.refreshSessionCredentials(session);
+    } catch (err) {
+      if (err instanceof SandboxMissingError) {
+        console.error(
+          `[AI] Sandbox MISSING for conversation ${session.conversationId} — ` +
+            `transitioning session ${session.sessionId} to degraded`,
+        );
+        session.degraded = true;
+        session.degradedReason = 'Agent runtime no longer available — restart needed';
+      } else {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[AI] Reconnect refresh failed for session ${session.sessionId}: ${message}`);
+        session.degraded = true;
+        session.degradedReason = `Reconnect failed: ${message}`;
+      }
+      return;
+    }
+    // Session may have been ended while we were awaiting the refresh.
+    if (!session.sessionId || !this.sessionAI.has(session.sessionId)) return;
+    this.connectWebSocket(session);
   }
 
   /**

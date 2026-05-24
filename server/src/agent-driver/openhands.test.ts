@@ -28,6 +28,8 @@ interface FakeAIBinding {
   conversationId: string;
   ws?: { readyState: number };
   isThinking: boolean;
+  degraded?: boolean;
+  degradedReason?: string | null;
 }
 
 class FakeAISessionManager implements AISessionManagerSurface {
@@ -607,6 +609,51 @@ describe('OpenHandsAgentDriver', () => {
       });
       const status = await driver.getSessionStatus('s1');
       expect(status.state).toBe('reconnecting');
+    });
+
+    test('AISession.degraded=true → degraded with reason surfaced as error (#291)', async () => {
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        // The reconnect loop in AISessionManager sets these when refresh
+        // discovers a MISSING sandbox or exhausts transient retries.
+        degraded: true,
+        degradedReason: 'Agent runtime no longer available — restart needed',
+        ws: { readyState: 3 },
+        isThinking: false,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toBe('Agent runtime no longer available — restart needed');
+      expect(status.conversationId).toBe('c');
+    });
+
+    test('AISession.degraded=true with no reason → degraded with fallback error', async () => {
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        degraded: true,
+        isThinking: false,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toBe('Agent runtime no longer available');
+    });
+
+    test('degraded takes precedence over isThinking', async () => {
+      // If the reconnect loop gave up while a turn was in flight, the
+      // session should surface as degraded rather than thinking; the user
+      // needs to know the agent isn't actually working.
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        degraded: true,
+        degradedReason: 'gone',
+        ws: { readyState: 3 },
+        isThinking: true,
+      });
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
     });
   });
 

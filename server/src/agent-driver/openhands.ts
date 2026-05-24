@@ -642,13 +642,19 @@ export class OpenHandsAgentDriver implements AgentDriver {
 
     let agentState: AgentSessionState;
     let conversationId: string | null = null;
+    let error: string | null = null;
     const thinkingSince = state?.thinkingSince ?? null;
     const startingSince = state?.startingSince ?? null;
 
     if (ai) {
       conversationId = ai.conversationId;
       const wsState = ai.ws?.readyState;
-      if (ai.isThinking) {
+      if (ai.degraded) {
+        // Reconnect loop gave up (sandbox MISSING or refresh exhausted) —
+        // see #291. The user-visible recovery path lives in #294/#296.
+        agentState = 'degraded';
+        error = ai.degradedReason ?? 'Agent runtime no longer available';
+      } else if (ai.isThinking) {
         agentState = 'thinking';
       } else if (wsState === WS_OPEN) {
         agentState = 'ready';
@@ -668,7 +674,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
       sessionId,
       state: agentState,
       conversationId,
-      error: null,
+      error,
       thinkingSince,
       startingSince,
     };
