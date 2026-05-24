@@ -466,3 +466,45 @@ Next step (separate conversation): orchestrator can pick up PR #321 for merge.
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 19:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0cb52bf` | merge | [PR #321](https://github.com/jpshackelford/voice-relay/pull/321) — fix(server): resync AI session state on WS register (Issue #290) | **NEW** |
+| `1d37e68` | implementation | Issue [#291](https://github.com/jpshackelford/voice-relay/issues/291) — Re-fetch session_api_key on every OpenHands reconnect | running |
+
+🚀 **Spawned: Merge Worker for [PR #321](https://github.com/jpshackelford/voice-relay/pull/321)**
+
+- Conversation: [`0cb52bf`](https://app.all-hands.dev/conversations/0cb52bfe1857461389c08db946916060)
+- PR title: `fix(server): resync AI session state on WS register`
+- Linked issue: [#290](https://github.com/jpshackelford/voice-relay/issues/290) (priority:high) — will auto-close via `Fixes #290`
+- Pre-merge gate satisfied: CI green (Server/Client/Build/E2E/lint-pr-title/pr-review all SUCCESS), `MERGEABLE`/`CLEAN`, 0 unresolved review threads, no `needs-human`/`blocked` labels.
+- Merge-worker instructions explicitly cover the migration-check (server-only WS handler diff, no schema changes expected), conventional-commit scope guardrail (`server` is on the allow-list), and the stash-switch-commit-return WORKLOG-on-main mechanic to keep Branch Hygiene CI happy.
+
+✅ **Completed Worker (prior tick):**
+- `6b31a56` (review, PR #321) → finished. Addressed the one github-actions bot thread by documenting `thinkingSince` as reserved for #295 (commit [`77fa142`](https://github.com/jpshackelford/voice-relay/commit/77fa142)); declined to add throwaway UI work for a field whose wire shape is slated for consolidation under #295. Result: PR back to ready-for-review, 0 unresolved threads, CI green.
+
+**Current State:**
+- Open PRs: 1 — PR #321 (`oRFC green ready 💬--`) being merged
+- Issues needing expansion: 0 (remaining unlabeled are `on-hold`: #210, #239, #299, #300, #301, #302 — S3 design freeze + infra triage)
+- Ready + prioritized issues (sorted by priority then issue #):
+  - **priority:high**: #290 (merging now), #291 (impl in progress, `1d37e68`), #293, #296
+  - **priority:medium**: #292, #294, #295, #297, #303
+
+**Action Taken:**
+- 🚀 Spawned merge worker for PR #321 (review slot was 0/2 → now 1/2).
+- ✅ Cleaned up finished review worker `6b31a56` from `.workflow-state.json` slots → completed[].
+- Did **not** spawn a second impl worker — impl slot is full on #291, and the 19:13Z entry today (PR #322 vs #321 duplicate on Issue #290) is a fresh reminder not to over-dispatch.
+- Did **not** spawn an expansion worker — every remaining unlabeled issue is `on-hold` (S3 design freeze or infra triage), so no eligible expansion targets exist.
+
+**Housekeeping:**
+- WORKLOG.md is 468 lines, but all entries fall within the 6h productive window — truncation skipped (nothing to archive).
+
+**Slots after tick:** expansion 0/4, implementation 1/1, review 1/2 (merge)
+
+`quiet_ticks` reset to 0 (productive tick).
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---

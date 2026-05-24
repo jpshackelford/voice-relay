@@ -11,9 +11,9 @@
     ],
     "review": [
       {
-        "conv_id": "6b31a56",
+        "conv_id": "0cb52bf",
         "pr": 321,
-        "started": "2026-05-24T19:22:32.503842+00:00"
+        "started": "2026-05-24T19:36:12Z"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T19:22:32.503842+00:00",
+  "last_updated": "2026-05-24T19:36:12Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -302,6 +302,15 @@
       "finished": "2026-05-24T19:22:32.503842+00:00",
       "status": "success",
       "outcome": "Created PR #321 (fix(server): resync AI session state on WS register) \u2014 ready-for-review, all CI green, MERGEABLE/CLEAN, 1 bot review thread unresolved (thinkingSince consumption)"
+    },
+    {
+      "conv_id": "6b31a56",
+      "type": "review",
+      "pr": 321,
+      "started": "2026-05-24T19:22:32.503842+00:00",
+      "finished": "2026-05-24T19:36:12Z",
+      "status": "success",
+      "outcome": "Addressed bot review thread on PR #321 (documented thinkingSince as reserved for #295 in commit 77fa142); 0 unresolved threads, CI green, MERGEABLE \u2014 ready to merge"
     }
   ],
   "quiet_ticks": 0
