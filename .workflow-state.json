@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "3115d15",
-        "issue": 280,
-        "started": "2026-05-23T23:34:29.481424+00:00"
+        "conv_id": "0ec1984",
+        "pr": 281,
+        "started": "2026-05-24T00:05:10.649040+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-23T23:48:47.085606+00:00",
+  "last_updated": "2026-05-24T00:05:10.649040+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -26,6 +26,15 @@
       "finished": "2026-05-23T23:32:33.287129+00:00",
       "status": "success",
       "outcome": "Added ready label + detailed RCA/proposed fix comment on issue #280"
+    },
+    {
+      "conv_id": "3115d15",
+      "type": "implementation",
+      "issue": 280,
+      "started": "2026-05-23T23:34:29.481424+00:00",
+      "finished": "2026-05-24T00:04:13.446355+00:00",
+      "status": "success",
+      "outcome": "Created PR #281 (fix: mirror live-path event filter on refresh); ready-for-review, all CI green, MERGEABLE, 1 bot review thread unresolved"
     }
   ]
 }
