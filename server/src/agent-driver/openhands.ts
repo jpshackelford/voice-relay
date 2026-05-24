@@ -14,7 +14,6 @@
 
 import type {
   AISession,
-  AISessionManager,
   ActionCallback,
   AgentAction as OHAgentAction,
   EventCallback,
@@ -37,6 +36,8 @@ import type {
  * full real manager (which constructs an `OpenHandsClient` on instantiation).
  */
 export interface AISessionManagerSurface {
+  isAvailable(): boolean;
+  hasSessionAI(sessionId: string): boolean;
   setThinkingChangeCallback(cb: ThinkingChangeCallback | undefined): void;
   setActionCallback(cb: ActionCallback | undefined): void;
   setEventCallback(cb: EventCallback | undefined): void;
@@ -49,7 +50,26 @@ export interface AISessionManagerSurface {
   ): Promise<AISession>;
   sendSessionMessage(sessionId: string, message: string): Promise<void>;
   endSessionAI(sessionId: string): Promise<void>;
+  shutdown(): Promise<void>;
 }
+
+/**
+ * Listener for raw OpenHands events. The OpenHands adapter is the single
+ * subscriber to `AISessionManager.setEventCallback`; platform code attaches
+ * listeners through {@link OpenHandsAgentDriver.onRawEvent} so the platform
+ * can persist / fan out without bypassing the seam.
+ */
+export type RawEventListener = (
+  sessionId: string,
+  conversationId: string,
+  rawEvent: RawOpenHandsEvent,
+) => void;
+
+/** Listener for session-level thinking-state changes. */
+export type ThinkingListener = (sessionId: string, thinking: boolean) => void;
+
+/** Listener for agent action events. */
+export type ActionListener = (sessionId: string, action: OHAgentAction) => void;
 
 /**
  * One in-flight `sendMessage` turn. Events received from `AISessionManager`
@@ -171,16 +191,40 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
 
 export class OpenHandsAgentDriver implements AgentDriver {
   private readonly states = new Map<string, DriverSessionState>();
+  private readonly rawEventListeners = new Set<RawEventListener>();
+  private readonly thinkingListeners = new Set<ThinkingListener>();
+  private readonly actionListeners = new Set<ActionListener>();
 
   constructor(private readonly mgr: AISessionManagerSurface) {
     this.mgr.setThinkingChangeCallback((sessionId, thinking) => {
       this.onThinking(sessionId, thinking);
+      for (const listener of this.thinkingListeners) {
+        try {
+          listener(sessionId, thinking);
+        } catch (err) {
+          console.error('[AgentDriver] thinking listener threw:', err);
+        }
+      }
     });
     this.mgr.setActionCallback((sessionId, action) => {
       this.onAction(sessionId, action);
+      for (const listener of this.actionListeners) {
+        try {
+          listener(sessionId, action);
+        } catch (err) {
+          console.error('[AgentDriver] action listener threw:', err);
+        }
+      }
     });
-    this.mgr.setEventCallback((sessionId, _conversationId, rawEvent) => {
+    this.mgr.setEventCallback((sessionId, conversationId, rawEvent) => {
       this.onEvent(sessionId, rawEvent);
+      for (const listener of this.rawEventListeners) {
+        try {
+          listener(sessionId, conversationId, rawEvent);
+        } catch (err) {
+          console.error('[AgentDriver] raw event listener threw:', err);
+        }
+      }
     });
   }
 
@@ -188,18 +232,45 @@ export class OpenHandsAgentDriver implements AgentDriver {
   // AgentDriver implementation
   // ---------------------------------------------------------------------------
 
+  isAvailable(): boolean {
+    return this.mgr.isAvailable();
+  }
+
+  hasSession(sessionId: string): boolean {
+    return this.mgr.hasSessionAI(sessionId);
+  }
+
   async openSession(sessionId: string, opts: OpenSessionOpts): Promise<AgentSessionStatus> {
-    const existing = this.states.get(sessionId);
-    if (!existing) {
-      this.states.set(sessionId, {
+    let state = this.states.get(sessionId);
+    if (!state) {
+      state = {
         opts,
         pending: [],
         utteranceMemo: new Map(),
         thinkingSince: null,
         startingSince: null,
-      });
+      };
+      this.states.set(sessionId, state);
     }
-    // Idempotent: re-opening does not reset upstream state or memo.
+    // Eagerly provision the upstream OpenHands session. This preserves the
+    // legacy `aiSessionManager.getOrCreateForSession` semantics that the
+    // platform's auto-connect path depends on (it reads `conversationId`
+    // from the returned status to persist `session.metadata.aiConversationId`
+    // and broadcast `session-ai-status`).
+    //
+    // Idempotent because `AISessionManager.getOrCreateForSession` returns the
+    // existing binding when one is already present, and `mgr.hasSessionAI`
+    // short-circuits the second call so we don't pay for a redundant lookup.
+    if (!this.mgr.hasSessionAI(sessionId)) {
+      const bind = await this.lazyBindSession(sessionId, state);
+      if (bind.kind === 'error') {
+        // Surface the error to the caller so the auto-connect path can
+        // broadcast a connection-failed status. Same shape as the legacy
+        // `getOrCreateForSession` rejection.
+        const msg = bind.event.kind === 'error' ? bind.event.message : 'failed to open agent session';
+        throw new Error(msg);
+      }
+    }
     return this.synthesizeStatus(sessionId);
   }
 
@@ -252,6 +323,58 @@ export class OpenHandsAgentDriver implements AgentDriver {
       this.failPending(state, 'session closed', false);
       this.states.delete(sessionId);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Platform fan-out hooks (not part of `AgentDriver` interface)
+  //
+  // Platform code that needs to react to upstream signals (e.g. broadcasting
+  // `ai-thinking` to devices, persisting raw events to `agent_events`) subscribes
+  // through these helpers rather than calling `aiSessionManager.setXxxCallback`
+  // directly. The adapter is the sole subscriber to those callbacks and
+  // fan-outs to all registered listeners — see the constructor.
+  // ---------------------------------------------------------------------------
+
+  /** Subscribe to thinking-state changes. Returns an unsubscribe function. */
+  onThinkingChange(listener: ThinkingListener): () => void {
+    this.thinkingListeners.add(listener);
+    return () => {
+      this.thinkingListeners.delete(listener);
+    };
+  }
+
+  /** Subscribe to agent action events. Returns an unsubscribe function. */
+  onActionEvent(listener: ActionListener): () => void {
+    this.actionListeners.add(listener);
+    return () => {
+      this.actionListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Subscribe to raw upstream events. The platform's agent-events
+   * persistence path uses this to write the `agent_events` table without
+   * importing `AISessionManager` directly.
+   *
+   * Returns an unsubscribe function.
+   */
+  onRawEvent(listener: RawEventListener): () => void {
+    this.rawEventListeners.add(listener);
+    return () => {
+      this.rawEventListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Process-level shutdown. Tears down every upstream session via the
+   * underlying manager. Idempotent.
+   */
+  async shutdown(): Promise<void> {
+    await this.mgr.shutdown();
+    for (const state of this.states.values()) {
+      this.failPending(state, 'driver shutting down', false);
+    }
+    this.states.clear();
   }
 
   // ---------------------------------------------------------------------------

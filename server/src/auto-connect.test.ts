@@ -1,8 +1,10 @@
 /**
- * Tests for auto-connect AI logic
- * 
- * Verifies that AI is properly connected when first device joins a session,
- * handles error cases gracefully, and broadcasts correct status messages.
+ * Tests for auto-connect AI logic, routed through the `AgentDriver` seam.
+ *
+ * Verifies that the platform's auto-connect path opens a session on the
+ * driver (broadcasting connecting → connected status messages), handles
+ * error and unavailable paths, and respects the driver's
+ * `isAvailable` / `hasSession` interface.
  */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
@@ -11,8 +13,7 @@ import type { DeviceRegistry } from './registry.js';
 import type { SessionRepository } from './sessions/index.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
-import type { AISessionManager, AISession } from './openhands.js';
-import type { SessionAIStatusMessage } from './types.js';
+import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import { ANONYMOUS_SESSION_ID } from './constants.js';
 
 // Mock factories for test dependencies
@@ -43,36 +44,43 @@ function createMockWorkspaceRepository(): WorkspaceRepository {
   } as unknown as WorkspaceRepository;
 }
 
-function createMockAISessionManager(options: {
+function readyStatus(sessionId: string, conversationId: string | null = 'conv-123'): AgentSessionStatus {
+  return {
+    sessionId,
+    state: 'ready',
+    conversationId,
+    error: null,
+    thinkingSince: null,
+    startingSince: null,
+  };
+}
+
+function createMockAgentDriver(options: {
   isAvailable?: boolean;
-  hasSessionAI?: boolean;
+  hasSession?: boolean;
   shouldThrow?: boolean;
   throwMessage?: string;
-} = {}): AISessionManager {
-  const { 
-    isAvailable = true, 
-    hasSessionAI = false, 
+  openStatus?: AgentSessionStatus;
+} = {}): AgentDriver {
+  const {
+    isAvailable = true,
+    hasSession = false,
     shouldThrow = false,
-    throwMessage = 'API error' 
+    throwMessage = 'API error',
+    openStatus = readyStatus('test-session'),
   } = options;
-  
-  const mockSession: AISession = {
-    conversationId: 'conv-123',
-    taskId: 'task-456',
-    sessionId: 'test-session',
-    mode: 'kiosk',
-    reconnectAttempts: 0,
-    maxReconnectAttempts: 5,
-    isThinking: false,
-  };
 
   return {
     isAvailable: vi.fn().mockReturnValue(isAvailable),
-    hasSessionAI: vi.fn().mockReturnValue(hasSessionAI),
-    getOrCreateForSession: shouldThrow 
+    hasSession: vi.fn().mockReturnValue(hasSession),
+    openSession: shouldThrow
       ? vi.fn().mockRejectedValue(new Error(throwMessage))
-      : vi.fn().mockResolvedValue(mockSession),
-  } as unknown as AISessionManager;
+      : vi.fn().mockResolvedValue(openStatus),
+    sendMessage: vi.fn(),
+    restartSession: vi.fn(),
+    getSessionStatus: vi.fn().mockResolvedValue(openStatus),
+    closeSession: vi.fn().mockResolvedValue(undefined),
+  } as unknown as AgentDriver;
 }
 
 function createMockStore(): MessageStore {
@@ -86,7 +94,7 @@ function createDependencies(overrides: Partial<AutoConnectDependencies> = {}): A
     registry: createMockRegistry(),
     sessionRepository: createMockSessionRepository(),
     workspaceRepository: createMockWorkspaceRepository(),
-    aiSessionManager: createMockAISessionManager(),
+    agentDriver: createMockAgentDriver(),
     store: createMockStore(),
     getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
     ...overrides,
@@ -97,9 +105,9 @@ describe('autoConnectAI', () => {
   describe('successful connection flow', () => {
     test('broadcasts connecting status, then connected status on success', async () => {
       const deps = createDependencies();
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
+
       // Should broadcast connecting status first
       expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(1, 'session-123', {
         type: 'session-ai-status',
@@ -107,7 +115,7 @@ describe('autoConnectAI', () => {
         connecting: true,
         connected: false,
       });
-      
+
       // Should broadcast connected status after success
       expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(2, 'session-123', {
         type: 'session-ai-status',
@@ -118,18 +126,17 @@ describe('autoConnectAI', () => {
       });
     });
 
-    test('creates AI session with correct parameters', async () => {
+    test('calls openSession on the driver with correct opts', async () => {
       const deps = createDependencies({
         sessionRepository: createMockSessionRepository([], 'existing-secret'),
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      expect(deps.aiSessionManager.getOrCreateForSession).toHaveBeenCalledWith(
+
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
         'session-123',
-        'workspace-456',
-        expect.any(Function),
         expect.objectContaining({
+          workspaceId: 'workspace-456',
           displayLines: 12,
           displayApiSecret: 'existing-secret',
         })
@@ -139,17 +146,14 @@ describe('autoConnectAI', () => {
     test('creates new display secret if none exists', async () => {
       const sessionRepo = createMockSessionRepository([], null);
       const deps = createDependencies({ sessionRepository: sessionRepo });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
+
       expect(sessionRepo.getDisplaySecret).toHaveBeenCalledWith('session-123');
       expect(sessionRepo.setDisplaySecret).toHaveBeenCalledWith('session-123');
-      
-      // Should pass the generated secret
-      expect(deps.aiSessionManager.getOrCreateForSession).toHaveBeenCalledWith(
+
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.any(Function),
         expect.objectContaining({
           displayApiSecret: 'generated-secret-123',
         })
@@ -159,14 +163,12 @@ describe('autoConnectAI', () => {
     test('uses existing display secret if available', async () => {
       const sessionRepo = createMockSessionRepository([], 'existing-secret');
       const deps = createDependencies({ sessionRepository: sessionRepo });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
+
       expect(sessionRepo.setDisplaySecret).not.toHaveBeenCalled();
-      expect(deps.aiSessionManager.getOrCreateForSession).toHaveBeenCalledWith(
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.any(Function),
         expect.objectContaining({
           displayApiSecret: 'existing-secret',
         })
@@ -177,76 +179,58 @@ describe('autoConnectAI', () => {
       const deps = createDependencies({
         getWorkspaceApiKey: vi.fn().mockResolvedValue('workspace-api-key'),
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      expect(deps.aiSessionManager.getOrCreateForSession).toHaveBeenCalledWith(
+
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.any(Function),
         expect.objectContaining({
           apiKey: 'workspace-api-key',
         })
       );
     });
 
-    test('relays AI messages to session devices', async () => {
-      const deps = createDependencies();
-      let capturedOnMessage: ((text: string) => void) | undefined;
-      
-      (deps.aiSessionManager.getOrCreateForSession as ReturnType<typeof vi.fn>).mockImplementation(
-        async (sessionId, workspaceId, onMessage) => {
-          capturedOnMessage = onMessage;
-          return {
-            conversationId: 'conv-123',
-            taskId: 'task-456',
-            sessionId,
-            mode: 'kiosk',
-            reconnectAttempts: 0,
-            maxReconnectAttempts: 5,
-            isThinking: false,
-          };
-        }
-      );
-      
-      await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Simulate AI sending a message
-      expect(capturedOnMessage).toBeDefined();
-      capturedOnMessage!('Hello from AI');
-      
-      // Should store the message
-      expect(deps.store.append).toHaveBeenCalledWith(expect.objectContaining({
-        type: 'text',
-        sessionId: 'session-123',
-        workspaceId: 'workspace-456',
-        senderId: 'ai',
-        senderName: '✨ AI',
-        text: 'Hello from AI',
-        partial: false,
-      }));
-      
-      // Should broadcast to session
-      expect(deps.registry.broadcastToSession).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: 'text',
-          text: 'Hello from AI',
+    test('persists conversationId to session metadata', async () => {
+      const sessionRepo = createMockSessionRepository();
+      const deps = createDependencies({
+        sessionRepository: sessionRepo,
+        agentDriver: createMockAgentDriver({
+          openStatus: readyStatus('session-123', 'conv-xyz'),
         }),
-        'session-123'
-      );
+      });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      expect(sessionRepo.updateMetadata).toHaveBeenCalledWith('session-123', {
+        aiConversationId: 'conv-xyz',
+      });
+    });
+
+    test('skips metadata write when conversationId is null', async () => {
+      const sessionRepo = createMockSessionRepository();
+      const deps = createDependencies({
+        sessionRepository: sessionRepo,
+        agentDriver: createMockAgentDriver({
+          openStatus: readyStatus('session-123', null),
+        }),
+      });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      expect(sessionRepo.updateMetadata).not.toHaveBeenCalled();
     });
   });
 
   describe('API key unavailable', () => {
     test('skips when no workspace or env API key available', async () => {
-      const aiManager = createMockAISessionManager({ isAvailable: false });
+      const driver = createMockAgentDriver({ isAvailable: false });
       const deps = createDependencies({
-        aiSessionManager: aiManager,
+        agentDriver: driver,
         getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
+
       // Should broadcast connecting then unavailable status
       expect(deps.registry.broadcastMessageToSession).toHaveBeenCalledTimes(2);
       expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(2, 'session-123', {
@@ -256,71 +240,65 @@ describe('autoConnectAI', () => {
         connected: false,
         error: 'OpenHands API not configured',
       });
-      
-      // Should NOT try to create session
-      expect(aiManager.getOrCreateForSession).not.toHaveBeenCalled();
+
+      // Should NOT try to open the session
+      expect(driver.openSession).not.toHaveBeenCalled();
     });
 
     test('proceeds with workspace API key even when env key unavailable', async () => {
-      const aiManager = createMockAISessionManager({ isAvailable: false });
+      const driver = createMockAgentDriver({ isAvailable: false });
       const deps = createDependencies({
-        aiSessionManager: aiManager,
+        agentDriver: driver,
         getWorkspaceApiKey: vi.fn().mockResolvedValue('workspace-key'),
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Should create session with workspace key
-      expect(aiManager.getOrCreateForSession).toHaveBeenCalled();
+
+      expect(driver.openSession).toHaveBeenCalled();
     });
 
     test('proceeds with env API key even when workspace key unavailable', async () => {
-      const aiManager = createMockAISessionManager({ isAvailable: true });
+      const driver = createMockAgentDriver({ isAvailable: true });
       const deps = createDependencies({
-        aiSessionManager: aiManager,
+        agentDriver: driver,
         getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Should create session using env key (no apiKey in options)
-      expect(aiManager.getOrCreateForSession).toHaveBeenCalledWith(
+
+      // Should open the session WITHOUT an apiKey in opts (uses env key)
+      expect(driver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.any(Function),
         expect.not.objectContaining({ apiKey: expect.anything() })
       );
     });
 
     test('skips workspace key lookup when workspaceRepository is null', async () => {
-      const aiManager = createMockAISessionManager({ isAvailable: true });
+      const driver = createMockAgentDriver({ isAvailable: true });
       const getWorkspaceApiKey = vi.fn();
       const deps = createDependencies({
-        aiSessionManager: aiManager,
+        agentDriver: driver,
         workspaceRepository: null,
         getWorkspaceApiKey,
       });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Should not call getWorkspaceApiKey
+
       expect(getWorkspaceApiKey).not.toHaveBeenCalled();
-      // Should still proceed with env key
-      expect(aiManager.getOrCreateForSession).toHaveBeenCalled();
+      expect(driver.openSession).toHaveBeenCalled();
     });
   });
 
   describe('error handling', () => {
-    test('broadcasts sanitized error on API failure', async () => {
-      const aiManager = createMockAISessionManager({ 
-        shouldThrow: true, 
-        throwMessage: 'Internal server error with sensitive path /var/secrets/api.key' 
+    test('broadcasts sanitized error on openSession failure', async () => {
+      const driver = createMockAgentDriver({
+        shouldThrow: true,
+        throwMessage: 'Internal server error with sensitive path /var/secrets/api.key',
       });
-      const deps = createDependencies({ aiSessionManager: aiManager });
-      
+      const deps = createDependencies({ agentDriver: driver });
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Should broadcast error status with sanitized message
+
       const lastCall = (deps.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls.slice(-1)[0];
       expect(lastCall[1]).toEqual({
         type: 'session-ai-status',
@@ -329,36 +307,32 @@ describe('autoConnectAI', () => {
         connected: false,
         error: 'Failed to connect AI assistant',
       });
-      
-      // Should NOT leak the internal error message
       expect(lastCall[1].error).not.toContain('Internal server error');
       expect(lastCall[1].error).not.toContain('/var/secrets');
     });
 
     test('logs full error server-side', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const aiManager = createMockAISessionManager({ 
-        shouldThrow: true, 
-        throwMessage: 'Detailed error for debugging' 
+      const driver = createMockAgentDriver({
+        shouldThrow: true,
+        throwMessage: 'Detailed error for debugging',
       });
-      const deps = createDependencies({ aiSessionManager: aiManager });
-      
+      const deps = createDependencies({ agentDriver: driver });
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
-      // Should log full error server-side
+
       expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[AI] Auto-connect failed for session session-123:'),
         expect.any(Error)
       );
-      
+
       consoleSpy.mockRestore();
     });
 
     test('does not throw - handles errors gracefully', async () => {
-      const aiManager = createMockAISessionManager({ shouldThrow: true });
-      const deps = createDependencies({ aiSessionManager: aiManager });
-      
-      // Should not throw
+      const driver = createMockAgentDriver({ shouldThrow: true });
+      const deps = createDependencies({ agentDriver: driver });
+
       await expect(autoConnectAI('session-123', 'workspace-456', deps)).resolves.toBeUndefined();
     });
   });
@@ -368,14 +342,12 @@ describe('autoConnectAI', () => {
       const registry = createMockRegistry();
       (registry.getMinKioskDisplayLines as ReturnType<typeof vi.fn>).mockReturnValue(20);
       const deps = createDependencies({ registry });
-      
+
       await autoConnectAI('session-123', 'workspace-456', deps);
-      
+
       expect(registry.getMinKioskDisplayLines).toHaveBeenCalledWith('workspace-456');
-      expect(deps.aiSessionManager.getOrCreateForSession).toHaveBeenCalledWith(
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
-        expect.any(Function),
         expect.objectContaining({ displayLines: 20 })
       );
     });
@@ -385,57 +357,47 @@ describe('autoConnectAI', () => {
 describe('shouldAutoConnect', () => {
   test('returns true when first device and no AI session exists', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: false });
-    
-    const result = shouldAutoConnect('session-123', sessionRepo, aiManager);
-    
+    const driver = createMockAgentDriver({ hasSession: false });
+
+    const result = shouldAutoConnect('session-123', sessionRepo, driver);
+
     expect(result).toBe(true);
     expect(sessionRepo.getDevices).toHaveBeenCalledWith('session-123');
-    expect(aiManager.hasSessionAI).toHaveBeenCalledWith('session-123');
+    expect(driver.hasSession).toHaveBeenCalledWith('session-123');
   });
 
   test('returns false when second device joins', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }, { id: 'device-2' }]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: false });
-    
-    const result = shouldAutoConnect('session-123', sessionRepo, aiManager);
-    
-    expect(result).toBe(false);
+    const driver = createMockAgentDriver({ hasSession: false });
+
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
   });
 
-  test('returns false when AI session already exists', () => {
+  test('returns false when driver already has the session', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: true });
-    
-    const result = shouldAutoConnect('session-123', sessionRepo, aiManager);
-    
-    expect(result).toBe(false);
+    const driver = createMockAgentDriver({ hasSession: true });
+
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
   });
 
   test('returns false for empty session ID', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: false });
-    
-    const result = shouldAutoConnect('', sessionRepo, aiManager);
-    
-    expect(result).toBe(false);
+    const driver = createMockAgentDriver({ hasSession: false });
+
+    expect(shouldAutoConnect('', sessionRepo, driver)).toBe(false);
   });
 
   test('returns false for anonymous session', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: false });
-    
-    const result = shouldAutoConnect(ANONYMOUS_SESSION_ID, sessionRepo, aiManager);
-    
-    expect(result).toBe(false);
+    const driver = createMockAgentDriver({ hasSession: false });
+
+    expect(shouldAutoConnect(ANONYMOUS_SESSION_ID, sessionRepo, driver)).toBe(false);
   });
 
   test('returns false when no devices in session', () => {
     const sessionRepo = createMockSessionRepository([]);
-    const aiManager = createMockAISessionManager({ hasSessionAI: false });
-    
-    const result = shouldAutoConnect('session-123', sessionRepo, aiManager);
-    
-    expect(result).toBe(false);
+    const driver = createMockAgentDriver({ hasSession: false });
+
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
   });
 });

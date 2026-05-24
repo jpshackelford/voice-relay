@@ -1,11 +1,14 @@
 /**
- * Integration test for AI thinking state callback wiring
+ * Integration test for the underlying AISessionManager thinking callback mechanism.
  * 
  * Verifies the end-to-end flow: AI thinking state changes → callback invoked
  * → ai-thinking message broadcast to session devices.
  * 
- * This test ensures that the wiring in index.ts correctly connects
- * AISessionManager.setThinkingChangeCallback to DeviceRegistry.broadcastMessageToSession.
+ * NOTE: as of issue #289 the platform's actual wiring in index.ts no
+ * longer touches AISessionManager directly — it subscribes via the
+ * AgentDriver fan-out (onAgentThinkingChange). This test still covers
+ * the manager's callback machinery, which the driver depends on
+ * internally.
  */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
@@ -29,16 +32,16 @@ function createMockWebSocket() {
 
 describe('AI Thinking State Callback Wiring', () => {
   let registry: DeviceRegistry;
-  let aiSessionManager: AISessionManager;
+  let manager: AISessionManager;
 
   beforeEach(() => {
     registry = new DeviceRegistry();
-    aiSessionManager = new AISessionManager();
+    manager = new AISessionManager();
   });
 
   test('wiring callback broadcasts ai-thinking message to session devices', () => {
     // Wire the callback (mimics index.ts wiring)
-    aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+    manager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
       const message: AIThinkingMessage = {
         type: 'ai-thinking',
         sessionId,
@@ -58,7 +61,7 @@ describe('AI Thinking State Callback Wiring', () => {
 
     // Simulate thinking state change by invoking the callback directly
     // (In production, this is triggered by AISessionManager when processing messages)
-    const callback = (aiSessionManager as any).onThinkingChange as ThinkingChangeCallback;
+    const callback = (manager as any).onThinkingChange as ThinkingChangeCallback;
     expect(callback).toBeDefined();
     
     // Trigger thinking=true
@@ -81,7 +84,7 @@ describe('AI Thinking State Callback Wiring', () => {
   });
 
   test('callback handles thinking=false state change', () => {
-    aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+    manager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
       const message: AIThinkingMessage = {
         type: 'ai-thinking',
         sessionId,
@@ -93,7 +96,7 @@ describe('AI Thinking State Callback Wiring', () => {
     const ws = createMockWebSocket();
     registry.register('device-1', 'workspace-1', ws as any, 'Device 1', 'kiosk', undefined, undefined, 'session-abc');
 
-    const callback = (aiSessionManager as any).onThinkingChange as ThinkingChangeCallback;
+    const callback = (manager as any).onThinkingChange as ThinkingChangeCallback;
     
     // Trigger thinking=false
     callback('session-abc', false);
@@ -108,7 +111,7 @@ describe('AI Thinking State Callback Wiring', () => {
   });
 
   test('callback does not fail when no devices in session', () => {
-    aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+    manager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
       const message: AIThinkingMessage = {
         type: 'ai-thinking',
         sessionId,
@@ -117,14 +120,14 @@ describe('AI Thinking State Callback Wiring', () => {
       registry.broadcastMessageToSession(sessionId, message);
     });
 
-    const callback = (aiSessionManager as any).onThinkingChange as ThinkingChangeCallback;
+    const callback = (manager as any).onThinkingChange as ThinkingChangeCallback;
     
     // Should not throw when broadcasting to empty session
     expect(() => callback('nonexistent-session', true)).not.toThrow();
   });
 
   test('message has correct structure for client handling', () => {
-    aiSessionManager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
+    manager.setThinkingChangeCallback((sessionId: string, thinking: boolean) => {
       const message: AIThinkingMessage = {
         type: 'ai-thinking',
         sessionId,
@@ -136,7 +139,7 @@ describe('AI Thinking State Callback Wiring', () => {
     const ws = createMockWebSocket();
     registry.register('device-1', 'workspace-1', ws as any, 'Device 1', 'kiosk', undefined, undefined, 'session-abc');
 
-    const callback = (aiSessionManager as any).onThinkingChange as ThinkingChangeCallback;
+    const callback = (manager as any).onThinkingChange as ThinkingChangeCallback;
     callback('session-abc', true);
 
     // Parse the sent message to verify structure

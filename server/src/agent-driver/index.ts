@@ -3,27 +3,28 @@
  *
  * Re-exports the provider-neutral types, the in-memory `FakeDriver`, the
  * `OpenHandsAgentDriver` adapter, and a production `agentDriver` singleton
- * wired to the real `aiSessionManager`.
+ * wired to a process-lifetime `AISessionManager`.
  *
- * No platform code consumes this module yet — see issues #288 and #289 for
- * the follow-on work that wires the adapter and platform callers behind
- * this seam.
+ * After issue #289, this barrel owns the canonical `AISessionManager`
+ * singleton: it's constructed here and lives for the lifetime of the Node
+ * process. Platform code consumes only the `AgentDriver` interface (via
+ * `agentDriver`) and the platform fan-out hooks
+ * (`onAgentRawEvent`, `onAgentThinkingChange`, `onAgentAction`,
+ * `shutdownAgentDriver`) exported below.
  *
  * IMPORTANT: importing this barrel triggers construction of the
  * `OpenHandsAgentDriver` singleton, which installs forwarder callbacks on
- * `aiSessionManager`. Those forwarders overwrite the platform's existing
+ * `AISessionManager`. Those forwarders are the sole subscriber to
  * `setThinkingChangeCallback` / `setActionCallback` / `setEventCallback`
- * registrations. Until #289 migrates callers onto the adapter, this barrel
- * must stay out of the production import graph (verified by T-2.2.E.2).
+ * — platform code attaches its own listeners through the
+ * `onAgentXxx` helpers, which the driver fan-outs to.
  *
  * ## Singleton lifecycle (Phase 2)
  *
- * The `agentDriver` export is module-eager: the first `import` that loads
- * this file constructs it, and it lives for the lifetime of the Node
- * process. There is no `dispose()` and no factory. This is the right
- * trade-off for Phase 2 because:
+ * `agentDriver` is module-eager: the first `import` that loads this file
+ * constructs it. This is the right trade-off for Phase 2 because:
  *
- * - `aiSessionManager` is itself a process-lifetime singleton (one
+ * - `AISessionManager` is itself a process-lifetime singleton (one
  *   `OpenHandsClient`, one set of platform callbacks).
  * - Each call to `setThinkingChangeCallback` / `setActionCallback` /
  *   `setEventCallback` replaces, rather than composes, the previous
@@ -39,21 +40,24 @@
  * into a factory or lazy-initialised holder rather than a top-level `new`:
  *
  * - **Multiple driver instances** (e.g. multi-tenant routing or A/B
- *   between drivers). Today's eager binding to `aiSessionManager` would
- *   need to be deferred so callers can pass their own manager surface.
+ *   between drivers). Today's eager binding to a single
+ *   `AISessionManager` would need to be deferred so callers can pass
+ *   their own manager surface.
  * - **Graceful shutdown / hot-reload** hooks that need to detach the
- *   forwarder callbacks (`setX(undefined)`) and drain pending turns. Add
- *   a `dispose()` method on `OpenHandsAgentDriver` first, then call it
- *   from a process-level shutdown handler.
+ *   forwarder callbacks (`setX(undefined)`) and drain pending turns. The
+ *   `shutdownAgentDriver` helper is a first step; a richer `dispose()`
+ *   method may be needed.
  * - **Test substitution at the import boundary** (rather than via DI in
  *   constructors). A `getAgentDriver()` accessor would let tests replace
  *   the production instance without monkey-patching the module.
- *
- * None of these are needed for #288/#289; capturing them here so the
- * lifecycle decision is intentional rather than incidental.
  */
-import { aiSessionManager } from '../openhands.js';
-import { OpenHandsAgentDriver } from './openhands.js';
+import { AISessionManager } from '../openhands.js';
+import {
+  OpenHandsAgentDriver,
+  type RawEventListener,
+  type ThinkingListener,
+  type ActionListener,
+} from './openhands.js';
 import type { AgentDriver } from './types.js';
 
 export type {
@@ -65,7 +69,57 @@ export type {
   OpenSessionOpts,
 } from './types.js';
 export { FakeDriver, type ScriptEntry } from './fake.js';
-export { OpenHandsAgentDriver, type AISessionManagerSurface } from './openhands.js';
+export {
+  OpenHandsAgentDriver,
+  type AISessionManagerSurface,
+  type RawEventListener,
+  type ThinkingListener,
+  type ActionListener,
+} from './openhands.js';
 
-/** Production `AgentDriver` singleton wrapping `aiSessionManager`. */
-export const agentDriver: AgentDriver = new OpenHandsAgentDriver(aiSessionManager);
+/**
+ * Process-lifetime `AISessionManager` instance. Owned by the agent-driver
+ * module — platform code must not import this directly; consume the
+ * `AgentDriver` seam below instead.
+ */
+const aiSessionManager = new AISessionManager();
+
+const openHandsDriver = new OpenHandsAgentDriver(aiSessionManager);
+
+/** Production `AgentDriver` singleton wrapping the legacy `AISessionManager`. */
+export const agentDriver: AgentDriver = openHandsDriver;
+
+/**
+ * Subscribe to raw upstream events from the production driver. Used by the
+ * agent-events live-ingest path to persist events to the `agent_events`
+ * table without bypassing the seam.
+ */
+export function onAgentRawEvent(listener: RawEventListener): () => void {
+  return openHandsDriver.onRawEvent(listener);
+}
+
+/**
+ * Subscribe to session-level thinking-state changes from the production
+ * driver. The platform broadcasts `ai-thinking` messages to session
+ * devices through this hook.
+ */
+export function onAgentThinkingChange(listener: ThinkingListener): () => void {
+  return openHandsDriver.onThinkingChange(listener);
+}
+
+/**
+ * Subscribe to agent action events from the production driver. The
+ * platform broadcasts `agent-action` messages to session devices through
+ * this hook.
+ */
+export function onAgentAction(listener: ActionListener): () => void {
+  return openHandsDriver.onActionEvent(listener);
+}
+
+/**
+ * Process-level shutdown for the production driver. Mirrors the legacy
+ * `aiSessionManager.shutdown()` semantics.
+ */
+export async function shutdownAgentDriver(): Promise<void> {
+  await openHandsDriver.shutdown();
+}
