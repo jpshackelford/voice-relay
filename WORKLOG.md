@@ -2,6 +2,30 @@
 
 ## Log
 
+### 2026-05-24 02:20 UTC - Implementation Worker (Issue #287 → PR #307)
+
+✅ **Opened PR [#307](https://github.com/jpshackelford/voice-relay/pull/307) — feat(server): define AgentDriver interface and FakeDriver (closes #287)**
+
+- Issue: [#287](https://github.com/jpshackelford/voice-relay/issues/287) — Define AgentDriver TypeScript interface and FakeDriver
+- Branch: `feat/287-agentdriver-interface`
+- Status: **Ready for review** (CI green: Build Client / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator all pass; pr-review skipped for draft, will run after ready-flip)
+- Pure-introduction PR — new files only under `server/src/agent-driver/`, no platform callers touched. Sets up the seam that #288 (OpenHands adapter) and #289 (route platform callers) will land behind.
+- Files added (all under `server/`):
+  - `server/src/agent-driver/types.ts` — `AgentDriver`, `AgentEvent`, `AgentAction`, `AgentSessionStatus`, `AgentSessionState`, `OpenSessionOpts`. No `any` types; provider-neutral.
+  - `server/src/agent-driver/fake.ts` — `FakeDriver` with scripted-event DSL (`script`, `simulateMissing`, `simulateStuck`, `simulateError`, `reset`). Implements canonical state machine `absent → starting → ready → thinking → ready` and emits implicit `status(thinking)` / `status(ready)` transitions. Idempotent on `openSession`, `closeSession`, and `utteranceId`.
+  - `server/src/agent-driver/fake.test.ts` — 24 unit tests covering happy path, idempotency, simulate helpers, restart, close, auto-open, concurrency, script-based control entries.
+  - `server/src/agent-driver/index.ts` — barrel re-export.
+  - `server/vitest.config.ts` — added `src/agent-driver/**/*.ts` to coverage include with `types.ts` / `index.ts` excluded.
+- Verification:
+  - `npx tsc --noEmit` → exit 0.
+  - `npm test -w server` → 891 tests pass (+24 new).
+  - Coverage of `src/agent-driver`: **99.03% stmts / 93.75% branches / 100% funcs / 99.02% lines** (well above the 80% threshold).
+  - Boundary purity greps (T-2.1.S.1/.2/.3/.6) all return zero matches — no OpenHands / sandbox / conversation_id / `any` leakage, and no callers yet.
+- Scope discipline: diff confined to `server/**` per the `scope:server-only` label (also applied to the PR). Zero changes to `client/`, `tests/smoke/`, `.github/`, or root configs. Out-of-scope work (the adapter, the callers) is correctly deferred to #288 / #289.
+- Reflection: design choices line up cleanly with the spec in the issue. The one micro-design call worth noting for #288 — the FakeDriver implements `simulateStuck` as a direct state mutation (so `getSessionStatus` reflects degraded immediately, per T-2.1.8) while `simulateMissing` / `simulateError` queue script entries consumed on the next `sendMessage`. Real OpenHands adapter will likely surface "stuck" via heartbeat timeout, not as a discrete API call, so this asymmetry is a fake-only convenience and doesn't need to leak into the adapter contract. Worth a follow-up note on #288 if relevant.
+
+---
+
 ### 2026-05-24 01:58 UTC - Implementation Worker (Issue #284 → PR #306)
 
 ✅ **Opened PR [#306](https://github.com/jpshackelford/voice-relay/pull/306) — feat(client): establish coverage thresholds (closes #284)**
