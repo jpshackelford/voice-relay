@@ -84,6 +84,32 @@ function statusToWireMessage(
   return msg;
 }
 
+/**
+ * Broadcast a `session-ai-status` message to all peers in the session,
+ * swallowing any registry-side errors. Broadcast failures are
+ * intentionally non-fatal: the restart flow must keep progressing, and
+ * the eventual final broadcast (or the client's own optimistic
+ * transition) will reconcile state. `context` is a short tag that
+ * identifies which call-site failed in the logs (e.g. `'announce'`,
+ * `'error'`, `'final'`).
+ */
+function safeBroadcast(
+  registry: DeviceRegistry | undefined,
+  sessionId: string,
+  message: SessionAIStatusMessage,
+  context: string,
+): void {
+  if (!registry) return;
+  try {
+    registry.broadcastMessageToSession(sessionId, message);
+  } catch (err) {
+    console.error(
+      `[AI Restart] Broadcast (${context}) failed for session ${sessionId}:`,
+      err,
+    );
+  }
+}
+
 export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
   const router = Router();
   const auth = requireAuth(options.authConfig);
@@ -110,25 +136,17 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
     // Optimistically announce the restart so other devices in the session
     // see the indicator transition immediately. `session-ai-status` with
     // `connecting:true` matches the auto-connect broadcast shape.
-    if (options.registry) {
-      const announce: SessionAIStatusMessage = {
+    safeBroadcast(
+      options.registry,
+      sessionId,
+      {
         type: 'session-ai-status',
         sessionId,
         connecting: true,
         connected: false,
-      };
-      try {
-        options.registry.broadcastMessageToSession(sessionId, announce);
-      } catch (broadcastErr) {
-        // Broadcast failures are non-fatal — the restart should still
-        // proceed and the eventual broadcast (or the client's optimistic
-        // local transition) will reconcile state.
-        console.error(
-          `[AI Restart] Broadcast (announce) failed for session ${sessionId}:`,
-          broadcastErr,
-        );
-      }
-    }
+      },
+      'announce',
+    );
 
     let status: AgentSessionStatus;
     try {
@@ -140,42 +158,30 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
       // Surface a final session-ai-status carrying the error so other
       // devices clear their "connecting" indicator. The 503 returned to
       // the caller drives the kiosk's inline error copy.
-      if (options.registry) {
-        const errMsg: SessionAIStatusMessage = {
+      safeBroadcast(
+        options.registry,
+        sessionId,
+        {
           type: 'session-ai-status',
           sessionId,
           connecting: false,
           connected: false,
           error: message,
-        };
-        try {
-          options.registry.broadcastMessageToSession(sessionId, errMsg);
-        } catch (broadcastErr) {
-          console.error(
-            `[AI Restart] Broadcast (error) failed for session ${sessionId}:`,
-            broadcastErr,
-          );
-        }
-      }
+        },
+        'error',
+      );
       res.status(503).json({ error: message });
       return;
     }
 
     // Broadcast the final state so peer devices reconcile. The caller gets
     // the same data in the response body.
-    if (options.registry) {
-      try {
-        options.registry.broadcastMessageToSession(
-          sessionId,
-          statusToWireMessage(sessionId, status),
-        );
-      } catch (broadcastErr) {
-        console.error(
-          `[AI Restart] Broadcast (final) failed for session ${sessionId}:`,
-          broadcastErr,
-        );
-      }
-    }
+    safeBroadcast(
+      options.registry,
+      sessionId,
+      statusToWireMessage(sessionId, status),
+      'final',
+    );
 
     res.json(status);
   });
