@@ -11,14 +11,16 @@
     ],
     "review": [
       {
-        "conv_id": "314e231",
+        "conv_id": "fe9cd71",
         "pr": 328,
-        "started": "2026-05-24T21:53:43.417764Z"
+        "type": "merge",
+        "started": "2026-05-24T22:21:22.744806+00:00"
       },
       {
-        "conv_id": "dad1910",
+        "conv_id": "e2c8f93",
         "pr": 329,
-        "started": "2026-05-24T22:05:52.456542+00:00"
+        "type": "merge",
+        "started": "2026-05-24T22:21:22.744806+00:00"
       }
     ]
   },
@@ -27,7 +29,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T22:05:52.456542+00:00",
+  "last_updated": "2026-05-24T22:21:22.744806+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -442,6 +444,24 @@
       "finished": "2026-05-24T22:04:29.403685+00:00",
       "status": "success",
       "outcome": "Created PR #329 (feat: restart agent endpoint and UI affordance); ready-for-review, all CI green, has 2 bot review threads + 1 bot review comment to address"
+    },
+    {
+      "conv_id": "314e231",
+      "type": "review",
+      "pr": 328,
+      "started": "2026-05-24T21:53:43.417764Z",
+      "finished": "2026-05-24T22:21:22.744806+00:00",
+      "status": "success",
+      "outcome": "Addressed pr-review feedback (3 threads resolved); PR back to ready"
+    },
+    {
+      "conv_id": "dad1910",
+      "type": "review",
+      "pr": 329,
+      "started": "2026-05-24T22:05:52.456542+00:00",
+      "finished": "2026-05-24T22:21:22.744806+00:00",
+      "status": "success",
+      "outcome": "Addressed pr-review feedback (safeBroadcast extraction + vitest comment); PR back to ready"
     }
   ],
   "quiet_ticks": 0
