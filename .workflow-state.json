@@ -9,21 +9,14 @@
         "started": "2026-05-24T17:51:46.996153+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "a9691fe",
-        "pr": 319,
-        "started": "2026-05-24T18:06:33.062961+00:00",
-        "worker_type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T18:06:33.062961+00:00",
+  "last_updated": "2026-05-24T18:20:06.922313+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -276,7 +269,16 @@
       "finished": "2026-05-24T18:06:33.062961+00:00",
       "status": "success",
       "outcome": "Addressed all 6 github-actions bot review threads on PR #319 in commit fd9c527 (Error handling subsections for restore/snapshot, Security blast radius row, sharpened freeze-lift criteria, decision-criteria block for sandbox-to-VR auth); all threads resolved; CI green; PR ready-for-review and MERGEABLE/CLEAN"
+    },
+    {
+      "conv_id": "a9691fe",
+      "type": "merge",
+      "pr": 319,
+      "started": "2026-05-24T18:06:33.062961+00:00",
+      "finished": "2026-05-24T18:20:06.922313+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #319 (docs: Path B persistence); commit a883cbb; post-merge confirmation on #313 + #298 status comment posted"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
