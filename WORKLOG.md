@@ -2,6 +2,36 @@
 
 ## Log
 
+### 2026-05-24 04:54 UTC - Merge Worker (PR #314 → main, closes #310)
+
+✅ **Squash-merged PR [#314](https://github.com/jpshackelford/voice-relay/pull/314) — `feat(e2e): add @slow-keepalive Playwright spec for 5-min WS idle survival`. Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310) auto-closed (COMPLETED) at 04:53:53 UTC.**
+
+- Merge commit: `8de71ee` on `main`.
+- Pre-merge state (verified): `MERGEABLE` / `CLEAN`, latest CI 6/6 green (Server / Client / E2E Tests, Build Client, lint-pr-title, enable-orchestrator, pr-review). Earlier failing `lint-pr-title` run was superseded by a green re-run — verified the *latest* runs only. Zero unresolved review threads; bot review verdict was "✅ Worth merging", risk 🟢 LOW.
+- **Scope label added**: `scope:full-stack` (pattern `.*`). Diff spans three top-level scopes, so no narrower label applies:
+  - `.github/workflows/nightly-slow-e2e.yml` (new, 70 lines) — cron + workflow_dispatch nightly Playwright job
+  - `playwright.config.ts` (+13) — `chromium` gains `grepInvert: /@slow-keepalive/`; new `slow-keepalive` project
+  - `server/src/auth/router.ts` (+64 / −2) — new test-only `POST /auth/test-terminate-ws` endpoint
+  - `server/src/auth/test-terminate-ws.test.ts` (new, 209 lines) — 8 unit tests covering every gate
+  - `server/src/index.ts` (+4) — wires `deviceRegistry` through to the auth router
+  - `tests/utils/auth-helper.ts` (+44 / −23) — extracts `navigateKioskToFirstSession()` for DRY reuse
+  - `tests/ws-keepalive.spec.ts` (new, 193 lines) — two `@slow-keepalive` Playwright cases
+- **Mechanical scope check passed** — `scope:full-stack` allows `.*`, all 7 changed paths trivially match.
+- **Migration check passed** — zero DB schema, migration, or `*.sql` files in the diff. Production SQLite (`sqlite.db`) on vr.chorecraft.net is untouched by this deploy. Pure test infrastructure.
+- **Security spot-check (5-layer defence)** — all gates wired correctly in `server/src/auth/router.ts`:
+  1. **Construction gate** — `router.post('/test-terminate-ws', …)` lives inside `if (testAuthSecret)`; without `TEST_AUTH_SECRET`, the route is never even mounted (404 by Express's default unmatched-route behaviour).
+  2. **Production gate** — first line of the handler is `if (process.env.NODE_ENV === 'production') { res.status(404)…; return; }`. Defence-in-depth even if (1) leaks.
+  3. **Secret gate** — `if (providedSecret !== testAuthSecret) { res.status(403)…; return; }` (header `X-Test-Auth-Secret`).
+  4. **Registry gate** — `if (!deviceRegistry) { res.status(503)…; return; }` — older entry points that don't pass `deviceRegistry` cannot be probed even if the secret leaks.
+  5. **Input validation gate** — rejects missing/non-string `deviceId` (400) and unknown / WS-less devices (404) before calling `ws.terminate()`.
+- PR description updated to record the scope-label decision, migration-safety status, and the explicit 5-layer defence model (previously only listed 3 layers).
+- Squash commit message: `feat(e2e): add @slow-keepalive Playwright spec for 5-min WS idle survival (#314)` with a multi-line body listing all changed files, the 5 defence layers, the nightly cadence, and `Closes #310.`
+- Production deploy impact: the new endpoint is **not** mounted on `vr.chorecraft.net` (production sets `NODE_ENV=production` and does not set `TEST_AUTH_SECRET`). The Playwright spec runs nightly via `nightly-slow-e2e.yml` against a CI server, not production. Auto-deploy to vr.chorecraft.net therefore changes zero observable production behaviour.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
 ### 2026-05-24 04:53 UTC - Merge Worker (PR #311 → main, closes #288)
 
 ✅ **Squash-merged PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — `feat(server): openHandsAgentDriver adapter wrapping aiSessionManager`. Issue [#288](https://github.com/jpshackelford/voice-relay/issues/288) auto-closed (COMPLETED).**
