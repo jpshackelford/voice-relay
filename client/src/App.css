@@ -369,6 +369,39 @@ header {
   color: #d8b4fe;
 }
 
+/* Restart agent button (issue #294) — surfaced when AI degraded */
+.ai-restart {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 1rem 0.75rem;
+}
+
+.ai-restart__button {
+  background: #2a1540;
+  border: 1px solid #a855f7;
+  color: #d8b4fe;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.ai-restart__button:hover:not(:disabled) {
+  background: #3a1d54;
+}
+
+.ai-restart__button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.ai-restart__error {
+  color: #ff6b6b;
+  font-size: 0.8125rem;
+}
+
 /* AI Status Indicator */
 .ai-status-indicator {
   position: fixed;

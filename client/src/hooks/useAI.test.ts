@@ -191,12 +191,209 @@ describe('useAI hook', () => {
   describe('initial state', () => {
     it('returns correct initial state', () => {
       const { result } = renderHook(() => useAI(defaultOptions));
-      
+
       expect(result.current.connected).toBe(false);
       expect(result.current.connecting).toBe(false);
       expect(result.current.thinking).toBe(false);
       expect(result.current.conversationId).toBeNull();
       expect(result.current.error).toBeNull();
+      expect(result.current.degraded).toBe(false);
+      expect(result.current.restarting).toBe(false);
+      expect(result.current.restartError).toBeNull();
+    });
+  });
+
+  // Issue #294 — degraded indicator + restart action
+  describe('degraded indicator', () => {
+    it('is false for absent (no connection ever)', () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      expect(result.current.degraded).toBe(false);
+    });
+
+    it('is false while connected (ready / thinking)', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: true,
+        });
+      });
+      expect(result.current.degraded).toBe(false);
+    });
+
+    it('is false while connecting', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: false,
+          connecting: true,
+        });
+      });
+      expect(result.current.degraded).toBe(false);
+    });
+
+    it('is true when error is set and the session is neither connected nor connecting', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: false,
+          connecting: false,
+          error: 'Agent appears stuck',
+        });
+      });
+      expect(result.current.degraded).toBe(true);
+      expect(result.current.error).toBe('Agent appears stuck');
+    });
+
+    it('clears the degraded flag when a healthy status arrives', async () => {
+      const { result } = renderHook(() => useAI(defaultOptions));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: false,
+          error: 'stuck',
+        });
+      });
+      expect(result.current.degraded).toBe(true);
+
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: true,
+        });
+      });
+      expect(result.current.degraded).toBe(false);
+      expect(result.current.error).toBeNull();
+    });
+  });
+
+  describe('restart', () => {
+    function mockOkResponse(body: object) {
+      return {
+        ok: true,
+        json: () => Promise.resolve(body),
+      } as unknown as Response;
+    }
+
+    function mockErrResponse(status: number, body: object) {
+      return {
+        ok: false,
+        status,
+        json: () => Promise.resolve(body),
+      } as unknown as Response;
+    }
+
+    it('POSTs to the restart endpoint and returns ok with the new status', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(mockOkResponse({
+        sessionId: 'test-session-123',
+        state: 'starting',
+        conversationId: null,
+        error: null,
+        thinkingSince: null,
+        startingSince: '2026-05-24T00:00:00.000Z',
+      }));
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useAI(defaultOptions));
+      // seed degraded state so we can verify the optimistic flip
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: false,
+          error: 'stuck',
+        });
+      });
+      expect(result.current.degraded).toBe(true);
+
+      let outcome: Awaited<ReturnType<typeof result.current.restart>> | undefined;
+      await act(async () => {
+        outcome = await result.current.restart();
+      });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('/api/sessions/test-session-123/ai/restart');
+      expect((init as RequestInit).method).toBe('POST');
+      expect(outcome?.ok).toBe(true);
+      if (outcome && outcome.ok) {
+        expect(outcome.status.state).toBe('starting');
+      }
+      // Optimistic transition: connecting=true, error cleared, degraded false
+      expect(result.current.connecting).toBe(true);
+      expect(result.current.degraded).toBe(false);
+      expect(result.current.error).toBeNull();
+      expect(result.current.restartError).toBeNull();
+      expect(result.current.restarting).toBe(false);
+    });
+
+    it('returns an error result and rolls back optimistic state on a 5xx', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(
+        mockErrResponse(503, { error: 'driver boom' })
+      );
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useAI(defaultOptions));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: 'test-session-123',
+          connected: false,
+          error: 'stuck',
+        });
+      });
+
+      let outcome: Awaited<ReturnType<typeof result.current.restart>> | undefined;
+      await act(async () => {
+        outcome = await result.current.restart();
+      });
+
+      expect(outcome).toEqual({
+        ok: false,
+        error: 'driver boom',
+        status: 503,
+      });
+      expect(result.current.restartError).toBe('driver boom');
+      expect(result.current.connecting).toBe(false);
+      // Rolled-back error keeps the degraded indicator visible.
+      expect(result.current.degraded).toBe(true);
+      expect(result.current.error).toBe('driver boom');
+    });
+
+    it('returns an error result on network failure', async () => {
+      const fetchMock = vi.fn().mockRejectedValueOnce(new Error('offline'));
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useAI(defaultOptions));
+      let outcome: Awaited<ReturnType<typeof result.current.restart>> | undefined;
+      await act(async () => {
+        outcome = await result.current.restart();
+      });
+
+      expect(outcome).toEqual({ ok: false, error: 'offline' });
+      expect(result.current.restartError).toBe('offline');
+    });
+
+    it('refuses to POST when no sessionId is configured', async () => {
+      const fetchMock = vi.fn();
+      global.fetch = fetchMock as unknown as typeof fetch;
+      const { result } = renderHook(() => useAI({}));
+
+      let outcome: Awaited<ReturnType<typeof result.current.restart>> | undefined;
+      await act(async () => {
+        outcome = await result.current.restart();
+      });
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(outcome).toEqual({ ok: false, error: 'No session selected' });
+      expect(result.current.restartError).toBe('No session selected');
     });
   });
 });

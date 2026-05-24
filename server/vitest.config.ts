@@ -28,6 +28,7 @@ export default defineConfig({
         'src/sessions/types.ts',      // Pure types, no runtime code
         'src/sessions/index.ts',      // Re-exports only
         'src/sessions/router.ts',     // Integration routes, tested via e2e
+        'src/sessions/ai-router.ts',  // Integration routes, tested via e2e
         'src/workspaces/types.ts',    // Pure types, no runtime code
         'src/workspaces/index.ts',    // Re-exports only
         'src/workspaces/router.ts',   // Integration routes, tested via e2e
