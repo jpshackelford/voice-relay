@@ -1255,3 +1255,33 @@ sandbox preserving `conversation_id`, refs #296):
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 22:03 UTC - Review Response Worker (PR #328, round 2 addendum)
+
+🚧 pr-review's re-run after `6613fb5` spawned one more
+🟡 suggestion (`PRRT_kwDOSTUWGM6Ea_Vj`) on `server/src/agent-driver/rebind.ts`:
+"Consider adding periodic cleanup for abandoned conversation entries"
+in `RebindWindowTracker.history`.
+
+**Decision:** declined / resolved as wontfix.
+
+- The bot itself recommends Option 3 ("Accept current behavior — my
+  recommendation") and labels it "Not blocking".
+- The memory footprint is bounded by conversation count × at most
+  `MAX_REBINDS_PER_WINDOW = 3` timestamps — ~240 KB even with 10 k
+  historical conversations.
+- A periodic-cleanup timer would introduce lifecycle complexity
+  (start/stop hooks, test seams, shutdown ordering) that the manager
+  deliberately avoids; no other map on the manager (`inFlightRefresh`,
+  `inFlightRebind`, `sessionAI`) has periodic cleanup either, so adding
+  one just for `history` would be inconsistent.
+- If churn ever becomes a real concern, `getRebindCount()` + platform
+  metrics will surface it first and an LRU-on-`recordSuccess` is a
+  one-liner — cheap to add later, expensive to carry unused.
+
+All three pr-review threads on PR #328 are now resolved; PR is ready
+for the orchestrator's merge tick.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
