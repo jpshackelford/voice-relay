@@ -2,6 +2,19 @@
 
 ## Log
 
+### 2026-05-24 03:26 UTC - Expansion Worker (`local`)
+
+✅ **Expanded Issue [#310](https://github.com/jpshackelford/voice-relay/issues/310) — Playwright E2E: 5-minute background-idle keeps the kiosk WS green**
+
+- Type: Enhancement (test-coverage follow-up to #286 / #309)
+- Status: **Ready for implementation** (`ready`, `priority:low`, `scope:full-stack`, `enhancement`)
+- Verified Playwright is already configured (`playwright.config.ts`, per-worker isolation from #155); kiosk green-dot selector is `.connection-indicator.connected` (defined in `client/src/components/KioskMode.tsx`, styled in `client/src/App.css`); reusable auth helpers (`createAuthenticatedContext`, `waitForStableConnection`) live in `tests/utils/auth-helper.ts`.
+- **Approach** (in technical-approach comment): new spec `tests/ws-keepalive.spec.ts` carrying T-1.2-E2E.1 (5-min idle survival via WS-instance counting through an `addInitScript` Proxy on `window.WebSocket`) and T-1.2-E2E.2 (server tears down + kiosk reconnects). T-1.2-E2E.2 cannot block the browser's auto-pong from JS, so the deterministic path is a new test-only endpoint `POST /auth/test-terminate-ws` gated behind `TEST_AUTH_SECRET` that calls `ws.terminate()` on the kiosk connection — same code path the production keepalive uses. Gated with a `@slow-keepalive` grep tag, excluded from per-PR CI via `--grep-invert`, run on a new nightly `.github/workflows/nightly-slow-e2e.yml` cron.
+- **Scope**: `scope:full-stack` retained — touches `tests/`, a new test-only route in `server/src/auth/router.ts`, `playwright.config.ts`, and `.github/workflows/`.
+- Blocked-by: #309 (merged into main between this expansion's start and end).
+
+---
+
 ### 2026-05-24 03:23 UTC - Implementation Worker (Issue #288 → PR #311)
 
 ✅ **Opened PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — feat(server): OpenHandsAgentDriver adapter wrapping AISessionManager (closes #288)**
