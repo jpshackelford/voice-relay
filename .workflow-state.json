@@ -4,16 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "ee8d412",
-        "issue": 296,
-        "started": "2026-05-24T21:20:51.125673+00:00"
+        "conv_id": "564ed2f",
+        "issue": 294,
+        "started": "2026-05-24T21:36:05.446516+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "b44a30b",
-        "pr": 327,
-        "started": "2026-05-24T21:20:51.125673+00:00"
+        "conv_id": "e79b8f3",
+        "pr": 328,
+        "started": "2026-05-24T21:36:05.446516+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T21:20:51.125673+00:00",
+  "last_updated": "2026-05-24T21:36:05.446516+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -401,6 +401,24 @@
       "finished": "2026-05-24T21:20:51.125673+00:00",
       "status": "success",
       "outcome": "Merged PR #325 (closes #292) \u2014 single-flight conversation start"
+    },
+    {
+      "conv_id": "ee8d412",
+      "type": "implementation",
+      "issue": 296,
+      "started": "2026-05-24T21:20:51.125673+00:00",
+      "finished": "2026-05-24T21:36:05.446516+00:00",
+      "status": "success",
+      "outcome": "Opened PR #328 (feat(server): rebind MISSING sandbox preserving conversation_id #296); ready-for-review, all CI green, MERGEABLE, 1 unresolved bot review thread (doc reference to non-existent docs section)"
+    },
+    {
+      "conv_id": "b44a30b",
+      "type": "merge",
+      "pr": 327,
+      "started": "2026-05-24T21:20:51.125673+00:00",
+      "finished": "2026-05-24T21:36:05.446516+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #327 (test(client): cover deviceToken/getEventContent/useResourceFetch refs #303) commit 41af612; issue #303 stays open for next batches"
     }
   ],
   "quiet_ticks": 0
