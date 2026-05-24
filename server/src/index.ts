@@ -31,6 +31,7 @@ import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import { relayAgentResponse } from './agent-message-relay.js';
+import { resyncAgentSessionStatus } from './resync-agent-status.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
 import { 
@@ -612,6 +613,12 @@ wss.on('connection', (ws: WebSocket) => {
               ws.send(JSON.stringify(ttsSettingsMsg));
             }
           }
+
+          // Catch a (re)joining device up on the current AI session state.
+          // Live transitions are only broadcast as they happen, so without
+          // this resync a device that refreshes mid-conversation would not
+          // see the ✨/🤔 indicator until the next user utterance. (#290)
+          await resyncAgentSessionStatus(ws, sessionId, agentDriver);
 
           // Auto-connect AI when first device joins session
           if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, agentDriver)) {

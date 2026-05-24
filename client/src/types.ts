@@ -153,6 +153,18 @@ export interface AIThinkingMessage {
   type: 'ai-thinking';
   sessionId: string;
   thinking: boolean;
+  /**
+   * Optional ISO timestamp marking when the current thinking phase began.
+   * Set on the resync emitted at WebSocket register time (issue #290) so a
+   * refreshed client knows how long the agent has been working.
+   *
+   * Currently informational only — no UI surfaces this duration yet. It is
+   * reserved for future client work (e.g. an "Agent thinking for 5s…"
+   * indicator on refresh) and will likely be superseded by the consolidated
+   * `session-state` message landing with issue #295. Live thinking-transition
+   * broadcasts (i.e. not the register-time resync) may omit this field.
+   */
+  thinkingSince?: string;
 }
 
 /** Server → All devices in session: Session-level AI connection status */
