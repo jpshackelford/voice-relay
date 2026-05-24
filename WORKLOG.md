@@ -1163,3 +1163,59 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 🧾 Moved `e79b8f3` → `completed`
 
 ---
+
+### 2026-05-24 22:00 UTC - Implementation Worker (Issue #294)
+
+✅ Issue #294 — Restart Agent endpoint and UI affordance
+
+Opened PR [#329](https://github.com/jpshackelford/voice-relay/pull/329)
+(commit `0d464b1` on `feat/issue-294-restart-agent`).
+
+**Server**
+- New router `server/src/sessions/ai-router.ts` exposing
+  `POST /api/sessions/:sessionId/ai/restart`. Auth + workspace-member
+  check + 401/403/404 + 503 surface per the spec; delegates to
+  `AgentDriver.restartSession`; broadcasts `session-ai-status` updates
+  to peer devices via `DeviceRegistry`.
+- Mounted in `server/src/index.ts` next to the existing agent-events
+  router at `/api/sessions`.
+
+**Client**
+- New `client/src/api/aiSession.ts` typed helper with
+  `AISessionRequestError` preserving HTTP status.
+- `useAI` hook gains derived `degraded` boolean
+  (`!connected && !connecting && error !== null` — heuristic mapping
+  for the legacy `session-ai-status` wire shape until #295 unifies it)
+  plus `restart()` action with optimistic transition and rollback on
+  failure.
+- New `AIRestartButton` component, wired into both kiosk views; visible
+  only when degraded, shows a transient inline error on 5xx/network
+  failure.
+
+**Tests** — 12 server router + 13 helper + 13 hook + 12 component
+(50 new tests, all green). Covers T-3.5.S.1..7 and T-3.5.C.1..6 from
+the issue. Playwright `tests/restart-agent.spec.ts` deferred (would
+require FakeDriver test-helper APIs to force a `degraded` state from
+outside).
+
+**Static gates**
+| Check | Result |
+|---|---|
+| `tsc --noEmit -p server/tsconfig.json` | ✅ |
+| `tsc --noEmit -p client/tsconfig.json` | ✅ |
+| `npm run test -w server` | ✅ 1044 pass |
+| `npm run test -w client` | ✅ 865 pass |
+| `npm run test:coverage -w server` | ✅ thresholds met |
+| `npm run test:coverage -w client` | ✅ `useAI.ts` 100 % lines, `aiSession.ts` 100 % lines |
+
+**CI status on PR #329:** 5/5 checks green (Server Tests, Client
+Tests, Build Client, E2E Tests, lint-pr-title). PR marked ready for
+review.
+
+No schema changes; no migrations.
+
+Handing off to the orchestrator's review/merge tick.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
