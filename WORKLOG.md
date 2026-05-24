@@ -468,3 +468,29 @@ Per the Scope Contract (added after voice-relay#272), the merge worker MUST refu
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford — Merge Worker for PR #306._
 
 ---
+
+### 2026-05-24 02:11 UTC - Merge Worker
+
+✅ **Merged: PR #305 — feat(client): auto-reconnect WebSocket with exponential backoff**
+
+- PR: https://github.com/jpshackelford/voice-relay/pull/305
+- Merge commit: `fb2b3370bcda24ee32e01b1335076d0de17563a6`
+- Linked issue: #285 — auto-closed at 2026-05-24T02:11:00Z ✓
+
+**Pre-merge gates:**
+| Check | Result |
+|---|---|
+| Scope (`scope:client-only` → `^client/`) | ✅ Both changed paths (`client/src/hooks/useWebSocket.ts`, `client/src/hooks/useWebSocket.test.ts`) are inside scope. |
+| Migration check | ✅ N/A — diff does not touch `server/src/storage/migrations/**`. |
+| Smoke-test protection (re: #283/#304) | ✅ `tests/smoke/smoke.spec.ts` "WebSocket connection can be established" (lines 102–119) opens a raw `new WebSocket(...)` directly against `/ws` and asserts only that `onopen` fires — it does **not** exercise the `useWebSocket` hook or its reconnect/onclose path. The PR's behavior changes are entirely inside the hook (added refs, timer-based reconnect, jitter math, scoped suppression on 4xxx / device-removed / workspace-deleted). No smoke assertion can fail under the new behavior. |
+| CI checks (6/6) | ✅ Build Client, Server Tests, E2E Tests, lint-pr-title, pr-review (SUCCESS, non-skipped), enable-orchestrator — all green. |
+| Review threads | ✅ 0 unresolved threads on the PR. |
+| Local client suite | ✅ `npm test -w client` → 31 files / 679 tests pass (18 new). |
+
+**Commit message (squash):** `feat(client): auto-reconnect WebSocket with exponential backoff (#305)` — full body in the merge commit.
+
+**Production note:** Ships client-only behavior to vr.chorecraft.net on auto-deploy. SQLite production DB is untouched. Auth/endpoints unchanged. Kiosks now self-heal after transient WS closes (≤30 s worst case).
+
+No follow-up workers spawned — orchestrator will pick up the next item on its next tick.
+
+---
