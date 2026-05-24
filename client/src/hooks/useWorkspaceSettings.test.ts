@@ -1420,3 +1420,290 @@ describe('useWorkspaceSettings - integration behavior tests', () => {
     ).rejects.toThrow('Voice synthesis timed out');
   });
 });
+
+describe('useWorkspaceSettings hook - OpenHands API key operations', () => {
+  const baseSettings = {
+    workspaceId: 'ws1',
+    hasApiKey: false,
+    ttsVoice: null,
+    sttLanguage: null,
+    allowAutoJoin: true,
+    requireQrToken: false,
+    hasElevenlabsApiKey: false,
+    elevenlabsVoiceId: null,
+    elevenlabsTtsEnabled: false,
+    updatedAt: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mockAuthState = {
+      isAuthenticated: true,
+      ensureValidToken: vi.fn().mockResolvedValue(true),
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('setApiKey calls PUT and triggers refresh on success', async () => {
+    const updated = { ...baseSettings, hasApiKey: true };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => updated });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.setApiKey('sk-test');
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/api-key',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ apiKey: 'sk-test' }),
+      })
+    );
+    expect(result.current.settings?.hasApiKey).toBe(true);
+  });
+
+  it('setApiKey throws on non-ok response with server message', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'API key is malformed' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.setApiKey('bad')).rejects.toThrow('API key is malformed');
+  });
+
+  it('setApiKey falls back to default error message when server gives no error', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.setApiKey('any')).rejects.toThrow('Failed to set API key');
+  });
+
+  it('setApiKey throws when workspaceId is undefined', async () => {
+    const { result } = renderHook(() => useWorkspaceSettings(undefined, true));
+    await expect(result.current.setApiKey('x')).rejects.toThrow('No workspace selected');
+  });
+
+  it('testApiKey POSTs with provided key', async () => {
+    const testResult = { valid: true, message: 'looks good' };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => testResult });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    let r: { valid: boolean; message: string } | undefined;
+    await act(async () => {
+      r = await result.current.testApiKey('sk-abc');
+    });
+
+    expect(r).toEqual(testResult);
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/workspaces/ws1/settings/api-key/test',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ apiKey: 'sk-abc' }),
+      })
+    );
+  });
+
+  it('testApiKey POSTs an empty body when called without key', async () => {
+    const testResult = { valid: false, message: 'no stored key' };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => testResult });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.testApiKey();
+    });
+
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/workspaces/ws1/settings/api-key/test',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+    );
+  });
+
+  it('testApiKey throws on failure', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 502,
+        json: async () => ({ error: 'upstream timeout' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.testApiKey('sk-x')).rejects.toThrow('upstream timeout');
+  });
+
+  it('testApiKey throws when workspaceId is undefined', async () => {
+    const { result } = renderHook(() => useWorkspaceSettings(undefined, true));
+    await expect(result.current.testApiKey('sk-x')).rejects.toThrow('No workspace selected');
+  });
+
+  it('removeApiKey DELETEs and refreshes settings', async () => {
+    const withKey = { ...baseSettings, hasApiKey: true };
+    const cleared = { ...baseSettings, hasApiKey: false };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => withKey })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => cleared });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings?.hasApiKey).toBe(true));
+
+    await act(async () => {
+      await result.current.removeApiKey();
+    });
+
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/workspaces/ws1/settings/api-key',
+      expect.objectContaining({ method: 'DELETE' })
+    );
+    expect(result.current.settings?.hasApiKey).toBe(false);
+  });
+
+  it('removeApiKey throws on non-204 failure', async () => {
+    const withKey = { ...baseSettings, hasApiKey: true };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => withKey })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'deletion failed' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings?.hasApiKey).toBe(true));
+
+    await expect(result.current.removeApiKey()).rejects.toThrow('deletion failed');
+  });
+
+  it('removeApiKey throws when workspaceId undefined', async () => {
+    const { result } = renderHook(() => useWorkspaceSettings(undefined, true));
+    await expect(result.current.removeApiKey()).rejects.toThrow('No workspace selected');
+  });
+
+  it('updateSettings falls back to default error message when server gives no error', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(
+      result.current.updateSettings({ allowAutoJoin: false })
+    ).rejects.toThrow('Failed to update settings');
+  });
+
+  it('setElevenlabsApiKey throws on error with default message', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(
+      result.current.setElevenlabsApiKey('x')
+    ).rejects.toThrow('Failed to set ElevenLabs API key');
+  });
+
+  it('setElevenlabsApiKey/testElevenlabsApiKey/removeElevenlabsApiKey throw when workspaceId undefined', async () => {
+    const { result } = renderHook(() => useWorkspaceSettings(undefined, true));
+    await expect(result.current.setElevenlabsApiKey('x')).rejects.toThrow('No workspace selected');
+    await expect(result.current.testElevenlabsApiKey('x')).rejects.toThrow('No workspace selected');
+    await expect(result.current.removeElevenlabsApiKey()).rejects.toThrow('No workspace selected');
+    await expect(result.current.fetchElevenlabsVoices()).rejects.toThrow('No workspace selected');
+  });
+
+  it('testElevenlabsApiKey falls back to default error message', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(
+      result.current.testElevenlabsApiKey('x')
+    ).rejects.toThrow('Failed to test ElevenLabs API key');
+  });
+
+  it('removeElevenlabsApiKey throws on non-204 failure', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'remove failed' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.removeElevenlabsApiKey()).rejects.toThrow('remove failed');
+  });
+
+  it('fetchElevenlabsVoices returns voice list on success', async () => {
+    const voices: ElevenlabsVoice[] = [
+      { voice_id: 'v1', name: 'Alice' },
+      { voice_id: 'v2', name: 'Bob' },
+    ];
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ voices }) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    const got = await result.current.fetchElevenlabsVoices();
+    expect(got).toEqual(voices);
+  });
+
+  it('generateVoicePreview throws default message when server gives no error', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(
+      result.current.generateVoicePreview('v1')
+    ).rejects.toThrow('Failed to generate voice preview');
+  });
+});

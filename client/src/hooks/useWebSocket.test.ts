@@ -981,3 +981,510 @@ describe('useWebSocket hook', () => {
     });
   });
 });
+
+describe('useWebSocket - server message dispatching', () => {
+  const originalWebSocket = global.WebSocket;
+
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+    (global as unknown as { WebSocket: typeof MockWebSocket }).WebSocket = MockWebSocket;
+  });
+
+  afterEach(() => {
+    global.WebSocket = originalWebSocket;
+    vi.restoreAllMocks();
+  });
+
+  const baseOpts: {
+    deviceId: string;
+    displayName: string;
+    mode: DeviceMode;
+    workspaceId: string;
+    sessionId: string;
+  } = {
+    deviceId: 'd1',
+    displayName: 'N',
+    mode: 'kiosk',
+    workspaceId: 'w1',
+    sessionId: 's1',
+  };
+
+  function openConnection(opts: Parameters<typeof useWebSocket>[0]) {
+    const hook = renderHook(() => useWebSocket(opts));
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => {
+      ws.simulateOpen();
+      ws.simulateMessage({
+        type: 'registered',
+        deviceId: opts.deviceId,
+        session: { id: 's1', name: 'main' },
+      });
+    });
+    return { hook, ws };
+  }
+
+  it('dispatches text message to onTextMessage', () => {
+    const onTextMessage = vi.fn();
+    const { ws } = openConnection({ ...baseOpts, onTextMessage });
+
+    act(() => {
+      ws.simulateMessage({ type: 'text', utteranceId: 'u1', text: 'hi', partial: false });
+    });
+
+    expect(onTextMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'text', text: 'hi', partial: false })
+    );
+  });
+
+  it('dispatches history message to onHistoryMessage', () => {
+    const onHistoryMessage = vi.fn();
+    const { ws } = openConnection({ ...baseOpts, onHistoryMessage });
+
+    act(() => {
+      ws.simulateMessage({ type: 'history', messages: [] });
+    });
+
+    expect(onHistoryMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'history' })
+    );
+  });
+
+  it('dispatches display message to onDisplayMessage', () => {
+    const onDisplayMessage = vi.fn();
+    const { ws } = openConnection({ ...baseOpts, onDisplayMessage });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'display',
+        displayType: 'image',
+        content: 'http://x',
+      });
+    });
+
+    expect(onDisplayMessage).toHaveBeenCalled();
+  });
+
+  it('dispatches ai-status, ai-thinking, session-ai-status', () => {
+    const onAIStatusMessage = vi.fn();
+    const onAIThinkingMessage = vi.fn();
+    const onSessionAIStatusMessage = vi.fn();
+    const { ws } = openConnection({
+      ...baseOpts,
+      onAIStatusMessage,
+      onAIThinkingMessage,
+      onSessionAIStatusMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({ type: 'ai-status', status: 'idle' });
+      ws.simulateMessage({ type: 'ai-thinking', thinking: true });
+      ws.simulateMessage({ type: 'session-ai-status', status: 'busy' });
+    });
+
+    expect(onAIStatusMessage).toHaveBeenCalledTimes(1);
+    expect(onAIThinkingMessage).toHaveBeenCalledTimes(1);
+    expect(onSessionAIStatusMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('dispatches agent-action message', () => {
+    const onAgentActionMessage = vi.fn();
+    const { ws } = openConnection({ ...baseOpts, onAgentActionMessage });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'agent-action',
+        action: { type: 'message', content: 'hi' },
+      });
+    });
+    expect(onAgentActionMessage).toHaveBeenCalled();
+  });
+
+  it('dispatches join-request and join-resolved', () => {
+    const onJoinRequestMessage = vi.fn();
+    const onJoinResolvedMessage = vi.fn();
+    const { ws } = openConnection({
+      ...baseOpts,
+      onJoinRequestMessage,
+      onJoinResolvedMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'join-request',
+        request: {
+          id: 'r1',
+          workspaceId: 'w1',
+          user: { id: 'u1', username: 'x', displayName: null, avatarUrl: null },
+          createdAt: '2026-01-01T00:00:00Z',
+        },
+      });
+      ws.simulateMessage({
+        type: 'join-resolved',
+        requestId: 'r1',
+        approved: true,
+      });
+    });
+
+    expect(onJoinRequestMessage).toHaveBeenCalledTimes(1);
+    expect(onJoinResolvedMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('device-removed marks wasRemoved and clears connection', () => {
+    const onDeviceRemovedMessage = vi.fn();
+    const { hook, ws } = openConnection({
+      ...baseOpts,
+      onDeviceRemovedMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'device-removed',
+        deviceId: 'd1',
+        reason: 'removed-from-workspace',
+      });
+    });
+
+    expect(hook.result.current.wasRemoved).toBe(true);
+    expect(hook.result.current.connected).toBe(false);
+    expect(onDeviceRemovedMessage).toHaveBeenCalled();
+  });
+
+  it('workspace-deleted clears devices and connection', () => {
+    const onWorkspaceDeletedMessage = vi.fn();
+    const { hook, ws } = openConnection({
+      ...baseOpts,
+      onWorkspaceDeletedMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'device-list',
+        devices: [{ id: 'a', displayName: 'A', mode: 'kiosk' }],
+      });
+    });
+    expect(hook.result.current.devices).toHaveLength(1);
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'workspace-deleted',
+        workspaceId: 'w1',
+        reason: 'owner-deleted',
+      });
+    });
+
+    expect(hook.result.current.devices).toHaveLength(0);
+    expect(hook.result.current.connected).toBe(false);
+    expect(onWorkspaceDeletedMessage).toHaveBeenCalled();
+  });
+
+  it('dispatches audio-chunk and audio-end', () => {
+    const onAudioChunkMessage = vi.fn();
+    const onAudioEndMessage = vi.fn();
+    const { ws } = openConnection({
+      ...baseOpts,
+      onAudioChunkMessage,
+      onAudioEndMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'audio-chunk',
+        sessionId: 's1',
+        utteranceId: 'u1',
+        audio: 'abc',
+        format: 'mp3',
+      });
+      ws.simulateMessage({ type: 'audio-end', sessionId: 's1', utteranceId: 'u1' });
+    });
+
+    expect(onAudioChunkMessage).toHaveBeenCalled();
+    expect(onAudioEndMessage).toHaveBeenCalled();
+  });
+
+  it('session-tts-settings-changed updates sessionTtsSettings state', () => {
+    const onSessionTtsSettingsChanged = vi.fn();
+    const { hook, ws } = openConnection({
+      ...baseOpts,
+      onSessionTtsSettingsChanged,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'session-tts-settings-changed',
+        sessionId: 's1',
+        enabled: true,
+        outputDeviceId: 'speaker-1',
+      });
+    });
+
+    expect(hook.result.current.sessionTtsSettings).toEqual({
+      enabled: true,
+      outputDeviceId: 'speaker-1',
+    });
+    expect(onSessionTtsSettingsChanged).toHaveBeenCalled();
+  });
+
+  it('dispatches transcription-result and transcription-error', () => {
+    const onTranscriptionResultMessage = vi.fn();
+    const onTranscriptionErrorMessage = vi.fn();
+    const { ws } = openConnection({
+      ...baseOpts,
+      onTranscriptionResultMessage,
+      onTranscriptionErrorMessage,
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'transcription-result',
+        text: 'hello',
+        isFinal: true,
+      });
+      ws.simulateMessage({
+        type: 'transcription-error',
+        error: 'stt failed',
+      });
+    });
+
+    expect(onTranscriptionResultMessage).toHaveBeenCalled();
+    expect(onTranscriptionErrorMessage).toHaveBeenCalled();
+  });
+
+  it('stores device token on first registration when workspaceId is set', async () => {
+    const { storeDeviceToken } = await import('../utils/deviceToken');
+    (storeDeviceToken as unknown as ReturnType<typeof vi.fn>).mockClear();
+    const hook = renderHook(() =>
+      useWebSocket({ ...baseOpts, displayName: 'TokenDevice' })
+    );
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+
+    act(() => {
+      ws.simulateOpen();
+      ws.simulateMessage({
+        type: 'registered',
+        deviceId: 'd1',
+        session: { id: 's1', name: 'main' },
+        deviceToken: 'tok-xyz',
+        tokenExpiresAt: '2099-01-01',
+      });
+    });
+
+    expect(storeDeviceToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        deviceId: 'd1',
+        deviceToken: 'tok-xyz',
+        workspaceId: 'w1',
+        name: 'TokenDevice',
+      })
+    );
+    hook.unmount();
+  });
+
+  it('logs parse errors for malformed JSON without throwing', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { ws } = openConnection({ ...baseOpts });
+
+    act(() => {
+      // Send a message with malformed JSON
+      ws.onmessage?.(new MessageEvent('message', { data: '{not-json' }));
+    });
+
+    expect(errSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Error parsing message'),
+      expect.anything()
+    );
+  });
+
+  it('ignores unknown message types silently', () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { ws } = openConnection({ ...baseOpts });
+
+    act(() => {
+      ws.simulateMessage({ type: 'never-heard-of-it' });
+    });
+
+    // No errors logged for unknown message types - just silently ignored
+    expect(errSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Error parsing message'),
+      expect.anything()
+    );
+  });
+});
+
+describe('useWebSocket - client-to-server sends', () => {
+  const originalWebSocket = global.WebSocket;
+
+  beforeEach(() => {
+    MockWebSocket.instances = [];
+    (global as unknown as { WebSocket: typeof MockWebSocket }).WebSocket = MockWebSocket;
+  });
+
+  afterEach(() => {
+    global.WebSocket = originalWebSocket;
+    vi.restoreAllMocks();
+  });
+
+  const baseOpts: {
+    deviceId: string;
+    displayName: string;
+    mode: DeviceMode;
+    workspaceId: string;
+    sessionId: string;
+  } = {
+    deviceId: 'd1',
+    displayName: 'N',
+    mode: 'kiosk',
+    workspaceId: 'w1',
+    sessionId: 's1',
+  };
+
+  function openSocket() {
+    const hook = renderHook(() => useWebSocket(baseOpts));
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => {
+      ws.simulateOpen();
+      ws.simulateMessage({
+        type: 'registered',
+        deviceId: baseOpts.deviceId,
+        session: { id: 's1', name: 'main' },
+      });
+    });
+    // Clear the register message
+    ws.sentMessages = [];
+    return { hook, ws };
+  }
+
+  it('sendText sends a text message', () => {
+    const { hook, ws } = openSocket();
+
+    act(() => {
+      hook.result.current.sendText('u1', 'hello world', true);
+    });
+
+    expect(ws.sentMessages).toHaveLength(1);
+    expect(JSON.parse(ws.sentMessages[0])).toEqual({
+      type: 'text',
+      utteranceId: 'u1',
+      text: 'hello world',
+      partial: true,
+    });
+  });
+
+  it('updateDevice sends an update-device message', () => {
+    const { hook, ws } = openSocket();
+
+    act(() => {
+      hook.result.current.updateDevice({ displayName: 'NewName' });
+    });
+
+    expect(ws.sentMessages).toHaveLength(1);
+    const parsed = JSON.parse(ws.sentMessages[0]);
+    expect(parsed.type).toBe('update-device');
+    expect(parsed.displayName).toBe('NewName');
+  });
+
+  it('sendJoinResponse forwards the message to the socket', () => {
+    const { hook, ws } = openSocket();
+
+    act(() => {
+      hook.result.current.sendJoinResponse({
+        type: 'join-response',
+        requestId: 'r1',
+        approved: false,
+      });
+    });
+
+    expect(JSON.parse(ws.sentMessages[0])).toEqual({
+      type: 'join-response',
+      requestId: 'r1',
+      approved: false,
+    });
+  });
+
+  it('updateSessionTtsSettings sends a session-tts-settings message', () => {
+    const { hook, ws } = openSocket();
+
+    act(() => {
+      hook.result.current.updateSessionTtsSettings({
+        enabled: true,
+        outputDeviceId: null,
+      });
+    });
+
+    expect(JSON.parse(ws.sentMessages[0])).toEqual({
+      type: 'session-tts-settings',
+      enabled: true,
+      outputDeviceId: null,
+    });
+  });
+
+  it('sendAudioInputChunk/sendAudioInputEnd send proper messages', () => {
+    const { hook, ws } = openSocket();
+
+    act(() => {
+      hook.result.current.sendAudioInputChunk(0, 'AAAA', 16000);
+      hook.result.current.sendAudioInputEnd(1);
+    });
+
+    expect(ws.sentMessages).toHaveLength(2);
+    expect(JSON.parse(ws.sentMessages[0])).toEqual({
+      type: 'audio-input-chunk',
+      chunkIndex: 0,
+      audio: 'AAAA',
+      sampleRate: 16000,
+    });
+    expect(JSON.parse(ws.sentMessages[1])).toEqual({
+      type: 'audio-input-end',
+      totalChunks: 1,
+    });
+  });
+
+  it('send functions are no-ops when WebSocket is not open', () => {
+    const hook = renderHook(() => useWebSocket(baseOpts));
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    // Do NOT simulate open. ws.readyState stays CONNECTING.
+
+    act(() => {
+      hook.result.current.sendText('u1', 't', false);
+      hook.result.current.updateDevice({ mode: 'mobile' });
+      hook.result.current.sendJoinResponse({
+        type: 'join-response',
+        requestId: 'r1',
+        approved: true,
+      });
+      hook.result.current.updateSessionTtsSettings({ enabled: false, outputDeviceId: null });
+      hook.result.current.sendAudioInputChunk(0, 'A', 16000);
+      hook.result.current.sendAudioInputEnd(1);
+    });
+
+    expect(ws.sentMessages).toHaveLength(0);
+  });
+
+  it('mode change after registration sends update-device without reconnecting', () => {
+    const hook = renderHook(
+      ({ mode }: { mode: DeviceMode }) =>
+        useWebSocket({ ...baseOpts, mode }),
+      { initialProps: { mode: 'kiosk' as DeviceMode } }
+    );
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => {
+      ws.simulateOpen();
+      ws.simulateMessage({
+        type: 'registered',
+        deviceId: baseOpts.deviceId,
+        session: { id: 's1', name: 'main' },
+      });
+    });
+    ws.sentMessages = [];
+
+    hook.rerender({ mode: 'mobile' as DeviceMode });
+
+    // No new socket created
+    expect(MockWebSocket.instances).toHaveLength(1);
+    // update-device message sent on the existing socket
+    expect(ws.sentMessages).toHaveLength(1);
+    expect(JSON.parse(ws.sentMessages[0])).toMatchObject({
+      type: 'update-device',
+      mode: 'mobile',
+    });
+  });
+});

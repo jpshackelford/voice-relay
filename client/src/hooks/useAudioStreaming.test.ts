@@ -216,30 +216,278 @@ describe('useAudioStreaming hook', () => {
   });
 });
 
-describe('useAudioStreaming utility functions', () => {
-  // Test the PCM conversion separately
-  // This is indirectly tested through the hook, but we can verify the algorithm is correct
-  
-  it('would convert float32 samples to PCM16 correctly', () => {
-    // This tests the expected behavior of the internal float32ToPCM16 function
-    // by verifying the expected output format
-    
-    // Float32 range: [-1.0, 1.0]
-    // Int16 range: [-32768, 32767]
-    
-    // For sample = 0.5:
-    // Expected: 0.5 * 0x7FFF = 16383.5 ≈ 16383
-    
-    // For sample = -0.5:
-    // Expected: -0.5 * 0x8000 = -16384
-    
-    // For sample = 1.0:
-    // Expected: 1.0 * 0x7FFF = 32767
-    
-    // For sample = -1.0:
-    // Expected: -1.0 * 0x8000 = -32768
-    
-    // These are the expected conversions based on the algorithm
-    expect(true).toBe(true); // Placeholder - actual values tested in integration
+describe('useAudioStreaming with mocked AudioContext', () => {
+  interface MockScriptProcessor {
+    onaudioprocess:
+      | ((evt: { inputBuffer: { getChannelData: (i: number) => Float32Array } }) => void)
+      | null;
+    connect: ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+  }
+  interface MockAnalyser {
+    fftSize: number;
+    frequencyBinCount: number;
+    connect: ReturnType<typeof vi.fn>;
+  }
+  interface MockSource {
+    connect: ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+  }
+  interface MockContext {
+    state: 'running' | 'suspended';
+    sampleRate: number;
+    destination: object;
+    resume: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    createMediaStreamSource: ReturnType<typeof vi.fn>;
+    createAnalyser: ReturnType<typeof vi.fn>;
+    createScriptProcessor: ReturnType<typeof vi.fn>;
+  }
+
+  let lastProcessor: MockScriptProcessor | null = null;
+  let lastContext: MockContext | null = null;
+
+  function installContextMock(initialState: 'running' | 'suspended' = 'running') {
+    class MockAudioContext implements MockContext {
+      state: 'running' | 'suspended';
+      sampleRate: number;
+      destination = {};
+      resume = vi.fn(async () => {
+        this.state = 'running';
+      });
+      close = vi.fn(async () => {});
+      createMediaStreamSource = vi.fn(
+        (): MockSource => ({
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        }),
+      );
+      createAnalyser = vi.fn(
+        (): MockAnalyser => ({
+          fftSize: 0,
+          frequencyBinCount: 1024,
+          connect: vi.fn(),
+        }),
+      );
+      createScriptProcessor = vi.fn((): MockScriptProcessor => {
+        const proc: MockScriptProcessor = {
+          onaudioprocess: null,
+          connect: vi.fn(),
+          disconnect: vi.fn(),
+        };
+        lastProcessor = proc;
+        return proc;
+      });
+      constructor(opts: { sampleRate: number }) {
+        this.state = initialState;
+        this.sampleRate = opts.sampleRate;
+        lastContext = this;
+      }
+    }
+    (window as unknown as { AudioContext: unknown }).AudioContext =
+      MockAudioContext as unknown as typeof AudioContext;
+  }
+
+  beforeEach(() => {
+    lastProcessor = null;
+    lastContext = null;
+  });
+
+  afterEach(() => {
+    delete (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext;
+  });
+
+  it('start() transitions to streaming and wires up audio nodes', async () => {
+    installContextMock('running');
+    const stream = createMockMediaStream();
+    const sendChunk = vi.fn();
+
+    const { result } = renderHook(() => useAudioStreaming());
+
+    await act(async () => {
+      await result.current.start(stream, sendChunk);
+    });
+
+    expect(result.current.isStreaming).toBe(true);
+    expect(result.current.error).toBeNull();
+    expect(result.current.getAnalyser()).not.toBeNull();
+    expect(result.current.getDataArray()).not.toBeNull();
+    expect(lastContext?.createMediaStreamSource).toHaveBeenCalledWith(stream);
+    expect(lastContext?.createScriptProcessor).toHaveBeenCalled();
+    expect(typeof lastProcessor?.onaudioprocess).toBe('function');
+  });
+
+  it('start() resumes a suspended audio context', async () => {
+    installContextMock('suspended');
+    const { result } = renderHook(() => useAudioStreaming());
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), vi.fn());
+    });
+
+    expect(lastContext?.resume).toHaveBeenCalled();
+    expect(result.current.isStreaming).toBe(true);
+  });
+
+  it('start() while already streaming is a no-op', async () => {
+    installContextMock('running');
+    const { result } = renderHook(() => useAudioStreaming());
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), vi.fn());
+    });
+    const firstContext = lastContext;
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), vi.fn());
+    });
+    // Same context - no new AudioContext was constructed.
+    expect(lastContext).toBe(firstContext);
+  });
+
+  it('processes a full chunk via onaudioprocess and sends PCM data', async () => {
+    installContextMock('running');
+    const stream = createMockMediaStream();
+    const sendChunk = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioStreaming({ sampleRate: 16000, chunkDurationMs: 100 }),
+    );
+
+    await act(async () => {
+      await result.current.start(stream, sendChunk);
+    });
+
+    // samplesPerChunk = 1600. Send 2048 samples; one chunk should be emitted.
+    const samples = new Float32Array(2048);
+    for (let i = 0; i < samples.length; i++) samples[i] = i % 2 === 0 ? 0.5 : -0.5;
+    act(() => {
+      lastProcessor?.onaudioprocess?.({
+        inputBuffer: { getChannelData: () => samples },
+      });
+    });
+
+    expect(sendChunk).toHaveBeenCalled();
+    const buf = sendChunk.mock.calls[0][0] as ArrayBuffer;
+    expect(buf.byteLength).toBe(1600 * 2);
+    const view = new DataView(buf);
+    expect(view.getInt16(0, true)).not.toBe(0);
+  });
+
+  it('onaudioprocess ignores callbacks after stop() (uses ref guard)', async () => {
+    installContextMock('running');
+    const sendChunk = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioStreaming({ sampleRate: 16000, chunkDurationMs: 100 }),
+    );
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), sendChunk);
+    });
+    const processor = lastProcessor;
+
+    act(() => {
+      result.current.stop();
+    });
+
+    sendChunk.mockClear();
+    act(() => {
+      processor?.onaudioprocess?.({
+        inputBuffer: { getChannelData: () => new Float32Array(4096) },
+      });
+    });
+    expect(sendChunk).not.toHaveBeenCalled();
+  });
+
+  it('stop() flushes remaining buffered samples', async () => {
+    installContextMock('running');
+    const sendChunk = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioStreaming({ sampleRate: 16000, chunkDurationMs: 100 }),
+    );
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), sendChunk);
+    });
+
+    const partial = new Float32Array(500);
+    partial.fill(0.25);
+    act(() => {
+      lastProcessor?.onaudioprocess?.({
+        inputBuffer: { getChannelData: () => partial },
+      });
+    });
+    expect(sendChunk).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.stop();
+    });
+
+    expect(sendChunk).toHaveBeenCalledTimes(1);
+    expect(result.current.isStreaming).toBe(false);
+    expect(lastContext?.close).toHaveBeenCalled();
+  });
+
+  it('handles ring buffer overflow by processing before write', async () => {
+    installContextMock('running');
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const sendChunk = vi.fn();
+    // Tiny sample rate so the 60-second capacity is small (100*60=6000)
+    const { result } = renderHook(() =>
+      useAudioStreaming({ sampleRate: 100, chunkDurationMs: 100 }),
+    );
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), sendChunk);
+    });
+
+    const big = new Float32Array(6001);
+    big.fill(0.5);
+    act(() => {
+      lastProcessor?.onaudioprocess?.({
+        inputBuffer: { getChannelData: () => big },
+      });
+    });
+
+    expect(sendChunk).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Ring buffer overflow'),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('clamps samples outside [-1, 1] when converting to PCM16', async () => {
+    installContextMock('running');
+    const sendChunk = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioStreaming({ sampleRate: 16000, chunkDurationMs: 100 }),
+    );
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), sendChunk);
+    });
+
+    const samples = new Float32Array(2048);
+    for (let i = 0; i < samples.length; i++) samples[i] = i % 2 === 0 ? 2 : -2;
+    act(() => {
+      lastProcessor?.onaudioprocess?.({
+        inputBuffer: { getChannelData: () => samples },
+      });
+    });
+
+    expect(sendChunk).toHaveBeenCalled();
+    const view = new DataView(sendChunk.mock.calls[0][0] as ArrayBuffer);
+    expect(view.getInt16(0, true)).toBe(0x7fff);
+    expect(view.getInt16(2, true)).toBe(-0x8000);
+  });
+
+  it('cleans up via stop on unmount even if start was called', async () => {
+    installContextMock('running');
+    const { result, unmount } = renderHook(() => useAudioStreaming());
+
+    await act(async () => {
+      await result.current.start(createMockMediaStream(), vi.fn());
+    });
+    const closedContext = lastContext;
+    unmount();
+    expect(closedContext?.close).toHaveBeenCalled();
   });
 });
