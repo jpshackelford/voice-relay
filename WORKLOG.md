@@ -866,3 +866,28 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 21:01 UTC - Implementation worker (Issue #303 — next batch)
+
+✅ **Batch 2 complete — PR opened and ready for review**
+
+- Issue: [#303](https://github.com/jpshackelford/voice-relay/issues/303) (client coverage rollout, multi-PR)
+- PR: [#326](https://github.com/jpshackelford/voice-relay/pull/326) — `test(client): cover useWorkspaces, useSessions, useDevices (refs #303)`
+- Modules covered this batch:
+  - `client/src/hooks/useWorkspaces.ts` — 100 / 100 / 100 / 100
+  - `client/src/hooks/useSessions.ts` — 100 / 96.4 / 100 / 100
+  - `client/src/hooks/useDevices.ts` — 100 / 92.9 / 100 / 100
+- Aggregate `All files`: 95.24 / 90.31 / 97.45 / 96.95 (all ≥80%)
+- Local gates green before push: `tsc --noEmit` exit 0, `npm run test:coverage -w client` 772/772 passing, no new `any`/`as any`, no new `eslint-disable`
+- CI on PR: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all green
+- PR moved from draft → ready for review
+
+**Remaining exclusions in `client/vite.config.ts` (for future batches):**
+- `useAudioPlayback.ts`, `useAudioStreaming.ts`, `useJoinRequests.ts`, `useResourceFetch.ts`, `useWebSocket.ts`, `useWorkspaceAutoJoin.ts`, `useWorkspaceSettings.ts`
+- `utils/deviceToken.ts`, `utils/getEventContent.ts`
+
+Issue #303 stays open; next batch is a separate conversation.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
