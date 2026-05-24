@@ -2,6 +2,35 @@
 
 ## Log
 
+### 2026-05-24 01:15 UTC - Implementation Worker (Issue #282 → PR #283)
+
+✅ **Opened PR [#283](https://github.com/jpshackelford/voice-relay/pull/283) — feat(auth): surface GitHub App install step in `/auth/github` flow**
+
+- Issue: [#282](https://github.com/jpshackelford/voice-relay/issues/282) — Auth flow doesn't surface GitHub App installation step
+- Branch: `feat/282-github-app-install-flow`
+- Status: **Ready for review** (CI green, moved out of draft)
+- Commits (in order):
+  - [`76c332c`](https://github.com/jpshackelford/voice-relay/commit/76c332c) `feat(db): add nullable github_installation_id column on users`
+  - [`0ddf075`](https://github.com/jpshackelford/voice-relay/commit/0ddf075) `feat(auth): track github_installation_id on User + AuthConfig`
+  - [`365c42b`](https://github.com/jpshackelford/voice-relay/commit/365c42b) `feat(auth): redirect /auth/github to GitHub App install + identify URL`
+  - [`5f87acc`](https://github.com/jpshackelford/voice-relay/commit/5f87acc) `feat(auth): handle installation_id + setup_action on GitHub callback`
+  - [`1bac1ec`](https://github.com/jpshackelford/voice-relay/commit/1bac1ec) `docs(readme): rewrite "Setup GitHub OAuth App" as "Setup GitHub App"`
+- Key changes:
+  - `getAuthorizationUrl()` now returns `https://github.com/apps/<slug>/installations/new?state=<csrf>`; `client_id` / `redirect_uri` / `scope` removed from the URL (they live in the App settings).
+  - `GET /auth/github/callback` tolerates returning users (`code+state`), fresh installs (`code+state+installation_id&setup_action=install` → persisted), and org-approval-pending (`setup_action=request` → redirect `?error=install_pending`).
+  - `upsertFromGitHub` intentionally leaves `github_installation_id` alone so returning sign-ins (no `installation_id` in callback) don't clobber stored values; new `setGitHubInstallationId()` is the only writer.
+  - Migration **014** adds nullable `github_installation_id INTEGER` on `users`. Verified manually: clean on fresh DB and on a populated 013-shaped DB; pre-existing rows pick up `NULL`.
+  - `AuthConfig` / `getAuthConfig()` require `GITHUB_APP_SLUG`; fail fast in non-test mode.
+  - README "Setup GitHub OAuth App" rewritten to "Setup GitHub App" (point at `/settings/apps/new`, call out the "Request user authorization (OAuth) during installation" checkbox, document `GITHUB_APP_SLUG`).
+  - `.env.example` documents the new env var.
+- Tests: 9 new/updated unit tests in `github-oauth.test.ts` + `user-repository.test.ts`; new `router.test.ts` integration suite (7 cases over the four callback shapes + state/code regressions). All 867 server tests pass; CI checks (Server Tests, Build Client, E2E Tests, lint-pr-title) all green.
+- Acceptance criteria from the Implementation Plan comment: 9/9 met that can be verified in CI; manual staging smoke is the only open item (left to reviewer / orchestrator).
+- Deviations called out in the PR description:
+  - Skipped the optional `GitHubOAuth` → `GitHubAppAuth` rename (class doc-comment now clarifies the name); rename is mechanical and can be a separate PR.
+  - Did not bake `no-hands-agent-screencast` into the code as a default — required env var fails loudly instead. Slug to set in prod is documented in the README.
+
+---
+
 ### 2026-05-24 00:55 UTC - Expansion Worker (Issue #282)
 
 ✅ **Expanded Issue [#282](https://github.com/jpshackelford/voice-relay/issues/282) — Auth flow doesn't surface GitHub App installation step**
