@@ -1,33 +1,16 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "4b1e277",
-        "issue": 310,
-        "started": "2026-05-24T03:23:12.867423+00:00"
-      }
-    ],
+    "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "4a2b077",
-        "pr": 308,
-        "started": "2026-05-24T03:23:12.867423+00:00"
-      },
-      {
-        "conv_id": "9b12d2f",
-        "pr": 309,
-        "started": "2026-05-24T03:23:12.867423+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T03:23:12.867423+00:00",
+  "last_updated": "2026-05-24T03:36:45.617811+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -136,7 +119,34 @@
       "finished": "2026-05-24T03:23:12.867423+00:00",
       "status": "success",
       "outcome": "Created PR #311 - openHandsAgentDriver adapter wrapping aiSessionManager"
+    },
+    {
+      "conv_id": "4b1e277",
+      "type": "expansion",
+      "started": "2026-05-24T03:23:12.867423+00:00",
+      "finished": "2026-05-24T03:36:45.617811+00:00",
+      "status": "success",
+      "outcome": "Worked on issue #310 (Playwright keepalive E2E); status verified finished by orchestrator API query",
+      "issue": 310
+    },
+    {
+      "conv_id": "4a2b077",
+      "type": "review",
+      "started": "2026-05-24T03:23:12.867423+00:00",
+      "finished": "2026-05-24T03:36:45.617811+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #308 (scope:ci-only halt); status verified finished by orchestrator API query",
+      "pr": 308
+    },
+    {
+      "conv_id": "9b12d2f",
+      "type": "review",
+      "started": "2026-05-24T03:23:12.867423+00:00",
+      "finished": "2026-05-24T03:36:45.617811+00:00",
+      "status": "success",
+      "outcome": "Worked on PR #309 (WebSocket Keepalive Heartbeat) \u2014 PR subsequently merged; status verified finished by orchestrator API query",
+      "pr": 309
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
