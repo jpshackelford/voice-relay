@@ -610,3 +610,31 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 19:58 UTC - Review Worker (PR #323)
+
+✅ Addressed the single outstanding review thread on PR #323 (`fix(server): refresh session_api_key on every OpenHands WS reconnect`, issue #291).
+
+**Feedback addressed:**
+
+| Thread | File:Line | Verdict | Resolution |
+| --- | --- | --- | --- |
+| 🟡 github-actions suggestion — URL extraction via `split('/api/')[0]` | `server/src/openhands.ts:1416` | accept | Switched to `replace(/\/api\/.*$/, '')` and added `URL.canParse(freshUrl)` validation so a malformed agent-server URL fails fast as `SandboxMissingError`. Older call site (line ~1568, initial conversation setup) intentionally left on the existing `split()` idiom — it predates #291 and refactoring it expands scope. Noted in the reply as a possible follow-up. Resolved via GraphQL after replying with the commit SHA. |
+
+**Commits pushed to `fix/291-refresh-session-api-key-on-reconnect`:**
+
+- `213ea9e` `refactor(server): harden agent-server URL extraction in refreshSessionCredentials`
+
+**Verification:**
+
+- `tsc --noEmit -p server/tsconfig.json` — clean
+- `vitest run` — 986/986 server tests pass
+- CI on `213ea9e`: 5/5 green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title)
+- Zero unresolved review threads
+- PR returned to ready-for-review; mergeable=MERGEABLE
+
+PR is now waiting on a merge worker — not merged from this conversation.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
