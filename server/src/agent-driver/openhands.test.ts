@@ -937,4 +937,312 @@ describe('OpenHandsAgentDriver', () => {
       expect(driver.hasSession('s1')).toBe(false);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // T-3.4.* — ConversationExecutionStatus → driver state mapping (#293)
+  //
+  // The driver translates upstream `ConversationStateUpdateEvent` events
+  // with `key === 'execution_status'` onto its provider-neutral
+  // `AgentSessionState`. These tests pin each row of the mapping table from
+  // `docs/architecture.md` § Session state mapping and the transition
+  // behaviours called out in the issue.
+  // ---------------------------------------------------------------------------
+  describe('execution_status event → driver state (#293)', () => {
+    function makeStatusEvent(
+      status: string,
+      extras: Record<string, unknown> = {},
+    ): RawOpenHandsEvent {
+      return {
+        id: `evt-status-${status}`,
+        kind: 'ConversationStateUpdateEvent',
+        key: 'execution_status',
+        value: { execution_status: status, ...extras },
+      } as RawOpenHandsEvent;
+    }
+
+    beforeEach(async () => {
+      // All execution-status tests want a bound, connected session — the
+      // mapping reads off the in-driver state, but the binding has to
+      // exist (or `synthesizeStatus` returns `absent` regardless).
+      await driver.openSession('s1', OPTS);
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        ws: { readyState: 1 },
+        isThinking: false,
+      });
+    });
+
+    test('T-3.4.1: idle → ready', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('ready');
+      expect(status.error).toBe(null);
+      expect(status.thinkingSince).toBe(null);
+    });
+
+    test('T-3.4.2: finished → ready', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('finished'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('ready');
+    });
+
+    test('T-3.4.3: paused → ready', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('paused'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('ready');
+    });
+
+    test('T-3.4.4: waiting_for_confirmation → ready', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('waiting_for_confirmation'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('ready');
+    });
+
+    test('T-3.4.5: running → thinking, sets thinkingSince from event timestamp', async () => {
+      const ts = '2026-01-01T12:00:00.000Z';
+      mgr.fireEvent('s1', 'c', {
+        ...makeStatusEvent('running'),
+        timestamp: ts,
+      } as RawOpenHandsEvent);
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('thinking');
+      expect(status.thinkingSince).toBe(ts);
+    });
+
+    test('T-3.4.5b: running event without timestamp falls back to current time', async () => {
+      const before = Date.now();
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      const after = Date.now();
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('thinking');
+      expect(status.thinkingSince).not.toBe(null);
+      const sinceMs = new Date(status.thinkingSince as string).getTime();
+      expect(sinceMs).toBeGreaterThanOrEqual(before);
+      expect(sinceMs).toBeLessThanOrEqual(after);
+    });
+
+    test('T-3.4.6: stuck → degraded with "stuck" error', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('stuck'));
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toMatch(/stuck/i);
+    });
+
+    test('T-3.4.6b: stuck → degraded uses upstream error payload when present', async () => {
+      mgr.fireEvent(
+        's1',
+        'c',
+        makeStatusEvent('stuck', { error: 'inner loop stalled, no progress in 90s' }),
+      );
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toBe('inner loop stalled, no progress in 90s');
+    });
+
+    test('T-3.4.7: error → degraded with upstream error payload', async () => {
+      mgr.fireEvent(
+        's1',
+        'c',
+        makeStatusEvent('error', { error: 'upstream LLM 500 — try again' }),
+      );
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toBe('upstream LLM 500 — try again');
+    });
+
+    test('T-3.4.7b: error → degraded with default message when payload absent', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('error'));
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).not.toBe(null);
+      expect(status.error?.length).toBeGreaterThan(0);
+    });
+
+    test('T-3.4.7c: error payload may also live under .message or .reason', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('error', { message: 'fallback message' }));
+      expect((await driver.getSessionStatus('s1')).error).toBe('fallback message');
+
+      // Re-open a clean session for the second probe so we don't dedupe.
+      await driver.closeSession('s1');
+      await driver.openSession('s2', OPTS);
+      mgr.bindings.set('s2', { conversationId: 'c2', ws: { readyState: 1 }, isThinking: false });
+      mgr.fireEvent('s2', 'c2', makeStatusEvent('error', { reason: 'because' }));
+      expect((await driver.getSessionStatus('s2')).error).toBe('because');
+    });
+
+    test('T-3.4.8: deleting → absent', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('deleting'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('absent');
+    });
+
+    test('T-3.4.9: running → idle transition emits status event into in-flight turn', async () => {
+      const events: AgentEvent[] = [];
+      const consume = (async () => {
+        for await (const ev of driver.sendMessage('s1', 'u1', 'hi')) {
+          events.push(ev);
+          if (ev.kind === 'message' || ev.kind === 'error') break;
+        }
+      })();
+      await new Promise((r) => setImmediate(r));
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+      mgr.fireEvent('s1', 'c', makeAgentMessageRaw('done'));
+      await consume;
+
+      const statuses = events.filter((e) => e.kind === 'status') as Array<{
+        kind: 'status';
+        status: { state: string };
+      }>;
+      expect(statuses.length).toBeGreaterThanOrEqual(2);
+      expect(statuses[0].status.state).toBe('thinking');
+      expect(statuses[1].status.state).toBe('ready');
+    });
+
+    test('T-3.4.10: tool-only turn (no message) returns to ready on idle', async () => {
+      // The 🤔 indicator should not stick on when a turn produces only
+      // tool calls. running → idle is enough; no agent message required.
+      const thinkingFlips: Array<{ sessionId: string; thinking: boolean }> = [];
+      driver.onThinkingChange((sessionId, thinking) => {
+        thinkingFlips.push({ sessionId, thinking });
+      });
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('ready');
+      expect(status.thinkingSince).toBe(null);
+      // Listener saw a true→false sequence even though no message arrived.
+      expect(thinkingFlips).toEqual([
+        { sessionId: 's1', thinking: true },
+        { sessionId: 's1', thinking: false },
+      ]);
+    });
+
+    test('T-3.4.11: thinkingSince is set only on entry to running', async () => {
+      const t1 = '2026-01-01T12:00:00.000Z';
+      const t2 = '2026-01-01T12:00:10.000Z';
+      mgr.fireEvent('s1', 'c', { ...makeStatusEvent('running'), timestamp: t1 } as RawOpenHandsEvent);
+      const after1 = await driver.getSessionStatus('s1');
+      expect(after1.thinkingSince).toBe(t1);
+
+      // Second `running` event while already running — must NOT reset.
+      mgr.fireEvent('s1', 'c', { ...makeStatusEvent('running'), timestamp: t2 } as RawOpenHandsEvent);
+      const after2 = await driver.getSessionStatus('s1');
+      expect(after2.thinkingSince).toBe(t1);
+    });
+
+    test('T-3.4.12: thinkingSince cleared on exit from running', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      expect((await driver.getSessionStatus('s1')).thinkingSince).not.toBe(null);
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+      expect((await driver.getSessionStatus('s1')).thinkingSince).toBe(null);
+    });
+
+    test('T-3.4.13: adapter ws-torn-down overrides upstream running', async () => {
+      // The upstream wire is gone; the adapter knows AISessionManager
+      // will auto-reconnect. A stale `running` event lingering in the
+      // buffer must not override that.
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        ws: { readyState: 3 }, // CLOSED
+        isThinking: true,
+      });
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('reconnecting');
+    });
+
+    test('T-3.4.14: adapter ai.degraded (from #291/#323) overrides upstream running', async () => {
+      // When the reconnect loop has already given up (sandbox MISSING
+      // or refresh-credentials exhausted), trailing `running` events
+      // from a still-draining ws buffer must not flip the snapshot
+      // back to thinking. The adapter override stays sticky.
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        ws: { readyState: 3 },
+        isThinking: false,
+        degraded: true,
+        degradedReason: 'Sandbox MISSING — restart required',
+      });
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      const status = await driver.getSessionStatus('s1');
+      expect(status.state).toBe('degraded');
+      expect(status.error).toBe('Sandbox MISSING — restart required');
+    });
+
+    test('T-3.4.15: orphan event for unknown sessionId is logged and dropped', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      try {
+        mgr.fireEvent('does-not-exist', 'c', makeStatusEvent('running'));
+        // No state created for the orphan session.
+        expect((await driver.getSessionStatus('does-not-exist')).state).toBe('absent');
+        expect(warn).toHaveBeenCalled();
+        const message = warn.mock.calls.map((args) => String(args[0])).join(' ');
+        expect(message).toMatch(/orphan execution_status/i);
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('T-3.4.16: consecutive duplicate running events are deduped', async () => {
+      // Two identical running events should not re-fire the thinking
+      // listener — only the entry transition counts.
+      const fired: boolean[] = [];
+      driver.onThinkingChange((_sid, thinking) => fired.push(thinking));
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      mgr.fireEvent('s1', 'c', makeStatusEvent('running'));
+      expect(fired).toEqual([true]);
+    });
+
+    test('unknown execution_status value is logged and ignored', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+      try {
+        // `aborted` is not in the documented status set.
+        mgr.fireEvent('s1', 'c', makeStatusEvent('aborted'));
+        // State should not have transitioned to anything — still on the
+        // legacy ws-open default.
+        const status = await driver.getSessionStatus('s1');
+        expect(status.state).toBe('ready');
+        expect(warn).toHaveBeenCalled();
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('execution_status takes precedence over legacy ai.isThinking', async () => {
+      // Even when `AISessionManager.isThinking` is stuck on (e.g. a
+      // tool-only turn produced no message so the legacy path never
+      // cleared it), the execution_status event drives the snapshot.
+      mgr.bindings.set('s1', {
+        conversationId: 'c',
+        ws: { readyState: 1 },
+        isThinking: true,
+      });
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('ready');
+    });
+
+    test('error → idle transition clears the executionError', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('error', { error: 'temporarily failed' }));
+      expect((await driver.getSessionStatus('s1')).error).toBe('temporarily failed');
+      mgr.fireEvent('s1', 'c', makeStatusEvent('idle'));
+      const after = await driver.getSessionStatus('s1');
+      expect(after.state).toBe('ready');
+      expect(after.error).toBe(null);
+    });
+
+    test('restartSession resets executionStatus and executionError', async () => {
+      mgr.fireEvent('s1', 'c', makeStatusEvent('stuck'));
+      expect((await driver.getSessionStatus('s1')).state).toBe('degraded');
+
+      // Restart the binding so the new connection starts clean.
+      mgr.bindings.set('s1', { conversationId: 'c', ws: { readyState: 1 }, isThinking: false });
+      await driver.restartSession('s1');
+      // Re-bind to simulate the new ws coming up. (restartSession leaves
+      // the AISessionManager binding alive via getOrCreateForSession in
+      // the production path; the fake clears it in endSessionAI, so we
+      // restore it explicitly here.)
+      mgr.bindings.set('s1', { conversationId: 'c', ws: { readyState: 1 }, isThinking: false });
+      const after = await driver.getSessionStatus('s1');
+      expect(after.state).toBe('ready');
+      expect(after.error).toBe(null);
+    });
+  });
 });
