@@ -11,6 +11,7 @@ import { migration as migration010 } from './010_display_api_secrets.js';
 import { migration as migration011 } from './011_elevenlabs.js';
 import { migration as migration012 } from './012_agent_events.js';
 import { migration as migration013 } from './013_fk_orphan_cleanup.js';
+import { migration as migration014 } from './014_user_github_installation.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -27,6 +28,7 @@ export const migrations: Migration[] = [
   migration011,
   migration012,
   migration013,
+  migration014,
 ];
 
 export function getMigrations(): Migration[] {
