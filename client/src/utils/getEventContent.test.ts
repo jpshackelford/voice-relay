@@ -531,4 +531,266 @@ describe('getEventContent utilities', () => {
       expect(content.indexOf('x'.repeat(100))).toBeGreaterThanOrEqual(0);
     });
   });
+
+  // ===== Additional coverage for issue #303 =====
+  // Targeted tests for previously uncovered branches in browser-action helpers,
+  // task-tracker observations, file-editor observations, and other edge cases.
+
+  describe('FileEditorAction edge cases', () => {
+    it('falls back to a generic header when command is unrecognised', () => {
+      const action = baseAction({
+        kind: 'FileEditorAction',
+        command: 'undo',
+        path: '/tmp/foo.txt',
+      });
+
+      expect(getActionContent(action)).toBe('**undo:** `/tmp/foo.txt`');
+    });
+
+    it('falls back to "File" header when command and path are both missing', () => {
+      const action = baseAction({ kind: 'FileEditorAction' });
+      expect(getActionContent(action)).toBe('**File:** `file`');
+    });
+  });
+
+  describe('BrowserAction variants (additional coverage)', () => {
+    it('formats BrowserClickAction with the element index', () => {
+      const action = baseAction({
+        kind: 'BrowserClickAction',
+        index: 7,
+      });
+      expect(getActionContent(action)).toBe('**Element Index:** 7');
+    });
+
+    it('formats BrowserClickAction with new_tab indicator', () => {
+      const action = baseAction({
+        kind: 'BrowserClickAction',
+        index: 3,
+        new_tab: true,
+      });
+      const content = getActionContent(action);
+      expect(content).toContain('**Element Index:** 3');
+      expect(content).toContain('**New Tab:** Yes');
+    });
+
+    it('shows "unknown" element index when missing on BrowserClickAction', () => {
+      const action = baseAction({ kind: 'BrowserClickAction' });
+      expect(getActionContent(action)).toBe('**Element Index:** unknown');
+    });
+
+    it('formats BrowserTypeAction with short text', () => {
+      const action = baseAction({
+        kind: 'BrowserTypeAction',
+        index: 4,
+        text: 'hi',
+      });
+      const content = getActionContent(action);
+      expect(content).toContain('**Element Index:** 4');
+      expect(content).toContain('**Text:** hi');
+    });
+
+    it('truncates BrowserTypeAction text longer than 50 characters', () => {
+      const action = baseAction({
+        kind: 'BrowserTypeAction',
+        index: 0,
+        text: 'a'.repeat(80),
+      });
+      const content = getActionContent(action);
+      expect(content).toContain('...');
+      // Ensure the truncated preview is exactly 50 chars + ellipsis prefix.
+      expect(content).toContain('**Text:** ' + 'a'.repeat(50) + '...');
+    });
+
+    it('formats BrowserTypeAction with missing text as empty preview', () => {
+      const action = baseAction({ kind: 'BrowserTypeAction' });
+      const content = getActionContent(action);
+      expect(content).toContain('**Element Index:** unknown');
+      expect(content).toContain('**Text:** ');
+    });
+
+    it('formats BrowserGetStateAction with screenshot flag', () => {
+      const action = baseAction({
+        kind: 'BrowserGetStateAction',
+        include_screenshot: true,
+      });
+      expect(getActionContent(action)).toBe('**Include Screenshot:** Yes');
+    });
+
+    it('returns empty for BrowserGetStateAction without screenshot flag', () => {
+      const action = baseAction({ kind: 'BrowserGetStateAction' });
+      expect(getActionContent(action)).toBe('');
+    });
+
+    it('formats BrowserGetContentAction with extract_links and start offset', () => {
+      const action = baseAction({
+        kind: 'BrowserGetContentAction',
+        extract_links: true,
+        start_from_char: 100,
+      });
+      const content = getActionContent(action);
+      expect(content).toContain('**Extract Links:** Yes');
+      expect(content).toContain('**Start From Character:** 100');
+    });
+
+    it('returns empty for BrowserGetContentAction with no flags set', () => {
+      const action = baseAction({ kind: 'BrowserGetContentAction' });
+      expect(getActionContent(action)).toBe('');
+    });
+
+    it('formats BrowserScrollAction with explicit direction', () => {
+      const action = baseAction({
+        kind: 'BrowserScrollAction',
+        direction: 'up',
+      });
+      expect(getActionContent(action)).toBe('**Direction:** up');
+    });
+
+    it('defaults BrowserScrollAction direction to "down" when missing', () => {
+      const action = baseAction({ kind: 'BrowserScrollAction' });
+      expect(getActionContent(action)).toBe('**Direction:** down');
+    });
+
+    it('formats BrowserSwitchTabAction with the tab id', () => {
+      const action = baseAction({
+        kind: 'BrowserSwitchTabAction',
+        tab_id: 'tab-42',
+      });
+      expect(getActionContent(action)).toBe('**Tab ID:** tab-42');
+    });
+
+    it('formats BrowserCloseTabAction with "unknown" tab id when missing', () => {
+      const action = baseAction({ kind: 'BrowserCloseTabAction' });
+      expect(getActionContent(action)).toBe('**Tab ID:** unknown');
+    });
+
+    it('returns empty string for tabs-list browser action (no switch case body)', () => {
+      const action = baseAction({ kind: 'BrowserListTabsAction' });
+      expect(getActionContent(action)).toBe('');
+    });
+  });
+
+  describe('FileEditorObservation extra branches', () => {
+    it('returns empty string when content is missing', () => {
+      const action = baseAction({ kind: 'FileEditorObservation' });
+      expect(getObservationContent(action)).toBe('');
+    });
+
+    it('uses the FileEditorObservation branch for StrReplaceEditorObservation aliases', () => {
+      const action = baseAction({
+        kind: 'StrReplaceEditorObservation',
+        content: 'updated body',
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('updated body');
+    });
+  });
+
+  describe('BrowserObservation default branch', () => {
+    it('falls back to a success message when there is no content or error', () => {
+      const action = baseAction({ kind: 'BrowserObservation' });
+      expect(getObservationContent(action)).toBe('Browser action completed successfully.');
+    });
+  });
+
+  describe('TaskTrackerObservation', () => {
+    it('lists tasks when task_list is non-empty', () => {
+      const action = baseAction({
+        kind: 'TaskTrackerObservation',
+        task_list: [
+          { title: 'Investigate bug', status: 'in_progress' },
+          { title: 'Write tests', status: 'todo' },
+        ],
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Command:** `view`');
+      expect(content).toContain('Investigate bug');
+      expect(content).toContain('Write tests');
+      expect(content).toContain('**Task List (2 items):**');
+    });
+
+    it('falls back to "Task List: Empty" when no tasks are present', () => {
+      const action = baseAction({ kind: 'TaskTrackerObservation' });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Command:** `view`');
+      expect(content).toContain('**Task List:** Empty');
+    });
+
+    it('renders TaskTrackerAction with notes and singular "item" wording', () => {
+      const action = baseAction({
+        kind: 'TaskTrackerAction',
+        task_list: [
+          { title: 'Mystery item', status: 'todo', notes: 'On hold' },
+        ],
+      });
+      const content = getActionContent(action);
+      expect(content).toContain('**[TODO]**');
+      expect(content).toContain('Mystery item');
+      expect(content).toContain('Notes: On hold');
+      // Single-item list uses singular "item" wording.
+      expect(content).toContain('**Task List (1 item):**');
+    });
+  });
+
+  describe('GlobObservation / GrepObservation error branches', () => {
+    it('renders an error message for a GlobObservation with is_error=true', () => {
+      const action = baseAction({
+        kind: 'GlobObservation',
+        pattern: '*.ts',
+        search_path: '/src',
+        is_error: true,
+        content: 'permission denied',
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Error:**');
+      expect(content).toContain('permission denied');
+    });
+
+    it('renders an error message for a GrepObservation with is_error=true', () => {
+      const action = baseAction({
+        kind: 'GrepObservation',
+        pattern: 'TODO',
+        search_path: '/src',
+        include: '*.ts',
+        is_error: true,
+        content: 'regex failed',
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Pattern:** `TODO`');
+      expect(content).toContain('**Include:** `*.ts`');
+      expect(content).toContain('**Error:**');
+      expect(content).toContain('regex failed');
+    });
+
+    it('falls back to `path` when search_path is absent on GlobObservation', () => {
+      const action = baseAction({
+        kind: 'GlobObservation',
+        pattern: '*.md',
+        path: '/docs',
+        files: ['README.md'],
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Search Path:** `/docs`');
+    });
+  });
+
+  describe('FinishObservation', () => {
+    it('renders the content body on success', () => {
+      const action = baseAction({
+        kind: 'FinishObservation',
+        content: 'All done!',
+      });
+      expect(getObservationContent(action)).toBe('All done!');
+    });
+
+    it('formats an error when is_error is true', () => {
+      const action = baseAction({
+        kind: 'FinishObservation',
+        is_error: true,
+        content: 'Something failed',
+      });
+      const content = getObservationContent(action);
+      expect(content).toContain('**Error:**');
+      expect(content).toContain('Something failed');
+    });
+  });
 });

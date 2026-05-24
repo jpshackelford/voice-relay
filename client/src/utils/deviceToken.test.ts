@@ -10,11 +10,10 @@ import {
   getServerSetDeviceToken,
   parseDeviceCookieJson,
   migrateLegacyDeviceToken,
+  migrateServerSetDeviceCookie,
   getPreservedDeviceId,
   getPreservedDeviceIdKey,
   clearPreservedDeviceId,
-  // migrateServerSetDeviceCookie is tested via integration tests (Playwright)
-  // as it requires cookie manipulation that jsdom doesn't fully support
 } from './deviceToken';
 
 describe('deviceToken utilities', () => {
@@ -823,6 +822,306 @@ describe('deviceToken utilities', () => {
       // No cookie set
       const result = getStoredDeviceToken('workspace-456');
       expect(result).toBeNull();
+    });
+  });
+
+  // ===== Additional coverage for issue #303 =====
+  // These tests exercise the cookie/error/edge-case branches that
+  // weren't previously covered.
+
+  describe('cookie reading (server-set cookies)', () => {
+    /** Clear all cookies that happy-dom may have set in prior tests. */
+    function clearCookies() {
+      const all = document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean);
+      for (const name of all) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      }
+    }
+
+    beforeEach(() => {
+      clearCookies();
+    });
+
+    afterEach(() => {
+      clearCookies();
+    });
+
+    it('getServerSetDeviceToken returns parsed device info when cookie is set', () => {
+      const device = {
+        deviceId: 'dev-from-cookie',
+        deviceToken: 'tok-from-cookie',
+        workspaceId: 'workspace-cookie',
+        name: 'Cookie Device',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = getServerSetDeviceToken();
+
+      expect(result).toEqual(device);
+    });
+
+    it('getServerSetDeviceToken returns null when cookie contains invalid JSON', () => {
+      // URL-encoded garbage that does not parse as JSON.
+      document.cookie = `voice_relay_device=${encodeURIComponent('not-valid-json{')}`;
+
+      const result = getServerSetDeviceToken();
+
+      expect(result).toBeNull();
+    });
+
+    it('getStoredDeviceToken falls back to server-set cookie when no localStorage entry exists', () => {
+      const device = {
+        deviceId: 'fallback-dev',
+        deviceToken: 'fallback-tok',
+        workspaceId: 'workspace-fallback',
+        name: 'Fallback Device',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = getStoredDeviceToken('workspace-fallback');
+
+      expect(result).toEqual(device);
+    });
+
+    it('getStoredDeviceToken returns cookie when no workspaceId is provided', () => {
+      const device = {
+        deviceId: 'cookie-only',
+        deviceToken: 'cookie-tok',
+        workspaceId: 'workspace-X',
+        name: 'Cookie Only',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = getStoredDeviceToken();
+
+      expect(result).toEqual(device);
+    });
+  });
+
+  describe('migrateServerSetDeviceCookie', () => {
+    function clearCookies() {
+      const all = document.cookie.split(';').map((c) => c.split('=')[0].trim()).filter(Boolean);
+      for (const name of all) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      }
+    }
+
+    beforeEach(() => clearCookies());
+    afterEach(() => clearCookies());
+
+    it('returns null when no cookie is set', () => {
+      const result = migrateServerSetDeviceCookie('workspace-456');
+      expect(result).toBeNull();
+    });
+
+    it('migrates server-set cookie into localStorage', () => {
+      const device = {
+        deviceId: 'migrate-id',
+        deviceToken: 'migrate-tok',
+        workspaceId: 'workspace-migrate',
+        name: 'Migrate Device',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = migrateServerSetDeviceCookie('workspace-migrate');
+
+      expect(result).toEqual(device);
+      const stored = localStorage.getItem('voice_relay_device_token_workspace-migrate');
+      expect(stored).not.toBeNull();
+      // Verify the localStorage entry round-trips the original device.
+      expect(stored && JSON.parse(stored)).toMatchObject({
+        deviceId: 'migrate-id',
+        deviceToken: 'migrate-tok',
+        workspaceId: 'workspace-migrate',
+      });
+    });
+
+    it('does not migrate when cookie workspace does not match requested workspace', () => {
+      const device = {
+        deviceId: 'other-id',
+        deviceToken: 'other-tok',
+        workspaceId: 'workspace-other',
+        name: 'Other Device',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = migrateServerSetDeviceCookie('workspace-target');
+
+      expect(result).toBeNull();
+      expect(localStorage.getItem('voice_relay_device_token_workspace-target')).toBeNull();
+    });
+
+    it('migrates without a workspace filter when none is provided', () => {
+      const device = {
+        deviceId: 'any-ws-id',
+        deviceToken: 'any-ws-tok',
+        workspaceId: 'workspace-any',
+        name: 'Any Workspace',
+        mode: 'kiosk' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      const result = migrateServerSetDeviceCookie();
+
+      expect(result).toEqual(device);
+      expect(localStorage.getItem('voice_relay_device_token_workspace-any')).not.toBeNull();
+    });
+
+    it('keeps cookie as fallback when localStorage write fails', () => {
+      const device = {
+        deviceId: 'no-storage',
+        deviceToken: 'no-storage-tok',
+        workspaceId: 'workspace-quota',
+        name: 'No Storage',
+        mode: 'mobile' as const,
+      };
+      document.cookie = `voice_relay_device=${encodeURIComponent(JSON.stringify(device))}`;
+
+      // Force storeDeviceToken to report failure by making setItem throw on
+      // the Storage prototype (intercepts every call to localStorage.setItem).
+      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceeded');
+      });
+
+      const result = migrateServerSetDeviceCookie('workspace-quota');
+
+      // Even when localStorage fails, we still return the parsed device so the
+      // caller can fall back to in-memory use of the cookie data.
+      expect(result).toEqual(device);
+
+      setItemSpy.mockRestore();
+    });
+  });
+
+  describe('error-path graceful handling', () => {
+    it('storeDeviceToken returns false when localStorage throws', () => {
+      const setItemSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+        throw new Error('QuotaExceeded');
+      });
+
+      const ok = storeDeviceToken({
+        deviceId: 'device-err',
+        deviceToken: 'token-err',
+        workspaceId: 'workspace-err',
+        name: 'Err',
+        mode: 'mobile',
+      });
+
+      expect(ok).toBe(false);
+
+      setItemSpy.mockRestore();
+    });
+
+    it('migrateLegacyDeviceToken removes invalid legacy data instead of migrating', () => {
+      // Garbage in legacy storage (cannot parse as a valid device).
+      localStorage.setItem('voice_relay_device_token', 'this-is-not-json');
+
+      const result = migrateLegacyDeviceToken('workspace-456');
+
+      expect(result).toBeNull();
+      // The invalid legacy entry should have been cleaned up.
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+    });
+
+    it('migrateLegacyDeviceToken swallows unexpected errors and returns null', () => {
+      const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      const result = migrateLegacyDeviceToken('workspace-456');
+
+      expect(result).toBeNull();
+
+      getItemSpy.mockRestore();
+    });
+
+    it('getStoredDeviceToken returns null when localStorage throws', () => {
+      const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      const result = getStoredDeviceToken('workspace-456');
+
+      expect(result).toBeNull();
+
+      getItemSpy.mockRestore();
+    });
+
+    it('clearDeviceToken without workspaceId clears only legacy storage', () => {
+      const workspaceScoped = {
+        deviceId: 'ws-dev',
+        deviceToken: 'ws-tok',
+        workspaceId: 'workspace-A',
+        name: 'A',
+        mode: 'mobile' as const,
+      };
+      const legacy = {
+        deviceId: 'legacy-dev',
+        deviceToken: 'legacy-tok',
+        workspaceId: 'workspace-B',
+        name: 'B',
+        mode: 'mobile' as const,
+      };
+
+      localStorage.setItem('voice_relay_device_token_workspace-A', JSON.stringify(workspaceScoped));
+      localStorage.setItem('voice_relay_device_token', JSON.stringify(legacy));
+
+      clearDeviceToken();
+
+      // Legacy entry removed.
+      expect(localStorage.getItem('voice_relay_device_token')).toBeNull();
+      // Workspace-scoped entry preserved.
+      expect(localStorage.getItem('voice_relay_device_token_workspace-A')).not.toBeNull();
+    });
+
+    it('clearDeviceToken swallows errors when localStorage throws', () => {
+      const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      // Should not propagate the error.
+      expect(() => clearDeviceToken('workspace-456')).not.toThrow();
+
+      removeItemSpy.mockRestore();
+    });
+
+    it('getPreservedDeviceId returns null when localStorage throws', () => {
+      const getItemSpy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      const result = getPreservedDeviceId('workspace-456');
+
+      expect(result).toBeNull();
+
+      getItemSpy.mockRestore();
+    });
+
+    it('clearPreservedDeviceId swallows errors when localStorage throws', () => {
+      const removeItemSpy = vi.spyOn(localStorage, 'removeItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      expect(() => clearPreservedDeviceId('workspace-456')).not.toThrow();
+
+      removeItemSpy.mockRestore();
+    });
+
+    it('getSessionDeviceId returns null when sessionStorage throws', () => {
+      const getItemSpy = vi.spyOn(sessionStorage, 'getItem').mockImplementation(() => {
+        throw new Error('Boom');
+      });
+
+      const result = getSessionDeviceId();
+
+      expect(result).toBeNull();
+
+      getItemSpy.mockRestore();
     });
   });
 });
