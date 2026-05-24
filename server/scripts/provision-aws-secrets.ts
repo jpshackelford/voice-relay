@@ -288,6 +288,23 @@ export async function provisionAwsSecrets(
     throw new Error(`Missing required argument(s): ${missing.join(', ')}`);
   }
 
+  // Cheap format sanity checks to catch typos / pasted whitespace before
+  // burning an HTTP round-trip. Patterns are intentionally permissive: AWS
+  // access key IDs are 20 chars beginning with AKIA / ASIA / AIDA, and
+  // standard region slugs are like `us-west-2` / `us-gov-east-1`. The check
+  // does NOT cover the secret access key (no fixed format) or attempt to
+  // verify the credential is live — that happens implicitly on first use.
+  if (!/^(AKIA|ASIA|AIDA)[A-Z0-9]{16}$/.test(accessKeyId!)) {
+    throw new Error(
+      '--aws-access-key-id does not match expected AWS format (20 chars starting AKIA/ASIA/AIDA)'
+    );
+  }
+  if (!/^[a-z]{2}-[a-z]+(-[a-z]+)?-\d$/.test(region!)) {
+    throw new Error(
+      '--aws-default-region does not match expected AWS region format (e.g. us-west-2)'
+    );
+  }
+
   const valuesByName: Record<AwsSecretName, string> = {
     AWS_ACCESS_KEY_ID: accessKeyId!,
     AWS_SECRET_ACCESS_KEY: secretAccessKey!,

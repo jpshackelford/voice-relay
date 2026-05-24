@@ -93,7 +93,8 @@ function safeJson(b: BodyInit | null | undefined): unknown {
 const baseOpts = (): ProvisionOptions => ({
   voiceRelayUserId: 'vr-user-123',
   openhandsApiKey: 'oh-key-abc',
-  awsAccessKeyId: 'AKIAEXAMPLE',
+  // AWS docs canonical placeholder — 20 chars matching ^AKIA[A-Z0-9]{16}$.
+  awsAccessKeyId: 'AKIAIOSFODNN7EXAMPLE',
   awsSecretAccessKey: 'secret-value-shhh',
   awsDefaultRegion: 'us-west-2',
   baseUrl: 'https://oh.example.test',
@@ -201,9 +202,11 @@ describe('provisionAwsSecrets', () => {
     const stdout = { write: (s: string) => stdoutChunks.push(s) };
     const stderr = { write: (s: string) => stderrChunks.push(s) };
 
-    const accessKey = 'AKIA-VALUE-NEVER-LOGGED';
+    // Realistic-shape placeholders so the format validator accepts them;
+    // the test asserts these strings never reach stdout/stderr.
+    const accessKey = 'AKIAXXXNEVERLOGGED99';
     const secret = 'super-secret-never-logged';
-    const region = 'eu-secret-region-never-logged';
+    const region = 'eu-west-9';
 
     const { http } = mockHttp({ existingNames: [] });
 
@@ -247,6 +250,46 @@ describe('provisionAwsSecrets', () => {
     await expect(provisionAwsSecrets({} as HttpClient, opts)).rejects.toThrow(
       /--aws-access-key-id/
     );
+  });
+
+  it('rejects malformed --aws-access-key-id before any HTTP call', async () => {
+    let called = false;
+    const http: HttpClient = {
+      async fetch() {
+        called = true;
+        throw new Error('should not be called');
+      },
+    };
+    const opts = { ...baseOpts(), awsAccessKeyId: 'not-a-real-key' };
+    await expect(provisionAwsSecrets(http, opts)).rejects.toThrow(
+      /--aws-access-key-id/
+    );
+    expect(called).toBe(false);
+  });
+
+  it('rejects malformed --aws-default-region before any HTTP call', async () => {
+    let called = false;
+    const http: HttpClient = {
+      async fetch() {
+        called = true;
+        throw new Error('should not be called');
+      },
+    };
+    const opts = { ...baseOpts(), awsDefaultRegion: 'USWEST2' };
+    await expect(provisionAwsSecrets(http, opts)).rejects.toThrow(
+      /--aws-default-region/
+    );
+    expect(called).toBe(false);
+  });
+
+  it('accepts ASIA-prefixed and GovCloud region formats', async () => {
+    const { http } = mockHttp({ existingNames: [] });
+    const result = await provisionAwsSecrets(http, {
+      ...baseOpts(),
+      awsAccessKeyId: 'ASIAIOSFODNN7EXAMPLE',
+      awsDefaultRegion: 'us-gov-east-1',
+    });
+    expect(result.ok).toBe(true);
   });
 
   it('returns ok=false (does not throw) when a single POST fails permanently', async () => {
@@ -454,11 +497,11 @@ describe('runCli', () => {
         '--openhands-api-key',
         'k',
         '--aws-access-key-id',
-        'a',
+        'AKIAIOSFODNN7EXAMPLE',
         '--aws-secret-access-key',
         's',
         '--aws-default-region',
-        'r',
+        'us-west-2',
         '--retry-backoff-ms',
         '0',
       ],
