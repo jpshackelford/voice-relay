@@ -2,6 +2,29 @@
 
 ## Log
 
+### 2026-05-24 03:23 UTC - Implementation Worker (Issue #288 → PR #311)
+
+✅ **Opened PR [#311](https://github.com/jpshackelford/voice-relay/pull/311) — feat(server): OpenHandsAgentDriver adapter wrapping AISessionManager (closes #288)**
+
+- Issue: [#288](https://github.com/jpshackelford/voice-relay/issues/288) — OpenHandsAgentDriver: wrap AISessionManager as an AgentDriver adapter (priority:high, scope:server-only)
+- Branch: `feat/288-openhands-agent-driver-adapter`
+- Status: **Ready for review** (CI green: Build Client / Server Tests / E2E Tests / lint-pr-title / enable-orchestrator all pass)
+- Blocker #287 cleared by PR #307 merge (squashed as 0a12358). Started from latest main.
+- **Design**: Non-behavior-changing adapter. `OpenHandsAgentDriver` composes a narrow `AISessionManagerSurface` interface (rather than the concrete class) so tests can substitute a `FakeAISessionManager` without instantiating an `OpenHandsClient`. Constructor installs three forwarder callbacks (`setThinkingChangeCallback`, `setActionCallback`, `setEventCallback`); upstream events route to a FIFO of in-flight `sendMessage` turns per session. Idempotent terminal-event memo per `utteranceId`. Status synthesized from `getSessionAI(...).ws.readyState` + `isThinking`.
+- **Singleton wiring**: `server/src/agent-driver/index.ts` exports `agentDriver = new OpenHandsAgentDriver(aiSessionManager)`. **Eager** construction is safe today because T-2.2.E.2 holds: no production caller imports the barrel yet. #289 will need to handle preserving the platform's existing `setThinkingChangeCallback` / `setActionCallback` / `setEventCallback` registrations when it migrates callers.
+- Files (server-only, three files touched):
+  - `server/src/agent-driver/openhands.ts` (new, 480 lines) — adapter class + narrow `AISessionManagerSurface` + raw-event translators.
+  - `server/src/agent-driver/openhands.test.ts` (new) — 38 unit tests covering every test ID T-2.2.1 .. T-2.2.21 plus edge cases (auto-open, sendSessionMessage failure, getOrCreateForSession failure, restartSession draining, closeSession draining, non-recoverable error kinds, missing-text agent message, no-pending-turn dropped events).
+  - `server/src/agent-driver/index.ts` — extended barrel to re-export class + singleton.
+- Coverage on new files: 90.37 % stmts / 83.47 % branches / 93.1 % funcs / 93.67 % lines — comfortably above the 80 % gate. Whole `src/agent-driver/` directory: 93.47 / 85.71 / 95.74 / 95.66.
+- Tests: server full suite 929 / 929 pass.
+- Static gates: `tsc --noEmit -p server/tsconfig.json` clean; no `: any` or `as any` in new code; imports from `'../openhands.js'` only inside `server/src/agent-driver/`.
+- PR title initially mixed-case `OpenHandsAgentDriver` — lint-pr-title rejects capitalized subjects. Retitled with lowercase `openHandsAgentDriver adapter wrapping aiSessionManager` and lint passes.
+- **Scope discipline**: pure server-only change. `git diff --stat main` is exclusively `server/src/agent-driver/*`. No client touch, no schema, no migration, no callers migrated (that's #289).
+- **Reflection**: all acceptance criteria met. Adapter exists; all 5 methods implemented; singleton exported; no caller changes; behavior bit-identical (every DB write and WS broadcast still flows through `AISessionManager` unchanged). One subtle design call worth flagging for #289: the adapter installs forwarder callbacks at construction, which means importing the barrel from production code will overwrite the platform's existing registrations in `server/src/index.ts`. #289 will need to either (a) move those registrations onto the adapter or (b) have the adapter chain through to a previously-registered platform callback. The doc-comment at the top of `server/src/agent-driver/index.ts` flags this trap.
+
+---
+
 ### 2026-05-24 03:05 UTC - Implementation Worker (Issue #286 → PR #309)
 
 ✅ **Opened PR [#309](https://github.com/jpshackelford/voice-relay/pull/309) — feat(websocket): server-driven keepalive heartbeat (closes #286)**
