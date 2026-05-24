@@ -1195,3 +1195,43 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-24 05:15 UTC - Persistence work freeze (S3 design under reconsideration)
+
+🛑 **Stop-work notice for S3 / workspace-persistence work.** The credential model assumed by issue [#298](https://github.com/jpshackelford/voice-relay/issues/298) is operator-mediated (a human runs a CLI per user with their OH API key + per-user IAM creds). That model is incompatible with Voice Relay's SaaS product — there is no operator in the loop on signup. A design decision is required before any persistence-touching work resumes.
+
+**Do NOT pick up any of these** (labeled `on-hold`; `ready` removed where present):
+
+| Item | Why on hold |
+|---|---|
+| [PR #313](https://github.com/jpshackelford/voice-relay/pull/313) | Implements #298's operator-mediated model verbatim. Correct as scoped, wrong substrate. May merge later as "emergency-ops path" once framing is updated, or close if Path B wins. **Note**: an orchestrator-spawned merge worker (conv `db3cb9f`) was dispatched for this PR at 04:35 UTC before the freeze was decided — it should be cancelled or its merge blocked. |
+| [#298](https://github.com/jpshackelford/voice-relay/issues/298) | Source of the bad assumption. Needs re-scoping after design decision. |
+| [#299](https://github.com/jpshackelford/voice-relay/issues/299) | Restore implementation differs materially under each candidate path (A vs B vs C). |
+| [#300](https://github.com/jpshackelford/voice-relay/issues/300) | Snapshot — same reason as #299. |
+| [#301](https://github.com/jpshackelford/voice-relay/issues/301) | Transitively blocked (depends on #295 + #299). |
+| [#302](https://github.com/jpshackelford/voice-relay/issues/302) | Transitively blocked (depends on #300). |
+
+**Candidate paths under consideration** (one will be selected; design issue not yet drafted):
+
+- **A. Programmatic provisioning service in VR.** Keep long-lived per-user AWS keys via OH user secrets. VR backend automates IAM-write + secret-push lifecycle. Requires operator-tier IAM cred on VR server (scoped by permissions boundary).
+- **B. VR proxies S3.** Eliminate per-user IAM entirely. Restore/snapshot become VR HTTP endpoints called from the sandbox bash endpoint. VR's existing auth enforces prefix isolation. Adds a network hop; removes an entire category of operational toil.
+- **C. STS federation.** Short-lived per-session credentials minted by VR on demand. Cloud-native, but doesn't fit OH's static-secret model without a workaround.
+
+**What IS safe to progress** (no S3 dependency):
+
+| Item | Status | Notes |
+|---|---|---|
+| [PR #311](https://github.com/jpshackelford/voice-relay/pull/311) | **Merged at 04:52 UTC (d8fe380)** | No longer in flight. Unblocks #289 → #290/291/292/293 → #294/295/296 → #297. |
+| [PR #314](https://github.com/jpshackelford/voice-relay/pull/314) | **Merged at 04:53 UTC (8de71ee)** | Playwright E2E keepalive for #310. Closed #310. Independent of S3. |
+| [#303](https://github.com/jpshackelford/voice-relay/issues/303) | `ready`, fully unblocked; impl worker dispatched 04:53 UTC | Client coverage uplift. #284 (upstream) closed. |
+| #289 → #297 chain | `ready` and now actually unblocked (post-#311 merge) | Cascade is open. |
+
+**Next human action**: draft and post a design-decision issue capturing Paths A/B/C with trade-offs, open questions (e.g., does OH support writing to a user's secrets via their OAuth-issued access token, or only via a personal API key?), and an explicit ask for a decision. Once decided, re-scope #298 (or close + open replacement) and unblock the chain.
+
+**Context**: this freeze emerged from a conversation between @jpshackelford and an OpenHands agent reviewing PR #313, surfacing the operator-vs-SaaS mismatch. Earlier attempt to land this notice via PR #315 was correctly rejected by CI (`Reject orchestrator file change`) — WORKLOG.md is orchestrator-managed and must change on main only, per [worklog governance](https://github.com/jpshackelford/.openhands/issues/21). Re-committed directly here.
+
+Label state: PR #313 / issue #298 carry `on-hold` + `needs-human`; issues #299, #300, #301, #302 carry `on-hold`; `ready` removed from #298–#302. Each item has an explanatory comment.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
