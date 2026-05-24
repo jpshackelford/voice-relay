@@ -4,25 +4,19 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "14523c8",
-        "issue": 293,
-        "started": "2026-05-24T19:52:46.664587+00:00"
+        "conv_id": "5cc1762",
+        "issue": 292,
+        "started": "2026-05-24T20:23:42.010922+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "f2be125",
-        "pr": 323,
-        "started": "2026-05-24T20:05:09.805449+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T20:05:09.805449+00:00",
+  "last_updated": "2026-05-24T20:23:42.010922+00:00",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -338,6 +332,24 @@
       "finished": "2026-05-24T20:05:09.805449+00:00",
       "status": "success",
       "outcome": "Worked on PR #323 (refresh session_api_key on WS reconnect) \u2014 all bot review threads resolved; CI green; PR ready to merge"
+    },
+    {
+      "conv_id": "14523c8",
+      "type": "implementation",
+      "issue": 293,
+      "started": "2026-05-24T19:52:46.664587+00:00",
+      "finished": "2026-05-24T20:20:58.176649+00:00",
+      "status": "success",
+      "outcome": "Created PR #324 (feat(server): map ConversationExecutionStatus to driver session state); ready-for-review, all CI green, MERGEABLE, 0 review threads"
+    },
+    {
+      "conv_id": "f2be125",
+      "type": "merge",
+      "pr": 323,
+      "started": "2026-05-24T20:05:09.805449+00:00",
+      "finished": "2026-05-24T20:20:58.176649+00:00",
+      "status": "success",
+      "outcome": "Merged PR #323 (fix(server): refresh session_api_key on every OpenHands WS reconnect); issue #291 auto-closed"
     }
   ],
   "quiet_ticks": 0

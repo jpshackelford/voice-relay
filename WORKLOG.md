@@ -708,3 +708,42 @@ PR is in **ready-for-review**, pr-review bot triggered. Not merged from this con
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-05-24 20:25 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5cc1762` | implementation | Issue #292 - Single-flight conversation start (priority:medium) | **NEW** |
+
+**Workers Completed (since last tick):**
+| Conv ID | Type | Outcome |
+|---------|------|---------|
+| `14523c8` | implementation (#293) | ✅ PR #324 opened ready-for-review, all CI green |
+| `f2be125` | merge (PR #323) | ✅ PR #323 squash-merged, issue #291 auto-closed |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#292 — Single-flight conversation start](https://github.com/jpshackelford/voice-relay/issues/292) (priority:medium; blocker #289 closed → unblocked)
+- Conversation: [`5cc1762`](https://app.all-hands.dev/conversations/5cc1762026b04f96b4d0ee8a2014b5b0)
+- Briefed about overlap with PR #323's single-flight pattern in `refreshSessionCredentials` and to rebase on top of PR #324 when it lands.
+
+🏷️ **Re-triggered bot review on PR #324** by applying the `review-this` label (created the label first; it didn't exist in this repo yet). The `PR Review by OpenHands` workflow was `skipped` on `opened` because the impl worker correctly opened it as draft, but the `ready_for_review` trigger never fired. With `review-this` applied, run [`26371911...`](https://github.com/jpshackelford/voice-relay/actions/workflows/pr-review.yml) is now `in_progress`. Next tick will pick up the bot's feedback (or merge-readiness if it lands green).
+
+**Current State:**
+- [PR #324](https://github.com/jpshackelford/voice-relay/pull/324) — `feat(server): map ConversationExecutionStatus to driver session state` (Fixes #293): ready-for-review, MERGEABLE/CLEAN, all CI green, 0 review threads, bot review now running (review-this).
+- Ready & unblocked issues remaining after #292 dispatch: #295 (priority:medium, blocker #290 closed), #303 (priority:medium, blocker #284 closed).
+- Ready but still blocked: #294, #296, #297 (all wait on #293 / PR #324); #297 also waits on #296.
+- Issues needing expansion: 6 issues all `on-hold` (S3 persistence freeze #299–#302 + #210, #239) — skipped per AGENTS.md.
+
+**Action Taken:**
+1. Moved `14523c8` (impl #293) and `f2be125` (merge PR #323) from `slots[*]` → `completed[]` in `.workflow-state.json`.
+2. Created `review-this` label and applied to PR #324 → bot review workflow now in progress.
+3. 🚀 Spawned implementation worker [`5cc1762`](https://app.all-hands.dev/conversations/5cc1762026b04f96b4d0ee8a2014b5b0) for Issue #292.
+4. Deliberately did **not** spawn a merge worker for PR #324 this tick — letting the bot review complete first to preserve the documented review-before-merge safety net.
+
+**Slots after tick:** expansion 0/4, implementation 1/1, review 0/2.
+
+`quiet_ticks` reset to 0 (productive tick — worker spawned + bot review re-triggered).
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
