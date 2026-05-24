@@ -1,20 +1,38 @@
 # Deployment Guide
 
-> **Note:** This document describes the legacy deployment on `chorecraft.net`. 
-> The production app is now served at **`app.no-hands.dev`** with different infrastructure.
-> Server-specific paths (systemd configs, Apache settings) below are historical reference only.
+> **Verified by SSH inspection 2026-05-24.** This is *the* production deployment;
+> earlier wording about "legacy chorecraft.net" / "different infrastructure" was
+> incorrect.
+>
+> **One Ubuntu server hosts one Node.js process; multiple DNS names front it.**
+> Apache reverse-proxies all of these to the same backend on `127.0.0.1:3002`:
+>
+> - **`app.no-hands.dev`** — preferred URL (used in OAuth callbacks, marketing).
+> - **`vr.chorecraft.net`** — original DNS, still live; an alias for the same app.
+> - **`no-hands.dev`** (apex) — redirects to `https://app.no-hands.dev/`.
+>
+> The apex **`chorecraft.net`** (no `vr.` prefix) is a *separate* static legacy
+> site at `/var/www/chorecraft.net/public_html/` and is **not the VR app**;
+> ignore it for VR purposes.
+>
+> The directory `/var/www/vr.chorecraft.net/app/` retains its original name but
+> holds the current production checkout (it's tracked on `main`). Do not be
+> misled by the path — there is no `/var/www/app.no-hands.dev/app/`; that
+> directory exists only to hold Apache log files for the no-hands vhost.
 
-This documents the legacy production deployment of Voice Relay on `chorecraft.net`.
+This documents the production deployment of Voice Relay.
 
 ## Server Overview
 
 | Component | Details |
 |-----------|---------|
-| Host | `chorecraft.net` (74.50.50.116) |
+| Host | One Ubuntu box, `74.50.50.116`, internal hostname `jpshackelford.info` |
 | OS | Ubuntu 22.04 |
 | User | `jpshack` |
-| Domain | `vr.chorecraft.net` (legacy) |
-| SSL | Let's Encrypt (via Certbot) |
+| DNS aliases (all → same Node app on `:3002`) | `app.no-hands.dev` (preferred), `vr.chorecraft.net` (original); `no-hands.dev` apex redirects to `app.no-hands.dev` |
+| Unrelated on same server | `chorecraft.net` apex — separate static site, not VR; `ja.chorecraft.net` / `ja.shackelford.org` — different app on port 3000 |
+| SSL | Let's Encrypt (via Certbot); separate cert per DNS name |
+| Node | v20.18.3 at `/home/jpshack/bin/node/bin/node` |
 
 ## Directory Structure
 
@@ -90,11 +108,23 @@ sudo systemctl daemon-reload
 
 ## Apache Reverse Proxy
 
-Apache proxies HTTPS traffic to the Node.js backend on port 3002.
+Apache fronts all HTTPS traffic and reverse-proxies it to the single Node.js
+process on `127.0.0.1:3002`. There are **three vhost pairs** (HTTP + HTTPS),
+one per DNS name. The two app vhosts proxy to the same backend; the apex
+redirect vhost just rewrites to the canonical host:
 
-**Config files:**
-- `/etc/apache2/sites-available/vr.chorecraft.net.conf` (HTTP → HTTPS redirect)
-- `/etc/apache2/sites-available/vr.chorecraft.net-le-ssl.conf` (HTTPS config)
+| DNS name | HTTP-only config | HTTPS (Let's Encrypt) config | Role |
+|---|---|---|---|
+| `app.no-hands.dev` | `app.no-hands.dev.conf` | `app.no-hands.dev-le-ssl.conf` | Reverse-proxy → `:3002` (preferred URL) |
+| `vr.chorecraft.net` | `vr.chorecraft.net.conf` | `vr.chorecraft.net-le-ssl.conf` | Reverse-proxy → `:3002` (alias) |
+| `no-hands.dev` (apex) | `no-hands.dev.conf` | `no-hands.dev-le-ssl.conf` | `Redirect permanent /` → `https://app.no-hands.dev/` |
+
+All configs live in `/etc/apache2/sites-available/`. The two app vhosts are
+structurally identical aside from `ServerName`, log paths, and the SSL cert
+paths — **keep them in sync** when changing proxy or WebSocket rules. The SSL
+config for one is shown below; the other mirrors it with `ServerName
+app.no-hands.dev`, log path `/var/www/app.no-hands.dev/logs/`, and certs under
+`/etc/letsencrypt/live/app.no-hands.dev/`.
 
 ### SSL Config (`vr.chorecraft.net-le-ssl.conf`)
 
