@@ -2,6 +2,28 @@
 
 ## Log
 
+### 2026-05-24 00:10 UTC - Review Worker (PR #281)
+
+✅ **Addressed round-1 review feedback on PR [#281](https://github.com/jpshackelford/voice-relay/pull/281)**
+
+- PR: [#281 - fix: mirror live-path event filter on refresh to stop empty/duplicate timeline cards (#280)](https://github.com/jpshackelford/voice-relay/pull/281)
+- Issue: [#280](https://github.com/jpshackelford/voice-relay/issues/280)
+- Branch: `fix/280-refresh-timeline-parity`
+- Commit: [`5c533ec`](https://github.com/jpshackelford/voice-relay/commit/5c533ec) - `fix(#280): match server default-show for null/undefined/missing-kind on client`
+
+**Review threads addressed (1 🟡 suggestion from `github-actions[bot]`):**
+1. **Predicate inconsistency for null/undefined inputs** → server's `shouldSkipForKioskTimeline` returns `false` (don't skip = SHOW) for null/undefined/non-object/missing-kind, while the client's `shouldShowInKioskTimeline` returned `false` (HIDE) for the same inputs. Aligned the client to default-show to mirror the server — that's the spirit of #280 (parity between live and refresh paths). Added explicit cross-parity tests on **both** sides covering null / undefined / `{}` / non-object inputs so future drift fails both test suites.
+
+**Review-level "Manual QA — pending" gap addressed:**
+- Updated PR description test-strategy to flip the bullet from `[ ] Manual QA — pending` → `[x] Manual QA — covered by automated tests`, with reasoning: the real-session fixture (`test-fixtures/raw-events-real.json`, 23 events from the bug-exhibiting session) + `filterKioskTimelineEvents → normalizeAgentEvents` composition test demonstrate the exact refresh-path output (4 AgentActions, no empty cards); the hard-coded per-index expected-skip array enforces bit-for-bit live↔refresh agreement; the renderer is untouched.
+
+**CI:** 4/4 required checks green on HEAD `5c533ec` (Server Tests ✅, E2E Tests ✅, Build Client ✅, lint-pr-title ✅). mergeStateStatus=CLEAN, mergeable=MERGEABLE. Review thread resolved via GraphQL. PR back to ready-for-review.
+
+**Production impact:** Predicate change only affects malformed payloads which production rows never produce; broader server↔client parity coverage is pure defense-in-depth.
+
+---
+
+
 ### 2026-05-23 23:50 UTC - Implementation Worker (`#280`)
 
 ✅ **Opened draft → ready PR [#281](https://github.com/jpshackelford/voice-relay/pull/281) — `fix: mirror live-path event filter on refresh to stop empty/duplicate timeline cards (#280)`**
