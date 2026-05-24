@@ -2,46 +2,6 @@
 
 ## Log
 
-### 2026-05-24 05:38 UTC - Persistence design freeze: Path B selected; operator-side work begins
-
-✅ **Design decision made.** Path B (VR proxies S3) selected over Paths A and C. Users will have **zero AWS surface area**: no IAM identity, no credentials, no authorization step. The VR backend holds a single AWS credential and exposes restore/snapshot as authenticated HTTP endpoints; sandboxes call those endpoints via `curl` + `tar`.
-
-**Architecture rewritten in [PR #319](https://github.com/jpshackelford/voice-relay/pull/319)**:
-
-- `docs/architecture.md` § Persistence layer fully respecified. `S3SyncStrategy` → `VrProxiedS3Strategy`. New section "Sandbox-to-VR auth model" documents three candidate bearer mechanisms with the choice deferred to the implementation issue.
-- AGENTS.md `## Active design freeze` updated: freeze remains, but cause shifted from "design decision pending" to "operator-side bucket + creds pending."
-
-**Path A code closed:**
-
-- [PR #313](https://github.com/jpshackelford/voice-relay/pull/313) closed as superseded with explanation. Code quality was fine; substrate was wrong (assumed an operator-mediated onboarding flow that SaaS doesn't have).
-
-**Issues re-scoped:**
-
-| Issue | Change |
-|---|---|
-| [#298](https://github.com/jpshackelford/voice-relay/issues/298) | Title + body rewrite. New title: *"Add VR backend persistence endpoints (/api/internal/workspaces/:id/restore + /snapshot)"*. Scope is now pure server-side (VR backend additions + operator runbook). |
-| [#299](https://github.com/jpshackelford/voice-relay/issues/299) | Title unchanged. Body updated: bash command now `curl ... \| tar -xz`, no AWS creds in sandbox. |
-| [#300](https://github.com/jpshackelford/voice-relay/issues/300) | Title unchanged. Body updated: bash command now `tar -czf - \| curl`, no AWS creds in sandbox. |
-| #301, #302 | No changes — they were agnostic to Path A vs B. Still `on-hold` transitively. |
-
-**Status of the freeze:** still `on-hold`. The remaining gate is operator-side. @jpshackelford is provisioning:
-
-1. The S3 bucket
-2. The single IAM credential scoped to `s3:Get/Put/Delete/List` on `arn:aws:s3:::<bucket>/*`
-3. Adding the four env vars to `/var/www/vr.chorecraft.net/app/.env` on the production server (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `VR_WORKSPACE_BUCKET`)
-
-When those are in place, removing `on-hold` from #298 unblocks the implementation chain.
-
-**Other findings from this work session that affect deployment understanding:**
-
-- [PR #318](https://github.com/jpshackelford/voice-relay/pull/318) corrected `docs/DEPLOYMENT.md` — SSH inspection confirmed `chorecraft.net` and `app.no-hands.dev` are DNS aliases for the same Ubuntu server, not a "legacy / new infrastructure" pair as the doc previously claimed. Same Apache, same single Node process, same `.env`.
-- [PR #317](https://github.com/jpshackelford/voice-relay/pull/317) introduced `AGENTS.md` capturing the orchestrator-managed-files policy (WORKLOG.md and `.workflow-state.json` must change on main only, not via PR) and the lint-pr-title scope vocabulary. This prevents future agents from making the same mistake I made in the closed PR #315.
-
-**Open work that remains independent of the persistence freeze:** issue #303 (client coverage uplift, impl worker dispatched 04:53 UTC, in flight) and the `#289 → #297` chain unblocked by #311 merge.
-
-_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
-
----
 ### 2026-05-24 17:37 UTC - Orchestrator
 
 🚀 **Spawned: 2 Merge Workers (parallel)**
@@ -126,7 +86,6 @@ Fixes the false "legacy chorecraft.net vs. new app.no-hands.dev" framing in `doc
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-05-24 17:48 UTC - Orchestrator
 
 🚀 **Spawned: 2 Workers (parallel)** — both PR-handling slots filled.
@@ -198,7 +157,6 @@ All 6 threads replied to (with reasoning + commit SHA) and marked resolved via `
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-05-24 18:07 UTC - Orchestrator
 
 🚀 **Spawned: Merge worker for PR #319**
@@ -247,7 +205,6 @@ Second review slot left empty: there are no other open PRs and the impl worker o
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-05-24 18:08 UTC - Merge Worker (PR #319)
 
 ✅ **Merged: PR #319 — docs: switch persistence design to Path B (VR-proxied S3)**
@@ -369,5 +326,33 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 **Production:** App will auto-deploy to vr.chorecraft.net via the merge-to-main pipeline. No schema/migration risk — pure server refactor. Production SQLite (`sqlite.db`) untouched.
 
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+### 2026-05-24 18:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `368ad07` | implementation | Issue #290 - Resync AI session state on register | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#290 - Resync AI session state on register](https://github.com/jpshackelford/voice-relay/issues/290) (priority:high)
+- Conversation: [`368ad07`](https://app.all-hands.dev/conversations/368ad07693364e79800ee9a6caf95376)
+
+✅ **Completed Worker (prior tick):**
+- `6751e67` (implementation, Issue #289) — created and merged [PR #320](https://github.com/jpshackelford/voice-relay/pull/320) (`feat(server): route platform code through AgentDriver interface`)
+
+**Current State:**
+- Open PRs: 0 (PR #320 merged at 18:38Z)
+- Issues needing expansion: 0 🎉
+- Ready + prioritized issues (sorted by priority):
+  - **priority:high**: #290 (now being implemented), #291, #293, #296
+  - **priority:medium**: #292, #294, #295, #297, #303
+- On-hold (S3 design freeze + others): #210, #239, #299, #300, #301, #302
+
+**Housekeeping:**
+- Archived 1 entry to `WORKLOG_ARCHIVE_2026-05-24.md` (preserved 6h productive window).
+- Reset `quiet_ticks` → 0 (productive tick).
+
+**Slots after tick:** expansion 0/4, implementation 1/1, review 0/2
 
 ---
