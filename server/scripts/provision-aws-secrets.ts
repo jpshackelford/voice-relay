@@ -488,6 +488,13 @@ Optional:
 Secret values are NEVER printed. Output contains only secret names and
 HTTP status codes.
 
+SECURITY NOTE:
+  CLI flag values are visible to anyone who can read /proc on this host
+  (e.g. \`ps\`, \`top\`, your shell history file). For production use prefer
+  the environment-variable form of every credential argument so secrets
+  never appear on the command line. The five required args all have
+  env-var equivalents (see "Required" above).
+
 See docs/runbooks/aws-secrets-provisioning.md for the full runbook.`;
 
 /**
