@@ -2166,6 +2166,7 @@ describe('shouldSkipForKioskTimeline — fixture parity (issue #280)', () => {
 describe('AISessionManager.rebindSession (#296)', () => {
   interface RebindFakeClient {
     rebindConversation: ReturnType<typeof vi.fn>;
+    getEventsPage: ReturnType<typeof vi.fn>;
   }
 
   function makeSession(overrides: Partial<AISession> = {}): AISession {
@@ -2183,16 +2184,23 @@ describe('AISessionManager.rebindSession (#296)', () => {
     };
   }
 
-  /** Build a fake `OpenHandsClient` whose `rebindConversation` returns queued responses. */
+  /**
+   * Build a fake `OpenHandsClient` whose `rebindConversation` returns
+   * queued responses. The fake also exposes a `getEventsPage` mock so
+   * the memory-replay prep step (#297) finds a method to call; by
+   * default it returns an empty page (no suffix), and tests that care
+   * override the mock implementation explicitly.
+   */
   function makeClient(responses: unknown[]): RebindFakeClient {
     const calls = responses.slice();
     return {
-      rebindConversation: vi.fn(async () => {
+      rebindConversation: vi.fn(async (_id: string, _opts?: unknown) => {
         if (calls.length === 0) throw new Error('FakeClient: no more queued responses');
         const next = calls.shift();
         if (next instanceof Error) throw next;
         return next;
       }),
+      getEventsPage: vi.fn(async () => ({ items: [] as unknown[] })),
     };
   }
 
@@ -2598,10 +2606,270 @@ describe('AISessionManager.rebindSession (#296)', () => {
     expect((manager as any).inFlightRebind.size).toBe(0);
   });
 
-  // TODO(#297): once memory replay lands, add a test asserting that the
-  // post-rebind event stream is rehydrated into the agent's context.
-  // The platform already preserves the conversation event log across
-  // rebinds (verified manually); replay is the missing piece.
+  // -------------------------------------------------------------------------
+  // Memory replay (#297) — `system_message_suffix` rehydration.
+  // -------------------------------------------------------------------------
+  //
+  // After rebind, the agent on the fresh sandbox starts with an empty
+  // context window. The memory-replay path fetches the platform-side
+  // event log (which survives sandbox death — see
+  // `docs/openhands-platform.md` § Death and recovery) and pipes it into
+  // the rebind POST as `system_message_suffix` so the rebound agent can
+  // answer follow-ups that reference prior turns.
+
+  /** Build a MessageEvent that buildFallbackSuffix accepts as a replay turn. */
+  function msgEvent(source: 'user' | 'agent', text: string): unknown {
+    return {
+      id: `e-${Math.random().toString(36).slice(2, 8)}`,
+      kind: 'MessageEvent',
+      source,
+      timestamp: '2024-01-01T00:00:00Z',
+      llm_message: {
+        role: source === 'user' ? 'user' : 'assistant',
+        content: [{ type: 'text', text }],
+      },
+    };
+  }
+
+  test('T-4.2.I.1: happy-path rebind POSTs system_message_suffix derived from condense', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    client.getEventsPage.mockResolvedValue({
+      items: [msgEvent('user', 'we were debugging the parser'), msgEvent('agent', 'fixed it')],
+    });
+    manager.setClientForTesting(client as never);
+    manager.setCondenseImplForTesting(async () => ({
+      summary: '__CONDENSE_OK__ parser was being debugged',
+    }));
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+
+    expect(client.rebindConversation).toHaveBeenCalledTimes(1);
+    const [, opts] = client.rebindConversation.mock.calls[0];
+    expect(opts).toBeDefined();
+    expect((opts as { systemMessageSuffix?: string }).systemMessageSuffix).toContain(
+      '__CONDENSE_OK__ parser was being debugged',
+    );
+  });
+
+  test('T-4.2.I.2: condense failure triggers fallback suffix from event log', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    const events: unknown[] = [];
+    for (let i = 0; i < 10; i++) {
+      events.push(msgEvent(i % 2 === 0 ? 'user' : 'agent', `__TURN_${i}__`));
+    }
+    client.getEventsPage.mockResolvedValue({ items: events });
+    manager.setClientForTesting(client as never);
+    manager.setCondenseImplForTesting(async () => {
+      throw new Error('condense unavailable');
+    });
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+
+    const [, opts] = client.rebindConversation.mock.calls[0];
+    const suffix = (opts as { systemMessageSuffix?: string }).systemMessageSuffix ?? '';
+    expect(suffix).toContain('__TURN_9__');
+    expect(suffix).toContain('__TURN_8__');
+  });
+
+  test('T-4.2.I.3: both condense and event-log failure proceeds with empty suffix', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    client.getEventsPage.mockRejectedValue(new Error('events endpoint down'));
+    manager.setClientForTesting(client as never);
+    manager.setCondenseImplForTesting(async () => {
+      throw new Error('condense unavailable');
+    });
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await manager.rebindSession(session);
+    } finally {
+      warn.mockRestore();
+    }
+
+    // Rebind still completed.
+    expect(client.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(session.degraded).toBe(false);
+    const [, opts] = client.rebindConversation.mock.calls[0];
+    // Empty-string suffix is forwarded — the HTTP layer drops it before
+    // the body assembles, but the orchestrator's behaviour is "always
+    // pass the field through" so consumers / tests can observe it.
+    expect((opts as { systemMessageSuffix?: string }).systemMessageSuffix).toBe('');
+  });
+
+  test('T-4.2.I.4: second rebind re-condenses from raw events, not previous suffix', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'K1',
+        conversation_url: 'https://r1.example.com/api/v1',
+      },
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'K2',
+        conversation_url: 'https://r2.example.com/api/v1',
+      },
+    ]);
+    const events: unknown[] = [
+      msgEvent('user', 'original utterance'),
+      msgEvent('agent', 'original reply'),
+    ];
+    client.getEventsPage.mockResolvedValue({ items: events });
+    manager.setClientForTesting(client as never);
+
+    const condenseInputs: unknown[][] = [];
+    let suffixA: string | undefined;
+    manager.setCondenseImplForTesting(async (es) => {
+      condenseInputs.push(es);
+      const seq = condenseInputs.length;
+      return { summary: `__CONDENSE_${seq}__` };
+    });
+
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+    suffixA = (client.rebindConversation.mock.calls[0][1] as { systemMessageSuffix?: string })
+      .systemMessageSuffix;
+    expect(suffixA).toContain('__CONDENSE_1__');
+
+    // Second rebind for the same conversation. Condense must be called
+    // again with the ORIGINAL event log, never with `suffixA` as input.
+    await manager.rebindSession(session);
+
+    expect(condenseInputs).toHaveLength(2);
+    expect(condenseInputs[1]).toEqual(events);
+    // The second condense call's input must NOT contain the first suffix.
+    const serialised = JSON.stringify(condenseInputs[1]);
+    expect(serialised).not.toContain('__CONDENSE_1__');
+    expect(serialised).not.toContain(suffixA ?? '__missing__');
+
+    const suffixB = (client.rebindConversation.mock.calls[1][1] as { systemMessageSuffix?: string })
+      .systemMessageSuffix;
+    expect(suffixB).toContain('__CONDENSE_2__');
+  });
+
+  test('T-4.2.I.5: fallback suffix contains recognisable substrings end-to-end', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    client.getEventsPage.mockResolvedValue({
+      items: [
+        msgEvent('user', "What's the weather?"),
+        msgEvent('agent', 'Sunny'),
+        msgEvent('user', 'What did I just ask?'),
+      ],
+    });
+    manager.setClientForTesting(client as never);
+    // No condense impl → fallback runs.
+    manager.setCondenseImplForTesting(undefined);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+
+    const suffix =
+      (client.rebindConversation.mock.calls[0][1] as { systemMessageSuffix?: string })
+        .systemMessageSuffix ?? '';
+    expect(suffix).toContain("What's the weather?");
+    expect(suffix).toContain('Sunny');
+  });
+
+  test('T-4.2.I.6: suffix size never exceeds MAX_SUFFIX_CHARS guard', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    // 100 verbose turns at ~300 chars each = ~30 KB raw.
+    const events: unknown[] = [];
+    for (let i = 0; i < 100; i++) {
+      const text = `turn ${i} ` + 'lorem ipsum '.repeat(25);
+      events.push(msgEvent(i % 2 === 0 ? 'user' : 'agent', text));
+    }
+    client.getEventsPage.mockResolvedValue({ items: events });
+    manager.setClientForTesting(client as never);
+    manager.setCondenseImplForTesting(undefined);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    await manager.rebindSession(session);
+
+    const suffix =
+      (client.rebindConversation.mock.calls[0][1] as { systemMessageSuffix?: string })
+        .systemMessageSuffix ?? '';
+    // 4 KB absolute ceiling per replay.MAX_SUFFIX_CHARS.
+    expect(suffix.length).toBeLessThanOrEqual(4096);
+  });
+
+  test('memory replay prep failure does not block the rebind itself', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KNEW',
+        conversation_url: 'https://new.example.com/api/v1',
+      },
+    ]);
+    client.getEventsPage.mockRejectedValue(new Error('events down'));
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await manager.rebindSession(session);
+    } finally {
+      warn.mockRestore();
+    }
+    expect(session.degraded).toBe(false);
+    expect(session.agentServerUrl).toBe('https://new.example.com');
+    expect(session.sessionApiKey).toBe('KNEW');
+    expect(manager.getRebindCount()).toBe(1);
+  });
 });
 
 
