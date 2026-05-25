@@ -2,18 +2,12 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "4b9cf9a",
-        "issue": 333,
-        "started": "2026-05-25T01:23:23Z"
-      }
-    ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "65d2d64",
-        "pr": 331,
-        "started": "2026-05-25T01:23:23Z"
+        "conv_id": "bef3099",
+        "pr": 334,
+        "started": "2026-05-25T01:35:52.993393Z"
       }
     ]
   },
@@ -22,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-25T01:23:23Z",
+  "last_updated": "2026-05-25T01:35:52.993393Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -94,7 +88,7 @@
       "started": "2026-05-24T02:09:16.513139+00:00",
       "finished": "2026-05-24T02:20:32.261516Z",
       "status": "success",
-      "outcome": "Halted merge of PR #306 — scope:client-only diff escaped scope (.github/workflows/ci.yml + package-lock.json); applied needs-human label; recommended scope:full-stack"
+      "outcome": "Halted merge of PR #306 \u2014 scope:client-only diff escaped scope (.github/workflows/ci.yml + package-lock.json); applied needs-human label; recommended scope:full-stack"
     },
     {
       "conv_id": "a5211d5",
@@ -156,7 +150,7 @@
       "started": "2026-05-24T03:23:12.867423+00:00",
       "finished": "2026-05-24T03:36:45.617811+00:00",
       "status": "success",
-      "outcome": "Worked on PR #309 (WebSocket Keepalive Heartbeat) — PR subsequently merged; status verified finished by orchestrator API query",
+      "outcome": "Worked on PR #309 (WebSocket Keepalive Heartbeat) \u2014 PR subsequently merged; status verified finished by orchestrator API query",
       "pr": 309
     },
     {
@@ -166,7 +160,7 @@
       "started": "2026-05-24T03:51:32.169508+00:00",
       "finished": "2026-05-24T04:04:35.344462+00:00",
       "status": "success",
-      "outcome": "Worked on PR #306 (client coverage thresholds) — PR previously merged; conversation status verified finished by orchestrator API query"
+      "outcome": "Worked on PR #306 (client coverage thresholds) \u2014 PR previously merged; conversation status verified finished by orchestrator API query"
     },
     {
       "conv_id": "2922610",
@@ -175,7 +169,7 @@
       "started": "2026-05-24T03:51:32.169508+00:00",
       "finished": "2026-05-24T04:21:44.716931+00:00",
       "status": "success",
-      "outcome": "Worked on issue #298 — PR #313 (feat(server): AWS credentials provisioning) is open & ready-for-review; status verified finished by orchestrator API query"
+      "outcome": "Worked on issue #298 \u2014 PR #313 (feat(server): AWS credentials provisioning) is open & ready-for-review; status verified finished by orchestrator API query"
     },
     {
       "conv_id": "747de36",
@@ -184,7 +178,7 @@
       "started": "2026-05-24T03:51:32.169508+00:00",
       "finished": "2026-05-24T04:21:44.716931+00:00",
       "status": "success",
-      "outcome": "Worked on PR #311 (openHandsAgentDriver) — still has 2 unresolved bot threads, ready-for-review; status verified finished by orchestrator API query"
+      "outcome": "Worked on PR #311 (openHandsAgentDriver) \u2014 still has 2 unresolved bot threads, ready-for-review; status verified finished by orchestrator API query"
     },
     {
       "conv_id": "09f641b",
@@ -192,7 +186,7 @@
       "started": "2026-05-24T04:21:44.716931+00:00",
       "finished": "2026-05-24T04:33:55.213458+00:00",
       "status": "success",
-      "outcome": "Worked on PR #311 (openHandsAgentDriver) — all 4 review threads now resolved; CI green except pr-review bot still pending",
+      "outcome": "Worked on PR #311 (openHandsAgentDriver) \u2014 all 4 review threads now resolved; CI green except pr-review bot still pending",
       "pr": 311
     },
     {
@@ -201,7 +195,7 @@
       "started": "2026-05-24T04:21:44.716931+00:00",
       "finished": "2026-05-24T04:33:55.213458+00:00",
       "status": "success",
-      "outcome": "Worked on PR #313 (AWS credentials) — all 3 review threads now resolved; CI green; pr-review bot passed; PR ready to merge",
+      "outcome": "Worked on PR #313 (AWS credentials) \u2014 all 3 review threads now resolved; CI green; pr-review bot passed; PR ready to merge",
       "pr": 313
     },
     {
@@ -211,7 +205,7 @@
       "started": "2026-05-24T04:21:44.716931+00:00",
       "finished": "2026-05-24T04:50:37.664653+00:00",
       "status": "success",
-      "outcome": "Worked on issue #310 — created PR #314 (Playwright @slow-keepalive E2E spec); ready-for-review, all CI green, MERGEABLE; status verified finished by orchestrator API query"
+      "outcome": "Worked on issue #310 \u2014 created PR #314 (Playwright @slow-keepalive E2E spec); ready-for-review, all CI green, MERGEABLE; status verified finished by orchestrator API query"
     },
     {
       "conv_id": "db3cb9f",
@@ -220,7 +214,7 @@
       "started": "2026-05-24T04:34:52.040061+00:00",
       "finished": "2026-05-24T04:50:37.664653+00:00",
       "status": "halted",
-      "outcome": "Merge worker halted on PR #313 — human applied `on-hold` + `needs-human` labels pending design reconsideration of #298 SaaS-vs-operator-mediated model; conversation now idle"
+      "outcome": "Merge worker halted on PR #313 \u2014 human applied `on-hold` + `needs-human` labels pending design reconsideration of #298 SaaS-vs-operator-mediated model; conversation now idle"
     },
     {
       "conv_id": "e09bfda",
@@ -292,7 +286,7 @@
       "started": "2026-05-24T17:51:46.996153+00:00",
       "finished": "2026-05-24T18:49:45.361474+00:00",
       "status": "success",
-      "outcome": "Created PR #320 (feat(server): route platform code through AgentDriver interface) — merged"
+      "outcome": "Created PR #320 (feat(server): route platform code through AgentDriver interface) \u2014 merged"
     },
     {
       "conv_id": "368ad07",
@@ -301,7 +295,7 @@
       "started": "2026-05-24T18:51:04.619388+00:00",
       "finished": "2026-05-24T19:22:32.503842+00:00",
       "status": "success",
-      "outcome": "Created PR #321 (fix(server): resync AI session state on WS register) — ready-for-review, all CI green, MERGEABLE/CLEAN, 1 bot review thread unresolved (thinkingSince consumption)"
+      "outcome": "Created PR #321 (fix(server): resync AI session state on WS register) \u2014 ready-for-review, all CI green, MERGEABLE/CLEAN, 1 bot review thread unresolved (thinkingSince consumption)"
     },
     {
       "conv_id": "6b31a56",
@@ -310,7 +304,7 @@
       "started": "2026-05-24T19:22:32.503842+00:00",
       "finished": "2026-05-24T19:36:12Z",
       "status": "success",
-      "outcome": "Addressed bot review thread on PR #321 (documented thinkingSince as reserved for #295 in commit 77fa142); 0 unresolved threads, CI green, MERGEABLE — ready to merge"
+      "outcome": "Addressed bot review thread on PR #321 (documented thinkingSince as reserved for #295 in commit 77fa142); 0 unresolved threads, CI green, MERGEABLE \u2014 ready to merge"
     },
     {
       "conv_id": "1d37e68",
@@ -328,7 +322,7 @@
       "started": "2026-05-24T19:36:12Z",
       "finished": "2026-05-24T19:50:35.164810+00:00",
       "status": "success",
-      "outcome": "Merged PR #321 (squash 192b4f3) → Issue #290 auto-closed"
+      "outcome": "Merged PR #321 (squash 192b4f3) \u2192 Issue #290 auto-closed"
     },
     {
       "conv_id": "e0fc0e4",
@@ -337,7 +331,7 @@
       "started": "2026-05-24T19:52:46.664587+00:00",
       "finished": "2026-05-24T20:05:09.805449+00:00",
       "status": "success",
-      "outcome": "Worked on PR #323 (refresh session_api_key on WS reconnect) — all bot review threads resolved; CI green; PR ready to merge"
+      "outcome": "Worked on PR #323 (refresh session_api_key on WS reconnect) \u2014 all bot review threads resolved; CI green; PR ready to merge"
     },
     {
       "conv_id": "14523c8",
@@ -382,7 +376,7 @@
       "started": "2026-05-24T20:52:21.600684+00:00",
       "finished": "2026-05-24T21:20:51.125673+00:00",
       "status": "success",
-      "outcome": "Opened PR #327 (refs #303 — batch 3: deviceToken/getEventContent/useResourceFetch)"
+      "outcome": "Opened PR #327 (refs #303 \u2014 batch 3: deviceToken/getEventContent/useResourceFetch)"
     },
     {
       "conv_id": "38d025a",
@@ -391,7 +385,7 @@
       "started": "2026-05-24T20:52:21.600684+00:00",
       "finished": "2026-05-24T21:20:51.125673+00:00",
       "status": "success",
-      "outcome": "Merged PR #324 (closes #293) — squash ab17f63"
+      "outcome": "Merged PR #324 (closes #293) \u2014 squash ab17f63"
     },
     {
       "conv_id": "504457a",
@@ -400,7 +394,7 @@
       "started": "2026-05-24T20:52:21.600684+00:00",
       "finished": "2026-05-24T21:20:51.125673+00:00",
       "status": "success",
-      "outcome": "Merged PR #325 (closes #292) — single-flight conversation start"
+      "outcome": "Merged PR #325 (closes #292) \u2014 single-flight conversation start"
     },
     {
       "conv_id": "ee8d412",
@@ -462,7 +456,7 @@
       "started": "2026-05-24T22:05:52.456542+00:00",
       "finished": "2026-05-24T22:35:42.243554+00:00",
       "status": "success",
-      "outcome": "Created PR #330 (test(client): cover remaining excluded hook modules, closes #303); ready-for-review, all CI green, MERGEABLE/CLEAN, bot review 🟢 Good taste",
+      "outcome": "Created PR #330 (test(client): cover remaining excluded hook modules, closes #303); ready-for-review, all CI green, MERGEABLE/CLEAN, bot review \ud83d\udfe2 Good taste",
       "issue": 303
     },
     {
@@ -471,7 +465,7 @@
       "started": "2026-05-24T22:21:22.744806+00:00",
       "finished": "2026-05-24T22:35:42.243554+00:00",
       "status": "success",
-      "outcome": "Merged PR #328 (squash) — feat(server): rebind MISSING sandbox preserving conversation_id; issue #296 auto-closed",
+      "outcome": "Merged PR #328 (squash) \u2014 feat(server): rebind MISSING sandbox preserving conversation_id; issue #296 auto-closed",
       "pr": 328
     },
     {
@@ -480,7 +474,7 @@
       "started": "2026-05-24T22:21:22.744806+00:00",
       "finished": "2026-05-24T22:35:42.243554+00:00",
       "status": "success",
-      "outcome": "Merged PR #329 (squash 94053d8) — feat(server): restart agent endpoint and kiosk UI affordance; issue #294 auto-closed",
+      "outcome": "Merged PR #329 (squash 94053d8) \u2014 feat(server): restart agent endpoint and kiosk UI affordance; issue #294 auto-closed",
       "pr": 329
     },
     {
@@ -507,7 +501,7 @@
       "started": "2026-05-24T23:07:56.092125Z",
       "finished": "2026-05-24T23:41:13.454808Z",
       "status": "success",
-      "outcome": "Created PR #332 (feat(server): memory replay after rebind via system_message_suffix) for issue #297; ready-for-review, MERGEABLE/UNSTABLE because Client Tests failing — but failure is pre-existing ReleaseNotes timestamp test on main, unrelated to scope:server-only diff",
+      "outcome": "Created PR #332 (feat(server): memory replay after rebind via system_message_suffix) for issue #297; ready-for-review, MERGEABLE/UNSTABLE because Client Tests failing \u2014 but failure is pre-existing ReleaseNotes timestamp test on main, unrelated to scope:server-only diff",
       "issue": 297
     },
     {
@@ -516,8 +510,26 @@
       "started": "2026-05-24T23:21:17.684567Z",
       "finished": "2026-05-24T23:41:13.454808Z",
       "status": "success",
-      "outcome": "Addressed only bot review thread on PR #331 in commit 0ddbafe (clarifying comment on startingSince ?? fallback for reconnect timer preservation); all CI green, 0 unresolved threads, MERGEABLE/CLEAN — ready to merge",
+      "outcome": "Addressed only bot review thread on PR #331 in commit 0ddbafe (clarifying comment on startingSince ?? fallback for reconnect timer preservation); all CI green, 0 unresolved threads, MERGEABLE/CLEAN \u2014 ready to merge",
       "pr": 331
+    },
+    {
+      "conv_id": "4b9cf9a",
+      "type": "implementation",
+      "issue": 333,
+      "started": "2026-05-25T01:23:23Z",
+      "finished": "2026-05-25T01:34:53.135051Z",
+      "status": "success",
+      "outcome": "Created PR #334 (test fixture pin)"
+    },
+    {
+      "conv_id": "65d2d64",
+      "type": "review",
+      "pr": 331,
+      "started": "2026-05-25T01:23:23Z",
+      "finished": "2026-05-25T01:34:53.135051Z",
+      "status": "success",
+      "outcome": "Merged PR #331 (closed #295)"
     }
   ],
   "quiet_ticks": 0
