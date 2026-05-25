@@ -3,20 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "bef3099",
-        "pr": 334,
-        "started": "2026-05-25T01:35:52.993393Z"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-25T01:35:52.993393Z",
+  "last_updated": "2026-05-25T01:48:41.310891Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -530,6 +524,15 @@
       "finished": "2026-05-25T01:34:53.135051Z",
       "status": "success",
       "outcome": "Merged PR #331 (closed #295)"
+    },
+    {
+      "conv_id": "bef3099",
+      "type": "merge",
+      "pr": 334,
+      "started": "2026-05-25T01:35:52.993393Z",
+      "finished": "2026-05-25T01:48:41.310891Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #334 (fix(tests): pin ReleaseNotes mock fixtures); issue #333 auto-closed; broke ReleaseNotes test brittleness chain that was blocking PR #332"
     }
   ],
   "quiet_ticks": 0
