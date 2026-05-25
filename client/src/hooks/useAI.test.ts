@@ -396,4 +396,278 @@ describe('useAI hook', () => {
       expect(result.current.restartError).toBe('No session selected');
     });
   });
+
+  // Issue #295 — unified `session-state` wire message + reducer.
+  //
+  // These tests exercise the test matrix declared in the issue
+  // (T-3.6.1..12). The reducer's state IS `AgentSessionStatusWire`; the
+  // hook's returned booleans are derived at render time.
+  describe('session-state reducer (issue #295)', () => {
+    const sid = 'test-session-123';
+
+    // Build a wire-shape `AgentSessionStatus` quickly for tests.
+    function status(
+      partial: Partial<{
+        state: 'absent' | 'starting' | 'ready' | 'thinking' | 'reconnecting' | 'degraded';
+        conversationId: string | null;
+        error: string | null;
+        thinkingSince: string | null;
+        startingSince: string | null;
+        sessionId: string;
+      }> = {},
+    ) {
+      return {
+        sessionId: partial.sessionId ?? sid,
+        state: partial.state ?? 'absent',
+        conversationId: partial.conversationId ?? null,
+        error: partial.error ?? null,
+        thinkingSince: partial.thinkingSince ?? null,
+        startingSince: partial.startingSince ?? null,
+      };
+    }
+
+    // T-3.6.1
+    it('starts in the absent state with all derived booleans false', () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      expect(result.current.aiStatus.state).toBe('absent');
+      expect(result.current.connected).toBe(false);
+      expect(result.current.thinking).toBe(false);
+      expect(result.current.connecting).toBe(false);
+      expect(result.current.degraded).toBe(false);
+    });
+
+    // T-3.6.2
+    it('session-state with state=ready flips connected', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'ready', conversationId: 'c1' }),
+        });
+      });
+      expect(result.current.aiStatus.state).toBe('ready');
+      expect(result.current.connected).toBe(true);
+      expect(result.current.thinking).toBe(false);
+      expect(result.current.connecting).toBe(false);
+      expect(result.current.conversationId).toBe('c1');
+    });
+
+    // T-3.6.3
+    it('session-state with state=thinking flips thinking + connected', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'thinking', thinkingSince: '2026-05-24T00:00:00Z' }),
+        });
+      });
+      expect(result.current.thinking).toBe(true);
+      expect(result.current.connected).toBe(true);
+      expect(result.current.connecting).toBe(false);
+      expect(result.current.aiStatus.thinkingSince).toBe('2026-05-24T00:00:00Z');
+    });
+
+    // T-3.6.4
+    it('session-state with state=starting flips connecting', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'starting' }),
+        });
+      });
+      expect(result.current.connecting).toBe(true);
+      expect(result.current.connected).toBe(false);
+    });
+
+    // T-3.6.5
+    it('session-state with state=reconnecting flips connecting only', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'reconnecting' }),
+        });
+      });
+      expect(result.current.connecting).toBe(true);
+      expect(result.current.connected).toBe(false);
+      expect(result.current.thinking).toBe(false);
+    });
+
+    // T-3.6.6
+    it('session-state with state=degraded surfaces degraded + error', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'degraded', error: 'stuck' }),
+        });
+      });
+      expect(result.current.degraded).toBe(true);
+      expect(result.current.error).toBe('stuck');
+      expect(result.current.connected).toBe(false);
+      expect(result.current.connecting).toBe(false);
+    });
+
+    // T-3.6.7
+    it('legacy-status applies before any session-state arrives', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: sid,
+          connected: true,
+          connecting: false,
+          conversationId: 'c1',
+        });
+      });
+      expect(result.current.connected).toBe(true);
+      expect(result.current.aiStatus.state).toBe('ready');
+      expect(result.current.aiStatus.conversationId).toBe('c1');
+    });
+
+    // T-3.6.8
+    it('legacy-status is ignored after session-state has been seen', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'ready', conversationId: 'authoritative' }),
+        });
+      });
+      expect(result.current.aiStatus.state).toBe('ready');
+
+      // Now send a legacy message with conflicting values — must be a no-op.
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: sid,
+          connected: false,
+          connecting: true,
+          conversationId: 'stale',
+          error: 'spurious',
+        });
+      });
+      expect(result.current.aiStatus.state).toBe('ready');
+      expect(result.current.aiStatus.conversationId).toBe('authoritative');
+      expect(result.current.error).toBeNull();
+    });
+
+    // T-3.6.9
+    it('legacy-thinking applies before any session-state arrives', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      // Seed connected so the legacy thinking transition has a defined
+      // base state to combine with.
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: sid,
+          connected: true,
+        });
+        result.current.handleAIThinking({
+          type: 'ai-thinking',
+          sessionId: sid,
+          thinking: true,
+          thinkingSince: '2026-05-24T00:00:00Z',
+        });
+      });
+      expect(result.current.thinking).toBe(true);
+      expect(result.current.aiStatus.thinkingSince).toBe('2026-05-24T00:00:00Z');
+    });
+
+    // T-3.6.10
+    it('legacy-thinking is ignored after session-state has been seen', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'ready' }),
+        });
+      });
+      const before = result.current.aiStatus;
+
+      await act(async () => {
+        result.current.handleAIThinking({
+          type: 'ai-thinking',
+          sessionId: sid,
+          thinking: true,
+        });
+      });
+      expect(result.current.aiStatus).toEqual(before);
+      expect(result.current.thinking).toBe(false);
+    });
+
+    // T-3.6.11
+    it('session-state for a mismatched sessionId is ignored', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: 's1' }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: 's2',
+          ai: status({ sessionId: 's2', state: 'ready' }),
+        });
+      });
+      // No-op because the message wasn't ours.
+      expect(result.current.aiStatus.state).toBe('absent');
+      expect(result.current.connected).toBe(false);
+    });
+
+    // T-3.6.12
+    it('reset clears state and re-enables the legacy fallback', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'ready', conversationId: 'c1' }),
+        });
+      });
+      expect(result.current.aiStatus.state).toBe('ready');
+
+      await act(async () => {
+        result.current.reset();
+      });
+      expect(result.current.aiStatus.state).toBe('absent');
+      expect(result.current.aiStatus.conversationId).toBeNull();
+
+      // Legacy is honored again.
+      await act(async () => {
+        result.current.handleSessionAIStatus({
+          type: 'session-ai-status',
+          sessionId: sid,
+          connected: true,
+          conversationId: 'c2',
+        });
+      });
+      expect(result.current.connected).toBe(true);
+      expect(result.current.aiStatus.conversationId).toBe('c2');
+    });
+
+    // Extra: derived `degraded` strictly reflects the unified state, not
+    // the old heuristic. After #295 the reducer no longer needs
+    // `!connected && !connecting && error` — a healthy `ready` status with
+    // an incidental error string never shows `degraded`.
+    it('derived degraded reflects state directly (not the legacy heuristic)', async () => {
+      const { result } = renderHook(() => useAI({ sessionId: sid }));
+      await act(async () => {
+        result.current.handleSessionState({
+          type: 'session-state',
+          sessionId: sid,
+          ai: status({ state: 'ready', error: 'lingering' }),
+        });
+      });
+      // The legacy heuristic would have classified this as degraded
+      // (connected=true would have negated it, so this case is
+      // illustrative rather than asserting the negative behaviour).
+      expect(result.current.degraded).toBe(false);
+      expect(result.current.connected).toBe(true);
+    });
+  });
 });

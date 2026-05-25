@@ -101,6 +101,30 @@ function createDependencies(overrides: Partial<AutoConnectDependencies> = {}): A
   };
 }
 
+/**
+ * Pull out the legacy `session-ai-status` broadcast calls so existing
+ * pre-#295 assertions can ignore the unified `session-state` emission
+ * that is now interleaved alongside them.
+ */
+function legacyCalls(deps: ReturnType<typeof createDependencies>) {
+  const calls = (
+    deps.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>
+  ).mock.calls;
+  return calls.filter((c) => (c[1] as { type?: string }).type === 'session-ai-status');
+}
+
+/**
+ * Pull out the unified `session-state` broadcast payloads (issue #295).
+ */
+function sessionStateMessages(deps: ReturnType<typeof createDependencies>) {
+  const calls = (
+    deps.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>
+  ).mock.calls;
+  return calls
+    .filter((c) => (c[1] as { type?: string }).type === 'session-state')
+    .map((c) => c[1]);
+}
+
 describe('autoConnectAI', () => {
   describe('successful connection flow', () => {
     test('broadcasts connecting status, then connected status on success', async () => {
@@ -108,21 +132,49 @@ describe('autoConnectAI', () => {
 
       await autoConnectAI('session-123', 'workspace-456', deps);
 
-      // Should broadcast connecting status first
-      expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(1, 'session-123', {
-        type: 'session-ai-status',
-        sessionId: 'session-123',
-        connecting: true,
-        connected: false,
-      });
+      // Filter to the legacy `session-ai-status` messages — the new
+      // unified `session-state` emission (issue #295) is interleaved with
+      // them and asserted separately below.
+      const legacy = legacyCalls(deps);
+      expect(legacy).toHaveLength(2);
+      expect(legacy[0]).toEqual([
+        'session-123',
+        {
+          type: 'session-ai-status',
+          sessionId: 'session-123',
+          connecting: true,
+          connected: false,
+        },
+      ]);
+      expect(legacy[1]).toEqual([
+        'session-123',
+        {
+          type: 'session-ai-status',
+          sessionId: 'session-123',
+          connecting: false,
+          connected: true,
+          conversationId: 'conv-123',
+        },
+      ]);
+    });
 
-      // Should broadcast connected status after success
-      expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(2, 'session-123', {
-        type: 'session-ai-status',
+    // Issue #295 — alongside the legacy `session-ai-status` pair, the auto-connect
+    // flow now emits a unified `session-state` message at each transition.
+    test('emits session-state alongside legacy on success (issue #295)', async () => {
+      const deps = createDependencies();
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      const sessionStateCalls = sessionStateMessages(deps);
+      expect(sessionStateCalls).toHaveLength(2);
+      expect(sessionStateCalls[0]).toMatchObject({
+        type: 'session-state',
         sessionId: 'session-123',
-        connecting: false,
-        connected: true,
-        conversationId: 'conv-123',
+        ai: expect.objectContaining({ state: 'starting' }),
+      });
+      expect(sessionStateCalls[1]).toMatchObject({
+        type: 'session-state',
+        sessionId: 'session-123',
+        ai: expect.objectContaining({ state: 'ready', conversationId: 'conv-123' }),
       });
     });
 
@@ -231,16 +283,20 @@ describe('autoConnectAI', () => {
 
       await autoConnectAI('session-123', 'workspace-456', deps);
 
-      // Should broadcast connecting then unavailable status
-      expect(deps.registry.broadcastMessageToSession).toHaveBeenCalledTimes(2);
-      expect(deps.registry.broadcastMessageToSession).toHaveBeenNthCalledWith(2, 'session-123', {
-        type: 'session-ai-status',
-        sessionId: 'session-123',
-        connecting: false,
-        connected: false,
-        error: 'OpenHands API not configured',
-      });
-
+      // Should broadcast connecting then unavailable status (legacy);
+      // session-state is interleaved (issue #295) — filter to legacy.
+      const legacy = legacyCalls(deps);
+      expect(legacy).toHaveLength(2);
+      expect(legacy[1]).toEqual([
+        'session-123',
+        {
+          type: 'session-ai-status',
+          sessionId: 'session-123',
+          connecting: false,
+          connected: false,
+          error: 'OpenHands API not configured',
+        },
+      ]);
       // Should NOT try to open the session
       expect(driver.openSession).not.toHaveBeenCalled();
     });
@@ -299,16 +355,19 @@ describe('autoConnectAI', () => {
 
       await autoConnectAI('session-123', 'workspace-456', deps);
 
-      const lastCall = (deps.registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls.slice(-1)[0];
-      expect(lastCall[1]).toEqual({
+      // Inspect the final legacy `session-ai-status` (the session-state
+      // broadcast happens after it, so we pick the legacy explicitly).
+      const legacy = legacyCalls(deps);
+      const lastLegacy = legacy[legacy.length - 1];
+      expect(lastLegacy[1]).toEqual({
         type: 'session-ai-status',
         sessionId: 'session-123',
         connecting: false,
         connected: false,
         error: 'Failed to connect AI assistant',
       });
-      expect(lastCall[1].error).not.toContain('Internal server error');
-      expect(lastCall[1].error).not.toContain('/var/secrets');
+      expect((lastLegacy[1] as { error: string }).error).not.toContain('Internal server error');
+      expect((lastLegacy[1] as { error: string }).error).not.toContain('/var/secrets');
     });
 
     test('logs full error server-side', async () => {

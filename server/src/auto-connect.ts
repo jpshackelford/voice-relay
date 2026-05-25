@@ -14,9 +14,11 @@ import type { SessionRepository } from './sessions/index.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
 import type { AgentDriver } from './agent-driver/index.js';
+import type { AgentSessionStatus } from './agent-driver/types.js';
 import type { TtsService } from './tts/index.js';
 import type { SessionAIStatusMessage } from './types.js';
 import { isAnonymousSession } from './constants.js';
+import { broadcastSessionState } from './session-state-broadcast.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -64,6 +66,18 @@ export async function autoConnectAI(
     connected: false,
   };
   registry.broadcastMessageToSession(sessionId, connectingStatus);
+  // Unified `session-state` (issue #295). Synthesise an `AgentSessionStatus`
+  // with `state: 'starting'` for clients that consume the new shape; the
+  // driver doesn't have an upstream session yet, so we can't read it.
+  const startingStatus: AgentSessionStatus = {
+    sessionId,
+    state: 'starting',
+    conversationId: null,
+    error: null,
+    thinkingSince: null,
+    startingSince: new Date().toISOString(),
+  };
+  broadcastSessionState(registry, sessionId, startingStatus, 'auto-connect:connecting');
 
   try {
     // Get workspace API key (if configured)
@@ -82,6 +96,19 @@ export async function autoConnectAI(
         error: 'OpenHands API not configured',
       };
       registry.broadcastMessageToSession(sessionId, unavailableStatus);
+      broadcastSessionState(
+        registry,
+        sessionId,
+        {
+          sessionId,
+          state: 'degraded',
+          conversationId: null,
+          error: 'OpenHands API not configured',
+          thinkingSince: null,
+          startingSince: null,
+        },
+        'auto-connect:unavailable',
+      );
       return;
     }
 
@@ -127,6 +154,9 @@ export async function autoConnectAI(
       ...(status.conversationId ? { conversationId: status.conversationId } : {}),
     };
     registry.broadcastMessageToSession(sessionId, connectedStatus);
+    // Unified `session-state` (issue #295). The driver's `status` already
+    // carries the full snapshot; transport it 1:1.
+    broadcastSessionState(registry, sessionId, status, 'auto-connect:connected');
     console.log(`[AI] Auto-connected AI for session ${sessionId}, conversation: ${status.conversationId}`);
   } catch (err) {
     // Log full error server-side for debugging
@@ -140,6 +170,19 @@ export async function autoConnectAI(
       error: 'Failed to connect AI assistant',
     };
     registry.broadcastMessageToSession(sessionId, errorStatus);
+    broadcastSessionState(
+      registry,
+      sessionId,
+      {
+        sessionId,
+        state: 'degraded',
+        conversationId: null,
+        error: 'Failed to connect AI assistant',
+        thinkingSince: null,
+        startingSince: null,
+      },
+      'auto-connect:error',
+    );
   }
 }
 

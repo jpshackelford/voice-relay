@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "39c990b",
-        "issue": 295,
-        "started": "2026-05-24T22:35:42.243554+00:00"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-24T22:48:49.868795+00:00",
+  "last_updated": "2026-05-25T01:48:41.310891Z",
   "completed": [
     {
       "conv_id": "0db73d3",
@@ -485,7 +479,61 @@
       "finished": "2026-05-24T22:48:49.868795+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #330 (test(client): cover remaining excluded hook modules); issue #303 four-batch backfill complete and auto-closed"
+    },
+    {
+      "conv_id": "39c990b",
+      "type": "implementation",
+      "issue": 295,
+      "started": "2026-05-24T22:35:42.243554+00:00",
+      "finished": "2026-05-24T23:07:56.092125Z",
+      "status": "success",
+      "outcome": "Created PR #331 (feat(websocket): unify session-state wire message and refactor useAI as a reducer); ready-for-review, CI green except pr-review bot still IN_PROGRESS"
+    },
+    {
+      "conv_id": "7f3a113",
+      "type": "implementation",
+      "started": "2026-05-24T23:07:56.092125Z",
+      "finished": "2026-05-24T23:41:13.454808Z",
+      "status": "success",
+      "outcome": "Created PR #332 (feat(server): memory replay after rebind via system_message_suffix) for issue #297; ready-for-review, MERGEABLE/UNSTABLE because Client Tests failing \u2014 but failure is pre-existing ReleaseNotes timestamp test on main, unrelated to scope:server-only diff",
+      "issue": 297
+    },
+    {
+      "conv_id": "9219f27",
+      "type": "review",
+      "started": "2026-05-24T23:21:17.684567Z",
+      "finished": "2026-05-24T23:41:13.454808Z",
+      "status": "success",
+      "outcome": "Addressed only bot review thread on PR #331 in commit 0ddbafe (clarifying comment on startingSince ?? fallback for reconnect timer preservation); all CI green, 0 unresolved threads, MERGEABLE/CLEAN \u2014 ready to merge",
+      "pr": 331
+    },
+    {
+      "conv_id": "4b9cf9a",
+      "type": "implementation",
+      "issue": 333,
+      "started": "2026-05-25T01:23:23Z",
+      "finished": "2026-05-25T01:34:53.135051Z",
+      "status": "success",
+      "outcome": "Created PR #334 (test fixture pin)"
+    },
+    {
+      "conv_id": "65d2d64",
+      "type": "review",
+      "pr": 331,
+      "started": "2026-05-25T01:23:23Z",
+      "finished": "2026-05-25T01:34:53.135051Z",
+      "status": "success",
+      "outcome": "Merged PR #331 (closed #295)"
+    },
+    {
+      "conv_id": "bef3099",
+      "type": "merge",
+      "pr": 334,
+      "started": "2026-05-25T01:35:52.993393Z",
+      "finished": "2026-05-25T01:48:41.310891Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #334 (fix(tests): pin ReleaseNotes mock fixtures); issue #333 auto-closed; broke ReleaseNotes test brittleness chain that was blocking PR #332"
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }

@@ -19,6 +19,7 @@
 import type { AgentDriver } from './agent-driver/types.js';
 import { ANONYMOUS_SESSION_ID } from './constants.js';
 import type { AIThinkingMessage, SessionAIStatusMessage } from './types.js';
+import { buildSessionStateMessage } from './session-state-broadcast.js';
 
 /**
  * Minimal WebSocket-like shape used by this helper.
@@ -93,4 +94,9 @@ export async function resyncAgentSessionStatus(
     };
     ws.send(JSON.stringify(thinking));
   }
+
+  // Unified `session-state` (issue #295). Emit alongside the legacy pair so
+  // a rejoining client that speaks the new shape gets a single authoritative
+  // snapshot of the agent session.
+  ws.send(JSON.stringify(buildSessionStateMessage(sessionId, status)));
 }

@@ -44,6 +44,7 @@ import type { WorkspaceRepository } from '../workspaces/index.js';
 import type { DeviceRegistry } from '../registry.js';
 import type { SessionAIStatusMessage } from '../types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
+import { broadcastSessionState } from '../session-state-broadcast.js';
 
 export interface SessionAIRouterOptions {
   sessionRepository: SessionRepository;
@@ -147,6 +148,21 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
       },
       'announce',
     );
+    // Unified `session-state` (issue #295). Synthesise a `starting` snapshot
+    // to mirror the legacy `connecting:true` broadcast above.
+    broadcastSessionState(
+      options.registry,
+      sessionId,
+      {
+        sessionId,
+        state: 'starting',
+        conversationId: null,
+        error: null,
+        thinkingSince: null,
+        startingSince: new Date().toISOString(),
+      },
+      'restart:announce',
+    );
 
     let status: AgentSessionStatus;
     try {
@@ -170,6 +186,22 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
         },
         'error',
       );
+      // Unified `session-state` (issue #295). Mark the session as degraded
+      // so the new-shape clients clear their "connecting" indicator and
+      // surface the restart affordance.
+      broadcastSessionState(
+        options.registry,
+        sessionId,
+        {
+          sessionId,
+          state: 'degraded',
+          conversationId: null,
+          error: message,
+          thinkingSince: null,
+          startingSince: null,
+        },
+        'restart:error',
+      );
       res.status(503).json({ error: message });
       return;
     }
@@ -182,6 +214,9 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
       statusToWireMessage(sessionId, status),
       'final',
     );
+    // Unified `session-state` (issue #295). The driver's returned `status`
+    // is the authoritative snapshot — transport it 1:1.
+    broadcastSessionState(options.registry, sessionId, status, 'restart:final');
 
     res.json(status);
   });

@@ -47,7 +47,7 @@ function driverWithStatus(
 
 describe('resyncAgentSessionStatus', () => {
   describe('T-3.1.1: state=ready', () => {
-    it('sends a single session-ai-status with connected:true', async () => {
+    it('sends a session-ai-status with connected:true plus unified session-state (issue #295)', async () => {
       const ws = makeWs();
       const driver = driverWithStatus({
         sessionId: 'sess-1',
@@ -58,19 +58,26 @@ describe('resyncAgentSessionStatus', () => {
         startingSince: null,
       });
       await resyncAgentSessionStatus(ws, 'sess-1', driver);
-      expect(ws.send).toHaveBeenCalledTimes(1);
-      expect(parsed(ws)[0]).toEqual({
+      // Legacy + new unified `session-state` — pre-#295 was a single send.
+      expect(ws.send).toHaveBeenCalledTimes(2);
+      const [legacy, sessionState] = parsed(ws);
+      expect(legacy).toEqual({
         type: 'session-ai-status',
         sessionId: 'sess-1',
         connected: true,
         connecting: false,
         conversationId: 'c1',
       });
+      expect(sessionState).toMatchObject({
+        type: 'session-state',
+        sessionId: 'sess-1',
+        ai: expect.objectContaining({ state: 'ready', conversationId: 'c1' }),
+      });
     });
   });
 
   describe('T-3.1.2: state=thinking', () => {
-    it('sends session-ai-status THEN ai-thinking in that order', async () => {
+    it('sends session-ai-status THEN ai-thinking THEN unified session-state (issue #295)', async () => {
       const ws = makeWs();
       const driver = driverWithStatus({
         sessionId: 'sess-1',
@@ -81,7 +88,9 @@ describe('resyncAgentSessionStatus', () => {
         startingSince: null,
       });
       await resyncAgentSessionStatus(ws, 'sess-1', driver);
-      expect(ws.send).toHaveBeenCalledTimes(2);
+      // Legacy pair (session-ai-status, ai-thinking) + new unified
+      // session-state. Pre-#295 this was 2 messages.
+      expect(ws.send).toHaveBeenCalledTimes(3);
       const messages = parsed(ws);
       expect(messages[0]).toEqual({
         type: 'session-ai-status',
@@ -95,6 +104,14 @@ describe('resyncAgentSessionStatus', () => {
         sessionId: 'sess-1',
         thinking: true,
         thinkingSince: '2026-05-23T22:00:00Z',
+      });
+      expect(messages[2]).toMatchObject({
+        type: 'session-state',
+        sessionId: 'sess-1',
+        ai: expect.objectContaining({
+          state: 'thinking',
+          thinkingSince: '2026-05-23T22:00:00Z',
+        }),
       });
     });
 
@@ -118,7 +135,7 @@ describe('resyncAgentSessionStatus', () => {
   });
 
   describe('T-3.1.3: state=starting', () => {
-    it('sends session-ai-status with connecting:true, connected:false', async () => {
+    it('sends session-ai-status + session-state (issue #295) with connecting:true', async () => {
       const ws = makeWs();
       const driver = driverWithStatus({
         sessionId: 'sess-1',
@@ -129,12 +146,17 @@ describe('resyncAgentSessionStatus', () => {
         startingSince: '2026-05-23T22:00:00Z',
       });
       await resyncAgentSessionStatus(ws, 'sess-1', driver);
-      expect(ws.send).toHaveBeenCalledTimes(1);
-      expect(parsed(ws)[0]).toEqual({
+      expect(ws.send).toHaveBeenCalledTimes(2);
+      const [legacy, sessionState] = parsed(ws);
+      expect(legacy).toEqual({
         type: 'session-ai-status',
         sessionId: 'sess-1',
         connected: false,
         connecting: true,
+      });
+      expect(sessionState).toMatchObject({
+        type: 'session-state',
+        ai: expect.objectContaining({ state: 'starting' }),
       });
     });
   });
@@ -162,7 +184,7 @@ describe('resyncAgentSessionStatus', () => {
   });
 
   describe('T-3.1.5: state=degraded', () => {
-    it('sends session-ai-status with error and both flags false', async () => {
+    it('sends session-ai-status + session-state (issue #295) with error and both flags false', async () => {
       const ws = makeWs();
       const driver = driverWithStatus({
         sessionId: 'sess-1',
@@ -173,13 +195,18 @@ describe('resyncAgentSessionStatus', () => {
         startingSince: null,
       });
       await resyncAgentSessionStatus(ws, 'sess-1', driver);
-      expect(ws.send).toHaveBeenCalledTimes(1);
-      expect(parsed(ws)[0]).toEqual({
+      expect(ws.send).toHaveBeenCalledTimes(2);
+      const [legacy, sessionState] = parsed(ws);
+      expect(legacy).toEqual({
         type: 'session-ai-status',
         sessionId: 'sess-1',
         connected: false,
         connecting: false,
         error: 'something',
+      });
+      expect(sessionState).toMatchObject({
+        type: 'session-state',
+        ai: expect.objectContaining({ state: 'degraded', error: 'something' }),
       });
     });
   });
@@ -207,9 +234,10 @@ describe('resyncAgentSessionStatus', () => {
       const wsOther2 = makeWs();
       const driver = new FakeDriver();
       await driver.openSession('sess-1', { workspaceId: 'ws-1' });
-      // Verify the helper writes only to the WS argument.
+      // Verify the helper writes only to the WS argument (post-#295 the
+      // count is 2: legacy + unified session-state).
       await resyncAgentSessionStatus(wsNew, 'sess-1', driver);
-      expect(wsNew.send).toHaveBeenCalledTimes(1);
+      expect(wsNew.send).toHaveBeenCalledTimes(2);
       expect(wsOther1.send).not.toHaveBeenCalled();
       expect(wsOther2.send).not.toHaveBeenCalled();
     });

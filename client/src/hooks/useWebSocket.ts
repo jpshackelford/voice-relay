@@ -40,6 +40,20 @@ interface UseWebSocketOptions {
   onAIStatusMessage?: (message: ServerMessage & { type: 'ai-status' }) => void;
   onAIThinkingMessage?: (message: ServerMessage & { type: 'ai-thinking' }) => void;
   onSessionAIStatusMessage?: (message: ServerMessage & { type: 'session-ai-status' }) => void;
+  /**
+   * Unified `session-state` callback (issue #295). When the server emits
+   * one of these, the client should prefer it over the legacy
+   * `session-ai-status` + `ai-thinking` pair. See `useAI` for the reducer.
+   */
+  onSessionStateMessage?: (message: ServerMessage & { type: 'session-state' }) => void;
+  /**
+   * Fires when a new WebSocket connection is opened (initial connect or
+   * reconnect). Use this to clear per-connection state — e.g. `useAI.reset`
+   * which clears the "have we seen a session-state yet" preference. Without
+   * this hook a reconnect would silently inherit the previous connection's
+   * decision about whether to honor legacy messages.
+   */
+  onOpen?: () => void;
   onAgentActionMessage?: (message: AgentActionMessage) => void;
   onJoinRequestMessage?: (message: ServerMessage & { type: 'join-request' }) => void;
   onJoinResolvedMessage?: (message: ServerMessage & { type: 'join-resolved' }) => void;
@@ -52,7 +66,7 @@ interface UseWebSocketOptions {
   onTranscriptionErrorMessage?: (message: ServerMessage & { type: 'transcription-error' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onSessionStateMessage, onOpen, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -68,6 +82,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAIStatusMessageRef = useRef(onAIStatusMessage);
   const onAIThinkingMessageRef = useRef(onAIThinkingMessage);
   const onSessionAIStatusMessageRef = useRef(onSessionAIStatusMessage);
+  const onSessionStateMessageRef = useRef(onSessionStateMessage);
+  const onOpenRef = useRef(onOpen);
   const onAgentActionMessageRef = useRef(onAgentActionMessage);
   const onJoinRequestMessageRef = useRef(onJoinRequestMessage);
   const onJoinResolvedMessageRef = useRef(onJoinResolvedMessage);
@@ -102,6 +118,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onAIStatusMessageRef.current = onAIStatusMessage;
   onAIThinkingMessageRef.current = onAIThinkingMessage;
   onSessionAIStatusMessageRef.current = onSessionAIStatusMessage;
+  onSessionStateMessageRef.current = onSessionStateMessage;
+  onOpenRef.current = onOpen;
   onAgentActionMessageRef.current = onAgentActionMessage;
   onJoinRequestMessageRef.current = onJoinRequestMessage;
   onJoinResolvedMessageRef.current = onJoinResolvedMessage;
@@ -161,6 +179,15 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
       ws.onopen = () => {
         console.log('[WS] Connected');
         setConnected(true);
+
+        // Fire the consumer's onOpen hook so per-connection state can be
+        // cleared (e.g. `useAI.reset` — see issue #295). Wrapped in a
+        // try/catch so a buggy consumer hook can't abort registration.
+        try {
+          onOpenRef.current?.();
+        } catch (err) {
+          console.error('[WS] onOpen handler threw:', err);
+        }
 
         // Register this device with current mode, workspace, session, and screen dimensions.
         // currentModeRef is used so the latest mode is sent on every reconnect
@@ -225,6 +252,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
               break;
             case 'session-ai-status':
               onSessionAIStatusMessageRef.current?.(message);
+              break;
+            case 'session-state':
+              onSessionStateMessageRef.current?.(message);
               break;
             case 'agent-action':
               onAgentActionMessageRef.current?.(message);
