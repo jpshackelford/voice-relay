@@ -302,7 +302,12 @@ describe('ReleaseNotes', () => {
       // Second click - switch back to relative (matches various relative time formats)
       fireEvent.click(headers[0]);
       const timestamp = headers[0].querySelector('.release-timestamp')?.textContent;
-      expect(timestamp).toMatch(/ago|yesterday|today|just now/i);
+      // Relative time strings come from the browser's Intl.RelativeTimeFormat and
+      // can be things like "yesterday", "2 days ago", "last week", "in 3 months",
+      // "just now", etc. — match the full vocabulary the formatter emits.
+      expect(timestamp).toMatch(
+        /ago|yesterday|today|just now|last|next|in \d|second|minute|hour|day|week|month|year/i,
+      );
     });
   });
 

@@ -229,15 +229,27 @@ describe('Session AI Router — POST /:sessionId/ai/restart', () => {
 
     expect(response.body.error).toBe('upstream exploded');
     // Should also broadcast an error status so peer devices reconcile.
+    // Post-#295 the broadcast pair is (legacy session-ai-status,
+    // unified session-state) — pull both and inspect them by type.
     const broadcast = registry.broadcastMessageToSession as ReturnType<typeof vi.fn>;
     expect(broadcast).toHaveBeenCalled();
-    const lastCall = broadcast.mock.calls[broadcast.mock.calls.length - 1];
-    expect(lastCall[1]).toMatchObject({
+    const legacy = broadcast.mock.calls.filter(
+      (c) => (c[1] as { type?: string }).type === 'session-ai-status',
+    );
+    const sessionState = broadcast.mock.calls.filter(
+      (c) => (c[1] as { type?: string }).type === 'session-state',
+    );
+    expect(legacy[legacy.length - 1][1]).toMatchObject({
       type: 'session-ai-status',
       sessionId: testSessionId,
       connecting: false,
       connected: false,
       error: 'upstream exploded',
+    });
+    expect(sessionState[sessionState.length - 1][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: testSessionId,
+      ai: expect.objectContaining({ state: 'degraded', error: 'upstream exploded' }),
     });
   });
 
@@ -279,19 +291,39 @@ describe('Session AI Router — POST /:sessionId/ai/restart', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .expect(200);
 
+    // Post-#295 each restart event broadcasts two messages: legacy
+    // `session-ai-status` AND unified `session-state`. Inspect them
+    // grouped by type rather than by raw index.
     const broadcast = registry.broadcastMessageToSession as ReturnType<typeof vi.fn>;
-    expect(broadcast).toHaveBeenCalledTimes(2);
-    expect(broadcast.mock.calls[0][1]).toMatchObject({
+    const legacy = broadcast.mock.calls.filter(
+      (c) => (c[1] as { type?: string }).type === 'session-ai-status',
+    );
+    const sessionState = broadcast.mock.calls.filter(
+      (c) => (c[1] as { type?: string }).type === 'session-state',
+    );
+    expect(legacy).toHaveLength(2);
+    expect(legacy[0][1]).toMatchObject({
       type: 'session-ai-status',
       sessionId: testSessionId,
       connecting: true,
       connected: false,
     });
-    expect(broadcast.mock.calls[1][1]).toMatchObject({
+    expect(legacy[1][1]).toMatchObject({
       type: 'session-ai-status',
       sessionId: testSessionId,
       connecting: true, // starting → connecting=true, connected=false
       connected: false,
+    });
+    expect(sessionState).toHaveLength(2);
+    expect(sessionState[0][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: testSessionId,
+      ai: expect.objectContaining({ state: 'starting' }),
+    });
+    expect(sessionState[1][1]).toMatchObject({
+      type: 'session-state',
+      sessionId: testSessionId,
+      ai: expect.objectContaining({ state: 'starting' }),
     });
   });
 
