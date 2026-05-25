@@ -2,12 +2,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { ReleaseNotes } from './ReleaseNotes';
 
+// Pin fixture timestamps relative to Date.now() so relative-time formatter output
+// stays in a known bucket ("5 minutes ago" / "15 minutes ago" — both match /ago/i)
+// regardless of when the test runs. See issue #333.
+const recentDeployedAt = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+const olderDeployedAt = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+// Derive the expected month name from the same fixture so absolute-format assertions
+// remain valid in any month/year. Mirrors formatAbsoluteTime() which uses month: 'short'.
+const expectedAbsoluteMonth = new Intl.DateTimeFormat('en', { month: 'short' }).format(
+  new Date(recentDeployedAt)
+);
+const expectedMonthRegex = new RegExp(expectedAbsoluteMonth);
+
 const mockChangelog = {
-  generatedAt: '2026-05-17T22:00:00Z',
+  generatedAt: new Date().toISOString(),
   entries: [
     {
       commit: 'd8456a1',
-      deployedAt: '2026-05-17T22:49:31Z',
+      deployedAt: recentDeployedAt,
       changes: [
         {
           type: 'feat' as const,
@@ -19,7 +32,7 @@ const mockChangelog = {
     },
     {
       commit: '5a25916',
-      deployedAt: '2026-05-17T20:06:54Z',
+      deployedAt: olderDeployedAt,
       changes: [
         { type: 'fix' as const, description: 'Remove kiosk mode navigation' },
         { type: 'feat' as const, scope: 'tts', description: 'Improve voice synthesis', prNumber: 220 },
@@ -281,9 +294,10 @@ describe('ReleaseNotes', () => {
 
       fireEvent.click(headers[0]);
 
-      // After click, timestamp should be in absolute format (contains "May")
+      // After click, timestamp should be in absolute format (contains the short
+      // month name of the fixture's deployedAt — derived dynamically, see issue #333).
       const timestamp = headers[0].querySelector('.release-timestamp');
-      expect(timestamp?.textContent).toMatch(/May/);
+      expect(timestamp?.textContent).toMatch(expectedMonthRegex);
     });
 
     it('toggles back to relative time on second click', async () => {
@@ -295,11 +309,15 @@ describe('ReleaseNotes', () => {
 
       const headers = document.querySelectorAll('.release-header');
 
-      // First click - switch to absolute
+      // First click - switch to absolute (asserts the short month name of the
+      // fixture's deployedAt, derived dynamically — see issue #333).
       fireEvent.click(headers[0]);
-      expect(headers[0].querySelector('.release-timestamp')?.textContent).toMatch(/May/);
+      expect(headers[0].querySelector('.release-timestamp')?.textContent).toMatch(
+        expectedMonthRegex
+      );
 
-      // Second click - switch back to relative (matches various relative time formats)
+      // Second click - switch back to relative. Fixture is pinned to 5 min ago so
+      // the formatter output is bounded to the "minutes" bucket → matches /ago/.
       fireEvent.click(headers[0]);
       const timestamp = headers[0].querySelector('.release-timestamp')?.textContent;
       expect(timestamp).toMatch(/ago|yesterday|today|just now/i);
