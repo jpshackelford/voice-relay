@@ -264,7 +264,7 @@ export function getAuthConfig(): AuthConfig | null {
   // /auth/github redirect served to a user. See issue #336.
   const allGitHubVarsMissing = !githubClientId && !githubClientSecret && !githubAppSlug;
   const someGitHubVarsMissing = !githubClientId || !githubClientSecret || !githubAppSlug;
-  const useTestMode = Boolean(testAuthSecret && jwtSecret && allGitHubVarsMissing);
+  const useTestMode = testAuthSecret && jwtSecret && allGitHubVarsMissing;
 
   if (!jwtSecret) {
     console.log('[Auth] Missing JWT_SECRET - auth disabled');
