@@ -5,9 +5,10 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "5a691bc",
+        "conv_id": "b4cf694",
         "pr": 337,
-        "started": "2026-05-26T00:35:41.981372Z"
+        "started": "2026-05-26T00:49:25.586410Z",
+        "type": "merge"
       }
     ]
   },
@@ -16,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-26T00:35:41.981372Z",
+  "last_updated": "2026-05-26T00:49:25.586410Z",
   "completed": [
     {
       "conv_id": "4b9cf9a",
@@ -62,6 +63,15 @@
       "finished": "2026-05-26T00:35:41.981372Z",
       "status": "success",
       "outcome": "Created PR #337 (fix(server): harden getAuthConfig() to fail fast on partial GitHub App config)"
+    },
+    {
+      "conv_id": "5a691bc",
+      "type": "review",
+      "pr": 337,
+      "started": "2026-05-26T00:35:41.981372Z",
+      "finished": "2026-05-26T00:49:25.586410Z",
+      "status": "success",
+      "outcome": "Addressed Boolean() wrapper nit on PR #337 (commit b6879ea); resolved review thread; CI green; PR ready for merge"
     }
   ],
   "quiet_ticks": 0
