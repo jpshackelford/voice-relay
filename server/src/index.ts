@@ -251,30 +251,45 @@ function parseDurationToMs(duration: string): number | null {
 // Client-side token refresh interval (30 minutes)
 const CLIENT_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
 
-function getAuthConfig(): AuthConfig | null {
+export function getAuthConfig(): AuthConfig | null {
   const githubClientId = process.env.GITHUB_CLIENT_ID;
   const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
   const githubAppSlug = process.env.GITHUB_APP_SLUG;
   const jwtSecret = process.env.JWT_SECRET;
   const testAuthSecret = process.env.TEST_AUTH_SECRET;
 
-  // For testing: If TEST_AUTH_SECRET is set but GitHub credentials are missing,
-  // use placeholder credentials. This allows the test auth endpoint to work
-  // without requiring real GitHub OAuth setup.
-  const useTestMode = testAuthSecret && jwtSecret &&
-    (!githubClientId || !githubClientSecret || !githubAppSlug);
+  // Test mode is only valid when *no* GitHub vars are configured. Partial
+  // configuration is always an error (see fail-fast branch below) so that
+  // the 'test-mode-placeholder' string can never leak into a real
+  // /auth/github redirect served to a user. See issue #336.
+  const allGitHubVarsMissing = !githubClientId && !githubClientSecret && !githubAppSlug;
+  const someGitHubVarsMissing = !githubClientId || !githubClientSecret || !githubAppSlug;
+  const useTestMode = testAuthSecret && jwtSecret && allGitHubVarsMissing;
 
-  // Note: useTestMode requires jwtSecret to be truthy, so this check is sufficient
   if (!jwtSecret) {
     console.log('[Auth] Missing JWT_SECRET - auth disabled');
     return null;
   }
 
-  if (!githubClientId || !githubClientSecret || !githubAppSlug) {
+  if (someGitHubVarsMissing && !allGitHubVarsMissing) {
+    // Partial GitHub App config = misconfigured. Fail loudly at startup so
+    // the placeholder credentials below can never be served to real users.
+    const missing = [
+      !githubClientId && 'GITHUB_CLIENT_ID',
+      !githubClientSecret && 'GITHUB_CLIENT_SECRET',
+      !githubAppSlug && 'GITHUB_APP_SLUG',
+    ].filter(Boolean).join(', ');
+    throw new Error(
+      `[Auth] Incomplete GitHub App configuration: missing ${missing}. ` +
+      `Set all three vars together, or unset all three to disable GitHub auth.`,
+    );
+  }
+
+  if (allGitHubVarsMissing) {
     if (useTestMode) {
-      console.log('[Auth] Using test mode - TEST_AUTH_SECRET is set, GitHub OAuth disabled');
+      console.log('[Auth] Using test mode - no GitHub vars set; TEST_AUTH_SECRET active');
     } else {
-      console.log('[Auth] Missing GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, or GITHUB_APP_SLUG - auth disabled');
+      console.log('[Auth] No GitHub vars set and no TEST_AUTH_SECRET - auth disabled');
       return null;
     }
   }
@@ -1408,7 +1423,11 @@ async function start() {
   process.on('SIGTERM', shutdown);
 }
 
-start().catch((err) => {
-  console.error('[Server] Failed to start:', err);
-  process.exit(1);
-});
+// Skip auto-start under vitest so test files can import this module
+// (e.g. to unit-test getAuthConfig) without spinning up the server.
+if (!process.env.VITEST) {
+  start().catch((err) => {
+    console.error('[Server] Failed to start:', err);
+    process.exit(1);
+  });
+}
