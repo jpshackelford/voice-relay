@@ -4,16 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "a191b05",
-        "issue": 340,
-        "started": "2026-05-28T13:20:15.649236+00:00"
+        "conv_id": "9d0f398",
+        "issue": 341,
+        "started": "2026-05-28T14:07:29.688631+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "86d8e14",
-        "pr": 342,
-        "started": "2026-05-28T13:35:54.603885+00:00"
+        "conv_id": "d3a01a4",
+        "pr": 343,
+        "started": "2026-05-28T14:07:29.688631+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T13:35:54.603885+00:00",
+  "last_updated": "2026-05-28T14:07:29.688631+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -59,6 +59,24 @@
       "finished": "2026-05-28T13:35:26.493277+00:00",
       "status": "success",
       "outcome": "Expanded #341 with full root-cause analysis; ready + priority:high added"
+    },
+    {
+      "conv_id": "a191b05",
+      "type": "implementation",
+      "issue": 340,
+      "started": "2026-05-28T13:20:15.649236+00:00",
+      "finished": "2026-05-28T14:07:29.688631+00:00",
+      "status": "success",
+      "outcome": "Implementation of #340 \u2192 opened PR #343 (CI green, automated review surfaced 2 threads)"
+    },
+    {
+      "conv_id": "86d8e14",
+      "type": "review",
+      "pr": 342,
+      "started": "2026-05-28T13:35:54.603885+00:00",
+      "finished": "2026-05-28T14:07:29.688631+00:00",
+      "status": "success",
+      "outcome": "PR #342 merged to main (#338 closed)"
     }
   ],
   "quiet_ticks": 0
