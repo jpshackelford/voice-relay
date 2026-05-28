@@ -24,6 +24,7 @@ import {
   noopCondense,
   type CondenseFn,
 } from './agent-driver/replay.js';
+import { UpstreamConversationEndedError } from './agent-driver/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1721,6 +1722,127 @@ export class AISessionManager {
     this.connectWebSocket(session);
 
     console.log(`[AI] Session AI started successfully for session ${sessionId}`);
+    return session;
+  }
+
+  /**
+   * Attach to a pre-existing upstream OpenHands conversation rather than
+   * creating a new one.
+   *
+   * This is the rehydration path from issue #341: after a server restart,
+   * sessions whose `metadata.aiConversationId` survived in SQLite are
+   * re-bound onto their existing OH conversation so kiosks don't have to
+   * start a fresh conversation (and lose context) just because Voice
+   * Relay's process died.
+   *
+   * Differs from `getOrCreateForSession` in only one way: we skip the
+   * `client.startConversation` → `client.pollUntilReady` provisioning
+   * dance and go straight to `client.getConversation` to fetch the
+   * `conversation_url` + `session_api_key` needed for the WS. The
+   * WebSocket connect path is identical.
+   *
+   * Idempotent: if `sessionAI` already has a binding for `sessionId`,
+   * returns it unchanged (same shape as `getOrCreateForSession`). This
+   * keeps a race between rehydration and the WS auto-connect path safe.
+   *
+   * Throws {@link UpstreamConversationEndedError} when the upstream
+   * conversation no longer exists (404/410 — `getConversation` returns
+   * `null`). The caller — `OpenHandsAgentDriver.doBindSession`,
+   * propagating up to `rehydrateAgentSessions` / `autoConnectAI` — uses
+   * that typed signal to broadcast a `degraded` `session-state` rather
+   * than silently failing. Reviving ended OH conversations is explicitly
+   * out of scope (see issue #341).
+   */
+  async attachExistingForSession(
+    sessionId: string,
+    workspaceId: string,
+    conversationId: string,
+    onMessage: (message: string, serverTimestamp?: string) => void,
+    options: {
+      displayLines?: number;
+      apiKey?: string;
+      displayApiSecret?: string;
+    } = {},
+  ): Promise<AISession> {
+    // Idempotency — same contract as getOrCreateForSession.
+    const existing = this.sessionAI.get(sessionId);
+    if (existing) {
+      console.log(`[AI] Returning existing session AI for session ${sessionId} (attach idempotent)`);
+      return existing;
+    }
+
+    if (!conversationId) {
+      // Defensive: this shouldn't happen given the call sites, but a
+      // silent attach to no-id would create a non-functional binding.
+      throw new Error('attachExistingForSession requires a conversationId');
+    }
+
+    const client = options.apiKey ? new OpenHandsClient(options.apiKey) : this.client;
+    if (!client) {
+      throw new Error('OpenHands API not configured');
+    }
+
+    console.log(
+      `[AI] Attaching session ${sessionId} to existing conversation ${conversationId}` +
+        ` (workspace ${workspaceId})`,
+    );
+
+    // Fetch conversation info — this is where we discover whether the
+    // upstream conversation still exists. `getConversation` returns
+    // `null` on 404 (see OpenHandsClient.getConversation).
+    let convInfo;
+    try {
+      convInfo = await client.getConversation(conversationId);
+    } catch (err) {
+      // Network/auth failure during attach is transient; surface as a
+      // generic error so the caller logs+retries on its own cadence.
+      // The typed UpstreamConversationEndedError is reserved for the
+      // explicit "conversation does not exist" signal below.
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to look up conversation ${conversationId}: ${msg}`);
+    }
+
+    if (!convInfo) {
+      throw new UpstreamConversationEndedError(conversationId);
+    }
+
+    const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
+    if (!agentServerUrl || !convInfo.session_api_key) {
+      // Treat as upstream-ended: the conversation row exists but is
+      // missing the fields we need to actually reach it (sandbox reaped
+      // / mid-teardown). Restart is the only recovery.
+      throw new UpstreamConversationEndedError(
+        conversationId,
+        `Upstream conversation ${conversationId} returned no agent_server_url/session_api_key`,
+      );
+    }
+
+    const session: AISession = {
+      conversationId,
+      // No fresh taskId — we attached to an existing conversation. Reuse
+      // the conversationId so any downstream consumer that reads `taskId`
+      // still has a stable identifier; the only consumer today
+      // (rebindConversation) keys by `conversationId` not `taskId`.
+      taskId: conversationId,
+      sessionId,
+      mode: 'kiosk',
+      agentServerUrl,
+      sessionApiKey: convInfo.session_api_key,
+      onMessage,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+
+    this.sessionAI.set(sessionId, session);
+
+    // Connect WS — same path as the create flow. `resend_all=true` in
+    // the query string ensures any agent events we missed during the
+    // outage are replayed so persistence (agent_events live ingest)
+    // catches up.
+    this.connectWebSocket(session);
+
+    console.log(`[AI] Attached session ${sessionId} to existing conversation ${conversationId}`);
     return session;
   }
 

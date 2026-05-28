@@ -183,6 +183,77 @@ describe('SessionRepository', () => {
     });
   });
 
+  // Issue #341: the rehydration pass needs to find active sessions
+  // across all workspaces whose metadata.aiConversationId is set.
+  describe('listActiveWithAiConversation', () => {
+    it('returns active sessions that have aiConversationId', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'With AI' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-1' });
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe(s1.id);
+      expect(results[0].metadata?.aiConversationId).toBe('conv-1');
+    });
+
+    it('omits sessions whose metadata has no aiConversationId', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'With AI' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-1' });
+      const s2 = repo.create({ workspaceId: testWorkspaceId, name: 'No AI' });
+      repo.updateMetadata(s2.id, { stats: { messageCount: 3, deviceCount: 1 } });
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results.map(r => r.id)).toEqual([s1.id]);
+    });
+
+    it('omits sessions with null metadata', () => {
+      repo.create({ workspaceId: testWorkspaceId, name: 'No metadata' });
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results).toEqual([]);
+    });
+
+    it('omits ended sessions even if aiConversationId is set', () => {
+      // This is the key safety property: rehydration must not try to
+      // resurrect AI for sessions the user (or scheduler) ended.
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'Ended with AI' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-old' });
+      repo.endSession(s1.id);
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results).toEqual([]);
+    });
+
+    it('returns sessions from multiple workspaces', () => {
+      // Create a second workspace so we can prove the listing is
+      // workspace-agnostic.
+      const otherUserId = 'user-other';
+      const otherWorkspaceId = 'workspace-other';
+      db.prepare(`
+        INSERT INTO users (id, github_id, username, created_at, last_login_at)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherUserId, 67890, 'otheruser');
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherWorkspaceId, otherUserId, 'Other', 'other', 'WXYZ-9876');
+
+      const s1 = repo.create({ workspaceId: testWorkspaceId });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-1' });
+      const s2 = repo.create({ workspaceId: otherWorkspaceId });
+      repo.updateMetadata(s2.id, { aiConversationId: 'conv-2' });
+
+      const results = repo.listActiveWithAiConversation();
+      const ids = results.map(r => r.id).sort();
+      expect(ids).toEqual([s1.id, s2.id].sort());
+    });
+
+    it('returns empty list when no sessions exist', () => {
+      const results = repo.listActiveWithAiConversation();
+      expect(results).toEqual([]);
+    });
+  });
+
   describe('getOrCreateActiveSession', () => {
     it('returns existing active session', () => {
       const existing = repo.create({ workspaceId: testWorkspaceId });

@@ -30,6 +30,7 @@ import { SessionRepository, createSessionRouter, createSessionAIRouter } from '.
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
+import { rehydrateAgentSessions } from './agent-rehydrate.js';
 import { relayAgentResponse } from './agent-message-relay.js';
 import { resyncAgentSessionStatus } from './resync-agent-status.js';
 import { replayDisplayContent } from './replay-display-content.js';
@@ -772,6 +773,36 @@ wss.on('connection', (ws: WebSocket) => {
               console.error(`[AI] Failed to forward message to session AI:`, err);
             });
             console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
+          } else if (
+            device.sessionId &&
+            device.sessionId !== ANONYMOUS_SESSION_ID &&
+            !message.partial
+          ) {
+            // Observability for the issue #341 silent-drop case: a final
+            // user utterance arrived for a real session but the agent
+            // driver has no binding. Pre-fix this branch was a no-op,
+            // matching the symptom reported in production (typing
+            // produced no log line and no UI feedback). Now we warn
+            // server-side AND broadcast `session-state: degraded` so
+            // the kiosk can surface "AI not attached — try restarting
+            // the session" through the existing #295/#294 affordance.
+            console.warn(
+              `[AI] Dropped message: no AI session for ${device.sessionId},` +
+                ` utteranceId=${message.utteranceId}`,
+            );
+            broadcastSessionState(
+              registry,
+              device.sessionId,
+              {
+                sessionId: device.sessionId,
+                state: 'degraded',
+                conversationId: null,
+                error: 'AI not attached — try restarting the session',
+                thinkingSince: null,
+                startingSince: null,
+              },
+              'text-handler:no-agent',
+            );
           }
           break;
         }
@@ -1395,6 +1426,41 @@ async function start() {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');
       }
     }
+  }
+
+  // Post-restart agent-driver rehydration (issue #341).
+  //
+  // Re-attach the in-memory `AgentDriver` to every active session whose
+  // `metadata.aiConversationId` survived in SQLite. Without this pass, a
+  // `systemctl restart voice-relay` leaves kiosks silent — the OH
+  // conversation is still alive but Voice Relay's binding to it is
+  // gone, and `auto-connect.ts`'s gate would never re-fire (the durable
+  // `session_devices` rows make the old "first device" heuristic
+  // permanently false; see issue #341 § Root cause #2).
+  //
+  // Fire-and-forget: the listen socket opens immediately and rehydration
+  // walks sessions sequentially in the background. Each per-session
+  // call is best-effort — one failure (transient blip, deleted upstream
+  // conversation) doesn't block the rest.
+  if (sessionRepository) {
+    rehydrateAgentSessions({
+      registry,
+      sessionRepository,
+      workspaceRepository,
+      agentDriver,
+      getWorkspaceApiKey: async (wsId) =>
+        workspaceRepository
+          ? await getWorkspaceApiKey(
+              wsId,
+              (id) => workspaceRepository?.getSettings(id) ?? null,
+              decryptApiKey,
+            )
+          : null,
+    }).catch((err) => {
+      // Defensive — every per-session call is already wrapped; getting
+      // here means the listAll query or `isAvailable` itself threw.
+      console.error('[AI] Rehydration pass failed unexpectedly:', err);
+    });
   }
 
   // Register 404 fallback handlers AFTER all dynamic routes are mounted

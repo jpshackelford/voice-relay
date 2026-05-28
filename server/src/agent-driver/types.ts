@@ -74,6 +74,40 @@ export interface OpenSessionOpts {
   displayLines?: number;
   apiKey?: string;
   displayApiSecret?: string;
+  /**
+   * When set, the driver MUST attach to the supplied upstream conversation
+   * instead of creating a new one. Used by the post-restart rehydration
+   * path (issue #341) and by the restart-aware `autoConnectAI` fallback so
+   * server restarts don't orphan in-flight OpenHands conversations.
+   *
+   * If the upstream conversation no longer exists (e.g. it was deleted /
+   * timed out upstream), the driver throws and the caller is expected to
+   * broadcast a `degraded` `session-state` so the kiosk can surface a
+   * "restart session" affordance. Reviving ended upstream conversations
+   * is explicitly out of scope.
+   */
+  existingConversationId?: string;
+}
+
+/**
+ * Thrown by a driver when an attach to an existing upstream conversation
+ * fails because the conversation no longer exists (HTTP 404, 410, etc.).
+ *
+ * Caught by the rehydration path (`agent-rehydrate.ts`) and the
+ * restart-aware `autoConnectAI` so callers can distinguish "upstream is
+ * gone, surface degraded" from "transient bind failure, retry". Drivers
+ * that don't have an attach concept (e.g. `FakeDriver` without an
+ * `existingConversationId` script entry) never throw this — they only
+ * throw on missing prerequisites.
+ */
+export class UpstreamConversationEndedError extends Error {
+  constructor(
+    public readonly conversationId: string,
+    message?: string,
+  ) {
+    super(message ?? `Upstream conversation ${conversationId} no longer available`);
+    this.name = 'UpstreamConversationEndedError';
+  }
 }
 
 /**

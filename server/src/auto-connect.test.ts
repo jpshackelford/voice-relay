@@ -271,6 +271,50 @@ describe('autoConnectAI', () => {
 
       expect(sessionRepo.updateMetadata).not.toHaveBeenCalled();
     });
+
+    // Restart-aware attach (issue #341).
+    //
+    // When the session already has an `aiConversationId` persisted in
+    // metadata (i.e. a previous server lifecycle won the create race),
+    // auto-connect MUST pass that id as `existingConversationId` so the
+    // driver re-attaches to the upstream conversation instead of spawning
+    // a duplicate. Pre-fix, no such field was passed and the late device
+    // join orphaned the original OpenHands conversation.
+    test('plumbs existingConversationId when session metadata has one (issue #341)', async () => {
+      const sessionRepo = createMockSessionRepository();
+      // Stub findById to return a session with the persisted convId.
+      (sessionRepo.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-123',
+        workspaceId: 'workspace-456',
+        metadata: { aiConversationId: 'persisted-conv-abc' },
+      });
+      const deps = createDependencies({ sessionRepository: sessionRepo });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
+        'session-123',
+        expect.objectContaining({
+          existingConversationId: 'persisted-conv-abc',
+        }),
+      );
+    });
+
+    test('does NOT pass existingConversationId when metadata has none', async () => {
+      const sessionRepo = createMockSessionRepository();
+      // No metadata → no aiConversationId.
+      (sessionRepo.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-123',
+        workspaceId: 'workspace-456',
+        metadata: null,
+      });
+      const deps = createDependencies({ sessionRepository: sessionRepo });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      const call = (deps.agentDriver.openSession as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(call[1]).not.toHaveProperty('existingConversationId');
+    });
   });
 
   describe('API key unavailable', () => {
@@ -425,15 +469,40 @@ describe('shouldAutoConnect', () => {
     expect(driver.hasSession).toHaveBeenCalledWith('session-123');
   });
 
-  test('returns false when second device joins', () => {
-    const sessionRepo = createMockSessionRepository([{ id: 'device-1' }, { id: 'device-2' }]);
+  // Restart-aware behavior (regression for issue #341).
+  //
+  // Before the fix, this returned `false` because the heuristic was
+  // "first device only" (`devicesInSession.length === 1`). After a
+  // `systemctl restart`, the durable `session_devices` table still
+  // had both rows, so the kiosk's re-register found `length === 2`,
+  // the gate stayed false, and the kiosk never got its AI binding
+  // back. Now we allow auto-connect for any device join while the
+  // driver lacks a binding; `lazyBindSession`'s single-flight slot
+  // keeps the rare double-join race safe.
+  test('returns true when second device joins after a server restart (issue #341)', () => {
+    const sessionRepo = createMockSessionRepository([
+      { id: 'device-kiosk' },
+      { id: 'device-mobile' },
+    ]);
     const driver = createMockAgentDriver({ hasSession: false });
 
-    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(true);
   });
 
   test('returns false when driver already has the session', () => {
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }]);
+    const driver = createMockAgentDriver({ hasSession: true });
+
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
+  });
+
+  test('returns false when driver already has a session AND there are multiple devices', () => {
+    // Steady-state happy path that must not regress: a third device joins
+    // a session that already has a live AI binding.
+    const sessionRepo = createMockSessionRepository([
+      { id: 'device-1' },
+      { id: 'device-2' },
+    ]);
     const driver = createMockAgentDriver({ hasSession: true });
 
     expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);

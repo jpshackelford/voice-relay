@@ -102,6 +102,50 @@ export class SessionRepository {
   }
 
   /**
+   * List every active session (across all workspaces) that has a non-null
+   * `metadata.aiConversationId`. Used by the post-restart rehydration pass
+   * (`agent-rehydrate.ts`) to find sessions whose in-memory `AgentDriver`
+   * binding was lost when the process died — without this, kiosks go
+   * silent after every deploy/restart even though the OpenHands
+   * conversation is still alive (issue #341).
+   *
+   * Sessions whose `metadata` JSON is malformed are filtered out
+   * defensively: a single garbled row must not block rehydration of the
+   * rest.
+   */
+  listActiveWithAiConversation(): Session[] {
+    const stmt = this.db.prepare<[], SessionRow>(`
+      SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+      FROM sessions
+      WHERE status = 'active'
+        AND metadata IS NOT NULL
+        AND json_extract(metadata, '$.aiConversationId') IS NOT NULL
+      ORDER BY started_at ASC
+    `);
+    const out: Session[] = [];
+    for (const row of stmt.all()) {
+      try {
+        const session = rowToSession(row);
+        // Double-check that we end up with a non-empty conversation id;
+        // `json_extract` returns the string value but a value like `""`
+        // (or `null` inside JSON) would still slip past the SQL filter.
+        if (session.metadata?.aiConversationId) {
+          out.push(session);
+        }
+      } catch (err) {
+        // Malformed JSON in metadata — skip this row. We can't rehydrate
+        // a session whose metadata we can't parse anyway.
+        console.warn(
+          `[SessionRepository] Skipping session ${row.id} during rehydration scan: failed to parse metadata`,
+          err,
+        );
+      }
+    }
+    return out;
+  }
+
+  /**
    * Get the most recent active session in a workspace, or create one if none exists.
    */
   getOrCreateActiveSession(workspaceId: string): Session {

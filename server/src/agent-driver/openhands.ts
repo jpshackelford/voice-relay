@@ -28,6 +28,7 @@ import type {
   AgentSessionStatus,
   OpenSessionOpts,
 } from './types.js';
+import { UpstreamConversationEndedError } from './types.js';
 
 /**
  * Narrow structural subset of `AISessionManager` consumed by the adapter.
@@ -45,6 +46,22 @@ export interface AISessionManagerSurface {
   getOrCreateForSession(
     sessionId: string,
     workspaceId: string,
+    onMessage: (message: string, serverTimestamp?: string) => void,
+    options?: { displayLines?: number; apiKey?: string; displayApiSecret?: string },
+  ): Promise<AISession>;
+  /**
+   * Attach (or re-attach) to a pre-existing upstream conversation without
+   * creating a new one. Used by the restart-rehydration path (#341).
+   *
+   * Implementations MUST throw {@link UpstreamConversationEndedError} when
+   * the conversation no longer exists on the upstream — the caller relies
+   * on that typed signal to surface a `degraded` `session-state` instead
+   * of silently failing.
+   */
+  attachExistingForSession(
+    sessionId: string,
+    workspaceId: string,
+    conversationId: string,
     onMessage: (message: string, serverTimestamp?: string) => void,
     options?: { displayLines?: number; apiKey?: string; displayApiSecret?: string },
   ): Promise<AISession>;
@@ -595,6 +612,19 @@ export class OpenHandsAgentDriver implements AgentDriver {
    * Actual upstream bind. Holds `state.startingSince` for the duration so
    * `synthesizeStatus` reports `starting` for concurrent observers, and
    * translates rejections into a terminal `error` `AgentEvent`.
+   *
+   * Two branches:
+   *
+   * 1. `opts.existingConversationId` present → call
+   *    `attachExistingForSession` so the upstream OH conversation is
+   *    reused rather than re-created. This is the rehydration path from
+   *    issue #341.
+   * 2. Otherwise → call `getOrCreateForSession` (the legacy path), which
+   *    creates a new conversation if none is registered.
+   *
+   * `UpstreamConversationEndedError` propagates unchanged so the
+   * rehydration / auto-connect caller can surface a `degraded` session
+   * state instead of a generic bind failure.
    */
   private async doBindSession(
     sessionId: string,
@@ -602,20 +632,37 @@ export class OpenHandsAgentDriver implements AgentDriver {
   ): Promise<BindResult> {
     state.startingSince = nowIso();
     try {
-      await this.mgr.getOrCreateForSession(
-        sessionId,
-        state.opts.workspaceId,
-        () => {
-          // Messages flow via the event-callback path; nothing to do here.
-        },
-        {
-          displayLines: state.opts.displayLines,
-          apiKey: state.opts.apiKey,
-          displayApiSecret: state.opts.displayApiSecret,
-        },
-      );
+      const onMessage = () => {
+        // Messages flow via the event-callback path; nothing to do here.
+      };
+      const sharedOpts = {
+        displayLines: state.opts.displayLines,
+        apiKey: state.opts.apiKey,
+        displayApiSecret: state.opts.displayApiSecret,
+      };
+      if (state.opts.existingConversationId) {
+        await this.mgr.attachExistingForSession(
+          sessionId,
+          state.opts.workspaceId,
+          state.opts.existingConversationId,
+          onMessage,
+          sharedOpts,
+        );
+      } else {
+        await this.mgr.getOrCreateForSession(
+          sessionId,
+          state.opts.workspaceId,
+          onMessage,
+          sharedOpts,
+        );
+      }
       return { kind: 'ok' };
     } catch (err) {
+      // Preserve the typed signal so callers (rehydration, auto-connect)
+      // can distinguish "upstream conversation gone" from generic failures.
+      if (err instanceof UpstreamConversationEndedError) {
+        throw err;
+      }
       const message = err instanceof Error ? err.message : String(err);
       return { kind: 'error', event: { kind: 'error', message, recoverable: false } };
     } finally {

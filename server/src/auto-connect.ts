@@ -121,12 +121,22 @@ export async function autoConnectAI(
     // Get min display lines from connected kiosks
     const displayLines = registry.getMinKioskDisplayLines(workspaceId);
 
+    // Restart-aware attach (issue #341): if the session already has an
+    // `aiConversationId` persisted (from a prior `openSession` that won
+    // the race before the process restart), pass it as
+    // `existingConversationId` so the driver reuses the upstream
+    // OpenHands conversation instead of starting a fresh one. Otherwise
+    // the auto-connect path acts exactly as before.
+    const persistedConversationId =
+      sessionRepository.findById(sessionId)?.metadata?.aiConversationId ?? null;
+
     // Open (and eagerly provision, for the OpenHands adapter) the agent session.
     const status = await agentDriver.openSession(sessionId, {
       workspaceId,
       displayLines,
       ...(apiKey ? { apiKey } : {}),
       ...(displayApiSecret ? { displayApiSecret } : {}),
+      ...(persistedConversationId ? { existingConversationId: persistedConversationId } : {}),
     });
 
     // Persist the OH conversation ID to session metadata so we can rehydrate
@@ -188,7 +198,24 @@ export async function autoConnectAI(
 
 /**
  * Check if auto-connect should be triggered for a session.
- * Returns true if this is the first device and no AI session exists.
+ *
+ * Restart-aware (issue #341): returns true whenever ANY device is in the
+ * session AND the driver has no live binding. The previous heuristic —
+ * "first device only" — was wrong for the post-restart case: after a
+ * `systemctl restart`, `session_devices` rows survive (durable table,
+ * `INSERT OR REPLACE`), so the kiosk + mobile rows both stayed in place
+ * and `devicesInSession.length === 1` was permanently `false`. The
+ * driver lost its in-memory binding when the process died, so
+ * `hasSession` was `false`, but the gate never fired and kiosks went
+ * silent. The driver itself remains idempotent (`openSession` short-
+ * circuits when a binding is already present), so allowing every joining
+ * device to evaluate this predicate is safe — the rare double-fire when
+ * two devices join within the same event-loop tick just hits the
+ * single-flight slot in `lazyBindSession`.
+ *
+ * The caller is responsible for reading `metadata.aiConversationId` and
+ * passing it to `autoConnectAI` for the attach path — that's done
+ * implicitly inside `autoConnectAI` itself.
  *
  * @param sessionId - The session ID to check
  * @param sessionRepository - Repository to get devices in session
@@ -204,9 +231,7 @@ export function shouldAutoConnect(
   }
 
   const devicesInSession = sessionRepository.getDevices(sessionId);
-  const isFirstDevice = devicesInSession.length === 1;
-  // Note: Race condition possible if two devices join simultaneously.
-  // Both might trigger auto-connect, but `openSession` is idempotent.
+  const hasConnectedDevice = devicesInSession.length > 0;
 
-  return isFirstDevice && !agentDriver.hasSession(sessionId);
+  return hasConnectedDevice && !agentDriver.hasSession(sessionId);
 }

@@ -42,6 +42,12 @@ class FakeAISessionManager implements AISessionManagerSurface {
   readonly calls: Array<{ name: string; args: unknown[] }> = [];
   /** Optional override of `getOrCreateForSession` behavior per test. */
   getOrCreateImpl?: (sessionId: string, workspaceId: string) => Promise<FakeAIBinding>;
+  /** Optional override of `attachExistingForSession` behavior per test. */
+  attachImpl?: (
+    sessionId: string,
+    workspaceId: string,
+    conversationId: string,
+  ) => Promise<FakeAIBinding>;
   /** Optional override of `sendSessionMessage` behavior per test. */
   sendImpl?: (sessionId: string, message: string) => Promise<void>;
   /** Override of `isAvailable` per test. Defaults to true. */
@@ -91,6 +97,33 @@ class FakeAISessionManager implements AISessionManagerSurface {
     if (existing) return existing as unknown as AISession;
     const fresh: FakeAIBinding = {
       conversationId: `conv-${sessionId}`,
+      ws: { readyState: 1 },
+      isThinking: false,
+    };
+    this.bindings.set(sessionId, fresh);
+    return fresh as unknown as AISession;
+  }
+
+  async attachExistingForSession(
+    sessionId: string,
+    workspaceId: string,
+    conversationId: string,
+    _onMessage: (m: string, ts?: string) => void,
+    _options?: { displayLines?: number; apiKey?: string; displayApiSecret?: string },
+  ): Promise<AISession> {
+    this.calls.push({
+      name: 'attachExistingForSession',
+      args: [sessionId, workspaceId, conversationId],
+    });
+    if (this.attachImpl) {
+      const b = await this.attachImpl(sessionId, workspaceId, conversationId);
+      this.bindings.set(sessionId, b);
+      return b as unknown as AISession;
+    }
+    const existing = this.bindings.get(sessionId);
+    if (existing) return existing as unknown as AISession;
+    const fresh: FakeAIBinding = {
+      conversationId,
       ws: { readyState: 1 },
       isThinking: false,
     };
@@ -240,6 +273,42 @@ describe('OpenHandsAgentDriver', () => {
         throw new Error('no API key');
       };
       await expect(driver.openSession('s1', OPTS)).rejects.toThrow(/no API key/);
+    });
+
+    // Restart-rehydration attach branch (issue #341).
+    test('T-2.2.4c: with existingConversationId routes to attachExistingForSession, not getOrCreate', async () => {
+      await driver.openSession('s1', { ...OPTS, existingConversationId: 'persisted-conv-xyz' });
+
+      const attaches = mgr.calls.filter((c) => c.name === 'attachExistingForSession');
+      expect(attaches).toHaveLength(1);
+      expect(attaches[0].args).toEqual(['s1', 'wk-1', 'persisted-conv-xyz']);
+      // Critically, NO call to getOrCreateForSession — that's the bug
+      // we're fixing: rehydration must reuse the upstream conversation
+      // instead of orphaning it with a new one.
+      expect(mgr.calls.find((c) => c.name === 'getOrCreateForSession')).toBeUndefined();
+    });
+
+    test('T-2.2.4d: without existingConversationId still routes to getOrCreate (default path)', async () => {
+      await driver.openSession('s1', OPTS);
+
+      expect(mgr.calls.find((c) => c.name === 'attachExistingForSession')).toBeUndefined();
+      expect(mgr.calls.find((c) => c.name === 'getOrCreateForSession')).toBeDefined();
+    });
+
+    test('T-2.2.4e: UpstreamConversationEndedError from attach propagates as a typed throw', async () => {
+      // Importing here keeps the import close to the assertion for
+      // readability. The driver must re-throw the typed error (not
+      // collapse it into a generic Error) so callers can branch on
+      // `instanceof UpstreamConversationEndedError` to broadcast a
+      // degraded session state.
+      const { UpstreamConversationEndedError } = await import('./types.js');
+      mgr.attachImpl = async () => {
+        throw new UpstreamConversationEndedError('persisted-conv-gone');
+      };
+
+      await expect(
+        driver.openSession('s1', { ...OPTS, existingConversationId: 'persisted-conv-gone' }),
+      ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
     });
   });
 

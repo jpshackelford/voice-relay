@@ -38,6 +38,13 @@ interface FakeSession {
   scripts: ScriptEntry[][];
   /** Idempotency cache: utteranceId → terminal event (`message`, `error`, or `status`). */
   utteranceMemo: Map<string, AgentEvent>;
+  /**
+   * True when this session was opened via `existingConversationId`
+   * (attach path from issue #341). Tests use {@link FakeDriver.wasAttached}
+   * to assert the rehydration code took the attach branch instead of
+   * creating a fresh conversation.
+   */
+  attached: boolean;
 }
 
 function nowIso(): string {
@@ -71,18 +78,37 @@ export class FakeDriver implements AgentDriver {
       // Idempotent: do not reset state on re-open.
       return this.toStatus(sessionId, existing);
     }
+    // Honor `existingConversationId` (issue #341): when the caller is
+    // rehydrating, the fake "attaches" to the supplied conversation id
+    // rather than fabricating a new one. Tests check the
+    // `wasAttached` flag to assert the rehydration path took the
+    // attach branch instead of falling back to a fresh start.
+    const attached = !!opts.existingConversationId;
+    const conversationId = opts.existingConversationId
+      ?? `fake-conv-${++this.conversationCounter}`;
     const session: FakeSession = {
       state: 'ready',
-      conversationId: `fake-conv-${++this.conversationCounter}`,
+      conversationId,
       error: null,
       thinkingSince: null,
       startingSince: null,
       workspaceId: opts.workspaceId,
       scripts: [],
       utteranceMemo: new Map(),
+      attached,
     };
     this.sessions.set(sessionId, session);
     return this.toStatus(sessionId, session);
+  }
+
+  /**
+   * Test helper: was the session opened via `existingConversationId`
+   * (attach path)? Returns `false` for sessions opened with a fresh
+   * conversation id and `undefined` for unknown sessions.
+   */
+  wasAttached(sessionId: string): boolean | undefined {
+    const s = this.sessions.get(sessionId);
+    return s ? s.attached : undefined;
   }
 
   sendMessage(sessionId: string, utteranceId: string, _text: string): AsyncIterable<AgentEvent> {
@@ -187,6 +213,7 @@ export class FakeDriver implements AgentDriver {
         workspaceId: fallbackWorkspaceId,
         scripts: [],
         utteranceMemo: new Map(),
+        attached: false,
       };
       this.sessions.set(sessionId, session);
     }

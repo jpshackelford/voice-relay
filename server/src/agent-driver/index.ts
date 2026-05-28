@@ -68,6 +68,7 @@ export type {
   AgentSessionStatus,
   OpenSessionOpts,
 } from './types.js';
+export { UpstreamConversationEndedError } from './types.js';
 export { FakeDriver, type ScriptEntry } from './fake.js';
 export {
   OpenHandsAgentDriver,
