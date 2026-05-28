@@ -3,14 +3,20 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": []
+    "review": [
+      {
+        "conv_id": "972c883",
+        "pr": 345,
+        "started": "2026-05-28T15:34:54.488814+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T15:24:37.856552+00:00",
+  "last_updated": "2026-05-28T15:34:54.488814+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -112,5 +118,5 @@
       "outcome": "Spawn failed: sandbox iHalwVRUjIt0w4nuQeCA8 failed to start within 120s"
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
