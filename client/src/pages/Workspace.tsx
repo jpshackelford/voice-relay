@@ -6,6 +6,7 @@ import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
+import { useKioskConfig } from '../hooks/useKioskConfig';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { getUserFriendlyMessage } from '../utils/errors';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
@@ -51,6 +52,9 @@ export function Workspace() {
   const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+
+  // Issue #340: anonymous-safe per-workspace ticker config for the kiosk.
+  const { config: kioskConfig } = useKioskConfig(workspaceId);
 
   // Apply restored mode when available
   useEffect(() => {
@@ -294,6 +298,7 @@ export function Workspace() {
           displayContent={displayContent}
           sendText={sendText}
           onModeChange={handleModeChange}
+          kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
         />
       </>
     );

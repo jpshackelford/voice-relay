@@ -3766,11 +3766,99 @@ header {
   }
 }
 
-/* In kiosk display area, use absolute positioning */
+/* In kiosk display area, use absolute positioning.
+   Default position is bottom-left (pre-#340 behavior). */
 .kiosk-display .connection-indicator {
   position: absolute;
   bottom: 1rem;
   left: 1rem;
+}
+
+/* Issue #340: when the footer tickers are enabled, relocate the dot to the
+   top-right so the ticker strips can own the bottom edge without overlap.
+   Gated on the data-tickers-enabled attribute set by KioskMode so workspaces
+   that haven't opted into the tickers keep the original bottom-left placement. */
+.kiosk-display[data-tickers-enabled="true"] .connection-indicator {
+  bottom: auto;
+  left: auto;
+  top: 1rem;
+  right: 1rem;
+}
+
+/* ========================================
+   Issue #340: kiosk footer ticker strips
+   ======================================== */
+
+/* Common ticker base: single-line, fixed-height strip across the bottom edge.
+   We use absolute positioning relative to .kiosk-display so the strips sit
+   above whatever content is in the display area and the existing message
+   list reserves space via the displayLines calculation in
+   server/src/registry.ts. */
+.kiosk-ticker {
+  position: absolute;
+  bottom: 0;
+  height: 2.25rem;
+  line-height: 2.25rem;
+  padding: 0 1rem;
+  font-size: 0.95rem;
+  /* Match the kiosk's existing text rhythm; keep it monochrome so it reads
+     as decoration rather than as a message. */
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+.kiosk-ticker-transcription {
+  left: 0;
+  /* Leave room for the action ticker on the right. The exact split doesn't
+     matter much; 60/40 leaves more space for human transcription which tends
+     to be longer than action titles like "Execute Bash". */
+  width: 60%;
+  text-align: left;
+  border-top-right-radius: 0.5rem;
+}
+
+.kiosk-ticker-action {
+  right: 0;
+  width: 40%;
+  text-align: right;
+  border-top-left-radius: 0.5rem;
+  /* Use a subtly distinct tint so the user can tell at a glance which side is
+     the AI's. We don't introduce a new color token here -- just reuse the
+     accent that other AI-related affordances use. */
+  background: rgba(0, 80, 160, 0.45);
+}
+
+.kiosk-ticker-text {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Below a fairly narrow breakpoint there isn't useful room for two side-by-
+   side strips; stack them. The total ticker reservation in registry.ts
+   already assumes one line, so we keep this within that budget by halving
+   each strip's height. */
+@media (max-width: 480px) {
+  .kiosk-ticker {
+    height: 1.5rem;
+    line-height: 1.5rem;
+    font-size: 0.8rem;
+    width: 100%;
+  }
+  .kiosk-ticker-transcription {
+    bottom: 1.5rem;
+    border-top-right-radius: 0;
+  }
+  .kiosk-ticker-action {
+    bottom: 0;
+    border-top-left-radius: 0;
+  }
 }
 
 /* ========================================

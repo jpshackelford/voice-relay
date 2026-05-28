@@ -682,6 +682,15 @@ export function WorkspaceHome() {
     }
   };
 
+  // Issue #340: kiosk footer tickers toggle
+  const handleKioskTickersToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ kioskFooterTickersEnabled: enabled });
+    } catch (err) {
+      setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update kiosk ticker setting: ' + getErrorMessage(err) });
+    }
+  };
+
   // Stop any currently playing voice preview
   const stopVoicePreview = useCallback(() => {
     if (voicePreviewAudioRef.current) {
@@ -1217,6 +1226,23 @@ export function WorkspaceHome() {
                 </label>
                 <span className="setting-hint">
                   When enabled, AI responses will be spoken aloud on kiosk devices
+                </span>
+              </div>
+
+              {/* Issue #340: kiosk footer tickers toggle */}
+              <div className="setting-row kiosk-tickers-setting">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={settings?.kioskFooterTickersEnabled ?? false}
+                    onChange={(e) => handleKioskTickersToggle(e.target.checked)}
+                    className="kiosk-tickers-checkbox"
+                  />
+                  <span className="checkbox-label">Show transcription &amp; AI action tickers on kiosk display</span>
+                </label>
+                <span className="setting-hint">
+                  Adds two one-line strips along the bottom: live transcription on the left,
+                  current AI action on the right. Reduces visible display lines by 1.
                 </span>
               </div>
             </div>

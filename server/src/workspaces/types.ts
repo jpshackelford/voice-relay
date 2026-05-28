@@ -37,6 +37,12 @@ export interface WorkspaceSettings {
   elevenlabsVoiceId: string | null;
   /** Whether server-side TTS is enabled for this workspace */
   elevenlabsTtsEnabled: boolean;
+  /**
+   * Whether the kiosk display shows the new footer ticker strips
+   * (transcription + AI action). Disabled by default to preserve the
+   * current UX; see issue #340.
+   */
+  kioskFooterTickersEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -49,6 +55,7 @@ export interface WorkspaceSettingsInput {
   elevenlabsApiKey?: string; // Plain text - will be encrypted before storage
   elevenlabsVoiceId?: string;
   elevenlabsTtsEnabled?: boolean;
+  kioskFooterTickersEnabled?: boolean;
 }
 
 export interface WorkspaceMember {

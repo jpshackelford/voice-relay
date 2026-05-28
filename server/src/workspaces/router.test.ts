@@ -14,6 +14,7 @@ import { migration as workspacesMigration } from '../storage/migrations/003_work
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
 import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
+import { migration as kioskTickersMigration } from '../storage/migrations/015_kiosk_footer_tickers.js';
 
 // Helper to set up test database and app
 function setupTestEnv() {
@@ -52,6 +53,7 @@ function setupTestEnv() {
   `);
   db.exec(qrTokensMigration.up);
   db.exec(elevenlabsMigration.up);
+  db.exec(kioskTickersMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);
@@ -555,6 +557,7 @@ describe('Workspace Router - GET /:id/devices', () => {
     `);
     db.exec(qrTokensMigration.up);
     db.exec(elevenlabsMigration.up);
+    db.exec(kioskTickersMigration.up);
 
     workspaceRepository = new WorkspaceRepository(db);
     deviceRepository = new DeviceRepository(db);
@@ -1246,6 +1249,7 @@ function setupDeletionTestEnv() {
   `);
   db.exec(qrTokensMigration.up);
   db.exec(elevenlabsMigration.up);
+  db.exec(kioskTickersMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);
@@ -1672,5 +1676,68 @@ describe('Workspace Router - POST /:id/settings/voice-preview', () => {
       .expect(400);
 
     expect(response.body.error).toBe('ElevenLabs API key not configured');
+  });
+});
+
+// Issue #340: anonymous kiosk-config endpoint
+describe('Workspace Router - GET /:id/kiosk-config', () => {
+  let app: Express;
+  let db: Database.Database;
+  let workspaceRepository: WorkspaceRepository;
+  let testWorkspaceId: string;
+
+  beforeEach(() => {
+    const env = setupTestEnv();
+    db = env.db;
+    app = env.app;
+    workspaceRepository = env.workspaceRepository;
+
+    // Owning user + workspace
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run('owner-1', 1, 'owner');
+
+    const ws = workspaceRepository.create('owner-1', { name: 'Kiosk WS' });
+    testWorkspaceId = ws.id;
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('returns kioskFooterTickersEnabled=false by default without auth', async () => {
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
+      .expect(200);
+    expect(response.body).toEqual({
+      workspaceId: testWorkspaceId,
+      kioskFooterTickersEnabled: false,
+    });
+  });
+
+  it('reflects the updated kioskFooterTickersEnabled flag', async () => {
+    workspaceRepository.updateSettings(testWorkspaceId, {
+      kioskFooterTickersEnabled: true,
+    });
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
+      .expect(200);
+    expect(response.body.kioskFooterTickersEnabled).toBe(true);
+  });
+
+  it('returns 404 for an unknown workspace', async () => {
+    await request(app)
+      .get('/api/workspaces/does-not-exist/kiosk-config')
+      .expect(404);
+  });
+
+  it('does not require an Authorization header', async () => {
+    // Explicitly omit auth and assert success.
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
+      .set('Authorization', '') // intentionally blank
+      .expect(200);
+    expect(response.body.workspaceId).toBe(testWorkspaceId);
   });
 });

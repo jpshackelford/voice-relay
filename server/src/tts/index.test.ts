@@ -18,6 +18,7 @@ describe('TtsService', () => {
     elevenlabsApiKeyTag: 'tag',
     elevenlabsVoiceId: 'voice-123',
     elevenlabsTtsEnabled: true,
+    kioskFooterTickersEnabled: false,
     updatedAt: null,
   };
 

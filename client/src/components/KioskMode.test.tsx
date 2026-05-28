@@ -1436,4 +1436,201 @@ describe('KioskMode', () => {
       expect(screen.getByTitle('Success')).toBeDefined();
     });
   });
+
+  // ====================================================================
+  // Issue #340: footer ticker strips
+  // ====================================================================
+  describe('Footer tickers (issue #340)', () => {
+    beforeEach(() => {
+      setWindowWidth(1024);
+    });
+
+    function makeUtterance(
+      partial: Partial<Utterance> & Pick<Utterance, 'id' | 'senderId' | 'text'>
+    ): Utterance {
+      return {
+        senderName: partial.senderId,
+        partial: false,
+        receivedAt: new Date(),
+        ...partial,
+      } as Utterance;
+    }
+
+    function makeAction(partial: Partial<AgentAction> & Pick<AgentAction, 'id' | 'kind'>): AgentAction {
+      return {
+        timestamp: new Date().toISOString(),
+        source: 'agent',
+        summary: '',
+        ...partial,
+      } as AgentAction;
+    }
+
+    it('renders no ticker strips when kioskFooterTickersEnabled is false', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled={false}
+          />
+        );
+      });
+      expect(screen.queryByTestId('kiosk-ticker-transcription')).toBeNull();
+      expect(screen.queryByTestId('kiosk-ticker-action')).toBeNull();
+    });
+
+    it('renders both ticker strips when enabled', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-transcription')).toBeDefined();
+      expect(screen.getByTestId('kiosk-ticker-action')).toBeDefined();
+    });
+
+    it('shows the most recent foreign utterance text in the transcription ticker', () => {
+      const utterances = new Map<string, Utterance>([
+        ['u1', makeUtterance({ id: 'u1', senderId: 'mobile-1', text: 'hello world' })],
+      ]);
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            utterances={utterances}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-transcription').textContent).toContain('hello world');
+    });
+
+    it('ignores own-device utterances in the transcription ticker', () => {
+      const utterances = new Map<string, Utterance>([
+        ['u1', makeUtterance({ id: 'u1', senderId: 'test-device-123', text: 'self speech' })],
+      ]);
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            utterances={utterances}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-transcription').textContent).not.toContain('self speech');
+    });
+
+    it('shows the latest agentAction summary in the action ticker', () => {
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('Running ls');
+    });
+
+    it("clears the action ticker once an ai-sender utterance arrives after the action", () => {
+      const actionTs = new Date(Date.now() - 5_000).toISOString();
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'old action', timestamp: actionTs }),
+      ];
+      const utterances = new Map<string, Utterance>([
+        ['u-ai', makeUtterance({ id: 'u-ai', senderId: 'ai', text: 'all done', receivedAt: new Date() })],
+      ]);
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+            utterances={utterances}
+          />
+        );
+      });
+      // Per the orchestrator refinement, the AI utterance (senderId === 'ai')
+      // clears the action ticker because the AI has handed the floor back.
+      expect(screen.getByTestId('kiosk-ticker-action').textContent?.trim()).toBe('');
+    });
+
+    it('keeps the action ticker when the AI utterance predates the action', () => {
+      const earlyAi = new Date(Date.now() - 10_000);
+      const lateAction = new Date(Date.now() - 1_000).toISOString();
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'newer action', timestamp: lateAction }),
+      ];
+      const utterances = new Map<string, Utterance>([
+        ['u-ai', makeUtterance({ id: 'u-ai', senderId: 'ai', text: 'old reply', receivedAt: earlyAi })],
+      ]);
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+            utterances={utterances}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('newer action');
+    });
+
+    it('renders the connection indicator inside the kiosk display (top-right slot)', () => {
+      // The connection dot should be a descendant of `.kiosk-display`, which
+      // makes the CSS top-right positioning rule applicable. (Issue #340: dot
+      // relocates out of the bottom-left footer area.)
+      const { container } = render(
+        <KioskMode
+          {...defaultProps}
+          devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+          kioskFooterTickersEnabled
+        />
+      );
+      const kioskDisplay = container.querySelector('.kiosk-display');
+      const dot = kioskDisplay?.querySelector('.connection-indicator');
+      expect(dot).not.toBeNull();
+    });
+
+    it('sets data-tickers-enabled="true" on .kiosk-display when tickers are on', () => {
+      // Gates the CSS rule that relocates the connection dot to the top-right.
+      const { container } = render(
+        <KioskMode
+          {...defaultProps}
+          devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+          kioskFooterTickersEnabled
+        />
+      );
+      const kioskDisplay = container.querySelector('.kiosk-display');
+      expect(kioskDisplay?.getAttribute('data-tickers-enabled')).toBe('true');
+    });
+
+    it('sets data-tickers-enabled="false" on .kiosk-display when tickers are off', () => {
+      // Default state — keeps the dot at the original bottom-left position,
+      // preventing a breaking visual change for workspaces that haven't opted in.
+      const { container } = render(
+        <KioskMode
+          {...defaultProps}
+          devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+        />
+      );
+      const kioskDisplay = container.querySelector('.kiosk-display');
+      expect(kioskDisplay?.getAttribute('data-tickers-enabled')).toBe('false');
+    });
+  });
 });

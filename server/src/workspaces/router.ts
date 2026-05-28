@@ -76,6 +76,30 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   } = config;
   const auth = requireAuth(authConfig);
 
+  // Public kiosk-facing client config (no auth required).
+  //
+  // Returns only flags safe to expose without authentication so that anonymous
+  // kiosk displays can adapt their UI. Currently exposes the issue #340
+  // footer-ticker toggle. Mirrors WS auth-less access: kiosks register over
+  // WebSocket without a session.
+  router.get('/:id/kiosk-config', async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+      const settings = workspaceRepository.getSettings(workspace.id);
+      res.json({
+        workspaceId: workspace.id,
+        kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
+      });
+    } catch (err) {
+      console.error('[Workspaces] Get kiosk-config error:', err);
+      res.status(500).json({ error: 'Failed to get kiosk config' });
+    }
+  });
+
   // List user's workspaces
   router.get('/', auth, async (req: Request, res: Response) => {
     try {
@@ -462,6 +486,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasElevenlabsApiKey: !!settings?.elevenlabsApiKeyEncrypted,
         elevenlabsVoiceId: settings?.elevenlabsVoiceId ?? null,
         elevenlabsTtsEnabled: settings?.elevenlabsTtsEnabled ?? false,
+        kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -485,13 +510,14 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled } = req.body as { 
+      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled, kioskFooterTickersEnabled } = req.body as { 
         ttsVoice?: string; 
         sttLanguage?: string;
         allowAutoJoin?: boolean;
         requireQrToken?: boolean;
         elevenlabsVoiceId?: string;
         elevenlabsTtsEnabled?: boolean;
+        kioskFooterTickersEnabled?: boolean;
       };
 
       // Note: API key encryption is handled by separate endpoints
@@ -503,6 +529,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         requireQrToken,
         elevenlabsVoiceId,
         elevenlabsTtsEnabled,
+        kioskFooterTickersEnabled,
       });
 
       res.json({
@@ -515,6 +542,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         hasElevenlabsApiKey: !!settings.elevenlabsApiKeyEncrypted,
         elevenlabsVoiceId: settings.elevenlabsVoiceId,
         elevenlabsTtsEnabled: settings.elevenlabsTtsEnabled,
+        kioskFooterTickersEnabled: settings.kioskFooterTickersEnabled,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {

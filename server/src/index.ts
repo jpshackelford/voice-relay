@@ -614,17 +614,24 @@ wss.on('connection', (ws: WebSocket) => {
           
           // SECURITY: Validate platform to prevent log injection attacks
           const validatedPlatform = isValidPlatform(message.platform) ? message.platform : undefined;
-          
+
+          // Issue #340: workspace footer-ticker setting reduces the kiosk's
+          // usable display lines so the OpenHands system prompt stays honest.
+          const tickersEnabled = workspaceRepository
+            ?.getSettings(requestedWorkspaceId)
+            ?.kioskFooterTickersEnabled ?? false;
+
           registry.register(
             message.deviceId,
             requestedWorkspaceId,
-            ws, 
-            message.displayName, 
+            ws,
+            message.displayName,
             message.mode,
             message.screenWidth,
             message.screenHeight,
             sessionId,
-            validatedPlatform
+            validatedPlatform,
+            tickersEnabled
           );
           
           const response: RegisteredMessage = {

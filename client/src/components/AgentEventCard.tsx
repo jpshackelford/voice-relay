@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { SuccessIndicator, getObservationStatus } from './SuccessIndicator';
 import { getActionIcon } from '../hooks/useAgentActions';
 import { getEventContent } from '../utils/getEventContent';
+import { formatActionKind } from '../utils/formatActionKind';
 import type { AgentAction, ExtendedAgentAction, ObservationStatus } from '../types';
 
 // Configure marked for code blocks and basic markdown
@@ -145,15 +146,4 @@ function isObservationKind(kind: string): boolean {
   return kind.includes('Observation');
 }
 
-/**
- * Format action kind into a readable title.
- * Removes "Action" or "Observation" suffix and adds spaces.
- */
-function formatActionKind(kind: string): string {
-  return kind
-    .replace(/Action$/, '')
-    .replace(/Observation$/, '')
-    .replace(/Event$/, '')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .trim();
-}
+

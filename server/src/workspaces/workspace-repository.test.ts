@@ -7,6 +7,7 @@ import { migration as workspacesMigration } from '../storage/migrations/003_work
 import { migration as allowAutoJoinMigration } from '../storage/migrations/007_allow_auto_join.js';
 import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tokens.js';
 import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
+import { migration as kioskTickersMigration } from '../storage/migrations/015_kiosk_footer_tickers.js';
 
 describe('WorkspaceRepository', () => {
   let db: Database.Database;
@@ -36,6 +37,7 @@ describe('WorkspaceRepository', () => {
     `);
     db.exec(qrTokensMigration.up);
     db.exec(elevenlabsMigration.up);
+    db.exec(kioskTickersMigration.up);
     repo = new WorkspaceRepository(db);
 
     // Create a test user
@@ -342,6 +344,32 @@ describe('WorkspaceRepository', () => {
       // Then disable it
       repo.updateSettings(workspace.id, { allowAutoJoin: false });
       expect(repo.getSettings(workspace.id)?.allowAutoJoin).toBe(false);
+    });
+
+    // Issue #340: workspace-level kiosk footer ticker toggle
+    it('defaults kioskFooterTickersEnabled to false', () => {
+      const workspace = repo.create(testUserId, { name: 'Test' });
+      const settings = repo.getSettings(workspace.id);
+      expect(settings?.kioskFooterTickersEnabled).toBe(false);
+    });
+
+    it('persists kioskFooterTickersEnabled toggles', () => {
+      const workspace = repo.create(testUserId, { name: 'Test' });
+
+      repo.updateSettings(workspace.id, { kioskFooterTickersEnabled: true });
+      expect(repo.getSettings(workspace.id)?.kioskFooterTickersEnabled).toBe(true);
+
+      repo.updateSettings(workspace.id, { kioskFooterTickersEnabled: false });
+      expect(repo.getSettings(workspace.id)?.kioskFooterTickersEnabled).toBe(false);
+    });
+
+    it('preserves kioskFooterTickersEnabled across unrelated updates', () => {
+      const workspace = repo.create(testUserId, { name: 'Test' });
+      repo.updateSettings(workspace.id, { kioskFooterTickersEnabled: true });
+      repo.updateSettings(workspace.id, { ttsVoice: 'nova' });
+      const settings = repo.getSettings(workspace.id);
+      expect(settings?.kioskFooterTickersEnabled).toBe(true);
+      expect(settings?.ttsVoice).toBe('nova');
     });
   });
 
