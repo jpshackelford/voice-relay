@@ -32,6 +32,7 @@ import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
 import { relayAgentResponse } from './agent-message-relay.js';
 import { resyncAgentSessionStatus } from './resync-agent-status.js';
+import { replayDisplayContent } from './replay-display-content.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
@@ -439,6 +440,21 @@ app.post('/api/display', async (req, res) => {
   const displayContent: DisplayContent = { type, content, title };
   registry.broadcastToKiosks(displayContent, authResult.workspaceId);
 
+  // Persist display content so kiosks refreshing/rejoining can be caught
+  // up at register time (issue #338). Gated on a real (non-anonymous)
+  // session — anonymous sessions don't have stable identity to key
+  // persisted display content off of.
+  if (sessionRepository && sessionId && sessionId !== ANONYMOUS_SESSION_ID) {
+    if (type === 'clear') {
+      sessionRepository.clearDisplayContent(sessionId);
+    } else {
+      // `type !== 'clear'` and the earlier guard ensures `content` is set.
+      sessionRepository.updateMetadata(sessionId, {
+        displayContent: { type, content: content!, ...(title ? { title } : {}) },
+      });
+    }
+  }
+
   const kioskCount = registry.getKioskDevices(authResult.workspaceId).length;
   res.json({ success: true, kioskCount });
 });
@@ -647,6 +663,12 @@ wss.on('connection', (ws: WebSocket) => {
               ws.send(JSON.stringify(ttsSettingsMsg));
             }
           }
+
+          // Replay the last persisted display content (issue #338) so a
+          // refreshing kiosk doesn't fall back to the default "Session
+          // ready" placeholder. No-op when there is no persisted content
+          // (e.g. nothing displayed yet, or the last call was clear).
+          replayDisplayContent(ws, sessionId, sessionRepository);
 
           // Catch a (re)joining device up on the current AI session state.
           // Live transitions are only broadcast as they happen, so without
