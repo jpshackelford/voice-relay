@@ -610,3 +610,27 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-28 23:44 UTC - Expansion Worker (`a6a9ba2`)
+
+✅ **Expanded Issue [#346](https://github.com/jpshackelford/voice-relay/issues/346) — improvements to kiosk footer tickers**
+
+- **Type:** Enhancement (UX polish — 5 bundled items)
+- **Status:** Ready for implementation
+- **Labels added:** `ready`, `priority:medium`, `client`
+- **Approach (per-item):**
+  - Item 1 — Mount a 3rem purple-circle wrapper at bottom-left of `.kiosk-display` containing the existing `<Oscilloscope />`; drive it via a new `useFauxAudioActivity` hook because `KioskMode` has no local mic stream (kiosk never calls `getUserMedia` — only `MobileMode` does).
+  - Item 2 — Extract a `MarqueeTicker` component using measured-pixel-width and CSS `transform` translation for the right→left word arrival animation; replaces the current ellipsis-truncation in `.kiosk-ticker-transcription`.
+  - Item 3 — CSS-only: drop the blue tint on `.kiosk-ticker-action` (falls back to base black) and add `padding-right: 4rem` so the sparkle has clean backdrop. Flagged left-vs-right phrasing in original issue as an open question.
+  - Item 4 — Rewrite `actionTickerText` memo in `KioskMode.tsx` to skip observation-kind entries, prefix `getActionIcon(kind)` emoji, and append ✅ when the matching observation arrives (correlated via `observation.action_id === action.id` — canonical pairing key from `pairAgentEvents.ts`).
+  - Item 5 — Reuse `.tts-toggle-setting` / `.tts-checkbox` classes on the kiosk-tickers row in `WorkspaceHome.tsx` (alternative: rename to `.settings-toggle*` — flagged as Open Question 4).
+- **Scope:** estimated < 500 lines diff; suggested commit order in the comment goes 5 → 4 → 3 → 2 → 1 (small/isolated first).
+- **Open questions raised for @jpshackelford** (in expansion comment):
+  1. Item 3 left-vs-right phrasing (suspected typo — assumed action ticker stays on the right).
+  2. Item 1 — faux waveform vs. plumbing real audio levels over WebSocket.
+  3. Item 4 — should completed-action checkmark linger before being replaced?
+  4. Item 5 — class reuse vs. rename to `.settings-toggle*`.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
