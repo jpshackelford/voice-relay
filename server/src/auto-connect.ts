@@ -217,8 +217,35 @@ export async function autoConnectAI(
  *   - Failed rehydration transiently (the next device join retries).
  *   - Became active after the boot pass ran.
  *
- * Race safety: `agentDriver.openSession` is idempotent on `sessionId`, so
- * two simultaneous device joins both observing `hasSession=false` is safe.
+ * Race safety / dispatcher pre-bind contract:
+ *
+ * `agentDriver.openSession` is the only call that creates the
+ * `sessionId → AISession` binding inside `AISessionManager.sessionAI`.
+ * The driver delegates to `AISessionManager.getOrCreateForSession`, which
+ * single-flights on `sessionId`: it checks `sessionAI.has(sessionId)`
+ * first and returns the existing binding when one is present (see
+ * `agent-driver/openhands.ts` near `getOrCreateForSession`).
+ *
+ * That makes the `>= 1` device check race-safe against two distinct
+ * scenarios:
+ *
+ *   1. Restart re-bind (the motivating bug for #341): both kiosk and
+ *      mobile reconnect after a deploy; either WS handshake calling
+ *      `shouldAutoConnect` correctly returns `true` because the
+ *      in-memory binding is gone, so the first caller wins and
+ *      establishes the binding; the second caller's `getOrCreateForSession`
+ *      observes the now-present binding and returns it.
+ *
+ *   2. Concurrent first join: two devices simultaneously join a brand-new
+ *      session before either side's auto-connect has completed. Both
+ *      observe `hasSession === false`, both call `openSession`, but
+ *      `getOrCreateForSession`'s single-flight in `AISessionManager`
+ *      prevents a duplicate upstream conversation — exactly one OH
+ *      conversation is created, both callers receive the same binding.
+ *
+ * Anything stricter (e.g. the old `=== 1` heuristic, or a lock around the
+ * predicate) is wrong because the persisted `session_devices` table
+ * survives restarts but the in-memory `sessionAI` map does not.
  *
  * The caller (`autoConnectAI`) reads `session.metadata.aiConversationId`
  * and threads it through `existingConversationId` so the post-restart
@@ -239,7 +266,11 @@ export function shouldAutoConnect(
   }
 
   const devicesInSession = sessionRepository.getDevices(sessionId);
-  const hasConnectedDevice = devicesInSession.length > 0;
+  // Auto-connect whenever the session has ANY connected device and the
+  // driver has no live binding. Race-safe via `getOrCreateForSession`'s
+  // single-flight check inside `AISessionManager` — see the comment block
+  // above for the full dispatcher pre-bind contract.
+  const hasConnectedDevice = devicesInSession.length >= 1;
 
   return hasConnectedDevice && !agentDriver.hasSession(sessionId);
 }
