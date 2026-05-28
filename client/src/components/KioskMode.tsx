@@ -9,7 +9,8 @@ import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
-import { formatActionKind } from '../utils/formatActionKind';
+import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
+import { getActionIcon } from '../hooks/useAgentActions';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
 
@@ -495,14 +496,51 @@ export function KioskMode({
     return max;
   }, [utterances]);
 
+  // Issue #346 item 4: mirror the sidebar AgentEventCard pattern in the ticker:
+  //   - Skip observation-side entries entirely (their corresponding action
+  //     already represents the work).
+  //   - Prefix the action's display string with the kind-based emoji from
+  //     `getActionIcon(kind)` for at-a-glance visual parity with the card view.
+  //   - Append a green checkmark once the matching observation has arrived,
+  //     correlated via `observation.action_id === action.id` — the canonical
+  //     pairing key documented in `pairAgentEvents.ts`. We only need the
+  //     most-recent-action's status here, not the full paired-timeline build,
+  //     so we do a single linear scan instead of calling `pairAgentEvents()`.
   const actionTickerText = useMemo(() => {
     if (!kioskFooterTickersEnabled) return '';
     if (agentActions.length === 0) return '';
-    const lastAction = agentActions[agentActions.length - 1];
+
+    // Find the most recent action-side entry (walk backwards, skipping
+    // observations). The "most recent" semantic stays the same as before;
+    // we just filter the observation half of each pair out of consideration.
+    let lastAction: AgentAction | null = null;
+    for (let i = agentActions.length - 1; i >= 0; i--) {
+      const candidate = agentActions[i];
+      if (isObservationKind(candidate.kind)) continue;
+      lastAction = candidate;
+      break;
+    }
     if (!lastAction) return '';
+
+    // Preserve the existing staleness gate: if the AI has spoken (synthetic
+    // 'ai'-sender utterance) after this action, the AI handed the floor back
+    // and the ticker should clear.
     const actionTime = parseOhTimestamp(lastAction.timestamp)?.getTime() ?? 0;
     if (mostRecentAiUtteranceTime > actionTime) return '';
-    return lastAction.summary || formatActionKind(lastAction.kind);
+
+    // Has the matching observation arrived? Scan once for any entry whose
+    // `action_id` points at this action's id.
+    let completed = false;
+    for (const a of agentActions) {
+      if (a.action_id === lastAction.id) {
+        completed = true;
+        break;
+      }
+    }
+
+    const icon = getActionIcon(lastAction.kind);
+    const title = lastAction.summary || formatActionKind(lastAction.kind);
+    return `${icon} ${title}${completed ? ' ✅' : ''}`;
   }, [kioskFooterTickersEnabled, agentActions, mostRecentAiUtteranceTime]);
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');

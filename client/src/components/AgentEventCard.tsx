@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify';
 import { SuccessIndicator, getObservationStatus } from './SuccessIndicator';
 import { getActionIcon } from '../hooks/useAgentActions';
 import { getEventContent } from '../utils/getEventContent';
-import { formatActionKind } from '../utils/formatActionKind';
+import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
 import type { AgentAction, ExtendedAgentAction, ObservationStatus } from '../types';
 
 // Configure marked for code blocks and basic markdown
@@ -138,12 +138,7 @@ export function AgentEventCard({ action, observation, defaultExpanded = false }:
   );
 }
 
-/**
- * Check if the event kind represents an observation (result) vs action (initiated).
- * Any kind containing 'Observation' is treated as an observation.
- */
-function isObservationKind(kind: string): boolean {
-  return kind.includes('Observation');
-}
+// `isObservationKind` is imported from ../utils/formatActionKind (issue #346 —
+// shared between AgentEventCard and KioskMode's action ticker).
 
 
