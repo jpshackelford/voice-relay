@@ -20,8 +20,10 @@ describe('calculateDisplayLines (issue #340)', () => {
     expect(without - withTickers).toBe(1);
   });
 
-  it('never drops below 1 line even on a tiny viewport with tickers on', () => {
-    expect(calculateDisplayLines(320, 80, true)).toBeGreaterThanOrEqual(1);
+  it('enforces minimum bound of 5 lines even on a tiny viewport with tickers on', () => {
+    // registry.ts clamps with Math.max(5, ...), so even when the available
+    // height would yield fewer rows the result must be exactly 5.
+    expect(calculateDisplayLines(320, 80, true)).toBe(5);
   });
 });
 

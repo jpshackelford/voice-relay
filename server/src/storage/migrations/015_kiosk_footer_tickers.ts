@@ -10,7 +10,9 @@ import type { Migration } from '../migrator.js';
  * - kiosk_footer_tickers_enabled: INTEGER, default 0 (off)
  *
  * The default is OFF so that workspaces that upgrade across this migration
- * see no visual change beyond the unconditional connection-dot relocation.
+ * see no visual change: both the footer tickers and the connection-dot
+ * relocation are gated on this flag (see the
+ * `.kiosk-display[data-tickers-enabled="true"]` rule in `client/src/App.css`).
  *
  * Down recreates `workspace_settings` to drop the new column, which permanently
  * loses the ticker preference for every workspace. Require explicit
