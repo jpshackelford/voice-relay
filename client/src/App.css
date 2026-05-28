@@ -4286,25 +4286,31 @@ header {
   margin-top: 0.25rem;
 }
 
-.tts-toggle-setting {
+/*
+ * Generic settings-toggle pair, used by both the ElevenLabs TTS row and the
+ * kiosk footer-tickers row (issue #346 — toggle parity). Kept on a single
+ * class name so any future setting that needs a labelled checkbox + hint can
+ * reuse the same visual treatment without copy-pasting CSS.
+ */
+.settings-toggle {
   padding-top: 0.75rem;
 }
 
-.tts-toggle-setting label {
+.settings-toggle label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
 }
 
-.tts-checkbox {
+.settings-toggle-checkbox {
   width: 18px;
   height: 18px;
   accent-color: #3282b8;
   cursor: pointer;
 }
 
-.tts-checkbox:disabled {
+.settings-toggle-checkbox:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -4314,7 +4320,7 @@ header {
   color: #fff;
 }
 
-.tts-toggle-setting .setting-hint {
+.settings-toggle .setting-hint {
   margin-left: 26px;
 }
 
