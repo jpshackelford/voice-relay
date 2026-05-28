@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T16:20:14.290319+00:00",
+  "last_updated": "2026-05-28T16:33:47Z",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -37,7 +37,7 @@
       "started": "2026-05-28T13:04:47.004293+00:00",
       "finished": "2026-05-28T13:20:15.649236+00:00",
       "status": "success",
-      "outcome": "Implementation of #338 \u2192 opened PR #342 (CI green)"
+      "outcome": "Implementation of #338 → opened PR #342 (CI green)"
     },
     {
       "conv_id": "928677f",
@@ -55,7 +55,7 @@
       "started": "2026-05-28T13:20:15.649236+00:00",
       "finished": "2026-05-28T14:07:29.688631+00:00",
       "status": "success",
-      "outcome": "Implementation of #340 \u2192 opened PR #343 (CI green, automated review surfaced 2 threads)"
+      "outcome": "Implementation of #340 → opened PR #343 (CI green, automated review surfaced 2 threads)"
     },
     {
       "conv_id": "86d8e14",
@@ -82,7 +82,7 @@
       "started": "2026-05-28T14:07:29.688631+00:00",
       "finished": "2026-05-28T15:24:37.856552+00:00",
       "status": "success",
-      "outcome": "Implementation of #341 \u2192 opened PR #345 (CI green, automated review surfaced 2 threads)"
+      "outcome": "Implementation of #341 → opened PR #345 (CI green, automated review surfaced 2 threads)"
     },
     {
       "conv_id": "df0a306",
@@ -118,7 +118,7 @@
       "started": "2026-05-28T15:34:54.488814+00:00",
       "finished": "2026-05-28T15:44:37+00:00",
       "status": "success",
-      "outcome": "Addressed both \ud83d\udfe1 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
+      "outcome": "Addressed both 🟡 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
     },
     {
       "conv_id": "79dd653",
@@ -139,5 +139,5 @@
       "outcome": "PR #345 merged to main at 16:07Z (#341 closed)"
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 2
 }
