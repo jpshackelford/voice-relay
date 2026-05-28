@@ -1,13 +1,7 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "928677f",
-        "issue": 341,
-        "started": "2026-05-28T13:20:15.649236+00:00"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
         "conv_id": "a191b05",
@@ -15,14 +9,20 @@
         "started": "2026-05-28T13:20:15.649236+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "86d8e14",
+        "pr": 342,
+        "started": "2026-05-28T13:35:54.603885+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T13:20:15.649236+00:00",
+  "last_updated": "2026-05-28T13:35:54.603885+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -50,6 +50,15 @@
       "finished": "2026-05-28T13:20:15.649236+00:00",
       "status": "success",
       "outcome": "Implementation of #338 \u2192 opened PR #342 (CI green)"
+    },
+    {
+      "conv_id": "928677f",
+      "type": "expansion",
+      "issue": 341,
+      "started": "2026-05-28T13:20:15.649236+00:00",
+      "finished": "2026-05-28T13:35:26.493277+00:00",
+      "status": "success",
+      "outcome": "Expanded #341 with full root-cause analysis; ready + priority:high added"
     }
   ],
   "quiet_ticks": 0
