@@ -30,6 +30,8 @@ import { SessionRepository, createSessionRouter, createSessionAIRouter } from '.
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
+import { rehydrateAgentSessions } from './agent-rehydrate.js';
+import { reportDroppedText } from './dropped-text-handler.js';
 import { relayAgentResponse } from './agent-message-relay.js';
 import { resyncAgentSessionStatus } from './resync-agent-status.js';
 import { replayDisplayContent } from './replay-display-content.js';
@@ -779,6 +781,16 @@ wss.on('connection', (ws: WebSocket) => {
               console.error(`[AI] Failed to forward message to session AI:`, err);
             });
             console.log(`[AI] Forwarded message to session AI: ${device.sessionId}`);
+          } else {
+            // Observability hatch for #341: pre-fix, a final-text message
+            // arriving while the driver had no live session would silently
+            // drop here. Logged + degraded-broadcast inside the helper.
+            reportDroppedText({
+              sessionId: device.sessionId,
+              utteranceId: message.utteranceId,
+              partial: message.partial,
+              registry,
+            });
           }
           break;
         }
@@ -1153,6 +1165,44 @@ async function start() {
       } else {
         console.log('[AgentEvents] TTL prune disabled (AGENT_EVENTS_TTL_DAYS=0)');
       }
+    }
+  }
+
+  // Re-attach the agent driver to any session that was mid-AI when the
+  // previous process died. Runs before `server.listen` so it's done before
+  // any device WS connection arrives. Best-effort: a single bad session
+  // does not block the rest of the pass; failures broadcast a `degraded`
+  // session-state so a later device join shows the correct UI. (#341 § A)
+  if (sessionRepository) {
+    try {
+      const outcomes = await rehydrateAgentSessions({
+        sessionRepository,
+        workspaceRepository,
+        agentDriver,
+        registry,
+        getWorkspaceApiKey: async (wsId) =>
+          workspaceRepository
+            ? await getWorkspaceApiKey(
+                wsId,
+                (id) => workspaceRepository?.getSettings(id) ?? null,
+                decryptApiKey,
+              )
+            : null,
+      });
+      const rehydrated = outcomes.filter((o) => o.status === 'rehydrated').length;
+      const failed = outcomes.filter((o) => o.status === 'failed').length;
+      const skipped = outcomes.filter((o) => o.status === 'skipped').length;
+      if (outcomes.length > 0) {
+        console.log(
+          `[AI] Rehydration complete: ${rehydrated} rehydrated, ${failed} failed, ${skipped} skipped`,
+        );
+      }
+    } catch (err) {
+      // The pass itself is already wrapped per-session — a thrown error
+      // here means a programming bug, not a transient session failure.
+      // Log and continue so a broken rehydration path can't keep the
+      // server from accepting connections.
+      console.error('[AI] Rehydration pass crashed:', err);
     }
   }
 

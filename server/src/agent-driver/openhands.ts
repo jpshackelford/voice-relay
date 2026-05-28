@@ -46,7 +46,12 @@ export interface AISessionManagerSurface {
     sessionId: string,
     workspaceId: string,
     onMessage: (message: string, serverTimestamp?: string) => void,
-    options?: { displayLines?: number; apiKey?: string; displayApiSecret?: string },
+    options?: {
+      displayLines?: number;
+      apiKey?: string;
+      displayApiSecret?: string;
+      existingConversationId?: string;
+    },
   ): Promise<AISession>;
   sendSessionMessage(sessionId: string, message: string): Promise<void>;
   endSessionAI(sessionId: string): Promise<void>;
@@ -612,6 +617,10 @@ export class OpenHandsAgentDriver implements AgentDriver {
           displayLines: state.opts.displayLines,
           apiKey: state.opts.apiKey,
           displayApiSecret: state.opts.displayApiSecret,
+          // Plumb the attach-to-existing hint through (#341). The manager
+          // routes this through `attachExistingForSession` and skips the
+          // `POST /app-conversations` create step.
+          existingConversationId: state.opts.existingConversationId,
         },
       );
       return { kind: 'ok' };

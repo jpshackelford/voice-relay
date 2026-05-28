@@ -102,6 +102,32 @@ export class SessionRepository {
   }
 
   /**
+   * List all `status='active'` sessions across all workspaces that have a
+   * non-null `metadata.aiConversationId`.
+   *
+   * Used by the startup `rehydrateAgentSessions` pass (issue #341) to
+   * re-attach the agent driver to OpenHands conversations whose live WS
+   * bindings died with the previous process. The in-memory binding is
+   * lost on restart; the DB is the only durable home for the conversation
+   * id.
+   *
+   * Uses `json_extract` so the filter pushes down into SQLite rather than
+   * loading every active session into memory and parsing JSON on each row.
+   */
+  listActiveWithAiConversation(): Session[] {
+    const stmt = this.db.prepare<[], SessionRow>(`
+      SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+      FROM sessions
+      WHERE status = 'active'
+        AND metadata IS NOT NULL
+        AND json_extract(metadata, '$.aiConversationId') IS NOT NULL
+      ORDER BY started_at DESC
+    `);
+    return stmt.all().map(rowToSession);
+  }
+
+  /**
    * Get the most recent active session in a workspace, or create one if none exists.
    */
   getOrCreateActiveSession(workspaceId: string): Session {

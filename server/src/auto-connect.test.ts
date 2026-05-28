@@ -411,6 +411,52 @@ describe('autoConnectAI', () => {
       );
     });
   });
+
+  describe('restart-aware attach (issue #341 § C)', () => {
+    test('threads existingConversationId through when session metadata has one', async () => {
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-restart',
+        workspaceId: 'workspace-456',
+        metadata: { aiConversationId: 'conv-existing-abc' },
+      });
+      const deps = createDependencies({ sessionRepository });
+
+      await autoConnectAI('session-restart', 'workspace-456', deps);
+
+      expect(deps.agentDriver.openSession).toHaveBeenCalledWith(
+        'session-restart',
+        expect.objectContaining({ existingConversationId: 'conv-existing-abc' }),
+      );
+    });
+
+    test('omits existingConversationId for a brand-new session', async () => {
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      // findById returns null (no row yet) → no existing conv
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue(null);
+      const deps = createDependencies({ sessionRepository });
+
+      await autoConnectAI('session-new', 'workspace-456', deps);
+
+      const callArgs = (deps.agentDriver.openSession as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('existingConversationId');
+    });
+
+    test('omits existingConversationId when metadata lacks aiConversationId', async () => {
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-no-ai',
+        workspaceId: 'workspace-456',
+        metadata: { ttsSettings: { enabled: true } },
+      });
+      const deps = createDependencies({ sessionRepository });
+
+      await autoConnectAI('session-no-ai', 'workspace-456', deps);
+
+      const callArgs = (deps.agentDriver.openSession as ReturnType<typeof vi.fn>).mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('existingConversationId');
+    });
+  });
 });
 
 describe('shouldAutoConnect', () => {
@@ -425,11 +471,16 @@ describe('shouldAutoConnect', () => {
     expect(driver.hasSession).toHaveBeenCalledWith('session-123');
   });
 
-  test('returns false when second device joins', () => {
+  test('returns true after restart even with multiple persisted devices (#341)', () => {
+    // Pre-fix this returned `false` because `isFirstDevice` (length === 1)
+    // was the gate. The restart-aware predicate triggers whenever any
+    // device is present AND the driver has no live binding, so the
+    // re-registering kiosk recovers without waiting for the device row
+    // count to drop.
     const sessionRepo = createMockSessionRepository([{ id: 'device-1' }, { id: 'device-2' }]);
     const driver = createMockAgentDriver({ hasSession: false });
 
-    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(false);
+    expect(shouldAutoConnect('session-123', sessionRepo, driver)).toBe(true);
   });
 
   test('returns false when driver already has the session', () => {

@@ -39,7 +39,7 @@ class FakeAISessionManager implements AISessionManagerSurface {
   action?: ActionCallback;
   event?: EventCallback;
   readonly bindings = new Map<string, FakeAIBinding>();
-  readonly calls: Array<{ name: string; args: unknown[] }> = [];
+  readonly calls: Array<{ name: string; args: unknown[]; options?: unknown }> = [];
   /** Optional override of `getOrCreateForSession` behavior per test. */
   getOrCreateImpl?: (sessionId: string, workspaceId: string) => Promise<FakeAIBinding>;
   /** Optional override of `sendSessionMessage` behavior per test. */
@@ -79,9 +79,22 @@ class FakeAISessionManager implements AISessionManagerSurface {
     sessionId: string,
     workspaceId: string,
     _onMessage: (m: string, ts?: string) => void,
-    _options?: { displayLines?: number; apiKey?: string; displayApiSecret?: string },
+    options?: {
+      displayLines?: number;
+      apiKey?: string;
+      displayApiSecret?: string;
+      existingConversationId?: string;
+    },
   ): Promise<AISession> {
-    this.calls.push({ name: 'getOrCreateForSession', args: [sessionId, workspaceId] });
+    // Existing tests assert on `args` slot-by-slot via `toEqual` and only
+    // care about the first two positional args; storing the options
+    // separately keeps those assertions stable while letting #341 tests
+    // inspect the threaded `existingConversationId`.
+    this.calls.push({
+      name: 'getOrCreateForSession',
+      args: [sessionId, workspaceId],
+      ...(options ? { options } : {}),
+    });
     if (this.getOrCreateImpl) {
       const b = await this.getOrCreateImpl(sessionId, workspaceId);
       this.bindings.set(sessionId, b);
@@ -240,6 +253,14 @@ describe('OpenHandsAgentDriver', () => {
         throw new Error('no API key');
       };
       await expect(driver.openSession('s1', OPTS)).rejects.toThrow(/no API key/);
+    });
+
+    test('openSession threads existingConversationId through to the manager (#341)', async () => {
+      await driver.openSession('s1', { ...OPTS, existingConversationId: 'conv-existing-xyz' });
+      const created = mgr.calls.find((c) => c.name === 'getOrCreateForSession');
+      expect(created).toBeDefined();
+      const options = created!.options as { existingConversationId?: string };
+      expect(options.existingConversationId).toBe('conv-existing-xyz');
     });
   });
 
