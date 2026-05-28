@@ -337,3 +337,20 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-28 14:25 UTC - Review worker (PR #343, round 2)
+
+✅ Addressed both 🟡 low-priority threads from the automated openhands-pr-review pass at 14:16Z. PR back to draft → fix → push → CI green → reply + resolve → ready.
+
+| Thread | Path | Action | Commit |
+|--------|------|--------|--------|
+| `PRRT_…GZV` | `server/src/storage/migrations/015_kiosk_footer_tickers.ts:13` | Rewrote stale "unconditional connection-dot relocation" comment; pointed at the `[data-tickers-enabled="true"]` selector in `App.css`. | `2a82045` |
+| `PRRT_…GZl` | `server/src/registry.tickers.test.ts:23` | Renamed test, swapped `toBeGreaterThanOrEqual(1)` → `toBe(5)` to match the `Math.max(5, …)` clamp in `registry.ts:31`; added inline comment. | `2a82045` |
+
+**CI:** all 5 required checks green on HEAD `2a82045` (Build Client, Client Tests, Server Tests 6/6 ticker tests pass, E2E, lint-pr-title). PR moved back to ready.
+
+**Cross-impact reflection:** No spill-over to #341 / PR #344 — both fixes are scoped to docstring + test message; the test still exercises the same code path with a tighter (correct) matcher, and the migration SQL/columns are untouched.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
