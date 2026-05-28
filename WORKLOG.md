@@ -446,3 +446,36 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-28 15:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `79dd653` | merge | PR #345 — rehydrate AI sessions (#341) | **NEW** (running) |
+
+**Reconciled Completed Workers (since last tick):**
+- `972c883` (review, PR #345) → **success** at 15:44Z. Resolved both 🟡 threads from the round-1 automated review: `Promise.allSettled` refactor in `agent-rehydrate.ts` (`db4e2db`) + expanded JSDoc on `auto-connect.ts` (`172fdeb`). CI 5/5 green, both threads `isResolved=true`, PR moved back to ready-for-review.
+
+**Current State:**
+- Open PRs:
+  - [PR #345](https://github.com/jpshackelford/voice-relay/pull/345) (#341) — `oRFC green ready 💬--` — CI 5/5 SUCCESS on `172fdeb` (Build Client, Client Tests, Server Tests 1181/1181, E2E, lint-pr-title); `pr-review` also SUCCESS; `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`, `isDraft: false`; both review threads resolved. **Ready to merge.**
+- Issues needing expansion: **0** (only on-hold issues remain: #210, #239, #298–#302).
+- Ready + prioritized (non-on-hold): #341 only (in flight as PR #345 — merge worker dispatched).
+- Slot usage: expansion 0/4, implementation 0/1, review 1/2 (merge worker).
+
+**Action Taken:**
+🚀 **Spawned merge worker** for [PR #345](https://github.com/jpshackelford/voice-relay/pull/345).
+- Conversation: [`79dd653`](https://app.all-hands.dev/conversations/79dd65309e13471d82021bde6902ddb9)
+- Production deploy implication: merge auto-deploys to vr.chorecraft.net. No schema migration in this PR (`metadata.aiConversationId` already persisted by #295), so prod-restart risk is bounded to in-memory rehydration logic only.
+
+**Why no other workers?**
+- Expansion slots idle: 0 issues lack the `ready` label (all unexpanded ones are on-hold under the active S3 design freeze + CI-flake/deploy-categorization holds).
+- Implementation slot idle: the only `ready + prioritized + non-on-hold` issue (#341) is already mid-merge as PR #345.
+- 2nd review slot idle: only 1 open PR.
+
+**Quiet-tick counter:** reset to 0 (productive tick — merge worker spawned).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

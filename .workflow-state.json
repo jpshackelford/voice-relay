@@ -5,9 +5,10 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "972c883",
+        "conv_id": "79dd653",
         "pr": 345,
-        "started": "2026-05-28T15:34:54.488814+00:00"
+        "started": "2026-05-28T15:51:44.799624+00:00",
+        "worker_type": "merge"
       }
     ]
   },
@@ -16,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T15:34:54.488814+00:00",
+  "last_updated": "2026-05-28T15:51:44.799624+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -116,6 +117,15 @@
       "finished": "2026-05-28T15:23:36.266746+00:00",
       "status": "error",
       "outcome": "Spawn failed: sandbox iHalwVRUjIt0w4nuQeCA8 failed to start within 120s"
+    },
+    {
+      "conv_id": "972c883",
+      "type": "review",
+      "pr": 345,
+      "started": "2026-05-28T15:34:54.488814+00:00",
+      "finished": "2026-05-28T15:44:37+00:00",
+      "status": "success",
+      "outcome": "Addressed both \ud83d\udfe1 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
     }
   ],
   "quiet_ticks": 0
