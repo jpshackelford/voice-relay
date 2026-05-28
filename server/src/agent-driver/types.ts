@@ -74,6 +74,21 @@ export interface OpenSessionOpts {
   displayLines?: number;
   apiKey?: string;
   displayApiSecret?: string;
+  /**
+   * Optional pre-existing upstream conversation ID to attach to instead of
+   * creating a new one.
+   *
+   * Used by the startup `rehydrateAgentSessions` pass (issue #341) to
+   * re-attach to OpenHands conversations whose Voice Relay live binding
+   * died with the previous process but whose upstream OpenHands
+   * conversation is still alive. When supplied, the OpenHands adapter
+   * skips `POST /app-conversations` and goes straight to fetching the
+   * conversation info + opening a WS against the existing id.
+   *
+   * Drivers without an attach concept (e.g. `FakeDriver`) may ignore this
+   * field — it is purely a hint, never a contract.
+   */
+  existingConversationId?: string;
 }
 
 /**

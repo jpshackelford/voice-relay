@@ -137,6 +137,28 @@ export class SandboxMissingError extends Error {
   }
 }
 
+/**
+ * Raised by {@link AISessionManager.attachExistingForSession} when the
+ * upstream OpenHands conversation referenced by a session's persisted
+ * `metadata.aiConversationId` no longer exists or can't be attached to
+ * (e.g. `GET /app-conversations?ids=…` returns no record, or the WS
+ * handshake fails).
+ *
+ * The caller (the startup rehydration path and the post-restart
+ * auto-connect path) catches this and surfaces a `degraded` session-state
+ * broadcast so the kiosk shows "AI not attached — restart the session"
+ * rather than going silent. Reviving an ended OH conversation is
+ * explicitly out of scope (issue #341 § Out of scope).
+ */
+export class UpstreamConversationEndedError extends Error {
+  readonly conversationId: string;
+  constructor(conversationId: string, message?: string) {
+    super(message ?? `Upstream conversation ${conversationId} no longer available`);
+    this.name = 'UpstreamConversationEndedError';
+    this.conversationId = conversationId;
+  }
+}
+
 export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
@@ -1641,6 +1663,14 @@ export class AISessionManager {
       displayLines?: number;
       apiKey?: string;
       displayApiSecret?: string;
+      /**
+       * If set, attach to this existing OpenHands conversation instead of
+       * creating a new one. Used by the startup rehydration / post-restart
+       * auto-connect paths (issue #341). Throws
+       * {@link UpstreamConversationEndedError} if the conversation can no
+       * longer be looked up or its WS handshake materials are missing.
+       */
+      existingConversationId?: string;
     } = {}
   ): Promise<AISession> {
     // Return existing if available
@@ -1654,6 +1684,22 @@ export class AISessionManager {
     const client = options.apiKey ? new OpenHandsClient(options.apiKey) : this.client;
     if (!client) {
       throw new Error('OpenHands API not configured');
+    }
+
+    // Attach-to-existing path (issue #341). Skip `startConversation` and go
+    // straight to fetching the existing conversation's WS handshake
+    // materials. A missing conversation, or a record without
+    // `conversation_url` / `session_api_key`, is treated as
+    // "upstream-ended" — the caller surfaces a `degraded` session-state
+    // to the kiosk so the user knows to restart.
+    if (options.existingConversationId) {
+      return this.attachExistingForSession(
+        sessionId,
+        workspaceId,
+        options.existingConversationId,
+        onMessage,
+        { client },
+      );
     }
 
     console.log(`[AI] Creating new session AI for session ${sessionId}${options.displayLines ? ` (${options.displayLines} display lines)` : ''}`);
@@ -1721,6 +1767,101 @@ export class AISessionManager {
     this.connectWebSocket(session);
 
     console.log(`[AI] Session AI started successfully for session ${sessionId}`);
+    return session;
+  }
+
+  /**
+   * Attach a VR session to a *pre-existing* OpenHands conversation, skipping
+   * the `POST /app-conversations` create step.
+   *
+   * Used by the startup rehydration pass (issue #341) and the post-restart
+   * `shouldAutoConnect` safety net to recover the live binding for a
+   * conversation whose id has been persisted to
+   * `session.metadata.aiConversationId`. The on-server event log is
+   * preserved, so this restores typing / replies seamlessly when the OH
+   * conversation is still alive.
+   *
+   * Throws {@link UpstreamConversationEndedError} if the lookup returns no
+   * record or the record is missing the WS handshake materials. The caller
+   * is expected to catch this and broadcast a `degraded` `session-state`.
+   *
+   * Idempotent: a second call for the same `sessionId` returns the existing
+   * binding.
+   */
+  async attachExistingForSession(
+    sessionId: string,
+    workspaceId: string,
+    conversationId: string,
+    onMessage: (message: string, serverTimestamp?: string) => void,
+    options: { client?: OpenHandsClient } = {},
+  ): Promise<AISession> {
+    const existing = this.sessionAI.get(sessionId);
+    if (existing) {
+      console.log(`[AI] Returning existing session AI for session ${sessionId} (attach)`);
+      return existing;
+    }
+
+    const client = options.client ?? this.client;
+    if (!client) {
+      throw new Error('OpenHands API not configured');
+    }
+
+    console.log(
+      `[AI] Attaching session ${sessionId} (workspace ${workspaceId}) to existing conversation ${conversationId}`,
+    );
+
+    // Look up the conversation. A 404/null means the upstream conversation
+    // is no longer reachable; surface as `UpstreamConversationEndedError`
+    // so the caller can drive the degraded `session-state` broadcast.
+    let convInfo;
+    try {
+      convInfo = await client.getConversation(conversationId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UpstreamConversationEndedError(
+        conversationId,
+        `Failed to look up conversation ${conversationId}: ${message}`,
+      );
+    }
+    if (!convInfo) {
+      throw new UpstreamConversationEndedError(conversationId);
+    }
+
+    const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
+    if (!agentServerUrl || !convInfo.session_api_key) {
+      throw new UpstreamConversationEndedError(
+        conversationId,
+        `Conversation ${conversationId} is missing WS handshake materials`,
+      );
+    }
+
+    console.log(`[AI] (attach) Agent server: ${agentServerUrl}`);
+
+    const session: AISession = {
+      conversationId,
+      // We don't have the original task id post-restart; the conversation
+      // id is the durable identifier upstream cares about for the WS
+      // handshake. `taskId` is only used as a debugging breadcrumb in the
+      // create path; reuse the conversation id for the attach case.
+      taskId: conversationId,
+      sessionId,
+      mode: 'kiosk',
+      agentServerUrl,
+      sessionApiKey: convInfo.session_api_key,
+      onMessage,
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+
+    this.sessionAI.set(sessionId, session);
+
+    // Open the WS against the existing conversation. The existing reconnect
+    // loop will handle transient handshake failures; an unrecoverable
+    // handshake failure surfaces through the normal `degraded` path.
+    this.connectWebSocket(session);
+
+    console.log(`[AI] Session AI re-attached for session ${sessionId} → conversation ${conversationId}`);
     return session;
   }
 

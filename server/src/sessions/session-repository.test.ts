@@ -183,6 +183,83 @@ describe('SessionRepository', () => {
     });
   });
 
+  describe('listActiveWithAiConversation (#341)', () => {
+    it('returns active sessions with non-null metadata.aiConversationId', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'with-ai' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-abc' });
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe(s1.id);
+      expect(results[0].metadata?.aiConversationId).toBe('conv-abc');
+    });
+
+    it('returns multiple matching sessions (multi-workspace, multi-session)', () => {
+      const wsB = 'workspace-b';
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(wsB, 'user-123', 'Workspace B', 'workspace-b', 'EFGH-5678');
+
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 's1' });
+      const s2 = repo.create({ workspaceId: wsB, name: 's2' });
+      const s3 = repo.create({ workspaceId: testWorkspaceId, name: 's3' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-1' });
+      repo.updateMetadata(s2.id, { aiConversationId: 'conv-2' });
+      repo.updateMetadata(s3.id, { aiConversationId: 'conv-3' });
+
+      const results = repo.listActiveWithAiConversation();
+      const ids = results.map((s) => s.id).sort();
+      expect(ids).toEqual([s1.id, s2.id, s3.id].sort());
+    });
+
+    it('returns empty array when no sessions exist', () => {
+      expect(repo.listActiveWithAiConversation()).toEqual([]);
+    });
+
+    it('excludes ended sessions even when aiConversationId is set', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'ended-but-with-conv' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-old' });
+      repo.endSession(s1.id);
+
+      expect(repo.listActiveWithAiConversation()).toEqual([]);
+    });
+
+    it('excludes archived sessions', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'archived' });
+      repo.updateMetadata(s1.id, { aiConversationId: 'conv-arc' });
+      repo.archiveSession(s1.id);
+
+      expect(repo.listActiveWithAiConversation()).toEqual([]);
+    });
+
+    it('excludes sessions with no metadata at all', () => {
+      repo.create({ workspaceId: testWorkspaceId, name: 'no-metadata' });
+      expect(repo.listActiveWithAiConversation()).toEqual([]);
+    });
+
+    it('excludes sessions whose metadata has other fields but no aiConversationId', () => {
+      const s1 = repo.create({ workspaceId: testWorkspaceId, name: 'no-conv' });
+      repo.updateMetadata(s1.id, {
+        ttsSettings: { enabled: true, outputDeviceId: null },
+      });
+      expect(repo.listActiveWithAiConversation()).toEqual([]);
+    });
+
+    it('returns only the matching subset when mixed', () => {
+      const withConv = repo.create({ workspaceId: testWorkspaceId, name: 'has-ai' });
+      const withoutConv = repo.create({ workspaceId: testWorkspaceId, name: 'no-ai' });
+      const ended = repo.create({ workspaceId: testWorkspaceId, name: 'ended-with-ai' });
+      repo.updateMetadata(withConv.id, { aiConversationId: 'conv-yes' });
+      repo.updateMetadata(ended.id, { aiConversationId: 'conv-end' });
+      repo.endSession(ended.id);
+
+      const results = repo.listActiveWithAiConversation();
+      expect(results.map((s) => s.id)).toEqual([withConv.id]);
+      expect(results.find((s) => s.id === withoutConv.id)).toBeUndefined();
+    });
+  });
+
   describe('getOrCreateActiveSession', () => {
     it('returns existing active session', () => {
       const existing = repo.create({ workspaceId: testWorkspaceId });

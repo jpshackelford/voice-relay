@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, UpstreamConversationEndedError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -408,6 +408,145 @@ describe('AISessionManager', () => {
     test('cleans up without error when no sessions exist', async () => {
       await expect(manager.shutdown()).resolves.toBeUndefined();
     });
+  });
+});
+
+describe('AISessionManager.attachExistingForSession (#341)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+  }
+
+  function makeClient(response: unknown | Error): FakeClient {
+    return {
+      getConversation: vi.fn(async () => {
+        if (response instanceof Error) throw response;
+        return response;
+      }),
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+  });
+
+  afterEach(async () => {
+    await manager.shutdown();
+  });
+
+  test('attaches to an existing conversation and skips startConversation', async () => {
+    const client = makeClient({
+      id: 'conv-existing',
+      status: 'READY',
+      session_api_key: 'KEY-X',
+      conversation_url: 'https://agent.example.com/api/v1/conversations/conv-existing',
+    });
+    manager.setClientForTesting(client as never);
+
+    const session = await manager.attachExistingForSession(
+      'sess-1',
+      'ws-1',
+      'conv-existing',
+      () => {},
+    );
+
+    expect(session.conversationId).toBe('conv-existing');
+    expect(session.sessionApiKey).toBe('KEY-X');
+    expect(session.agentServerUrl).toBe('https://agent.example.com');
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+    expect(client.getConversation).toHaveBeenCalledWith('conv-existing');
+    expect(manager.hasSessionAI('sess-1')).toBe(true);
+
+    // Tear down the synchronously-created WS so the test process exits.
+    await manager.endSessionAI('sess-1');
+  });
+
+  test('is idempotent — second call returns the existing binding', async () => {
+    const client = makeClient({
+      id: 'conv-x',
+      session_api_key: 'KEY-X',
+      conversation_url: 'https://agent.example.com/api/v1/...',
+    });
+    manager.setClientForTesting(client as never);
+
+    const first = await manager.attachExistingForSession('sess-1', 'ws-1', 'conv-x', () => {});
+    const second = await manager.attachExistingForSession('sess-1', 'ws-1', 'conv-x', () => {});
+
+    expect(second).toBe(first);
+    // getConversation was only called once
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+
+    await manager.endSessionAI('sess-1');
+  });
+
+  test('throws UpstreamConversationEndedError when getConversation returns null', async () => {
+    const client = makeClient(null);
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-gone', 'ws-1', 'conv-dead', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(manager.hasSessionAI('sess-gone')).toBe(false);
+  });
+
+  test('throws UpstreamConversationEndedError when getConversation throws', async () => {
+    const client = makeClient(new Error('upstream 404'));
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-fail', 'ws-1', 'conv-broken', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(manager.hasSessionAI('sess-fail')).toBe(false);
+  });
+
+  test('throws UpstreamConversationEndedError when WS handshake materials are missing', async () => {
+    const client = makeClient({
+      id: 'conv-incomplete',
+      status: 'READY',
+      // Missing session_api_key and conversation_url
+    });
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-incomplete', 'ws-1', 'conv-incomplete', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(manager.hasSessionAI('sess-incomplete')).toBe(false);
+  });
+
+  test('throws when no client is configured', async () => {
+    manager.setClientForTesting(null);
+
+    await expect(
+      manager.attachExistingForSession('sess-noclient', 'ws-1', 'conv-x', () => {}),
+    ).rejects.toThrow('OpenHands API not configured');
+  });
+
+  test('getOrCreateForSession with existingConversationId routes to attach path', async () => {
+    const client = makeClient({
+      id: 'conv-attach',
+      status: 'READY',
+      session_api_key: 'KEY-A',
+      conversation_url: 'https://agent.example.com/api/v1/conversations/conv-attach',
+    });
+    // `startConversation` should never be called — only `getConversation`.
+    (client as unknown as { startConversation?: ReturnType<typeof vi.fn> }).startConversation = vi.fn();
+    manager.setClientForTesting(client as never);
+
+    const session = await manager.getOrCreateForSession(
+      'sess-route',
+      'ws-1',
+      () => {},
+      { existingConversationId: 'conv-attach' },
+    );
+
+    expect(session.conversationId).toBe('conv-attach');
+    expect(client.getConversation).toHaveBeenCalledWith('conv-attach');
+    expect(
+      (client as unknown as { startConversation: ReturnType<typeof vi.fn> }).startConversation,
+    ).not.toHaveBeenCalled();
+
+    await manager.endSessionAI('sess-route');
   });
 });
 

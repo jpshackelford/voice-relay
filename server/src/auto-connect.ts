@@ -121,12 +121,22 @@ export async function autoConnectAI(
     // Get min display lines from connected kiosks
     const displayLines = registry.getMinKioskDisplayLines(workspaceId);
 
+    // Restart-aware attach path (#341 § C). When the session already has a
+    // persisted `aiConversationId` — typically because we're recovering
+    // after a server restart and the startup `rehydrateAgentSessions` pass
+    // missed this session (no devices connected at boot, or transient
+    // failure) — we attach to the existing upstream conversation rather
+    // than spawning a fresh one. The OpenHands adapter routes this through
+    // `attachExistingForSession` and preserves the on-server event log.
+    const existingConversationId = sessionRepository.findById(sessionId)?.metadata?.aiConversationId;
+
     // Open (and eagerly provision, for the OpenHands adapter) the agent session.
     const status = await agentDriver.openSession(sessionId, {
       workspaceId,
       displayLines,
       ...(apiKey ? { apiKey } : {}),
       ...(displayApiSecret ? { displayApiSecret } : {}),
+      ...(existingConversationId ? { existingConversationId } : {}),
     });
 
     // Persist the OH conversation ID to session metadata so we can rehydrate
@@ -188,7 +198,32 @@ export async function autoConnectAI(
 
 /**
  * Check if auto-connect should be triggered for a session.
- * Returns true if this is the first device and no AI session exists.
+ *
+ * Original ("first device wins") heuristic was `devicesInSession.length === 1`,
+ * which broke after a server restart: the durable `session_devices` table
+ * still contains the kiosk + mobile rows (`addDevice` is INSERT OR REPLACE),
+ * so the count stays at 2, `isFirstDevice` is false, and auto-connect never
+ * fires for a re-registering device — even though the in-memory
+ * `agentDriver.hasSession(sessionId)` is correctly `false` and a persisted
+ * `metadata.aiConversationId` is sitting in the DB waiting to be re-attached
+ * to (#341).
+ *
+ * Restart-aware predicate: trigger whenever the session has *any* connected
+ * device and the driver has no live binding. The startup
+ * `rehydrateAgentSessions` pass should normally have already attached, but
+ * this is the safety net for sessions that:
+ *
+ *   - Had no `aiConversationId` at boot (no rehydration target).
+ *   - Failed rehydration transiently (the next device join retries).
+ *   - Became active after the boot pass ran.
+ *
+ * Race safety: `agentDriver.openSession` is idempotent on `sessionId`, so
+ * two simultaneous device joins both observing `hasSession=false` is safe.
+ *
+ * The caller (`autoConnectAI`) reads `session.metadata.aiConversationId`
+ * and threads it through `existingConversationId` so the post-restart
+ * path attaches to the persisted upstream conversation rather than
+ * spawning a duplicate (#341 § C).
  *
  * @param sessionId - The session ID to check
  * @param sessionRepository - Repository to get devices in session
@@ -204,9 +239,7 @@ export function shouldAutoConnect(
   }
 
   const devicesInSession = sessionRepository.getDevices(sessionId);
-  const isFirstDevice = devicesInSession.length === 1;
-  // Note: Race condition possible if two devices join simultaneously.
-  // Both might trigger auto-connect, but `openSession` is idempotent.
+  const hasConnectedDevice = devicesInSession.length > 0;
 
-  return isFirstDevice && !agentDriver.hasSession(sessionId);
+  return hasConnectedDevice && !agentDriver.hasSession(sessionId);
 }
