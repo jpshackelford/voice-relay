@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "a6a9ba2",
+        "conv_id": "4f91505",
         "issue": 346,
-        "started": "2026-05-28T23:38:17.258629+00:00"
+        "started": "2026-05-28T23:50:48.045698+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T23:38:17.258629+00:00",
+  "last_updated": "2026-05-28T23:50:48.045698+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -143,6 +143,15 @@
       "finished": "2026-05-28T16:20:14.290319+00:00",
       "status": "success",
       "outcome": "PR #345 merged to main at 16:07Z (#341 closed)"
+    },
+    {
+      "conv_id": "a6a9ba2",
+      "type": "expansion",
+      "issue": 346,
+      "started": "2026-05-28T23:38:17.258629+00:00",
+      "finished": "2026-05-28T23:50:48.045698+00:00",
+      "status": "success",
+      "outcome": "Expanded #346 with technical detail; ready + priority:medium + client labels added"
     }
   ],
   "quiet_ticks": 0
