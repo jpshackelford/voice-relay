@@ -578,3 +578,35 @@ Or toggle via the OpenHands UI: <https://app.all-hands.dev/automations> → `Voi
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-28 23:38 UTC - Orchestrator
+
+🚀 **Spawned: Expansion Worker** (manual `/orchestrate` tick)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a6a9ba2` | expansion | Issue #346 — improvements to kiosk footer tickers | **NEW** |
+
+**Current State:**
+- Open PRs: **0** (PR #345 merged 16:07Z; queue is clear).
+- New issue [`#346`](https://github.com/jpshackelford/voice-relay/issues/346) opened by @jpshackelford ~7h ago — no labels, follow-up polish on the kiosk footer tickers shipped in PR #343/#345.
+- All other open issues remain `on-hold` (S3 design freeze #299–#302, deploy-categorization #210, CI-flake #239).
+
+**Action Taken:**
+🚀 Spawned expansion worker [`a6a9ba2`](https://app.all-hands.dev/conversations/a6a9ba2cbcdc48abbc1c83b24b8d06b3) for [#346](https://github.com/jpshackelford/voice-relay/issues/346). Start-task transitioned `WORKING → READY` on the first poll; `execution_status: running`, `sandbox_status: RUNNING` verified.
+
+**Worker scope:** five bundled polish items — (1) oscilloscope-style transcription visualization inside a purple circle on the left, mirroring the sparkle's visual weight on the right; (2) fixed-width marquee on the right where words arrive from the right and old words scroll off to the left as the band fills; (3) agent-action strip on black (no colored background) with no overlap of the sparkle / thinking indicator; (4) collapse the agent-action observation into a green checkmark on the paired action and prefix the action with an emoji that mirrors the sidebar card map; (5) settings-toggle parity for "Show transcription" on the workspace page (currently mis-styled vs. the adjacent "Enable ElevenLabs TTS" toggle). The expansion worker will inventory the current implementation that landed in #343/#345, decide per-item file scope and component contracts, post a Technical Approach comment, and add `ready` + `priority:medium` + `client` once analysis is complete.
+
+**Why no other workers spawned this tick:**
+- Implementation slot idle: 0 issues have the `ready` label (#346 is in expansion as of this tick — implementation will be picked up on a later tick once expansion completes).
+- Review slots idle: 0 open PRs.
+- Other expansion slots idle: all 6 remaining open issues carry `on-hold` (active S3 design freeze and other holds documented in `AGENTS.md`).
+
+**Automation status:** `Voice Relay Workflow Orchestrator v2` (`5f180989-ed9c-42b4-ac9f-5f30f0623316`) confirmed **enabled** at tick start — the 16:34Z auto-disable was already reverted upstream before this run, so no PATCH was needed.
+
+**Quiet-tick counter:** reset `2 → 0` (productive tick — expansion worker dispatched).
+
+_This worklog entry was written by an AI agent (OpenHands /orchestrate) on behalf of @jpshackelford._
+
+---
