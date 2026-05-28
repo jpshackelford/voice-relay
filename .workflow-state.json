@@ -3,16 +3,16 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "39bdcaf",
-        "issue": 340,
-        "started": "2026-05-28T13:04:47.004293+00:00"
+        "conv_id": "928677f",
+        "issue": 341,
+        "started": "2026-05-28T13:20:15.649236+00:00"
       }
     ],
     "implementation": [
       {
-        "conv_id": "bf92540",
-        "issue": 338,
-        "started": "2026-05-28T13:04:47.004293+00:00"
+        "conv_id": "a191b05",
+        "issue": 340,
+        "started": "2026-05-28T13:20:15.649236+00:00"
       }
     ],
     "review": []
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T13:04:47.004293+00:00",
+  "last_updated": "2026-05-28T13:20:15.649236+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -32,6 +32,24 @@
       "finished": "2026-05-28T13:02:59.766735+00:00",
       "status": "success",
       "outcome": "Expanded issue #338; added ready + priority:medium labels"
+    },
+    {
+      "conv_id": "39bdcaf",
+      "type": "expansion",
+      "issue": 340,
+      "started": "2026-05-28T13:04:47.004293+00:00",
+      "finished": "2026-05-28T13:20:15.649236+00:00",
+      "status": "success",
+      "outcome": "Expanded #340; ready + priority:medium added"
+    },
+    {
+      "conv_id": "bf92540",
+      "type": "implementation",
+      "issue": 338,
+      "started": "2026-05-28T13:04:47.004293+00:00",
+      "finished": "2026-05-28T13:20:15.649236+00:00",
+      "status": "success",
+      "outcome": "Implementation of #338 \u2192 opened PR #342 (CI green)"
     }
   ],
   "quiet_ticks": 0
