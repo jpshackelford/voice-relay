@@ -372,3 +372,19 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-05-28 14:34 UTC - Merge worker (#343)
+
+✅ PR [#343](https://github.com/jpshackelford/voice-relay/pull/343) — `feat(client): kiosk footer tickers + relocated connection dot (#340)` — **squash-merged** to main as `42aff20`. Issue [#340](https://github.com/jpshackelford/voice-relay/issues/340) auto-closed via `Fixes #340`.
+
+**Final state:**
+- All 5 required checks green on HEAD `2a82045` (Build Client, Client Tests, Server Tests, E2E, lint-pr-title); `pr-review` also SUCCESS.
+- All 4 review threads resolved across two rounds: round 1 → `907f9c3` (CSS scoped to `data-tickers-enabled`) + `6c25a74` (utterance-scan `useMemo` hoist); round 2 → `2a82045` (docstring + test message fix).
+- Diffstat: 23 files, **+1045 / -33**.
+
+**Production migration risk:** ✅ Cleared. Migration `015_kiosk_footer_tickers` is purely additive on the `up` path — single `ALTER TABLE workspace_settings ADD COLUMN kiosk_footer_tickers_enabled INTEGER NOT NULL DEFAULT 0`. Default-off means existing prod workspaces on SQLite see no visual change post-deploy. Destructive `down` mirrors the established `011_elevenlabs` table-recreate rollback pattern and is gated by `--confirm-destructive`.
+
+**Auto-deploys to vr.chorecraft.net.**
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
