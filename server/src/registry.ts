@@ -8,12 +8,24 @@ const LINE_HEIGHT_PX = 45;          // 1.75rem * 1.6 line-height ≈ 45px
 const SIDEBAR_RATIO = 0.382;        // Golden ratio sidebar
 
 /**
- * Calculate maximum displayable lines for a kiosk screen
+ * Calculate maximum displayable lines for a kiosk screen.
+ *
+ * @param screenWidth - Kiosk display width in CSS pixels
+ * @param screenHeight - Kiosk display height in CSS pixels
+ * @param tickersEnabled - True when the workspace has the new footer ticker
+ *   strips enabled (issue #340). The strips eat ~1 line of body content; we
+ *   subtract one full `LINE_HEIGHT_PX` so the OpenHands `Maximum N lines`
+ *   prompt stays honest even though the strips are slightly under one line tall.
  */
-function calculateDisplayLines(screenWidth: number, screenHeight: number): number {
+export function calculateDisplayLines(
+  screenWidth: number,
+  screenHeight: number,
+  tickersEnabled = false
+): number {
   // Kiosk display takes remaining space after sidebar
-  // Available height = screenHeight - padding - title
-  const availableHeight = screenHeight - DISPLAY_PADDING_PX - DISPLAY_TITLE_HEIGHT_PX;
+  // Available height = screenHeight - padding - title - optional ticker row
+  const tickerReserved = tickersEnabled ? LINE_HEIGHT_PX : 0;
+  const availableHeight = screenHeight - DISPLAY_PADDING_PX - DISPLAY_TITLE_HEIGHT_PX - tickerReserved;
   const lines = Math.floor(availableHeight / LINE_HEIGHT_PX);
   // Minimum 5 lines, maximum 30 lines (sanity bounds)
   return Math.max(5, Math.min(30, lines));
@@ -31,7 +43,8 @@ export class DeviceRegistry {
     screenWidth?: number,
     screenHeight?: number,
     sessionId?: string,
-    platform?: DevicePlatform
+    platform?: DevicePlatform,
+    tickersEnabled?: boolean
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
@@ -47,7 +60,7 @@ export class DeviceRegistry {
         if (screenWidth) existing.screenWidth = screenWidth;
         if (screenHeight) existing.screenHeight = screenHeight;
         if (screenWidth && screenHeight) {
-          existing.displayLines = calculateDisplayLines(screenWidth, screenHeight);
+          existing.displayLines = calculateDisplayLines(screenWidth, screenHeight, tickersEnabled);
         }
         const platformStr = platform ? ` [${platform}]` : '';
         console.log(`[Registry] Kiosk reconnected: ${displayName} (${id})${platformStr} in workspace ${workspaceId}, session ${sessionId || 'none'}, ${existing.displayLines || '?'} display lines`);
@@ -60,7 +73,7 @@ export class DeviceRegistry {
 
     // Only calculate displayLines for kiosk devices - mobile/other devices are voice-only
     const displayLines = (mode === 'kiosk' && screenWidth && screenHeight) 
-      ? calculateDisplayLines(screenWidth, screenHeight) 
+      ? calculateDisplayLines(screenWidth, screenHeight, tickersEnabled)
       : undefined;
 
     const device: Device = {

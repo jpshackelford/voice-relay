@@ -13,6 +13,7 @@ import { useAgentEventHistory } from '../hooks/useAgentEventHistory';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
+import { useKioskConfig } from '../hooks/useKioskConfig';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage, AudioChunkMessage, AudioEndMessage } from '../types';
@@ -141,6 +142,9 @@ export function SessionView() {
     },
     [refetchWorkspace]
   );
+
+  // Issue #340: kiosk footer-ticker config (anonymous-safe public endpoint).
+  const { config: kioskConfig } = useKioskConfig(workspaceId);
 
   // Auto-join workspace when we get a 403 (access denied)
   // Encapsulated in custom hook for better separation of concerns
@@ -524,6 +528,7 @@ export function SessionView() {
           agentHistoryError={agentEventHistory.error}
           agentHistoryConversationId={agentEventHistory.conversationId}
           onRetryAgentHistory={agentEventHistory.retry}
+          kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
         />
       </>
     );

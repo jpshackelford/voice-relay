@@ -9,8 +9,12 @@ import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
+import { formatActionKind } from '../utils/formatActionKind';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
+
+/** Issue #340: clear the transcription ticker after this many ms of no new partials. */
+const TRANSCRIPTION_TICKER_IDLE_MS = 5000;
 
 // Configure marked for GitHub Flavored Markdown with line breaks
 marked.setOptions({
@@ -60,6 +64,14 @@ interface KioskModeProps {
   agentHistoryConversationId?: string | null;
   /** Retry the history fetch with `rehydrate=force`. */
   onRetryAgentHistory?: () => void;
+  /**
+   * Issue #340: when true, the kiosk renders two one-line ticker strips
+   * along the bottom of the display:
+   *   - bottom-left: live transcription of the active (non-self, non-AI) speaker
+   *   - bottom-right: most recent AI agent action title
+   * Defaults to false so workspaces that haven't opted in see no change.
+   */
+  kioskFooterTickersEnabled?: boolean;
 }
 
 // Hook to detect mobile devices
@@ -104,6 +116,7 @@ export function KioskMode({
   agentHistoryError = null,
   agentHistoryConversationId,
   onRetryAgentHistory,
+  kioskFooterTickersEnabled = false,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -419,6 +432,72 @@ export function KioskMode({
   const visibleTimeline = showAgentActions 
     ? timeline 
     : timeline.filter(e => e.type === 'utterance');
+
+  // ============================================================
+  // Issue #340: footer ticker derived state
+  // ============================================================
+  //
+  // Transcription ticker: most recent utterance whose `senderId` is neither
+  //   our own device nor the synthetic AI utterance. We follow the most
+  //   recent message (partial or final) and clear it after
+  //   `TRANSCRIPTION_TICKER_IDLE_MS` of staleness.
+  // Action ticker: most recent `agentActions[]` entry's `summary` (or its
+  //   formatted `kind` as a fallback). Cleared when an AI-sender utterance
+  //   arrives _after_ the most recent action (the AI has handed the floor
+  //   back to the human).
+  const mostRecentForeignUtterance = useMemo<Utterance | null>(() => {
+    let best: Utterance | null = null;
+    for (const u of utterances.values()) {
+      if (u.senderId === deviceId || u.senderId === 'ai') continue;
+      if (!best || u.receivedAt.getTime() > best.receivedAt.getTime()) {
+        best = u;
+      }
+    }
+    return best;
+  }, [utterances, deviceId]);
+
+  // Idle-clear for the transcription ticker so the strip doesn't get stuck on a
+  // final message from a speaker who has gone quiet. We use a piece of state +
+  // setTimeout rather than referencing wall-clock in render so React stays
+  // declarative.
+  const [transcriptionStale, setTranscriptionStale] = useState(false);
+  useEffect(() => {
+    if (!mostRecentForeignUtterance) {
+      setTranscriptionStale(true);
+      return;
+    }
+    setTranscriptionStale(false);
+    const timeout = window.setTimeout(
+      () => setTranscriptionStale(true),
+      TRANSCRIPTION_TICKER_IDLE_MS
+    );
+    return () => window.clearTimeout(timeout);
+  }, [mostRecentForeignUtterance]);
+
+  const transcriptionTickerText = useMemo(() => {
+    if (!kioskFooterTickersEnabled) return '';
+    if (transcriptionStale) return '';
+    return mostRecentForeignUtterance?.text ?? '';
+  }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
+
+  const actionTickerText = useMemo(() => {
+    if (!kioskFooterTickersEnabled) return '';
+    if (agentActions.length === 0) return '';
+    const lastAction = agentActions[agentActions.length - 1];
+    if (!lastAction) return '';
+    const actionTime = parseOhTimestamp(lastAction.timestamp)?.getTime() ?? 0;
+    // Refinement 1 from the expansion: MessageEvent is filtered out before it
+    // reaches `agentActions`. The AI reply lands in the utterance stream as a
+    // synthetic `senderId === 'ai'` row instead, so that's where we look.
+    let mostRecentAiUtteranceTime = 0;
+    for (const u of utterances.values()) {
+      if (u.senderId !== 'ai') continue;
+      const t = u.receivedAt.getTime();
+      if (t > mostRecentAiUtteranceTime) mostRecentAiUtteranceTime = t;
+    }
+    if (mostRecentAiUtteranceTime > actionTime) return '';
+    return lastAction.summary || formatActionKind(lastAction.kind);
+  }, [kioskFooterTickersEnabled, agentActions, utterances]);
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
 
@@ -793,13 +872,18 @@ export function KioskMode({
           </div>
         )}
 
-        {/* Connection status indicator - solid dot in bottom-left */}
+        {/*
+          Connection status indicator. Issue #340 relocates this from
+          bottom-left to upper-right (CSS-only change in App.css); the markup
+          stays here so existing tests that look for `.connection-indicator`
+          continue to work.
+        */}
         <div 
           className={`connection-indicator ${connected ? 'connected' : 'disconnected'}`}
           title={connected ? 'Connected' : 'Disconnected'}
         />
 
-        {/* AI status indicator - bottom-right (connection dot is bottom-left) */}
+        {/* AI status indicator - bottom-right corner */}
         {(ai?.connecting || ai?.connected || ai?.thinking) && (
           <div className={`kiosk-ai-status ${
             ai?.connecting ? 'connecting' :
@@ -808,6 +892,31 @@ export function KioskMode({
           }`}>
             {ai?.connecting ? '🔗' : ai?.thinking ? '🤔' : '✨'}
           </div>
+        )}
+
+        {/*
+          Issue #340: footer ticker strips. Hidden when the workspace setting
+          is off OR while the QR idle overlay is up (no visible kiosk content
+          underneath them anyway). aria-live="off" on both — they double-
+          announce with the existing message list otherwise.
+        */}
+        {kioskFooterTickersEnabled && !qrHasPriority && (
+          <>
+            <div
+              className="kiosk-ticker kiosk-ticker-transcription"
+              data-testid="kiosk-ticker-transcription"
+              aria-live="off"
+            >
+              <span className="kiosk-ticker-text">{transcriptionTickerText}</span>
+            </div>
+            <div
+              className="kiosk-ticker kiosk-ticker-action"
+              data-testid="kiosk-ticker-action"
+              aria-live="off"
+            >
+              <span className="kiosk-ticker-text">{actionTickerText}</span>
+            </div>
+          </>
         )}
       </main>
 

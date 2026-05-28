@@ -11,6 +11,11 @@ export interface WorkspaceSettings {
   hasElevenlabsApiKey: boolean;
   elevenlabsVoiceId: string | null;
   elevenlabsTtsEnabled: boolean;
+  /**
+   * Whether the kiosk display shows the new footer ticker strips
+   * (transcription + AI action). See issue #340.
+   */
+  kioskFooterTickersEnabled: boolean;
   updatedAt: string | null;
 }
 
@@ -35,7 +40,7 @@ interface UseWorkspaceSettingsReturn {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled'>>) => Promise<void>;
+  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled'>>) => Promise<void>;
   setApiKey: (apiKey: string) => Promise<void>;
   testApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
   removeApiKey: () => Promise<void>;
@@ -103,7 +108,7 @@ export function useWorkspaceSettings(
   }, [refresh]);
 
   const updateSettings = useCallback(async (
-    updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken'>>
+    updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled'>>
   ) => {
     if (!workspaceId) {
       throw new Error('No workspace selected');

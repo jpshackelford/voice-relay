@@ -33,6 +33,7 @@ interface WorkspaceSettingsRow {
   elevenlabs_api_key_tag: string | null;
   elevenlabs_voice_id: string | null;
   elevenlabs_tts_enabled: number | null;
+  kiosk_footer_tickers_enabled: number | null;
   updated_at: string | null;
 }
 
@@ -70,6 +71,7 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     elevenlabsApiKeyTag: row.elevenlabs_api_key_tag,
     elevenlabsVoiceId: row.elevenlabs_voice_id,
     elevenlabsTtsEnabled: row.elevenlabs_tts_enabled === 1,
+    kioskFooterTickersEnabled: row.kiosk_footer_tickers_enabled === 1,
     updatedAt: row.updated_at,
   };
 }
@@ -286,7 +288,7 @@ export class WorkspaceRepository {
              openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
              require_qr_token, elevenlabs_api_key_encrypted, elevenlabs_api_key_iv,
              elevenlabs_api_key_tag, elevenlabs_voice_id, elevenlabs_tts_enabled,
-             updated_at
+             kiosk_footer_tickers_enabled, updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -308,6 +310,7 @@ export class WorkspaceRepository {
       elevenlabsApiKeyTag?: string | null;
       elevenlabsVoiceId?: string | null;
       elevenlabsTtsEnabled?: boolean;
+      kioskFooterTickersEnabled?: boolean;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
@@ -329,6 +332,7 @@ export class WorkspaceRepository {
             elevenlabs_api_key_tag = COALESCE(?, elevenlabs_api_key_tag),
             elevenlabs_voice_id = COALESCE(?, elevenlabs_voice_id),
             elevenlabs_tts_enabled = COALESCE(?, elevenlabs_tts_enabled),
+            kiosk_footer_tickers_enabled = COALESCE(?, kiosk_footer_tickers_enabled),
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -345,6 +349,7 @@ export class WorkspaceRepository {
         settings.elevenlabsApiKeyTag ?? null,
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : null,
+        settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : null,
         now,
         workspaceId
       );
@@ -355,8 +360,9 @@ export class WorkspaceRepository {
         (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
          openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token,
          elevenlabs_api_key_encrypted, elevenlabs_api_key_iv, elevenlabs_api_key_tag,
-         elevenlabs_voice_id, elevenlabs_tts_enabled, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         elevenlabs_voice_id, elevenlabs_tts_enabled, kiosk_footer_tickers_enabled,
+         updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -372,6 +378,7 @@ export class WorkspaceRepository {
         settings.elevenlabsApiKeyTag ?? null,
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : 0,
+        settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : 0,
         now
       );
     }
