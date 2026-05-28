@@ -422,3 +422,27 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-28 15:43 UTC - Review worker (PR #345 #341 round 2)
+
+✅ **Addressed both 🟡 low-priority threads on [PR #345](https://github.com/jpshackelford/voice-relay/pull/345); CI green; PR back to ready-for-review.**
+
+**Threads resolved:**
+
+| # | File | Feedback | Resolution | Commit |
+|---|------|----------|------------|--------|
+| 1 | `server/src/agent-rehydrate.ts` | Sequential `for...of` could delay startup with many sessions | Accepted — switched to `Promise.allSettled`, extracted `rehydrateSingleSession()` so the error-isolation contract is explicit | `db4e2db` |
+| 2 | `server/src/auto-connect.ts` | `>= 1` change needs explicit doc of dispatcher pre-bind contract | Accepted — expanded JSDoc to cover restart re-bind + concurrent-first-join scenarios; added inline pointer at the `>= 1` site | `172fdeb` |
+
+**Verification:**
+- Type check (`tsc --noEmit`): clean.
+- Server tests: 1181/1181 pass (40 in `agent-rehydrate` + `auto-connect` suites).
+- CI: all 5 required checks pass (Build Client, Client Tests, Server Tests, E2E Tests 1m25s, lint-pr-title).
+- Both GraphQL `reviewThread.isResolved === true`.
+
+**Reflection — implications for other open issues:** None. Both changes are scoped strictly to the #341 rehydration path. The `Promise.allSettled` pattern + error-isolated `rehydrateSingleSession` helper is reusable shape if future workspace-snapshot work (#298–#302, still on hold) needs parallel per-session passes, but no action required now.
+
+**Next:** Merge round is a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
