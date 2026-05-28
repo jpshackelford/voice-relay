@@ -3819,6 +3819,11 @@ header {
   width: 60%;
   text-align: left;
   border-top-right-radius: 0.5rem;
+  /* Issue #346 item 1: reserve ~4rem on the left edge for the faux
+     oscilloscope indicator (.kiosk-oscilloscope-indicator: 3rem × 3rem +
+     1rem inset), mirroring the right-side reservation for the AI-status
+     sparkle. */
+  padding-left: 4rem;
 }
 
 .kiosk-ticker-action {
@@ -3826,10 +3831,12 @@ header {
   width: 40%;
   text-align: right;
   border-top-left-radius: 0.5rem;
-  /* Use a subtly distinct tint so the user can tell at a glance which side is
-     the AI's. We don't introduce a new color token here -- just reuse the
-     accent that other AI-related affordances use. */
-  background: rgba(0, 80, 160, 0.45);
+  /* Issue #346 item 3: drop the blue tint so both ticker strips share the
+     same transparent-black background (inherited from .kiosk-ticker), and
+     reserve ~4rem on the right edge so the AI-status sparkle indicator
+     (.kiosk-ai-status: 3rem × 3rem + 1rem inset) sits on a clean black
+     backdrop instead of overlapping the strip's text area. */
+  padding-right: 4rem;
 }
 
 .kiosk-ticker-text {
