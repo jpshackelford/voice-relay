@@ -3,21 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "707670d",
-        "pr": 345,
-        "started": "2026-05-28T16:05:26.969535+00:00",
-        "worker_type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T16:05:26.969535+00:00",
+  "last_updated": "2026-05-28T16:20:14.290319+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -135,7 +128,16 @@
       "finished": "2026-05-28T16:05:26.969535+00:00",
       "status": "stuck",
       "outcome": "Merge worker spawned at 15:51Z but went idle without executing (0 tokens, 0 cost after 13min). Respawned as 707670d."
+    },
+    {
+      "conv_id": "707670d",
+      "type": "merge",
+      "pr": 345,
+      "started": "2026-05-28T16:05:26.969535+00:00",
+      "finished": "2026-05-28T16:20:14.290319+00:00",
+      "status": "success",
+      "outcome": "PR #345 merged to main at 16:07Z (#341 closed)"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
