@@ -3,12 +3,18 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "28ada4e",
-        "issue": 338,
-        "started": "2026-05-28T12:45:53.079787Z"
+        "conv_id": "39bdcaf",
+        "issue": 340,
+        "started": "2026-05-28T13:04:47.004293+00:00"
       }
     ],
-    "implementation": [],
+    "implementation": [
+      {
+        "conv_id": "bf92540",
+        "issue": 338,
+        "started": "2026-05-28T13:04:47.004293+00:00"
+      }
+    ],
     "review": []
   },
   "limits": {
@@ -16,70 +22,16 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T12:45:53.079787Z",
+  "last_updated": "2026-05-28T13:04:47.004293+00:00",
   "completed": [
     {
-      "conv_id": "4b9cf9a",
-      "type": "implementation",
-      "issue": 333,
-      "started": "2026-05-25T01:23:23Z",
-      "finished": "2026-05-25T01:34:53.135051Z",
+      "conv_id": "28ada4e",
+      "type": "expansion",
+      "issue": 338,
+      "started": "2026-05-28T12:45:53.079787Z",
+      "finished": "2026-05-28T13:02:59.766735+00:00",
       "status": "success",
-      "outcome": "Created PR #334 (test fixture pin)"
-    },
-    {
-      "conv_id": "65d2d64",
-      "type": "review",
-      "pr": 331,
-      "started": "2026-05-25T01:23:23Z",
-      "finished": "2026-05-25T01:34:53.135051Z",
-      "status": "success",
-      "outcome": "Merged PR #331 (closed #295)"
-    },
-    {
-      "conv_id": "bef3099",
-      "type": "merge",
-      "pr": 334,
-      "started": "2026-05-25T01:35:52.993393Z",
-      "finished": "2026-05-25T01:48:41.310891Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #334 (fix(tests): pin ReleaseNotes mock fixtures); issue #333 auto-closed; broke ReleaseNotes test brittleness chain that was blocking PR #332"
-    },
-    {
-      "conv_id": "5c170b5",
-      "type": "merge",
-      "pr": 332,
-      "started": "2026-05-25T02:22:45Z",
-      "finished": "2026-05-25T02:33:24.326719+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #332 (feat(server): memory replay after rebind via system_message_suffix, 7eafaea); issue #297 auto-closed"
-    },
-    {
-      "conv_id": "adf45ff",
-      "type": "implementation",
-      "issue": 336,
-      "started": "2026-05-26T00:19:52Z",
-      "finished": "2026-05-26T00:35:41.981372Z",
-      "status": "success",
-      "outcome": "Created PR #337 (fix(server): harden getAuthConfig() to fail fast on partial GitHub App config)"
-    },
-    {
-      "conv_id": "5a691bc",
-      "type": "review",
-      "pr": 337,
-      "started": "2026-05-26T00:35:41.981372Z",
-      "finished": "2026-05-26T00:49:25.586410Z",
-      "status": "success",
-      "outcome": "Addressed Boolean() wrapper nit on PR #337 (commit b6879ea); resolved review thread; CI green; PR ready for merge"
-    },
-    {
-      "conv_id": "b4cf694",
-      "type": "merge",
-      "pr": 337,
-      "started": "2026-05-26T00:49:25.586410Z",
-      "finished": "2026-05-26T01:02:02.318347Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #337 (fix(server): harden getAuthConfig partial GitHub App config); issue #336 auto-closed"
+      "outcome": "Expanded issue #338; added ready + priority:medium labels"
     }
   ],
   "quiet_ticks": 0
