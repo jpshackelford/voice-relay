@@ -251,6 +251,92 @@ describe('SessionRepository', () => {
       expect(found?.metadata?.aiConversationId).toBe('conv-123');
       expect(found?.metadata?.stats?.messageCount).toBe(10);
     });
+
+    it('round-trips a full displayContent payload through SQLite metadata (issue #338)', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+
+      repo.updateMetadata(session.id, {
+        displayContent: {
+          type: 'markdown',
+          content: '# Daily Brief\n\n- Item 1\n- Item 2',
+          title: 'Operator Brief',
+        },
+      });
+
+      // Force re-read from the DB to prove the JSON column round-tripped.
+      const found = repo.findById(session.id);
+      expect(found?.metadata?.displayContent).toEqual({
+        type: 'markdown',
+        content: '# Daily Brief\n\n- Item 1\n- Item 2',
+        title: 'Operator Brief',
+      });
+    });
+
+    it('round-trips an image displayContent payload (issue #338)', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+
+      repo.updateMetadata(session.id, {
+        displayContent: {
+          type: 'image',
+          content: 'https://example.com/chart.png',
+        },
+      });
+
+      const found = repo.findById(session.id);
+      expect(found?.metadata?.displayContent).toEqual({
+        type: 'image',
+        content: 'https://example.com/chart.png',
+      });
+    });
+  });
+
+  describe('clearDisplayContent (issue #338)', () => {
+    it('removes the displayContent key from metadata', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.updateMetadata(session.id, {
+        displayContent: { type: 'markdown', content: '# Hello', title: 't' },
+      });
+      expect(repo.findById(session.id)?.metadata?.displayContent).toBeDefined();
+
+      const cleared = repo.clearDisplayContent(session.id);
+
+      expect(cleared?.metadata?.displayContent).toBeUndefined();
+      // Confirm via a fresh read too, not just the returned object.
+      expect(repo.findById(session.id)?.metadata?.displayContent).toBeUndefined();
+    });
+
+    it('preserves co-existing metadata fields (ttsSettings, aiConversationId)', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.updateMetadata(session.id, {
+        aiConversationId: 'conv-abc',
+        ttsSettings: { enabled: true, outputDeviceId: 'kiosk-1' },
+        displayContent: { type: 'markdown', content: '# Hello' },
+      });
+
+      repo.clearDisplayContent(session.id);
+
+      const found = repo.findById(session.id);
+      expect(found?.metadata?.displayContent).toBeUndefined();
+      expect(found?.metadata?.aiConversationId).toBe('conv-abc');
+      expect(found?.metadata?.ttsSettings).toEqual({
+        enabled: true,
+        outputDeviceId: 'kiosk-1',
+      });
+    });
+
+    it('is a no-op (no throw) when called on a session with no displayContent', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.updateMetadata(session.id, { aiConversationId: 'conv-abc' });
+
+      const cleared = repo.clearDisplayContent(session.id);
+
+      expect(cleared?.metadata?.displayContent).toBeUndefined();
+      expect(cleared?.metadata?.aiConversationId).toBe('conv-abc');
+    });
+
+    it('returns null for an unknown session id', () => {
+      expect(repo.clearDisplayContent('does-not-exist')).toBeNull();
+    });
   });
 
   describe('endSession', () => {

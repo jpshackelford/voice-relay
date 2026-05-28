@@ -316,6 +316,26 @@ export class SessionRepository {
     return this.update(id, { metadata: newMetadata });
   }
 
+  /**
+   * Remove the `displayContent` key from a session's metadata while
+   * preserving all other metadata fields (e.g. `ttsSettings`,
+   * `aiConversationId`).
+   *
+   * Used by `POST /api/display` with `type: 'clear'` to give explicit
+   * "delete this key" semantics without generalizing `updateMetadata`'s
+   * spread/patch contract into a null-as-delete protocol that every other
+   * caller would have to learn. See issue #338.
+   *
+   * @returns The updated session, or `null` if no session matches `id`.
+   */
+  clearDisplayContent(id: string): Session | null {
+    const session = this.findById(id);
+    if (!session) return null;
+
+    const { displayContent: _omit, ...rest } = session.metadata ?? {};
+    return this.update(id, { metadata: rest });
+  }
+
   delete(id: string): void {
     const stmt = this.db.prepare('DELETE FROM sessions WHERE id = ?');
     stmt.run(id);
