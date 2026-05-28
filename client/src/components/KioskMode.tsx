@@ -480,24 +480,30 @@ export function KioskMode({
     return mostRecentForeignUtterance?.text ?? '';
   }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
 
+  // Refinement 1 from the expansion: MessageEvent is filtered out before it
+  // reaches `agentActions`. The AI reply lands in the utterance stream as a
+  // synthetic `senderId === 'ai'` row instead, so that's where we look.
+  // Memoized separately so we only re-scan the utterance map when it changes,
+  // not on every render or when `agentActions` updates.
+  const mostRecentAiUtteranceTime = useMemo(() => {
+    let max = 0;
+    for (const u of utterances.values()) {
+      if (u.senderId !== 'ai') continue;
+      const t = u.receivedAt.getTime();
+      if (t > max) max = t;
+    }
+    return max;
+  }, [utterances]);
+
   const actionTickerText = useMemo(() => {
     if (!kioskFooterTickersEnabled) return '';
     if (agentActions.length === 0) return '';
     const lastAction = agentActions[agentActions.length - 1];
     if (!lastAction) return '';
     const actionTime = parseOhTimestamp(lastAction.timestamp)?.getTime() ?? 0;
-    // Refinement 1 from the expansion: MessageEvent is filtered out before it
-    // reaches `agentActions`. The AI reply lands in the utterance stream as a
-    // synthetic `senderId === 'ai'` row instead, so that's where we look.
-    let mostRecentAiUtteranceTime = 0;
-    for (const u of utterances.values()) {
-      if (u.senderId !== 'ai') continue;
-      const t = u.receivedAt.getTime();
-      if (t > mostRecentAiUtteranceTime) mostRecentAiUtteranceTime = t;
-    }
     if (mostRecentAiUtteranceTime > actionTime) return '';
     return lastAction.summary || formatActionKind(lastAction.kind);
-  }, [kioskFooterTickersEnabled, agentActions, utterances]);
+  }, [kioskFooterTickersEnabled, agentActions, mostRecentAiUtteranceTime]);
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
 
