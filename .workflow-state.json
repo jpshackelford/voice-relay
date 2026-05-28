@@ -11,9 +11,9 @@
     ],
     "review": [
       {
-        "conv_id": "d3a01a4",
+        "conv_id": "df0a306",
         "pr": 343,
-        "started": "2026-05-28T14:07:29.688631+00:00"
+        "started": "2026-05-28T14:19:58.180855+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T14:07:29.688631+00:00",
+  "last_updated": "2026-05-28T14:19:58.180855+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -77,6 +77,15 @@
       "finished": "2026-05-28T14:07:29.688631+00:00",
       "status": "success",
       "outcome": "PR #342 merged to main (#338 closed)"
+    },
+    {
+      "conv_id": "d3a01a4",
+      "type": "review",
+      "pr": 343,
+      "started": "2026-05-28T14:07:29.688631+00:00",
+      "finished": "2026-05-28T14:19:05.508550+00:00",
+      "status": "success",
+      "outcome": "Addressed 2 automated-review threads on PR #343 (commits 907f9c3, 6c25a74); re-marked ready; CI green"
     }
   ],
   "quiet_ticks": 0

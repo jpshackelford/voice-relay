@@ -304,3 +304,36 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+
+### 2026-05-28 14:20 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9d0f398` | implementation | Issue #341 — Session AI rehydration | running (PR #344 opened, CI running) |
+| `df0a306` | review | PR #343 — kiosk footer tickers | **NEW** (running) |
+
+**Reconciled Completed Workers:**
+- `d3a01a4` (review, PR #343) → finished. Addressed both initial threads in commits `907f9c3` (CSS scoped to `data-tickers-enabled`) + `6c25a74` (utterance-scan `useMemo` hoist). Re-marked ready; CI green.
+
+**Current State:**
+- Open PRs:
+  - [PR #343](https://github.com/jpshackelford/voice-relay/pull/343) (#340) — `oCRFR green ready 💬2` — **2 NEW 🟡 threads** from automated re-review at 14:16Z (stale migration comment + misleading test assertion message). Review worker `df0a306` now addressing.
+  - [PR #344](https://github.com/jpshackelford/voice-relay/pull/344) (#341) — opened 14:12Z by impl worker `9d0f398`; mergeable; CI green except `pr-review` still IN_PROGRESS. Impl worker still active. **Hold off** on a 2nd review worker until impl worker exits and `pr-review` posts.
+- Issues needing expansion: **0** 🎉
+- Ready + prioritized (non-on-hold): #340 (PR #343 open), #341 (PR #344 open) — both flowing.
+- On-hold (skipped): #210, #239, #298–#302 (S3 freeze + CI flake + deploy categorization).
+- Slot usage: expansion 0/4, implementation 1/1, review 1/2.
+
+**Action Taken:**
+🚀 **Spawned 1 review worker** for [PR #343](https://github.com/jpshackelford/voice-relay/pull/343) (2 new 🟡 low-priority threads from automated re-review).
+- Conversation: [`df0a306`](https://app.all-hands.dev/conversations/df0a306eb7a54baa86b78025c86a3b71)
+
+**Why not spawn a 2nd review on PR #344?** Implementation worker `9d0f398` is still in `running` status — it's the one who just opened the PR and is likely watching CI / about to wrap up. The `pr-review` check is still IN_PROGRESS. Spawning a review worker now would race the impl worker's final commit. Will revisit next tick.
+
+**Quiet-tick counter:** reset to 0 (productive tick).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
