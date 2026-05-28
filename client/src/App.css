@@ -3767,10 +3767,20 @@ header {
 }
 
 /* In kiosk display area, use absolute positioning.
-   Issue #340: relocated from bottom-left to top-right so the new footer
-   ticker strips can own the bottom edge without overlap. */
+   Default position is bottom-left (pre-#340 behavior). */
 .kiosk-display .connection-indicator {
   position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+}
+
+/* Issue #340: when the footer tickers are enabled, relocate the dot to the
+   top-right so the ticker strips can own the bottom edge without overlap.
+   Gated on the data-tickers-enabled attribute set by KioskMode so workspaces
+   that haven't opted into the tickers keep the original bottom-left placement. */
+.kiosk-display[data-tickers-enabled="true"] .connection-indicator {
+  bottom: auto;
+  left: auto;
   top: 1rem;
   right: 1rem;
 }

@@ -1606,5 +1606,31 @@ describe('KioskMode', () => {
       const dot = kioskDisplay?.querySelector('.connection-indicator');
       expect(dot).not.toBeNull();
     });
+
+    it('sets data-tickers-enabled="true" on .kiosk-display when tickers are on', () => {
+      // Gates the CSS rule that relocates the connection dot to the top-right.
+      const { container } = render(
+        <KioskMode
+          {...defaultProps}
+          devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+          kioskFooterTickersEnabled
+        />
+      );
+      const kioskDisplay = container.querySelector('.kiosk-display');
+      expect(kioskDisplay?.getAttribute('data-tickers-enabled')).toBe('true');
+    });
+
+    it('sets data-tickers-enabled="false" on .kiosk-display when tickers are off', () => {
+      // Default state — keeps the dot at the original bottom-left position,
+      // preventing a breaking visual change for workspaces that haven't opted in.
+      const { container } = render(
+        <KioskMode
+          {...defaultProps}
+          devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+        />
+      );
+      const kioskDisplay = container.querySelector('.kiosk-display');
+      expect(kioskDisplay?.getAttribute('data-tickers-enabled')).toBe('false');
+    });
   });
 });

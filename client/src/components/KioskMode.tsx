@@ -802,7 +802,10 @@ export function KioskMode({
       )}
 
       {/* Right side - Display area */}
-      <main className={`kiosk-display ${drawerOpen ? '' : 'full-width'}`}>
+      <main
+        className={`kiosk-display ${drawerOpen ? '' : 'full-width'}`}
+        data-tickers-enabled={kioskFooterTickersEnabled ? 'true' : 'false'}
+      >
         {effectiveDisplayContent ? (
           effectiveDisplayContent.type === 'image' ? (
             <div className="display-image">
