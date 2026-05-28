@@ -354,3 +354,21 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+### 2026-05-28 14:25 UTC - Implementation worker (#341)
+
+🚀 PR [#345](https://github.com/jpshackelford/voice-relay/pull/345) — `fix(server): rehydrate AI sessions on server restart (#341)`. Implements the four-layer fix from the expansion comment on #341:
+
+- **A) Startup rehydration** — `SessionRepository.listActiveWithAiConversation` + `agent-rehydrate.ts::rehydrateAgentSessions` wired into `index.ts` after repos init. Logs and broadcasts unified `session-state` per session; failures never abort startup.
+- **B) Attach to existing upstream** — `OpenSessionOpts.existingConversationId` + `AISessionManager.attachExistingForSession` + `getOrCreateForSession` route. New `UpstreamConversationEndedError` surfaces dead-upstream so callers fall back instead of binding to a phantom.
+- **C) Restart-aware auto-connect** — `shouldAutoConnect` relaxed from `=== 1` to `>= 1` device (the dispatcher already rebound the device pre-rehydrate). `autoConnectAI` reads `metadata.aiConversationId` and threads it as `existingConversationId`.
+- **D) Dropped-text observability** — `reportDroppedText` helper warn-logs + broadcasts `state: 'degraded'` with `error: 'AI not attached — try restarting the session'`, making #294's restart action discoverable.
+
+**Tests:** 1181 server tests pass. New coverage spans the new repo method, rehydration scenarios, attach-vs-create routing, auto-connect post-restart, driver pass-through, and dropped-text broadcast (32 new cases total). No schema changes — `metadata.aiConversationId` was already persisted by #295.
+
+**CI:** all 5 required checks green on HEAD `962c213` (Build Client, Client Tests, Server Tests, E2E, lint-pr-title). PR moved from draft → ready; `pr-review` will trigger next.
+
+**Acceptance criteria from #341 expansion** — all met: server restart restores ✨ icon + sidebar replies; final `text` message lands on existing upstream conversation; no new conversations created when `aiConversationId` is persisted; dead upstream falls through to dropped-text path with warn + degraded broadcast.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
