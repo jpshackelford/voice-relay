@@ -479,3 +479,37 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-28 16:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `707670d` | merge | PR #345 — rehydrate AI sessions (#341) | **NEW** (running) |
+
+**Reconciled Stuck Worker:**
+- `79dd653` (merge, PR #345) → **stuck** at 16:05Z. Conversation was created at 15:50:34Z but never executed: 13min after spawn the agent was still `execution_status: idle` with `accumulated_cost: 0.0` and `prompt_tokens: 0` — the initial-message run never picked up. Moved to `completed[]` and respawned.
+
+**Current State:**
+- Open PRs:
+  - [PR #345](https://github.com/jpshackelford/voice-relay/pull/345) (#341) — `oRFC green ready 💬--` — re-verified pre-flight at 16:03Z: CI 5/5 + `pr-review` + `enable-orchestrator` SUCCESS on `172fdeb`; both review threads resolved; `isDraft: false`; `reviewDecision: ""` (no required approvals); no orchestrator files in diff (branch hygiene clean); no schema changes (no migration risk). **Ready to merge.**
+- Issues needing expansion: **0** (only on-hold issues remain: #210, #239, #298–#302).
+- Ready + prioritized (non-on-hold): #341 only (in flight as PR #345 — fresh merge worker dispatched).
+- Slot usage: expansion 0/4, implementation 0/1, review 1/2 (merge worker).
+
+**Action Taken:**
+🚀 **Spawned fresh merge worker** for [PR #345](https://github.com/jpshackelford/voice-relay/pull/345) after detecting prior worker `79dd653` had silently failed to execute.
+- Conversation: [`707670d`](https://app.all-hands.dev/conversations/707670d8e3204d4b965a2c86dc4cc023) — verified `execution_status: running`, `sandbox_status: RUNNING` post-spawn.
+- Start-task transitioned `WORKING → SETTING_UP_SKILLS → READY` in ~10s.
+- Production deploy implication: merge auto-deploys to vr.chorecraft.net. No schema migration in this PR (rehydration uses `metadata.aiConversationId` already persisted by #295), so prod-restart risk is bounded to in-memory rehydration logic only.
+
+**Why no other workers?**
+- Expansion slots idle: 0 issues lack the `ready` label (all unexpanded ones are on-hold under the active S3 design freeze + CI-flake/deploy-categorization holds).
+- Implementation slot idle: the only `ready + prioritized + non-on-hold` issue (#341) is already mid-merge as PR #345.
+- 2nd review slot idle: only 1 open PR.
+
+**Quiet-tick counter:** reset to 0 (productive tick — fresh merge worker spawned to replace stuck one).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

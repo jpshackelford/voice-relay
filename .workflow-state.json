@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "79dd653",
+        "conv_id": "707670d",
         "pr": 345,
-        "started": "2026-05-28T15:51:44.799624+00:00",
+        "started": "2026-05-28T16:05:26.969535+00:00",
         "worker_type": "merge"
       }
     ]
@@ -17,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T15:51:44.799624+00:00",
+  "last_updated": "2026-05-28T16:05:26.969535+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -126,6 +126,15 @@
       "finished": "2026-05-28T15:44:37+00:00",
       "status": "success",
       "outcome": "Addressed both \ud83d\udfe1 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
+    },
+    {
+      "conv_id": "79dd653",
+      "type": "review",
+      "pr": 345,
+      "started": "2026-05-28T15:51:44.799624+00:00",
+      "finished": "2026-05-28T16:05:26.969535+00:00",
+      "status": "stuck",
+      "outcome": "Merge worker spawned at 15:51Z but went idle without executing (0 tokens, 0 cost after 13min). Respawned as 707670d."
     }
   ],
   "quiet_ticks": 0
