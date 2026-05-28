@@ -7,6 +7,7 @@ import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
+import { MarqueeTicker } from './MarqueeTicker';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
 import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
@@ -951,10 +952,20 @@ export function KioskMode({
           <>
             <div
               className="kiosk-ticker kiosk-ticker-transcription"
-              data-testid="kiosk-ticker-transcription"
               aria-live="off"
             >
-              <span className="kiosk-ticker-text">{transcriptionTickerText}</span>
+              {/*
+                Issue #346 item 2: the transcription strip is a fixed-width
+                marquee. As partial-update text grows, older content scrolls
+                off the left edge instead of being ellipsis-truncated. The
+                MarqueeTicker component owns the measure-and-translate math;
+                we just feed it the latest text.
+              */}
+              <MarqueeTicker
+                text={transcriptionTickerText}
+                data-testid="kiosk-ticker-transcription"
+                className="kiosk-ticker-text"
+              />
             </div>
             <div
               className="kiosk-ticker kiosk-ticker-action"
