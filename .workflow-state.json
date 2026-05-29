@@ -3,20 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "cfb4f6d",
-        "pr": 359,
-        "started": "2026-05-29T02:50:01.245984+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T02:50:01.245984+00:00",
+  "last_updated": "2026-05-29T03:04:43.604823+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -296,7 +290,16 @@
       "finished": "2026-05-29T02:50:01.245984+00:00",
       "status": "success",
       "outcome": "Implementation of #357 (rollback) \u2192 opened PR #359 (two clean reverts, CI green, \ud83d\udfe2 review verdict, 0 unresolved threads, mergeable)"
+    },
+    {
+      "conv_id": "cfb4f6d",
+      "type": "merge",
+      "pr": 359,
+      "started": "2026-05-29T02:50:01.245984+00:00",
+      "finished": "2026-05-29T02:51:20+00:00",
+      "status": "success",
+      "outcome": "PR #359 squash-merged to main (67352fc); #357 auto-closed. Production rollback of PRs #355 + #356."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
