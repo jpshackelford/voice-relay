@@ -932,3 +932,59 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 02:50 UTC - Orchestrator (manual `/orchestrate`)
+
+🚀 **Spawned merge worker for production-critical PR #359.**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| `cfb4f6d` | merge | [PR #359](https://github.com/jpshackelford/voice-relay/pull/359) — rollback of PRs #355 + #356 | **NEW** (running) |
+
+**Worker reconciliation (finished since last tick):**
+- `d3dcbab` (impl #357) → ✅ **finished**. Opened [PR #359](https://github.com/jpshackelford/voice-relay/pull/359) via two clean reverts (`caf5fcf` reverts PR #356; `2ea0d96` reverts PR #355). Moved to `completed` in `.workflow-state.json`.
+
+**PR #359 readiness check (passed):**
+| Signal | Value |
+|---|---|
+| `mergeable` | `MERGEABLE` |
+| Server Tests / Client Tests / Build Client / E2E Tests | ✅ all green |
+| `lint-pr-title` / `enable-orchestrator` | ✅ |
+| `pr-review` automated verdict | 🟢 "Good taste — Clean production rollback with proper planning" |
+| Unresolved review threads | 0 / 0 |
+| Labels | `bug`, `priority:critical`, `scope:server-only`, `server` (no `on-hold` / `needs-human`) |
+| Diff | +51 / −1383 across 12 files; no schema/migration changes |
+
+**Spawned: Merge Worker**
+- PR: [#359 — `fix(server): revert PRs #355 + #356, restore direct openSession call pattern (#357)`](https://github.com/jpshackelford/voice-relay/pull/359)
+- Conversation: [`cfb4f6d`](https://app.all-hands.dev/conversations/cfb4f6d53744497db1ec859a204dc821) — `execution_status=running`, `sandbox_status=RUNNING`
+- Start task: `b5ceed6cc06a4be99553c058510ca2bd` → `READY` in ~9s.
+
+**Why merge now (not another review round):**
+- All CI green, 0 unresolved review threads, 🟢 automated verdict.
+- This is a **live production regression**: kiosks stuck in 'connecting', mobile transcription sessions dropping. Real prod users on vr.chorecraft.net keep hitting it.
+- The rollback is pure code revert (no schema/migration risk), so merge → auto-deploy is the safest fast path.
+
+**Worker prompt highlights:**
+- Re-verify `mergeable` + labels (`on-hold` / `needs-human`) before merging — abort if anything regressed since the orchestrator check.
+- Confirm no DB migration in diff (production uses SQLite; this PR should not touch it).
+- Squash-merge with subject `fix(server): revert PRs #355 + #356, restore direct openSession call pattern (#357)` and a body that includes `Fixes #357` so the issue auto-closes.
+- Append the merge-completion entry to `WORKLOG.md` **on main** (the `Branch Hygiene` check blocks WORKLOG/state changes in feature branches).
+- Do **not** unblock #358 — that requires a human to verify the deploy fixed prod.
+
+**Current State (post-spawn):**
+- **Open PRs:** 1 (PR #359, now in the merge worker's hands).
+- **Slots:** expansion 0/4, implementation 0/1, review **1/2**.
+- **Ready issues remaining:** #351 (`on-hold` — leave alone), #357 (will auto-close when #359 merges). All "needs-expansion" issues carry `on-hold` (#358, #299–#302, #239, #210). So no other useful work to dispatch this tick.
+- `quiet_ticks` reset to **0** (productive tick).
+
+**Next orchestrator tick should:**
+- Verify `cfb4f6d` finished and PR #359 merged → #357 closed.
+- Confirm auto-deploy to vr.chorecraft.net succeeded (look for the merge worker's WORKLOG entry, or check the deploy workflow).
+- If merged and deploy clean, surface that to the human so they can unblock #358 (forward-fix).
+- If anything regressed (CI flipped, `mergeable` became false, label added), do not respawn — wait for human triage.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

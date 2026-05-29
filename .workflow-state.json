@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "d3dcbab",
-        "issue": 357,
-        "started": "2026-05-29T02:36:33.869861+00:00"
+        "conv_id": "cfb4f6d",
+        "pr": 359,
+        "started": "2026-05-29T02:50:01.245984+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T02:36:33.869861+00:00",
+  "last_updated": "2026-05-29T02:50:01.245984+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -287,6 +287,15 @@
       "finished": "2026-05-29T02:14:00+00:00",
       "status": "success",
       "outcome": "Merged PR #356 (squash 7501100); #349 auto-closed. Worklog entry by merge worker on main at commit a636eb1; conv_id not captured in state."
+    },
+    {
+      "conv_id": "d3dcbab",
+      "type": "implementation",
+      "issue": 357,
+      "started": "2026-05-29T02:36:33.869861+00:00",
+      "finished": "2026-05-29T02:50:01.245984+00:00",
+      "status": "success",
+      "outcome": "Implementation of #357 (rollback) \u2192 opened PR #359 (two clean reverts, CI green, \ud83d\udfe2 review verdict, 0 unresolved threads, mergeable)"
     }
   ],
   "quiet_ticks": 0
