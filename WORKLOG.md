@@ -1124,3 +1124,20 @@ The 5 new issues are tightly related — they all describe the same production f
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:18 UTC - Expansion Worker (#362)
+
+✅ **Expanded Issue #362** — _bug(server): OpenHandsAgentDriver.openSession silently discards opts on subsequent calls (the latent #357 root cause)_
+
+- Issue: [#362](https://github.com/jpshackelford/voice-relay/issues/362)
+- Type: Bug
+- Status: Ready for implementation (`ready` label applied)
+- Validation: Read `server/src/agent-driver/openhands.ts` at `ed43b64`. Confirmed @jpshackelford's analysis — `openSession` only assigns `state.opts` on the fresh-state branch (L389–399); the else branch never refreshes opts, so `doBindSession` (L604–625) and `restartSession` (L432–453) always see stale cached opts. `runTurn`'s lazy-bind path is also affected but less relevant for the immediate #358 retry pattern.
+- Test gap: T-2.2.4 only exercises `openSession` with identical opts. No test covers different `existingConversationId` across calls — the exact gap that let the latent bug ship in #355/#356.
+- Approach: Endorsed Option 1 (refresh `state.opts` on every call). Option 2 expands the driver interface unnecessarily; Option 3 forces `runTurn` to pass opts it doesn't have. Plus JSDoc tightening in `types.ts` and three new tests in `openhands.test.ts` (refresh-on-second-call, restartSession-uses-latest-opts, plus a comment tightening on T-2.2.4).
+- Production safety: pure in-memory change, no DB/wire-format/API impact, safe for auto-deploy to vr.chorecraft.net. No behaviour change for current single-call callers; only unlocks correct behaviour for the future #358 retry helper.
+- Sequencing: must land before #358 is re-attempted. Independent of #360/#361.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
