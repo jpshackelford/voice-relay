@@ -109,11 +109,25 @@ export class RebindBudgetExhausted extends Error {
 export class RebindForbidden extends Error {
   readonly conversationId: string;
   readonly status: number;
-  constructor(conversationId: string, status: number, message: string) {
+  /**
+   * Raw upstream response body that triggered the forbidden classification,
+   * passed through from {@link OpenHandsApiError.body}. `null` for the
+   * (unusual) case where the rebind helper synthesizes a `RebindForbidden`
+   * without an underlying HTTP body. Exposed for the structured
+   * upstream-failure log in issue #364.
+   */
+  readonly body: string | null;
+  constructor(
+    conversationId: string,
+    status: number,
+    message: string,
+    body: string | null = null,
+  ) {
     super(message);
     this.name = 'RebindForbidden';
     this.conversationId = conversationId;
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -124,10 +138,16 @@ export class RebindForbidden extends Error {
  */
 export class RebindConversationGone extends Error {
   readonly conversationId: string;
-  constructor(conversationId: string) {
+  /** HTTP status (always 404 today). Mirrors {@link RebindForbidden.status} for log uniformity (#364). */
+  readonly status: number;
+  /** Raw upstream 404 body, if any — sometimes carries useful tenant context like `"conversation not found in tenant XYZ"` (#364). */
+  readonly body: string | null;
+  constructor(conversationId: string, body: string | null = null) {
     super(`Conversation ${conversationId} is gone — rebind returned 404`);
     this.name = 'RebindConversationGone';
     this.conversationId = conversationId;
+    this.status = 404;
+    this.body = body;
   }
 }
 
@@ -290,17 +310,19 @@ export async function rebindConversation(
     } catch (err) {
       if (err instanceof OpenHandsApiError) {
         lastStatus = err.status;
-        // Non-transient 4xx: fail fast with typed errors.
+        // Non-transient 4xx: fail fast with typed errors. Plumb the raw
+        // upstream body through so the manager-side log line in #364 can
+        // distinguish 403/401/409 etc. without regex-parsing the message.
         if (err.status === 403) {
-          throw new RebindForbidden(conversationId, err.status, err.message);
+          throw new RebindForbidden(conversationId, err.status, err.message, err.body);
         }
         if (err.status === 404) {
-          throw new RebindConversationGone(conversationId);
+          throw new RebindConversationGone(conversationId, err.body);
         }
         if (!err.transient) {
           // Other 4xx (e.g. 400, 401, 409): treat as non-recoverable but
           // surface as RebindForbidden so the manager can degrade cleanly.
-          throw new RebindForbidden(conversationId, err.status, err.message);
+          throw new RebindForbidden(conversationId, err.status, err.message, err.body);
         }
         // Transient: fall through to backoff, unless budget is up or we're
         // already on the last allowed attempt.

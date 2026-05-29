@@ -24,6 +24,7 @@ import {
   noopCondense,
   type CondenseFn,
 } from './agent-driver/replay.js';
+import { logUpstreamFailure } from './agent-driver/log.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -109,13 +110,27 @@ export class OpenHandsApiError extends Error {
   readonly status: number;
   readonly retryAfter: string | null;
   readonly transient: boolean;
+  /**
+   * Raw upstream response body, if one was read. `null` for
+   * network/abort errors where no HTTP response was received. Exposed
+   * as a structured field (in addition to being embedded in
+   * `message`) so call sites in {@link AISessionManager} can log it
+   * without regex-parsing the message string — see issue #364.
+   */
+  readonly body: string | null;
 
-  constructor(status: number, message: string, retryAfter: string | null) {
+  constructor(
+    status: number,
+    message: string,
+    retryAfter: string | null,
+    body: string | null = null,
+  ) {
     super(message);
     this.name = 'OpenHandsApiError';
     this.status = status;
     this.retryAfter = retryAfter;
     this.transient = status === 0 || status === 429 || status >= 500;
+    this.body = body;
   }
 }
 
@@ -259,7 +274,8 @@ export class OpenHandsClient {
         throw new OpenHandsApiError(
           response.status,
           `OpenHands API error ${response.status}: ${text}`,
-          response.headers.get('retry-after')
+          response.headers.get('retry-after'),
+          text,
         );
       }
 
@@ -1818,6 +1834,30 @@ export class AISessionManager {
         this.applyFreshCreds(session, fresh);
         return;
       } catch (err) {
+        // Issue #364: log every upstream failure with structured fields
+        // BEFORE remapping into the manager-internal error classes
+        // (SandboxMissingError / UpstreamCredentialsLostError /…) below.
+        // Doing this here means the original status + body excerpt make
+        // it into the journal even when the wrapper class drops them.
+        // Skip purely-transient retries so 5xx flapping doesn't spam the
+        // journal — only log on the last retry.
+        if (
+          err instanceof SandboxMissingError ||
+          err instanceof SandboxResumeTimeoutError ||
+          err instanceof SandboxResumeBudgetExhausted ||
+          !(err instanceof OpenHandsApiError) ||
+          !err.transient ||
+          attempt === maxRetries
+        ) {
+          logUpstreamFailure('refresh', {
+            err,
+            sessionId: session.sessionId,
+            conversationId: session.conversationId,
+            attempt,
+            maxAttempts: maxRetries,
+            endpoint: 'GET /api/v1/app-conversations',
+          });
+        }
         if (
           err instanceof SandboxMissingError ||
           err instanceof SandboxResumeTimeoutError ||
@@ -2164,6 +2204,16 @@ export class AISessionManager {
     try {
       convInfo = await client.getConversation(conversationId);
     } catch (err) {
+      // Issue #364: emit a structured failure log before the error is
+      // remapped to `UpstreamConversationEndedError` (which drops the
+      // raw upstream status/body). Operators need the original
+      // status/body to triage 401 vs 404 vs network errors here.
+      logUpstreamFailure('attach', {
+        err,
+        sessionId,
+        conversationId,
+        endpoint: 'GET /api/v1/app-conversations',
+      });
       const message = err instanceof Error ? err.message : String(err);
       throw new UpstreamConversationEndedError(
         conversationId,
@@ -2563,6 +2613,15 @@ export class AISessionManager {
       const page = await this.client.getEventsPage(conversationId, { limit: 100 });
       return await buildReplaySuffix(page.items, this.condenseImpl);
     } catch (err) {
+      // Issue #364: also emit the structured upstream-failure line so the
+      // operator can see what status/body the events-page call returned.
+      // The user-facing `console.warn` is preserved for backward
+      // compatibility with existing log greps.
+      logUpstreamFailure('replay_suffix', {
+        err,
+        conversationId,
+        endpoint: 'GET /api/v1/conversations/:id/events',
+      });
       const message = err instanceof Error ? err.message : String(err);
       console.warn(
         `[AI] memory replay prep failed for ${conversationId}, ` +
@@ -2640,6 +2699,17 @@ export class AISessionManager {
         const message = err instanceof Error ? err.message : String(err);
         session.degradedReason = `Rebind failed: ${message}`;
       }
+      // Issue #364: emit a structured upstream-failure line in addition
+      // to (not instead of) the user-facing `degradedReason` log below.
+      // The structured line carries the raw HTTP status + body excerpt
+      // operators need to triage 401 vs 403 vs 409 — the `degradedReason`
+      // string deliberately collapses those into one kiosk-facing reason.
+      logUpstreamFailure('rebind', {
+        err,
+        sessionId: session.sessionId,
+        conversationId: session.conversationId,
+        endpoint: 'POST /api/v1/app-conversations',
+      });
       console.error(
         `[AI] Rebind failed for conversation ${session.conversationId}: ` +
           `${session.degradedReason}`,
