@@ -40,12 +40,16 @@ export const BODY_EXCERPT_MAX_CHARS = 200;
  * Runs BEFORE truncation so we never accidentally leak a partial token
  * by chopping the body mid-string. Keeps the surrounding JSON structure
  * intact so the redacted body is still useful for debugging.
+ *
+ * The Bearer token character class covers both base64url (`A-Za-z0-9._-`)
+ * and standard base64 (RFC 4648 §4: `A-Za-z0-9+/=`) so JWT-style and
+ * HTTP Basic / classic-base64 tokens are both redacted.
  */
 export function redactSecrets(body: string): string {
   return body
     .replace(/("session_api_key"\s*:\s*)"[^"]*"/g, '$1"***"')
     .replace(/("api_key"\s*:\s*)"[^"]*"/g, '$1"***"')
-    .replace(/Bearer\s+[A-Za-z0-9._\-]+/g, 'Bearer ***');
+    .replace(/Bearer\s+[A-Za-z0-9._\-+/=]+/g, 'Bearer ***');
 }
 
 /**

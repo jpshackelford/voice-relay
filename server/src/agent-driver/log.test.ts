@@ -49,6 +49,18 @@ describe('redactSecrets', () => {
       'first Bearer *** then Bearer ***',
     ],
     [
+      // RFC 4648 §4 standard base64 uses + / = which the original
+      // base64url-only char class missed. Lock the wider redaction in.
+      'Bearer token with standard base64 chars (+/=)',
+      'Authorization: Bearer YWJjZA+/abc==',
+      'Authorization: Bearer ***',
+    ],
+    [
+      'Bearer standard base64 mixed inline with other text',
+      'rejected token Bearer aGVsbG8+world/==, retry later',
+      'rejected token Bearer ***, retry later',
+    ],
+    [
       'no secrets is unchanged',
       '{"error":"Forbidden","detail":"bad request"}',
       '{"error":"Forbidden","detail":"bad request"}',
@@ -70,6 +82,20 @@ describe('redactSecrets', () => {
   test('redaction is idempotent', () => {
     const once = redactSecrets('{"session_api_key":"sk_xx","api_key":"k"}');
     expect(redactSecrets(once)).toBe(once);
+  });
+
+  test('redaction is idempotent across base64url + standard base64 tokens', () => {
+    // Mix base64url (.- _) and standard base64 (+ / =) Bearer tokens
+    // alongside the JSON key patterns and confirm a second pass is a
+    // no-op — guards against the wider char class accidentally chewing
+    // into the `***` replacement marker on re-application.
+    const input =
+      'Bearer abc.def-ghi_jkl and Bearer YWJjZA+/abc== plus ' +
+      '{"session_api_key":"sk_live_xx","api_key":"k_yy"}';
+    const once = redactSecrets(input);
+    expect(redactSecrets(once)).toBe(once);
+    expect(once).not.toContain('YWJjZA');
+    expect(once).not.toContain('abc.def-ghi_jkl');
   });
 });
 
