@@ -2224,6 +2224,77 @@ export class AISessionManager {
       throw new UpstreamConversationEndedError(conversationId);
     }
 
+    // PAUSED branch (#370): mirror the recovery added to
+    // {@link doRefreshSessionCredentials} (#360) so the startup
+    // rehydration path and the device-register auto-attach path also
+    // self-heal when the upstream sandbox has paused. Without this, a
+    // server restart (or kiosk reload) after a sandbox pause-window
+    // permanently degrades the session even though resume is trivial.
+    //
+    // We reuse the existing helpers — `resumeSandbox`, the
+    // `resumeTracker` budget guard, `pollSandboxRunning`, and the
+    // `sandboxResumeCount` metric — to keep both branches in lockstep.
+    // Unlike the refresh path we re-assign `convInfo` to the polled
+    // `ConversationInfo` and let the agent-server / session-key derivation
+    // below pick up the fresh values (attach *constructs* an `AISession`;
+    // it doesn't mutate one, so `applyFreshCreds` isn't the right tool).
+    if (convInfo.sandbox_status === 'PAUSED') {
+      if (!convInfo.sandbox_id) {
+        // PAUSED with no sandbox_id is a platform contract violation;
+        // we can't resume without an id. Surface as ended so the caller
+        // drives the `degraded` broadcast.
+        throw new UpstreamConversationEndedError(
+          conversationId,
+          `Conversation ${conversationId} is PAUSED with no sandbox_id`,
+        );
+      }
+      try {
+        this.resumeTracker.checkBudget(conversationId);
+      } catch (e) {
+        if (e instanceof RebindBudgetExhausted) {
+          throw new SandboxResumeBudgetExhausted(conversationId, e.attempts);
+        }
+        throw e;
+      }
+      try {
+        await client.resumeSandbox(convInfo.sandbox_id);
+      } catch (e) {
+        // 404 → sandbox is genuinely gone, not paused. The attach path
+        // has no rebind fallback (it's keyed on a specific upstream
+        // conversation id), so surface as ended.
+        if (e instanceof OpenHandsApiError && e.status === 404) {
+          throw new UpstreamConversationEndedError(
+            conversationId,
+            `Conversation ${conversationId}: sandbox not found on resume`,
+          );
+        }
+        throw e;
+      }
+      try {
+        convInfo = await this.pollSandboxRunning(conversationId);
+      } catch (e) {
+        // A mid-poll MISSING (the sandbox vanished while we were
+        // polling) is surfaced as ended so the caller drives degraded.
+        // SandboxResumeTimeoutError is left as-is so operators can
+        // distinguish a wedged platform from a missing sandbox in logs;
+        // both `agent-rehydrate.ts` and `auto-connect.ts` catch
+        // generically and surface `degraded`.
+        if (e instanceof SandboxMissingError) {
+          throw new UpstreamConversationEndedError(
+            conversationId,
+            `Conversation ${conversationId}: sandbox MISSING after resume`,
+          );
+        }
+        throw e;
+      }
+      this.resumeTracker.recordSuccess(conversationId);
+      this.sandboxResumeCount++;
+      console.log(
+        `[AI] sandbox resumed for conversation ${conversationId} ` +
+          `(attach) (resume count: ${this.sandboxResumeCount})`,
+      );
+    }
+
     const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
     if (!agentServerUrl || !convInfo.session_api_key) {
       throw new UpstreamConversationEndedError(
