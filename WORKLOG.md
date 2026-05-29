@@ -669,3 +669,49 @@ Tick assessed: 0 active workers (after reconciling stale entry from PR #355 merg
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 02:05 UTC - Implementation Worker (Issue #349, PR #356)
+
+✅ **Issue #349 implemented and PR opened as ready for review.**
+
+**Summary:** Wired the existing `buildReplaySuffix` machinery (#297/#332) into the fresh-create-after-attach-failed path so new conversations carry forward prior context via `system_message_suffix` on `POST /app-conversations`. Builds on the `attachOrCreateAgentSession` helper from PR #355 / commit `3046c9d` — used its extension-point seam (`OpenSessionOpts`) so neither `auto-connect.ts` nor `agent-rehydrate.ts` needed re-plumbing.
+
+**Layered changes:**
+
+| Layer | File | Change |
+|---|---|---|
+| HTTP client | `server/src/openhands.ts` | `startConversation` accepts optional 4th-arg `opts.systemMessageSuffix`; `StartConversationRequest` gains `system_message_suffix?: string` |
+| Manager | `server/src/openhands.ts` | `buildRebindReplaySuffix` → `buildReplaySuffixFromConversation` (renamed, public, body unchanged); `getOrCreateForSession` accepts `previousConversationId` and wires the suffix through to `startConversation` |
+| Driver | `server/src/agent-driver/types.ts`, `openhands.ts` | `OpenSessionOpts.previousConversationId?: string` (documented as hint, mutually exclusive in practice with `existingConversationId`); `doBindSession` forwards it |
+| Helper | `server/src/agent-attach-or-create.ts` | Fresh-create branch sets `freshOpts.previousConversationId = deadId` so the OH adapter can replay-prep |
+
+**Tests (1233 / 1233 pass, tsc clean):**
+
+- Helper (`agent-attach-or-create.test.ts`): +4 `#349:`-tagged tests covering `freshCreated=true` forwarding the dead id, cause-vs-opts precedence, `freshCreated=false` not injecting the hint, and pass-through on attach paths.
+- Manager (`openhands.test.ts`): +1 describe block / +5 tests for `getOrCreateForSession` carry-forward (suffix forwarded, no-previous regression, `getEventsPage` throws → no-suffix proceed, empty event log → no-suffix proceed, `existingConversationId` short-circuit).
+- Call-site regression (`auto-connect.test.ts`, `agent-rehydrate.test.ts`): existing fresh-create tests extended to assert `calls[1][1].previousConversationId === <dead id>`.
+
+**Commits (3, logically grouped):**
+
+1. `603d7fb` — `feat(server): startConversation accepts systemMessageSuffix; rename buildRebindReplaySuffix → buildReplaySuffixFromConversation`
+2. `73731ed` — `feat(server): plumb previousConversationId through OpenSessionOpts and OpenHandsDriver`
+3. `36c954e` — `feat(server): carry prior context into fresh-create via buildReplaySuffix (#349)` (the wire-up; carries the `Fixes #349` trailer)
+
+**CI:** All checks green on first push — Server Tests ✓, Client Tests ✓, Build Client ✓, E2E ✓ (1m23s), lint-pr-title ✓, enable-orchestrator ✓. PR moved from draft → ready, which triggers `pr-review`.
+
+**Acceptance criteria — status against #349:**
+
+- ✓ Fresh-create-after-attach-failed carries prior context via `system_message_suffix`.
+- ✓ Replay prep failure does not block fresh-create (helper logs `[AI] memory replay prep failed …`, conversation starts amnesiac).
+- ✓ Size caps + recency-preserving truncation from `replay.ts` apply unchanged (same code path as rebind).
+- ✓ `startConversation` called WITHOUT suffix when `previousConversationId` is absent (genuinely-first bind).
+- ◯ User-initiated `/ai/restart` carry-forward — **out of scope for this PR.** That uses `OpenHandsDriver.restartSession`, a separate call chain that doesn't go through `attachOrCreateAgentSession`. Captured as a future follow-up; can land independently with a small `restartSession` stash-and-replay change.
+
+**Note for #351 (consumer of `rehydrated-fresh`):** This PR doesn't change the rehydration outcome surface — `rehydrated-fresh` still fires exactly when the helper's fresh-create branch runs. But its *meaning* gets nicer: a `rehydrated-fresh` outcome now means "fresh-created with prior turns seeded" rather than "fresh-created amnesiac." #351's at-register-time surface can word the user-facing message accordingly without any code change in this PR.
+
+**Production deploy:** Will roll out to vr.chorecraft.net via auto-deploy on merge to main. Server-only, no schema migration required.
+
+**Status handoff:** PR #356 is ready; review handling is a separate conversation per orchestrator policy.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
