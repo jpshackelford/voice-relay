@@ -4,9 +4,9 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "77291da",
-        "issue": 362,
-        "started": "2026-05-29T14:06:34.225005Z"
+        "conv_id": "17f5c10",
+        "issue": 364,
+        "started": "2026-05-29T14:31:01.024422Z"
       }
     ],
     "review": []
@@ -16,35 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T14:06:34.225005Z",
+  "last_updated": "2026-05-29T14:36:43.267275+00:00",
   "completed": [
-    {
-      "conv_id": "a191b05",
-      "type": "implementation",
-      "issue": 340,
-      "started": "2026-05-28T13:20:15.649236+00:00",
-      "finished": "2026-05-28T14:07:29.688631+00:00",
-      "status": "success",
-      "outcome": "Implementation of #340 \u2192 opened PR #343 (CI green, automated review surfaced 2 threads)"
-    },
-    {
-      "conv_id": "86d8e14",
-      "type": "review",
-      "pr": 342,
-      "started": "2026-05-28T13:35:54.603885+00:00",
-      "finished": "2026-05-28T14:07:29.688631+00:00",
-      "status": "success",
-      "outcome": "PR #342 merged to main (#338 closed)"
-    },
-    {
-      "conv_id": "d3a01a4",
-      "type": "review",
-      "pr": 343,
-      "started": "2026-05-28T14:07:29.688631+00:00",
-      "finished": "2026-05-28T14:19:05.508550+00:00",
-      "status": "success",
-      "outcome": "Addressed 2 automated-review threads on PR #343 (commits 907f9c3, 6c25a74); re-marked ready; CI green"
-    },
     {
       "conv_id": "9d0f398",
       "type": "implementation",
@@ -350,7 +323,25 @@
       "finished": "2026-05-29T14:06:34.225005Z",
       "status": "success",
       "outcome": "Merged PR #367 (squash 002f38f) \u2192 main; closed #361; applied 3 review nits in 0a3e346. Unblocks #362."
+    },
+    {
+      "conv_id": "77291da",
+      "type": "implementation",
+      "issue": 362,
+      "started": "2026-05-29T14:06:34.225005Z",
+      "finished": "2026-05-29T14:13:00Z",
+      "status": "success",
+      "outcome": "Opened PR #368, merged at 14:23Z (commit c6275e7), #362 auto-closed"
+    },
+    {
+      "conv_id": "04b2268",
+      "type": "review",
+      "pr": 368,
+      "started": "2026-05-29T14:22:18.961988Z",
+      "finished": "2026-05-29T14:23:31Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #368 at commit c6275e7; #362 auto-closed"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
