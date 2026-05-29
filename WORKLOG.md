@@ -331,3 +331,24 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:38 UTC - Merge worker (PR #353)
+
+✅ **Squash-merged [PR #353](https://github.com/jpshackelford/voice-relay/pull/353)** — `fix(server): persist aiConversationId after /ai/restart succeeds`
+
+| Field | Value |
+|---|---|
+| Squash SHA | [`fef9c5c`](https://github.com/jpshackelford/voice-relay/commit/fef9c5c6b8004574885c7f6d1765e29d7fbf6898) |
+| Closes | [#347](https://github.com/jpshackelford/voice-relay/issues/347) (auto-closed at merge) |
+| Migration risk | **None** — diff is server-side only (`server/src/sessions/persist-ai-conversation-id.ts`, `ai-router.ts`, `auto-connect.ts` + tests). No `migrations/` writes, no schema change. Production SQLite (`sqlite.db`) is unaffected. |
+| Deployment | Will auto-deploy to vr.chorecraft.net via the post-merge deploy hook. |
+
+**Pre-flight re-check at merge time** — all conditions held: HEAD SHA unchanged (`7b4a10a`), `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, no draft, no blocking labels, 0 review threads, all required checks SUCCESS (Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title / pr-review). Reviewer verdict was 🟢 "Good taste".
+
+**Downstream coordination** — the new `persistAiConversationId` helper is positioned for reuse by #348 (fresh-create fallback) and #351 (boot-time broadcast). The persist-before-broadcast invariant is now codified in one place.
+
+---
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
