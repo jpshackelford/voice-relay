@@ -1158,3 +1158,17 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:18 UTC - Expansion Worker (issue #360)
+
+✅ **Expanded Issue #360** — `bug(server): sandbox PAUSED state not handled — kiosks degrade permanently ~4 min after idle`
+
+- Issue: [#360](https://github.com/jpshackelford/voice-relay/issues/360)
+- Type: Bug (priority:critical)
+- Status: Ready for implementation (`ready` label applied)
+- Root cause **confirmed against `main` (ed43b64)**: `doRefreshSessionCredentials` in `server/src/openhands.ts` (~L1561) has no `PAUSED` branch; a paused conversation has `session_api_key: null`, so it falls through to the existing `!fresh.session_api_key` guard → `SandboxMissingError` → rebind, which can't recover a paused sandbox. Existing #291 test suite has zero `sandbox_status: 'PAUSED'` cases — gap that let the bug ship.
+- Approach: Add `OpenHandsClient.resumeSandbox(sandboxId)` (POST `/api/v1/sandboxes/{id}/resume`), new `SandboxResumeTimeoutError`, a `PAUSED` branch in `doRefreshSessionCredentials` that calls resume + a new `pollSandboxRunning` helper, capped by a 2nd `RebindWindowTracker` instance (`resumeTracker`, same 3-in-5-min cap). Existing MISSING/401 paths and PR #354's rebind logic stay intact as fallbacks; this is strictly additive. Server-only TS change — no DB/migration/client work, safe for vr.chorecraft.net auto-deploy. Implementation comment with file-by-file plan, test matrix (8 cases), and production-safety notes posted at https://github.com/jpshackelford/voice-relay/issues/360#issuecomment-4574874405.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
