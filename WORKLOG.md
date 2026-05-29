@@ -397,3 +397,25 @@ are tracked separately as `priority:high`.
 - Review/expansion slots intentionally idle: zero open PRs, zero eligible unexpanded issues.
 
 ---
+
+### 2026-05-29 13:36 UTC - Implementation Worker (#361 → PR #367)
+
+✅ **PR #367 opened for #361 (rebind response shape) — CI green, ready for review.**
+
+- PR: [#367 — fix(server): rebindConversation drives three-phase async dance](https://github.com/jpshackelford/voice-relay/pull/367)
+- Branch: `fix/361-rebind-response-shape`
+- Closes: #361
+
+**Diff summary:**
+- `server/src/openhands.ts` — rewrite `OpenHandsClient.rebindConversation` to POST start-task → `pollUntilReady` → `getConversation` (the same three-phase dance as `startConversation`). Resolves the root cause: `POST /app-conversations` returns `AppConversationStartTask`, not `AppConversation`, so the old code's `info.session_api_key` read was always `undefined`.
+- `server/src/agent-driver/rebind.ts` — bump `REBIND_BUDGET_MS` from 30 s → 180 s. Each rebind attempt now legitimately consumes sandbox-boot time; the 3-in-5-min `RebindWindowTracker` still caps cascade risk.
+- `server/src/openhands-client.test.ts` — **new** HTTP-boundary test file (10 tests) covering: three-phase dance with realistic `AppConversationStartTask` shape, `system_message_suffix` forwarding, fallback to input id when start-task omits `app_conversation_id`, 503/403 error propagation, `getConversation`-returns-null edge case, `pollUntilReady` ERROR / timeout propagation.
+- `server/src/agent-driver/rebind.test.ts` — `okResponse()` docstring clarifies the post-`getConversation` shape; budget-exhaustion tests pin `budgetMs: 30_000` so attempts-count assertions remain deterministic under the new 180 s default.
+
+**CI:** Server / Client / Build / E2E / lint-pr-title / enable-orchestrator all passing. Full server suite: 1,233 passed. Coverage `openhands.ts` 92.13%, `rebind.ts` 96.51%.
+
+**No DB / schema changes.**
+
+**Cross-impact on #362:** none — #362 touches `server/src/agent-driver/openhands.ts::OpenHandsAgentDriver.openSession`, which this PR does not modify. The two PRs should rebase cleanly.
+
+---
