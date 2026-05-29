@@ -15,10 +15,6 @@ export default defineConfig({
         'src/sessions/**/*.ts',
         'src/workspaces/**/*.ts',
         'src/agent-driver/**/*.ts',
-        // Issue #348: shared attach-or-create helper. Tracked for
-        // coverage because it owns the fresh-create fallback contract
-        // for both rehydrate and auto-connect.
-        'src/agent-attach-or-create.ts',
       ],
       exclude: [
         'src/**/*.test.ts',
