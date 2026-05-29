@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "17f5c10",
-        "issue": 364,
-        "started": "2026-05-29T14:31:01.024422Z"
+        "conv_id": "2023f09",
+        "pr": 369,
+        "started": "2026-05-29T14:51:55.933909+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T14:36:43.267275+00:00",
+  "last_updated": "2026-05-29T14:51:55.933909+00:00",
   "completed": [
     {
       "conv_id": "9d0f398",
@@ -341,7 +341,16 @@
       "finished": "2026-05-29T14:23:31Z",
       "status": "success",
       "outcome": "Squash-merged PR #368 at commit c6275e7; #362 auto-closed"
+    },
+    {
+      "conv_id": "17f5c10",
+      "type": "implementation",
+      "issue": 364,
+      "started": "2026-05-29T14:31:01.024422Z",
+      "finished": "2026-05-29T14:51:55.933909+00:00",
+      "status": "success",
+      "outcome": "Implementation of #364 \u2192 PR #369 opened, marked ready-for-review (CI green, 1 \ud83d\udfe1 review suggestion to address). Note: recorded conv_id 17f5c10 was actually the spawning orchestrator tick, not the worker (state-recording bug in previous orchestrator); real worker conv_id not captured."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }

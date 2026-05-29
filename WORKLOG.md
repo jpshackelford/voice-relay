@@ -576,3 +576,40 @@ are tracked separately as `priority:high`.
 - Followup candidate (not in scope): forward a `request_id` from upstream response headers if/when the OH platform starts emitting one. Issue body explicitly defers this.
 
 ---
+
+### 2026-05-29 14:52 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2023f09` | review | PR #369 — refresh/rebind failure logs | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#369 — feat(server): include HTTP status + body excerpt in refresh/rebind failure logs](https://github.com/jpshackelford/voice-relay/pull/369)
+- Conversation: [`2023f09`](https://app.all-hands.dev/conversations/2023f09f5f224ad980424c2f8f6092cd)
+- Start task: `f57e32a…` → READY on first poll (5s); sandbox RUNNING; execution_status `running`.
+- Trigger: pr-review bot left ONE 🟡 Suggestion thread on PR #369 (`PRRT_kwDOSTUWGM6Ftbee`) — harden Bearer token redactor regex to also match standard base64 (`+`, `/`, `=`), not just base64url. Worker briefed to accept the suggestion (it's a one-character char-class widening with a clear correctness win for HTTP Basic / standard-base64 bearers), add a regression test in `log.test.ts`, push, reply+resolve the thread, and re-mark PR ready.
+
+**Cleared finished worker (moved to `.workflow-state.json` completed[]):**
+- `17f5c10` implementation/#364 → success (PR #369 opened at 14:31Z, ready at 14:34Z; CI green; 1 🟡 review thread now in flight).
+  - ⚠️ Recording bug: the previous orchestrator tick (which itself had conv `17f5c10`, created at 14:31:01Z) wrote its own conv_id into the impl slot rather than the spawned worker's id. The real implementation worker's conv_id is therefore not captured. Work IS done — PR #369 exists, ready, mergeable, CI green — so this is purely a state-hygiene note. Filed mentally as something the spawn-conversation skill should harden: always read `app_conversation_id` back from the start-task response before writing to `.workflow-state.json`.
+
+**Current State:**
+- Open PRs: 1 — PR #369 (mergeable: CLEAN, all 7 CI checks ✅, 1 unresolved 🟡 review thread)
+- Ready issues (eligible, by priority): none — all remaining ready issues carry `on-hold`:
+  - #351 priority:low + on-hold (kiosk startup-rehydration silent failures)
+  - #363 priority:medium + on-hold (DB-persist AISession state)
+- Ready issues unblocked: 0
+- Issues needing expansion: 6, all `on-hold` (#210, #239, #299, #300, #301, #302). Workspace persistence #299–#302 still frozen per AGENTS.md (Path B, awaits `VR_WORKSPACE_BUCKET` + AWS creds on prod `.env`).
+
+**Slot Utilization:** expansion 0/4, implementation 0/1, review 1/2.
+
+**Decision rationale:**
+- Review slot was the only productive slot to dispatch. PR #369 has one actionable 🟡 thread blocking merge; addressing it is the shortest path to a clean squash-merge.
+- Implementation slot intentionally idle: every non-on-hold ready issue has just been merged (#360, #361, #362, #364 in flight). The remaining ready issues (#351, #363) are explicitly `on-hold` and the AGENTS.md soft-guard prohibits picking them up automatically.
+- Expansion slot intentionally idle: every unexpanded issue carries `on-hold`. Picking up an on-hold issue would violate policy.
+- 2nd review slot not used: there's only one open PR.
+
+**`quiet_ticks` reset:** 1 → 0 (this tick is productive — spawned review worker).
+
+---
