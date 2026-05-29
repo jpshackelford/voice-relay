@@ -830,3 +830,45 @@ The first POST to `/api/v1/app-conversations` at 16:04Z used the legacy `initial
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 16:21 UTC - Implementation Worker (#370)
+
+🚧 → ✅ PR opened and CI green.
+
+**PR #371** — [fix(server): handle PAUSED sandbox in attachExistingForSession](https://github.com/jpshackelford/voice-relay/pull/371)
+
+**Branch:** `fix/issue-370-attach-paused-recovery`
+
+**What landed:**
+
+| File | Change |
+|---|---|
+| `server/src/openhands.ts` | Insert PAUSED branch into `attachExistingForSession` between the `convInfo` null-check and the agent-server / session-key derivation. Reuses `resumeSandbox`, `resumeTracker`, `pollSandboxRunning`, and `sandboxResumeCount` from PR #365 — no duplication. Unlike the refresh path, attach re-assigns `convInfo` to the polled `ConversationInfo` (it constructs an `AISession`; it doesn't mutate one). |
+| `server/src/openhands.test.ts` | New `describe('AISessionManager.attachExistingForSession PAUSED handling (#370)')` block — 9 tests mirroring the existing `…refreshSessionCredentials PAUSED handling (#360)` suite: happy path, STARTING poll loop, no `sandbox_id`, resume 404, MISSING mid-poll, resume budget exhausted, poll timeout, RUNNING bypass (regression guard), `(attach)` log marker. |
+
+**Failure-mode mapping** (acceptance criterion: "rehydration against a MISSING sandbox still throws `UpstreamConversationEndedError`"):
+
+| Condition | Surfaced as |
+|---|---|
+| PAUSED + no `sandbox_id` | `UpstreamConversationEndedError` |
+| 404 on `resumeSandbox` | `UpstreamConversationEndedError` |
+| Mid-poll `MISSING` | `UpstreamConversationEndedError` |
+| Poll budget timeout | `SandboxResumeTimeoutError` (passthrough) |
+| Resume budget exhausted | `SandboxResumeBudgetExhausted` (passthrough) |
+
+Both production callers (`agent-rehydrate.ts` and `auto-connect.ts`) catch generically and surface `degraded`, so the timeout/budget passthroughs degrade cleanly while still letting operators distinguish wedged-platform from missing-sandbox in journals.
+
+**CI:** All checks pass — `Server Tests` (44s), `Client Tests` (39s), `E2E Tests` (2m15s), `Build Client` (25s), `lint-pr-title`. PR moved from draft to ready; `pr-review` bot will pick it up next tick.
+
+**Local verification:**
+- `tsc --noEmit` clean.
+- `vitest run` — 1281/1281 tests pass across 58 files. The new PAUSED-attach suite (9 tests) is in `server/src/openhands.test.ts`.
+
+**Remaining manual-verification acceptance criteria** (post-deploy):
+- Session `f1189e26-2af8-4a32-ae0d-27a2464af4c8` rehydrates cleanly on the next `systemctl restart voice-relay` (no `'missing WS handshake materials'` for conversation `739524055e…`).
+
+Implementation conversation `7d4cea7` is exiting; review handling is a separate conversation per the implementation-worker contract.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
