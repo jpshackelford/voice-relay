@@ -52,7 +52,7 @@ interface StartConversationRequest {
 interface StartTaskResponse {
   id: string;
   status: string;
-  app_conversation_id?: string;
+  app_conversation_id?: string | null;
   error?: string;
 }
 
@@ -412,7 +412,12 @@ export class OpenHandsClient {
     );
 
     // Phase 2 — wait for the new sandbox to be ready. Reuse the same
-    // poll loop as fresh-create.
+    // poll loop as fresh-create. The 120 s default sits comfortably inside
+    // the 180 s `REBIND_BUDGET_MS` (server/src/agent-driver/rebind.ts),
+    // which is the total wall-clock budget the driver layer enforces
+    // across *all* HTTP attempts. Keeping the inner poll timeout below the
+    // outer budget means a single slow boot doesn't immediately exhaust
+    // the retry envelope while still leaving room for one short retry.
     const readyTask = await this.pollUntilReady(
       startTask.id,
       pollOpts.timeoutMs ?? 120_000,
@@ -422,7 +427,9 @@ export class OpenHandsClient {
     // The platform preserves the existing conversation_id on rebind, so
     // app_conversation_id (when present) should match the input. We prefer
     // the task-reported id if any, falling back to the input for defence.
-    const reboundId = readyTask.app_conversation_id || conversationId;
+    // Use `??` so a server-side `null` or `undefined` (but not, say, an
+    // empty string) triggers the fallback.
+    const reboundId = readyTask.app_conversation_id ?? conversationId;
 
     // Phase 3 — re-fetch the conversation to read session_api_key and
     // conversation_url. These are populated on the conversation record,
