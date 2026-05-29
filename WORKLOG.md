@@ -886,3 +886,49 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 02:42 UTC - Implementation worker (#357 production rollback)
+
+🚀 PR #359 opened and marked ready for review — production rollback of PRs #355 + #356.
+
+**Plan executed:** two-step `git revert` per the issue's 02:23Z revised plan (newest-first to avoid conflict cascade). Both reverts applied cleanly with no manual conflict resolution.
+
+| Step | Commit | What |
+| --- | --- | --- |
+| 1 | `caf5fcf` | Revert `7501100` (PR #356 — `previousConversationId` plumb-through) |
+| 2 | `2ea0d96` | Revert `3046c9d` (PR #355 — `attachOrCreateAgentSession` helper) |
+
+**Verification on the feature branch:**
+- `npm run build -w server` → tsc clean (no type errors after revert).
+- `npm test -w server` → 1209 / 1209 passing.
+- `npm run build -w client` → vite + tsc clean.
+- `npm test -w client` → 1018 / 1018 passing.
+- `server/src/agent-attach-or-create.ts(.test).ts` deleted by the revert; no residual `attachOrCreate`, `previousConversationId`, or `previousAiConversationId` references remain in `server/src/`.
+- `agent-rehydrate.ts` and `auto-connect.ts` now call `agentDriver.openSession(...)` directly (pre-#355 pattern), with `persistAiConversationId` from PR #353 still inlined.
+- Pre-existing `systemMessageSuffix` machinery from PR #332 / #297 (`rebindConversation`, `buildRebindReplaySuffix`) confirmed untouched — that path is unrelated to the regression.
+
+**CI on PR #359 (draft → ready):**
+- Server Tests ✅ 38s
+- Client Tests ✅ 42s
+- Build Client ✅ 28s
+- E2E Tests ✅ 1m47s
+- lint-pr-title ✅
+- enable-orchestrator ✅
+- pr-review skipping (was draft when it fired; will re-fire on ready).
+- Branch Hygiene was not triggered — feature branch correctly excludes `WORKLOG.md` and `.workflow-state.json`.
+
+**Acceptance criteria (per #357's 02:23Z revised comment):** all code-side checkboxes satisfied. The remaining "verify on vr.chorecraft.net after deploy" item is left to manual post-merge verification, since the deploy is the merge.
+
+**Out of scope (intentionally untouched):**
+- PR #352 (kiosk ticker, client-only) — kept.
+- PR #353 (`persistAiConversationId` helper) — kept.
+- PR #354 (refresh-401 rebind) — kept.
+- #358 — forward-fix, stays `on-hold` until this rollback ships and is verified.
+- #348 / #349 / #351 — stay `on-hold`; will be reconciled against #358 by the human.
+
+**Next orchestrator tick should:**
+- Spawn a review worker for PR #359 (or hand-merge if criteria say so — the regression is live in prod).
+- After merge + deploy success on vr.chorecraft.net, unblock #358.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
