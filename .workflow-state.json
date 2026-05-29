@@ -3,85 +3,15 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "d29403f",
-        "pr": 371,
-        "started": "2026-05-29T16:34:57.393815Z",
-        "type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T16:34:57.393815Z",
+  "last_updated": "2026-05-29T16:48:26.844223+00:00",
   "completed": [
-    {
-      "conv_id": "9d0f398",
-      "type": "implementation",
-      "issue": 341,
-      "started": "2026-05-28T14:07:29.688631+00:00",
-      "finished": "2026-05-28T15:24:37.856552+00:00",
-      "status": "success",
-      "outcome": "Implementation of #341 \u2192 opened PR #345 (CI green, automated review surfaced 2 threads)"
-    },
-    {
-      "conv_id": "df0a306",
-      "type": "review",
-      "pr": 343,
-      "started": "2026-05-28T14:19:58.180855+00:00",
-      "finished": "2026-05-28T15:24:37.856552+00:00",
-      "status": "success",
-      "outcome": "Addressed automated-review threads on PR #343; PR merged to main (#340 closed)"
-    },
-    {
-      "conv_id": "d474051",
-      "type": "review",
-      "pr": 345,
-      "started": "2026-05-28T15:19:20.565058+00:00",
-      "finished": "2026-05-28T15:21:21.207571+00:00",
-      "status": "error",
-      "outcome": "Spawn failed: sandbox 3qOsVeWKvJj3th1HFpdfa1 entered error state (500)"
-    },
-    {
-      "conv_id": "fde751d",
-      "type": "review",
-      "pr": 345,
-      "started": "2026-05-28T15:21:32+00:00",
-      "finished": "2026-05-28T15:23:36.266746+00:00",
-      "status": "error",
-      "outcome": "Spawn failed: sandbox iHalwVRUjIt0w4nuQeCA8 failed to start within 120s"
-    },
-    {
-      "conv_id": "972c883",
-      "type": "review",
-      "pr": 345,
-      "started": "2026-05-28T15:34:54.488814+00:00",
-      "finished": "2026-05-28T15:44:37+00:00",
-      "status": "success",
-      "outcome": "Addressed both \ud83d\udfe1 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
-    },
-    {
-      "conv_id": "79dd653",
-      "type": "review",
-      "pr": 345,
-      "started": "2026-05-28T15:51:44.799624+00:00",
-      "finished": "2026-05-28T16:05:26.969535+00:00",
-      "status": "stuck",
-      "outcome": "Merge worker spawned at 15:51Z but went idle without executing (0 tokens, 0 cost after 13min). Respawned as 707670d."
-    },
-    {
-      "conv_id": "707670d",
-      "type": "merge",
-      "pr": 345,
-      "started": "2026-05-28T16:05:26.969535+00:00",
-      "finished": "2026-05-28T16:20:14.290319+00:00",
-      "status": "success",
-      "outcome": "PR #345 merged to main at 16:07Z (#341 closed)"
-    },
     {
       "conv_id": "a6a9ba2",
       "type": "expansion",
@@ -387,7 +317,16 @@
       "finished": "2026-05-29T16:22:55Z",
       "status": "success",
       "outcome": "Opened PR #371 (fix(server): handle PAUSED sandbox in attachExistingForSession). CI green, pr-review \ud83d\udfe2 'Good taste', 0 unresolved threads, mergeable=CLEAN. Worker exited 16:22:55Z."
+    },
+    {
+      "conv_id": "d29403f",
+      "type": "merge",
+      "pr": 371,
+      "started": "2026-05-29T16:34:57.393815Z",
+      "finished": "2026-05-29T16:48:26.844223+00:00",
+      "status": "success",
+      "outcome": "PR #371 squash-merged to main (10b647b); #370 auto-closed. PAUSED-attach fix shipped."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
