@@ -2978,6 +2978,89 @@ describe('AISessionManager.rebindSession (#296)', () => {
     expect(session.degradedReason).toMatch(/not authorized/i);
   });
 
+  // #364: end-to-end coverage that the structured upstream-failure log
+  // line lands in `console.error` AND the existing kiosk-facing
+  // `degradedReason` line is unchanged. Without this guard a future
+  // refactor could silently regress either half.
+  test('#364: rebind 403 emits structured log with status + body and keeps degradedReason unchanged', async () => {
+    const upstreamBody = '{"error":"Forbidden","detail":"bad token"}';
+    const client = makeClient([
+      new OpenHandsApiError(403, 'OpenHands API error 403: forbidden', null, upstreamBody),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await manager.rebindSession(session);
+
+    // Regression guard: kiosk-facing reason is exactly as it was pre-#364.
+    expect(session.degradedReason).toBe(
+      'Not authorized to recover the agent runtime — restart needed',
+    );
+
+    const lines = errSpy.mock.calls
+      .map((args) => args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+    // Structured upstream-failure line is present alongside the user-facing one.
+    const structured = lines.find((l) => l.includes('[AI] rebind upstream error'));
+    expect(structured).toBeDefined();
+    expect(structured!).toContain('status=403');
+    expect(structured!).toMatch(/body=".*Forbidden.*bad token.*"/);
+    expect(structured!).toContain('error=RebindForbidden');
+    // The existing operator-facing summary line is still emitted.
+    const summary = lines.find((l) => l.startsWith('[AI] Rebind failed for conversation'));
+    expect(summary).toBeDefined();
+    expect(summary!).toContain('Not authorized to recover the agent runtime');
+
+    errSpy.mockRestore();
+  });
+
+  test('#364: rebind 409 (non-403/404 4xx) emits structured log with status=409 + body', async () => {
+    const upstreamBody = '{"error":"ConflictError","message":"sandbox state conflict"}';
+    const client = makeClient([
+      new OpenHandsApiError(409, 'conflict', null, upstreamBody),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await manager.rebindSession(session);
+
+    const structured = errSpy.mock.calls
+      .map((args) => args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '))
+      .find((l) => l.includes('[AI] rebind upstream error'));
+    expect(structured).toBeDefined();
+    expect(structured!).toContain('status=409');
+    expect(structured!).toMatch(/body=".*ConflictError.*"/);
+
+    errSpy.mockRestore();
+  });
+
+  test('#364: rebind 403 with session_api_key in body redacts the key before logging', async () => {
+    // Defense-in-depth: even if the upstream platform ever echoes a
+    // session_api_key in an error body, the journal must not capture it.
+    const leakyBody = '{"error":"Forbidden","session_api_key":"sk_live_VERY_SECRET","x":1}';
+    const client = makeClient([
+      new OpenHandsApiError(403, 'forbidden', null, leakyBody),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await manager.rebindSession(session);
+
+    const joined = errSpy.mock.calls.flat().filter((a): a is string => typeof a === 'string').join('\n');
+    expect(joined).not.toContain('sk_live_VERY_SECRET');
+    expect(joined).toContain('***');
+
+    errSpy.mockRestore();
+  });
+
   test('T-4.1.I.7: max 3 rebinds in 5min window → 4th degrades without HTTP call', async () => {
     // Three successful rebinds in quick succession, then a fourth should
     // short-circuit to degraded *before* the HTTP layer is touched.

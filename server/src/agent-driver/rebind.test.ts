@@ -243,6 +243,79 @@ describe('rebindConversation (rebind helper)', () => {
     expect(calls.length).toBe(1);
   });
 
+  // #364: regression coverage for status + body plumbing through the
+  // typed-error remapping. Before this issue the upstream HTTP body was
+  // dropped during the remap, leaving the operator unable to triage 4xx
+  // categories from the journal. These tests pin the wiring in place.
+  test('#364: RebindForbidden carries upstream status + body for 403', async () => {
+    const upstreamBody = '{"error":"Forbidden","detail":"bad token"}';
+    const time = makeFakeTime();
+    const { client } = makeClient([
+      new OpenHandsApiError(403, 'forbidden', null, upstreamBody),
+    ]);
+    let caught: RebindForbidden | undefined;
+    try {
+      await rebindConversation(client, 'conv1', { sleep: time.sleep, clock: time.clock });
+    } catch (err) {
+      caught = err as RebindForbidden;
+    }
+    expect(caught).toBeInstanceOf(RebindForbidden);
+    expect(caught!.status).toBe(403);
+    expect(caught!.body).toBe(upstreamBody);
+  });
+
+  test('#364: RebindForbidden carries upstream status + body for non-403/404 4xx', async () => {
+    const upstreamBody = '{"error":"ConflictError","message":"stale rebind"}';
+    const time = makeFakeTime();
+    const { client } = makeClient([
+      new OpenHandsApiError(409, 'conflict', null, upstreamBody),
+    ]);
+    let caught: RebindForbidden | undefined;
+    try {
+      await rebindConversation(client, 'conv1', { sleep: time.sleep, clock: time.clock });
+    } catch (err) {
+      caught = err as RebindForbidden;
+    }
+    expect(caught).toBeInstanceOf(RebindForbidden);
+    expect(caught!.status).toBe(409);
+    expect(caught!.body).toBe(upstreamBody);
+  });
+
+  test('#364: RebindConversationGone carries upstream body for 404', async () => {
+    const upstreamBody = '{"error":"NotFound","detail":"conversation not found in tenant XYZ"}';
+    const time = makeFakeTime();
+    const { client } = makeClient([
+      new OpenHandsApiError(404, 'not found', null, upstreamBody),
+    ]);
+    let caught: RebindConversationGone | undefined;
+    try {
+      await rebindConversation(client, 'conv1', { sleep: time.sleep, clock: time.clock });
+    } catch (err) {
+      caught = err as RebindConversationGone;
+    }
+    expect(caught).toBeInstanceOf(RebindConversationGone);
+    expect(caught!.status).toBe(404);
+    expect(caught!.body).toBe(upstreamBody);
+  });
+
+  test('#364: RebindForbidden body is null when upstream body is null (network error path)', async () => {
+    // An OpenHandsApiError synthesized without a body (e.g. malformed
+    // response normalization) must still produce a defined RebindForbidden
+    // — body just falls back to null rather than crashing.
+    const time = makeFakeTime();
+    const { client } = makeClient([
+      new OpenHandsApiError(403, 'forbidden', null, null),
+    ]);
+    let caught: RebindForbidden | undefined;
+    try {
+      await rebindConversation(client, 'conv1', { sleep: time.sleep, clock: time.clock });
+    } catch (err) {
+      caught = err as RebindForbidden;
+    }
+    expect(caught).toBeInstanceOf(RebindForbidden);
+    expect(caught!.body).toBeNull();
+  });
+
   test('429 (rate limited) retries — transient per OpenHandsApiError', async () => {
     const time = makeFakeTime();
     const { client, calls } = makeClient([
