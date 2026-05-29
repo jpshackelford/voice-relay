@@ -988,3 +988,43 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 02:52 UTC - Merge Worker (manual `/merge` for #359)
+
+✅ **Squash-merged production-critical rollback PR #359 into `main`.**
+
+| Field | Value |
+|---|---|
+| PR | [#359](https://github.com/jpshackelford/voice-relay/pull/359) — `fix(server): revert PRs #355 + #356, restore direct openSession call pattern (#357)` |
+| Branch | `fix/357-rollback-pr-355-and-356` (squash-merged) |
+| Merge commit | [`67352fc`](https://github.com/jpshackelford/voice-relay/commit/67352fca0f3c1dfcd8afb5128c77042422f683f4) |
+| Merged at | 2026-05-29T02:51:20Z |
+| Closes | [#357](https://github.com/jpshackelford/voice-relay/issues/357) — auto-closed at 02:51:22Z via `Fixes #357` trailer |
+| Pre-merge CI | All 7 checks ✅ (Server / Client / Build / E2E Tests, lint-pr-title, enable-orchestrator, pr-review 🟢 "Good taste") |
+| Reviewer verdict | Good taste — "Clean production rollback with proper planning" (0 unresolved threads) |
+| Mergeable state | `MERGEABLE` / `CLEAN` at merge time |
+| DB migration | None — pure code revert, no schema changes (production SQLite untouched) |
+| Diff | +51 / −1383 across 12 files; deletes `server/src/agent-attach-or-create.ts(.test).ts` |
+
+**What this rollback restores on prod:**
+- Removes the broken `attachOrCreateAgentSession` retry helper from PR #355 that mis-assumed `OpenHandsAgentDriver.openSession` would honor new `opts` on a second call (the driver caches the first call's opts in `state.opts` and silently discards subsequent ones).
+- Removes the `previousConversationId` plumb-through from PR #356 that built on the same broken contract.
+- Restores direct `agentDriver.openSession(...)` calls in `auto-connect.ts` and `agent-rehydrate.ts` (the pre-#355 pattern), with `persistAiConversationId` from PR #353 still inlined.
+
+**Explicitly kept (not reverted):** PR #352 (kiosk ticker, client-only), PR #353 (`persistAiConversationId` helper), PR #354 (refresh-401 rebind).
+
+**Auto-deploy:**
+- Push to `main` triggers the standard auto-deploy pipeline to **vr.chorecraft.net**. Expect prod to recover within the usual deploy window (kiosks should leave `state=connecting` and mobile transcription round-trips should stop dropping).
+- **Manual verification still required** by a human:
+  1. Open vr.chorecraft.net on a kiosk that was previously stuck `connecting` → should reach `state=connected` (`✨`).
+  2. Follow-up iPhone utterance → TTS response should round-trip.
+
+**Follow-up — for a human to unblock:**
+- Issue **#358** (forward-fix: re-do the driver-contract fix + carry-forward memory replay) is currently `on-hold`. Once the deploy has been verified green on vr.chorecraft.net per the two checks above, a human can remove `on-hold` from #358 to let the implementation worker pick it up.
+- Issues **#348**, **#349**, **#351** remain `on-hold` until #358 lands. Do not reopen until #358 ships.
+
+**Orchestrator state note:**
+The two clean reverts naturally removed an in-flight `slots.implementation` entry for conv `d3dcbab` from `.workflow-state.json` and the matching dispatch entry from `WORKLOG.md` (the dispatch that produced this very PR). That's correct end-state — the worker is done. This worklog entry now records the completion directly on `main`.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
