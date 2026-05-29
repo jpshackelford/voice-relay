@@ -383,3 +383,39 @@ Independent of the #347/#348/#349/#351 chain (separate code path in `openhands.t
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:45 UTC - Implementation Worker (#350 — refresh-401 rebind)
+
+✅ **Implementation complete; PR opened.** Issue #350 (bug, priority:low, scope:server-only).
+
+**What changed:**
+- `server/src/openhands.ts` — added `UpstreamCredentialsLostError` class; translated `401 NoCredentialsError` from `doRefreshSessionCredentials` into the new error; extended `reconnectWithRefresh` catch to route it through `rebindSession` (same path as `SandboxMissingError`). ~30 LOC.
+- `server/src/openhands.test.ts` — 4 new tests: 2 direct-refresh (positive 401 NoCredentialsError → UpstreamCredentialsLostError; negative other-401 stays as OpenHandsApiError) + 2 reconnect-integration (positive: NoCredentialsError → exactly one rebind, session recovers; negative: InvalidApiKeyError → still degrades, no rebind). ~99 LOC.
+
+**Acceptance criteria — all met:**
+
+| Criterion | Status |
+| --- | --- |
+| 401 NoCredentialsError → exactly one rebind | ✅ |
+| Other 401 (InvalidApiKeyError, …) still degrades immediately | ✅ |
+| Rebind-window guard from #296 stays authoritative | ✅ (code path unchanged) |
+| Unit: rebind called once on the new error | ✅ |
+| Unit: generic 500 still degrades, no rebind | ✅ (pre-existing test untouched) |
+
+**Local verification:**
+- `npm test` on server workspace: **1203/1203 pass** (199 in `openhands.test.ts`).
+- `tsc` build clean.
+
+**CI status on PR:** all checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title).
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/354 — moved draft → ready for review.
+
+**Notes:**
+- No DB / schema / migration changes.
+- No new throttling code — existing `RebindWindowTracker` (max 3/5 min, #296) caps the blast radius.
+- Discriminator is strict (`status === 401 && message.includes('NoCredentialsError')`); other 401 shapes fall through to the degrade branch by design.
+- Independent of PR #353 (#347 persistence helper) — different file, different concern.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
