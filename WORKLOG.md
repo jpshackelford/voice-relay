@@ -459,3 +459,34 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:55 UTC - Merge worker (PR #354)
+
+✅ **Squash-merged [PR #354](https://github.com/jpshackelford/voice-relay/pull/354)** — `fix(server): rebind on refresh 401 NoCredentialsError instead of degrading`
+
+| Field | Value |
+|---|---|
+| Squash SHA | [`786aa01`](https://github.com/jpshackelford/voice-relay/commit/786aa01b9d4bb6567bc449cbc5378249de0f1136) |
+| Closes | [#350](https://github.com/jpshackelford/voice-relay/issues/350) (auto-closed at merge, `stateReason: COMPLETED`) |
+| Migration risk | **None** — server-only change: `server/src/openhands.ts` + `openhands.test.ts`. No `migrations/` writes, no schema change. Production SQLite (`sqlite.db`) is unaffected. |
+| Deployment | Will auto-deploy to vr.chorecraft.net via the post-merge deploy hook. |
+
+**Pre-flight re-check at merge time** — all conditions held:
+- HEAD SHA unchanged: `647ffb7feb28092acaf23ddbe2ba16cc93febe52`
+- `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, `isDraft: false`
+- No blocking labels (`on-hold` / `needs-human` / `needs-info`)
+- 0 review threads (0 total, 0 unresolved)
+- All required CI checks SUCCESS (Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title / pr-review / enable-orchestrator)
+- Reviewer verdict 🟡 "Acceptable / Worth merging" from `github-actions` (MEDIUM risk acknowledged — strict discriminator + existing rebind-window cap mitigate)
+
+**Diff sanity check** — the branch was created before #353 merged, so `git diff main..pr-354` looked alarming (it showed reverts of #353's persist helper and WORKLOG churn). The actual squash content (diff against merge base `f853356`) was clean and matched scope exactly: only `server/src/openhands.ts` (+46 / −6) and `server/src/openhands.test.ts` (+99). GitHub's three-way merge preserved #353's files on `main` — no regression.
+
+**What shipped** — `UpstreamCredentialsLostError` raised when `doRefreshSessionCredentials` sees `401 NoCredentialsError`; `reconnectWithRefresh` now routes it through `rebindSession` alongside `SandboxMissingError`. The platform losing/rotating our `session_api_key` is functionally identical to a MISSING sandbox from the kiosk's POV. Strict discriminator (`status === 401 && message.includes('NoCredentialsError')`) keeps `InvalidApiKeyError` / generic 401 / HTML error pages on the existing degrade path. `RebindWindowTracker` from #296 (max 3/5 min per conversation) caps blast radius — no new throttling code.
+
+**Production impact** — the live triage trigger from issue #350 (session `7bd20a31-08e0-4eaf-8c03-2e87e0f38aaa`, May 28 23:03 + 23:26 UTC) will now self-heal via one rebind instead of going permanently degraded and waiting on a human-driven `/ai/restart`.
+
+---
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
