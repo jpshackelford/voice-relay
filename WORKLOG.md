@@ -756,3 +756,39 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 02:25 UTC - Production triage (human-directed) — rollback dispatch
+
+🚨 **Production regression confirmed; rollback directive issued to the orchestrator.**
+
+@jpshackelford filed [#357](https://github.com/jpshackelford/voice-relay/issues/357) (`critical` / `priority:critical` / `ready`) after triage in conversation with an OpenHands agent. Full root-cause diagnosis lives in that issue and #358; this entry exists so the next orchestrator tick has the right marching orders **without** treating the in-flight #349/#351 chain as eligible work.
+
+**Production symptom (verified against `journalctl -u voice-relay` on vr.chorecraft.net):**
+- After the `3046c9d` (PR #355) deploy at 01:37:33Z, all 7 rehydrating sessions hit `UpstreamConversationEndedError`, then the helper's fresh-create retry *re-attached to the same dead conversation id* and threw again. Auto-connect on subsequent device joins exhibits the identical loop (stack trace logged at 01:38:38Z).
+- Kiosk-side: `🔗` chain icon held; never transitions to `✨`.
+- Mobile-side: iPhone transcription continues to POST text, but the server's WS text handler gates on `agentDriver.hasSession(sessionId)` — no binding ever materializes, so utterances are silently dropped.
+- Only a Node process restart clears the in-memory pollution; the next upstream-ended event re-poisons the same session.
+
+**Root cause:** `OpenHandsAgentDriver.openSession` caches the first call's `opts` in `state.opts` and silently discards `opts` on every subsequent call. `attachOrCreateAgentSession` (the helper introduced by PR #355) assumed the driver would honor the new opts on its retry. The unit tests passed because `FakeDriver` doesn't mirror the production driver's caching contract.
+
+**Scope of rollback (revised after PR #356 merged at 02:13:50Z during triage):**
+- Revert `7501100` (PR #356 — _#349 carry buildReplaySuffix into fresh-create_) **first**.
+- Then revert `3046c9d` (PR #355 — _#348 fresh-create fallback_).
+- Single PR is fine; squash with body linking both reverted commits and referencing #357.
+- **Keep merged:** PR #352 (kiosk ticker, client-only, unrelated), PR #353 (`persistAiConversationId` helper, server, safe), PR #354 (refresh-401 rebind, server, safe).
+
+**Orchestrator instructions for the next tick:**
+
+| Priority | Action |
+|---|---|
+| 1 | **Dispatch implementation worker for [#357](https://github.com/jpshackelford/voice-relay/issues/357)** (critical, ready, scope:server-only). Acceptance criteria are spelled out in the issue body; revised revert order and file list in the 02:23Z comment. |
+| 2 | **Do NOT pick up [#351](https://github.com/jpshackelford/voice-relay/issues/351)** despite its `ready` label — its design (`metadata.rehydrationFailure` belt-and-suspenders for silent-degraded sessions) layered on top of PR #355's `rehydrated-fresh` outcome. Re-label `#351` → `on-hold` with a pointer to [#358](https://github.com/jpshackelford/voice-relay/issues/358). The post-rollback world will actually make #351 *more* important (the silent-degraded window it was designed to plaster over is back), but it has to wait for the re-do tracker. |
+| 3 | **Do NOT spawn implementation workers for [#358](https://github.com/jpshackelford/voice-relay/issues/358)** until the rollback PR has merged and deployed cleanly to vr.chorecraft.net. Issue carries `on-hold`. |
+| 4 | After the rollback merges and the deploy tag posts, **re-open [#348](https://github.com/jpshackelford/voice-relay/issues/348) and [#349](https://github.com/jpshackelford/voice-relay/issues/349)** (or mark them superseded by #358 — author's preference) and apply `on-hold` + a comment pointing at #358. |
+
+**Worker coordination check:** Impl worker `0518853` (#349 → PR #356) **already finished** at ~02:13Z, so there is nothing to terminate. The merge worker for PR #356 also completed before this entry was written. No active workers as of 02:25Z; the impl slot is free for #357.
+
+**Why this entry lives on `main` directly:** per AGENTS.md, worklog changes go to `main` with the `docs(worklog):` prefix; this entry was authored by an OpenHands agent under direct human instruction during a production triage, not by the orchestrator automation. The orchestrator's own next tick should reconcile its `.workflow-state.json` against this entry (no active workers) and dispatch per the table above.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford as part of a human-directed production triage._
+
+---
