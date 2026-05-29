@@ -363,3 +363,37 @@ are tracked separately as `priority:high`.
 **Cross-issue note:** Issues [#361](https://github.com/jpshackelford/voice-relay/issues/361) (rebind response shape) and [#362](https://github.com/jpshackelford/voice-relay/issues/362) (openSession opts) touch the same `reconnectWithRefresh` / `rebindSession` code paths and remain valid as the fallback-path failure modes — **not closed** by this merge. With PR #365 landed, the impl slot can safely pick up #361 next tick against the updated `main`.
 
 ---
+
+### 2026-05-29 13:21 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0f33642` | implementation | Issue #361 — rebindConversation response shape | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#361 — bug(server): OpenHandsClient.rebindConversation parses the wrong response shape — rebind is effectively always broken](https://github.com/jpshackelford/voice-relay/issues/361) (priority:high, scope:server-only)
+- Conversation: [`0f33642`](https://app.all-hands.dev/conversations/0f33642d25364c9e8f31a1fdbe81d7ad)
+- Start task: `b37b2370…` → READY in <5s; sandbox RUNNING; execution_status running.
+- Trigger: PR #365 merged last tick (`bb863d1`), impl slot freed, #361 is the highest-priority unblocked ready issue. Worker briefed on the post-#365 `server/src/openhands.ts` baseline so it rebases its mental model before branching, and asked to keep the diff focused so #362 can land cleanly after it.
+
+**Cleared finished worker (moved to `.workflow-state.json` completed[]):**
+- `0fd383a` merge/PR #365 → success (squash-merged `bb863d1`; #360 auto-closed; no migrations)
+
+**Current State:**
+- Open PRs: 0 (PR #365 merged at 13:06Z)
+- Ready issues (eligible, by priority):
+  - #361 priority:high — **in flight (impl `0f33642`)**
+  - #362 priority:high — queued (touches adjacent `OpenHandsAgentDriver.openSession` path; held until #361 lands to avoid pre-merge conflicts on `server/src/openhands.ts`)
+  - #364 priority:low — queued
+- Ready issues on `on-hold` (skipped): #351 priority:low, #363 priority:medium
+- Issues needing expansion: all 6 unexpanded issues are `on-hold` (#210, #239, #299, #300, #301, #302) → nothing to expand
+- All workspace-persistence issues (#299–#302) remain frozen per AGENTS.md (Path B, awaiting `VR_WORKSPACE_BUCKET` + AWS creds on prod `.env`)
+
+**Slot Utilization:** expansion 0/4, implementation 1/1, review 0/2.
+
+**Decision rationale:**
+- Implementation slot was the only free productive slot. #361 picked over #362 because both are priority:high and #361 was filed first; the two have overlapping touch areas on `server/src/openhands.ts`/`agent-driver/rebind.ts`, so serializing #361 → #362 is safer than running them in parallel against the same module.
+- Review/expansion slots intentionally idle: zero open PRs, zero eligible unexpanded issues.
+
+---

@@ -2,22 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "0fd383a",
-        "pr": 365,
-        "type": "merge",
-        "started": "2026-05-29T13:06:06.794335Z"
+        "conv_id": "0f33642",
+        "issue": 361,
+        "started": "2026-05-29T13:21:08.733008Z"
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T13:06:06.794335Z",
+  "last_updated": "2026-05-29T13:21:08.733008Z",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -360,6 +359,15 @@
       "finished": "2026-05-29T13:06:06.794335Z",
       "status": "success",
       "outcome": "Addressed pr-review suggestion in commit e95ba56 (check-then-sleep in pollSandboxRunning); 1/1 threads resolved; CI green"
+    },
+    {
+      "conv_id": "0fd383a",
+      "type": "merge",
+      "pr": 365,
+      "started": "2026-05-29T13:06:06.794335Z",
+      "finished": "2026-05-29T13:21:08.733008Z",
+      "status": "success",
+      "outcome": "PR #365 squash-merged to main (bb863d1); #360 auto-closed. No DB changes."
     }
   ],
   "quiet_ticks": 0
