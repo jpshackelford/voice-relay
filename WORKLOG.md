@@ -1206,3 +1206,17 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:35 UTC - Expansion Worker (issue #364)
+
+✅ **Expanded Issue #364** — `feat(server): include HTTP status + body excerpt in refresh/rebind failure logs`.
+
+- Type: Enhancement (server-side observability).
+- Status: Ready for implementation (`ready` label applied).
+- Approach: Add a `body: string | null` field to `OpenHandsApiError` (`server/src/openhands.ts:108`) and `RebindForbidden` / `RebindConversationGone` (`server/src/agent-driver/rebind.ts:95,110`) so call sites no longer have to regex the message string. A new helper `server/src/agent-driver/log.ts` (`redactSecrets` + `truncate` + `logUpstreamFailure`) is invoked from the four catch sites: `doRefreshSessionCredentials`, `doRebindSession`, `attachExistingForSession`, and `buildRebindReplaySuffix`. Emits one `console.error` per failure with `op=`, `status=`, `body="…"` (≤200 chars, with `session_api_key` / `api_key` / Bearer tokens redacted), conv/session/sandbox ids, attempt counter, and endpoint. User-facing `degradedReason` strings are explicitly preserved (regression-tested).
+- Issue body restructured to the standard `Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope` template.
+- Detailed implementation plan + acceptance criteria + file table + test plan posted at https://github.com/jpshackelford/voice-relay/issues/364#issuecomment-4574974766.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
