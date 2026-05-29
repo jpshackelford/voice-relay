@@ -1193,3 +1193,16 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:30 UTC - Expansion Worker (issue #363 follow-up)
+
+✅ **Restructured body of Issue #363** to standard `Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope / Sequencing & Dependencies` template. Preserved all technical content from the original filing (motivation, in-memory field audit, schema sketch, non-goals) — only the section headings/layout changed. The prior expansion worker's [detailed implementation plan comment](https://github.com/jpshackelford/voice-relay/issues/363#issuecomment-4574909211) remains the source of truth for files-to-touch, migration DDL, repository signatures, and test strategy.
+
+- Code-walk re-verified: `AISession` L491, `AISessionManager` L1401, `sessionAI` Map L1403, `OpenHandsAgentDriver.states` L321, `RebindWindowTracker` L330 — all references in the prior expansion are accurate against current `main`.
+- Confirmed next migration number is `016` (latest in tree is `015_kiosk_footer_tickers.ts`).
+- Labels unchanged: `ready` + `on-hold` (depends on #360 + #362).
+- Posted verification comment: https://github.com/jpshackelford/voice-relay/issues/363#issuecomment-4574969062
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
