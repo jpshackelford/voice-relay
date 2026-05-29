@@ -633,9 +633,6 @@ Pure regex / test change — no DB or runtime impact, safe for the auto-deploy p
 Next round (merge worker) handled by orchestrator.
 
 ---
-
-
----
 ### 2026-05-29 15:08 UTC - Orchestrator
 
 **Active Workers:**
@@ -670,5 +667,34 @@ Next round (merge worker) handled by orchestrator.
 
 **Action Taken:**
 🚀 **Spawned merge worker** for PR #369
+
+---
+
+### 2026-05-29 15:08 UTC - Merge Worker (PR #369)
+
+✅ Squash-merged PR #369 → main; issue #364 auto-closed.
+
+| Item | Detail |
+|---|---|
+| PR | [#369](https://github.com/jpshackelford/voice-relay/pull/369) — `feat(server): include HTTP status + body excerpt in refresh/rebind failure logs` |
+| Issue | #364 (auto-closed via `Fixes #364`) |
+| Merge commit | `6fa7266` on `main` |
+| Scope | `scope:server-only` — `server/src/agent-driver/log.{ts,test.ts}` (new), `server/src/agent-driver/rebind.{ts,test.ts}`, `server/src/openhands.{ts,test.ts}` |
+| Migration check | ✅ No DB schema changes, no migrations, no new runtime deps — safe for auto-deploy to `vr.chorecraft.net` |
+| Tests | Server suite 1267 → 1301 passing (34 new tests: 27 in `log.test.ts`, 4 in `rebind.test.ts`, 3 in `openhands.test.ts`) |
+| CI on merge SHA | All 6 required checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review) |
+| Review verdict | 🟢 Good taste — "Safe to merge" |
+
+**What shipped:**
+- Each refresh / rebind / attach catch site now emits one structured `console.error` line with the upstream HTTP status and a redacted+truncated body excerpt — distinguishes 401 / 403 / 409 in `journalctl -u voice-relay` without manual reproduction.
+- `OpenHandsApiError`, `RebindForbidden`, `RebindConversationGone` carry `body: string | null` so the remap sites stop dropping the raw body.
+- New pure helpers in `server/src/agent-driver/log.ts`: `redactSecrets` (strips `session_api_key`, `api_key`, `Bearer …`), `truncate` (200-char cap with `…(+N more)` marker), `logUpstreamFailure` (composes the single-line `console.error`).
+- Kiosk-facing `degradedReason` strings byte-for-byte unchanged; existing journal lines preserved alongside, not replaced.
+
+**Key review-driven refinements:**
+- Redact-before-truncate ordering retained as defense-in-depth (covered by dedicated test) — partial token can never leak via mid-string chopping.
+- Bearer redaction regex widened from base64url-only to cover RFC 4648 §4 standard base64 (`+/=`) in response to the one 🟡 review comment; both alphabets now scrubbed, with explicit tests for each.
+
+Production deploy will pick up automatically via the post-merge hook on `vr.chorecraft.net`.
 
 ---
