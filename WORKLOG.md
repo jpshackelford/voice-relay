@@ -258,3 +258,33 @@ code paths. They remain valid as the fallback path's failure modes and
 are tracked separately as `priority:high`.
 
 ---
+
+### 2026-05-29 12:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3940488` | implementation | Issue #360 — sandbox PAUSED handling | running (PR #365 opened, wrapping up) |
+| `f6f7c0e` | review | PR #365 — pollSandboxRunning suggestion | **NEW** |
+
+🚀 **Spawned: Review Worker**
+- PR: [#365 — fix(server): handle PAUSED sandbox via resume primitive (#360)](https://github.com/jpshackelford/voice-relay/pull/365)
+- Conversation: [`f6f7c0e`](https://app.all-hands.dev/conversations/f6f7c0e436b2413d92ae5225f2235343)
+- Trigger: 1 unresolved `pr-review` thread on `server/src/openhands.ts:1856` (🟡 Suggestion — `pollSandboxRunning` should check before the initial sleep to avoid an unnecessary `resumePollIntervalMs` delay when the sandbox is already RUNNING). Legitimate low-risk latency/readability improvement — worker will evaluate and apply.
+
+**Current State:**
+- Open PRs: 1
+  - [PR #365](https://github.com/jpshackelford/voice-relay/pull/365): `oR green ready 💬1` — CI 7/7 green; 1 bot review thread to address
+- Ready issues (eligible, by priority):
+  - #360 priority:critical — PR #365 in review
+  - #361 priority:high — queued (waiting on impl slot)
+  - #362 priority:high — queued
+  - #364 priority:low — queued
+- Ready issues `on-hold` (skipped): #351, #363
+- Issues needing expansion: none 🎉
+
+**Slot Utilization:** expansion 0/4, implementation 1/1, review 1/2.
+
+**Action:** Spawned review worker for PR #365. Implementation slot still occupied by `3940488` per API (PR #365 already opened — worker likely in final wrap-up).
+
+---
