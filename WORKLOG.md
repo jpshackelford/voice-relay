@@ -490,3 +490,50 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 01:20 UTC - Implementation Worker (#348 — fresh-create fallback on attach failure)
+
+✅ **Implementation complete; PR opened and moved draft → ready for review.** Issue #348 (bug, priority:high, scope:server-only).
+
+**What changed:**
+- `server/src/agent-attach-or-create.ts` (NEW) — shared helper `attachOrCreateAgentSession(sessionId, opts, deps)`. Wraps `agentDriver.openSession` with a single, deterministic recovery: on `UpstreamConversationEndedError`, stash dead id in `metadata.previousAiConversationId` (for #349's `buildReplaySuffix` carry-forward), clear `metadata.aiConversationId`, retry once with `existingConversationId` stripped, persist new id via `persistAiConversationId` (#347) before returning. Any other error propagates unchanged. Returns `{ status, freshCreated }` so callers don't need id-comparison heuristics.
+- `server/src/auto-connect.ts` — replaced direct `openSession` + `persistAiConversationId` with the helper.
+- `server/src/agent-rehydrate.ts` — added `rehydrated-fresh` to `RehydrationOutcome.status`; routed through the helper.
+- `server/src/agent-driver/openhands.ts` — `BindResult` carries optional `cause`; `openSession` rethrows the original error instance so platform-layer discrimination by class (`UpstreamConversationEndedError`) survives the driver boundary. ~10 LOC.
+- `server/src/sessions/types.ts` — new `previousAiConversationId?: string` field on `SessionMetadata`. No DB migration needed (JSON metadata; missing fields read as `undefined`).
+- `server/vitest.config.ts` — added the new helper to the coverage include list.
+
+**Tests added (15 new):**
+- `agent-attach-or-create.test.ts` (8 unit) — happy path, upstream-ended→fresh-create, non-Upstream propagation, fresh-create failure, no-existingConversationId guard, opts threading, metadata-stash resilience, null-id no-op.
+- `agent-rehydrate.test.ts` (+4 integration) — `rehydrated-fresh` outcome, fresh-create failure → degraded, non-Upstream no-retry, mixed pass. Also tightened the existing mock driver to model the production "openSession returns the requested existing id on attach" contract.
+- `auto-connect.test.ts` (+3 integration) — `connected` (not degraded) broadcast on fresh-create with persist-before-broadcast ordering verified, non-Upstream no-retry, fresh-create failure → degraded.
+
+**Acceptance criteria — all met:**
+
+| Criterion | Status |
+| --- | --- |
+| Clear stale `aiConversationId` on attach failure | ✅ (helper stashes + clears) |
+| Retry `openSession` without `existingConversationId` | ✅ |
+| Persist new id via #347 helper | ✅ (before return — persist-before-broadcast preserved) |
+| Broadcast `ready`, not `degraded`, on success | ✅ (auto-connect test asserts `connected: true` and absence of `degraded`) |
+| Both call sites share the same recovery | ✅ (single helper) |
+
+**Local verification:**
+- `npx tsc --noEmit` on server workspace: clean.
+- `npx vitest run`: **1220/1220 pass** (57 files). +15 over baseline.
+- Coverage on `agent-attach-or-create.ts`: **100% stmts / 83.3% branches / 100% funcs / 100% lines**. Overall server: 94.3% / 84.9% / 96.8% / 95.3% — well above the 80% threshold.
+
+**CI status on PR:** all checks green (Server Tests 36s, Client Tests 40s, Build Client 25s, E2E Tests 1m47s, lint-pr-title 4s). pr-review will run now that the PR is marked ready.
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/355
+
+**Notes / coordination:**
+- Helper signature accepts the full `OpenSessionOpts` so #349 can extend it with a `buildReplaySuffix` result without re-plumbing either call site.
+- `freshCreated: boolean` in the return type gives #349 a clean discriminator for the carry-forward path.
+- #351 (boot-time broadcast on rehydrate failure) consumes the new `rehydrated-fresh` outcome status.
+- No DB / schema / migration changes.
+- Strictly upstream-ended-only recovery — transient REST blips still propagate so we don't nuke a still-valid persisted id (per #348's risk note).
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
