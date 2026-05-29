@@ -920,3 +920,27 @@ Implementation worker `7d4cea7` (issue #370) finished at 16:22:55Z having opened
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 16:36 UTC - Merge worker (PR #371)
+
+✅ **PR #371 squash-merged → main** (commit `10b647b`). Issue #370 auto-closed as completed via `Fixes #370` in the PR body.
+
+**Merge criteria verified before merge:**
+
+| Gate | Result |
+|---|---|
+| CI checks | 🟢 All green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| pr-review verdict | 🟢 **Good taste** — "Elegant, minimal fix… correctly mirrors `doRefreshSessionCredentials` (#360) and reuses all the same primitives" |
+| Unresolved threads | 0 |
+| mergeable / mergeStateStatus | `MERGEABLE` / `CLEAN` |
+| Labels (blocking) | none (`on-hold`/`needs-human` not set) |
+| Migration check | ✅ No `server/migrations/*` and no `knex`/`drizzle` schema files in the diff |
+| Diff scope | Only `server/src/openhands.ts` (+71 lines: PAUSED branch in `attachExistingForSession`) and `server/src/openhands.test.ts` (+335 lines: new PAUSED-attach describe block). `scope:server-only` confirmed |
+
+**Squash commit:** `fix(server): handle PAUSED sandbox in attachExistingForSession (#371)` — body notes that the fix closes #370, reuses PR #360's `resumeSandbox` + `pollSandboxRunning` + `resumeTracker` + `sandboxResumeCount` primitives, and is symmetric to PR #365's refresh-path fix. No DB schema changes; production SQLite untouched.
+
+**Production impact:** auto-deploys to vr.chorecraft.net. Restores rehydration recovery on the attach path. Manual verification (session `f1189e26-2af8-4a32-ae0d-27a2464af4c8` rehydrating cleanly on next `systemctl restart voice-relay` without `'missing WS handshake materials'` for conversation `739524055e…`) handed off to the operator per task instructions.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
