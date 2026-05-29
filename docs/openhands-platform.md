@@ -256,6 +256,31 @@ On success the driver receives a `RebindResult`:
 - It does **not** restore agent memory. The new agent starts with a fresh system prompt. Memory replay via `system_message_suffix` is issue #297.
 - It does **not** retry forever. Once `RebindBudgetExhausted` fires, the user-facing session moves to `degraded` and only an explicit user-initiated restart will trigger another attempt. This is intentional: sandbox death that immediately recurs after a rebind is almost always an upstream incident, and silent thrash would mask it.
 
+### Resume on a paused conversation (preferred over rebind when applicable)
+
+A `PAUSED` sandbox is **not** the same as a dead one. `GET /api/v1/app-conversations?ids=<id>` returns the conversation with `sandbox_status: 'PAUSED'`, `session_api_key: null`, `conversation_url: null`, and a still-valid `sandbox_id`. The recovery primitive is one HTTP call:
+
+```http
+POST /api/v1/sandboxes/{sandbox_id}/resume
+Authorization: Bearer <key>
+```
+
+After ~19 s (most of it in `STARTING`, per the timing table above) the conversation regains a fresh `session_api_key` and `conversation_url`. The on-server event log AND the agent's in-context memory are both preserved — this is a strictly cheaper recovery than rebind and should be preferred when the sandbox is merely paused. See `server/src/openhands.ts`, `AISessionManager.doRefreshSessionCredentials` PAUSED branch (#360).
+
+Behaviour, as currently implemented:
+
+| Concern | Policy |
+|---|---|
+| Poll budget for `PAUSED → RUNNING` after resume | 30 s (matches the ~19 s typical timing with headroom) |
+| Poll interval | 2 s |
+| Per-conversation rate cap | `MAX_REBINDS_PER_WINDOW = 3` successful resumes in any 5-minute window (reuses `RebindWindowTracker`) — distinct counter from the rebind cap |
+| Response on `404` from resume | Convert to `SandboxMissingError`; hand off to the rebind path (sandbox is genuinely gone) |
+| Response on `5xx` from resume | Treated as transient by the outer refresh loop's retry budget |
+| Poll budget exhausted | `SandboxResumeTimeoutError` → `degraded` (no fallback rebind — sandbox is not missing, just slow) |
+| Resume window cap exceeded | `SandboxResumeBudgetExhausted` → `degraded` |
+
+The PAUSED branch fires *before* the `!session_api_key` check, so a paused conversation is never mis-classified as MISSING. The `MISSING` and `UpstreamCredentialsLostError` branches remain in place as fallbacks for the cases where the sandbox really is gone or the platform has rotated the key.
+
 ## Secrets
 
 Three layers, additive at conversation start:

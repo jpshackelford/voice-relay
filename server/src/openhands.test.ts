@@ -6,7 +6,8 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, UpstreamConversationEndedError, UpstreamCredentialsLostError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, SandboxResumeTimeoutError, SandboxResumeBudgetExhausted, UpstreamConversationEndedError, UpstreamCredentialsLostError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { RebindWindowTracker } from './agent-driver/rebind.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -894,6 +895,454 @@ describe('AISessionManager.refreshSessionCredentials (#291)', () => {
     manager.setClientForTesting(client as never);
     const session = makeSession();
     await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+  });
+});
+
+/**
+ * Tests for the PAUSED sandbox-resume branch added in #360.
+ *
+ * Upstream pauses idle sandboxes after a short window (~4 min in prod).
+ * `GET /app-conversations` then returns `sandbox_status: 'PAUSED'` with a
+ * null `session_api_key` and null `conversation_url`. Before #360 we
+ * surfaced this as `SandboxMissingError` and rebound, which both lost agent
+ * memory and (for separate reasons tracked in #361) failed in prod —
+ * leaving 100% of sessions permanently degraded ~4 min after idle.
+ *
+ * The PAUSED branch instead calls `POST /sandboxes/{id}/resume`, polls for
+ * `RUNNING` with a fresh key, and applies the rotated credentials. Tests
+ * cover the happy path, the various failure modes (PAUSED-no-sandbox-id,
+ * resume 404 → MISSING, resume 5xx transient retry, poll timeout, budget
+ * exhausted), plus concurrent-refresh single-flighting and the
+ * reconnect-path degradation behaviour.
+ */
+describe('AISessionManager.refreshSessionCredentials PAUSED handling (#360)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+    resumeSandbox: ReturnType<typeof vi.fn>;
+  }
+
+  function makeSession(overrides: Partial<AISession> = {}): AISession {
+    return {
+      conversationId: 'conv-paused',
+      taskId: 'task-paused',
+      sessionId: 'sess-paused',
+      mode: 'kiosk',
+      agentServerUrl: 'https://agent.example.com',
+      sessionApiKey: 'K1',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+      ...overrides,
+    };
+  }
+
+  /**
+   * Build a fake client where getConversation returns each queued response
+   * in order. `Error`-typed entries are thrown instead of resolved. Each
+   * test queues exactly the sequence of GET results it expects.
+   */
+  function makeClient(
+    getConvResponses: unknown[],
+    resumeImpl: () => Promise<void> = async () => {},
+  ): FakeClient {
+    const calls = getConvResponses.slice();
+    return {
+      getConversation: vi.fn(async () => {
+        if (calls.length === 0) {
+          throw new Error('FakeClient: no more queued getConversation responses');
+        }
+        const next = calls.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+      resumeSandbox: vi.fn(resumeImpl),
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+    // Tight polling so the suite stays fast. Production defaults are 30 s /
+    // 2 s; the budget/interval ratio still exercises one or two polls.
+    manager.setResumePollOptionsForTesting({ budgetMs: 200, intervalMs: 5 });
+  });
+
+  test('PAUSED → resume → RUNNING happy path: applies fresh creds, increments counter', async () => {
+    // First GET returns PAUSED with sandbox_id; resume succeeds; second GET
+    // returns RUNNING with a fresh key + URL. Session should pick up K2 and
+    // the resume counter should bump.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-123',
+        session_api_key: null,
+        conversation_url: null,
+      },
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        sandbox_id: 'sbx-123',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent2.example.com/api/v1/conv/conv-paused',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    expect(manager.getSandboxResumeCount()).toBe(0);
+    await manager.refreshSessionCredentials(session);
+
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(client.resumeSandbox).toHaveBeenCalledWith('sbx-123');
+    expect(client.getConversation).toHaveBeenCalledTimes(2);
+    expect(session.sessionApiKey).toBe('K2');
+    expect(session.agentServerUrl).toBe('https://agent2.example.com');
+    // Resume counts as a rotation (K1 → K2) — covers the metric we already
+    // expose for #291.
+    expect(manager.getKeyRotationCount()).toBe(1);
+    expect(manager.getSandboxResumeCount()).toBe(1);
+    // Session's conversationId is preserved (acceptance criterion: agent
+    // memory continues).
+    expect(session.conversationId).toBe('conv-paused');
+  });
+
+  test('PAUSED → resume → poll skips STARTING and resolves on RUNNING', async () => {
+    // First GET: PAUSED. Resume fires. Then STARTING (keep polling) then
+    // RUNNING. Validates the polling state machine.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-99',
+      },
+      { id: 'conv-paused', status: 'READY', sandbox_status: 'STARTING' },
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session);
+    expect(client.getConversation).toHaveBeenCalledTimes(3);
+    expect(session.sessionApiKey).toBe('K2');
+  });
+
+  test('PAUSED with no sandbox_id → SandboxMissingError (no resume attempted)', async () => {
+    // Defensive: a PAUSED with no sandbox_id is a platform contract
+    // violation; we must NOT call resume with `undefined` (which would 404).
+    // Hand off to the rebind path via SandboxMissingError instead.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: undefined,
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    // Cache must not be mutated on the failure path.
+    expect(session.sessionApiKey).toBe('K1');
+  });
+
+  test('resume HTTP 404 → SandboxMissingError (sandbox actually gone)', async () => {
+    // 404 from POST /sandboxes/{id}/resume means the sandbox is genuinely
+    // missing, not paused. Hand off to the rebind path.
+    const client = makeClient(
+      [
+        {
+          id: 'conv-paused',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sbx-gone',
+        },
+      ],
+      async () => {
+        throw new OpenHandsApiError(404, 'Sandbox not found', null);
+      },
+    );
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K1');
+    // Resume counter does NOT bump on failure.
+    expect(manager.getSandboxResumeCount()).toBe(0);
+  });
+
+  test('resume HTTP 5xx is transient — retried by outer refresh loop', async () => {
+    // The refresh loop retries on `OpenHandsApiError.transient`. A 503 from
+    // resume bubbles up; the outer loop retries, gets a fresh PAUSED GET
+    // result, this time resume succeeds and we poll RUNNING. End-to-end
+    // result is a successful refresh after one retry.
+    const callOrder: string[] = [];
+    let resumeCallCount = 0;
+    const responses: unknown[] = [
+      // Attempt 1: PAUSED. resume → 503. Loop retries.
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-flaky',
+      },
+      // Attempt 2: PAUSED. resume → success. Poll → RUNNING.
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-flaky',
+      },
+      // Poll after successful resume.
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'K9',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ];
+    const client: FakeClient = {
+      getConversation: vi.fn(async () => {
+        callOrder.push('get');
+        const next = responses.shift();
+        if (!next) throw new Error('no more GET responses');
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+      resumeSandbox: vi.fn(async () => {
+        callOrder.push('resume');
+        resumeCallCount++;
+        if (resumeCallCount === 1) {
+          throw new OpenHandsApiError(503, 'Service Unavailable', null);
+        }
+        // Second call succeeds.
+      }),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session, 3);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(2);
+    expect(session.sessionApiKey).toBe('K9');
+    expect(manager.getSandboxResumeCount()).toBe(1);
+  });
+
+  test('poll timeout → SandboxResumeTimeoutError (no rebind)', async () => {
+    // Resume succeeds, but the sandbox never reaches RUNNING within the
+    // poll budget. Must surface SandboxResumeTimeoutError so the reconnect
+    // path degrades cleanly instead of rebinding (which would lose agent
+    // memory for no benefit).
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-slow',
+      },
+      // All subsequent polls stay in STARTING — never RUNNING.
+      ...Array.from({ length: 200 }, () => ({
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'STARTING',
+      })),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxResumeTimeoutError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K1');
+    expect(manager.getSandboxResumeCount()).toBe(0);
+  });
+
+  test('poll discovers MISSING mid-recovery → SandboxMissingError', async () => {
+    // Sandbox was paused, we tried to resume, but a concurrent platform
+    // event reaped it (e.g. cleanup tick races with resume). The poll sees
+    // MISSING and must hand off to the rebind path.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-x',
+      },
+      { id: 'conv-paused', status: 'READY', sandbox_status: 'MISSING' },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+  });
+
+  test('resume budget exhausted → SandboxResumeBudgetExhausted (no resume attempted)', async () => {
+    // Pre-seed the resume tracker with three successes — the 4th attempt
+    // must short-circuit without calling resume.
+    const tracker = new RebindWindowTracker();
+    tracker.recordSuccess('conv-paused');
+    tracker.recordSuccess('conv-paused');
+    tracker.recordSuccess('conv-paused');
+    manager.setResumeTrackerForTesting(tracker);
+
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-wedged',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxResumeBudgetExhausted,
+    );
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+  });
+
+  test('concurrent refreshes during PAUSED single-flight the resume', async () => {
+    // Two concurrent refresh calls for the same session must single-flight
+    // the entire PAUSED → resume → RUNNING sequence — resume must fire
+    // exactly once, and both calls must observe the updated credentials.
+    let resolvePending: ((value: unknown) => void) | undefined;
+    const pending = new Promise<unknown>((r) => { resolvePending = r; });
+    const responses: unknown[] = [
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-c',
+      },
+      pending,  // poll stalls until we resolve
+    ];
+    const client: FakeClient = {
+      getConversation: vi.fn(async () => {
+        const next = responses.shift();
+        if (!next) throw new Error('no more GET');
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+      resumeSandbox: vi.fn(async () => {}),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    const p1 = manager.refreshSessionCredentials(session);
+    const p2 = manager.refreshSessionCredentials(session);
+
+    // Resolve the pending poll with a RUNNING result.
+    resolvePending!({
+      id: 'conv-paused',
+      status: 'READY',
+      sandbox_status: 'RUNNING',
+      session_api_key: 'K7',
+      conversation_url: 'https://agent.example.com/api/v1/',
+    });
+
+    await Promise.all([p1, p2]);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K7');
+  });
+
+  test('PAUSED with no client → SandboxMissingError (no resume attempted)', async () => {
+    // No HTTP client means we cannot resume. Surface as MISSING so the
+    // reconnect loop stops rather than tight-looping on a null client.
+    manager.setClientForTesting(null);
+    const session = makeSession();
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+  });
+
+  test('log line emitted on successful resume', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-log',
+      },
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    const calls: unknown[][] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => { calls.push(args); };
+    try {
+      await manager.refreshSessionCredentials(session);
+    } finally {
+      console.log = originalLog;
+    }
+    const resumeLogged = calls.some(
+      ([first]) => typeof first === 'string' && first.includes('sandbox resumed for conversation'),
+    );
+    expect(resumeLogged).toBe(true);
+  });
+
+  test('RUNNING (no PAUSED branch) leaves PAUSED machinery dormant', async () => {
+    // Sanity: when the upstream conversation is already RUNNING, the PAUSED
+    // branch must not fire. The resume counter must stay at 0 and resume
+    // must not be called.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session);
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    expect(manager.getSandboxResumeCount()).toBe(0);
+    expect(session.sessionApiKey).toBe('K2');
+  });
+
+  test('SandboxResumeBudgetExhausted carries attempts metadata', () => {
+    const err = new SandboxResumeBudgetExhausted('conv-x', 3);
+    expect(err.name).toBe('SandboxResumeBudgetExhausted');
+    expect(err.conversationId).toBe('conv-x');
+    expect(err.attempts).toBe(3);
+  });
+
+  test('SandboxResumeTimeoutError carries conversationId', () => {
+    const err = new SandboxResumeTimeoutError('conv-y');
+    expect(err.name).toBe('SandboxResumeTimeoutError');
+    expect(err.conversationId).toBe('conv-y');
   });
 });
 
