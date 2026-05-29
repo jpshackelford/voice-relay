@@ -844,3 +844,45 @@ The second option is cleaner for the production deploy but harder to review. Wor
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 02:36 UTC - Orchestrator (manual `/orchestrate` with API key)
+
+🚀 **Spawned implementation worker for production-critical #357.**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| `d3dcbab` | implementation | [Issue #357](https://github.com/jpshackelford/voice-relay/issues/357) — rollback PR #355 (+ #356) | **NEW** (running) |
+
+**Spawned: Implementation Worker**
+- Issue: [#357 — `bug(server): kiosks stuck in 'connecting' / mobile transcription dropped — roll back PR #355`](https://github.com/jpshackelford/voice-relay/issues/357) (`priority:critical`, `bug`, `ready`, `scope:server-only`, `server`)
+- Conversation: [`d3dcbab`](https://app.all-hands.dev/conversations/d3dcbab201c542459bdf63131f07361f) — `execution_status=running`, `sandbox_status=RUNNING`
+- Start task: `5b2de2b7ab414346be2d51e491c55f09` (READY after 2 polls / ~8s)
+
+**Worker prompt highlights** (full text in conversation):
+
+- Calls out the **two-PR revert** (revert `7501100` for #356 first, then `3046c9d` for #355) because #356 builds on the broken helper from #355 — a naive single revert will conflict in `agent-rehydrate.ts` / `auto-connect.ts` / `sessions/types.ts`.
+- Offers a fallback "hand-crafted single commit" option (delete `agent-attach-or-create.ts(.test)`, restore direct `agentDriver.openSession(...)` calls, drop `previousConversationId` from `OpenSessionOpts`) if conflict resolution gets ugly.
+- Explicitly preserves PR #352 (kiosk ticker, client-only), PR #353 (`persistAiConversationId` helper), and PR #354 (refresh-401 rebind) — those are good.
+- PR title suggestion: `fix(server): revert PRs #355 + #356, restore direct openSession call pattern (#357)`.
+- Reminders: `Branch Hygiene` guards `WORKLOG.md` / `.workflow-state.json` (so the worker must not touch those on the feature branch); standard AI-authorship disclosure on the PR/comments.
+- Out of scope for this worker: #358 (forward-fix, `on-hold`), #351 (now `on-hold` until #358 lands), #348/#349 (human will mark superseded once the deploy is clean).
+
+**Current State (post-spawn):**
+- **Open PRs:** 0 (the rollback PR will appear on this branch when the worker pushes).
+- **Slots:** expansion 0/4 (no eligible unready issues — all carry `on-hold`), implementation **1/1** (this worker), review 0/2.
+- **Ready issues remaining after this spawn:** #351 (`on-hold` already — no action), #358 (`on-hold` already — no action). So the impl slot is genuinely the only useful one to fill this tick, and it's filled.
+- `quiet_ticks` reset to 0.
+
+**Action Taken:**
+1. 🚀 Spawned implementation worker `d3dcbab` for #357.
+2. 📝 Recorded `d3dcbab` in `.workflow-state.json` (`slots.implementation`).
+3. 📜 Logged this productive tick to `WORKLOG.md` (on `main`).
+
+**Next orchestrator tick should:**
+- Verify `d3dcbab` is still running (or has produced a PR).
+- If a PR is open and CI is green: spawn a review/merge worker per the standard flow.
+- If `d3dcbab` errored: re-spawn or escalate — the regression is still live in prod.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
