@@ -283,3 +283,26 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:26 UTC - Expansion Worker (#351)
+
+✅ **Expanded Issue #351** — `bug(server): startup rehydration failures are silent until the user types — kiosks should learn at register time`
+
+- Issue: [#351](https://github.com/jpshackelford/voice-relay/issues/351)
+- Type: Bug (scope:server-only, priority:low)
+- Status: **Ready for implementation** (`ready` label applied)
+
+**Root cause (confirmed against `main` @ `1e046c3`):**
+- `rehydrateAgentSessions` runs *before* `server.listen` → broadcast fires into an empty registry.
+- Nothing persists "rehydration failed" to `session.metadata`, so a later-arriving kiosk has no way to learn.
+- `resyncAgentSessionStatus` filters `state==='absent'` as a no-op, exactly the state a failed rehydration leaves behind. Stale-positive UI until the user types.
+
+**Proposed fix:** Three-part belt-and-suspenders layer — persist `metadata.rehydrationFailure = { at, error }` on failure; clear it on any subsequent successful attach (rehydration retry / auto-connect / `/ai/restart`); have `resyncAgentSessionStatus` send a synthetic `degraded` snapshot when `state==='absent'` *and* the flag is set. ~60 LOC + tests, no schema migration, no client changes.
+
+**Sibling coordination:** part of the 28 May 23:40 cluster (#347–#350). Sequenced after #348 (fresh-create fallback) so this fix handles the residual-failure case, not the common case. Overlaps with #347 on the `/ai/restart` metadata-write site. Independent of #349 and #350.
+
+---
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
