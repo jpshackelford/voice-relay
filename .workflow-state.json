@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T16:07:17.117190Z",
+  "last_updated": "2026-05-29T16:19:35Z",
   "completed": [
     {
       "conv_id": "9d0f398",
@@ -379,5 +379,5 @@
       "outcome": "Expanded #370; ready label added with verification comment"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
