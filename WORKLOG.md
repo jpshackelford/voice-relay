@@ -555,3 +555,24 @@ are tracked separately as `priority:high`.
 📌 **Follow-up sequencing:** #364 (failure-log call sites in `server/src/openhands.ts`) was being serialized after #362 to avoid rebase churn — now unblocked. The #358 re-attempt (fresh-create fallback for MISSING / ERROR sandboxes) can also proceed once #365's resume path lands.
 
 ---
+### 2026-05-29 14:34 UTC - Implementation Worker (#364)
+
+🚧 **PR #369 opened (now ready for review)** — [feat(server): include HTTP status + body excerpt in refresh/rebind failure logs](https://github.com/jpshackelford/voice-relay/pull/369)
+
+| Step | Result |
+|------|--------|
+| Branch | `fix/364-rebind-failure-logs` off fresh `main` at `c6275e7` (picks up #368 cleanly; no overlap — #368 touched `agent-driver/openhands.ts`, this touches `agent-driver/rebind.ts` + `openhands.ts` manager). |
+| Fix | One new module `server/src/agent-driver/log.ts` (3 pure helpers: `redactSecrets`, `truncate`, `logUpstreamFailure`). New `body: string \| null` field on `OpenHandsApiError`, `RebindForbidden`, `RebindConversationGone` plumbed end-to-end. `logUpstreamFailure` wired into 4 catch sites: `doRefreshSessionCredentials`, `attachExistingForSession`, `doRebindSession`, `buildRebindReplaySuffix`. Existing user-facing `console.error` lines and `degradedReason` strings unchanged. |
+| Tests | +34 new (27 in `log.test.ts`, 4 in `rebind.test.ts`, 3 in `openhands.test.ts`). Coverage: redactor table-driven (10 cases incl. idempotency + 0-secret inputs), truncator (4 cases incl. exact-budget boundary), log-helper format (13 cases incl. body redaction, newline escaping, 200-char + marker truncation, attempt formatting). Integration tests pin status + body in the emitted line AND assert kiosk-facing `degradedReason` is byte-for-byte unchanged. |
+| Test suite | `npm test -w server` → 1301 / 1301 across 59 files; `npx tsc --noEmit -p server` clean. No server-side `lint` script exists. |
+| CI | Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅ · enable-orchestrator ✅. All green. |
+| Acceptance criteria | All 8 from issue body met — see PR description for per-AC mapping. |
+| Migration check | ✅ Pure logging change, no DB / schema / wire-format edits. Auto-deploy to `vr.chorecraft.net` safe. |
+| Draft → Ready | Marked ready at 14:34 UTC after green CI; review-bot dispatch is the next orchestrator concern. |
+
+📌 **Learnings & follow-ups:**
+- `OpenHandsApiError`'s 4th constructor arg defaults to `null` so all 30+ existing test fixtures and the rebind-helper's own internal `OpenHandsApiError(0, …)` synthesis sites compile unchanged — no callsite churn.
+- `RebindConversationGone` gained a `status: 404` field for log-line uniformity even though it was previously implied. Cheap, future-proof.
+- Followup candidate (not in scope): forward a `request_id` from upstream response headers if/when the OH platform starts emitting one. Issue body explicitly defers this.
+
+---
