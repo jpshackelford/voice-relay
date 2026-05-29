@@ -632,3 +632,40 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 01:51 UTC - Orchestrator
+
+🚀 **Spawned: Implementation Worker for Issue #349**
+
+Tick assessed: 0 active workers (after reconciling stale entry from PR #355 merge), 0 open PRs, 2 ready+prioritized issues now unblocked by `3046c9d` on `main`.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| [`0518853`](https://app.all-hands.dev/conversations/05188539395f48c9ac728771e60924d5) | implementation | Issue #349 — `feat(server): wire buildReplaySuffix into fresh-create` | **NEW** (running) |
+
+**Current State:**
+- **No open PRs.** PR #355 merged at 01:35:58Z (squash `3046c9d`); issue #348 auto-closed. Reconciled `41f7259` (merge worker) → `completed[]` with `outcome: "Merged PR #355, closed #348"`.
+- **Ready+prioritized backlog (now unblocked by `3046c9d`):**
+  - **#349** (priority:medium, scope:server-only) — `feat: wire buildReplaySuffix into fresh-create`. **PICKED THIS TICK.** Keys off `freshCreated === true` from the new `attachOrCreateAgentSession` helper; extends `OpenSessionOpts` with a `buildReplaySuffix` result so both call sites pick it up without re-plumbing.
+  - **#351** (priority:low, scope:server-only) — `bug: startup rehydration failures silent until user types`. Consumes the `rehydrated-fresh` outcome from `agent-rehydrate.ts`. Deferred to next impl slot (only 1 impl at a time to avoid branch conflicts on the helper).
+- **Expansion queue:** 0 eligible. All 6 non-`ready` open issues carry `on-hold` — including the S3 freeze cohort (#299–#302) per AGENTS.md, and #210/#239.
+
+**Slot usage after spawn:**
+- expansion: 0 / 4
+- implementation: 1 / 1 (`0518853` on #349)
+- review: 0 / 2
+
+**Action Taken:**
+🚀 Spawned implementation worker `0518853` for Issue #349 with explicit prompt:
+- Branch from `origin/main` at `3046c9d` (post-merge).
+- Reuse the new `attachOrCreateAgentSession` helper; extend `OpenSessionOpts` rather than re-plumbing both call sites.
+- Tests: helper-level (`freshCreated === true` triggers replay-suffix; `false` doesn't) + both call sites.
+- Server-only scope; no schema migration expected — STOP and add Knex up/down migrations if that turns out wrong.
+- WORKLOG.md updates go directly to `main` via the stash/checkout/append/push dance — Branch Hygiene CI will reject any PR that touches it.
+- PR title must use `feat(server): ...` (allowed scope).
+
+`quiet_ticks` reset to 0 (productive tick).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

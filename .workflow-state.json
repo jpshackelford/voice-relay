@@ -2,21 +2,21 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "41f7259",
-        "pr": 355,
-        "started": "2026-05-29T01:35:20.892217+00:00"
+        "conv_id": "0518853",
+        "issue": 349,
+        "started": "2026-05-29T01:51:00.727833+00:00"
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T01:35:20.892217+00:00",
+  "last_updated": "2026-05-29T01:51:00.727833+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -260,6 +260,15 @@
       "finished": "2026-05-29T01:20:00+00:00",
       "status": "success",
       "outcome": "Implementation of #348 \u2192 opened PR #355, moved to ready-for-review. New helper attachOrCreateAgentSession used by both auto-connect and agent-rehydrate. CI green; 1220/1220 tests; pr-review queued."
+    },
+    {
+      "conv_id": "41f7259",
+      "type": "review",
+      "pr": 355,
+      "started": "2026-05-29T01:35:20.892217+00:00",
+      "finished": "2026-05-29T01:51:00.727833+00:00",
+      "status": "success",
+      "outcome": "Merged PR #355 (3046c9d), closed #348"
     }
   ],
   "quiet_ticks": 0
