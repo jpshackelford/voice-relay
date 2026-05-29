@@ -208,3 +208,25 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 - Independent of siblings #347 / #348 / #349 / #351 (different code paths); can be implemented in parallel.
 
 ---
+
+### 2026-05-29 00:10 UTC - Expansion Worker (#349)
+
+✅ **Expanded Issue #349** — _feat(server): wire existing buildReplaySuffix into the fresh-create path so new conversations carry prior context_
+
+- Issue: [#349](https://github.com/jpshackelford/voice-relay/issues/349) → labeled `ready`
+- Type: Enhancement (server-side; small wiring change, not new infrastructure)
+- Status: Ready for implementation
+- Codebase verification (against `main` @ `8387ccc`):
+  - `AISessionManager.buildRebindReplaySuffix` exists at `openhands.ts:2192` (private) — body is name-neutral, takes only a conversation id, returns `''` on any error after logging. Reusable as-is once promoted.
+  - `OpenHandsClient.startConversation` at `openhands.ts:225` currently has **no** `systemMessageSuffix` arg (the original issue's parenthetical was correct — only `rebindConversation` at `:315` supports it today). One-line signature addition + payload field needed.
+  - `getOrCreateForSession` at `openhands.ts:1658` calls `startConversation` at `:1719` with 3 args; this is the single wiring site.
+  - Driver shim: `OpenSessionOpts` (`agent-driver/types.ts:72`) and `OpenHandsDriver.doBindSession` (`agent-driver/openhands.ts:604`) need a `previousConversationId?: string` pass-through alongside the existing `existingConversationId`.
+  - `previousAiConversationId` does **not** exist in the code today — confirms #348 owns the write convention; #349 only reads it.
+- Implementation plan: 5 steps (signature ext → helper rename + un-private → wire into `getOrCreateForSession` → driver shim plumbing → read sites). Read sites split between this PR (`restartSession`-only, which can land independently) and #348's PR (auto-connect / rehydrate, which write the prior id).
+- Test plan: reuse the `setCondenseImplForTesting` + `getEventsPage` mock scaffold already proven by #332's rebind-suffix tests (`openhands.test.ts:2786+`).
+- Complexity: **Low** (~25 LOC prod + ~80 LOC tests).
+- Sibling coordination noted in expansion: depends on #348 for the auto-connect / rehydrate read sites and the `metadata.previousAiConversationId` write convention; independent of #347 (`/ai/restart` persistence — different file) and #350/#351 (different recovery paths).
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
