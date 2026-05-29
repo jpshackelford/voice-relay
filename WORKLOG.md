@@ -1172,3 +1172,24 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:21 UTC - Expansion Worker (issue #363)
+
+✅ **Expanded Issue #363** — `feat(server): persist operational AISession state in DB instead of holding it only in-memory`
+
+- Issue: [#363](https://github.com/jpshackelford/voice-relay/issues/363)
+- Type: Enhancement (priority:medium, scope:server-only)
+- Status: `ready` + `on-hold` (depends on #360 + #362 merging first)
+- Validation: read `server/src/openhands.ts` (AISession L491, AISessionManager L1401, rebindTracker L1442), `server/src/agent-driver/rebind.ts:330` (RebindWindowTracker), `server/src/agent-driver/openhands.ts:321` (DriverSessionState.states), `server/src/sessions/persist-ai-conversation-id.ts`, `server/src/agent-rehydrate.ts`, and the migration registry. Reporter's analysis matches the code.
+- Approach refinement: **new `session_ai_state` table** preferred over extending `sessions.metadata` (the JSON blob already mediates display/TTS/aiConversationId via read-modify-write `updateMetadata` — adding a hot state machine there would race). Migration is additive (`CREATE TABLE IF NOT EXISTS` + one-shot `INSERT OR IGNORE` backfill from existing `aiConversationId` rows with state=`running`). State enum is the *durable-lifecycle* vocab (`running|degraded|rebinding|ended`), deliberately distinct from the driver-emitted `AgentSessionState` (`absent|starting|ready|thinking|reconnecting|degraded`); the two are mapped at the surface.
+- Architectural payoff: ~12 scattered `session.degraded = true` writes in `openhands.ts` get replaced with a single `transitionTo(session, state, reason)` chokepoint that write-throughs to the new repo.
+- `RebindWindowTracker` budget persisted via `rebind_attempts_json` so the 3-in-5-min cap survives restart — directly addresses the deploy-thrash failure mode.
+- Rehydration policy on startup: `running` re-attach (existing behavior), `degraded` skip + broadcast degraded session-state, `rebinding` retry-once-with-backoff, `ended` skip.
+- Out of scope (deferred): `lastEventId` resume (currently dead field), `taskId` audit trail, multi-node leader election, `session_api_key` persistence (explicitly excluded).
+- Production safety for auto-deploy: additive schema only, optional DI seam (`aiStateRepository?`) so missing repo degrades to today's in-memory-only behavior, migrator runs before `rehydrateAgentSessions`, no new env vars.
+- on-hold rationale: needs #360 (PAUSED handling) merged so the persisted state machine sees real failure-mode transitions, and #362 (opts-cache fix) merged so rehydrate-via-`existingConversationId` doesn't inherit the lie.
+- Detailed implementation plan with file-by-file changes, repo type signatures, migration DDL, and test strategy (repo unit + restart-simulation integration + tracker-survival) posted at https://github.com/jpshackelford/voice-relay/issues/363#issuecomment-4574909211.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
