@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "c1bd269",
-        "issue": 348,
-        "started": "2026-05-29T00:53:32.052602+00:00"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T01:04:07.626192+00:00",
+  "last_updated": "2026-05-29T01:24:06.042617Z",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -251,7 +245,16 @@
       "finished": "2026-05-29T01:04:07.626192+00:00",
       "status": "success",
       "outcome": "PR #354 squash-merged to main (786aa01); #350 auto-closed. Server-only, no migration. Auto-deploy to vr.chorecraft.net."
+    },
+    {
+      "conv_id": "c1bd269",
+      "type": "implementation",
+      "issue": 348,
+      "started": "2026-05-29T00:53:32.052602+00:00",
+      "finished": "2026-05-29T01:20:00+00:00",
+      "status": "success",
+      "outcome": "Implementation of #348 \u2192 opened PR #355, moved to ready-for-review. New helper attachOrCreateAgentSession used by both auto-connect and agent-rehydrate. CI green; 1220/1220 tests; pr-review queued."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
