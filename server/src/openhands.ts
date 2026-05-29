@@ -1851,29 +1851,38 @@ export class AISessionManager {
     if (!this.client) throw new SandboxMissingError(conversationId);
     const deadline = Date.now() + this.resumePollBudgetMs;
     while (Date.now() < deadline) {
-      const remaining = deadline - Date.now();
-      const waitMs = Math.max(0, Math.min(this.resumePollIntervalMs, remaining));
-      await new Promise((r) => setTimeout(r, waitMs));
+      // Check first, then sleep — avoids an unnecessary `resumePollIntervalMs`
+      // delay on the happy path where the sandbox has already reached RUNNING
+      // (e.g. resume was synchronous or the poll caught it on the first hit).
       let info: ConversationInfo | null;
+      let transient = false;
       try {
         info = await this.client.getConversation(conversationId);
       } catch (e) {
         // Transient HTTP failures during the poll are treated as "not ready
-        // yet" — keep polling until the budget expires. Non-transient
-        // errors propagate.
+        // yet" — wait then keep polling until the budget expires.
+        // Non-transient errors propagate.
         if (e instanceof OpenHandsApiError && e.transient) {
-          continue;
+          info = null;
+          transient = true;
+        } else {
+          throw e;
         }
-        throw e;
       }
-      if (!info) throw new SandboxMissingError(conversationId);
-      if (info.sandbox_status === 'MISSING') {
-        throw new SandboxMissingError(conversationId);
+      if (!transient) {
+        if (!info) throw new SandboxMissingError(conversationId);
+        if (info.sandbox_status === 'MISSING') {
+          throw new SandboxMissingError(conversationId);
+        }
+        if (info.sandbox_status === 'RUNNING' && info.session_api_key) {
+          return info;
+        }
+        // STARTING / PAUSED / undefined → wait then keep polling.
       }
-      if (info.sandbox_status === 'RUNNING' && info.session_api_key) {
-        return info;
-      }
-      // STARTING / PAUSED / undefined → keep polling.
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      const waitMs = Math.min(this.resumePollIntervalMs, remaining);
+      await new Promise((r) => setTimeout(r, waitMs));
     }
     throw new SandboxResumeTimeoutError(conversationId);
   }
