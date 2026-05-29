@@ -419,3 +419,43 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:54 UTC - Orchestrator
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a3a38b3` | merge | [PR #354](https://github.com/jpshackelford/voice-relay/pull/354) — refresh-401 rebind (#350) | **NEW** running |
+| `c1bd269` | implementation | [Issue #348](https://github.com/jpshackelford/voice-relay/issues/348) — fresh-create fallback when attach fails | **NEW** running |
+
+**State reconciliation this tick:**
+- `971965c` (impl #350) → completed at 00:45:59Z. Outcome: opened PR #354 (CI green, 🟡 review verdict, 0 review threads).
+- `b2b3e05` (merge #353) → completed at 00:39:10Z. Outcome: no-op exit — PR #353 was already squash-merged (fef9c5c) by an earlier merge worker before its pre-flight ran.
+
+**Current State:**
+- 1 open PR: **#354** `oA green ready` — mergeable=CLEAN, isDraft=false, no blocking labels, 7/7 required checks SUCCESS (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator), HEAD 647ffb7, 1 review (github-actions, 🟡 "Worth merging"), 0 unresolved review threads. → dispatched **merge worker**.
+- Ready+prioritized issues with no PR: **#348** (priority:high), #349 (priority:medium), #351 (priority:low). #348 picked for impl slot per priority order.
+- Issues needing expansion: 0 — all 6 non-ready open issues carry `on-hold` (S3 design freeze #299–#302, deployment-failures #210, flaky AI tests #239). No expansion workers spawned.
+
+**Slot usage after dispatch:**
+- expansion: 0 / 4
+- implementation: 1 / 1 (#348)
+- review: 1 / 2 (PR #354 merge)
+
+**Spawned: 1. Merge Worker**
+- PR: [#354 — fix(server): rebind on refresh 401 NoCredentialsError (#350)](https://github.com/jpshackelford/voice-relay/pull/354)
+- Conversation: [`a3a38b3`](https://app.all-hands.dev/conversations/a3a38b33a4114ebf85cd46ec2d990ecd)
+- Note: first attempt errored with `Git provider authentication issue when getting remote URL` (transient OH Cloud GitHub token glitch); retried after 8s sleep, succeeded.
+
+**Spawned: 2. Implementation Worker**
+- Issue: [#348 — auto-connect / rehydrate fresh-create fallback](https://github.com/jpshackelford/voice-relay/issues/348) (priority:high, scope:server-only)
+- Conversation: [`c1bd269`](https://app.all-hands.dev/conversations/c1bd269fae3449acb91bec3bc032d341)
+- Coordination: prompt explicitly reuses `persistAiConversationId` helper from PR #353 to preserve the persist-before-broadcast invariant; sibling #349 will plug `buildReplaySuffix` into the same fresh-create path.
+
+`quiet_ticks` reset to 0 (productive tick).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
