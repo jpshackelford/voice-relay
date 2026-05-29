@@ -771,3 +771,25 @@ Re-enable when an `on-hold` label is removed from any open issue, a new issue is
 🚀 Spawned expansion worker for #370. Once it adds `ready`, the next tick will spawn an implementation worker. Implementation should reuse the `resumeSandbox` + `pollUntilRunning` helpers PR #365 added to `refreshSessionCredentials`; the issue body already calls this out.
 
 ---
+
+### 2026-05-29 16:05 UTC - Expansion Worker (`4ad76fb`)
+
+✅ **Expanded Issue #370** — `ready` for implementation.
+
+- Issue: [#370](https://github.com/jpshackelford/voice-relay/issues/370) — bug(server): PAUSED-sandbox handling missing on the attach path (PR #365 follow-up)
+- Type: Bug · `priority:critical` · `server`
+- Status: Ready for implementation
+
+**Verification highlights** (full detail in [comment](https://github.com/jpshackelford/voice-relay/issues/370#issuecomment-4577290832)):
+- Cited code at `openhands.ts:2225-2232` matches `main` (`e7dbbcf`) exactly — the `attachExistingForSession` "missing WS handshake materials" throw fires unconditionally when `sandbox_status === 'PAUSED'`.
+- PR #365 helpers (`OpenHandsClient.resumeSandbox`, `AISessionManager.pollSandboxRunning`, `resumeTracker`, `sandboxResumeCount`, `SandboxResumeBudgetExhausted`/`SandboxResumeTimeoutError`, `setResumePollOptionsForTesting`) are all on the same class / accessible — **no refactor required**.
+- Caller audit confirms the issue body is complete: `attachExistingForSession` has one production caller (`getOrCreateForSession`), reached from `agent-rehydrate.ts:128` and `auto-connect.ts:140`. Fixing the central method covers both rehydration and device-register auto-attach.
+- Noted nuance for implementer: use `convInfo = await pollSandboxRunning(...)` (reassign), not `applyFreshCreds` — attach *constructs* a fresh `AISession`, it doesn't mutate one.
+
+**Files to modify:** `server/src/openhands.ts` (insert PAUSED branch), `server/src/openhands.test.ts` (new describe block mirroring the #360 PAUSED suite). No changes expected in `agent-rehydrate.ts` or `auto-connect.ts`.
+
+**Test plan** added covering: PAUSED→RUNNING happy path, PAUSED+no sandbox_id, PAUSED→MISSING regression guard, budget exhaustion, poll timeout, and non-PAUSED regression.
+
+Labels: added `ready`. Implementation worker can pick this up on the next tick.
+
+---
