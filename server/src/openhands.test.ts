@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, UpstreamConversationEndedError, UpstreamCredentialsLostError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, SandboxResumeTimeoutError, ResumeBudgetExhausted, UpstreamConversationEndedError, UpstreamCredentialsLostError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -896,6 +896,476 @@ describe('AISessionManager.refreshSessionCredentials (#291)', () => {
     await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
   });
 });
+
+/**
+ * PAUSED-sandbox recovery tests (#360).
+ *
+ * The upstream platform pauses sandboxes after ~4 min idle. Voice Relay
+ * must detect that, POST `/sandboxes/:id/resume`, poll until the sandbox
+ * is RUNNING again with fresh credentials, and apply them to the session
+ * — all from inside `refreshSessionCredentials`. Failing to do so caused
+ * 100% of kiosks to permanently degrade in prod after their idle window.
+ *
+ * These tests target the seam directly with a fake client that queues
+ * `getConversation` responses and a `resumeSandbox` spy.
+ */
+describe('AISessionManager.refreshSessionCredentials PAUSED handling (#360)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+    resumeSandbox: ReturnType<typeof vi.fn>;
+  }
+
+  function makeSession(overrides: Partial<AISession> = {}): AISession {
+    return {
+      conversationId: 'conv-1',
+      taskId: 'task-1',
+      sessionId: 'sess-1',
+      mode: 'kiosk',
+      agentServerUrl: 'https://agent.example.com',
+      sessionApiKey: 'K1',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+      ...overrides,
+    };
+  }
+
+  /**
+   * Build a fake client whose `getConversation` returns the queued
+   * responses in order. `resumeSandbox` defaults to resolving with
+   * `{success: true}` so the happy path "just works".
+   */
+  function makeClient(
+    conversationResponses: unknown[],
+    opts: { resumeImpl?: () => Promise<void> } = {},
+  ): FakeClient {
+    const queued = conversationResponses.slice();
+    return {
+      getConversation: vi.fn(async () => {
+        if (queued.length === 0) {
+          throw new Error('FakeClient: no more queued getConversation responses');
+        }
+        const next = queued.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+      resumeSandbox: vi.fn(opts.resumeImpl ?? (async () => undefined)),
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+    // Sub-second budget so the timeout test doesn't wait the production
+    // 30 s. The interval is short enough that several poll iterations
+    // fit inside the budget for the happy-path tests.
+    manager.setResumePollOptionsForTesting({ budgetMs: 200, intervalMs: 5 });
+  });
+
+  afterEach(() => {
+    manager.setResumePollOptionsForTesting(undefined);
+  });
+
+  test('PAUSED → resume → RUNNING happy path', async () => {
+    const client = makeClient([
+      // First GET: paused
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sb-1',
+        session_api_key: null,
+        conversation_url: null,
+      },
+      // Poll iteration 1: still STARTING
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'STARTING',
+        sandbox_id: 'sb-1',
+      },
+      // Poll iteration 2: RUNNING + fresh creds
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        sandbox_id: 'sb-1',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent2.example.com/api/v1/conversations/conv-1',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session);
+
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(client.resumeSandbox).toHaveBeenCalledWith('sb-1');
+    expect(session.sessionApiKey).toBe('K2');
+    expect(session.agentServerUrl).toBe('https://agent2.example.com');
+    // conversationId preserved across the resume — that's the key
+    // acceptance criterion in #360 ("sessions.metadata.aiConversationId
+    // is unchanged after resume").
+    expect(session.conversationId).toBe('conv-1');
+    expect(manager.getSandboxResumeCount()).toBe(1);
+  });
+
+  test('PAUSED with no sandbox_id → SandboxMissingError without calling resumeSandbox', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        // no sandbox_id → contract violation, treat as MISSING
+        session_api_key: null,
+        conversation_url: null,
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    // Cached creds untouched on failure
+    expect(session.sessionApiKey).toBe('K1');
+  });
+
+  test('resume HTTP 5xx is transient → outer loop retries and recovers', async () => {
+    // Outer loop attempt 1: PAUSED → resume throws 503 → caught as transient → backoff
+    // Outer loop attempt 2: PAUSED → resume OK → poll RUNNING → apply
+    let resumeCalls = 0;
+    const client = makeClient(
+      [
+        // attempt 1 GET
+        {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sb-1',
+        },
+        // attempt 2 GET
+        {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sb-1',
+        },
+        // attempt 2 poll
+        {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'RUNNING',
+          sandbox_id: 'sb-1',
+          session_api_key: 'K2',
+          conversation_url: 'https://agent2.example.com/api/v1/',
+        },
+      ],
+      {
+        resumeImpl: async () => {
+          resumeCalls++;
+          if (resumeCalls === 1) {
+            throw new OpenHandsApiError(503, 'Service Unavailable', null);
+          }
+        },
+      },
+    );
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await manager.refreshSessionCredentials(session, 3);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(2);
+    expect(session.sessionApiKey).toBe('K2');
+  });
+
+  test('resume HTTP 404 → SandboxMissingError', async () => {
+    const client = makeClient(
+      [
+        {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sb-gone',
+        },
+      ],
+      {
+        resumeImpl: async () => {
+          throw new OpenHandsApiError(404, 'Not Found', null);
+        },
+      },
+    );
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K1');
+  });
+
+  test('poll timeout → SandboxResumeTimeoutError', async () => {
+    // resumeSandbox succeeds; all subsequent GETs report STARTING. With a
+    // 200 ms budget and 5 ms interval the poll loop will exhaust the
+    // budget without ever seeing RUNNING.
+    const startingResponse = {
+      id: 'conv-1',
+      status: 'READY',
+      sandbox_status: 'STARTING',
+      sandbox_id: 'sb-1',
+    };
+    const client: FakeClient = {
+      getConversation: vi.fn(async () => {
+        // First call returns PAUSED; subsequent calls return STARTING
+        return startingResponse;
+      }),
+      resumeSandbox: vi.fn(async () => undefined),
+    };
+    // Override first call to return PAUSED
+    let firstCall = true;
+    client.getConversation.mockImplementation(async () => {
+      if (firstCall) {
+        firstCall = false;
+        return {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sb-1',
+        };
+      }
+      return startingResponse;
+    });
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxResumeTimeoutError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K1');
+    // Resume tracker should NOT record success on timeout — that would
+    // exhaust the budget prematurely.
+    expect(manager.getSandboxResumeCount()).toBe(0);
+  });
+
+  test('poll observes MISSING mid-recovery → SandboxMissingError', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sb-1',
+      },
+      // sandbox got reaped mid-recovery
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'MISSING',
+        sandbox_id: 'sb-1',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+  });
+
+  test('resume window cap exhausted → ResumeBudgetExhausted on the 4th PAUSED refresh', async () => {
+    // Run 3 successful PAUSED → RUNNING resumes in quick succession (same
+    // conversation, same manager instance), then the 4th must short-circuit
+    // with ResumeBudgetExhausted before calling resumeSandbox.
+    const pausedResponse = {
+      id: 'conv-1',
+      status: 'READY',
+      sandbox_status: 'PAUSED',
+      sandbox_id: 'sb-1',
+    };
+    const runningResponse = {
+      id: 'conv-1',
+      status: 'READY',
+      sandbox_status: 'RUNNING',
+      sandbox_id: 'sb-1',
+      session_api_key: 'K2',
+      conversation_url: 'https://agent.example.com/api/v1/',
+    };
+    const client = makeClient([
+      pausedResponse,
+      runningResponse,
+      pausedResponse,
+      runningResponse,
+      pausedResponse,
+      runningResponse,
+      // 4th attempt
+      pausedResponse,
+      // No further responses queued — if budget check fails, no GET happens.
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    for (let i = 0; i < 3; i++) {
+      await manager.refreshSessionCredentials(session);
+    }
+    expect(manager.getSandboxResumeCount()).toBe(3);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(3);
+
+    // 4th attempt — budget full
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      ResumeBudgetExhausted,
+    );
+    // resumeSandbox must NOT have been called a 4th time
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(3);
+  });
+
+  test('concurrent refresh during PAUSED single-flights the resume call', async () => {
+    let resolveGet: ((value: unknown) => void) | undefined;
+    const firstGet = new Promise<unknown>((resolve) => { resolveGet = resolve; });
+    let getCount = 0;
+    const client: FakeClient = {
+      getConversation: vi.fn(async () => {
+        getCount++;
+        if (getCount === 1) return firstGet;
+        // Poll iteration → RUNNING
+        return {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'RUNNING',
+          sandbox_id: 'sb-1',
+          session_api_key: 'K2',
+          conversation_url: 'https://agent.example.com/api/v1/',
+        };
+      }),
+      resumeSandbox: vi.fn(async () => undefined),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    const p1 = manager.refreshSessionCredentials(session);
+    const p2 = manager.refreshSessionCredentials(session);
+    // Both calls share the same in-flight promise → exactly one GET so far
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+
+    resolveGet!({
+      id: 'conv-1',
+      status: 'READY',
+      sandbox_status: 'PAUSED',
+      sandbox_id: 'sb-1',
+    });
+    await Promise.all([p1, p2]);
+
+    // Single resume POST despite two concurrent refresh calls
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(session.sessionApiKey).toBe('K2');
+  });
+
+  test('reconnect path: refresh transient error (5xx) eventually degrades the session', async () => {
+    // Drive reconnectWithRefresh indirectly via refreshSessionCredentials
+    // returning SandboxResumeTimeoutError. We assert the error class so
+    // the caller (reconnectWithRefresh) can branch on it.
+    const startingResponse = {
+      id: 'conv-1',
+      status: 'READY',
+      sandbox_status: 'STARTING',
+      sandbox_id: 'sb-1',
+    };
+    const client: FakeClient = {
+      getConversation: vi.fn(async () => startingResponse),
+      resumeSandbox: vi.fn(async () => undefined),
+    };
+    let firstCall = true;
+    client.getConversation.mockImplementation(async () => {
+      if (firstCall) {
+        firstCall = false;
+        return {
+          id: 'conv-1',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sb-1',
+        };
+      }
+      return startingResponse;
+    });
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    let captured: unknown;
+    try {
+      await manager.refreshSessionCredentials(session);
+    } catch (err) {
+      captured = err;
+    }
+    expect(captured).toBeInstanceOf(SandboxResumeTimeoutError);
+    expect((captured as SandboxResumeTimeoutError).conversationId).toBe('conv-1');
+  });
+
+  test('rotation log fires after a successful PAUSED → RUNNING resume', async () => {
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sb-1',
+      },
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        sandbox_id: 'sb-1',
+        session_api_key: 'K2',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession({ sessionApiKey: 'K1' });
+
+    const calls: unknown[][] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]) => { calls.push(args); };
+    try {
+      await manager.refreshSessionCredentials(session);
+    } finally {
+      console.log = original;
+    }
+    const sawResumeLog = calls.some(
+      ([first]) => typeof first === 'string' && first.includes('Sandbox resume succeeded'),
+    );
+    const sawRotationLog = calls.some(
+      ([first]) => typeof first === 'string' && first.includes('session_api_key rotation detected'),
+    );
+    expect(sawResumeLog).toBe(true);
+    expect(sawRotationLog).toBe(true);
+    expect(manager.getKeyRotationCount()).toBe(1);
+  });
+
+  test('STARTING (non-PAUSED transient) state continues to be treated as missing creds', async () => {
+    // STARTING with no session_api_key still throws SandboxMissingError —
+    // we only resume from PAUSED. (Defense against accidentally triggering
+    // resume on a sandbox that's already booting.)
+    const client = makeClient([
+      {
+        id: 'conv-1',
+        status: 'READY',
+        sandbox_status: 'STARTING',
+        sandbox_id: 'sb-1',
+        session_api_key: null,
+        conversation_url: null,
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      SandboxMissingError,
+    );
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+  });
+});
+
+
 
 
 describe('formatEventSummary', () => {

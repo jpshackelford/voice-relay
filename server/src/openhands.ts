@@ -178,6 +178,44 @@ export class UpstreamCredentialsLostError extends Error {
   }
 }
 
+/**
+ * Raised when {@link AISessionManager.refreshSessionCredentials} successfully
+ * issues a sandbox resume but the sandbox does not reach `RUNNING` (with a
+ * fresh `session_api_key`) within the polling budget.
+ *
+ * The reconnect path treats this as `degraded` rather than retrying — the
+ * rebind path would not help because the sandbox isn't missing, just slow.
+ * See #360.
+ */
+export class SandboxResumeTimeoutError extends Error {
+  readonly conversationId: string;
+  constructor(conversationId: string) {
+    super(`Sandbox resume timed out for conversation ${conversationId}`);
+    this.name = 'SandboxResumeTimeoutError';
+    this.conversationId = conversationId;
+  }
+}
+
+/**
+ * Raised when the per-conversation resume window is full (the same 3-in-5-min
+ * cap as the rebind window — a sandbox that pauses + fails-to-resume that
+ * frequently is wedged at the platform level and we should stop trying).
+ * The reconnect path degrades the session with a clear reason. See #360.
+ */
+export class ResumeBudgetExhausted extends Error {
+  readonly conversationId: string;
+  readonly attempts: number;
+  constructor(conversationId: string, attempts: number) {
+    super(
+      `Sandbox resume for conversation ${conversationId} blocked after ` +
+        `${attempts} resume(s) within the per-conversation window`,
+    );
+    this.name = 'ResumeBudgetExhausted';
+    this.conversationId = conversationId;
+    this.attempts = attempts;
+  }
+}
+
 export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
@@ -346,6 +384,33 @@ export class OpenHandsClient {
       body.system_message_suffix = suffix;
     }
     return this.request<ConversationInfo>('POST', '/app-conversations', body, 60_000);
+  }
+
+  /**
+   * Resume a paused sandbox. Triggers `PAUSED → STARTING → RUNNING` upstream.
+   *
+   * After the platform reports `RUNNING` the conversation's
+   * `session_api_key` rotates and `conversation_url` becomes non-null
+   * again; the caller is responsible for re-reading those via
+   * `getConversation()` once the sandbox reports `RUNNING`. See
+   * `docs/openhands-platform.md` § "Verified timings" — the resume
+   * primitive itself is fast (~600 ms HTTP) but the sandbox spends most
+   * of its ~20 s recovery in `STARTING`.
+   *
+   * Idempotent: POSTing to an already-RUNNING sandbox returns
+   * `{success: true}` per live testing in issue #360.
+   *
+   * 404 → caller converts to {@link SandboxMissingError} (the sandbox is
+   * actually gone, not just paused). Other non-2xx → `OpenHandsApiError`
+   * with the transient bit set per the response status.
+   */
+  async resumeSandbox(sandboxId: string): Promise<void> {
+    await this.request<{ success: boolean }>(
+      'POST',
+      `/sandboxes/${encodeURIComponent(sandboxId)}/resume`,
+      {},
+      30_000,
+    );
   }
 
   /**
@@ -1449,6 +1514,42 @@ export class AISessionManager {
   private rebindCount = 0;
 
   /**
+   * Per-conversation rolling-window tracker for sandbox-resume attempts
+   * (#360). Uses the same 3-in-5-min cap as the rebind tracker, on the
+   * assumption that a sandbox that pauses + fails-to-resume 3 times in
+   * 5 min is wedged at the platform level — escalating to `degraded`
+   * is correct.
+   */
+  private resumeTracker = new RebindWindowTracker();
+
+  /**
+   * Running total of successful sandbox resumes across all sessions,
+   * incremented each time the PAUSED branch of
+   * {@link refreshSessionCredentials} successfully resumes a sandbox and
+   * sees it report `RUNNING` with a fresh `session_api_key`. Exposed for
+   * production metrics + #360 acceptance — mirrors `keyRotationCount`
+   * and `rebindCount`.
+   */
+  private sandboxResumeCount = 0;
+
+  /**
+   * Test seam: time budget for the PAUSED → RUNNING poll inside
+   * {@link doRefreshSessionCredentials}. Default 30 s matches the upstream
+   * docs' "~20 s most-of-it-in-STARTING" recovery time with a small
+   * safety margin (see `docs/openhands-platform.md` § Verified timings).
+   * Tests override to sub-second values via
+   * {@link setResumePollOptionsForTesting}.
+   */
+  private resumePollBudgetMs = 30_000;
+
+  /**
+   * Test seam: poll interval inside the PAUSED → RUNNING wait loop.
+   * Default 2 s gives us ~10 GETs across the 20-25 s typical recovery
+   * window without hammering the upstream API.
+   */
+  private resumePollIntervalMs = 2_000;
+
+  /**
    * Test seam: optional override of the rebind HTTP-orchestration options
    * (sleep/clock/backoff/budget). Production callers leave this `undefined`;
    * the integration tests in `openhands.test.ts` set it to drive backoff
@@ -1510,12 +1611,39 @@ export class AISessionManager {
   }
 
   /**
+   * Number of successful sandbox resumes performed across all sessions
+   * for the lifetime of this manager. Exposed for #360 metrics + tests
+   * so we can confirm the PAUSED → RUNNING recovery path is actually
+   * firing in production logs.
+   */
+  getSandboxResumeCount(): number {
+    return this.sandboxResumeCount;
+  }
+
+  /**
    * Test seam: install rebind-time injection options (fake sleep/clock/etc.)
    * The rebind window tracker is left in place — production semantics —
    * but the HTTP backoff timing becomes deterministic.
    */
   setRebindOptionsForTesting(opts: RebindOptions | undefined): void {
     this.rebindOptionsForTesting = opts;
+  }
+
+  /**
+   * Test seam: shrink the PAUSED → RUNNING poll budget so resume-timeout
+   * tests (#360) don't wait the full production 30 s. Production callers
+   * leave this untouched. Pass `undefined` to restore defaults.
+   */
+  setResumePollOptionsForTesting(
+    opts: { budgetMs?: number; intervalMs?: number } | undefined,
+  ): void {
+    if (!opts) {
+      this.resumePollBudgetMs = 30_000;
+      this.resumePollIntervalMs = 2_000;
+      return;
+    }
+    if (opts.budgetMs !== undefined) this.resumePollBudgetMs = opts.budgetMs;
+    if (opts.intervalMs !== undefined) this.resumePollIntervalMs = opts.intervalMs;
   }
 
   /**
@@ -1535,6 +1663,11 @@ export class AISessionManager {
    *
    * Behavior:
    * - Returns when the cache has been updated (rotated or not).
+   * - If `sandbox_status === 'PAUSED'`, issues `POST /sandboxes/:id/resume`,
+   *   polls until `RUNNING`, then re-reads the rotated credentials. See
+   *   #360 — paused sandboxes are the dominant failure mode (~4 min idle
+   *   timeout in prod). On failure throws {@link SandboxResumeTimeoutError}
+   *   or {@link ResumeBudgetExhausted}; the reconnect path degrades cleanly.
    * - Throws {@link SandboxMissingError} if the conversation is gone or
    *   `sandbox_status === 'MISSING'` — the driver should transition to
    *   `degraded` rather than retry forever (#296 will handle rebind).
@@ -1575,35 +1708,34 @@ export class AISessionManager {
         if (!fresh || fresh.sandbox_status === 'MISSING') {
           throw new SandboxMissingError(session.conversationId);
         }
+
+        // PAUSED → drive the sandbox back to RUNNING and re-read the
+        // (now-rotated) credentials. See #360. We do this *before* the
+        // `!session_api_key` check below because a paused conversation
+        // always returns `session_api_key: null` and `conversation_url: null`
+        // — falling through to the MISSING branch is exactly the prod bug
+        // we're fixing here.
+        if (fresh.sandbox_status === 'PAUSED') {
+          const resumed = await this.resumePausedSandbox(session, fresh);
+          this.applyFreshCreds(session, resumed);
+          return;
+        }
+
         if (!fresh.session_api_key) {
           // Treat absence of a fresh key the same as MISSING — we cannot
           // construct a valid WS URL without it.
           throw new SandboxMissingError(session.conversationId);
         }
-        // Strip any trailing /api/... path to recover the bare agent-server
-        // origin. Using replace() with an anchored regex is more defensive than
-        // split('/api/')[0] for unexpected URL shapes; URL.canParse rejects a
-        // malformed result before we hand it to the WS layer.
-        const freshUrl = fresh.conversation_url?.replace(/\/api\/.*$/, '') || '';
-        if (!freshUrl || !URL.canParse(freshUrl)) {
-          throw new SandboxMissingError(session.conversationId);
-        }
-
-        const previousKey = session.sessionApiKey;
-        const rotated = previousKey !== undefined && previousKey !== fresh.session_api_key;
-        session.sessionApiKey = fresh.session_api_key;
-        session.agentServerUrl = freshUrl;
-
-        if (rotated) {
-          this.keyRotationCount++;
-          console.log(
-            `[AI] session_api_key rotation detected for conversation ${session.conversationId} ` +
-              `(rotation count: ${this.keyRotationCount})`,
-          );
-        }
+        this.applyFreshCreds(session, fresh);
         return;
       } catch (err) {
-        if (err instanceof SandboxMissingError) throw err;
+        if (
+          err instanceof SandboxMissingError ||
+          err instanceof SandboxResumeTimeoutError ||
+          err instanceof ResumeBudgetExhausted
+        ) {
+          throw err;
+        }
         // 401 NoCredentialsError → upstream has rotated/forgotten our
         // session_api_key. Surface a distinct error class so the reconnect
         // path can route this through rebindSession (same as MISSING). The
@@ -1628,6 +1760,132 @@ export class AISessionManager {
     }
     // Unreachable: loop body either returns or throws. Kept for type completeness.
     throw lastTransientError ?? new Error('refresh failed without recorded error');
+  }
+
+  /**
+   * PAUSED branch of {@link doRefreshSessionCredentials} (#360). Issues
+   * the resume POST, polls for `RUNNING`, and returns the resumed
+   * conversation info. Throws:
+   *
+   * - {@link SandboxMissingError} if the sandbox is gone (no `sandbox_id`
+   *   on the PAUSED record, or upstream 404 on resume, or a subsequent
+   *   GET reports `MISSING`).
+   * - {@link SandboxResumeTimeoutError} if the sandbox never reaches
+   *   `RUNNING` within the poll budget.
+   * - {@link ResumeBudgetExhausted} if the per-conversation resume
+   *   window is full (3 in 5 min, same cap as rebind).
+   * - {@link OpenHandsApiError} (transient) for 5xx on resume; the
+   *   outer retry loop catches these.
+   *
+   * On success, increments {@link sandboxResumeCount} and records the
+   * success in {@link resumeTracker} so the window cap functions
+   * correctly across calls.
+   */
+  private async resumePausedSandbox(
+    session: AISession,
+    paused: ConversationInfo,
+  ): Promise<ConversationInfo> {
+    if (!this.client) throw new SandboxMissingError(session.conversationId);
+    if (!paused.sandbox_id) {
+      // PAUSED with no sandbox_id is a platform contract violation; the
+      // resume primitive requires the sandbox id. Surface as MISSING so
+      // the reconnect path falls back to rebind rather than spinning.
+      throw new SandboxMissingError(session.conversationId);
+    }
+
+    try {
+      this.resumeTracker.checkBudget(session.conversationId);
+    } catch (err) {
+      if (err instanceof RebindBudgetExhausted) {
+        throw new ResumeBudgetExhausted(session.conversationId, err.attempts);
+      }
+      throw err;
+    }
+
+    try {
+      await this.client.resumeSandbox(paused.sandbox_id);
+    } catch (err) {
+      // 404 → the sandbox is genuinely gone, not just paused; route to
+      // the MISSING branch so the reconnect path tries rebind instead.
+      if (err instanceof OpenHandsApiError && err.status === 404) {
+        throw new SandboxMissingError(session.conversationId);
+      }
+      throw err;
+    }
+
+    const resumed = await this.pollSandboxRunning(session.conversationId);
+    this.resumeTracker.recordSuccess(session.conversationId);
+    this.sandboxResumeCount++;
+    console.log(
+      `[AI] Sandbox resume succeeded for conversation ${session.conversationId} ` +
+        `(resume count: ${this.sandboxResumeCount})`,
+    );
+    return resumed;
+  }
+
+  /**
+   * Poll `getConversation` until the sandbox reports `RUNNING` with a
+   * fresh `session_api_key`, or the {@link resumePollBudgetMs} budget
+   * is exhausted. Sleeps {@link resumePollIntervalMs} between GETs.
+   *
+   * Throws {@link SandboxMissingError} if the sandbox slips into
+   * `MISSING` mid-poll, or {@link SandboxResumeTimeoutError} on budget
+   * exhaustion. Other errors propagate (the outer retry loop's transient
+   * handling will catch 5xx).
+   */
+  private async pollSandboxRunning(conversationId: string): Promise<ConversationInfo> {
+    if (!this.client) throw new SandboxMissingError(conversationId);
+    const deadline = Date.now() + this.resumePollBudgetMs;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, this.resumePollIntervalMs));
+      const info = await this.client.getConversation(conversationId);
+      if (!info) throw new SandboxMissingError(conversationId);
+      if (info.sandbox_status === 'MISSING') {
+        throw new SandboxMissingError(conversationId);
+      }
+      if (info.sandbox_status === 'RUNNING' && info.session_api_key) {
+        return info;
+      }
+      // STARTING / PAUSED / undefined → keep polling.
+    }
+    throw new SandboxResumeTimeoutError(conversationId);
+  }
+
+  /**
+   * Validate and assign the freshly-read agent-server URL and
+   * `session_api_key` to `session`. Used by both the normal and PAUSED
+   * branches of {@link doRefreshSessionCredentials}.
+   *
+   * Throws {@link SandboxMissingError} if the URL is missing or
+   * unparseable, or if the key is absent — both signal that we cannot
+   * dial the WS layer, which is equivalent to a MISSING sandbox from
+   * the kiosk's POV.
+   */
+  private applyFreshCreds(session: AISession, fresh: ConversationInfo): void {
+    if (!fresh.session_api_key) {
+      throw new SandboxMissingError(session.conversationId);
+    }
+    // Strip any trailing /api/... path to recover the bare agent-server
+    // origin. Using replace() with an anchored regex is more defensive
+    // than split('/api/')[0] for unexpected URL shapes; URL.canParse
+    // rejects a malformed result before we hand it to the WS layer.
+    const freshUrl = fresh.conversation_url?.replace(/\/api\/.*$/, '') || '';
+    if (!freshUrl || !URL.canParse(freshUrl)) {
+      throw new SandboxMissingError(session.conversationId);
+    }
+
+    const previousKey = session.sessionApiKey;
+    const rotated = previousKey !== undefined && previousKey !== fresh.session_api_key;
+    session.sessionApiKey = fresh.session_api_key;
+    session.agentServerUrl = freshUrl;
+
+    if (rotated) {
+      this.keyRotationCount++;
+      console.log(
+        `[AI] session_api_key rotation detected for conversation ${session.conversationId} ` +
+          `(rotation count: ${this.keyRotationCount})`,
+      );
+    }
   }
 
   isAvailable(): boolean {
@@ -2164,6 +2422,27 @@ export class AISessionManager {
         // the reconnect loop is done. The RebindWindowTracker (max 3 in
         // 5 min, #296) caps repeated rebinds for the same conversation.
         await this.rebindSession(session);
+        return;
+      }
+      // PAUSED → resume failures don't benefit from rebind (the sandbox
+      // is wedged on the platform side, not gone). Degrade with a
+      // targeted reason. See #360.
+      if (err instanceof SandboxResumeTimeoutError) {
+        console.error(
+          `[AI] Sandbox resume timed out for conversation ${session.conversationId} ` +
+            `(session ${session.sessionId}) — degrading`,
+        );
+        session.degraded = true;
+        session.degradedReason = 'Sandbox resume timed out — restart needed';
+        return;
+      }
+      if (err instanceof ResumeBudgetExhausted) {
+        console.error(
+          `[AI] Sandbox resume window exhausted for conversation ${session.conversationId} ` +
+            `(${err.attempts} resumes in the last 5min, session ${session.sessionId}) — degrading`,
+        );
+        session.degraded = true;
+        session.degradedReason = 'Could not recover the agent runtime. Try restarting.';
         return;
       }
       const message = err instanceof Error ? err.message : String(err);
