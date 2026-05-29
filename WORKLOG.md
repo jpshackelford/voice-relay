@@ -262,3 +262,24 @@ PR marked ready for review. Review handling is a separate conversation.
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:24 UTC - Merge Worker (#352 → main)
+
+✅ Merged PR #352 — `feat(client): kiosk footer ticker polish (#346)` — into `main` via squash.
+
+| Check | Result |
+|---|---|
+| mergeStateStatus | CLEAN |
+| Blocking labels (on-hold/needs-human/do-not-merge/blocked) | none |
+| Unresolved review threads | 0 |
+| CI (Server / Client / E2E / Build / lint-pr-title) | all SUCCESS |
+| Automated PR review | 🟢 Good taste / LOW risk |
+| Migration / schema files in diff | none (client-only, 13 files) |
+
+- Squash commit: `9362a61e41abe9f739567a88c4fecdd7bb4300e0`
+- Issue #346 auto-closed at 2026-05-29T00:23:59Z via the description's `Fixes #346` link.
+- Production auto-deploy to vr.chorecraft.net will pick up from `main`. No DB migration risk — diff is purely under `client/src/`.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
