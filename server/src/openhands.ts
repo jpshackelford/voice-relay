@@ -47,15 +47,6 @@ interface StartConversationRequest {
   title?: string;
   /** Environment variable secrets to inject into the conversation sandbox */
   secrets?: Record<string, string>;
-  /**
-   * Optional prompt addendum appended to the base system prompt at
-   * conversation start. Used by the fresh-create memory-replay carry-forward
-   * path (#349) so a brand-new conversation can start with prior turns in
-   * context — mirrors the rebind payload field (see {@link
-   * OpenHandsClient.rebindConversation}). Omitted from the POST body when
-   * absent or empty, matching the rebind shape exactly.
-   */
-  system_message_suffix?: string;
 }
 
 interface StartTaskResponse {
@@ -249,18 +240,11 @@ export class OpenHandsClient {
    * @param initialMessage - The initial message to send to the AI
    * @param title - Optional title for the conversation
    * @param secrets - Optional map of environment variable secrets to inject
-   * @param opts - Optional extra fields; currently only `systemMessageSuffix`
-   *   (#349) which mirrors {@link rebindConversation}'s shape and is
-   *   threaded onto the create payload as `system_message_suffix` so the
-   *   new agent starts with prior-conversation context. Empty / undefined
-   *   suffixes are omitted from the POST body (matches the rebind
-   *   behaviour).
    */
   async startConversation(
     initialMessage: string,
     title?: string,
-    secrets?: Record<string, string>,
-    opts: { systemMessageSuffix?: string } = {},
+    secrets?: Record<string, string>
   ): Promise<StartTaskResponse> {
     const payload: StartConversationRequest = {
       initial_message: {
@@ -274,10 +258,6 @@ export class OpenHandsClient {
     }
     if (secrets && Object.keys(secrets).length > 0) {
       payload.secrets = secrets;
-    }
-    const suffix = opts.systemMessageSuffix;
-    if (typeof suffix === 'string' && suffix.length > 0) {
-      payload.system_message_suffix = suffix;
     }
 
     return this.request<StartTaskResponse>('POST', '/app-conversations', payload, 120000);
@@ -1723,15 +1703,6 @@ export class AISessionManager {
        * longer be looked up or its WS handshake materials are missing.
        */
       existingConversationId?: string;
-      /**
-       * Optional prior conversation id used to seed the new conversation's
-       * context (issue #349). Only consulted on the fresh-create branch
-       * (i.e. when `existingConversationId` is absent). Fetches the prior
-       * event log and pipes it through `buildReplaySuffix` as
-       * `system_message_suffix` on `POST /app-conversations`. Best-effort:
-       * any failure is logged and the conversation starts with no suffix.
-       */
-      previousConversationId?: string;
     } = {}
   ): Promise<AISession> {
     // Return existing if available
@@ -1775,28 +1746,12 @@ export class AISessionManager {
       secrets['DISPLAY_API_SECRET'] = options.displayApiSecret;
     }
 
-    // Memory-replay carry-forward (#349). If the caller knows of a prior
-    // upstream conversation (e.g. `attachOrCreateAgentSession` stashed
-    // the dead id before retrying as fresh-create), fetch its event log
-    // and build a `system_message_suffix` so the new agent starts with
-    // prior context. Best-effort: the helper already swallows failures
-    // and returns `''`, in which case we simply omit the suffix and the
-    // conversation starts amnesiac (the behaviour without #349).
-    let systemMessageSuffix: string | undefined;
-    if (options.previousConversationId) {
-      const built = await this.buildReplaySuffixFromConversation(options.previousConversationId);
-      if (built.length > 0) {
-        systemMessageSuffix = built;
-      }
-    }
-
     // Start conversation
     console.log(`[AI] Creating OpenHands conversation for session ${sessionId}...`);
     const startResponse = await client.startConversation(
       systemPrompt,
       `Voice Relay session: ${sessionId}`,
-      Object.keys(secrets).length > 0 ? secrets : undefined,
-      systemMessageSuffix ? { systemMessageSuffix } : undefined,
+      Object.keys(secrets).length > 0 ? secrets : undefined
     );
     console.log(`[AI] Conversation started, task id: ${startResponse.id}`);
 
@@ -2261,26 +2216,16 @@ export class AISessionManager {
   }
 
   /**
-   * Memory-replay prep (#297 / #349). Fetches the platform-side event log
-   * for `conversationId` and turns it into a `system_message_suffix` for
-   * the upcoming rebind POST (#297) or fresh-create POST (#349). Returns
-   * `''` (no suffix) on any error or empty log — replay is strictly
-   * best-effort and never blocks the bind.
+   * Memory-replay prep (#297). Fetches the platform-side event log for
+   * `conversationId` and turns it into a `system_message_suffix` for the
+   * upcoming rebind POST. Returns `''` (no suffix) on any error or empty
+   * log — replay is strictly best-effort and never blocks the rebind.
    *
    * Always feeds the **raw** event log into the condense / fallback
    * builders, never a previously-generated suffix, so successive rebinds
    * don't condense an already-condensed summary (lossy iteration).
-   *
-   * Public because two unrelated call paths consume it:
-   *   - `doRebindSession` for the rebind-after-sandbox-death path.
-   *   - `getOrCreateForSession` for the fresh-create-after-attach-failed
-   *     carry-forward (#349).
-   *
-   * Name-neutral: takes only a conversation id and never references the
-   * caller's purpose, so adding a third consumer (e.g. a hypothetical
-   * `/ai/restart` carry-forward) wouldn't require a rename.
    */
-  async buildReplaySuffixFromConversation(conversationId: string): Promise<string> {
+  private async buildRebindReplaySuffix(conversationId: string): Promise<string> {
     if (!this.client) return '';
     try {
       const page = await this.client.getEventsPage(conversationId, { limit: 100 });
@@ -2339,7 +2284,7 @@ export class AISessionManager {
     // server) survives sandbox death — see
     // `docs/openhands-platform.md` § Death and recovery. On any failure
     // we proceed without a suffix; the rebind itself is still useful.
-    const systemMessageSuffix = await this.buildReplaySuffixFromConversation(session.conversationId);
+    const systemMessageSuffix = await this.buildRebindReplaySuffix(session.conversationId);
 
     let result: RebindResult;
     try {

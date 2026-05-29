@@ -55,11 +55,6 @@ function createMockSessionRepository(sessions: Session[]): SessionRepository {
     listActiveWithAiConversation: vi.fn().mockReturnValue(sessions),
     getDisplaySecret: vi.fn().mockReturnValue(null),
     findById: vi.fn().mockImplementation((id: string) => sessions.find((s) => s.id === id) ?? null),
-    // `updateMetadata` is invoked by `attachOrCreateAgentSession` (#348)
-    // and `persistAiConversationId` (#347) on both the happy-path
-    // attach and the fresh-create branches. The integration tests below
-    // assert on its call shape, so the mock must be a spy.
-    updateMetadata: vi.fn().mockReturnValue(null),
   } as unknown as SessionRepository;
 }
 
@@ -80,28 +75,11 @@ function createMockAgentDriver(config: MockDriverConfig = {}): AgentDriver {
   return {
     isAvailable: vi.fn().mockReturnValue(isAvailable),
     hasSession: vi.fn().mockReturnValue(false),
-    openSession: vi
-      .fn()
-      .mockImplementation(
-        async (
-          sessionId: string,
-          opts: { existingConversationId?: string },
-        ) => {
-          const r = responses[sessionId];
-          if (r && 'throw' in r) throw r.throw;
-          return (
-            r ??
-            readyStatus(
-              sessionId,
-              // Model the production OH adapter's attach contract: when
-              // attaching, the returned status carries the same id we
-              // were asked to attach to. Tests that simulate fresh-create
-              // can override with a per-session response.
-              opts.existingConversationId ?? `conv-default-${sessionId}`,
-            )
-          );
-        },
-      ),
+    openSession: vi.fn().mockImplementation(async (sessionId: string) => {
+      const r = responses[sessionId];
+      if (r && 'throw' in r) throw r.throw;
+      return r ?? readyStatus(sessionId, `conv-default-${sessionId}`);
+    }),
     sendMessage: vi.fn(),
     restartSession: vi.fn(),
     getSessionStatus: vi.fn(),
@@ -150,10 +128,6 @@ describe('rehydrateAgentSessions (#341)', () => {
     const outcomes = await rehydrateAgentSessions(deps);
 
     expect(outcomes).toHaveLength(1);
-    // The outcome carries the LIVE conversation id (from the driver
-    // status). The updated mock models the OH adapter's attach contract
-    // (returns the requested id), so the outcome matches the persisted
-    // id on the happy attach path.
     expect(outcomes[0]).toEqual({
       sessionId: 'session-1',
       workspaceId: 'ws-1',
@@ -338,189 +312,5 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(driver.openSession).toHaveBeenCalled();
     // Should not have queried the workspace key path
     expect(deps.getWorkspaceApiKey).not.toHaveBeenCalled();
-  });
-
-  // ---- #348: fresh-create fallback at boot ----
-
-  test('upstream-ended attach triggers fresh-create fallback, marks rehydrated-fresh, persists new id', async () => {
-    const sessions = [activeSession('session-stale', 'ws-1', 'conv-stale')];
-    // First call (attach with existingConversationId) throws upstream-ended;
-    // second call (fresh-create, no existingConversationId) returns a new
-    // status. We model this by sequencing through openSession's mock.
-    const driver = createMockAgentDriver();
-    const seq: Array<() => Promise<AgentSessionStatus>> = [
-      async () => {
-        throw new (await import('./openhands.js')).UpstreamConversationEndedError('conv-stale');
-      },
-      async () => readyStatus('session-stale', 'conv-fresh-id'),
-    ];
-    (driver.openSession as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-      const fn = seq.shift();
-      if (!fn) throw new Error('openSession called too many times');
-      return fn();
-    });
-    const repo = createMockSessionRepository(sessions);
-    const registry = createRegistry();
-    const deps = {
-      sessionRepository: repo,
-      workspaceRepository: createMockWorkspaceRepository(),
-      agentDriver: driver,
-      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
-      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
-    };
-
-    const outcomes = await rehydrateAgentSessions(deps);
-
-    expect(outcomes).toHaveLength(1);
-    expect(outcomes[0]).toEqual({
-      sessionId: 'session-stale',
-      workspaceId: 'ws-1',
-      conversationId: 'conv-fresh-id',
-      status: 'rehydrated-fresh',
-    });
-    // Two openSession calls: attach + fresh-create.
-    expect(driver.openSession).toHaveBeenCalledTimes(2);
-    // First call had existingConversationId set; second did not. The
-    // fresh-create call carries the dead id forward as
-    // `previousConversationId` so the OH adapter can seed the new
-    // conversation with prior context (#349).
-    const calls = (driver.openSession as ReturnType<typeof vi.fn>).mock.calls;
-    expect(calls[0][1]).toEqual(expect.objectContaining({ existingConversationId: 'conv-stale' }));
-    expect(calls[1][1]).not.toHaveProperty('existingConversationId');
-    expect(calls[1][1]).toEqual(
-      expect.objectContaining({ previousConversationId: 'conv-stale' }),
-    );
-
-    // Metadata writes (helper-driven): stash dead id THEN persist new id.
-    // Both happen BEFORE the broadcast (persist-before-broadcast invariant).
-    expect(repo.updateMetadata).toHaveBeenCalledTimes(2);
-    const metaCalls = (repo.updateMetadata as ReturnType<typeof vi.fn>).mock.calls;
-    expect(metaCalls[0]).toEqual([
-      'session-stale',
-      { aiConversationId: undefined, previousAiConversationId: 'conv-stale' },
-    ]);
-    expect(metaCalls[1]).toEqual([
-      'session-stale',
-      { aiConversationId: 'conv-fresh-id' },
-    ]);
-
-    // Broadcast: state=ready with the NEW conversation id.
-    const stateBroadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls
-      .filter((c) => (c[1] as { type?: string }).type === 'session-state');
-    expect(stateBroadcasts).toHaveLength(1);
-    expect((stateBroadcasts[0][1] as { ai: AgentSessionStatus }).ai.state).toBe('ready');
-    expect((stateBroadcasts[0][1] as { ai: AgentSessionStatus }).ai.conversationId).toBe('conv-fresh-id');
-  });
-
-  test('fresh-create itself fails: outcome is failed, degraded broadcast emitted', async () => {
-    const sessions = [activeSession('session-stale', 'ws-1', 'conv-stale')];
-    const driver = createMockAgentDriver();
-    const seq: Array<() => Promise<AgentSessionStatus>> = [
-      async () => {
-        throw new (await import('./openhands.js')).UpstreamConversationEndedError('conv-stale');
-      },
-      async () => {
-        throw new Error('fresh-create failed: upstream 500');
-      },
-    ];
-    (driver.openSession as ReturnType<typeof vi.fn>).mockImplementation(async () => {
-      const fn = seq.shift();
-      if (!fn) throw new Error('openSession called too many times');
-      return fn();
-    });
-    const repo = createMockSessionRepository(sessions);
-    const registry = createRegistry();
-    const deps = {
-      sessionRepository: repo,
-      workspaceRepository: createMockWorkspaceRepository(),
-      agentDriver: driver,
-      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
-      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
-    };
-
-    const outcomes = await rehydrateAgentSessions(deps);
-
-    expect(outcomes).toHaveLength(1);
-    expect(outcomes[0].status).toBe('failed');
-    expect(outcomes[0].error).toContain('fresh-create failed');
-    // Degraded broadcast emitted for the failure.
-    const degraded = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls
-      .map((c) => c[1] as { type?: string; sessionId?: string; ai?: AgentSessionStatus })
-      .find((m) => m.type === 'session-state' && m.ai?.state === 'degraded');
-    expect(degraded).toBeDefined();
-  });
-
-  test('non-Upstream error does NOT trigger fresh-create (no retry, no metadata mutation)', async () => {
-    const sessions = [activeSession('session-blip', 'ws-1', 'conv-blip')];
-    const generic = new Error('transient REST blip');
-    const driver = createMockAgentDriver({
-      responses: { 'session-blip': { throw: generic } },
-    });
-    const repo = createMockSessionRepository(sessions);
-    const registry = createRegistry();
-    const deps = {
-      sessionRepository: repo,
-      workspaceRepository: createMockWorkspaceRepository(),
-      agentDriver: driver,
-      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
-      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
-    };
-
-    const outcomes = await rehydrateAgentSessions(deps);
-
-    expect(outcomes).toHaveLength(1);
-    expect(outcomes[0].status).toBe('failed');
-    expect(outcomes[0].error).toContain('transient REST blip');
-    // No retry: openSession called exactly once.
-    expect(driver.openSession).toHaveBeenCalledTimes(1);
-    // No metadata mutation: persisted id stays untouched.
-    expect(repo.updateMetadata).not.toHaveBeenCalled();
-    // Degraded broadcast emitted.
-    const degraded = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls
-      .map((c) => c[1] as { type?: string; sessionId?: string; ai?: AgentSessionStatus })
-      .find((m) => m.type === 'session-state' && m.ai?.state === 'degraded');
-    expect(degraded).toBeDefined();
-  });
-
-  test('mixed pass: dead, healthy, transient-fail — fresh-create only triggers for the dead one', async () => {
-    const sessions = [
-      activeSession('session-dead', 'ws-1', 'conv-dead'),
-      activeSession('session-ok', 'ws-1', 'conv-ok'),
-      activeSession('session-blip', 'ws-1', 'conv-blip'),
-    ];
-    const driver = createMockAgentDriver();
-    (driver.openSession as ReturnType<typeof vi.fn>).mockImplementation(
-      async (sessionId: string, opts: { existingConversationId?: string }) => {
-        if (sessionId === 'session-blip') {
-          throw new Error('transient blip');
-        }
-        if (sessionId === 'session-dead') {
-          // First call (attach) throws; second (fresh) succeeds.
-          if (opts.existingConversationId) {
-            throw new (await import('./openhands.js')).UpstreamConversationEndedError(opts.existingConversationId);
-          }
-          return readyStatus(sessionId, 'conv-new-for-dead');
-        }
-        return readyStatus(sessionId, opts.existingConversationId ?? `conv-default-${sessionId}`);
-      },
-    );
-    const repo = createMockSessionRepository(sessions);
-    const registry = createRegistry();
-    const deps = {
-      sessionRepository: repo,
-      workspaceRepository: createMockWorkspaceRepository(),
-      agentDriver: driver,
-      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
-      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
-    };
-
-    const outcomes = await rehydrateAgentSessions(deps);
-
-    const byId = Object.fromEntries(outcomes.map((o) => [o.sessionId, o]));
-    expect(byId['session-dead'].status).toBe('rehydrated-fresh');
-    expect(byId['session-dead'].conversationId).toBe('conv-new-for-dead');
-    expect(byId['session-ok'].status).toBe('rehydrated');
-    expect(byId['session-ok'].conversationId).toBe('conv-ok');
-    expect(byId['session-blip'].status).toBe('failed');
   });
 });

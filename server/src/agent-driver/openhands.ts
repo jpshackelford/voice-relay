@@ -51,7 +51,6 @@ export interface AISessionManagerSurface {
       apiKey?: string;
       displayApiSecret?: string;
       existingConversationId?: string;
-      previousConversationId?: string;
     },
   ): Promise<AISession>;
   sendSessionMessage(sessionId: string, message: string): Promise<void>;
@@ -316,17 +315,7 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
  * subsequent `sendSessionMessage` calls are safe, or upstream rejected and
  * the caller should surface a terminal `error` `AgentEvent`.
  */
-/**
- * Result of `doBindSession` / `lazyBindSession`.
- *
- * The optional `cause` field preserves the original thrown value so that
- * `openSession` can rethrow it verbatim (instead of wrapping in a plain
- * `new Error(msg)`). The platform helper `attachOrCreateAgentSession`
- * (#348) discriminates retry-worthy failures by error class
- * (`UpstreamConversationEndedError`), which only works if the original
- * instance survives the driver boundary.
- */
-type BindResult = { kind: 'ok' } | { kind: 'error'; event: AgentEvent; cause?: unknown };
+type BindResult = { kind: 'ok' } | { kind: 'error'; event: AgentEvent };
 
 export class OpenHandsAgentDriver implements AgentDriver {
   private readonly states = new Map<string, DriverSessionState>();
@@ -422,14 +411,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
       const bind = await this.lazyBindSession(sessionId, state);
       if (bind.kind === 'error') {
         // Surface the error to the caller so the auto-connect path can
-        // broadcast a connection-failed status. Rethrow the original
-        // error instance when available so platform-layer helpers can
-        // discriminate by class (e.g. `UpstreamConversationEndedError`
-        // → fresh-create retry, #348). Falls back to a plain `Error`
-        // built from the bind event for older error shapes.
-        if (bind.cause instanceof Error) {
-          throw bind.cause;
-        }
+        // broadcast a connection-failed status. Same shape as the legacy
+        // `getOrCreateForSession` rejection.
         const msg = bind.event.kind === 'error' ? bind.event.message : 'failed to open agent session';
         throw new Error(msg);
       }
@@ -638,22 +621,12 @@ export class OpenHandsAgentDriver implements AgentDriver {
           // routes this through `attachExistingForSession` and skips the
           // `POST /app-conversations` create step.
           existingConversationId: state.opts.existingConversationId,
-          // Plumb the carry-forward replay hint through (#349). When the
-          // attach path is *not* taken (no `existingConversationId`), the
-          // manager fetches this prior conversation's event log and pipes
-          // it through `buildReplaySuffix` as `system_message_suffix` on
-          // the create POST so the new agent starts with prior context.
-          previousConversationId: state.opts.previousConversationId,
         },
       );
       return { kind: 'ok' };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      // Preserve `cause` so `openSession` can rethrow the original error
-      // instance (e.g. `UpstreamConversationEndedError`) rather than a
-      // plain `new Error(msg)`. The platform fresh-create fallback (#348)
-      // depends on the discriminator surviving the driver boundary.
-      return { kind: 'error', event: { kind: 'error', message, recoverable: false }, cause: err };
+      return { kind: 'error', event: { kind: 'error', message, recoverable: false } };
     } finally {
       state.startingSince = null;
     }
