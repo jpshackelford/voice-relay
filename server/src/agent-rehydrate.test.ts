@@ -380,10 +380,16 @@ describe('rehydrateAgentSessions (#341)', () => {
     });
     // Two openSession calls: attach + fresh-create.
     expect(driver.openSession).toHaveBeenCalledTimes(2);
-    // First call had existingConversationId set; second did not.
+    // First call had existingConversationId set; second did not. The
+    // fresh-create call carries the dead id forward as
+    // `previousConversationId` so the OH adapter can seed the new
+    // conversation with prior context (#349).
     const calls = (driver.openSession as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls[0][1]).toEqual(expect.objectContaining({ existingConversationId: 'conv-stale' }));
     expect(calls[1][1]).not.toHaveProperty('existingConversationId');
+    expect(calls[1][1]).toEqual(
+      expect.objectContaining({ previousConversationId: 'conv-stale' }),
+    );
 
     // Metadata writes (helper-driven): stash dead id THEN persist new id.
     // Both happen BEFORE the broadcast (persist-before-broadcast invariant).
