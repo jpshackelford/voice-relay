@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "0518853",
-        "issue": 349,
-        "started": "2026-05-29T01:51:00.727833+00:00"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T01:51:00.727833+00:00",
+  "last_updated": "2026-05-29T02:20:28.855629+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -269,6 +263,24 @@
       "finished": "2026-05-29T01:51:00.727833+00:00",
       "status": "success",
       "outcome": "Merged PR #355 (3046c9d), closed #348"
+    },
+    {
+      "conv_id": "0518853",
+      "type": "implementation",
+      "issue": 349,
+      "started": "2026-05-29T01:51:00.727833+00:00",
+      "finished": "2026-05-29T02:20:28.855629+00:00",
+      "status": "success",
+      "outcome": "Implementation of #349 \u2192 PR #356 opened (8 files, server-only). Merge worker ran out-of-band and merged at 02:13:51Z (squash 7501100); #349 closed."
+    },
+    {
+      "conv_id": "unknown",
+      "type": "merge",
+      "pr": 356,
+      "started": "2026-05-29T02:10:00+00:00",
+      "finished": "2026-05-29T02:14:00+00:00",
+      "status": "success",
+      "outcome": "Merged PR #356 (squash 7501100); #349 auto-closed. Worklog entry by merge worker on main at commit a636eb1; conv_id not captured in state."
     }
   ],
   "quiet_ticks": 0

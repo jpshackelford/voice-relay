@@ -756,6 +756,7 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
 ### 2026-05-29 02:25 UTC - Production triage (human-directed) — rollback dispatch
 
 🚨 **Production regression confirmed; rollback directive issued to the orchestrator.**
@@ -790,5 +791,56 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 **Why this entry lives on `main` directly:** per AGENTS.md, worklog changes go to `main` with the `docs(worklog):` prefix; this entry was authored by an OpenHands agent under direct human instruction during a production triage, not by the orchestrator automation. The orchestrator's own next tick should reconcile its `.workflow-state.json` against this entry (no active workers) and dispatch per the table above.
 
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford as part of a human-directed production triage._
+
+---
+
+### 2026-05-29 02:28 UTC - Orchestrator (manual `/orchestrate`, post human-triage entry)
+
+🚧 **Reconciliation tick — state-file cleanup + #351 label change. Carries out the bookkeeping the 02:25Z human-directed triage entry directed; no worker spawned this sandbox lacks `OH_API_KEY`.**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| (none) | — | — | — |
+
+**Reconciliation of stale `0518853` (impl / #349):**
+- `0518853` was still in `slots.implementation[]` from the 01:51Z spawn tick, but PR #356 (its output) was already squash-merged at 02:13:51Z (`7501100`) and #349 auto-closed. Out-of-band merge worker also wrote a WORKLOG entry at `a636eb1` (`docs(worklog): merge worker entry for PR #356 / #349 squash-merge`) without ever updating `.workflow-state.json`.
+- Moved `0518853` → `completed[]` (`status: success`, outcome notes the out-of-band merge).
+- Appended an inferred `merge` entry for PR #356 with `conv_id: unknown` so the audit trail isn't missing the merge step. The actual merge-worker conv id wasn't captured in state; recovering it after the fact requires `ohtv refs` (no API key here).
+
+**Current State (post-reconciliation):**
+- **Open PRs:** 0.
+- **Open ready issues by priority:**
+  - **#357** — `priority:critical`, `bug`, `ready`, `scope:server-only`, `server`. _New, filed 02:14:17Z by @jpshackelford via an AI agent._ Production regression: PR #355 (`3046c9d`) caches first-call `opts` in `OpenHandsAgentDriver` state and ignores subsequent opts, so `attachOrCreateAgentSession`'s retry re-attaches to the same dead upstream conversation. Every kiosk that hits `UpstreamConversationEndedError` ends up permanently stuck in `state=degraded` until the Node process restarts. Issue body is a fully-specified rollback plan (revert `3046c9d`, delete the helper + test, restore `agent-rehydrate.ts` / `auto-connect.ts` to direct `openSession` calls, drop `previousAiConversationId` from `sessions/types.ts`). PR #353 (persist `aiConversationId`) and PR #354 (refresh-401 rebind) stay.
+  - **#351** — was `priority:low`, `ready`. _Now re-labeled `on-hold`_ this tick. It consumes the `rehydrated-fresh` outcome that comes out of the broken helper; bringing it back online without first landing the forward-fix from #358 would re-implement the same flawed pattern.
+- **Open `on-hold` (no action):** #210, #239, #299, #300, #301, #302 (S3 freeze cohort), and now #351 + #358.
+- **Expansion queue:** 0 eligible (all unready issues carry `on-hold`).
+
+**Note on rollback scope vs. #356 on main:**
+
+The acceptance criteria in #357 target the PR #355 revert directly, but **#356 (`7501100`, merged 41 minutes after #355) builds on the same helper** — it threads `previousConversationId` through `OpenSessionOpts` → `OpenHandsAgentDriver.doBindSession` → `AISessionManager.getOrCreateForSession`. A clean `git revert 3046c9d` will conflict. The impl worker for #357 will need to:
+
+- Either revert `7501100` first, then `3046c9d` (preserves history, two commits).
+- Or open a single hand-crafted "revert PRs #355 + #356" commit that restores `agent-rehydrate.ts` / `auto-connect.ts` to pre-#355 state, deletes `agent-attach-or-create.ts(.test).ts`, and rolls back the `OpenSessionOpts.previousConversationId` plumbing introduced by #356.
+
+The second option is cleaner for the production deploy but harder to review. Worth flagging in the worker's prompt so they don't get stuck on conflict resolution mid-revert.
+
+**Action Taken:**
+
+1. 🔁 **Reconciled state** — `0518853` (impl/#349) → `completed[]`; added inferred merge entry for PR #356. Slot view: expansion 0/4, implementation 0/1, review 0/2 — all open.
+2. 🚧 **Re-labeled #351 `on-hold`** with an explanatory comment ([#351#issuecomment-4569916808](https://github.com/jpshackelford/voice-relay/issues/351#issuecomment-4569916808)) pointing at #357 (rollback) and #358 (forward-fix). #358 was already `on-hold` from the human's own bookkeeping — no action needed there.
+3. 🛑 **Did NOT spawn an implementation worker for #357.** This sandbox is a manual `/orchestrate` invocation (no `OH_API_KEY` exported), so the OH conversations API would 401. The next cron-driven tick of automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` — assuming it has the secret — will pick this up as the obvious next action: implementation slot is open and #357 is the only `ready` non-`on-hold` issue, and it's `priority:critical`.
+
+**Recommendation for the next cron tick (or for @jpshackelford running this manually with the key):**
+
+- Spawn impl worker on #357 with title `[Implementation] Issue #357 - rollback PR #355 (production regression)` and a prompt that:
+  - Explicitly calls out the #356 conflict and asks for the two-step revert (`git revert 7501100`, then `git revert 3046c9d`, resolving any `agent-rehydrate.ts` / `auto-connect.ts` conflicts in favor of restoring direct `agentDriver.openSession` calls).
+  - Asserts all of #357's acceptance-criteria checkboxes before opening the PR.
+  - Uses PR title scope `fix(server): ...` (allowed) — recommend `fix(server): revert PRs #355 + #356, restore direct openSession call pattern (#357)` to make the two-PR scope visible at a glance.
+  - Includes `Fixes #357` in the body so the auto-close + worklog hook fires.
+
+`quiet_ticks` reset to 0 (productive tick — state reconciled, #351 re-labeled, critical regression triaged).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
