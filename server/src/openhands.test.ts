@@ -551,6 +551,341 @@ describe('AISessionManager.attachExistingForSession (#341)', () => {
   });
 });
 
+/**
+ * Tests for the PAUSED-sandbox recovery branch added to the attach path
+ * by issue #370. Mirrors the
+ * `refreshSessionCredentials PAUSED handling (#360)` suite below — the
+ * two code paths share the same `resumeSandbox` + `pollSandboxRunning`
+ * helpers and must stay in lockstep.
+ *
+ * The attach path is the entry point for two production scenarios:
+ *   1. Startup rehydration (`agent-rehydrate.ts`) — server restart with
+ *      a session whose upstream sandbox is currently PAUSED.
+ *   2. Device-register auto-attach (`auto-connect.ts`) — kiosk reloaded
+ *      after the sandbox-pause window.
+ *
+ * Both upstream callers catch generically and surface `degraded`, so
+ * these tests assert behaviour at the manager seam rather than the
+ * driver-level surface.
+ */
+describe('AISessionManager.attachExistingForSession PAUSED handling (#370)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+    resumeSandbox: ReturnType<typeof vi.fn>;
+  }
+
+  /**
+   * Build a fake client where getConversation returns each queued response
+   * in order. `Error`-typed entries are thrown instead of resolved. Each
+   * test queues exactly the sequence of GET results it expects.
+   */
+  function makeClient(
+    getConvResponses: unknown[],
+    resumeImpl: () => Promise<void> = async () => {},
+  ): FakeClient {
+    const calls = getConvResponses.slice();
+    return {
+      getConversation: vi.fn(async () => {
+        if (calls.length === 0) {
+          throw new Error('FakeClient: no more queued getConversation responses');
+        }
+        const next = calls.shift();
+        if (next instanceof Error) throw next;
+        return next;
+      }),
+      resumeSandbox: vi.fn(resumeImpl),
+    };
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+    // Tight polling so the suite stays fast. Production defaults are 30 s /
+    // 2 s; the budget/interval ratio still exercises one or two polls.
+    manager.setResumePollOptionsForTesting({ budgetMs: 200, intervalMs: 5 });
+  });
+
+  afterEach(async () => {
+    await manager.shutdown();
+  });
+
+  test('PAUSED → resume → RUNNING happy path: attach succeeds with fresh creds', async () => {
+    // First GET returns PAUSED with sandbox_id; resume succeeds; second
+    // GET returns RUNNING with a fresh key + URL. Attach should construct
+    // an AISession with the polled values, and the resume counter should
+    // bump.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-123',
+        session_api_key: null,
+        conversation_url: null,
+      },
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        sandbox_id: 'sbx-123',
+        session_api_key: 'KEY-X',
+        conversation_url: 'https://agent.example.com/api/v1/conv/conv-paused',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    expect(manager.getSandboxResumeCount()).toBe(0);
+
+    const session = await manager.attachExistingForSession(
+      'sess-paused',
+      'ws-1',
+      'conv-paused',
+      () => {},
+    );
+
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(client.resumeSandbox).toHaveBeenCalledWith('sbx-123');
+    expect(client.getConversation).toHaveBeenCalledTimes(2);
+    expect(session.conversationId).toBe('conv-paused');
+    expect(session.sessionApiKey).toBe('KEY-X');
+    expect(session.agentServerUrl).toBe('https://agent.example.com');
+    expect(manager.getSandboxResumeCount()).toBe(1);
+    expect(manager.hasSessionAI('sess-paused')).toBe(true);
+
+    await manager.endSessionAI('sess-paused');
+  });
+
+  test('PAUSED → resume → poll skips STARTING and resolves on RUNNING', async () => {
+    // Validates the polling state machine: STARTING means "wait, not
+    // ready" — the attach must wait for RUNNING.
+    const client = makeClient([
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-99',
+      },
+      { id: 'conv-paused', status: 'READY', sandbox_status: 'STARTING' },
+      {
+        id: 'conv-paused',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'KEY-Y',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    const session = await manager.attachExistingForSession(
+      'sess-starting',
+      'ws-1',
+      'conv-paused',
+      () => {},
+    );
+
+    expect(client.getConversation).toHaveBeenCalledTimes(3);
+    expect(session.sessionApiKey).toBe('KEY-Y');
+
+    await manager.endSessionAI('sess-starting');
+  });
+
+  test('PAUSED with no sandbox_id → UpstreamConversationEndedError (no resume attempted)', async () => {
+    // Platform contract violation: PAUSED must come with a sandbox_id we
+    // can resume. Without one we surface as ended so the caller drives
+    // `degraded`.
+    const client = makeClient([
+      {
+        id: 'conv-broken',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: undefined,
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-broken', 'ws-1', 'conv-broken', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    expect(manager.hasSessionAI('sess-broken')).toBe(false);
+  });
+
+  test('resume HTTP 404 → UpstreamConversationEndedError (sandbox gone)', async () => {
+    // 404 from POST /sandboxes/{id}/resume means the sandbox is genuinely
+    // missing. The attach path has no rebind fallback (it's keyed on a
+    // specific conversation id), so surface as ended.
+    const client = makeClient(
+      [
+        {
+          id: 'conv-gone',
+          status: 'READY',
+          sandbox_status: 'PAUSED',
+          sandbox_id: 'sbx-gone',
+        },
+      ],
+      async () => {
+        throw new OpenHandsApiError(404, 'Sandbox not found', null);
+      },
+    );
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-gone', 'ws-1', 'conv-gone', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(manager.getSandboxResumeCount()).toBe(0);
+    expect(manager.hasSessionAI('sess-gone')).toBe(false);
+  });
+
+  test('PAUSED → resume → MISSING after resume → UpstreamConversationEndedError', async () => {
+    // Race: the sandbox vanished between resume and the next poll. We
+    // surface as ended so the caller drives `degraded` (acceptance
+    // criterion: rehydration against a MISSING sandbox still throws
+    // UpstreamConversationEndedError).
+    const client = makeClient([
+      {
+        id: 'conv-vanish',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-x',
+      },
+      { id: 'conv-vanish', status: 'READY', sandbox_status: 'MISSING' },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-vanish', 'ws-1', 'conv-vanish', () => {}),
+    ).rejects.toBeInstanceOf(UpstreamConversationEndedError);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(manager.hasSessionAI('sess-vanish')).toBe(false);
+  });
+
+  test('PAUSED → resume budget exhausted → SandboxResumeBudgetExhausted', async () => {
+    // Pre-seed the resume tracker with three successes — the 4th attempt
+    // must short-circuit without calling resume. The driver layer
+    // catches generically and surfaces `degraded`.
+    const tracker = new RebindWindowTracker();
+    tracker.recordSuccess('conv-wedged');
+    tracker.recordSuccess('conv-wedged');
+    tracker.recordSuccess('conv-wedged');
+    manager.setResumeTrackerForTesting(tracker);
+
+    const client = makeClient([
+      {
+        id: 'conv-wedged',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-wedged',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-wedged', 'ws-1', 'conv-wedged', () => {}),
+    ).rejects.toBeInstanceOf(SandboxResumeBudgetExhausted);
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    expect(manager.hasSessionAI('sess-wedged')).toBe(false);
+  });
+
+  test('PAUSED → resume → poll budget exhausted → SandboxResumeTimeoutError', async () => {
+    // Stay in STARTING past the polling budget. Surface the timeout to
+    // operators (distinct from MISSING / ended so prod logs can
+    // distinguish a wedged platform); the driver still degrades cleanly.
+    manager.setResumePollOptionsForTesting({ budgetMs: 10, intervalMs: 5 });
+    const responses: unknown[] = [
+      {
+        id: 'conv-slow',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-slow',
+      },
+    ];
+    // Queue many STARTING responses; the loop will exhaust the budget
+    // before any RUNNING reply.
+    for (let i = 0; i < 50; i++) {
+      responses.push({ id: 'conv-slow', status: 'READY', sandbox_status: 'STARTING' });
+    }
+    const client = makeClient(responses);
+    manager.setClientForTesting(client as never);
+
+    await expect(
+      manager.attachExistingForSession('sess-slow', 'ws-1', 'conv-slow', () => {}),
+    ).rejects.toBeInstanceOf(SandboxResumeTimeoutError);
+    expect(client.resumeSandbox).toHaveBeenCalledTimes(1);
+    expect(manager.hasSessionAI('sess-slow')).toBe(false);
+  });
+
+  test('RUNNING (no PAUSED) bypasses resume — existing happy path unaffected', async () => {
+    // Regression guard: a conversation that's already RUNNING must not
+    // trigger resume at all. The existing happy-path attach test at line
+    // 439 covers the non-PAUSED case; this test additionally asserts the
+    // resume mock was never called.
+    const client = makeClient([
+      {
+        id: 'conv-fine',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'KEY-A',
+        conversation_url: 'https://agent.example.com/api/v1/conv/conv-fine',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    const session = await manager.attachExistingForSession(
+      'sess-fine',
+      'ws-1',
+      'conv-fine',
+      () => {},
+    );
+
+    expect(client.resumeSandbox).not.toHaveBeenCalled();
+    expect(session.sessionApiKey).toBe('KEY-A');
+    expect(manager.getSandboxResumeCount()).toBe(0);
+
+    await manager.endSessionAI('sess-fine');
+  });
+
+  test('log line emitted on successful resume from attach', async () => {
+    // The `(attach)` marker in the log lets operators distinguish which
+    // code path resumed the sandbox in prod journals.
+    const client = makeClient([
+      {
+        id: 'conv-log',
+        status: 'READY',
+        sandbox_status: 'PAUSED',
+        sandbox_id: 'sbx-log',
+      },
+      {
+        id: 'conv-log',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'KEY-L',
+        conversation_url: 'https://agent.example.com/api/v1/',
+      },
+    ]);
+    manager.setClientForTesting(client as never);
+
+    const calls: unknown[][] = [];
+    const originalLog = console.log;
+    console.log = (...args: unknown[]) => { calls.push(args); };
+    try {
+      await manager.attachExistingForSession('sess-log', 'ws-1', 'conv-log', () => {});
+    } finally {
+      console.log = originalLog;
+    }
+    const resumeLogged = calls.some(
+      ([first]) =>
+        typeof first === 'string' &&
+        first.includes('sandbox resumed for conversation') &&
+        first.includes('(attach)'),
+    );
+    expect(resumeLogged).toBe(true);
+
+    await manager.endSessionAI('sess-log');
+  });
+});
+
 describe('AISession interface', () => {
   test('has required thinking state fields', () => {
     // Type-level test to verify interface shape
