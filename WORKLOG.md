@@ -1089,3 +1089,38 @@ The on-hold backlog is gated on **manual verification of the production rollback
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 12:17 UTC - Orchestrator (manual `/orchestrate`)
+
+🚀 **Spawned: 4 Expansion Workers (parallel)**
+
+User filed 5 fresh server-side issues (#360–#364) at 12:07Z documenting a production bug cluster — the post-rollback (PR #359) recurrence + newly-discovered root causes. Automation had auto-disabled at 03:21Z; user re-enabled it and manually invoked `/orchestrate`. Plenty of productive work, so `quiet_ticks` reset 2 → 0.
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| [`f59f459`](https://app.all-hands.dev/conversations/f59f4590edad4287a5113e706bad98a9) | expansion | Issue #360 — sandbox PAUSED state not handled (priority:critical) | **NEW** |
+| [`49f858d`](https://app.all-hands.dev/conversations/49f858dd0eab4d419c347de548edc7bd) | expansion | Issue #361 — rebindConversation parses wrong response shape (priority:high) | **NEW** |
+| [`1a415b1`](https://app.all-hands.dev/conversations/1a415b196c5942c4b4af78621a5c9811) | expansion | Issue #362 — openSession silently discards opts on subsequent calls (priority:high) | **NEW** |
+| [`2996e5b`](https://app.all-hands.dev/conversations/2996e5b9252b4a299afb18683ec8a77c) | expansion | Issue #363 — persist AISession state in DB (priority:medium) | **NEW** |
+
+**Current State:**
+
+- Open PRs: 0
+- Issues needing expansion: #360, #361, #362, #363 (all dispatched above), **#364** (priority:low, deferred — only 4 expansion slots and this is the lowest-priority of the 5 new issues; will be picked up next tick)
+- Ready issues: #351 only (carries `on-hold`, skip)
+- Implementation slot: 0/1 used (no `ready` issues to act on — the entire ready queue is gated on these expansions completing)
+- Review slots: 0/2 used (no open PRs)
+
+**Why all 4 expansion slots at once:**
+
+The 5 new issues are tightly related — they all describe the same production failure mode (sandboxes pausing, kiosks degrading, rebind broken) from different angles. The reporter (@jpshackelford) has already done extensive root-cause analysis on each (#360 alone is ~5 KB of in-depth platform-API forensics). Running expansions in parallel gets the whole cluster ready for implementation simultaneously, instead of serializing 4×~15min ≈ 1h of wall time. #362 in particular is flagged as **"the latent #357 root cause"** — i.e. the underlying defect behind the rollback we shipped 9 hours ago — so getting it implementation-ready quickly matters for production stability.
+
+**Notes for downstream workers:**
+
+- Each expansion worker has been told to **read the referenced code, not just trust the issue text** — these are unusually well-analyzed issues but the analyses should still be validated against the actual `src/` files referenced.
+- After expansion, issues #360–#363 should arrive at the implementation queue with `ready` labels. The implementation worker that picks #360 first (it's `priority:critical`) should sequence carefully — #361/#362 fix bugs that #360's fix may interact with on the rebind path.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
