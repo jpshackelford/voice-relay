@@ -1141,3 +1141,20 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 12:25 UTC - Expansion Worker (#361)
+
+✅ **Expanded Issue #361** — _bug(server): OpenHandsClient.rebindConversation parses the wrong response shape — rebind is effectively always broken_
+
+- Issue: [#361](https://github.com/jpshackelford/voice-relay/issues/361)
+- Type: Bug
+- Status: Ready for implementation (`ready` label applied)
+- Validation: Read `server/src/openhands.ts:244–350` and `server/src/agent-driver/rebind.ts:180–301`. Confirmed @jpshackelford's analysis end-to-end — `OpenHandsClient.rebindConversation` (L334) types the POST `/app-conversations` response as `ConversationInfo` but the platform returns `StartTaskResponse`. `normalizeRebindResponse` always throws `OpenHandsApiError(0, "missing session_api_key")` which is `transient=true`, the outer loop re-POSTs up to 5x creating orphan start-tasks, eventually a non-transient 4xx surfaces as `RebindForbidden` → the exact `"Not authorized to recover the agent runtime — restart needed"` prod log line.
+- Test gap: `rebind.test.ts:259 'malformed response (no session_api_key) is transient → retries'` documents the buggy behavior as if it were correct. The fixture `okResponse()` is a fake synchronous shape, not the real `AppConversationStartTask`. No test exercises the actual `OpenHandsClient.rebindConversation` HTTP boundary.
+- Approach: Endorsed Option B (make rebind follow the async start-task → poll → get pattern that `startConversation` already uses at L1751–1788). Option A (delete the path) is bigger surface and #358 may still need it. Plus a recommendation to bump `REBIND_BUDGET_MS` from 30s → ≥120s since the legitimate rebind now includes a 10–60s sandbox boot inside one attempt.
+- Production safety: no DB/schema changes. Rebind happy-path now takes 30–90s vs. <2s fail — net user-visible improvement (kiosks actually recover). UI's `session.rebinding` spinner from #294 covers the longer reconnecting window. Existing rebind-window guard (3 in 5min) still caps cascade risk.
+- Sequencing: per issue body, land after #360 (PAUSED → resume covers 95% of prod failures). #361 unblocks the ENDED/MISSING tail and #358 if it ends up calling `rebindConversation`. Independent of #362.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
