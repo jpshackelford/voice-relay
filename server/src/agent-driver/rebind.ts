@@ -37,11 +37,25 @@ import {
 
 /**
  * Total time budget for all HTTP rebind attempts (including initial attempt
- * and all backoffs). Chosen so the user sees the kiosk's "reconnecting"
- * indicator for at most ~30 s before we transition to `degraded` and
- * surface the "restart agent" prompt from #294.
+ * and all backoffs).
+ *
+ * Sized for the realistic async-rebind primitive (#361): each call to
+ * `client.rebindConversation` now legitimately takes 10–60 s because the
+ * platform's `POST /app-conversations` returns a start-task that we
+ * poll-until-ready before re-fetching the conversation. Pre-#361 this
+ * budget was 30 s on the assumption that the POST was synchronous; that
+ * assumption was wrong and a single slow-but-successful sandbox boot
+ * would blow past the budget mid-attempt.
+ *
+ * The user-facing trade-off: while rebind is in flight the session shows
+ * `rebinding=true` (kiosk renders a spinner per #294). Bumping the budget
+ * to 3 minutes means the worst case "still trying to recover" window
+ * stretches from 30 s → 3 min, but the alternative is a permanent
+ * `degraded` state from a recoverable failure. The per-conversation
+ * 3-in-5-min window cap in {@link RebindWindowTracker} still caps cascade
+ * risk.
  */
-export const REBIND_BUDGET_MS = 30_000;
+export const REBIND_BUDGET_MS = 180_000;
 
 /**
  * Backoff sequence (in ms) between successive HTTP attempts on transient
