@@ -223,3 +223,38 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 **Slot Utilization:** expansion 0/4, implementation 1/1, review 0/2.
 
 ---
+
+### 2026-05-29 12:33 UTC - Implementation Worker (#360 PAUSED sandbox handling)
+
+✅ **PR #365 opened (ready for review): fix(server): handle PAUSED sandbox via resume primitive (#360)**
+
+Implements the PAUSED branch in `AISessionManager.doRefreshSessionCredentials`
+that was missing — the 100%-failure-after-idle bug @jpshackelford filed as
+`priority:critical`.
+
+**Changes:**
+
+| File | Δ |
+|---|---|
+| `server/src/openhands.ts` | + `resumeSandbox()` client method; + `SandboxResumeTimeoutError` / `SandboxResumeBudgetExhausted`; + PAUSED branch with `pollSandboxRunning` helper + `applyFreshCreds` extraction; + `sandboxResumeCount` metric; reconnect path catches resume errors → degrade cleanly |
+| `server/src/openhands.test.ts` | + 14 new tests under `…PAUSED handling (#360)` covering happy path, STARTING poll loop, no-sandbox-id, resume 404, 5xx transient retry, poll timeout, MISSING during poll, budget exhausted, concurrent single-flighting, null-client, log line, RUNNING dormancy, error metadata |
+| `docs/openhands-platform.md` | + § "Resume on a paused conversation (preferred over rebind when applicable)" |
+
+**CI:** All checks green — Server Tests (1223/1223 pass), Client Tests,
+Build Client, E2E Tests, enable-orchestrator, lint-pr-title.
+`pr-review` was skipped while PR was draft; firing now post-ready-flip.
+
+**Coverage:** `server/src/openhands.ts` — 94.07% lines / 87.43% branches
+(well above the 80% target for new code).
+
+**Acceptance criteria:** All code-side criteria met (PAUSED auto-recovery,
+agent memory preserved, conversation_id unchanged, no DB changes, test
+matrix covered). Manual `vr.chorecraft.net` smoke is the last item —
+post-deploy task for @jpshackelford.
+
+**Related issues NOT auto-closed:** #361 (rebind response-shape) and
+#362 (openSession) touch the same `reconnectWithRefresh` / `rebindSession`
+code paths. They remain valid as the fallback path's failure modes and
+are tracked separately as `priority:high`.
+
+---
