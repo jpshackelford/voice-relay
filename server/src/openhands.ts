@@ -159,6 +159,25 @@ export class UpstreamConversationEndedError extends Error {
   }
 }
 
+/**
+ * Raised when {@link AISessionManager.refreshSessionCredentials} observes
+ * a `401 {error: "NoCredentialsError"}` response from the upstream
+ * conversation lookup. The platform has rotated or forgotten the
+ * `session_api_key` we hold — functionally equivalent to a MISSING
+ * sandbox from the kiosk's point of view. The reconnect path treats this
+ * as a recoverable signal and routes through {@link rebindSession}
+ * (same as {@link SandboxMissingError}). The existing rebind window
+ * guard (max 3 in 5 min, #296) caps the blast radius. See #350.
+ */
+export class UpstreamCredentialsLostError extends Error {
+  readonly conversationId: string;
+  constructor(conversationId: string) {
+    super(`Upstream credentials lost for conversation ${conversationId}`);
+    this.name = 'UpstreamCredentialsLostError';
+    this.conversationId = conversationId;
+  }
+}
+
 export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
@@ -1585,6 +1604,19 @@ export class AISessionManager {
         return;
       } catch (err) {
         if (err instanceof SandboxMissingError) throw err;
+        // 401 NoCredentialsError → upstream has rotated/forgotten our
+        // session_api_key. Surface a distinct error class so the reconnect
+        // path can route this through rebindSession (same as MISSING). The
+        // discriminator is strict (status + body substring) so generic 401s
+        // (InvalidApiKeyError, plain Unauthorized) still fall through to
+        // the degrade branch. See #350.
+        if (
+          err instanceof OpenHandsApiError &&
+          err.status === 401 &&
+          err.message.includes('NoCredentialsError')
+        ) {
+          throw new UpstreamCredentialsLostError(session.conversationId);
+        }
         const transient = err instanceof OpenHandsApiError && err.transient;
         if (!transient || attempt === maxRetries) {
           throw err;
@@ -2108,7 +2140,10 @@ export class AISessionManager {
    * dialled with a stale `session_api_key`, #291) and then re-opens the WS.
    *
    * On {@link SandboxMissingError} the session is rebound onto a fresh
-   * sandbox via {@link rebindSession} (#296). If rebind succeeds the
+   * sandbox via {@link rebindSession} (#296). The same recovery path is
+   * taken on {@link UpstreamCredentialsLostError} (refresh returned
+   * `401 NoCredentialsError`), which is functionally equivalent to a
+   * MISSING sandbox from the kiosk's POV (#350). If rebind succeeds the
    * reconnect loop continues against the new sandbox; if it fails (budget
    * exhausted, conversation gone, forbidden) the session is marked
    * `degraded`. On any other refresh error we also degrade, so a
@@ -2119,14 +2154,15 @@ export class AISessionManager {
     try {
       await this.refreshSessionCredentials(session);
     } catch (err) {
-      if (err instanceof SandboxMissingError) {
+      if (err instanceof SandboxMissingError || err instanceof UpstreamCredentialsLostError) {
         console.warn(
-          `[AI] Sandbox MISSING for conversation ${session.conversationId} — ` +
-            `attempting rebind (session ${session.sessionId})`,
+          `[AI] Refresh recoverable error for conversation ${session.conversationId} ` +
+            `(${err.name}) — attempting rebind (session ${session.sessionId})`,
         );
         // Attempt the rebind in-place. `rebindSession` re-opens the WS on
         // success or marks the session degraded on failure — either way
-        // the reconnect loop is done.
+        // the reconnect loop is done. The RebindWindowTracker (max 3 in
+        // 5 min, #296) caps repeated rebinds for the same conversation.
         await this.rebindSession(session);
         return;
       }

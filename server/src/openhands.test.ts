@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, UpstreamConversationEndedError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, UpstreamConversationEndedError, UpstreamCredentialsLostError, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback } from './openhands.js';
 
 describe('getServerUrl', () => {
   test('returns BASE_URL when set', () => {
@@ -713,6 +713,42 @@ describe('AISessionManager.refreshSessionCredentials (#291)', () => {
     const session = makeSession();
 
     await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(SandboxMissingError);
+  });
+
+  test('refreshSessionCredentials: 401 NoCredentialsError → UpstreamCredentialsLostError (#350)', async () => {
+    // The upstream conversation lookup returning a 401 with body
+    // {"error":"NoCredentialsError"} means the platform has rotated or
+    // forgotten the session_api_key we hold. Surface it as a distinct
+    // error class so reconnectWithRefresh can route through rebindSession.
+    const client = makeClient([
+      new OpenHandsApiError(401, 'OpenHands API error 401: {"error":"NoCredentialsError"}', null),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      UpstreamCredentialsLostError,
+    );
+    // 401 is not transient, so it must not consume retry budget.
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
+    // Cached key/URL must not be mutated on the failure path.
+    expect(session.sessionApiKey).toBe('K1');
+  });
+
+  test('refreshSessionCredentials: other 401 bodies still propagate as OpenHandsApiError (#350)', async () => {
+    // The discriminator is strict — generic 401 (InvalidApiKeyError, plain
+    // Unauthorized, …) must NOT be promoted into UpstreamCredentialsLostError,
+    // otherwise a misconfigured-key 401 would trigger a wasted rebind.
+    const client = makeClient([
+      new OpenHandsApiError(401, 'OpenHands API error 401: {"error":"InvalidApiKeyError"}', null),
+    ]);
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+
+    await expect(manager.refreshSessionCredentials(session)).rejects.toBeInstanceOf(
+      OpenHandsApiError,
+    );
+    expect(client.getConversation).toHaveBeenCalledTimes(1);
   });
 
   test('T-3.2.6: repeated MISSING does not retry indefinitely', async () => {
@@ -2661,6 +2697,67 @@ describe('AISessionManager.rebindSession (#296)', () => {
     expect(session.degraded).toBe(true);
     expect(session.degradedReason).toMatch(/reconnect failed/i);
     // rebind path NOT taken — only the refresh's own retries ran.
+    expect(client.rebindConversation).not.toHaveBeenCalled();
+  });
+
+  test('reconnectWithRefresh: 401 NoCredentialsError triggers exactly one rebind (#350)', async () => {
+    // Refresh throws a 401 with NoCredentialsError body — the upstream
+    // platform has rotated/forgotten our session_api_key. Functionally
+    // equivalent to MISSING; the manager must route through rebindSession
+    // and recover (not degrade).
+    const refreshClient = {
+      getConversation: vi.fn(async () => {
+        throw new OpenHandsApiError(
+          401,
+          'OpenHands API error 401: {"error":"NoCredentialsError"}',
+          null,
+        );
+      }),
+      rebindConversation: vi.fn(async () => ({
+        id: 'conv-rb-1',
+        status: 'READY',
+        session_api_key: 'KAFTER',
+        conversation_url: 'https://after.example.com/api/v1',
+      })),
+    };
+    manager.setClientForTesting(refreshClient as never);
+    const session = makeSession();
+    attachSession(session);
+    const connectSpy = stubConnectWs();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (manager as any).reconnectWithRefresh(session);
+
+    expect(refreshClient.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(session.degraded).toBe(false);
+    expect(session.sessionApiKey).toBe('KAFTER');
+    expect(connectSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('reconnectWithRefresh: 401 non-NoCredentials still degrades (no rebind) (#350)', async () => {
+    // A 401 with a non-NoCredentialsError body (e.g. InvalidApiKeyError)
+    // means our auth config is broken, not that the upstream sandbox lost
+    // our key. Rebinding wouldn't help and would waste budget. The
+    // discriminator must keep this on the degrade path.
+    const client = {
+      getConversation: vi.fn(async () => {
+        throw new OpenHandsApiError(
+          401,
+          'OpenHands API error 401: {"error":"InvalidApiKeyError"}',
+          null,
+        );
+      }),
+      rebindConversation: vi.fn(),
+    };
+    manager.setClientForTesting(client as never);
+    const session = makeSession();
+    attachSession(session);
+    stubConnectWs();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (manager as any).reconnectWithRefresh(session);
+
+    expect(session.degraded).toBe(true);
     expect(client.rebindConversation).not.toHaveBeenCalled();
   });
 
