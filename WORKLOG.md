@@ -306,3 +306,28 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:29 UTC - Implementation worker (issue #347)
+
+🚀 **Opened PR [#353](https://github.com/jpshackelford/voice-relay/pull/353)** — `fix(server): persist aiConversationId after /ai/restart succeeds`
+
+- Issue: [#347](https://github.com/jpshackelford/voice-relay/issues/347) (bug, priority:high, scope:server-only)
+- Status: **Ready for review**, CI green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title all passing).
+
+**What changed**
+
+- New `server/src/sessions/persist-ai-conversation-id.ts` — small shared helper `persistAiConversationId(sessionRepository, sessionId, status)`.
+- `server/src/sessions/ai-router.ts` — call helper after `restartSession` succeeds and **before** the final `safeBroadcast` / `broadcastSessionState`.
+- `server/src/auto-connect.ts` — replaced the inline persist block with the helper (behaviour unchanged).
+- Tests: 3 new helper unit tests + 3 new ai-router integration tests. Full server suite: **1205/1205 passing**.
+
+**Coordination notes for #348 / #349**
+
+- Helper signature uses `Pick<AgentSessionStatus, 'conversationId'>` so siblings can pass any superset shape. Stable to import as-is.
+- Persist-before-broadcast ordering codified — any future call site (e.g. fresh-create fallback in #348) should follow the same pattern.
+
+---
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
