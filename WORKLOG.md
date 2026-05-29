@@ -738,3 +738,36 @@ Two consecutive quiet ticks detected — no actionable work to dispatch. Automat
 Re-enable when an `on-hold` label is removed from any open issue, a new issue is filed without `on-hold`, or the workspace-persistence freeze lifts (#298 prep complete — see AGENTS.md "Active design freeze").
 
 ---
+
+### 2026-05-29 16:00 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4ad76fb` | expansion | Issue #370 — bug(server): PAUSED-sandbox handling missing on attach path | **NEW** |
+
+🚀 **Spawned: Expansion Worker** (manual `/orchestrate` invocation)
+
+- Issue: [#370](https://github.com/jpshackelford/voice-relay/issues/370) — `bug`, `priority:critical`, `scope:server-only`, `server`
+- Conversation: [`4ad76fb`](https://app.all-hands.dev/conversations/4ad76fb364ec4c36813b3c3c2ac3c08c) (execution_status=running, sandbox=RUNNING)
+- Reason: PR #365 follow-up bug filed at ~15:39Z, after the 15:35Z auto-disable. #370 is the only open issue lacking the `on-hold` label, so it ends the quiet-tick window.
+
+**Re-enabled automation:**
+- `Voice Relay Workflow Orchestrator v2` (id `5f180989-ed9c-42b4-ac9f-5f30f0623316`) → `enabled: true` (15:59Z confirmed). Quiet-tick counter reset 2 → 0.
+
+**Current State:**
+- Open PRs: 0
+- Open issues: 9 — 8 carry `on-hold` (workspace-persistence freeze #298–#302 still in effect per AGENTS.md; #210, #239 needs-expansion+on-hold; #351, #363 ready+on-hold); **#370 is the sole eligible item**.
+- Active workers after this tick: expansion=1, implementation=0, review=0.
+
+**Slot Utilization:**
+| Slot Type | Active | Limit | Available |
+|-----------|--------|-------|-----------|
+| expansion | 1 | 4 | 3 |
+| implementation | 0 | 1 | 1 (nothing eligible — #370 not yet `ready`) |
+| review/merge | 0 | 2 | 2 (no open PRs) |
+
+**Action Taken:**
+🚀 Spawned expansion worker for #370. Once it adds `ready`, the next tick will spawn an implementation worker. Implementation should reuse the `resumeSandbox` + `pollUntilRunning` helpers PR #365 added to `refreshSessionCredentials`; the issue body already calls this out.
+
+---
