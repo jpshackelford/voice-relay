@@ -307,3 +307,39 @@ are tracked separately as `priority:high`.
 **Next:** PR is back in `ready for review`. Awaiting next review pass.
 
 ---
+
+### 2026-05-29 13:06 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0fd383a` | merge | PR #365 — PAUSED sandbox resume | **NEW** |
+
+🚀 **Spawned: Merge Worker**
+- PR: [#365 — fix(server): handle PAUSED sandbox via resume primitive (#360)](https://github.com/jpshackelford/voice-relay/pull/365)
+- Conversation: [`0fd383a`](https://app.all-hands.dev/conversations/0fd383ac89aa4b8f97acab399815e022)
+- Trigger: PR meets merge criteria — CI 7/7 green, mergeable `CLEAN`, 1/1 review threads resolved, latest `pr-review` bot rating 🟢 "Good taste — elegant solution… 14 tests / 94% coverage." Human reviewer (@jpshackelford) commented but did not request further changes. Review round 1 (commit `e95ba56`, check-then-sleep in `pollSandboxRunning`) addressed the only suggestion.
+- Migration check: PR touches only `server/src/openhands.ts`, `server/src/openhands.test.ts`, `docs/openhands-platform.md` — **no DB changes**, no migration needed.
+- Worker will: re-verify CI/mergeability, polish PR description, squash-merge with `fix(server): handle PAUSED sandbox via resume primitive (#360)`, confirm #360 auto-closes.
+
+**Cleared finished workers (moved to `.workflow-state.json` completed[]):**
+- `3940488` impl/#360 → success (Created PR #365)
+- `f6f7c0e` review/#365 → success (Addressed pr-review suggestion in commit `e95ba56`; CI green; thread `PRRT_kwDOSTUWGM6FrkCH` resolved)
+
+**Current State:**
+- Open PRs: 1
+  - [PR #365](https://github.com/jpshackelford/voice-relay/pull/365): `oRFC green ready 💬--` — merging now
+- Ready issues (eligible, by priority):
+  - #360 priority:critical — merge in flight
+  - #361 priority:high — queued (waiting for #365 to merge; touches same `reconnectWithRefresh` path → defer to avoid pre-merge conflicts)
+  - #362 priority:high — queued (touches same `openSession`/rebind code path)
+  - #364 priority:low — queued
+- Ready issues on `on-hold` (skipped): #351 priority:low, #363 priority:medium
+- Issues needing expansion: none 🎉
+- Other on-hold (skipped): #210, #239, #299, #300, #301, #302, #358
+
+**Decision rationale for impl slot:** Held open this tick. #361/#362 both modify the same `reconnectWithRefresh` / `rebindSession` code paths PR #365 just rewrote — spawning an impl worker now would branch from pre-merge `main` and almost certainly conflict on squash. Next tick (after #365 lands) the impl slot will pick up #361 (priority:high, first in queue) against the updated `main`.
+
+**Slot Utilization:** expansion 0/4, implementation 0/1, review 1/2 (merge worker).
+
+---
