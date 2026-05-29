@@ -176,17 +176,10 @@ async function retryAsFreshCreate(
 
   // Build the fresh-create opts by dropping `existingConversationId` so
   // the OH adapter goes through `POST /app-conversations` instead of
-  // `attachExistingForSession`. Carry the dead id forward as
-  // `previousConversationId` so the OH adapter can fetch its event log
-  // and seed the new conversation's context via `buildReplaySuffix`
-  // (#349). The driver / manager treat this as a hint: any failure to
-  // fetch or build the suffix is logged and the conversation starts
-  // amnesiac (best-effort, matches #297's contract).
-  const { existingConversationId: _drop, ...rest } = opts;
-  const freshOpts: OpenSessionOpts = {
-    ...rest,
-    previousConversationId: deadId,
-  };
+  // `attachExistingForSession`. Spread the rest verbatim — siblings like
+  // #349 can extend this object (e.g. inject a `buildReplaySuffix`
+  // result) without changing this helper’s signature.
+  const { existingConversationId: _drop, ...freshOpts } = opts;
 
   // Any error here propagates: no second retry. The caller drives the
   // `degraded` broadcast.

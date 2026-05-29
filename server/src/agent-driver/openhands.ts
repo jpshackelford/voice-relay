@@ -51,7 +51,6 @@ export interface AISessionManagerSurface {
       apiKey?: string;
       displayApiSecret?: string;
       existingConversationId?: string;
-      previousConversationId?: string;
     },
   ): Promise<AISession>;
   sendSessionMessage(sessionId: string, message: string): Promise<void>;
@@ -638,12 +637,6 @@ export class OpenHandsAgentDriver implements AgentDriver {
           // routes this through `attachExistingForSession` and skips the
           // `POST /app-conversations` create step.
           existingConversationId: state.opts.existingConversationId,
-          // Plumb the carry-forward replay hint through (#349). When the
-          // attach path is *not* taken (no `existingConversationId`), the
-          // manager fetches this prior conversation's event log and pipes
-          // it through `buildReplaySuffix` as `system_message_suffix` on
-          // the create POST so the new agent starts with prior context.
-          previousConversationId: state.opts.previousConversationId,
         },
       );
       return { kind: 'ok' };

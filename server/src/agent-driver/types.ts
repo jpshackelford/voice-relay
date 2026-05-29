@@ -89,27 +89,6 @@ export interface OpenSessionOpts {
    * field — it is purely a hint, never a contract.
    */
   existingConversationId?: string;
-  /**
-   * Optional id of a *prior* upstream conversation whose context should be
-   * carried forward into the new conversation via memory replay (issue
-   * #349).
-   *
-   * Set by `attachOrCreateAgentSession` on the fresh-create-after-attach
-   * branch: when the original `existingConversationId` is gone upstream,
-   * the helper retries with `existingConversationId` stripped and
-   * `previousConversationId` set to the dead id so the OpenHands adapter
-   * can fetch its event log and pipe it through `buildReplaySuffix` as
-   * a `system_message_suffix` on the create POST.
-   *
-   * Mutually exclusive with `existingConversationId` in practice: an
-   * attach path doesn't need replay (the on-server event log is preserved
-   * across rebinds). If both are set the adapter prefers `existingConversationId`
-   * and ignores this hint.
-   *
-   * Drivers without a memory-replay concept (e.g. `FakeDriver`) may
-   * ignore this field — it is purely a hint, never a contract.
-   */
-  previousConversationId?: string;
 }
 
 /**

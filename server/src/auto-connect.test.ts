@@ -505,16 +505,11 @@ describe('autoConnectAI', () => {
       await autoConnectAI('session-348', 'ws-1', deps);
 
       // Two openSession calls: attach (with existing id) and fresh-create
-      // (without existing, but WITH `previousConversationId` so the OH
-      // adapter can build a memory-replay suffix from the prior
-      // conversation's event log — #349).
+      // (without).
       expect(driver.openSession).toHaveBeenCalledTimes(2);
       const calls = (driver.openSession as ReturnType<typeof vi.fn>).mock.calls;
       expect(calls[0][1]).toEqual(expect.objectContaining({ existingConversationId: 'conv-dead' }));
       expect(calls[1][1]).not.toHaveProperty('existingConversationId');
-      expect(calls[1][1]).toEqual(
-        expect.objectContaining({ previousConversationId: 'conv-dead' }),
-      );
 
       // Helper-driven metadata writes: stash dead id then persist new id.
       // BOTH happen before the broadcast (persist-before-broadcast invariant).
