@@ -174,6 +174,24 @@ _This worklog entry was written by an AI agent (OpenHands /orchestrate) on behal
 - Proposed fix: extract a tiny shared `persistAiConversationId` helper used by both `auto-connect.ts` and the restart handler; persist before the final broadcast. Three unit tests added (success / null-conversationId / persist-throws). Low complexity, ~10 LOC of prod code.
 - Related: #341 (rehydration gap, closed) is what made this latent bug visible; #348 (no fresh-create fallback on stale-id attach) is the companion gap and stays separate.
 
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
+
+### 2026-05-29 00:15 UTC - Expansion Worker (#348)
+
+✅ **Expanded Issue #348** — bug(server): auto-connect / rehydrate have no fresh-create fallback when attach-to-existing fails
+
+- Issue: [#348](https://github.com/jpshackelford/voice-relay/issues/348)
+- Type: Bug
+- Status: Ready for implementation (`ready` label applied)
+- Root cause confirmed against `main`: both `auto-connect.ts` (~L130-171) and `agent-rehydrate.ts` (`rehydrateSingleSession`) pass `existingConversationId` to `agentDriver.openSession` and rethrow on `UpstreamConversationEndedError` with no fresh-create fallback. Error is raised in three places inside `AISessionManager.attachExistingForSession` (`openhands.ts:1821 / 1827 / 1832-1835`).
+- Proposed fix: new shared helper `attachOrCreateAgentSession` used by both call sites — on `UpstreamConversationEndedError`, stash dead id in `previousAiConversationId`, clear `aiConversationId`, retry once without `existingConversationId`, persist new id via the shared helper from #347.
+- Sibling coordination noted in expansion comment: depends on #347 (shared persistence helper); pairs with #349 (replay suffix on fresh-create) for full UX recovery; orthogonal to #351 (boot-time broadcast).
+- Risk flagged: `getConversation` transient REST errors are currently wrapped as `UpstreamConversationEndedError` (`openhands.ts:1821`), which could cause spurious fresh-creates on a 5xx blip. Recommended follow-up: tighten the error class to only fire on null/missing-handshake cases.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
 ---
 
 ### 2026-05-29 00:08 UTC - Expansion Worker (#350)
