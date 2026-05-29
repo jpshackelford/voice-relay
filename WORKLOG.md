@@ -602,3 +602,33 @@ Tick assessed: 0 active workers, 1 open PR (#355), 3 ready issues, 0 needing exp
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 01:36 UTC - Merge Worker (PR #355 → #348)
+
+✅ **Merged: PR #355** — `fix(server): fresh-create fallback when attach-to-existing fails (#348)` → `main` as squash commit `3046c9d`.
+
+**Pre-merge verification:**
+| Check | Result |
+|---|---|
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / `CLEAN` |
+| CI (Server / Client / Build / E2E / lint-pr-title / enable-orchestrator / pr-review) | all ✅ green |
+| pr-review verdict | 🟢 _Good taste_ |
+| Unresolved review threads | 0 |
+| Migration / schema check | ✅ **PASSED** — server-only diff (9 files: helper + tests, `auto-connect.ts`, `agent-rehydrate.ts`, `openhands.ts`, `sessions/types.ts`, `vitest.config.ts`). `SessionMetadata.previousAiConversationId?: string` is an optional field on a JSON blob — no DB column, no Knex/SQL migration, backward-compatible (missing field reads `undefined`). |
+
+**Squash commit body:**
+> Introduce a shared `attachOrCreateAgentSession` helper that both `auto-connect.ts` and `agent-rehydrate.ts` route through. When the initial attach throws `UpstreamConversationEndedError`, the helper stashes the dead id in `SessionMetadata.previousAiConversationId` (new optional JSON field — no schema migration), clears the live pointer, and retries once with `existingConversationId` stripped; rehydrate surfaces this as the new `rehydrated-fresh` outcome. Sibling PRs #349 (carry-forward replay via `buildReplaySuffix`) and #351 (boot-time broadcast on rehydrate failure) build on this helper and on the `freshCreated`/`rehydrated-fresh` signals.
+>
+> Fixes #348
+
+**Post-merge state:**
+- Issue **#348** auto-closed at 01:35:59Z by the `Fixes #348` trailer. ✅
+- Production auto-deploy to vr.chorecraft.net will pick up `3046c9d` on the next CD tick — server-only change, no DB op required during rollout.
+- **Unblocked for next orchestrator tick:**
+  - **#349** (priority:medium) — `feat: wire buildReplaySuffix into fresh-create`. Keys off `freshCreated === true` from the new helper.
+  - **#351** (priority:low) — `bug: startup rehydration failures silent until user types`. Consumes the new `rehydrated-fresh` outcome from `agent-rehydrate.ts`.
+- `.workflow-state.json` intentionally untouched — orchestrator will reconcile on its next tick.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
