@@ -343,3 +343,23 @@ are tracked separately as `priority:high`.
 **Slot Utilization:** expansion 0/4, implementation 0/1, review 1/2 (merge worker).
 
 ---
+### 2026-05-29 13:06 UTC - Merge worker (PR #365)
+
+✅ Squash-merged PR #365 — `fix(server): handle PAUSED sandbox via resume primitive (#360)`.
+
+| Field | Value |
+|---|---|
+| PR | [#365](https://github.com/jpshackelford/voice-relay/pull/365) |
+| Merge commit | `bb863d111a5dc6c9940d10152b86b35acf779dbd` |
+| Closes | [#360](https://github.com/jpshackelford/voice-relay/issues/360) (auto-closed via `Fixes #360`) |
+| Files changed | `server/src/openhands.ts`, `server/src/openhands.test.ts`, `docs/openhands-platform.md` |
+| CI at merge | 7/7 green (Server/Client/Build/E2E/lint-pr-title/enable-orchestrator/pr-review) |
+| Threads resolved | 1/1 |
+| pr-review bot | 🟢 "Good taste — Elegant solution to a critical production problem." |
+| DB changes | None — no migration needed |
+
+**Deploy expectation:** vr.chorecraft.net auto-deploys from main. Watch for `deploy-success-bb863d1…` tag and the `[AI] sandbox resumed for conversation …` log line to confirm the PAUSED branch is firing in prod. `getSandboxResumeCount()` metric should start incrementing as kiosks recover from ~4-min idle pauses without operator intervention.
+
+**Cross-issue note:** Issues [#361](https://github.com/jpshackelford/voice-relay/issues/361) (rebind response shape) and [#362](https://github.com/jpshackelford/voice-relay/issues/362) (openSession opts) touch the same `reconnectWithRefresh` / `rebindSession` code paths and remain valid as the fallback-path failure modes — **not closed** by this merge. With PR #365 landed, the impl slot can safely pick up #361 next tick against the updated `main`.
+
+---
