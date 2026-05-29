@@ -791,5 +791,42 @@ Re-enable when an `on-hold` label is removed from any open issue, a new issue is
 **Test plan** added covering: PAUSED→RUNNING happy path, PAUSED+no sandbox_id, PAUSED→MISSING regression guard, budget exhaustion, poll timeout, and non-PAUSED regression.
 
 Labels: added `ready`. Implementation worker can pick this up on the next tick.
+---
+
+### 2026-05-29 16:07 UTC - Orchestrator (manual `/orchestrate`)
+
+🚀 **Spawned: Implementation Worker for #370**
+
+The expansion worker `4ad76fb` (spawned by the prior 16:00Z tick) finished within ~60 seconds and properly added the `ready` label plus a "✅ Verification (Expansion Worker)" comment confirming the analysis matches `main` at `e7dbbcf`. Issue #370 (`priority:critical`, no `on-hold`) is now eligible for implementation, so this tick dispatches the next worker.
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| [`7d4cea7`](https://app.all-hands.dev/conversations/7d4cea76a2594378b8ab988b5f27cd20) | implementation | Issue #370 — PAUSED-sandbox handling on attach path | **NEW** (execution_status=running) |
+
+**Slot Utilization:**
+
+| Slot Type | Active | Limit | Available |
+|---|---|---|---|
+| expansion | 0 | 4 | 4 (no needs-expansion issues lack `on-hold`) |
+| implementation | 1 | 1 | 0 |
+| review/merge | 0 | 2 | 2 (no open PRs) |
+
+**Current State:**
+- Open PRs: 0 (last merged: PR #369 → #364 at 15:19Z)
+- Open issues: 9 — 8 carry `on-hold`, #370 was the sole eligible item and is now in-flight
+- `quiet_ticks`: 0 (productive tick)
+
+**Implementation guidance handed to the worker:**
+- Reuse `resumeSandbox` + `pollSandboxRunning` helpers that PR #365 (commit `bb863d1`) added to `server/src/openhands.ts` — don't duplicate.
+- The bug live in production: kiosks went `degraded`/`connecting` at 15:21Z and 15:37Z today because `attachExistingForSession` (the rehydration + auto-attach path) doesn't recover from `409 sandbox_paused`, only `refreshSessionCredentials` (the WS-drop path) does.
+- Scope is `scope:server-only`; no DB schema changes expected, so no migrations needed.
+- WORKLOG.md updates from the worker must land directly on `main` — Branch Hygiene CI rejects any feature branch that touches it.
+
+**Spawn mechanics note (for future orchestrator runs):**
+The first POST to `/api/v1/app-conversations` at 16:04Z used the legacy `initial_user_msg` field name; it created conversation `52f5c91` but no message was delivered (left `execution_status=idle`). Fix was to re-issue with `initial_message: {content:[{type:"text",text:"…"}], run:true}` per the [spawn-conversation skill](https://github.com/jpshackelford/.openhands/blob/main/plugins/voice-relay-workflow/skills/spawn-conversation.md). The stranded conversation `52f5c91` will be auto-cleaned by sandbox idle timeout.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
