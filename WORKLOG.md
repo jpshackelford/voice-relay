@@ -175,3 +175,18 @@ _This worklog entry was written by an AI agent (OpenHands /orchestrate) on behal
 - Related: #341 (rehydration gap, closed) is what made this latent bug visible; #348 (no fresh-create fallback on stale-id attach) is the companion gap and stays separate.
 
 ---
+
+### 2026-05-29 00:08 UTC - Expansion Worker (#350)
+
+✅ **Expanded Issue #350** — _bug(server): refresh 401 NoCredentialsError marks session degraded instead of attempting a rebind_
+
+- Issue: [#350](https://github.com/jpshackelford/voice-relay/issues/350) → labeled `ready`
+- Type: Bug (server-side reconnect path)
+- Status: Ready for implementation
+- Root cause confirmed against `main` (`8387ccc`): `reconnectWithRefresh` at `server/src/openhands.ts:2117` only routes `SandboxMissingError` to `rebindSession`; any other refresh failure — including the `OpenHandsApiError(401, "…NoCredentialsError…")` thrown out of `getConversation` via `OpenHandsClient.request()` — falls into the generic degrade branch. 401 is not in the `transient` set so it doesn't even retry.
+- Proposed fix: introduce `UpstreamCredentialsLostError`, translate `status===401 && message.includes('NoCredentialsError')` into it inside `doRefreshSessionCredentials`, and extend the catch in `reconnectWithRefresh` to route it through `rebindSession` (same path as MISSING). Existing `RebindWindowTracker` (max 3/5min, #296) caps the blast radius — no new throttling needed.
+- Tests: 3 new unit tests in `server/src/openhands.test.ts` (1 direct refresh, 2 reconnect-integration including the negative case for non-NoCredentials 401s).
+- Complexity: Low (~30 LOC prod + tests). Risk: Low — strict status+message discriminator.
+- Independent of siblings #347 / #348 / #349 / #351 (different code paths); can be implemented in parallel.
+
+---
