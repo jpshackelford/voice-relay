@@ -379,6 +379,75 @@ describe('Session AI Router — POST /:sessionId/ai/restart', () => {
     expect(consoleSpy).toHaveBeenCalled();
   });
 
+  // Issue #347 — restart handler must persist the new conversationId.
+  it('persists status.conversationId to session.metadata on success', async () => {
+    // Pre-seed the row with the original (now-dead) conversation id so we
+    // can prove the handler overwrites it.
+    sessionRepository.updateMetadata(testSessionId, {
+      aiConversationId: 'old-dead-id',
+    });
+
+    driver.restartSession = vi.fn(async () => ({
+      ...startingStatus(testSessionId),
+      state: 'ready' as const,
+      conversationId: 'new-live-id',
+    }));
+
+    await request(app)
+      .post(`/api/sessions/${testSessionId}/ai/restart`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    const persisted = sessionRepository.findById(testSessionId)?.metadata
+      ?.aiConversationId;
+    expect(persisted).toBe('new-live-id');
+  });
+
+  // Issue #347 — a degraded restart returns null and must NOT stomp the
+  // existing row. The DB pointer survives so subsequent rehydration attempts
+  // still have a target.
+  it('does not stomp existing metadata when restartSession returns null conversationId', async () => {
+    sessionRepository.updateMetadata(testSessionId, {
+      aiConversationId: 'keep-me',
+    });
+
+    driver.restartSession = vi.fn(async () => ({
+      ...startingStatus(testSessionId),
+      conversationId: null,
+    }));
+
+    await request(app)
+      .post(`/api/sessions/${testSessionId}/ai/restart`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    const persisted = sessionRepository.findById(testSessionId)?.metadata
+      ?.aiConversationId;
+    expect(persisted).toBe('keep-me');
+  });
+
+  // Issue #347 — a persist failure must be swallowed; the handler still
+  // returns 200 and the broadcast chain still fires. Mirrors auto-connect.
+  it('still returns 200 if persisting the conversationId throws', async () => {
+    driver.restartSession = vi.fn(async () => ({
+      ...startingStatus(testSessionId),
+      state: 'ready' as const,
+      conversationId: 'new-live-id',
+    }));
+    vi.spyOn(sessionRepository, 'updateMetadata').mockImplementation(() => {
+      throw new Error('db locked');
+    });
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await request(app)
+      .post(`/api/sessions/${testSessionId}/ai/restart`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body.conversationId).toBe('new-live-id');
+    expect(consoleSpy).toHaveBeenCalled();
+  });
+
   it('survives a broadcast failure on the driver-error path', async () => {
     driver.restartSession = vi.fn(async () => {
       throw new Error('driver boom');
