@@ -397,6 +397,18 @@ export class OpenHandsAgentDriver implements AgentDriver {
         executionError: null,
       };
       this.states.set(sessionId, state);
+    } else {
+      // Refresh opts on every call so subsequent callers (e.g. the #348/#358
+      // fresh-create fallback that clears `existingConversationId` after an
+      // attach failure, or any future retry-with-different-opts path) can
+      // update the cached opts between calls. Prior to issue #362 the new
+      // `opts` argument was silently dropped on the else branch, so retries
+      // re-attached to the stale conversation id forever — the exact pattern
+      // that caused the 2026-05-29 01:38Z incident behind #357. The upstream
+      // bind itself is still single-flight + idempotent via
+      // `mgr.hasSessionAI` / `lazyBindSession`; refreshing opts only affects
+      // the *next* bind (e.g. via `restartSession` or `runTurn` lazy-open).
+      state.opts = opts;
     }
     // Eagerly provision the upstream OpenHands session. This preserves the
     // legacy `aiSessionManager.getOrCreateForSession` semantics that the
