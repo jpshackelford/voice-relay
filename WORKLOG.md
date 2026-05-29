@@ -536,3 +536,22 @@ are tracked separately as `priority:high`.
 - Per the orchestrator note, **#364 is now unblocked** for sequencing — it touches the same `server/src/openhands.ts` failure-log call sites and was being serialized after #362 to avoid rebase churn. Now that #362's diff is small and isolated to `agent-driver/`, the rebase risk for #364 is minimal.
 
 ---
+
+### 2026-05-29 14:23 UTC - Merge Worker (PR #368)
+
+✅ **PR #368 squash-merged to `main`** — [fix(server): refresh opts on every OpenHandsAgentDriver.openSession call (#368)](https://github.com/jpshackelford/voice-relay/pull/368) at merge commit [`c6275e7`](https://github.com/jpshackelford/voice-relay/commit/c6275e7c93cd3580ab78afa74ba8074476c87681).
+
+| Step | Result |
+|------|--------|
+| Pre-merge state | `MERGEABLE` / `CLEAN`, labels empty (no `on-hold`, no `needs-human`), all 6 required CI checks ✅ (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator). |
+| Automated review | 🟢 LOW risk, ✅ Worth merging, "Elegant, minimal fix" — zero CHANGES_REQUESTED, zero line-level threads, zero nits to apply. |
+| Diff review | 3 files, +63 / −2: two-line `state.opts = opts` on the else branch of `OpenHandsAgentDriver.openSession` in `server/src/agent-driver/openhands.ts`, JSDoc rewrite on `AgentDriver.openSession` in `server/src/agent-driver/types.ts`, +2 new tests (and a tightened T-2.2.4) in `server/src/agent-driver/openhands.test.ts`. Pure in-memory state refresh. |
+| Migration check | ✅ No DB / schema / migration / API / wire format changes — confirmed by `git diff --name-only` (no `*.sql`, no `migrations/`, nothing touching `server/src/db/`). Auto-deploy to `vr.chorecraft.net` is safe. |
+| Label re-check | Re-checked labels immediately before invoking `gh pr merge` — still empty. No abort. |
+| Squash commit | Conventional-commit title `fix(server): refresh opts on every OpenHandsAgentDriver.openSession call (#368)`; body summarises root cause, fix, no-DB-changes, and `Closes #362`. |
+| Issue closure | #362 auto-closed by `Closes #362` trailer — verified via `gh issue view 362` → `state: CLOSED`. No manual close needed. |
+| Post-deploy monitoring | Not strictly required. The fix is only observable when callers invoke `openSession` twice with different opts; no production code path does that today (the #348/#358 helper was rolled back in #357). The unblocking is for the future #358 re-attempt and any retry-with-different-opts helper. |
+
+📌 **Follow-up sequencing:** #364 (failure-log call sites in `server/src/openhands.ts`) was being serialized after #362 to avoid rebase churn — now unblocked. The #358 re-attempt (fresh-create fallback for MISSING / ERROR sandboxes) can also proceed once #365's resume path lands.
+
+---
