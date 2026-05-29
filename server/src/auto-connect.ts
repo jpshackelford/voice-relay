@@ -19,6 +19,7 @@ import type { TtsService } from './tts/index.js';
 import type { SessionAIStatusMessage } from './types.js';
 import { isAnonymousSession } from './constants.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
+import { persistAiConversationId } from './sessions/persist-ai-conversation-id.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -142,18 +143,10 @@ export async function autoConnectAI(
     // Persist the OH conversation ID to session metadata so we can rehydrate
     // events from OH REST after the live WS has died and our cached rows
     // have been pruned. The in-memory map in AISessionManager is lost on
-    // server restart; the DB is the only durable home.
-    if (status.conversationId) {
-      try {
-        sessionRepository.updateMetadata(sessionId, {
-          aiConversationId: status.conversationId,
-        });
-      } catch (metaErr) {
-        // Non-fatal: rehydration just won't be possible for this session,
-        // which is the same behaviour we had before this code existed.
-        console.error(`[AI] Failed to persist aiConversationId for session ${sessionId}:`, metaErr);
-      }
-    }
+    // server restart; the DB is the only durable home. Shared with the
+    // user-driven restart path (`server/src/sessions/ai-router.ts`) — see
+    // issue #347 and `persist-ai-conversation-id.ts` for the contract.
+    persistAiConversationId(sessionRepository, sessionId, status);
 
     // Broadcast connected status
     const connectedStatus: SessionAIStatusMessage = {

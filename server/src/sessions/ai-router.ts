@@ -45,6 +45,7 @@ import type { DeviceRegistry } from '../registry.js';
 import type { SessionAIStatusMessage } from '../types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 import { broadcastSessionState } from '../session-state-broadcast.js';
+import { persistAiConversationId } from './persist-ai-conversation-id.js';
 
 export interface SessionAIRouterOptions {
   sessionRepository: SessionRepository;
@@ -205,6 +206,14 @@ export function createSessionAIRouter(options: SessionAIRouterOptions): Router {
       res.status(503).json({ error: message });
       return;
     }
+
+    // Persist the new upstream conversation id BEFORE broadcasting the
+    // final state so that any peer device that immediately tries to
+    // rehydrate (or any subsequent server restart) sees a DB row that
+    // matches the conversationId being announced. Without this, the DB
+    // stayed pinned to the original (now-dead) conversation forever —
+    // see issue #347 for the production triage.
+    persistAiConversationId(options.sessionRepository, sessionId, status);
 
     // Broadcast the final state so peer devices reconcile. The caller gets
     // the same data in the response body.
