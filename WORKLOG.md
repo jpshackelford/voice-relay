@@ -163,3 +163,15 @@ All four start tasks reached `READY`; all four conversations verified `execution
 _This worklog entry was written by an AI agent (OpenHands /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:08 UTC - Expansion Worker (#347)
+
+✅ **Expanded Issue #347** — `bug(server): /ai/restart never persists the new aiConversationId`
+
+- Type: Bug (confirmed)
+- Status: Ready for implementation (`ready` label applied)
+- Root cause: `server/src/sessions/ai-router.ts` POST `/:sessionId/ai/restart` never calls `sessionRepository.updateMetadata({ aiConversationId: status.conversationId })` after `AgentDriver.restartSession` succeeds; `auto-connect.ts:145-156` already does this. Verified against the current code on `main` (build `986adb7` per production logs).
+- Proposed fix: extract a tiny shared `persistAiConversationId` helper used by both `auto-connect.ts` and the restart handler; persist before the final broadcast. Three unit tests added (success / null-conversationId / persist-throws). Low complexity, ~10 LOC of prod code.
+- Related: #341 (rehydration gap, closed) is what made this latent bug visible; #348 (no fresh-create fallback on stale-id attach) is the companion gap and stays separate.
+
+---
