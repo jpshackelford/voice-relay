@@ -1684,6 +1684,34 @@ header {
   z-index: 10;
 }
 
+/*
+ * Issue #346 item 1: faux oscilloscope indicator, the left-side visual
+ * counterpart to .kiosk-ai-status. Same purple-circle treatment so the
+ * two indicators read as a pair; the canvas inside renders a flat line
+ * during silence and a waveform while transcription events are landing.
+ */
+.kiosk-oscilloscope-indicator {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(168, 85, 247, 0.2);
+  border: 2px solid #a855f7;
+  border-radius: 50%;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kiosk-oscilloscope-indicator .oscilloscope-canvas {
+  width: 100%;
+  height: 100%;
+}
+
 .kiosk-ai-status.connecting {
   animation: ai-connecting 1.5s ease-in-out infinite;
   border-color: #f39c12;

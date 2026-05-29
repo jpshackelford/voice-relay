@@ -1677,6 +1677,35 @@ describe('KioskMode', () => {
       expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('✅');
     });
 
+    // ====================================================================
+    // Issue #346 item 1: faux oscilloscope indicator
+    // ====================================================================
+    it('renders the oscilloscope indicator when tickers are enabled', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-oscilloscope-indicator')).toBeDefined();
+    });
+
+    it('does not render the oscilloscope indicator when tickers are disabled', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled={false}
+          />
+        );
+      });
+      expect(screen.queryByTestId('kiosk-oscilloscope-indicator')).toBeNull();
+    });
+
     it('does not append a checkmark when the observation has not arrived yet', () => {
       const actions: AgentAction[] = [
         makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),

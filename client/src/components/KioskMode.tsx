@@ -8,6 +8,8 @@ import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { MarqueeTicker } from './MarqueeTicker';
+import { Oscilloscope } from './Oscilloscope';
+import { useFauxAudioActivity } from '../hooks/useFauxAudioActivity';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
 import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
@@ -482,6 +484,19 @@ export function KioskMode({
     return mostRecentForeignUtterance?.text ?? '';
   }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
 
+  // Issue #346 item 1 — faux audio activity for the left-side oscilloscope.
+  // We don't have a real mic stream on the kiosk, so we derive a "pulse"
+  // signal from transcription event arrival: any time the visible
+  // transcription text changes (new partial, new utterance), bump the
+  // pulse counter. The useFauxAudioActivity hook reads pulse and produces
+  // a sine-wave dataArray whose amplitude decays back to flat-line.
+  const [fauxPulse, setFauxPulse] = useState(0);
+  useEffect(() => {
+    if (transcriptionTickerText.length === 0) return;
+    setFauxPulse((p) => p + 1);
+  }, [transcriptionTickerText]);
+  const fauxAudio = useFauxAudioActivity({ pulse: fauxPulse });
+
   // Refinement 1 from the expansion: MessageEvent is filtered out before it
   // reaches `agentActions`. The AI reply lands in the utterance stream as a
   // synthetic `senderId === 'ai'` row instead, so that's where we look.
@@ -950,6 +965,30 @@ export function KioskMode({
         */}
         {kioskFooterTickersEnabled && !qrHasPriority && (
           <>
+            {/*
+              Issue #346 item 1: faux oscilloscope indicator anchored at the
+              bottom-left of .kiosk-display. Visual counterpart to the
+              .kiosk-ai-status sparkle on the bottom-right. The Oscilloscope
+              draws a flat line while there's no transcription activity and
+              a sine-wave waveform while transcription events are streaming
+              (amplitude driven by useFauxAudioActivity since the kiosk has
+              no real mic stream — see hook docstring for the v1 rationale).
+            */}
+            <div
+              className="kiosk-oscilloscope-indicator"
+              data-testid="kiosk-oscilloscope-indicator"
+            >
+              <Oscilloscope
+                analyser={null}
+                dataArray={fauxAudio.dataArray}
+                isActive={fauxAudio.isActive}
+                width={48}
+                height={48}
+                color="#a855f7"
+                lineWidth={1.5}
+                glowIntensity={6}
+              />
+            </div>
             <div
               className="kiosk-ticker kiosk-ticker-transcription"
               aria-live="off"
