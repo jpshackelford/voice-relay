@@ -1,29 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "f59f459",
+        "conv_id": "3940488",
         "issue": 360,
-        "started": "2026-05-29T12:16:54.346561+00:00"
-      },
-      {
-        "conv_id": "49f858d",
-        "issue": 361,
-        "started": "2026-05-29T12:16:54.346561+00:00"
-      },
-      {
-        "conv_id": "1a415b1",
-        "issue": 362,
-        "started": "2026-05-29T12:16:54.346561+00:00"
-      },
-      {
-        "conv_id": "2996e5b",
-        "issue": 363,
-        "started": "2026-05-29T12:16:54.346561+00:00"
+        "started": "2026-05-29T12:34:27.795924+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -31,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T12:16:54.346561+00:00",
+  "last_updated": "2026-05-29T12:34:27.795924+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -320,6 +305,42 @@
       "finished": "2026-05-29T02:51:20+00:00",
       "status": "success",
       "outcome": "PR #359 squash-merged to main (67352fc); #357 auto-closed. Production rollback of PRs #355 + #356."
+    },
+    {
+      "conv_id": "f59f459",
+      "type": "expansion",
+      "issue": 360,
+      "started": "2026-05-29T12:16:54.346561+00:00",
+      "finished": "2026-05-29T12:34:27.795924+00:00",
+      "status": "success",
+      "outcome": "Expanded #360; ready label added"
+    },
+    {
+      "conv_id": "49f858d",
+      "type": "expansion",
+      "issue": 361,
+      "started": "2026-05-29T12:16:54.346561+00:00",
+      "finished": "2026-05-29T12:34:27.795924+00:00",
+      "status": "success",
+      "outcome": "Expanded #361; ready label added"
+    },
+    {
+      "conv_id": "1a415b1",
+      "type": "expansion",
+      "issue": 362,
+      "started": "2026-05-29T12:16:54.346561+00:00",
+      "finished": "2026-05-29T12:34:27.795924+00:00",
+      "status": "success",
+      "outcome": "Expanded #362; ready label added"
+    },
+    {
+      "conv_id": "2996e5b",
+      "type": "expansion",
+      "issue": 363,
+      "started": "2026-05-29T12:16:54.346561+00:00",
+      "finished": "2026-05-29T12:34:27.795924+00:00",
+      "status": "success",
+      "outcome": "Expanded #363; ready label added"
     }
   ],
   "quiet_ticks": 0
