@@ -119,7 +119,16 @@ export interface AgentDriver {
    * cheap registration (deferring upstream allocation to `sendMessage`),
    * but the production OpenHands adapter binds eagerly so the returned
    * status carries a real `conversationId` callers can persist.
-   * Calling twice with the same `sessionId` returns the same status.
+   *
+   * Calling twice with the same `sessionId` returns the same status when the
+   * upstream binding still exists — the *upstream* bind is single-flight, so
+   * if `hasSession(sessionId)` is already true `openSession` will not re-bind.
+   *
+   * The latest `opts` always replace any prior cached values on each call
+   * (see issue #362), so callers — e.g. a fresh-create fallback that clears
+   * `existingConversationId` after an attach failure — can update opts
+   * between calls. The refreshed opts are observed by the *next* bind
+   * (e.g. via `restartSession` or the `sendMessage` lazy-open path).
    */
   openSession(sessionId: string, opts: OpenSessionOpts): Promise<AgentSessionStatus>;
 

@@ -239,7 +239,10 @@ describe('OpenHandsAgentDriver', () => {
       expect(status.state).toBe('thinking');
     });
 
-    test('T-2.2.4: openSession is idempotent — second call does not re-bind', async () => {
+    test('T-2.2.4: openSession is idempotent — second call does not re-bind upstream', async () => {
+      // Note: opts are refreshed on every call (#362), but the *upstream*
+      // bind is single-flight: if `mgr.hasSessionAI` returns true, the
+      // second openSession skips the `getOrCreateForSession` round-trip.
       const a = await driver.openSession('s1', OPTS);
       const initialBindCount = mgr.calls.filter((c) => c.name === 'getOrCreateForSession').length;
       const b = await driver.openSession('s1', OPTS);
@@ -261,6 +264,43 @@ describe('OpenHandsAgentDriver', () => {
       expect(created).toBeDefined();
       const options = created!.options as { existingConversationId?: string };
       expect(options.existingConversationId).toBe('conv-existing-xyz');
+    });
+
+    test('openSession refreshes opts on subsequent calls (#362)', async () => {
+      // First call binds upstream with `existingConversationId = 'conv-old'`.
+      await driver.openSession('s1', { ...OPTS, existingConversationId: 'conv-old' });
+      // Tear down the upstream binding to simulate an attach-failure cleanup
+      // path (the #348/#358 fresh-create fallback). After this the next
+      // openSession will hit `lazyBindSession` again because
+      // `mgr.hasSessionAI` returns false.
+      await mgr.endSessionAI('s1');
+      mgr.calls.length = 0;
+      // Second call with `existingConversationId` cleared. Prior to #362 the
+      // new opts were silently dropped on the else branch of openSession, so
+      // the driver re-attached to the dead `'conv-old'` id forever — the bug
+      // that caused the 2026-05-29 01:38Z incident behind #357.
+      await driver.openSession('s1', { ...OPTS, existingConversationId: undefined });
+      const created = mgr.calls.find((c) => c.name === 'getOrCreateForSession');
+      expect(created).toBeDefined();
+      const options = created!.options as { existingConversationId?: string };
+      expect(options.existingConversationId).toBeUndefined();
+    });
+
+    test('restartSession uses opts from most recent openSession (#362)', async () => {
+      // First openSession with the attach hint.
+      await driver.openSession('s1', { ...OPTS, existingConversationId: 'conv-A' });
+      // Second openSession with the hint cleared. The eager-bind path is a
+      // no-op because `mgr.hasSessionAI('s1')` is already true, but
+      // `state.opts` must still be refreshed so the *next* bind (here,
+      // `restartSession`) observes the change rather than silently
+      // re-attaching to the stale `'conv-A'`.
+      await driver.openSession('s1', { ...OPTS, existingConversationId: undefined });
+      mgr.calls.length = 0;
+      await driver.restartSession('s1');
+      const restartCreate = mgr.calls.find((c) => c.name === 'getOrCreateForSession');
+      expect(restartCreate).toBeDefined();
+      const options = restartCreate!.options as { existingConversationId?: string };
+      expect(options.existingConversationId).toBeUndefined();
     });
   });
 
