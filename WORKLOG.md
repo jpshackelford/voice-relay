@@ -698,3 +698,43 @@ Next round (merge worker) handled by orchestrator.
 Production deploy will pick up automatically via the post-merge hook on `vr.chorecraft.net`.
 
 ---
+
+### 2026-05-29 15:35 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet ticks detected — no actionable work to dispatch. Automation disabled to prevent unnecessary runs.
+
+**State at this tick:**
+- Open PRs: 0 (PR #369 merged 15:19Z, no follow-ups queued)
+- Open issues: 8, **all carry the `on-hold` label** — none eligible for expansion or implementation
+  - `on-hold` + needs-expansion: #210, #239
+  - `on-hold` + ready: #299, #300, #301, #302 (workspace-persistence freeze, AGENTS.md), #351, #363
+- Active workers: 0 (all slots empty)
+
+**Slot Utilization:** expansion 0/4, implementation 0/1, review 0/2.
+
+**Decision rationale:**
+- No needs-expansion issue lacks `on-hold` — expansion workers would violate the `on-hold` soft-guard.
+- No ready issue lacks `on-hold` — implementation worker has nothing eligible.
+- No open PR — review/merge slots have nothing eligible.
+- Workspace-persistence freeze (#298–#302) still in effect per AGENTS.md (awaiting prod `VR_WORKSPACE_BUCKET` + AWS creds + S3 provisioning runbook execution).
+
+**Quiet-tick counter:** 1 → 2 → auto-disable threshold reached.
+
+**Automation status:**
+- `Voice Relay Workflow Orchestrator v2` (id `5f180989-ed9c-42b4-ac9f-5f30f0623316`) → `enabled: false` (PATCH at 15:34Z confirmed).
+
+**To re-enable:**
+- UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle on
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+Re-enable when an `on-hold` label is removed from any open issue, a new issue is filed without `on-hold`, or the workspace-persistence freeze lifts (#298 prep complete — see AGENTS.md "Active design freeze").
+
+---

@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T15:19:05.135920+00:00",
+  "last_updated": "2026-05-29T15:34:57Z",
   "completed": [
     {
       "conv_id": "9d0f398",
@@ -19,7 +19,7 @@
       "started": "2026-05-28T14:07:29.688631+00:00",
       "finished": "2026-05-28T15:24:37.856552+00:00",
       "status": "success",
-      "outcome": "Implementation of #341 \u2192 opened PR #345 (CI green, automated review surfaced 2 threads)"
+      "outcome": "Implementation of #341 → opened PR #345 (CI green, automated review surfaced 2 threads)"
     },
     {
       "conv_id": "df0a306",
@@ -55,7 +55,7 @@
       "started": "2026-05-28T15:34:54.488814+00:00",
       "finished": "2026-05-28T15:44:37+00:00",
       "status": "success",
-      "outcome": "Addressed both \ud83d\udfe1 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
+      "outcome": "Addressed both 🟡 threads on PR #345 (Promise.allSettled in agent-rehydrate, JSDoc in auto-connect); commits db4e2db + 172fdeb; CI green; threads resolved; PR ready-for-review"
     },
     {
       "conv_id": "79dd653",
@@ -127,7 +127,7 @@
       "started": "2026-05-28T23:50:48.045698+00:00",
       "finished": "2026-05-29T00:38:13.305820+00:00",
       "status": "success",
-      "outcome": "Implementation of #346 \u2192 PR #352 opened, reviewed, merged (squash 9362a61). #346 closed."
+      "outcome": "Implementation of #346 → PR #352 opened, reviewed, merged (squash 9362a61). #346 closed."
     },
     {
       "conv_id": "unknown",
@@ -154,7 +154,7 @@
       "started": "2026-05-29T00:09:00+00:00",
       "finished": "2026-05-29T00:38:13.305820+00:00",
       "status": "success",
-      "outcome": "Implementation of #347 \u2192 PR #353 opened (CI green, \ud83d\udfe2 automated review). Conv ID not captured."
+      "outcome": "Implementation of #347 → PR #353 opened (CI green, 🟢 automated review). Conv ID not captured."
     },
     {
       "conv_id": "971965c",
@@ -163,7 +163,7 @@
       "started": "2026-05-29T00:38:13.305820+00:00",
       "finished": "2026-05-29T00:50:40.533283+00:00",
       "status": "success",
-      "outcome": "Implementation of #350 \u2192 opened PR #354 (CI green, \ud83d\udfe1 automated review verdict, 0 review threads). Ready for merge."
+      "outcome": "Implementation of #350 → opened PR #354 (CI green, 🟡 automated review verdict, 0 review threads). Ready for merge."
     },
     {
       "conv_id": "b2b3e05",
@@ -172,7 +172,7 @@
       "started": "2026-05-29T00:38:13.305820+00:00",
       "finished": "2026-05-29T00:50:40.533283+00:00",
       "status": "success",
-      "outcome": "No-op exit \u2014 PR #353 was already merged (squash 3dbc968 / fef9c5c) by an earlier merge worker before this one ran its pre-flight."
+      "outcome": "No-op exit — PR #353 was already merged (squash 3dbc968 / fef9c5c) by an earlier merge worker before this one ran its pre-flight."
     },
     {
       "conv_id": "a3a38b3",
@@ -190,7 +190,7 @@
       "started": "2026-05-29T00:53:32.052602+00:00",
       "finished": "2026-05-29T01:20:00+00:00",
       "status": "success",
-      "outcome": "Implementation of #348 \u2192 opened PR #355, moved to ready-for-review. New helper attachOrCreateAgentSession used by both auto-connect and agent-rehydrate. CI green; 1220/1220 tests; pr-review queued."
+      "outcome": "Implementation of #348 → opened PR #355, moved to ready-for-review. New helper attachOrCreateAgentSession used by both auto-connect and agent-rehydrate. CI green; 1220/1220 tests; pr-review queued."
     },
     {
       "conv_id": "41f7259",
@@ -208,7 +208,7 @@
       "started": "2026-05-29T01:51:00.727833+00:00",
       "finished": "2026-05-29T02:20:28.855629+00:00",
       "status": "success",
-      "outcome": "Implementation of #349 \u2192 PR #356 opened (8 files, server-only). Merge worker ran out-of-band and merged at 02:13:51Z (squash 7501100); #349 closed."
+      "outcome": "Implementation of #349 → PR #356 opened (8 files, server-only). Merge worker ran out-of-band and merged at 02:13:51Z (squash 7501100); #349 closed."
     },
     {
       "conv_id": "unknown",
@@ -226,7 +226,7 @@
       "started": "2026-05-29T02:36:33.869861+00:00",
       "finished": "2026-05-29T02:50:01.245984+00:00",
       "status": "success",
-      "outcome": "Implementation of #357 (rollback) \u2192 opened PR #359 (two clean reverts, CI green, \ud83d\udfe2 review verdict, 0 unresolved threads, mergeable)"
+      "outcome": "Implementation of #357 (rollback) → opened PR #359 (two clean reverts, CI green, 🟢 review verdict, 0 unresolved threads, mergeable)"
     },
     {
       "conv_id": "cfb4f6d",
@@ -307,7 +307,7 @@
       "started": "2026-05-29T13:21:08.733008Z",
       "finished": "2026-05-29T13:51:44.057291Z",
       "status": "success",
-      "outcome": "Implementation of #361 \u2192 opened PR #367 (fix(server): rebindConversation drives three-phase async dance); CI green; \ud83d\udfe1 'Acceptable / Worth merging' verdict from pr-review; 0 unresolved threads; mergeable. New 10-test HTTP-boundary suite; rebind budget 30s\u2192180s; no DB changes."
+      "outcome": "Implementation of #361 → opened PR #367 (fix(server): rebindConversation drives three-phase async dance); CI green; 🟡 'Acceptable / Worth merging' verdict from pr-review; 0 unresolved threads; mergeable. New 10-test HTTP-boundary suite; rebind budget 30s→180s; no DB changes."
     },
     {
       "conv_id": "d467e98",
@@ -316,7 +316,7 @@
       "started": "2026-05-29T13:51:44.057291Z",
       "finished": "2026-05-29T14:06:34.225005Z",
       "status": "success",
-      "outcome": "Merged PR #367 (squash 002f38f) \u2192 main; closed #361; applied 3 review nits in 0a3e346. Unblocks #362."
+      "outcome": "Merged PR #367 (squash 002f38f) → main; closed #361; applied 3 review nits in 0a3e346. Unblocks #362."
     },
     {
       "conv_id": "77291da",
@@ -343,7 +343,7 @@
       "started": "2026-05-29T14:31:01.024422Z",
       "finished": "2026-05-29T14:51:55.933909+00:00",
       "status": "success",
-      "outcome": "Implementation of #364 \u2192 PR #369 opened, marked ready-for-review (CI green, 1 \ud83d\udfe1 review suggestion to address). Note: recorded conv_id 17f5c10 was actually the spawning orchestrator tick, not the worker (state-recording bug in previous orchestrator); real worker conv_id not captured."
+      "outcome": "Implementation of #364 → PR #369 opened, marked ready-for-review (CI green, 1 🟡 review suggestion to address). Note: recorded conv_id 17f5c10 was actually the spawning orchestrator tick, not the worker (state-recording bug in previous orchestrator); real worker conv_id not captured."
     },
     {
       "conv_id": "2023f09",
@@ -352,7 +352,7 @@
       "started": "2026-05-29T14:51:55.933909+00:00",
       "finished": "2026-05-29T15:07:09.855753Z",
       "status": "success",
-      "outcome": "Addressed pr-review feedback on PR #369; verdict moved from \ud83d\udfe1 Acceptable to \ud83d\udfe2 Good taste; 0 unresolved threads; CI green; ready for merge"
+      "outcome": "Addressed pr-review feedback on PR #369; verdict moved from 🟡 Acceptable to 🟢 Good taste; 0 unresolved threads; CI green; ready for merge"
     },
     {
       "conv_id": "b2e1828",
@@ -364,5 +364,5 @@
       "outcome": "PR #369 squash-merged to main (6fa7266); #364 auto-closed. No DB changes."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 2
 }
