@@ -31,6 +31,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import type { DeviceRegistry } from './registry.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
+import { attachOrCreateAgentSession } from './agent-attach-or-create.js';
 
 /**
  * Dependencies required by `rehydrateAgentSessions`. Mirrors the dependency
@@ -57,12 +58,27 @@ export interface RehydrateAgentSessionsDependencies {
 /**
  * Result of attempting to rehydrate a single session. Exposed for tests
  * so they can assert per-session outcomes without parsing log output.
+ *
+ * `status` values:
+ *   - `rehydrated`        — attach to the persisted upstream conversation
+ *                           succeeded; the original `conversationId` is
+ *                           still live.
+ *   - `rehydrated-fresh`  — attach failed with `UpstreamConversationEnded`
+ *                           and the fresh-create fallback (#348) spawned
+ *                           a new upstream conversation. `conversationId`
+ *                           is the *new* id; the dead id is stashed in
+ *                           `session.metadata.previousAiConversationId`.
+ *   - `failed`            — non-recoverable error (e.g. fresh-create also
+ *                           failed, or a non-`UpstreamConversationEnded`
+ *                           error was thrown); session is `degraded`.
+ *   - `skipped`           — driver unavailable for this workspace; no
+ *                           upstream call made.
  */
 export interface RehydrationOutcome {
   sessionId: string;
   workspaceId: string;
   conversationId: string;
-  status: 'rehydrated' | 'failed' | 'skipped';
+  status: 'rehydrated' | 'rehydrated-fresh' | 'failed' | 'skipped';
   error?: string;
 }
 
@@ -117,30 +133,53 @@ async function rehydrateSingleSession(
     // fix.
     const displayApiSecret = sessionRepository.getDisplaySecret(sessionId);
 
-    const status = await agentDriver.openSession(sessionId, {
-      workspaceId,
-      // displayLines: we don't know the connected kiosks' viewport at
-      // boot. Pass 0 / omit; the system prompt will use its default.
-      // A subsequent device join updates this through the normal
-      // resync path.
-      ...(apiKey ? { apiKey } : {}),
-      ...(displayApiSecret ? { displayApiSecret } : {}),
-      existingConversationId: conversationId,
-    });
-
-    console.log(
-      `[AI] Rehydrated agent session ${sessionId} → conversation ${conversationId}`,
+    // Route through the shared attach-or-create helper (#348). On the
+    // happy path it just delegates to `openSession`; on
+    // `UpstreamConversationEndedError` it stashes the dead id, clears
+    // the live pointer, and retries as a fresh-create — persisting the
+    // new id BEFORE we broadcast (the #347 persist-before-broadcast
+    // invariant). Any other error propagates and we fall into the
+    // `degraded` catch below.
+    const { status, freshCreated } = await attachOrCreateAgentSession(
+      sessionId,
+      {
+        workspaceId,
+        // displayLines: we don't know the connected kiosks' viewport at
+        // boot. Pass 0 / omit; the system prompt will use its default.
+        // A subsequent device join updates this through the normal
+        // resync path.
+        ...(apiKey ? { apiKey } : {}),
+        ...(displayApiSecret ? { displayApiSecret } : {}),
+        existingConversationId: conversationId,
+      },
+      { agentDriver, sessionRepository },
     );
 
-    // Broadcast the rehydrated state. Devices that reconnect later see
+    // `freshCreated` is the helper’s explicit signal that the original
+    // upstream conversation was dead and the fresh-create fallback (#348)
+    // spawned a new one. The outcome value is consumed by the boot summary
+    // log and (eventually, #351) by the post-boot broadcast.
+    if (freshCreated) {
+      console.log(
+        `[AI] Fresh-created agent session ${sessionId} → conversation ${status.conversationId} (previous ${conversationId} ended upstream)`,
+      );
+    } else {
+      console.log(
+        `[AI] Rehydrated agent session ${sessionId} → conversation ${conversationId}`,
+      );
+    }
+
+    // Broadcast the (re)hydrated state. Devices that reconnect later see
     // the live status without waiting for the next utterance.
     broadcastSessionState(registry, sessionId, status, 'rehydrate:success');
 
     return {
       sessionId,
       workspaceId,
-      conversationId,
-      status: 'rehydrated',
+      // Report the live conversation id (which may differ from the
+      // persisted one after fresh-create).
+      conversationId: status.conversationId ?? conversationId,
+      status: freshCreated ? 'rehydrated-fresh' : 'rehydrated',
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

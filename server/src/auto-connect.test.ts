@@ -457,6 +457,163 @@ describe('autoConnectAI', () => {
       expect(callArgs[1]).not.toHaveProperty('existingConversationId');
     });
   });
+
+  describe('fresh-create fallback (issue #348)', () => {
+    /**
+     * Production scenario: a session row has a persisted `aiConversationId`
+     * that points at an OpenHands conversation whose sandbox has already
+     * been torn down. The startup rehydration pass either missed this
+     * session (no device joined at boot) or already failed. A kiosk then
+     * registers, auto-connect fires, attach throws
+     * `UpstreamConversationEndedError`, and `attachOrCreateAgentSession`
+     * (#348) transparently spawns a fresh upstream conversation and
+     * persists the new id BEFORE we broadcast `ready`.
+     */
+    test('upstream-ended attach triggers fresh-create; broadcast is connected, not degraded', async () => {
+      const { UpstreamConversationEndedError } = await import('./openhands.js');
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-348',
+        workspaceId: 'ws-1',
+        metadata: { aiConversationId: 'conv-dead' },
+      });
+
+      // Sequence two openSession calls: attach throws, fresh-create returns.
+      const seq: Array<() => Promise<AgentSessionStatus>> = [
+        async () => {
+          throw new UpstreamConversationEndedError('conv-dead');
+        },
+        async () => readyStatus('session-348', 'conv-fresh-new'),
+      ];
+      const driver = {
+        isAvailable: vi.fn().mockReturnValue(true),
+        hasSession: vi.fn().mockReturnValue(false),
+        openSession: vi.fn().mockImplementation(async () => {
+          const fn = seq.shift();
+          if (!fn) throw new Error('openSession over-called');
+          return fn();
+        }),
+        sendMessage: vi.fn(),
+        restartSession: vi.fn(),
+        getSessionStatus: vi.fn(),
+        closeSession: vi.fn(),
+      } as unknown as AgentDriver;
+
+      const registry = createMockRegistry();
+      const deps = createDependencies({ sessionRepository, agentDriver: driver, registry });
+
+      await autoConnectAI('session-348', 'ws-1', deps);
+
+      // Two openSession calls: attach (with existing id) and fresh-create
+      // (without).
+      expect(driver.openSession).toHaveBeenCalledTimes(2);
+      const calls = (driver.openSession as ReturnType<typeof vi.fn>).mock.calls;
+      expect(calls[0][1]).toEqual(expect.objectContaining({ existingConversationId: 'conv-dead' }));
+      expect(calls[1][1]).not.toHaveProperty('existingConversationId');
+
+      // Helper-driven metadata writes: stash dead id then persist new id.
+      // BOTH happen before the broadcast (persist-before-broadcast invariant).
+      const metaCalls = (sessionRepository.updateMetadata as ReturnType<typeof vi.fn>).mock.calls;
+      expect(metaCalls).toEqual([
+        ['session-348', { aiConversationId: undefined, previousAiConversationId: 'conv-dead' }],
+        ['session-348', { aiConversationId: 'conv-fresh-new' }],
+      ]);
+
+      // The broadcast envelope must be `connected: true` (not degraded).
+      const broadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls;
+      const aiStatusMessages = broadcasts
+        .map((c) => c[1] as { type?: string; connected?: boolean; conversationId?: string; error?: string })
+        .filter((m) => m.type === 'session-ai-status');
+      const finalAiStatus = aiStatusMessages[aiStatusMessages.length - 1];
+      expect(finalAiStatus.connected).toBe(true);
+      expect(finalAiStatus.conversationId).toBe('conv-fresh-new');
+      expect(finalAiStatus.error).toBeUndefined();
+      // And no `degraded` session-state broadcast.
+      const degraded = broadcasts
+        .map((c) => c[1] as { type?: string; ai?: AgentSessionStatus })
+        .find((m) => m.type === 'session-state' && m.ai?.state === 'degraded');
+      expect(degraded).toBeUndefined();
+    });
+
+    test('non-Upstream error does NOT trigger fresh-create; still degrades cleanly', async () => {
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-blip',
+        workspaceId: 'ws-1',
+        metadata: { aiConversationId: 'conv-live' },
+      });
+      const driver = createMockAgentDriver({
+        shouldThrow: true,
+        throwMessage: 'unrelated REST blip',
+      });
+      const registry = createMockRegistry();
+      const deps = createDependencies({ sessionRepository, agentDriver: driver, registry });
+
+      await autoConnectAI('session-blip', 'ws-1', deps);
+
+      // Exactly one openSession call: NO retry.
+      expect(driver.openSession).toHaveBeenCalledTimes(1);
+      // No metadata mutation: persisted id stays untouched.
+      expect(sessionRepository.updateMetadata).not.toHaveBeenCalled();
+      // Degraded broadcast emitted.
+      const broadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls;
+      const degraded = broadcasts
+        .map((c) => c[1] as { type?: string; ai?: AgentSessionStatus })
+        .find((m) => m.type === 'session-state' && m.ai?.state === 'degraded');
+      expect(degraded).toBeDefined();
+    });
+
+    test('upstream-ended then fresh-create ALSO fails: clean degraded broadcast, no third retry', async () => {
+      const { UpstreamConversationEndedError } = await import('./openhands.js');
+      const sessionRepository = createMockSessionRepository([{ id: 'device-1' }]);
+      (sessionRepository.findById as ReturnType<typeof vi.fn>).mockReturnValue({
+        id: 'session-doomed',
+        workspaceId: 'ws-1',
+        metadata: { aiConversationId: 'conv-dead' },
+      });
+      const seq: Array<() => Promise<AgentSessionStatus>> = [
+        async () => {
+          throw new UpstreamConversationEndedError('conv-dead');
+        },
+        async () => {
+          throw new Error('fresh-create rejected by upstream');
+        },
+      ];
+      const driver = {
+        isAvailable: vi.fn().mockReturnValue(true),
+        hasSession: vi.fn().mockReturnValue(false),
+        openSession: vi.fn().mockImplementation(async () => {
+          const fn = seq.shift();
+          if (!fn) throw new Error('openSession over-called');
+          return fn();
+        }),
+        sendMessage: vi.fn(),
+        restartSession: vi.fn(),
+        getSessionStatus: vi.fn(),
+        closeSession: vi.fn(),
+      } as unknown as AgentDriver;
+      const registry = createMockRegistry();
+      const deps = createDependencies({ sessionRepository, agentDriver: driver, registry });
+
+      await autoConnectAI('session-doomed', 'ws-1', deps);
+
+      // Exactly two openSession calls: attach + fresh-create. No third retry.
+      expect(driver.openSession).toHaveBeenCalledTimes(2);
+      // Stash write happened (helper knows the old id is dead even when
+      // fresh-create then fails); no persist write because the second
+      // call rejected before status was available.
+      const metaCalls = (sessionRepository.updateMetadata as ReturnType<typeof vi.fn>).mock.calls;
+      expect(metaCalls).toEqual([
+        ['session-doomed', { aiConversationId: undefined, previousAiConversationId: 'conv-dead' }],
+      ]);
+      // Degraded broadcast emitted by the autoConnectAI catch.
+      const broadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls;
+      const degraded = broadcasts
+        .map((c) => c[1] as { type?: string; ai?: AgentSessionStatus })
+        .find((m) => m.type === 'session-state' && m.ai?.state === 'degraded');
+      expect(degraded).toBeDefined();
+    });
+  });
 });
 
 describe('shouldAutoConnect', () => {

@@ -18,6 +18,24 @@ export interface SessionTtsSettings {
  */
 export interface SessionMetadata {
   aiConversationId?: string;
+  /**
+   * Last upstream OpenHands conversation id that was attached to this
+   * session before the fresh-create fallback in #348 spawned a new one.
+   *
+   * Why retain it?
+   * - Issue #349 wires `buildReplaySuffix` into the fresh-create path so
+   *   the new conversation can carry forward context from the old one.
+   *   It needs to know which id to read from, and the live
+   *   `aiConversationId` will already point at the new conversation by
+   *   then.
+   * - Diagnostics: when a session shows up "fresh-created at boot," the
+   *   previous id is exactly what an operator needs to grep for in OH
+   *   logs to understand why attach failed.
+   *
+   * Stability: read by `agent-attach-or-create.ts` and (eventually) the
+   * carry-forward replay path. No other writer should mutate this field.
+   */
+  previousAiConversationId?: string;
   displayContent?: {
     type: 'markdown' | 'image';
     content: string;
