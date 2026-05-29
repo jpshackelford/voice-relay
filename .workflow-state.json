@@ -1,43 +1,29 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "20ba68e",
-        "issue": 347,
-        "started": "2026-05-29T00:06:22.614810+00:00"
-      },
-      {
-        "conv_id": "8391b09",
-        "issue": 348,
-        "started": "2026-05-29T00:06:22.614810+00:00"
-      },
-      {
-        "conv_id": "0d87ed2",
-        "issue": 349,
-        "started": "2026-05-29T00:06:22.614810+00:00"
-      },
-      {
-        "conv_id": "c9c9242",
-        "issue": 350,
-        "started": "2026-05-29T00:06:22.614810+00:00"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
-        "conv_id": "4f91505",
-        "issue": 346,
-        "started": "2026-05-28T23:50:48.045698+00:00"
+        "conv_id": "971965c",
+        "issue": 350,
+        "started": "2026-05-29T00:38:13.305820+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "b2b3e05",
+        "pr": 353,
+        "type": "merge",
+        "started": "2026-05-29T00:38:13.305820+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T00:06:22.614810+00:00",
+  "last_updated": "2026-05-29T00:38:13.305820+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -173,6 +159,78 @@
       "finished": "2026-05-28T23:50:48.045698+00:00",
       "status": "success",
       "outcome": "Expanded #346 with technical detail; ready + priority:medium + client labels added"
+    },
+    {
+      "conv_id": "20ba68e",
+      "type": "expansion",
+      "issue": 347,
+      "started": "2026-05-29T00:06:22.614810+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Expanded #347; ready label added (per worklog b0d04bf)"
+    },
+    {
+      "conv_id": "8391b09",
+      "type": "expansion",
+      "issue": 348,
+      "started": "2026-05-29T00:06:22.614810+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Expanded #348; ready label added (per worklog 7fc76d2)"
+    },
+    {
+      "conv_id": "0d87ed2",
+      "type": "expansion",
+      "issue": 349,
+      "started": "2026-05-29T00:06:22.614810+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Expanded #349; ready label added (per worklog 09adc36)"
+    },
+    {
+      "conv_id": "c9c9242",
+      "type": "expansion",
+      "issue": 350,
+      "started": "2026-05-29T00:06:22.614810+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Expanded #350; ready label added (per worklog 0f67476)"
+    },
+    {
+      "conv_id": "4f91505",
+      "type": "implementation",
+      "issue": 346,
+      "started": "2026-05-28T23:50:48.045698+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Implementation of #346 \u2192 PR #352 opened, reviewed, merged (squash 9362a61). #346 closed."
+    },
+    {
+      "conv_id": "unknown",
+      "type": "expansion",
+      "issue": 351,
+      "started": "2026-05-29T00:08:00+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Expanded #351 (per worklog 4db81e8). Conv ID not captured in state."
+    },
+    {
+      "conv_id": "unknown",
+      "type": "merge",
+      "pr": 352,
+      "started": "2026-05-29T00:23:00+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Merged PR #352 (#346 closed) at 00:24Z (commit 9362a61)."
+    },
+    {
+      "conv_id": "unknown",
+      "type": "implementation",
+      "issue": 347,
+      "started": "2026-05-29T00:09:00+00:00",
+      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "status": "success",
+      "outcome": "Implementation of #347 \u2192 PR #353 opened (CI green, \ud83d\udfe2 automated review). Conv ID not captured."
     }
   ],
   "quiet_ticks": 0

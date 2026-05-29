@@ -352,3 +352,34 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:38 UTC - Orchestrator
+
+🚀 **Spawned: 2 Workers (parallel)**
+
+State reconciliation: 4 expansion workers (`20ba68e`/#347, `8391b09`/#348, `0d87ed2`/#349, `c9c9242`/#350) and 1 impl worker (`4f91505`/#346) finished cleanly while state file was last touched at 00:06Z. Three additional workers (expansion #351, impl #347 → PR #353, merge PR #352) ran outside this orchestrator's state tracking and have also finished — recorded in `completed[]` with `conv_id: "unknown"` for audit.
+
+**⚠️ Race-condition note:** between the orchestrator's pre-flight check (00:33Z) and the post-spawn rebase (00:39Z), an unrelated merge worker (committed [`3dbc968`](https://github.com/jpshackelford/voice-relay/commit/3dbc968)) squash-merged PR #353. The merge worker I spawned (`b2b3e05`) will detect the already-merged state on first pre-flight re-check and exit cleanly per its prompt. **PR #353 is merged. #347 is closed.** The sibling chain (#348 → #349, #351 sequenced) is now unblocked for the next tick.
+
+**Active Workers (post-spawn):**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `b2b3e05` | merge | [PR #353](https://github.com/jpshackelford/voice-relay/pull/353) | redundant — PR already merged; worker will no-op-exit |
+| `971965c` | implementation | [Issue #350](https://github.com/jpshackelford/voice-relay/issues/350) — refresh 401 → rebind | **NEW** |
+
+**Spawned: Merge Worker — PR #353** ([`b2b3e05`](https://app.all-hands.dev/conversations/b2b3e05bba554e7cae45870d712a2684))
+Pre-flight at spawn time: `mergeable=CLEAN`, `mergeStateStatus=CLEAN`, isDraft=false, all CI green, 🟢 reviewer verdict, 0 threads, no blocking labels. Server-only fix, no schema/migration risk. Now superseded by the earlier merge worker.
+
+**Spawned: Implementation Worker — Issue #350** ([`971965c`](https://app.all-hands.dev/conversations/971965c67bf845a783acea52ea5cb028))
+Independent of the #347/#348/#349/#351 chain (separate code path in `openhands.ts`'s refresh flow). Approach per the expansion comment: new `UpstreamCredentialsLostError`, translate 401 NoCredentialsError, route through `rebindSession`. ~30 LOC prod + 3 tests. RebindWindowTracker (#296) already caps blast radius.
+
+**Slot accounting after spawn:**
+- expansion: 0/4 (no issues need expansion 🎉)
+- implementation: 1/1 (full — #350)
+- review: 1/2 (merge worker on PR #353, will exit)
+
+**Next tick:** dispatch implementation worker for #348 (priority:high, now unblocked by merged PR #353), once impl slot frees up or the merge worker for #353 exits. If #350 PR opens with comments, dispatch review worker.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
