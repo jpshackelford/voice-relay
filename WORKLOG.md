@@ -230,3 +230,35 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 00:10 UTC - Implementation worker (#346 kiosk footer ticker polish)
+
+✅ Implemented all five UX deltas from #346 in [PR #352](https://github.com/jpshackelford/voice-relay/pull/352).
+
+| Item | Summary | Commit |
+|------|---------|--------|
+| 5 | Rename `.tts-toggle-setting` → `.settings-toggle` and apply to both WorkspaceHome toggle rows (kiosk-tickers row previously had bespoke class names with no CSS rules → smaller native checkbox) | `ed86a5e` |
+| 4 | Action ticker emoji prefix (`🔧 Execute Bash`), observation events filtered, `✅` appended when paired observation arrives. Hoisted `isObservationKind` into `utils/formatActionKind.ts` to DRY up the heuristic shared with `AgentEventCard.tsx`. | `237f476` |
+| 3 | CSS-only: drop blue tint from `.kiosk-ticker-action`, reserve `padding-right: 4rem` for the sparkle, pre-reserve `padding-left: 4rem` on the transcription strip for the oscilloscope (item 1). | `b8388a2` |
+| 2 | New `MarqueeTicker` component — measured-pixel-width queue/marquee for the transcription strip. `useLayoutEffect` measures `scrollWidth - clientWidth` and translates the inner span with a 200ms linear transition for the right→left slide motion. | `2b8d413` |
+| 1 | New `useFauxAudioActivity({ pulse, decayMs })` hook + extended `Oscilloscope` (faux mode when `analyser=null`) + new purple-circle `.kiosk-oscilloscope-indicator` at bottom-left. Pulse derived from `transcriptionTickerText` changes since the kiosk has no mic stream. | `664458e` |
+
+CI: ✅ Server Tests / ✅ Client Tests / ✅ Build Client / ✅ E2E Tests / ✅ lint-pr-title.
+
+Tests added: 31 new (1018 total, was 987).
+- `MarqueeTicker.test.tsx` (7), `useFauxAudioActivity.test.ts` (6), `formatActionKind.test.ts` (9).
+- 7 new tests in `KioskMode.test.tsx`, 2 in `Oscilloscope.test.tsx`.
+
+Coverage on new code: `formatActionKind.ts` 100%, `useFauxAudioActivity.ts` 97.7% stmts / 84.2% branch.
+
+Open questions captured in PR description (deferred to author):
+1. Item 3 — original issue says "left side" for the action display but implementation is on the right; assumed typo and kept current sides.
+2. Item 1 — faux vs real-audio. Faux ships now; real-mic plumbing deferred as a follow-up.
+3. Item 4 — sticky checkmark behavior is one-shot per most-recent action (replaced when next action arrives). Confirms the acceptance criterion.
+4. Item 5 — went with rename to `.settings-toggle*` for semantic accuracy (TTS row was only existing call site).
+
+PR marked ready for review. Review handling is a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
