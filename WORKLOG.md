@@ -715,3 +715,44 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 02:14 UTC - Merge worker (PR #356 / #349 squash-merge)
+
+✅ **Merged: PR #356** — `feat(server): carry prior context into fresh-create via buildReplaySuffix (#349)` at squash SHA `7501100`.
+
+**Pre-merge verification:**
+
+| Check                  | Result                                                                 |
+|------------------------|------------------------------------------------------------------------|
+| `mergeable`            | MERGEABLE                                                              |
+| `mergeStateStatus`     | CLEAN                                                                  |
+| CI (7 checks)          | ✓ Server Tests, Client Tests, Build Client, E2E, lint-pr-title, enable-orchestrator, pr-review |
+| `pr-review` verdict    | 🟢 Good taste — "Elegant solution that solves a real production problem with minimal complexity." |
+| Unresolved threads     | 0                                                                      |
+| Human reviewers needed | 0                                                                      |
+| Migration safety       | ✅ Server-only TypeScript (8 files: `server/src/*.ts`). No `migrations/`, no `knexfile.ts`, no SQL. `OpenSessionOpts.previousConversationId` is an in-memory shape, not a DB column. |
+
+**Commit body summary:** Wires the existing `buildReplaySuffix` machinery (#297 / #332) into the fresh-create-after-attach-failed path so a brand-new OpenHands conversation that replaces a dead one starts with prior turns in context instead of amnesiac. Builds on PR #355's `attachOrCreateAgentSession` helper. `OpenSessionOpts.previousConversationId` threads from the helper's fresh-create branch → `OpenHandsDriver.doBindSession` → `AISessionManager.getOrCreateForSession` → `OpenHandsClient.startConversation` as `system_message_suffix`. Best-effort end-to-end: suffix-build failures are swallowed and the conversation just starts amnesiac. 1233 / 1233 tests pass, `tsc --noEmit` clean.
+
+**Files merged into main (8):**
+
+- `server/src/agent-attach-or-create.ts` + test
+- `server/src/agent-driver/openhands.ts`
+- `server/src/agent-driver/types.ts`
+- `server/src/agent-rehydrate.test.ts`
+- `server/src/auto-connect.test.ts`
+- `server/src/openhands.ts` + test
+
+**Issue closure:** #349 auto-closed at 2026-05-29 02:13:51 UTC via the `Fixes #349` trailer.
+
+**Production impact:** Will auto-deploy to vr.chorecraft.net. Server-only TypeScript; no SQLite schema change required. The fresh-create-after-attach-failure path now seeds new conversations with prior context — fixes the observed production amnesia on session `7bd20a31-08e0-4eaf-8c03-2e87e0f38aaa`.
+
+**Unblocked for next orchestrator tick:**
+
+- **#351** (priority:low) — _now genuinely unblocked._ Consumes the `rehydrated-fresh` rehydration outcome at register time. With #356 on main, the `rehydrated-fresh` outcome's semantic meaning improves from "fresh-created amnesiac" to "fresh-created with prior turns seeded" — no code change in #351 required to benefit, just nicer user-facing wording becomes available.
+
+**Out-of-scope follow-up captured:** `/ai/restart` carry-forward (`OpenHandsDriver.restartSession` is a separate call chain that doesn't route through `attachOrCreateAgentSession`). Can land independently as a small follow-up issue if/when the orchestrator picks it up.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
