@@ -514,3 +514,25 @@ are tracked separately as `priority:high`.
 **`quiet_ticks` reset:** 0 → 0 (this tick is productive: spawned impl worker).
 
 ---
+
+### 2026-05-29 14:13 UTC - Implementation Worker (#362)
+
+🚧 **PR #368 opened (now ready for review)** — [fix(server): refresh opts on every OpenHandsAgentDriver.openSession call](https://github.com/jpshackelford/voice-relay/pull/368)
+
+| Step | Result |
+|------|--------|
+| Branch | `fix/362-opensession-opts-discarded` off fresh `main` at `1e88fbe` (picks up #367's three-phase rebind cleanly; no conflicts). |
+| Fix | Two-line `state.opts = opts` on the `else` branch of `OpenHandsAgentDriver.openSession` (`server/src/agent-driver/openhands.ts`), plus a comment pointing at #362 / #357 for future readers. Latest opts always replace cached values; upstream bind is still single-flight + idempotent via `mgr.hasSessionAI` / `lazyBindSession`. |
+| JSDoc | `AgentDriver.openSession` doc in `server/src/agent-driver/types.ts` rewritten to spell out the contract: latest opts win, upstream bind single-flight, refreshed opts observed by next `restartSession` / lazy-bind. |
+| Tests | +2 (and tightened wording on T-2.2.4). Both new tests **confirmed failing on pre-fix code** (stash-and-rerun): `expected 'conv-old' to be undefined` and `expected 'conv-A' to be undefined` — exactly the stale-attach pathology described in the issue. Both pass after the fix. |
+| Test suite | `npm test -w server` → 1235 / 1235 across 57 files; `npx tsc --noEmit` clean. |
+| CI | Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅ · enable-orchestrator ✅. All green. |
+| Acceptance criteria | All 5 from issue body met (see PR description for the per-AC mapping). |
+| Migration check | ✅ No DB / schema changes (pure in-memory state refresh). Auto-deploy to `vr.chorecraft.net` safe. |
+| Draft → Ready | Marked ready at 14:13 UTC after green CI; review-bot dispatch is the next orchestrator concern. |
+
+📌 **Follow-ups noted:**
+- The fix is observable in production only when a caller actually invokes `openSession` twice with different opts. No code path does that today — the #348/#358 helper that exercised it was rolled back in #357. The unblocking is for **future** work: re-attempt of #358 (fresh-create fallback for `MISSING` / `ERROR` sandboxes once #365's resume path is exhausted) and any other retry-with-different-opts pattern.
+- Per the orchestrator note, **#364 is now unblocked** for sequencing — it touches the same `server/src/openhands.ts` failure-log call sites and was being serialized after #362 to avoid rebase churn. Now that #362's diff is small and isolated to `agent-driver/`, the rebase risk for #364 is minimal.
+
+---
