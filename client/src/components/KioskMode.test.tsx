@@ -1591,6 +1591,138 @@ describe('KioskMode', () => {
       expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('newer action');
     });
 
+    // ====================================================================
+    // Issue #346 item 4: emoji prefix + paired-observation checkmark
+    // ====================================================================
+    it('prefixes the action ticker with the kind-based emoji', () => {
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      // 🔧 is the icon for terminal/Bash actions per getActionIcon().
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('🔧');
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('Running ls');
+    });
+
+    it('falls back to formatted kind when summary is empty', () => {
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'FileEditorAction', summary: '' }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('📁');
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('File Editor');
+    });
+
+    it('ignores observation-side entries when picking the most recent action', () => {
+      // The action stream interleaves action + observation events. The ticker
+      // should only render action-side entries; the observation must not
+      // shadow the action's title.
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'old action' }),
+        makeAction({
+          id: 'o1',
+          kind: 'ExecuteBashObservation',
+          summary: 'observation text',
+          action_id: 'a1',
+        }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      const text = screen.getByTestId('kiosk-ticker-action').textContent ?? '';
+      expect(text).toContain('old action');
+      expect(text).not.toContain('observation text');
+    });
+
+    it('appends a green checkmark when the paired observation has arrived', () => {
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),
+        makeAction({ id: 'o1', kind: 'ExecuteBashObservation', summary: '', action_id: 'a1' }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).toContain('✅');
+    });
+
+    // ====================================================================
+    // Issue #346 item 1: faux oscilloscope indicator
+    // ====================================================================
+    it('renders the oscilloscope indicator when tickers are enabled', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-oscilloscope-indicator')).toBeDefined();
+    });
+
+    it('does not render the oscilloscope indicator when tickers are disabled', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled={false}
+          />
+        );
+      });
+      expect(screen.queryByTestId('kiosk-oscilloscope-indicator')).toBeNull();
+    });
+
+    it('does not append a checkmark when the observation has not arrived yet', () => {
+      const actions: AgentAction[] = [
+        makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),
+      ];
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            agentActions={actions}
+          />
+        );
+      });
+      expect(screen.getByTestId('kiosk-ticker-action').textContent).not.toContain('✅');
+    });
+
     it('renders the connection indicator inside the kiosk display (top-right slot)', () => {
       // The connection dot should be a descendant of `.kiosk-display`, which
       // makes the CSS top-right positioning rule applicable. (Issue #340: dot

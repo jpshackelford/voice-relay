@@ -7,9 +7,13 @@ import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
+import { MarqueeTicker } from './MarqueeTicker';
+import { Oscilloscope } from './Oscilloscope';
+import { useFauxAudioActivity } from '../hooks/useFauxAudioActivity';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
-import { formatActionKind } from '../utils/formatActionKind';
+import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
+import { getActionIcon } from '../hooks/useAgentActions';
 import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
 import type { AIState } from '../hooks/useAI';
 
@@ -480,6 +484,19 @@ export function KioskMode({
     return mostRecentForeignUtterance?.text ?? '';
   }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
 
+  // Issue #346 item 1 — faux audio activity for the left-side oscilloscope.
+  // We don't have a real mic stream on the kiosk, so we derive a "pulse"
+  // signal from transcription event arrival: any time the visible
+  // transcription text changes (new partial, new utterance), bump the
+  // pulse counter. The useFauxAudioActivity hook reads pulse and produces
+  // a sine-wave dataArray whose amplitude decays back to flat-line.
+  const [fauxPulse, setFauxPulse] = useState(0);
+  useEffect(() => {
+    if (transcriptionTickerText.length === 0) return;
+    setFauxPulse((p) => p + 1);
+  }, [transcriptionTickerText]);
+  const fauxAudio = useFauxAudioActivity({ pulse: fauxPulse });
+
   // Refinement 1 from the expansion: MessageEvent is filtered out before it
   // reaches `agentActions`. The AI reply lands in the utterance stream as a
   // synthetic `senderId === 'ai'` row instead, so that's where we look.
@@ -495,14 +512,51 @@ export function KioskMode({
     return max;
   }, [utterances]);
 
+  // Issue #346 item 4: mirror the sidebar AgentEventCard pattern in the ticker:
+  //   - Skip observation-side entries entirely (their corresponding action
+  //     already represents the work).
+  //   - Prefix the action's display string with the kind-based emoji from
+  //     `getActionIcon(kind)` for at-a-glance visual parity with the card view.
+  //   - Append a green checkmark once the matching observation has arrived,
+  //     correlated via `observation.action_id === action.id` — the canonical
+  //     pairing key documented in `pairAgentEvents.ts`. We only need the
+  //     most-recent-action's status here, not the full paired-timeline build,
+  //     so we do a single linear scan instead of calling `pairAgentEvents()`.
   const actionTickerText = useMemo(() => {
     if (!kioskFooterTickersEnabled) return '';
     if (agentActions.length === 0) return '';
-    const lastAction = agentActions[agentActions.length - 1];
+
+    // Find the most recent action-side entry (walk backwards, skipping
+    // observations). The "most recent" semantic stays the same as before;
+    // we just filter the observation half of each pair out of consideration.
+    let lastAction: AgentAction | null = null;
+    for (let i = agentActions.length - 1; i >= 0; i--) {
+      const candidate = agentActions[i];
+      if (isObservationKind(candidate.kind)) continue;
+      lastAction = candidate;
+      break;
+    }
     if (!lastAction) return '';
+
+    // Preserve the existing staleness gate: if the AI has spoken (synthetic
+    // 'ai'-sender utterance) after this action, the AI handed the floor back
+    // and the ticker should clear.
     const actionTime = parseOhTimestamp(lastAction.timestamp)?.getTime() ?? 0;
     if (mostRecentAiUtteranceTime > actionTime) return '';
-    return lastAction.summary || formatActionKind(lastAction.kind);
+
+    // Has the matching observation arrived? Scan once for any entry whose
+    // `action_id` points at this action's id.
+    let completed = false;
+    for (const a of agentActions) {
+      if (a.action_id === lastAction.id) {
+        completed = true;
+        break;
+      }
+    }
+
+    const icon = getActionIcon(lastAction.kind);
+    const title = lastAction.summary || formatActionKind(lastAction.kind);
+    return `${icon} ${title}${completed ? ' ✅' : ''}`;
   }, [kioskFooterTickersEnabled, agentActions, mostRecentAiUtteranceTime]);
 
   const kioskDevices = devices.filter(d => d.mode === 'kiosk');
@@ -911,12 +965,46 @@ export function KioskMode({
         */}
         {kioskFooterTickersEnabled && !qrHasPriority && (
           <>
+            {/*
+              Issue #346 item 1: faux oscilloscope indicator anchored at the
+              bottom-left of .kiosk-display. Visual counterpart to the
+              .kiosk-ai-status sparkle on the bottom-right. The Oscilloscope
+              draws a flat line while there's no transcription activity and
+              a sine-wave waveform while transcription events are streaming
+              (amplitude driven by useFauxAudioActivity since the kiosk has
+              no real mic stream — see hook docstring for the v1 rationale).
+            */}
+            <div
+              className="kiosk-oscilloscope-indicator"
+              data-testid="kiosk-oscilloscope-indicator"
+            >
+              <Oscilloscope
+                analyser={null}
+                dataArray={fauxAudio.dataArray}
+                isActive={fauxAudio.isActive}
+                width={48}
+                height={48}
+                color="#a855f7"
+                lineWidth={1.5}
+                glowIntensity={6}
+              />
+            </div>
             <div
               className="kiosk-ticker kiosk-ticker-transcription"
-              data-testid="kiosk-ticker-transcription"
               aria-live="off"
             >
-              <span className="kiosk-ticker-text">{transcriptionTickerText}</span>
+              {/*
+                Issue #346 item 2: the transcription strip is a fixed-width
+                marquee. As partial-update text grows, older content scrolls
+                off the left edge instead of being ellipsis-truncated. The
+                MarqueeTicker component owns the measure-and-translate math;
+                we just feed it the latest text.
+              */}
+              <MarqueeTicker
+                text={transcriptionTickerText}
+                data-testid="kiosk-ticker-transcription"
+                className="kiosk-ticker-text"
+              />
             </div>
             <div
               className="kiosk-ticker kiosk-ticker-action"

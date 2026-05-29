@@ -1,6 +1,15 @@
 import { useRef, useEffect } from 'react';
 
 interface OscilloscopeProps {
+  /**
+   * AnalyserNode to pull real time-domain data from. When provided, the
+   * Oscilloscope calls `analyser.getByteTimeDomainData(dataArray)` each
+   * frame to refresh the buffer from the audio graph.
+   *
+   * When `null` (issue #346 item 1: faux mode), the component renders
+   * `dataArray` as-is — the caller (e.g. `useFauxAudioActivity`) owns
+   * the buffer's contents and updates it on its own RAF loop.
+   */
   analyser: AnalyserNode | null;
   dataArray: Uint8Array<ArrayBuffer> | null;
   isActive: boolean;
@@ -51,10 +60,15 @@ export function Oscilloscope({
 
       ctx.beginPath();
 
-      if (isActive && analyser && dataArray) {
-        // Get current waveform data
-        analyser.getByteTimeDomainData(dataArray);
-        
+      if (isActive && dataArray) {
+        // Real-audio path: pull a fresh snapshot from the AnalyserNode.
+        // Faux path (issue #346 item 1): when analyser is null, the caller
+        // owns the buffer contents (see useFauxAudioActivity) — render them
+        // as-is without overwriting.
+        if (analyser) {
+          analyser.getByteTimeDomainData(dataArray);
+        }
+
         const bufferLength = dataArray.length;
         const sliceWidth = width / bufferLength;
         let x = 0;

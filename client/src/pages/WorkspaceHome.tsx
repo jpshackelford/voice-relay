@@ -1213,14 +1213,14 @@ export function WorkspaceHome() {
               </div>
 
               {/* TTS Enable/Disable Toggle */}
-              <div className="setting-row tts-toggle-setting">
+              <div className="setting-row settings-toggle">
                 <label>
                   <input
                     type="checkbox"
                     checked={settings?.elevenlabsTtsEnabled ?? false}
                     onChange={(e) => handleTtsToggle(e.target.checked)}
                     disabled={!settings?.hasElevenlabsApiKey}
-                    className="tts-checkbox"
+                    className="settings-toggle-checkbox"
                   />
                   <span className="checkbox-label">Enable ElevenLabs TTS</span>
                 </label>
@@ -1229,14 +1229,15 @@ export function WorkspaceHome() {
                 </span>
               </div>
 
-              {/* Issue #340: kiosk footer tickers toggle */}
-              <div className="setting-row kiosk-tickers-setting">
+              {/* Issue #340: kiosk footer tickers toggle — shares .settings-toggle*
+                  styling with the TTS toggle above for visual parity (issue #346 item 5). */}
+              <div className="setting-row settings-toggle">
                 <label>
                   <input
                     type="checkbox"
                     checked={settings?.kioskFooterTickersEnabled ?? false}
                     onChange={(e) => handleKioskTickersToggle(e.target.checked)}
-                    className="kiosk-tickers-checkbox"
+                    className="settings-toggle-checkbox"
                   />
                   <span className="checkbox-label">Show transcription &amp; AI action tickers on kiosk display</span>
                 </label>

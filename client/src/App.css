@@ -1684,6 +1684,34 @@ header {
   z-index: 10;
 }
 
+/*
+ * Issue #346 item 1: faux oscilloscope indicator, the left-side visual
+ * counterpart to .kiosk-ai-status. Same purple-circle treatment so the
+ * two indicators read as a pair; the canvas inside renders a flat line
+ * during silence and a waveform while transcription events are landing.
+ */
+.kiosk-oscilloscope-indicator {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(168, 85, 247, 0.2);
+  border: 2px solid #a855f7;
+  border-radius: 50%;
+  z-index: 10;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kiosk-oscilloscope-indicator .oscilloscope-canvas {
+  width: 100%;
+  height: 100%;
+}
+
 .kiosk-ai-status.connecting {
   animation: ai-connecting 1.5s ease-in-out infinite;
   border-color: #f39c12;
@@ -3819,6 +3847,11 @@ header {
   width: 60%;
   text-align: left;
   border-top-right-radius: 0.5rem;
+  /* Issue #346 item 1: reserve ~4rem on the left edge for the faux
+     oscilloscope indicator (.kiosk-oscilloscope-indicator: 3rem × 3rem +
+     1rem inset), mirroring the right-side reservation for the AI-status
+     sparkle. */
+  padding-left: 4rem;
 }
 
 .kiosk-ticker-action {
@@ -3826,10 +3859,12 @@ header {
   width: 40%;
   text-align: right;
   border-top-left-radius: 0.5rem;
-  /* Use a subtly distinct tint so the user can tell at a glance which side is
-     the AI's. We don't introduce a new color token here -- just reuse the
-     accent that other AI-related affordances use. */
-  background: rgba(0, 80, 160, 0.45);
+  /* Issue #346 item 3: drop the blue tint so both ticker strips share the
+     same transparent-black background (inherited from .kiosk-ticker), and
+     reserve ~4rem on the right edge so the AI-status sparkle indicator
+     (.kiosk-ai-status: 3rem × 3rem + 1rem inset) sits on a clean black
+     backdrop instead of overlapping the strip's text area. */
+  padding-right: 4rem;
 }
 
 .kiosk-ticker-text {
@@ -4286,25 +4321,31 @@ header {
   margin-top: 0.25rem;
 }
 
-.tts-toggle-setting {
+/*
+ * Generic settings-toggle pair, used by both the ElevenLabs TTS row and the
+ * kiosk footer-tickers row (issue #346 — toggle parity). Kept on a single
+ * class name so any future setting that needs a labelled checkbox + hint can
+ * reuse the same visual treatment without copy-pasting CSS.
+ */
+.settings-toggle {
   padding-top: 0.75rem;
 }
 
-.tts-toggle-setting label {
+.settings-toggle label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
 }
 
-.tts-checkbox {
+.settings-toggle-checkbox {
   width: 18px;
   height: 18px;
   accent-color: #3282b8;
   cursor: pointer;
 }
 
-.tts-checkbox:disabled {
+.settings-toggle-checkbox:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -4314,7 +4355,7 @@ header {
   color: #fff;
 }
 
-.tts-toggle-setting .setting-hint {
+.settings-toggle .setting-hint {
   margin-left: 26px;
 }
 

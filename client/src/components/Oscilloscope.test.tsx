@@ -285,4 +285,60 @@ describe('Oscilloscope', () => {
       expect(mockCanvasContext.clearRect).toHaveBeenCalledWith(0, 0, 300, 120);
     });
   });
+
+  // ======================================================================
+  // Issue #346 item 1: faux mode (analyser=null, dataArray pre-filled by
+  // an external source like useFauxAudioActivity).
+  // ======================================================================
+  describe('faux mode (no analyser)', () => {
+    it('renders the dataArray waveform without an analyser when active', async () => {
+      // Pre-fill the buffer with non-silence so we can confirm the waveform
+      // path was taken (moveTo/lineTo called) rather than the flat-line
+      // path. With analyser=null, the component must not blow up.
+      mockDataArray[0] = 100;
+      mockDataArray[1] = 200;
+      mockDataArray[2] = 50;
+
+      render(
+        <Oscilloscope
+          analyser={null}
+          dataArray={mockDataArray}
+          isActive={true}
+        />
+      );
+
+      await act(async () => {
+        animationFrameCallback?.(0);
+      });
+
+      // getByteTimeDomainData should NOT be called when there's no analyser.
+      expect(mockAnalyser.getByteTimeDomainData).not.toHaveBeenCalled();
+
+      // The waveform path should still be drawn from dataArray as-is.
+      expect(mockCanvasContext.moveTo).toHaveBeenCalled();
+      expect(mockCanvasContext.lineTo).toHaveBeenCalled();
+      expect(mockCanvasContext.stroke).toHaveBeenCalled();
+    });
+
+    it('still draws a flat baseline when inactive even without an analyser', async () => {
+      render(
+        <Oscilloscope
+          analyser={null}
+          dataArray={mockDataArray}
+          isActive={false}
+          width={300}
+          height={120}
+        />
+      );
+
+      await act(async () => {
+        animationFrameCallback?.(0);
+      });
+
+      // Flat-line path: a single moveTo + lineTo at y=height/2.
+      expect(mockCanvasContext.moveTo).toHaveBeenCalledWith(0, 60);
+      expect(mockCanvasContext.lineTo).toHaveBeenCalledWith(300, 60);
+      expect(mockAnalyser.getByteTimeDomainData).not.toHaveBeenCalled();
+    });
+  });
 });
