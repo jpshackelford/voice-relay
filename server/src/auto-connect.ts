@@ -19,7 +19,7 @@ import type { TtsService } from './tts/index.js';
 import type { SessionAIStatusMessage } from './types.js';
 import { isAnonymousSession } from './constants.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
-import { persistAiConversationId } from './sessions/persist-ai-conversation-id.js';
+import { attachOrCreateAgentSession } from './agent-attach-or-create.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -131,22 +131,23 @@ export async function autoConnectAI(
     // `attachExistingForSession` and preserves the on-server event log.
     const existingConversationId = sessionRepository.findById(sessionId)?.metadata?.aiConversationId;
 
-    // Open (and eagerly provision, for the OpenHands adapter) the agent session.
-    const status = await agentDriver.openSession(sessionId, {
-      workspaceId,
-      displayLines,
-      ...(apiKey ? { apiKey } : {}),
-      ...(displayApiSecret ? { displayApiSecret } : {}),
-      ...(existingConversationId ? { existingConversationId } : {}),
-    });
-
-    // Persist the OH conversation ID to session metadata so we can rehydrate
-    // events from OH REST after the live WS has died and our cached rows
-    // have been pruned. The in-memory map in AISessionManager is lost on
-    // server restart; the DB is the only durable home. Shared with the
-    // user-driven restart path (`server/src/sessions/ai-router.ts`) — see
-    // issue #347 and `persist-ai-conversation-id.ts` for the contract.
-    persistAiConversationId(sessionRepository, sessionId, status);
+    // Open (and eagerly provision, for the OpenHands adapter) the agent
+    // session. Routed through `attachOrCreateAgentSession` (#348) so an
+    // upstream-ended attach falls back to a fresh-create transparently
+    // rather than degrading the session. The helper also takes care of
+    // persisting `aiConversationId` before we broadcast, preserving the
+    // persist-before-broadcast invariant (#347).
+    const { status } = await attachOrCreateAgentSession(
+      sessionId,
+      {
+        workspaceId,
+        displayLines,
+        ...(apiKey ? { apiKey } : {}),
+        ...(displayApiSecret ? { displayApiSecret } : {}),
+        ...(existingConversationId ? { existingConversationId } : {}),
+      },
+      { agentDriver, sessionRepository },
+    );
 
     // Broadcast connected status
     const connectedStatus: SessionAIStatusMessage = {
