@@ -1028,3 +1028,64 @@ The two clean reverts naturally removed an in-flight `slots.implementation` entr
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-05-29 03:21 UTC - Orchestrator (manual `/orchestrate`)
+
+🔒 **Auto-disabled due to inactivity** (2 consecutive quiet ticks).
+
+**State at this tick:**
+
+| Signal | Value |
+|---|---|
+| Open PRs | 0 (PR #359 merged at 02:51Z, #357 auto-closed) |
+| Active workers | 0 / 0 / 0 (expansion / impl / review) |
+| Open issues | 8, **all `on-hold`** — see breakdown below |
+| `quiet_ticks` (pre-tick) | 1 |
+| `quiet_ticks` (post-tick) | 2 → auto-disable triggered |
+
+**Open issues — every one carries `on-hold`, so neither the expansion nor implementation dispatcher has anything to pick up:**
+
+| # | Title (truncated) | Labels |
+|---|---|---|
+| 358 | re-do fresh-create fallback for ended upstream conversations | `enhancement`, `priority:high`, `on-hold`, `scope:server-only`, `server` |
+| 351 | startup rehydration failures are silent until the user types | `bug`, `ready`, `priority:low`, `on-hold`, `scope:server-only` |
+| 302 | Pause sandbox on extended Voice Relay workspace idle | `enhancement`, `priority:low`, `on-hold` |
+| 301 | Granular startup status UX | `enhancement`, `priority:low`, `on-hold`, `client` |
+| 300 | Snapshot /workspace to S3 on agent idle | `enhancement`, `priority:medium`, `on-hold` |
+| 299 | Restore /workspace from S3 on sandbox provisioning | `enhancement`, `priority:medium`, `on-hold` |
+| 239 | Flaky AI integration tests due to OpenHands API reliability | `bug`, `ci-failure`, `on-hold` |
+| 210 | Categorize deployment failures to improve automated response | `enhancement`, `on-hold` |
+
+**Why disable now:**
+- The prior tick (03:04Z, no WORKLOG entry per the "When No Action Needed" rule) was already quiet: PR #359 had merged at 02:51Z and every open issue was already `on-hold`. That bumped `quiet_ticks` 0 → 1.
+- This tick finds the same state: no PRs, no actionable issues, no in-flight workers. `quiet_ticks` 1 → 2 → auto-disable per the skill's [Auto-Disable on Consecutive Quiet Periods](https://github.com/jpshackelford/.openhands/blob/main/plugins/voice-relay-workflow/skills/orchestrate.md) rule.
+- The 2026-05-22 livelock (jpshackelford/.openhands#22) is exactly the failure mode this gate prevents — no point polling every 15 minutes when only a human can unblock the backlog.
+
+**Disable confirmation:**
+
+```
+PATCH https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316
+→ {"id":"5f180989-…","name":"Voice Relay Workflow Orchestrator v2","enabled":false}
+```
+
+**Re-enable path — humans take it from here:**
+
+The on-hold backlog is gated on **manual verification of the production rollback** (PR #359 → vr.chorecraft.net) and on the S3-bucket design-freeze for #298–#302 (see [AGENTS.md → Active design freeze](AGENTS.md)). Concretely, a human should:
+
+1. **Verify the rollback on prod** per the 02:52Z merge-worker entry — a kiosk that was stuck `connecting` should reach `state=connected`, and an iPhone utterance should round-trip TTS.
+2. If verified green, **remove `on-hold` from #358** (forward-fix for the driver-contract bug). That alone unblocks the implementation worker.
+3. **Re-enable the automation** via either:
+   - UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle on, OR
+   - API:
+     ```bash
+     curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+       -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+       -H "Content-Type: application/json" \
+       -d '{"enabled": true}'
+     ```
+4. (Optional, but recommended) reset `quiet_ticks` to `0` in `.workflow-state.json` at the same time, so the very next productive cron tick doesn't have to reset it itself.
+
+**Issues #299/#300/#302** stay `on-hold` independently until the S3-bucket provisioning prerequisites in AGENTS.md are met — those have their own re-enable path and are not gated on this re-enable.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
