@@ -476,3 +476,41 @@ are tracked separately as `priority:high`.
 🚀 **Production impact:** auto-deploys to `vr.chorecraft.net` on this push to main. Fixes the 100%-broken rebind path (response-shape parse bug → reconnect failure). UI behaviour change: "reconnecting" spinner can now stretch to ~3 min on a recoverable rebind (vs ~30 s before falsely transitioning to `degraded`) — kiosk already renders the spinner per #294.
 
 ---
+
+### 2026-05-29 14:02 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `77291da` | implementation | Issue #362 — `openSession` opts silently discarded | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#362 — bug(server): OpenHandsAgentDriver.openSession silently discards opts on subsequent calls](https://github.com/jpshackelford/voice-relay/issues/362) (priority:high, scope:server-only)
+- Conversation: [`77291da`](https://app.all-hands.dev/conversations/77291daf274d430092217216d3ebb8c2)
+- Start task: `dd1a84d0…` → READY on first poll; sandbox RUNNING; execution_status `running`.
+- Trigger: PR #367 merged (commit `002f38f`, 13:57Z) cleared the `server/src/openhands.ts` rebase-risk that had kept #362 queued behind it for the past two ticks. #362 has been the priority:high ready issue throughout.
+- Worker brief: implements `openSession` opts-preservation fix per the expanded issue body + technical-approach comment from expansion worker `1a415b1`. Branch starts fresh off main so the just-landed three-phase rebind code is picked up cleanly.
+
+**Cleared finished worker (moved to `.workflow-state.json` completed[]):**
+- `d467e98` merge/PR #367 → success (squash `002f38f`; #361 closed; review-body nits applied in `0a3e346`).
+
+**Current State:**
+- Open PRs: 0 (PR #367 merged 13:57Z; #361 auto-closed)
+- Ready issues (eligible, by priority):
+  - #362 priority:high — **now being implemented** by `77291da`
+  - #364 priority:low — queued; touches the same `server/src/openhands.ts` failure-log call sites, so serialize after #362 to avoid rebase churn
+- Ready issues on `on-hold` (skipped): #351 priority:low, #363 priority:medium
+- Issues needing expansion: all 6 unexpanded issues are `on-hold` (#210, #239, #299, #300, #301, #302) → nothing to expand
+- All workspace-persistence issues (#299–#302) remain frozen per AGENTS.md (Path B, awaiting `VR_WORKSPACE_BUCKET` + AWS creds on prod `.env`)
+
+**Slot Utilization:** expansion 0/4, implementation 1/1, review 0/2.
+
+**Decision rationale:**
+- Implementation slot was the only productive slot to dispatch. #362 picked over #364 because #362 is priority:high (vs `low`) and #364 is a small log-formatting nit that benefits from waiting for #362 to land.
+- Review slot intentionally idle: zero open PRs.
+- Expansion slot intentionally idle: every unexpanded issue carries `on-hold`. Picking up an on-hold issue would violate the AGENTS.md soft-guard policy.
+- Worklog truncation: file is 478 lines. Most recent ~6h of productive entries (impl #361 → merge #367 → this tick) sit inside the truncation script's keep-window, but earlier 2026-05-29 status ticks may now be archivable. Skipped this tick to keep the spawn commit small; will revisit on the next quiet tick.
+
+**`quiet_ticks` reset:** 0 → 0 (this tick is productive: spawned impl worker).
+
+---
