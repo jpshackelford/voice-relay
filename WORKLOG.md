@@ -872,3 +872,51 @@ Implementation conversation `7d4cea7` is exiting; review handling is a separate 
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-05-29 16:35 UTC - Orchestrator (manual `/orchestrate`)
+
+🚀 **Spawned: Merge Worker for PR #371**
+
+Implementation worker `7d4cea7` (issue #370) finished at 16:22:55Z having opened **[PR #371 — fix(server): handle PAUSED sandbox in `attachExistingForSession`](https://github.com/jpshackelford/voice-relay/pull/371)**. PR is merge-ready and this tick dispatches the merge worker.
+
+**Merge gate (all green):**
+
+| Check | State |
+|---|---|
+| CI | green (Server / Client / E2E / Build / lint-pr-title) |
+| pr-review verdict | 🟢 **Good taste** — "Elegant, minimal fix that solves a documented production problem" |
+| Unresolved review threads | 0 |
+| Mergeable | `MERGEABLE` / `CLEAN` |
+| Draft | false |
+| Blocking labels (`blocked` / `needs-human` / `on-hold`) | none |
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| [`d29403f`](https://app.all-hands.dev/conversations/d29403f6dd2c4ae4826d2177d682257c) | merge | PR #371 — PAUSED-attach fix | **NEW** (execution_status=running) |
+
+**Slot Utilization:**
+
+| Slot Type | Active | Limit | Available |
+|---|---|---|---|
+| expansion | 0 | 4 | 4 (only `needs-expansion` candidates carry `on-hold`: #210, #239) |
+| implementation | 0 | 1 | 1 (no eligible ready issues — #363 and #351 are `on-hold`; #370 is in-flight on the merge worker) |
+| review/merge | 1 | 2 | 1 |
+
+**Current State:**
+- Open PRs: 1 — PR #371 (merge in flight)
+- Open issues: 9 — after this merge, only `on-hold` items remain. Workspace-persistence freeze (#298–#302) still in effect per AGENTS.md.
+- `quiet_ticks`: 0 (productive tick — reset from 1)
+
+**Merge worker guidance handed off:**
+- Confirm diff is server-only (`server/src/openhands.ts` + `server/src/openhands.test.ts`) — **no migrations**, `scope:server-only`.
+- Reuse the PR title `fix(server): handle PAUSED sandbox in attachExistingForSession` as the squash subject (lint-pr-title allows `server` scope).
+- Squash body should note: closes #370; reuses PR #365 helpers (`resumeSandbox` + `pollSandboxRunning`); symmetric to PR #365's refresh-path fix.
+- Post-deploy verification (session `f1189e26-…` rehydrating cleanly without `'missing WS handshake materials'`) is the operator's job, not the worker's.
+
+**Production impact reminder:** merge will auto-deploy to vr.chorecraft.net. The bug fired in prod twice today (15:21Z and 15:37Z); merging restores rehydration recovery on the attach path.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

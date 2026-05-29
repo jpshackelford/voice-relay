@@ -2,21 +2,22 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "7d4cea7",
-        "issue": 370,
-        "started": "2026-05-29T16:07:17.117190Z"
+        "conv_id": "d29403f",
+        "pr": 371,
+        "started": "2026-05-29T16:34:57.393815Z",
+        "type": "merge"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T16:19:35Z",
+  "last_updated": "2026-05-29T16:34:57.393815Z",
   "completed": [
     {
       "conv_id": "9d0f398",
@@ -377,7 +378,16 @@
       "finished": "2026-05-29T16:00:00Z",
       "status": "success",
       "outcome": "Expanded #370; ready label added with verification comment"
+    },
+    {
+      "conv_id": "7d4cea7",
+      "type": "implementation",
+      "issue": 370,
+      "started": "2026-05-29T16:07:17.117190Z",
+      "finished": "2026-05-29T16:22:55Z",
+      "status": "success",
+      "outcome": "Opened PR #371 (fix(server): handle PAUSED sandbox in attachExistingForSession). CI green, pr-review \ud83d\udfe2 'Good taste', 0 unresolved threads, mergeable=CLEAN. Worker exited 16:22:55Z."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
