@@ -5,9 +5,10 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "2023f09",
+        "conv_id": "b2e1828",
+        "type": "merge",
         "pr": 369,
-        "started": "2026-05-29T14:51:55.933909+00:00"
+        "started": "2026-05-29T15:07:09.855753Z"
       }
     ]
   },
@@ -16,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T14:51:55.933909+00:00",
+  "last_updated": "2026-05-29T15:07:09.855753Z",
   "completed": [
     {
       "conv_id": "9d0f398",
@@ -350,6 +351,15 @@
       "finished": "2026-05-29T14:51:55.933909+00:00",
       "status": "success",
       "outcome": "Implementation of #364 \u2192 PR #369 opened, marked ready-for-review (CI green, 1 \ud83d\udfe1 review suggestion to address). Note: recorded conv_id 17f5c10 was actually the spawning orchestrator tick, not the worker (state-recording bug in previous orchestrator); real worker conv_id not captured."
+    },
+    {
+      "conv_id": "2023f09",
+      "type": "review",
+      "pr": 369,
+      "started": "2026-05-29T14:51:55.933909+00:00",
+      "finished": "2026-05-29T15:07:09.855753Z",
+      "status": "success",
+      "outcome": "Addressed pr-review feedback on PR #369; verdict moved from \ud83d\udfe1 Acceptable to \ud83d\udfe2 Good taste; 0 unresolved threads; CI green; ready for merge"
     }
   ],
   "quiet_ticks": 0
