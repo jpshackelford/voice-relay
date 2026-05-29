@@ -134,10 +134,13 @@ describe('attachOrCreateAgentSession (#348)', () => {
     expect(result.freshCreated).toBe(true);
     expect(result.status.conversationId).toBe('conv-new');
 
-    // Two driver calls: first WITH existing, second WITHOUT.
+    // Two driver calls: first WITH existing, second WITHOUT — but the
+    // dead id is forwarded as `previousConversationId` so #349's
+    // carry-forward replay path can seed the new conversation's context.
     expect(calls).toHaveLength(2);
     expect(calls[0].existingConversationId).toBe('conv-dead');
     expect(calls[1]).not.toHaveProperty('existingConversationId');
+    expect(calls[1].previousConversationId).toBe('conv-dead');
     expect(calls[1].workspaceId).toBe(WSID);
 
     // Metadata writes (ordering matters):
@@ -235,11 +238,15 @@ describe('attachOrCreateAgentSession (#348)', () => {
     );
 
     expect(calls).toHaveLength(2);
+    // The dead id is now also forwarded as `previousConversationId` so
+    // the OH adapter can build a memory-replay suffix from the prior
+    // conversation's event log (#349).
     expect(calls[1]).toEqual({
       workspaceId: WSID,
       apiKey: 'k',
       displayApiSecret: 'd',
       displayLines: 7,
+      previousConversationId: 'conv-dead',
     });
   });
 
@@ -272,6 +279,106 @@ describe('attachOrCreateAgentSession (#348)', () => {
     expect(repo.updateMetadata).toHaveBeenCalledTimes(2);
     expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
+  });
+
+  // ───── #349: carry-forward of previousConversationId on fresh-create ─────
+  //
+  // The helper's contract for #349's memory-replay carry-forward is narrow:
+  //   - On `freshCreated === true`, the retry opts MUST carry the dead id
+  //     as `previousConversationId` so the OH adapter can build a
+  //     memory-replay suffix from the prior conversation's event log.
+  //   - On `freshCreated === false` (happy-path attach), the helper MUST
+  //     NOT inject `previousConversationId` — replay is irrelevant when
+  //     the on-server event log is already preserved by the attach.
+  //   - The helper does not call `buildReplaySuffix` itself; it only
+  //     passes the hint through. Tests below assert the wiring, not the
+  //     suffix construction (covered by `replay.test.ts`).
+  //
+  // Cause-conversation-id precedence: when `UpstreamConversationEndedError`
+  // carries an explicit `conversationId`, that wins over
+  // `opts.existingConversationId` (the helper already uses
+  // `cause.conversationId || opts.existingConversationId`). Locked here
+  // so future refactors can't silently swap the precedence.
+
+  it('#349: freshCreated=true forwards opts.existingConversationId as previousConversationId on the retry', async () => {
+    const dead = new UpstreamConversationEndedError(''); // empty cause id → fall back to opts
+    const { driver, calls } = fakeDriver([
+      { throw: dead },
+      { return: readyStatus(SID, 'conv-new') },
+    ]);
+    const repo = fakeRepo();
+
+    const result = await attachOrCreateAgentSession(
+      SID,
+      { workspaceId: WSID, existingConversationId: 'conv-dead-from-opts' },
+      { agentDriver: driver, sessionRepository: repo },
+    );
+
+    expect(result.freshCreated).toBe(true);
+    expect(calls[1].previousConversationId).toBe('conv-dead-from-opts');
+  });
+
+  it('#349: freshCreated=true prefers cause.conversationId over opts.existingConversationId for previousConversationId', async () => {
+    // When the upstream error carries an explicit conversation id, that's
+    // the most accurate "the upstream said THIS one is dead" signal, so
+    // it wins over the (possibly stale) opts value.
+    const dead = new UpstreamConversationEndedError('conv-dead-from-cause');
+    const { driver, calls } = fakeDriver([
+      { throw: dead },
+      { return: readyStatus(SID, 'conv-new') },
+    ]);
+    const repo = fakeRepo();
+
+    await attachOrCreateAgentSession(
+      SID,
+      { workspaceId: WSID, existingConversationId: 'conv-dead-from-opts' },
+      { agentDriver: driver, sessionRepository: repo },
+    );
+
+    expect(calls[1].previousConversationId).toBe('conv-dead-from-cause');
+  });
+
+  it('#349: freshCreated=false (happy attach) does NOT inject previousConversationId', async () => {
+    // Attach succeeded — the on-server event log is preserved across
+    // rebinds, replay is irrelevant. Don't pollute the opts with a
+    // hint the driver / manager will quietly ignore.
+    const { driver, calls } = fakeDriver([
+      { return: readyStatus(SID, 'conv-attached') },
+    ]);
+    const repo = fakeRepo();
+
+    const result = await attachOrCreateAgentSession(
+      SID,
+      { workspaceId: WSID, existingConversationId: 'conv-attached' },
+      { agentDriver: driver, sessionRepository: repo },
+    );
+
+    expect(result.freshCreated).toBe(false);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).not.toHaveProperty('previousConversationId');
+  });
+
+  it('#349: caller-supplied previousConversationId on attach path is forwarded verbatim (not stripped)', async () => {
+    // Defensive: if a future caller passes `previousConversationId` on a
+    // plain attach (no fresh-create), the helper threads it through
+    // unchanged. Today only the fresh-create branch sets it, but the
+    // type permits both — make sure the pass-through stays cheap.
+    const { driver, calls } = fakeDriver([
+      { return: readyStatus(SID, 'conv-attached') },
+    ]);
+    const repo = fakeRepo();
+
+    await attachOrCreateAgentSession(
+      SID,
+      {
+        workspaceId: WSID,
+        existingConversationId: 'conv-attached',
+        previousConversationId: 'conv-prior',
+      },
+      { agentDriver: driver, sessionRepository: repo },
+    );
+
+    expect(calls[0].previousConversationId).toBe('conv-prior');
   });
 
   it('happy path with no conversationId in status: persist is a no-op', async () => {
