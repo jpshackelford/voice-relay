@@ -9,21 +9,14 @@
         "started": "2026-05-29T00:53:32.052602+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "a3a38b3",
-        "pr": 354,
-        "type": "merge",
-        "started": "2026-05-29T00:53:32.052602+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-29T00:53:32.052602+00:00",
+  "last_updated": "2026-05-29T01:04:07.626192+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",
@@ -249,7 +242,16 @@
       "finished": "2026-05-29T00:50:40.533283+00:00",
       "status": "success",
       "outcome": "No-op exit \u2014 PR #353 was already merged (squash 3dbc968 / fef9c5c) by an earlier merge worker before this one ran its pre-flight."
+    },
+    {
+      "conv_id": "a3a38b3",
+      "type": "merge",
+      "pr": 354,
+      "started": "2026-05-29T00:53:32.052602+00:00",
+      "finished": "2026-05-29T01:04:07.626192+00:00",
+      "status": "success",
+      "outcome": "PR #354 squash-merged to main (786aa01); #350 auto-closed. Server-only, no migration. Auto-deploy to vr.chorecraft.net."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
