@@ -52,7 +52,7 @@ interface StartConversationRequest {
 interface StartTaskResponse {
   id: string;
   status: string;
-  app_conversation_id?: string;
+  app_conversation_id?: string | null;
   error?: string;
 }
 
@@ -357,22 +357,39 @@ export class OpenHandsClient {
   /**
    * Rebind a conversation whose sandbox has been reaped onto a fresh sandbox.
    *
-   * POSTs `/app-conversations` with `{ conversation_id }` (and *no*
-   * `parent_conversation_id` — that path is the fork primitive, which
-   * errors on a dead conversation; see docs/openhands-platform.md
-   * § Rebind on a dead conversation). The response carries the same
-   * `conversation_id`, a new `agent_server_url`, and a new
-   * `session_api_key`. The on-server event log is preserved; the agent's
-   * in-context memory is not (memory replay is #297).
+   * The platform `POST /app-conversations` endpoint is **asynchronous**: it
+   * returns an `AppConversationStartTask` (just `{ id, status, ... }`), not a
+   * fully-populated `AppConversation`. The post-rebind `session_api_key` and
+   * `conversation_url` only appear on the conversation record itself, which
+   * doesn't exist until the new sandbox finishes booting. So this method
+   * runs the same three-phase dance that {@link startConversation} +
+   * {@link pollUntilReady} + {@link getConversation} performs for the
+   * fresh-create path (#361):
+   *
+   *   1. POST `/app-conversations` with `{ conversation_id, … }` (and *no*
+   *      `parent_conversation_id` — that path is the fork primitive, which
+   *      errors on a dead conversation; see docs/openhands-platform.md
+   *      § Rebind on a dead conversation). The response is a
+   *      {@link StartTaskResponse}.
+   *   2. {@link pollUntilReady} on the start-task id until the new sandbox
+   *      reports a terminal `READY` status (typical 10–60 s).
+   *   3. {@link getConversation} on the (preserved) `conversation_id` to
+   *      pick up the freshly-minted `session_api_key`, `conversation_url`,
+   *      and `sandbox_status`.
+   *
+   * The same `conversation_id` is preserved; the on-server event log is
+   * intact; the agent's in-context memory is not (memory replay via the
+   * `system_message_suffix` field is #297).
    *
    * Returns the rebound conversation info. Throws `OpenHandsApiError` with
-   * the upstream HTTP status on failure; callers in the driver layer
-   * narrow that into typed errors with retry semantics
+   * the upstream HTTP status on failure of any phase; callers in the driver
+   * layer narrow that into typed errors with retry semantics
    * (`server/src/agent-driver/rebind.ts`).
    */
   async rebindConversation(
     conversationId: string,
     opts: { systemMessageSuffix?: string } = {},
+    pollOpts: { timeoutMs?: number; pollIntervalMs?: number } = {},
   ): Promise<ConversationInfo> {
     // `system_message_suffix` is the platform field that drives memory
     // replay (#297). The agent on the freshly-provisioned sandbox sees it
@@ -384,7 +401,48 @@ export class OpenHandsClient {
     if (typeof suffix === 'string' && suffix.length > 0) {
       body.system_message_suffix = suffix;
     }
-    return this.request<ConversationInfo>('POST', '/app-conversations', body, 60_000);
+
+    // Phase 1 — async start task (the actual platform response shape).
+    // Until #361 this method assumed POST /app-conversations returned a
+    // fully-populated AppConversation; in reality it returns an
+    // AppConversationStartTask with no session_api_key, which caused every
+    // rebind to fail normalization downstream.
+    const startTask = await this.request<StartTaskResponse>(
+      'POST', '/app-conversations', body, 60_000,
+    );
+
+    // Phase 2 — wait for the new sandbox to be ready. Reuse the same
+    // poll loop as fresh-create. The 120 s default sits comfortably inside
+    // the 180 s `REBIND_BUDGET_MS` (server/src/agent-driver/rebind.ts),
+    // which is the total wall-clock budget the driver layer enforces
+    // across *all* HTTP attempts. Keeping the inner poll timeout below the
+    // outer budget means a single slow boot doesn't immediately exhaust
+    // the retry envelope while still leaving room for one short retry.
+    const readyTask = await this.pollUntilReady(
+      startTask.id,
+      pollOpts.timeoutMs ?? 120_000,
+      pollOpts.pollIntervalMs ?? 2_000,
+    );
+
+    // The platform preserves the existing conversation_id on rebind, so
+    // app_conversation_id (when present) should match the input. We prefer
+    // the task-reported id if any, falling back to the input for defence.
+    // Use `??` so a server-side `null` or `undefined` (but not, say, an
+    // empty string) triggers the fallback.
+    const reboundId = readyTask.app_conversation_id ?? conversationId;
+
+    // Phase 3 — re-fetch the conversation to read session_api_key and
+    // conversation_url. These are populated on the conversation record,
+    // not on the start-task record.
+    const info = await this.getConversation(reboundId);
+    if (!info) {
+      throw new OpenHandsApiError(
+        0,
+        `Rebind: getConversation returned no record for ${reboundId}`,
+        null,
+      );
+    }
+    return info;
   }
 
   /**

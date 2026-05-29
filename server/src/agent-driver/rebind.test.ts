@@ -83,7 +83,19 @@ function makeFakeTime() {
   };
 }
 
-/** Minimal valid CSV-style response for "rebind succeeded on a fresh sandbox". */
+/**
+ * Minimal valid response for "rebind succeeded on a fresh sandbox".
+ *
+ * Note: this is the shape that `OpenHandsClient.rebindConversation()`
+ * **returns** to the helper layer — i.e. the post-`getConversation`
+ * `ConversationInfo` after the client has internally driven the three-phase
+ * async dance (POST start-task → poll until ready → GET conversation), per
+ * #361. It is **not** the raw `POST /app-conversations` response shape; that
+ * is `AppConversationStartTask` and never carries `session_api_key` on its
+ * own. Tests at this layer exercise the *policy* helper, not the HTTP
+ * boundary — the HTTP boundary is unit-tested in
+ * `server/src/openhands-client.test.ts`.
+ */
 function okResponse(overrides: Partial<ConversationInfo> = {}): ConversationInfo {
   return {
     id: 'conv1',
@@ -169,14 +181,16 @@ describe('rebindConversation (rebind helper)', () => {
 
   test('T-4.1.U.5: gives up after total ~30s with RebindBudgetExhausted', async () => {
     const time = makeFakeTime();
-    // Indefinite 503s. The backoff sequence is [1, 2, 4, 8, 16]s. The
-    // cumulative sleeps before each attempt are 0, 1, 3, 7, 15, 30s.
-    // With a 30s budget, the 5th attempt happens at elapsed=15s, sleep
-    // gets clipped to 15s (budget - elapsed), and on iteration 6 the
-    // budget check kicks the loop out. So exactly 5 HTTP attempts.
+    // Indefinite 503s. The backoff sequence is [1, 2, 4, 8, 16]s. With a
+    // 30s budget the cumulative sleeps before each attempt are 0, 1, 3, 7,
+    // 15, 30s — the 5th attempt happens at elapsed=15s, sleep gets clipped
+    // to 15s (budget - elapsed), and on iteration 6 the budget check
+    // kicks the loop out. So exactly 5 HTTP attempts.
     //
-    // The issue spec calls this out verbatim: "Exactly 5 attempts
-    // (1+2+4+8+16 capped at 30)".
+    // We pin `budgetMs` here so the assertion is independent of the
+    // module-level constant (which was bumped to 180_000 as part of
+    // #361's async-rebind rework — see REBIND_BUDGET_MS docstring).
+    const budgetMs = 30_000;
     const responses: Array<ConversationInfo | Error> = [];
     for (let i = 0; i < REBIND_BACKOFF_MS.length + 1; i++) {
       responses.push(new OpenHandsApiError(503, 'try later', null));
@@ -186,11 +200,12 @@ describe('rebindConversation (rebind helper)', () => {
       rebindConversation(client, 'conv1', {
         sleep: time.sleep,
         clock: time.clock,
+        budgetMs,
       }),
     ).rejects.toBeInstanceOf(RebindBudgetExhausted);
     expect(calls.length).toBe(REBIND_BACKOFF_MS.length); // exactly 5 attempts
     // Elapsed time is the budget (sleeps clip at the budget boundary).
-    expect(time.nowRef()).toBeLessThanOrEqual(REBIND_BUDGET_MS);
+    expect(time.nowRef()).toBeLessThanOrEqual(budgetMs);
   });
 
   test('T-4.1.U.6: 403 fails fast with RebindForbidden (no retry)', async () => {
@@ -306,9 +321,12 @@ describe('rebindConversation (rebind helper)', () => {
     }
     const { client } = makeClient(responses);
     try {
+      // Pin budgetMs to 30 s (the pre-#361 value) so the attempts count
+      // is deterministic regardless of the module-level constant.
       await rebindConversation(client, 'conv-z', {
         sleep: time.sleep,
         clock: time.clock,
+        budgetMs: 30_000,
       });
       throw new Error('expected throw');
     } catch (err) {
