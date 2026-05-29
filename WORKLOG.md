@@ -288,3 +288,22 @@ are tracked separately as `priority:high`.
 **Action:** Spawned review worker for PR #365. Implementation slot still occupied by `3940488` per API (PR #365 already opened — worker likely in final wrap-up).
 
 ---
+### 2026-05-29 12:55 UTC - Review worker (PR #365 round 1)
+
+✅ Addressed pr-review bot 🟡 Suggestion on `server/src/openhands.ts:1856`.
+
+| Field | Value |
+|---|---|
+| PR | [#365](https://github.com/jpshackelford/voice-relay/pull/365) |
+| Branch | `fix/360-paused-sandbox-resume` |
+| Commit | `e95ba56` — fix(server): check-then-sleep in pollSandboxRunning |
+| CI | 7/7 green (Build/Client/Server/E2E/lint all pass) |
+| Threads resolved | 1/1 (`PRRT_kwDOSTUWGM6FrkCH`) |
+
+**Change:** Restructured `pollSandboxRunning` so the loop checks first and sleeps only between iterations. Saves up to one `resumePollIntervalMs` (~2s in prod) on the happy path where the sandbox has already reached RUNNING by the time we poll. Transient HTTP errors still wait before retry. All 213 server tests pass.
+
+**Cross-issue impact:** None — #361 (rebind response shape) and #362 (openSession opts) don't have polling loops, so the check-then-sleep insight doesn't carry over.
+
+**Next:** PR is back in `ready for review`. Awaiting next review pass.
+
+---
