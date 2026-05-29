@@ -1,7 +1,28 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "20ba68e",
+        "issue": 347,
+        "started": "2026-05-29T00:06:22.614810+00:00"
+      },
+      {
+        "conv_id": "8391b09",
+        "issue": 348,
+        "started": "2026-05-29T00:06:22.614810+00:00"
+      },
+      {
+        "conv_id": "0d87ed2",
+        "issue": 349,
+        "started": "2026-05-29T00:06:22.614810+00:00"
+      },
+      {
+        "conv_id": "c9c9242",
+        "issue": 350,
+        "started": "2026-05-29T00:06:22.614810+00:00"
+      }
+    ],
     "implementation": [
       {
         "conv_id": "4f91505",
@@ -16,7 +37,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-05-28T23:50:48.045698+00:00",
+  "last_updated": "2026-05-29T00:06:22.614810+00:00",
   "completed": [
     {
       "conv_id": "28ada4e",

@@ -124,3 +124,42 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 - Reset `quiet_ticks` → 0 (this tick is productive).
 
 ---
+### 2026-05-29 00:07 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4f91505` | implementation | Issue #346 — kiosk footer tickers | running |
+| `20ba68e` | expansion | Issue #347 — /ai/restart conv-id persistence | **NEW** |
+| `8391b09` | expansion | Issue #348 — auto-connect / rehydrate fresh-create fallback | **NEW** |
+| `0d87ed2` | expansion | Issue #349 — buildReplaySuffix into fresh-create path | **NEW** |
+| `c9c9242` | expansion | Issue #350 — refresh 401 NoCredentialsError → rebind | **NEW** |
+
+🚀 **Spawned: 4 Expansion Workers (parallel)** — @jpshackelford filed five related server-side issues (#347–#351) since the last tick. Picked up 4 of them this cycle (slot limit); #351 deferred to next tick.
+
+1. **Expansion Worker** [`20ba68e`](https://app.all-hands.dev/conversations/20ba68e3b96944a88607c80a178a06b8) — [#347 — `/ai/restart` never persists the new aiConversationId](https://github.com/jpshackelford/voice-relay/issues/347) (bug, priority:high, scope:server-only)
+2. **Expansion Worker** [`8391b09`](https://app.all-hands.dev/conversations/8391b09d395c4b07871a05ba8dfe5805) — [#348 — auto-connect / rehydrate fresh-create fallback](https://github.com/jpshackelford/voice-relay/issues/348) (bug, priority:high, scope:server-only)
+3. **Expansion Worker** [`0d87ed2`](https://app.all-hands.dev/conversations/0d87ed24b6e34c40ab870ce26e157705) — [#349 — wire `buildReplaySuffix` into fresh-create path](https://github.com/jpshackelford/voice-relay/issues/349) (enhancement, priority:medium, scope:server-only)
+4. **Expansion Worker** [`c9c9242`](https://app.all-hands.dev/conversations/c9c9242e816d4b8c98d42d1e556e366b) — [#350 — refresh 401 `NoCredentialsError` should trigger rebind, not degrade](https://github.com/jpshackelford/voice-relay/issues/350) (bug, priority:low, scope:server-only)
+
+All four start tasks reached `READY`; all four conversations verified `execution_status=running`, `sandbox_status=RUNNING`.
+
+**Cross-worker context (passed in every prompt):** issues #347–#351 are a coherent batch about session/conversation rehydration and auth handling in the server. Each worker is asked to surface overlapping root causes / shared fixes in its expansion comment so we can decide later whether to implement them as one PR or several.
+
+**Current State:**
+- Open PRs: **0** (PR #345 merged 16:07Z yesterday; backlog has caught up).
+- Ready + prioritized issues: only `#346` (currently being implemented by `4f91505`).
+- Issues being expanded this tick: `#347`, `#348`, `#349`, `#350`.
+- Issues needing expansion next tick: `#351` (sibling of the above; will pick up when an expansion slot frees).
+- Other open issues: `#210`, `#239`, `#299`–`#302` all carry `on-hold` per the active design freezes documented in `AGENTS.md` (S3 persistence freeze + deploy categorization + CI-flake).
+- Slots: expansion **4/4**, impl **1/1**, review 0/2.
+
+**Why no impl/review/merge dispatched:**
+- Impl slot occupied by `4f91505` (Issue #346).
+- 0 open PRs → review/merge slots idle by design.
+
+**Quiet-tick counter:** reset `0 → 0` (productive tick — 4 expansion workers dispatched).
+
+_This worklog entry was written by an AI agent (OpenHands /orchestrate) on behalf of @jpshackelford._
+
+---
