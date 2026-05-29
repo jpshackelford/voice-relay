@@ -456,3 +456,23 @@ are tracked separately as `priority:high`.
 **`quiet_ticks` reset:** 1 → 0 (this tick is productive: spawned merge worker).
 
 ---
+
+### 2026-05-29 13:58 UTC - Merge Worker (PR #367 — fix/361-rebind-response-shape)
+
+✅ **Merged PR #367 (squash) → main:** `fix(server): rebindConversation drives three-phase async dance (#367)` at merge commit [`002f38f`](https://github.com/jpshackelford/voice-relay/commit/002f38f40de55062eccb00c6ac1610182fb674f7). Closes #361 (auto-closed via "Closes #361" in PR body).
+
+| Phase | Result |
+|---|---|
+| Diff study | Three-phase POST → `pollUntilReady` → `getConversation` correctly implemented in `server/src/openhands.ts`; `REBIND_BUDGET_MS` 30 s → 180 s bump intentional + documented with cascade-cap rationale (`MAX_REBINDS_PER_WINDOW = 3` in `RebindWindowTracker` still bounds blast radius). |
+| Migration check | ✅ No migration / schema changes (`server/src/storage/migrations` untouched). Production SQLite (`sqlite.db`) unaffected. |
+| Review polish | Applied all three trivial nits from review body in commit [`0a3e346`](https://github.com/jpshackelford/voice-relay/commit/0a3e346): (1) `??` over `||` on L425 for `app_conversation_id` fallback, (2) `string \| null` on the `StartTaskResponse.app_conversation_id` field type to match test fixtures + platform reality, (3) inline comment explaining 120 s `pollUntilReady` timeout sits inside 180 s `REBIND_BUDGET_MS` envelope. Server suite still green locally (35/35 in targeted run, `tsc --noEmit` clean). |
+| Post-polish CI | Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅ — all green on `0a3e346`. |
+| PR body | Updated with "Review polish" section + "Post-deploy monitoring" note (per review's risk-assessment recommendation: track rebind duration p50/p95/p99 to validate 10–60 s sandbox-boot assumption and tune `REBIND_BUDGET_MS` if real-world boots cluster outside that band). |
+| Merge | `gh pr merge 367 --squash` ✓. Merge commit body summarises root cause (response-shape mismatch), three-phase fix, and the budget-bump rationale. |
+| #361 close | ✅ auto-closed at 13:57:40 UTC. |
+
+🚦 **Unblocks downstream work:** `server/src/openhands.ts` has now landed on `main`, so issue **#362 (`openSession` opts, priority:high)** is no longer blocked by the rebase-risk that kept it queued behind #367 the past two ticks. Same goes for #364 (priority:low). Next orchestrator tick can dispatch #362 to the implementation slot without contention.
+
+🚀 **Production impact:** auto-deploys to `vr.chorecraft.net` on this push to main. Fixes the 100%-broken rebind path (response-shape parse bug → reconnect failure). UI behaviour change: "reconnecting" spinner can now stretch to ~3 min on a recoverable rebind (vs ~30 s before falsely transitioning to `degraded`) — kiosk already renders the spinner per #294.
+
+---
