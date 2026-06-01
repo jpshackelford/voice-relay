@@ -297,3 +297,24 @@ typecheck clean. No schema changes — fully backward-compatible.
   validate the 2m30s constant in production.
 
 ---
+
+### 2026-06-01 11:52 UTC - Merge Worker (PR #376)
+
+✅ **Squash-merged PR #376** — `feat: forward device identity and UTC timestamp to OpenHands with token-efficient header` (fixes #375).
+
+| Check | Result |
+|---|---|
+| mergeable / mergeStateStatus | MERGEABLE / CLEAN |
+| Server Tests | ✅ |
+| Client Tests | ✅ |
+| Build Client | ✅ |
+| E2E Tests | ✅ |
+| lint-pr-title | ✅ |
+| pr-review | ✅ (🟢 Good taste, MEDIUM risk well-managed) |
+| Unresolved threads | 0 |
+| DB migrations | None — no schema changes, fully backward-compatible on the wire |
+| Issue #375 | auto-closed via "Fixes #375" |
+
+Merge commit: `4fac7b3` on `main`. Auto-deploy to vr.chorecraft.net will pick this up; no manual post-deploy steps required (clientTimestamp / timezone / tzOffsetMinutes are all optional fields, server falls back to receipt time when absent).
+
+---
