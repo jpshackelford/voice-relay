@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "bb4de8f",
-        "issue": 373,
-        "started": "2026-06-01T10:18:41Z"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,322 +10,26 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-01T10:20:49Z",
+  "last_updated": "2026-06-01T10:37:58Z",
   "completed": [
     {
-      "conv_id": "a6a9ba2",
-      "type": "expansion",
-      "issue": 346,
-      "started": "2026-05-28T23:38:17.258629+00:00",
-      "finished": "2026-05-28T23:50:48.045698+00:00",
-      "status": "success",
-      "outcome": "Expanded #346 with technical detail; ready + priority:medium + client labels added"
-    },
-    {
-      "conv_id": "20ba68e",
-      "type": "expansion",
-      "issue": 347,
-      "started": "2026-05-29T00:06:22.614810+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Expanded #347; ready label added (per worklog b0d04bf)"
-    },
-    {
-      "conv_id": "8391b09",
-      "type": "expansion",
-      "issue": 348,
-      "started": "2026-05-29T00:06:22.614810+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Expanded #348; ready label added (per worklog 7fc76d2)"
-    },
-    {
-      "conv_id": "0d87ed2",
-      "type": "expansion",
-      "issue": 349,
-      "started": "2026-05-29T00:06:22.614810+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Expanded #349; ready label added (per worklog 09adc36)"
-    },
-    {
-      "conv_id": "c9c9242",
-      "type": "expansion",
-      "issue": 350,
-      "started": "2026-05-29T00:06:22.614810+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Expanded #350; ready label added (per worklog 0f67476)"
-    },
-    {
-      "conv_id": "4f91505",
+      "conv_id": "bb4de8f",
       "type": "implementation",
-      "issue": 346,
-      "started": "2026-05-28T23:50:48.045698+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "issue": 373,
+      "started": "2026-06-01T10:18:41Z",
+      "finished": "2026-06-01T10:27:12Z",
       "status": "success",
-      "outcome": "Implementation of #346 → PR #352 opened, reviewed, merged (squash 9362a61). #346 closed."
+      "outcome": "Created PR #374 \u2014 fix(server): don't clobber starting/reconnecting snapshot from reportDroppedText. CI green, bot review positive."
     },
     {
-      "conv_id": "unknown",
-      "type": "expansion",
-      "issue": 351,
-      "started": "2026-05-29T00:08:00+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Expanded #351 (per worklog 4db81e8). Conv ID not captured in state."
-    },
-    {
-      "conv_id": "unknown",
+      "conv_id": "3fb018d",
       "type": "merge",
-      "pr": 352,
-      "started": "2026-05-29T00:23:00+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
+      "pr": 374,
+      "issue": 373,
+      "started": "2026-06-01T10:36:00Z",
+      "finished": "2026-06-01T10:37:58Z",
       "status": "success",
-      "outcome": "Merged PR #352 (#346 closed) at 00:24Z (commit 9362a61)."
-    },
-    {
-      "conv_id": "unknown",
-      "type": "implementation",
-      "issue": 347,
-      "started": "2026-05-29T00:09:00+00:00",
-      "finished": "2026-05-29T00:38:13.305820+00:00",
-      "status": "success",
-      "outcome": "Implementation of #347 → PR #353 opened (CI green, 🟢 automated review). Conv ID not captured."
-    },
-    {
-      "conv_id": "971965c",
-      "type": "implementation",
-      "issue": 350,
-      "started": "2026-05-29T00:38:13.305820+00:00",
-      "finished": "2026-05-29T00:50:40.533283+00:00",
-      "status": "success",
-      "outcome": "Implementation of #350 → opened PR #354 (CI green, 🟡 automated review verdict, 0 review threads). Ready for merge."
-    },
-    {
-      "conv_id": "b2b3e05",
-      "type": "merge",
-      "pr": 353,
-      "started": "2026-05-29T00:38:13.305820+00:00",
-      "finished": "2026-05-29T00:50:40.533283+00:00",
-      "status": "success",
-      "outcome": "No-op exit — PR #353 was already merged (squash 3dbc968 / fef9c5c) by an earlier merge worker before this one ran its pre-flight."
-    },
-    {
-      "conv_id": "a3a38b3",
-      "type": "merge",
-      "pr": 354,
-      "started": "2026-05-29T00:53:32.052602+00:00",
-      "finished": "2026-05-29T01:04:07.626192+00:00",
-      "status": "success",
-      "outcome": "PR #354 squash-merged to main (786aa01); #350 auto-closed. Server-only, no migration. Auto-deploy to vr.chorecraft.net."
-    },
-    {
-      "conv_id": "c1bd269",
-      "type": "implementation",
-      "issue": 348,
-      "started": "2026-05-29T00:53:32.052602+00:00",
-      "finished": "2026-05-29T01:20:00+00:00",
-      "status": "success",
-      "outcome": "Implementation of #348 → opened PR #355, moved to ready-for-review. New helper attachOrCreateAgentSession used by both auto-connect and agent-rehydrate. CI green; 1220/1220 tests; pr-review queued."
-    },
-    {
-      "conv_id": "41f7259",
-      "type": "review",
-      "pr": 355,
-      "started": "2026-05-29T01:35:20.892217+00:00",
-      "finished": "2026-05-29T01:51:00.727833+00:00",
-      "status": "success",
-      "outcome": "Merged PR #355 (3046c9d), closed #348"
-    },
-    {
-      "conv_id": "0518853",
-      "type": "implementation",
-      "issue": 349,
-      "started": "2026-05-29T01:51:00.727833+00:00",
-      "finished": "2026-05-29T02:20:28.855629+00:00",
-      "status": "success",
-      "outcome": "Implementation of #349 → PR #356 opened (8 files, server-only). Merge worker ran out-of-band and merged at 02:13:51Z (squash 7501100); #349 closed."
-    },
-    {
-      "conv_id": "unknown",
-      "type": "merge",
-      "pr": 356,
-      "started": "2026-05-29T02:10:00+00:00",
-      "finished": "2026-05-29T02:14:00+00:00",
-      "status": "success",
-      "outcome": "Merged PR #356 (squash 7501100); #349 auto-closed. Worklog entry by merge worker on main at commit a636eb1; conv_id not captured in state."
-    },
-    {
-      "conv_id": "d3dcbab",
-      "type": "implementation",
-      "issue": 357,
-      "started": "2026-05-29T02:36:33.869861+00:00",
-      "finished": "2026-05-29T02:50:01.245984+00:00",
-      "status": "success",
-      "outcome": "Implementation of #357 (rollback) → opened PR #359 (two clean reverts, CI green, 🟢 review verdict, 0 unresolved threads, mergeable)"
-    },
-    {
-      "conv_id": "cfb4f6d",
-      "type": "merge",
-      "pr": 359,
-      "started": "2026-05-29T02:50:01.245984+00:00",
-      "finished": "2026-05-29T02:51:20+00:00",
-      "status": "success",
-      "outcome": "PR #359 squash-merged to main (67352fc); #357 auto-closed. Production rollback of PRs #355 + #356."
-    },
-    {
-      "conv_id": "f59f459",
-      "type": "expansion",
-      "issue": 360,
-      "started": "2026-05-29T12:16:54.346561+00:00",
-      "finished": "2026-05-29T12:34:27.795924+00:00",
-      "status": "success",
-      "outcome": "Expanded #360; ready label added"
-    },
-    {
-      "conv_id": "49f858d",
-      "type": "expansion",
-      "issue": 361,
-      "started": "2026-05-29T12:16:54.346561+00:00",
-      "finished": "2026-05-29T12:34:27.795924+00:00",
-      "status": "success",
-      "outcome": "Expanded #361; ready label added"
-    },
-    {
-      "conv_id": "1a415b1",
-      "type": "expansion",
-      "issue": 362,
-      "started": "2026-05-29T12:16:54.346561+00:00",
-      "finished": "2026-05-29T12:34:27.795924+00:00",
-      "status": "success",
-      "outcome": "Expanded #362; ready label added"
-    },
-    {
-      "conv_id": "2996e5b",
-      "type": "expansion",
-      "issue": 363,
-      "started": "2026-05-29T12:16:54.346561+00:00",
-      "finished": "2026-05-29T12:34:27.795924+00:00",
-      "status": "success",
-      "outcome": "Expanded #363; ready label added"
-    },
-    {
-      "conv_id": "3940488",
-      "type": "implementation",
-      "issue": 360,
-      "started": "2026-05-29T12:34:27.795924+00:00",
-      "finished": "2026-05-29T13:06:06.794335Z",
-      "status": "success",
-      "outcome": "Created PR #365 (fix(server): handle PAUSED sandbox via resume primitive)"
-    },
-    {
-      "conv_id": "f6f7c0e",
-      "type": "review",
-      "pr": 365,
-      "started": "2026-05-29T12:49:51Z",
-      "finished": "2026-05-29T13:06:06.794335Z",
-      "status": "success",
-      "outcome": "Addressed pr-review suggestion in commit e95ba56 (check-then-sleep in pollSandboxRunning); 1/1 threads resolved; CI green"
-    },
-    {
-      "conv_id": "0fd383a",
-      "type": "merge",
-      "pr": 365,
-      "started": "2026-05-29T13:06:06.794335Z",
-      "finished": "2026-05-29T13:21:08.733008Z",
-      "status": "success",
-      "outcome": "PR #365 squash-merged to main (bb863d1); #360 auto-closed. No DB changes."
-    },
-    {
-      "conv_id": "0f33642",
-      "type": "implementation",
-      "issue": 361,
-      "started": "2026-05-29T13:21:08.733008Z",
-      "finished": "2026-05-29T13:51:44.057291Z",
-      "status": "success",
-      "outcome": "Implementation of #361 → opened PR #367 (fix(server): rebindConversation drives three-phase async dance); CI green; 🟡 'Acceptable / Worth merging' verdict from pr-review; 0 unresolved threads; mergeable. New 10-test HTTP-boundary suite; rebind budget 30s→180s; no DB changes."
-    },
-    {
-      "conv_id": "d467e98",
-      "type": "merge",
-      "pr": 367,
-      "started": "2026-05-29T13:51:44.057291Z",
-      "finished": "2026-05-29T14:06:34.225005Z",
-      "status": "success",
-      "outcome": "Merged PR #367 (squash 002f38f) → main; closed #361; applied 3 review nits in 0a3e346. Unblocks #362."
-    },
-    {
-      "conv_id": "77291da",
-      "type": "implementation",
-      "issue": 362,
-      "started": "2026-05-29T14:06:34.225005Z",
-      "finished": "2026-05-29T14:13:00Z",
-      "status": "success",
-      "outcome": "Opened PR #368, merged at 14:23Z (commit c6275e7), #362 auto-closed"
-    },
-    {
-      "conv_id": "04b2268",
-      "type": "review",
-      "pr": 368,
-      "started": "2026-05-29T14:22:18.961988Z",
-      "finished": "2026-05-29T14:23:31Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #368 at commit c6275e7; #362 auto-closed"
-    },
-    {
-      "conv_id": "17f5c10",
-      "type": "implementation",
-      "issue": 364,
-      "started": "2026-05-29T14:31:01.024422Z",
-      "finished": "2026-05-29T14:51:55.933909+00:00",
-      "status": "success",
-      "outcome": "Implementation of #364 → PR #369 opened, marked ready-for-review (CI green, 1 🟡 review suggestion to address). Note: recorded conv_id 17f5c10 was actually the spawning orchestrator tick, not the worker (state-recording bug in previous orchestrator); real worker conv_id not captured."
-    },
-    {
-      "conv_id": "2023f09",
-      "type": "review",
-      "pr": 369,
-      "started": "2026-05-29T14:51:55.933909+00:00",
-      "finished": "2026-05-29T15:07:09.855753Z",
-      "status": "success",
-      "outcome": "Addressed pr-review feedback on PR #369; verdict moved from 🟡 Acceptable to 🟢 Good taste; 0 unresolved threads; CI green; ready for merge"
-    },
-    {
-      "conv_id": "b2e1828",
-      "type": "merge",
-      "pr": 369,
-      "started": "2026-05-29T15:07:09.855753Z",
-      "finished": "2026-05-29T15:19:05.135920+00:00",
-      "status": "success",
-      "outcome": "PR #369 squash-merged to main (6fa7266); #364 auto-closed. No DB changes."
-    },
-    {
-      "conv_id": "4ad76fb",
-      "type": "expansion",
-      "issue": 370,
-      "started": "2026-05-29T16:00:01Z",
-      "finished": "2026-05-29T16:00:00Z",
-      "status": "success",
-      "outcome": "Expanded #370; ready label added with verification comment"
-    },
-    {
-      "conv_id": "7d4cea7",
-      "type": "implementation",
-      "issue": 370,
-      "started": "2026-05-29T16:07:17.117190Z",
-      "finished": "2026-05-29T16:22:55Z",
-      "status": "success",
-      "outcome": "Opened PR #371 (fix(server): handle PAUSED sandbox in attachExistingForSession). CI green, pr-review 🟢 'Good taste', 0 unresolved threads, mergeable=CLEAN. Worker exited 16:22:55Z."
-    },
-    {
-      "conv_id": "d29403f",
-      "type": "merge",
-      "pr": 371,
-      "started": "2026-05-29T16:34:57.393815Z",
-      "finished": "2026-05-29T16:48:26.844223+00:00",
-      "status": "success",
-      "outcome": "PR #371 squash-merged to main (10b647b); #370 auto-closed. PAUSED-attach fix shipped."
+      "outcome": "Squash-merged PR #374 \u2192 main at 50d3fb5; issue #373 auto-closed via Fixes #373."
     }
   ],
   "quiet_ticks": 0
