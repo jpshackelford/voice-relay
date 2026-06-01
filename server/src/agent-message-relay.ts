@@ -12,7 +12,11 @@
  * `FakeDriver` rather than a live OpenHands integration.
  */
 
-import type { AgentDriver, AgentEvent } from './agent-driver/index.js';
+import type {
+  AgentDriver,
+  AgentEvent,
+  AgentSenderMeta,
+} from './agent-driver/index.js';
 import type { DeviceRegistry } from './registry.js';
 import type { MessageStore } from './storage/index.js';
 import type { SessionRepository } from './sessions/index.js';
@@ -25,6 +29,14 @@ export interface AgentMessageRelayDeps {
   store: MessageStore;
   sessionRepository: SessionRepository | null;
   ttsService?: TtsService | undefined;
+  /**
+   * Optional speaker + UTC-timestamp metadata for the utterance being
+   * forwarded (issue #375). The OpenHands driver uses this to compose a
+   * compact `[vr ...]` / `[t=...]` per-turn header so the agent can
+   * attribute speakers and reason about timing. Other drivers may
+   * ignore it.
+   */
+  sender?: AgentSenderMeta;
 }
 
 /**
@@ -44,7 +56,12 @@ export async function relayAgentResponse(
   deps: AgentMessageRelayDeps
 ): Promise<void> {
   try {
-    for await (const event of deps.agentDriver.sendMessage(sessionId, utteranceId, text)) {
+    for await (const event of deps.agentDriver.sendMessage(
+      sessionId,
+      utteranceId,
+      text,
+      deps.sender,
+    )) {
       if (event.kind === 'message') {
         broadcastAgentMessage(sessionId, workspaceId, event, deps);
       } else if (event.kind === 'error') {

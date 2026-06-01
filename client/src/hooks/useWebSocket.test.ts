@@ -1361,12 +1361,39 @@ describe('useWebSocket - client-to-server sends', () => {
     });
 
     expect(ws.sentMessages).toHaveLength(1);
-    expect(JSON.parse(ws.sentMessages[0])).toEqual({
+    const parsed = JSON.parse(ws.sentMessages[0]);
+    // Issue #375: each text frame carries a client-supplied UTC clock
+    // for the per-turn header. We don't want to pin the test to a
+    // specific instant, but we do want to assert the shape.
+    expect(parsed).toMatchObject({
       type: 'text',
       utteranceId: 'u1',
       text: 'hello world',
       partial: true,
     });
+    expect(parsed.clientTimestamp).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/,
+    );
+  });
+
+  it('register message includes timezone and offset (#375)', () => {
+    // Mirrors `openSocket` but inspects the *first* sent frame, which is
+    // the register payload itself.
+    const hook = renderHook(() => useWebSocket(baseOpts));
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => {
+      ws.simulateOpen();
+    });
+
+    expect(ws.sentMessages).toHaveLength(1);
+    const parsed = JSON.parse(ws.sentMessages[0]);
+    expect(parsed.type).toBe('register');
+    // jsdom's Intl resolves to something — assert it's present and
+    // looks reasonable rather than pinning to a specific value.
+    expect(typeof parsed.timezone).toBe('string');
+    expect(parsed.timezone.length).toBeGreaterThan(0);
+    expect(typeof parsed.tzOffsetMinutes).toBe('number');
+    hook.unmount();
   });
 
   it('updateDevice sends an update-device message', () => {

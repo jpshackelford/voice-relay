@@ -30,6 +30,19 @@ export interface RegisterMessage {
   sessionId?: string;  // Optional; auto-assigns to active session if omitted
   screenWidth?: number;
   screenHeight?: number;
+  /**
+   * Client's local IANA timezone (e.g. "America/Los_Angeles"). Captured
+   * from `Intl.DateTimeFormat().resolvedOptions().timeZone` at registration
+   * time so the agent can use it for wall-clock and relative-time answers
+   * (issue #375). Optional for older clients.
+   */
+  timezone?: string;
+  /**
+   * Local UTC offset in minutes (positive east of UTC). Mirrors the
+   * POSIX sign convention — i.e. the negation of
+   * `Date.prototype.getTimezoneOffset()` (issue #375).
+   */
+  tzOffsetMinutes?: number;
 }
 
 export interface UpdateDeviceMessage {
@@ -44,6 +57,12 @@ export interface TextMessage {
   utteranceId: string;
   text: string;
   partial: boolean;
+  /**
+   * Client-captured ISO-8601 Zulu wall-clock time when the utterance was
+   * produced (issue #375). Server falls back to receipt time when this
+   * is missing. All timestamps on the wire are UTC.
+   */
+  clientTimestamp?: string;
 }
 
 /** Owner device → Server: Approve/deny a join request */
@@ -130,6 +149,20 @@ export interface RelayedTextMessage {
    * reconnect so historical messages keep their original ordering.
    */
   createdAt?: string;
+  /**
+   * For user utterances: client-captured ISO Zulu wall-clock time when
+   * the utterance was produced (issue #375). Server falls back to its
+   * receipt time when the client doesn't supply one. Use to render
+   * sender-local times for peer messages on the kiosk timeline.
+   */
+  clientTimestamp?: string;
+  /**
+   * For user utterances: the sender's local IANA timezone, propagated
+   * from device registration (issue #375). Lets kiosks render peer
+   * messages in their local time. Undefined for AI utterances and for
+   * senders whose timezone is unknown.
+   */
+  senderTimezone?: string;
 }
 
 export interface HistoryMessage {

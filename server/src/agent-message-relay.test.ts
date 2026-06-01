@@ -104,6 +104,66 @@ describe('relayAgentResponse', () => {
     expect(tts.synthesizeForSession).not.toHaveBeenCalled();
   });
 
+  test('forwards `sender` metadata to the driver (#375)', async () => {
+    // Wrap the FakeDriver so we can inspect what was passed to sendMessage.
+    const seen: Array<unknown> = [];
+    const wrapper = {
+      isAvailable: () => driver.isAvailable(),
+      hasSession: (sid: string) => driver.hasSession(sid),
+      openSession: driver.openSession.bind(driver),
+      sendMessage: (sessionId: string, utteranceId: string, text: string, sender?: unknown) => {
+        seen.push(sender);
+        return driver.sendMessage(sessionId, utteranceId, text);
+      },
+      restartSession: driver.restartSession.bind(driver),
+      getSessionStatus: driver.getSessionStatus.bind(driver),
+      closeSession: driver.closeSession.bind(driver),
+    };
+    driver.script('s1', [{ kind: 'message', text: 'ack' } as AgentEvent]);
+    const deps = makeDeps(driver, {
+      agentDriver: wrapper as never,
+      sender: {
+        deviceId: 'd-1',
+        senderName: 'Kitchen iPad',
+        saidAtUtc: '2026-06-01T17:23:45Z',
+        timezone: 'America/Los_Angeles',
+      },
+    });
+
+    await relayAgentResponse('s1', 'wk-1', 'u-1', 'hi', deps);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({
+      deviceId: 'd-1',
+      senderName: 'Kitchen iPad',
+      saidAtUtc: '2026-06-01T17:23:45Z',
+      timezone: 'America/Los_Angeles',
+    });
+  });
+
+  test('forwards `sender = undefined` when none was supplied (#375)', async () => {
+    const seen: Array<unknown> = [];
+    const wrapper = {
+      isAvailable: () => driver.isAvailable(),
+      hasSession: (sid: string) => driver.hasSession(sid),
+      openSession: driver.openSession.bind(driver),
+      sendMessage: (sessionId: string, utteranceId: string, text: string, sender?: unknown) => {
+        seen.push(sender);
+        return driver.sendMessage(sessionId, utteranceId, text);
+      },
+      restartSession: driver.restartSession.bind(driver),
+      getSessionStatus: driver.getSessionStatus.bind(driver),
+      closeSession: driver.closeSession.bind(driver),
+    };
+    driver.script('s1', [{ kind: 'message', text: 'ack' } as AgentEvent]);
+    const deps = makeDeps(driver, { agentDriver: wrapper as never });
+
+    await relayAgentResponse('s1', 'wk-1', 'u-1', 'hi', deps);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBeUndefined();
+  });
+
   test('forwards a session TTS-settings override when present', async () => {
     const settings = { enabled: true, outputDeviceId: 'dev-1' };
     const tts = {
