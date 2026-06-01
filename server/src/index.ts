@@ -63,6 +63,7 @@ import {
   type SessionTtsSettingsMessage,
   type SessionTtsSettingsChangedMessage,
 } from './types.js';
+import { isIsoZuluTimestamp, isValidIanaTimezone } from './utils/timezone.js';
 
 function getNetworkAddresses(): string[] {
   const nets = networkInterfaces();
@@ -623,6 +624,18 @@ wss.on('connection', (ws: WebSocket) => {
             ?.getSettings(requestedWorkspaceId)
             ?.kioskFooterTickersEnabled ?? false;
 
+          // Issue #375: speaker's local timezone (IANA) + offset, captured
+          // by the client. Validated here so a malformed IANA string from
+          // an older/buggy client doesn't poison the per-turn header.
+          const validatedTimezone =
+            typeof message.timezone === 'string' && isValidIanaTimezone(message.timezone)
+              ? message.timezone
+              : undefined;
+          const validatedTzOffset =
+            typeof message.tzOffsetMinutes === 'number' && Number.isFinite(message.tzOffsetMinutes)
+              ? message.tzOffsetMinutes
+              : undefined;
+
           registry.register(
             message.deviceId,
             requestedWorkspaceId,
@@ -633,7 +646,9 @@ wss.on('connection', (ws: WebSocket) => {
             message.screenHeight,
             sessionId,
             validatedPlatform,
-            tickersEnabled
+            tickersEnabled,
+            validatedTimezone,
+            validatedTzOffset,
           );
           
           const response: RegisteredMessage = {
@@ -733,6 +748,14 @@ wss.on('connection', (ws: WebSocket) => {
             return;
           }
 
+          // Issue #375: All timestamps on the wire are UTC (`Z`). If the
+          // client supplied one we use it; otherwise we substitute the
+          // server's receipt time. Validate the ISO Zulu format defensively
+          // so a malformed client value doesn't poison the per-turn header.
+          const clientTimestamp = isIsoZuluTimestamp(message.clientTimestamp)
+            ? message.clientTimestamp
+            : new Date().toISOString();
+
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
@@ -742,6 +765,8 @@ wss.on('connection', (ws: WebSocket) => {
             senderName: device.displayName,
             text: message.text,
             partial: message.partial,
+            clientTimestamp,
+            ...(device.timezone ? { senderTimezone: device.timezone } : {}),
           };
 
           // Store final messages only (with session_id)
@@ -776,6 +801,14 @@ wss.on('connection', (ws: WebSocket) => {
                 store,
                 sessionRepository,
                 ttsService: ttsService ?? undefined,
+                // Issue #375: forward speaker identity + UTC timestamp so
+                // the OpenHands driver can compose its per-turn header.
+                sender: {
+                  deviceId: device.id,
+                  senderName: device.displayName,
+                  saidAtUtc: clientTimestamp,
+                  ...(device.timezone ? { timezone: device.timezone } : {}),
+                },
               }
             ).catch((err) => {
               console.error(`[AI] Failed to forward message to session AI:`, err);

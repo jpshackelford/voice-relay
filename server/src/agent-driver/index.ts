@@ -64,6 +64,7 @@ export type {
   AgentDriver,
   AgentEvent,
   AgentAction,
+  AgentSenderMeta,
   AgentSessionState,
   AgentSessionStatus,
   OpenSessionOpts,

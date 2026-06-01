@@ -25,6 +25,12 @@ import {
   type CondenseFn,
 } from './agent-driver/replay.js';
 import { logUpstreamFailure } from './agent-driver/log.js';
+import type { AgentSenderMeta } from './agent-driver/types.js';
+import {
+  buildVoiceRelayHeader,
+  makeVoiceRelayHeaderState,
+  type VoiceRelayHeaderState,
+} from './agent-driver/voice-relay-header.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -677,6 +683,22 @@ export interface AISession {
    * opened) or fails (the session transitions to `degraded`).
    */
   rebinding?: boolean;
+
+  // ---- Voice Relay header state (issue #375) -------------------------------
+  //
+  // Per-conversation token-efficient sender + timing header. The state
+  // is implicitly reset whenever a new `AISession` is constructed (which
+  // is what happens on `endSessionAI` + re-bind, `restartSession`, or
+  // attach onto a different `conversationId`). Rebind onto the same
+  // `conversationId` preserves the state — the agent's notion of
+  // "speaker A" survives a sandbox swap.
+  //
+  // Optional only so existing tests that construct hand-rolled `AISession`
+  // objects don't have to be updated en masse; the production paths
+  // (`getOrCreateForSession`, `attachExistingForSession`) always
+  // initialize it, and `sendSessionMessage` lazy-initialises when
+  // missing.
+  headerState?: VoiceRelayHeaderState;
 }
 
 // V1 Event type interfaces
@@ -2146,6 +2168,8 @@ export class AISessionManager {
       reconnectAttempts: 0,
       maxReconnectAttempts: 5,
       isThinking: false,
+      // Issue #375: fresh per-conversation speaker / time anchor state.
+      headerState: makeVoiceRelayHeaderState(),
     };
 
     this.sessionAI.set(sessionId, session);
@@ -2320,6 +2344,11 @@ export class AISessionManager {
       reconnectAttempts: 0,
       maxReconnectAttempts: 5,
       isThinking: false,
+      // Issue #375: attach onto an existing conversation also starts with
+      // empty alias / time state. The upstream agent has its own context
+      // (system message suffix etc.); we re-emit announcements as the
+      // first turn from each device after the attach completes.
+      headerState: makeVoiceRelayHeaderState(),
     };
 
     this.sessionAI.set(sessionId, session);
@@ -2334,9 +2363,18 @@ export class AISessionManager {
   }
 
   /**
-   * Send a message to the AI for a VR session
+   * Send a message to the AI for a VR session.
+   *
+   * When `sender` is supplied, a token-efficient `[vr ...]` / `[t=...]`
+   * header is prepended to the message so the agent can attribute the
+   * speaker and reason about timing (issue #375). The header may be
+   * empty for typical chatty single-device runs.
    */
-  async sendSessionMessage(sessionId: string, message: string): Promise<void> {
+  async sendSessionMessage(
+    sessionId: string,
+    message: string,
+    sender?: AgentSenderMeta,
+  ): Promise<void> {
     const session = this.sessionAI.get(sessionId);
     if (!session) {
       throw new Error('No active AI session for this VR session');
@@ -2355,11 +2393,22 @@ export class AISessionManager {
       this.onThinkingChange(session.sessionId, true);
     }
 
-    console.log(`[AI] Sending session message via WebSocket: "${message.substring(0, 50)}..."`);
-    
+    // Compose the per-turn metadata header (issue #375). Side-effects on
+    // `session.headerState` advance the speaker / time anchor. The state
+    // is lazy-initialised so tests that hand-roll an `AISession` without
+    // it still send messages.
+    let header = '';
+    if (sender) {
+      if (!session.headerState) session.headerState = makeVoiceRelayHeaderState();
+      header = buildVoiceRelayHeader(session.headerState, sender);
+    }
+    const wireMessage = header ? `${header}\n${message}` : message;
+
+    console.log(`[AI] Sending session message via WebSocket: "${wireMessage.substring(0, 50)}..."`);
+
     session.ws.send(JSON.stringify({
       role: 'user',
-      content: [{ type: 'text', text: message }],
+      content: [{ type: 'text', text: wireMessage }],
       run: true,
     }));
   }

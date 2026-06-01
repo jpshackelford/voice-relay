@@ -192,6 +192,24 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
         // Register this device with current mode, workspace, session, and screen dimensions.
         // currentModeRef is used so the latest mode is sent on every reconnect
         // without requiring `mode` in the effect's dependency array.
+        //
+        // Issue #375: capture the speaker's local IANA timezone + UTC
+        // offset at registration time so the OpenHands agent can answer
+        // wall-clock and relative-time questions. Wrapped defensively —
+        // older browsers without `Intl.DateTimeFormat` fall back to
+        // sending no timezone, which the server tolerates.
+        let timezone: string | undefined;
+        let tzOffsetMinutes: number | undefined;
+        try {
+          timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          // `getTimezoneOffset` returns minutes WEST of UTC; negate so
+          // we send the POSIX-style positive-east convention the server
+          // expects.
+          tzOffsetMinutes = -new Date().getTimezoneOffset();
+        } catch {
+          // Leave undefined; the server tolerates missing values.
+        }
+
         const registerMsg: ClientMessage = {
           type: 'register',
           deviceId,
@@ -201,6 +219,8 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           sessionId,
           screenWidth: window.innerWidth,
           screenHeight: window.innerHeight,
+          ...(timezone ? { timezone } : {}),
+          ...(tzOffsetMinutes !== undefined ? { tzOffsetMinutes } : {}),
         };
         ws.send(JSON.stringify(registerMsg));
         registeredRef.current = true;
@@ -381,11 +401,15 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
 
   const sendText = useCallback((utteranceId: string, text: string, partial: boolean) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Issue #375: stamp the utterance with the client's UTC clock so
+      // the agent's per-turn header reflects when the user actually
+      // spoke, not when the server received the frame.
       const message: ClientMessage = {
         type: 'text',
         utteranceId,
         text,
         partial,
+        clientTimestamp: new Date().toISOString(),
       };
       wsRef.current.send(JSON.stringify(message));
     }

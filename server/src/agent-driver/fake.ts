@@ -10,6 +10,7 @@
 import type {
   AgentDriver,
   AgentEvent,
+  AgentSenderMeta,
   AgentSessionState,
   AgentSessionStatus,
   OpenSessionOpts,
@@ -85,7 +86,18 @@ export class FakeDriver implements AgentDriver {
     return this.toStatus(sessionId, session);
   }
 
-  sendMessage(sessionId: string, utteranceId: string, _text: string): AsyncIterable<AgentEvent> {
+  /**
+   * `_sender` is accepted to honour the {@link AgentDriver} contract
+   * (#375) but intentionally ignored: the fake's job is to script
+   * responses, not compose headers. Tests that need to assert sender
+   * propagation should use a wrapper or the real `OpenHandsAgentDriver`.
+   */
+  sendMessage(
+    sessionId: string,
+    utteranceId: string,
+    _text: string,
+    _sender?: AgentSenderMeta,
+  ): AsyncIterable<AgentEvent> {
     // Snapshot the driver so the iterable is tied to this call.
     const driver = this;
     return {

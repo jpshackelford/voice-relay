@@ -44,7 +44,9 @@ export class DeviceRegistry {
     screenHeight?: number,
     sessionId?: string,
     platform?: DevicePlatform,
-    tickersEnabled?: boolean
+    tickersEnabled?: boolean,
+    timezone?: string,
+    tzOffsetMinutes?: number,
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
@@ -55,6 +57,11 @@ export class DeviceRegistry {
       existing.displayName = displayName;
       existing.mode = mode;
       if (platform) existing.platform = platform;
+      // Issue #375: refresh the speaker's timezone metadata on reconnect.
+      // A device crossing timezones (mobile traveler) sends a new value;
+      // we overwrite. Clients that omit the field keep the prior value.
+      if (timezone !== undefined) existing.timezone = timezone;
+      if (tzOffsetMinutes !== undefined) existing.tzOffsetMinutes = tzOffsetMinutes;
       // Only track screen dimensions for kiosk devices (they have the display)
       if (mode === 'kiosk') {
         if (screenWidth) existing.screenWidth = screenWidth;
@@ -88,6 +95,10 @@ export class DeviceRegistry {
       screenHeight: mode === 'kiosk' ? screenHeight : undefined,
       displayLines,
       platform,
+      // Issue #375: persist registration-time timezone metadata for use by
+      // the OpenHands per-turn header and peer-message rendering.
+      timezone,
+      tzOffsetMinutes,
     };
     this.devices.set(id, device);
     

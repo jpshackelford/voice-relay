@@ -16,6 +16,21 @@ export interface Device {
   displayLines?: number;  // Calculated max lines for kiosk display
   /** Platform identifier (optional, for analytics/debugging) */
   platform?: DevicePlatform;
+  /**
+   * Speaker's local IANA timezone, captured at device registration
+   * (issue #375). Used by the OpenHands driver to announce the speaker's
+   * timezone on the first user turn from this device, and made available
+   * to kiosks so peer messages can render local times. May be `undefined`
+   * for legacy clients that don't send it.
+   */
+  timezone?: string;
+  /**
+   * Local UTC offset in minutes at registration time (positive for east,
+   * negative for west — matches POSIX sign conventions, i.e. opposite of
+   * `Date.prototype.getTimezoneOffset`). Captured alongside `timezone`
+   * for non-IANA-aware clients.
+   */
+  tzOffsetMinutes?: number;
 }
 
 export interface DisplayContent {
@@ -99,6 +114,18 @@ export interface RegisterMessage {
   screenHeight?: number;
   /** Platform identifier (optional, for analytics/debugging). Defaults to 'web' if not provided. */
   platform?: DevicePlatform;
+  /**
+   * Speaker's local IANA timezone (e.g. "America/Los_Angeles"), captured
+   * by the client at registration time. Sent as
+   * `Intl.DateTimeFormat().resolvedOptions().timeZone` (issue #375).
+   * Optional for backward compatibility with older clients.
+   */
+  timezone?: string;
+  /**
+   * Local UTC offset in minutes (positive east of UTC). Optional for
+   * backward compatibility (issue #375).
+   */
+  tzOffsetMinutes?: number;
 }
 
 /**
@@ -127,6 +154,12 @@ export interface TextMessage {
   utteranceId: string;
   text: string;
   partial: boolean;
+  /**
+   * Optional ISO-8601 Zulu wall-clock time when the utterance was
+   * produced on the client. The server falls back to receipt time when
+   * absent (issue #375). All timestamps on the wire are UTC.
+   */
+  clientTimestamp?: string;
 }
 
 /**
@@ -296,6 +329,20 @@ export interface RelayedTextMessage {
    * agent events (issue #264).
    */
   createdAt?: string;
+  /**
+   * For user utterances: client-captured ISO-8601 Zulu wall-clock time
+   * when the utterance was produced (issue #375). Server falls back to
+   * receipt time when the client doesn't supply one. Lets kiosks render
+   * peer messages with the sender's local time.
+   */
+  clientTimestamp?: string;
+  /**
+   * For user utterances: the sender's local IANA timezone, propagated
+   * from device registration (issue #375). Used by kiosks to render peer
+   * messages in their local time. Undefined for AI utterances and for
+   * senders whose timezone is unknown.
+   */
+  senderTimezone?: string;
 }
 
 /**

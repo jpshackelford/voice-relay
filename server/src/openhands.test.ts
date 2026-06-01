@@ -368,6 +368,91 @@ describe('AISessionManager', () => {
           manager.sendSessionMessage('nonexistent-session', 'Hello')
         ).rejects.toThrow('No active AI session for this VR session');
       });
+
+      test('prepends a voice-relay header when sender metadata is provided (#375)', async () => {
+        // Hand-roll a session with a stubbed WS so we can inspect what's
+        // sent on the wire. Skipping `getOrCreateForSession` keeps the
+        // test focused on the header-prepending behaviour.
+        const sent: string[] = [];
+        const fakeWs = {
+          readyState: 1, // WebSocket.OPEN
+          send: (s: string) => sent.push(s),
+          close: () => {},
+        };
+        const session: AISession = {
+          conversationId: 'conv-h',
+          taskId: 'task-h',
+          sessionId: 'sess-h',
+          mode: 'kiosk',
+          agentServerUrl: 'https://agent.example.com',
+          sessionApiKey: 'K',
+          reconnectAttempts: 0,
+          maxReconnectAttempts: 5,
+          isThinking: false,
+          ws: fakeWs as never,
+        };
+        // Use the public seam used elsewhere in this file to seed the map.
+        (manager as unknown as { sessionAI: Map<string, AISession> })
+          .sessionAI.set('sess-h', session);
+
+        await manager.sendSessionMessage('sess-h', 'hello', {
+          deviceId: 'd-h',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: '2026-06-01T17:23:45Z',
+          timezone: 'America/Los_Angeles',
+        });
+
+        expect(sent).toHaveLength(1);
+        const payload = JSON.parse(sent[0]) as {
+          role: string;
+          content: Array<{ text: string }>;
+        };
+        const wireText = payload.content[0].text;
+        // First turn from this device: announcement + anchor lines, then
+        // the raw user text on a separate line.
+        expect(wireText).toBe(
+          '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]\nhello',
+        );
+
+        // Second turn from the same device, within the quiet period, must
+        // not re-emit any header — just the message text.
+        await manager.sendSessionMessage('sess-h', 'follow-up', {
+          deviceId: 'd-h',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          timezone: 'America/Los_Angeles',
+        });
+        const followUp = JSON.parse(sent[1]).content[0].text;
+        expect(followUp).toBe('follow-up');
+      });
+
+      test('omits the header entirely when sender is not provided (#375)', async () => {
+        const sent: string[] = [];
+        const fakeWs = {
+          readyState: 1,
+          send: (s: string) => sent.push(s),
+          close: () => {},
+        };
+        const session: AISession = {
+          conversationId: 'conv-nh',
+          taskId: 'task-nh',
+          sessionId: 'sess-nh',
+          mode: 'kiosk',
+          agentServerUrl: 'https://agent.example.com',
+          sessionApiKey: 'K',
+          reconnectAttempts: 0,
+          maxReconnectAttempts: 5,
+          isThinking: false,
+          ws: fakeWs as never,
+        };
+        (manager as unknown as { sessionAI: Map<string, AISession> })
+          .sessionAI.set('sess-nh', session);
+
+        await manager.sendSessionMessage('sess-nh', 'plain hello');
+
+        const wireText = JSON.parse(sent[0]).content[0].text;
+        expect(wireText).toBe('plain hello');
+      });
     });
 
     describe('endSessionAI', () => {

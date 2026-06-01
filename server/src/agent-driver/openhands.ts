@@ -24,6 +24,7 @@ import type {
   AgentAction,
   AgentDriver,
   AgentEvent,
+  AgentSenderMeta,
   AgentSessionState,
   AgentSessionStatus,
   OpenSessionOpts,
@@ -53,7 +54,11 @@ export interface AISessionManagerSurface {
       existingConversationId?: string;
     },
   ): Promise<AISession>;
-  sendSessionMessage(sessionId: string, message: string): Promise<void>;
+  sendSessionMessage(
+    sessionId: string,
+    message: string,
+    sender?: AgentSenderMeta,
+  ): Promise<void>;
   endSessionAI(sessionId: string): Promise<void>;
   shutdown(): Promise<void>;
 }
@@ -432,11 +437,16 @@ export class OpenHandsAgentDriver implements AgentDriver {
     return this.synthesizeStatus(sessionId);
   }
 
-  sendMessage(sessionId: string, utteranceId: string, text: string): AsyncIterable<AgentEvent> {
+  sendMessage(
+    sessionId: string,
+    utteranceId: string,
+    text: string,
+    sender?: AgentSenderMeta,
+  ): AsyncIterable<AgentEvent> {
     const self = this;
     return {
       [Symbol.asyncIterator](): AsyncIterator<AgentEvent> {
-        return self.runTurn(sessionId, utteranceId, text);
+        return self.runTurn(sessionId, utteranceId, text, sender);
       },
     };
   }
@@ -648,6 +658,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
     sessionId: string,
     utteranceId: string,
     text: string,
+    sender?: AgentSenderMeta,
   ): AsyncGenerator<AgentEvent> {
     const state = this.ensureState(sessionId);
 
@@ -706,7 +717,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
       }
 
       try {
-        await this.mgr.sendSessionMessage(sessionId, text);
+        await this.mgr.sendSessionMessage(sessionId, text, sender);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const errEvent: AgentEvent = { kind: 'error', message, recoverable: false };

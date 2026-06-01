@@ -92,6 +92,30 @@ export interface OpenSessionOpts {
 }
 
 /**
+ * Per-turn speaker + timing metadata forwarded with each `sendMessage`.
+ *
+ * `saidAtUtc` is an ISO-8601 Zulu timestamp captured on the client (or
+ * server-substituted at receipt time when absent). All timestamps on the
+ * wire are UTC; the speaker's local `timezone` is captured at register
+ * time and re-broadcast here so drivers that need the speaker's local
+ * clock don't have to look it up.
+ *
+ * Used by the OpenHands driver to compose the token-efficient
+ * `[vr ...]` / `[t=...]` per-turn header (issue #375). Other drivers may
+ * ignore it.
+ */
+export interface AgentSenderMeta {
+  /** Stable id of the device that produced the utterance. */
+  deviceId: string;
+  /** Human-readable name (e.g. "Kitchen iPad"). Sanitized before use. */
+  senderName: string;
+  /** ISO-8601 Zulu wall-clock time of the utterance. */
+  saidAtUtc: string;
+  /** Optional IANA timezone (e.g. "America/Los_Angeles"). */
+  timezone?: string;
+}
+
+/**
  * Provider-neutral contract between the Voice Relay platform and any AI
  * agent backend. See `docs/architecture.md` for the design rationale; the
  * five methods below are deliberately narrow.
@@ -140,8 +164,19 @@ export interface AgentDriver {
    * must terminate cleanly (yield a terminal `message` or `error` and return).
    *
    * If the session is not open, the driver auto-opens it.
+   *
+   * `sender` is optional metadata identifying the speaker and the UTC
+   * wall-clock time of the utterance. Production callers (the WS `text`
+   * handler) always supply it; tests and the `FakeDriver` may omit it.
+   * The OpenHands driver uses it to compose a token-efficient
+   * `[vr …]` / `[t=…]` header (issue #375); other drivers may ignore it.
    */
-  sendMessage(sessionId: string, utteranceId: string, text: string): AsyncIterable<AgentEvent>;
+  sendMessage(
+    sessionId: string,
+    utteranceId: string,
+    text: string,
+    sender?: AgentSenderMeta,
+  ): AsyncIterable<AgentEvent>;
 
   /**
    * Explicit user-driven reset. Resets `state` to `starting` and clears any
