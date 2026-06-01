@@ -254,3 +254,46 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-01 11:39 UTC - Implementation Worker (`50c1195`)
+
+✅ **Closed: Issue #375**
+
+- Issue: [#375 — feat: forward device identity and UTC timestamp to OpenHands with token-efficient header](https://github.com/jpshackelford/voice-relay/issues/375)
+- PR: [#376 — feat: forward device identity and UTC timestamp to OpenHands](https://github.com/jpshackelford/voice-relay/pull/376) (ready, all CI green)
+- Scope: full-stack — client + server + system prompt + tests
+
+**What landed:**
+
+- New `agent-driver/voice-relay-header.ts`: pure builder for the
+  `[vr A=Name tz=IANA]` / `[t=...]` per-turn header, with spreadsheet-style
+  alias allocation, 2m30s quiet-period re-anchoring, and a sanitizer
+  that strips `]`, newlines, and control chars from device names so a
+  malicious display name can't break out of the bracket grammar.
+- `AgentDriver.sendMessage` gains an optional `sender?: AgentSenderMeta`.
+  OpenHands driver composes + prepends the header in
+  `AISession.sendSessionMessage`; FakeDriver ignores the arg
+  (non-behavior-changing).
+- WS `register` handler validates IANA timezone (ICU-backed) and
+  threads it onto the `Device`. WS `text` handler validates ISO-Zulu
+  `clientTimestamp` (substitutes server-receipt time if missing) and
+  forwards `AgentSenderMeta` to `relayAgentResponse`.
+- Client captures `Intl.DateTimeFormat().resolvedOptions().timeZone` +
+  UTC offset on register and stamps each `sendText` with an ISO-Zulu
+  `clientTimestamp`. `RelayedTextMessage` also carries
+  `senderTimezone` so peer messages on the kiosk can later be rendered
+  in the sender's local time.
+- `server/prompts/system-prompt.md` § "Message format" teaches the agent
+  to parse the header without echoing or addressing it.
+
+**Tests added:** 19 + 33 + 2 + 2 + 2 = 58 new test cases.
+Full suite: **server 1343 / client 1019 / E2E pass**, build green,
+typecheck clean. No schema changes — fully backward-compatible.
+
+**Follow-ups (not in this PR):**
+
+- Kiosk UI can render `senderTimezone` for peer messages.
+- Telemetry on header sizes / quiet-period misses if we want to
+  validate the 2m30s constant in production.
+
+---
