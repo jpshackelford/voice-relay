@@ -784,12 +784,17 @@ wss.on('connection', (ws: WebSocket) => {
           } else {
             // Observability hatch for #341: pre-fix, a final-text message
             // arriving while the driver had no live session would silently
-            // drop here. Logged + degraded-broadcast inside the helper.
+            // drop here. Logged + (conditional, #373) degraded-broadcast
+            // inside the helper. Fire-and-forget: nothing in the WS path
+            // depends on the result.
             reportDroppedText({
               sessionId: device.sessionId,
               utteranceId: message.utteranceId,
               partial: message.partial,
               registry,
+              agentDriver,
+            }).catch((err) => {
+              console.error('[AI] reportDroppedText failed:', err);
             });
           }
           break;
