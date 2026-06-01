@@ -982,3 +982,55 @@ The orchestrator will resume on the next cron trigger after re-enable.
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-01 10:20 UTC - Orchestrator (manual `/orchestrate`)
+
+🚀 **Spawned: Implementation Worker for Issue #373**
+
+| | |
+|---|---|
+| Issue | [#373 — bug(server): `reportDroppedText` clobbers legitimate `starting`/`reconnecting` snapshot with `degraded`](https://github.com/jpshackelford/voice-relay/issues/373) |
+| Labels | `bug`, `ready`, `priority:low`, `scope:server-only`, `server` |
+| Conversation | [`bb4de8f`](https://app.all-hands.dev/conversations/bb4de8fcb90842e08e71903df03b5bbe) (execution_status=running, sandbox=RUNNING) |
+| Plugin ref | `add-voice-relay-workflow-plugin` |
+
+**Why this tick is productive:**
+
+Since the previous orchestrator wake-up (2026-05-29 17:03Z, which auto-disabled the automation), two new issues have appeared and one is now eligible for implementation:
+
+| Issue | Labels | Eligible? |
+|---|---|---|
+| #372 | `enhancement`, `priority:medium`, `needs-human`, `scope:full-stack`, `server` | ❌ skip — `needs-human` |
+| #373 | `bug`, `ready`, `priority:low`, `scope:server-only`, `server` | ✅ **pick up** — `ready` + prioritized + no `on-hold` / `needs-human` / `blocked` |
+
+Body of #373 is 6.7 KB and the `ready` label is already applied — no expansion worker needed. Implementation slot was idle (0/1), so this fills it cleanly.
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---|---|---|---|
+| [`bb4de8f`](https://app.all-hands.dev/conversations/bb4de8fcb90842e08e71903df03b5bbe) | implementation | Issue #373 — `reportDroppedText` snapshot clobber | **NEW** (execution_status=running) |
+
+**Slot Utilization:**
+
+| Slot Type | Active | Limit | Available |
+|---|---|---|---|
+| expansion | 0 | 4 | 4 (only `needs-expansion` candidates are #210, #239 — both `on-hold`) |
+| implementation | 1 | 1 | 0 (#373 in flight; `ready`+`on-hold` items #351 and #363 remain parked) |
+| review/merge | 0 | 2 | 2 (no open PRs yet) |
+
+**Current State:**
+
+- Open PRs: **0** (PR #371 squash-merged at `10b647b` on 2026-05-29)
+- Open issues: **10**
+  - `ready` + unblocked: ~~#373~~ (now in flight)
+  - `needs-human`: #372
+  - `on-hold`: #210, #239, #299, #300, #301, #302, #351, #363 (workspace-persistence freeze for #299–#302 per AGENTS.md; #351/#363 still awaiting human decision)
+- `quiet_ticks`: 0 (productive tick — reset from 2)
+
+**Re-enabling automation:** the orchestrator was auto-disabled on 2026-05-29 17:03Z because all open issues at that point carried `on-hold`. With #373 freshly filed as `ready` + unblocked, that disable condition no longer holds. Re-enabling automation ID `5f180989-ed9c-42b4-ac9f-5f30f0623316` so subsequent cron ticks can pick up the review / merge cycle for the new PR.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
