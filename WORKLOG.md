@@ -1053,3 +1053,27 @@ PR: https://github.com/jpshackelford/voice-relay/pull/374 (ready for review, CI 
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-01 10:36 UTC - Merge worker (PR #374)
+
+✅ **PR #374 squash-merged → main** (commit `50d3fb5`). Issue #373 auto-closed as completed via `Fixes #373` in the PR body.
+
+**Merge criteria verified before merge:**
+
+| Gate | Result |
+|---|---|
+| CI checks | 🟢 All green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review) |
+| pr-review verdict | 🟢 **LOW risk, ✅ Worth merging** — no actionable feedback, no review threads to resolve |
+| Unresolved threads | 0 |
+| mergeable / mergeStateStatus | `MERGEABLE` / `CLEAN` |
+| Labels (blocking) | none (`on-hold`/`needs-human` not set) |
+| Migration check | ✅ No `server/migrations/*` and no `knex`/`drizzle`/schema files in the diff |
+| Diff scope | Only `server/src/dropped-text-handler.ts` (+75 lines: defer to driver), `server/src/dropped-text-handler.test.ts` (+212 lines: per-state broadcast cases + rejection path), and `server/src/index.ts` (+7 lines: fire-and-forget WS call site). `scope:server-only` confirmed |
+
+**Squash commit:** `fix(server): don't clobber starting/reconnecting snapshot from reportDroppedText (#373) (#374)` — Option 1 from #373 implemented: `reportDroppedText` defers to `agentDriver.getSessionStatus(sessionId)` and broadcasts only when `state === 'degraded'`, using the driver's authoritative status object. Warn log preserved as the silent-drop observability hook (symmetric to #341 § D). WS `case 'text'` call site now fire-and-forget with `.catch`. No DB schema changes; production SQLite untouched.
+
+**Production impact:** auto-deploys to vr.chorecraft.net on merge. Eliminates the spurious "AI not attached — try restarting the session" flash on the kiosk during legitimate `starting` / `reconnecting` / `absent` warm-up windows; the genuine-`degraded` restart affordance remains intact. Server-only behaviour change — no migration risk.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
