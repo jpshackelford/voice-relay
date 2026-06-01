@@ -1034,3 +1034,22 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 
 ---
 
+
+### 2026-06-01 10:26 UTC - Implementation worker (issue #373)
+
+✅ Implemented #373 (`bug(server): reportDroppedText clobbers legitimate starting/reconnecting snapshot with degraded`) — Option 1 from the issue.
+
+- Added `agentDriver` to `DroppedTextArgs` and made `reportDroppedText` async.
+- Defer to `agentDriver.getSessionStatus(sessionId)`; only broadcast when `state === 'degraded'`, using the driver's authoritative status (preserves the "try restarting the session" affordance for genuine failures).
+- For `absent` / `starting` / `reconnecting` / `ready` / `thinking` the handler now stays silent so the next legitimate transition broadcast wins — fixes the spurious "AI not attached" flash on the kiosk during warm-up / rebind windows.
+- Warn log fires unconditionally (preserves the #341 § D silent-drop observability hook).
+- `getSessionStatus` rejection path: log + skip broadcast.
+- Updated the WS `case 'text'` call site in `server/src/index.ts` to fire-and-forget with `.catch`.
+- Tests: `server/src/dropped-text-handler.test.ts` now 11 tests including `test.each` over all five non-degraded states. Full server suite green (1287 tests).
+- Scope: server-only, no schema/migration changes.
+
+PR: https://github.com/jpshackelford/voice-relay/pull/374 (ready for review, CI green: Server / Client / Build / E2E / lint-pr-title all pass).
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
