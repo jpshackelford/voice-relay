@@ -210,3 +210,24 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:30 UTC - Expansion Worker (#382 ticker speaker label)
+
+✅ **Expanded Issue [#382](https://github.com/jpshackelford/voice-relay/issues/382)** — Transcription ticker should identify the sending device / speaker.
+
+- Type: Enhancement (kiosk UX).
+- Status: **Ready for implementation.**
+- Labels applied: `enhancement`, `scope:client-only`, `priority:medium`, `ready`.
+- Scope verdict: **client-only**. `Utterance.senderName` is already on the wire (`client/src/types.ts:475`) and the ticker filter at `KioskMode.tsx:455` already excludes AI + own-device messages, so the data plumbing for human-speaker labeling exists.
+- Dependency on PR [#376](https://github.com/jpshackelford/voice-relay/pull/376) (`4fac7b3`, `[vr A=Name tz=…]` header to OpenHands): **none**. PR #376 is server→agent only (`server/src/agent-driver/*`, `server/src/openhands.ts`); it does not modify the `RelayedTextMessage` shape that the kiosk consumes. `senderName` has been on relayed utterances since #346.
+- Proposed approach:
+  - `MarqueeTicker` grows an optional `prefix?: string` prop, rendered as a sibling `<span class="kiosk-ticker-speaker">` **inside** the existing measured/translated inner span — preserves `scrollWidth - clientWidth` marquee math.
+  - `KioskMode.tsx` derives `{ prefix, text }` from `mostRecentForeignUtterance`, debouncing the prefix on consecutive same-`senderId` partials so the strip doesn't restart on every frame.
+  - `.kiosk-ticker-speaker` gets a heavier weight + muted color for at-a-glance "who vs. what" separation.
+  - `fauxPulse` effect dependency updated to track `transcriptionTicker.text` so same-sender partials still bump the oscilloscope.
+- Files affected (≤5, all client): `client/src/components/MarqueeTicker.tsx`, `client/src/components/KioskMode.tsx`, `client/src/App.css`, `client/src/components/KioskMode.test.tsx`, plus optional `MarqueeTicker.test.tsx`.
+- Complexity: Low. No protocol/DB/server change. Already gated by `kioskFooterTickersEnabled`.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
