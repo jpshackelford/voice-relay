@@ -412,3 +412,19 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-04 18:15 UTC - Expansion Worker (#386)
+
+✅ **Expanded Issue #386** — [Optional hosted STT with diarization (Deepgram / AssemblyAI) for shared-device use cases](https://github.com/jpshackelford/voice-relay/issues/386)
+
+| Field | Value |
+|---|---|
+| Type | Enhancement |
+| Status | Ready for implementation |
+| Approach | Opt-in Deepgram streaming STT alongside Web Speech, per-device override, server-side token broker (no audio through VR), engine speaker labels propagated end-to-end and mapped via new `session_engine_speakers` table |
+| Hard deps | #383 (speakers table FK), #378 (REST/auth pattern) |
+| Soft dep | #382 (ticker label render) |
+| Complexity | High — touches storage, server routing, WS protocol, hooks, AudioWorklet |
+
+Rewrote issue body into Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope / Depends-on sections. Added a technical-approach comment with merge-order plan, file-by-file impact list, migration SQL sketch, API/WS changes, and risk list. Labeled `ready`.
+
+---
