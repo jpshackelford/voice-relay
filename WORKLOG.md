@@ -538,3 +538,17 @@ Review verdict from `github-actions[bot]` (COMMENTED, no blockers): 🟢 Good ta
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 18:27 UTC - Expansion Worker (#389)
+
+✅ **Expanded Issue #389** — Teach default system prompt to call `PATCH /api/sessions/:id/settings`
+
+- Type: Enhancement (prompt-engineering follow-up to merged PR #385)
+- Status: **Ready for implementation** (`ready` label applied)
+- Approach: Insert a new "Session Settings API" section into `server/prompts/system-prompt.md` immediately after the existing "Display API" block. Documents `PATCH /api/sessions/{{SESSION_ID}}/settings` with `Authorization: Bearer $DISPLAY_API_SECRET` and the four mutable fields (`tts`, `inputMode`, `autoSubmit`, `agentPrompt`), with 5 concrete `curl` examples and a "When NOT to call" carve-out for device-volume / one-off / stylistic asks.
+- Files affected: `server/prompts/system-prompt.md` (+~45 lines), `server/src/openhands.test.ts` (+~30 lines, plus updating `sessionIdMatches.length` from 4 → 9). No server code, no router, no schema, no migration.
+- Risks flagged in technical comment: prompt bloat, ambiguous triggers ("turn it down"), agent self-reprogramming via `agentPrompt`, and the well-known flakiness of LLM-driven e2e tests. Recommended a server-side contract test for CI + a manual live-LLM smoke for the PR description, instead of trying to gate on real-LLM behaviour.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
