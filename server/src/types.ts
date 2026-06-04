@@ -228,6 +228,41 @@ export interface SessionTtsSettingsChangedMessage {
   outputDeviceId: string | null;
 }
 
+/**
+ * Server → All devices in session: full session-settings snapshot.
+ *
+ * Broadcast whenever any field of the session settings DTO changes
+ * (via REST `PATCH /api/sessions/:id/settings` or the existing WS
+ * `'session-tts-settings'` handler). The payload mirrors the
+ * `SessionSettingsDTO` returned by `GET /api/sessions/:id/settings`,
+ * so clients can hydrate their local UI state directly from the
+ * broadcast without a follow-up REST call.
+ *
+ * `session-tts-settings-changed` is still emitted alongside this for
+ * backwards compatibility with kiosks/mobiles that only know about
+ * the TTS-specific message. See issue #378.
+ */
+export interface SessionSettingsChangedMessage {
+  type: 'session-settings-changed';
+  sessionId: string;
+  /**
+   * Loosely typed here to avoid a cross-module cycle with
+   * `sessions/types.ts`. The runtime payload is a
+   * `SessionSettingsDTO` (see `server/src/sessions/types.ts`).
+   */
+  settings: {
+    sessionId: string;
+    workspaceId: string;
+    tts: { enabled: boolean; outputDeviceId: string | null };
+    inputMode: 'voice' | 'unified' | 'visualizer';
+    autoSubmit: boolean;
+    agentPrompt: {
+      effective: string;
+      source: 'session' | 'workspace-default' | 'builtin';
+    };
+  };
+}
+
 /** Server → Mobile: Transcription result from audio input */
 export interface TranscriptionResultMessage {
   type: 'transcription-result';
@@ -266,6 +301,7 @@ export type ServerMessage =
   | AudioChunkMessage
   | AudioEndMessage
   | SessionTtsSettingsChangedMessage
+  | SessionSettingsChangedMessage
   | TranscriptionResultMessage
   | TranscriptionErrorMessage;
 
