@@ -338,3 +338,43 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:56 UTC - Implementation worker (#378)
+
+🚀 **Dispatched PR #385 — session settings REST + per-session agent prompt**
+
+- Issue: [#378](https://github.com/jpshackelford/voice-relay/issues/378)
+- PR: [#385](https://github.com/jpshackelford/voice-relay/pull/385) — ready for review
+- Branch: `feat/378-session-settings-rest`
+- Scope: server-only, additive schema (migration 016 nullable column)
+
+**What I shipped**
+
+| Layer            | Change                                                                 |
+|------------------|------------------------------------------------------------------------|
+| HTTP             | `GET` + `PATCH /api/sessions/:id/settings`, mounted alongside `ai-router` |
+| Service          | `SessionSettingsService.applyPatch()` — one funnel for REST + WS writes  |
+| WS               | `'session-tts-settings'` handler refactored to delegate; new `session-settings-changed` snapshot broadcast; legacy `session-tts-settings-changed` preserved for back-compat |
+| Schema           | Migration `016_default_agent_prompt.ts` (nullable TEXT, up/down)        |
+| Agent prompt     | `resolveSessionSystemPrompt`: session > workspace-default > built-in    |
+| Auth             | DISPLAY_API_SECRET Bearer → JWT workspace-member fallback              |
+
+**Tests**
+
+- Server: **1381 / 1381 passing** (+33 new)
+- Client: **1019 / 1019 passing** (unchanged)
+- Coverage on new files: settings-service 96.3 % stmts / 98.6 % branches, settings-router 87.3 % / 82.6 %, migration 016 100 %
+- New Playwright spec `tests/session-settings-api.spec.ts` for the JWT round-trip
+
+**CI**
+
+All required checks green on commit `6223d17`: Server Tests ✅ · Client Tests ✅ · Build Client ✅ · E2E Tests ✅ · lint-pr-title ✅
+
+**Follow-ups (out of scope per #378 expansion)**
+
+- Teach the built-in `prompts/system-prompt.md` to call `PATCH /settings` so the agent can self-tune.
+- Client UI for the new fields (input mode / auto-submit / agent-prompt editor).
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
