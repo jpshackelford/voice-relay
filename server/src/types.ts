@@ -379,6 +379,14 @@ export interface RelayedTextMessage {
    * senders whose timezone is unknown.
    */
   senderTimezone?: string;
+  /**
+   * Stable id of the workspace-scoped `speakers` row resolved for this
+   * utterance (#383). Lets later analytics and the message-history view
+   * attribute past statements to the human (not just the device) even
+   * after the speaker's preferred name changes. `undefined` for AI
+   * utterances, anonymous devices, and pre-#383 messages.
+   */
+  speakerId?: string;
 }
 
 /**

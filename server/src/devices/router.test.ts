@@ -30,7 +30,10 @@ describe('Device Router', () => {
     db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
-    // Create devices table with new secure schema
+    // Create devices table with new secure schema. `primary_user_id`
+    // is part of the live schema (migration 017, #383); the migration
+    // would ADD it via ALTER, so we just include it inline here to
+    // keep the test setup self-contained.
     db.exec(`
       CREATE TABLE IF NOT EXISTS devices (
         id TEXT PRIMARY KEY,
@@ -42,6 +45,7 @@ describe('Device Router', () => {
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        primary_user_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
     `);

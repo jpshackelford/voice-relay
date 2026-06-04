@@ -151,6 +151,55 @@ export const ORPHAN_CHECKS: OrphanCheck[] = [
     parentColumn: 'id',
     action: 'set-null',
   },
+  // Issue #383 / migration 017 — speaker identity model.
+  {
+    label: 'auth_identities.user_id -> users.id (CASCADE)',
+    childTable: 'auth_identities',
+    childColumn: 'user_id',
+    parentTable: 'users',
+    parentColumn: 'id',
+    action: 'cascade',
+  },
+  {
+    label: 'speakers.workspace_id -> workspaces.id (CASCADE)',
+    childTable: 'speakers',
+    childColumn: 'workspace_id',
+    parentTable: 'workspaces',
+    parentColumn: 'id',
+    action: 'cascade',
+  },
+  {
+    label: 'speakers.user_id -> users.id (SET NULL)',
+    childTable: 'speakers',
+    childColumn: 'user_id',
+    parentTable: 'users',
+    parentColumn: 'id',
+    action: 'set-null',
+  },
+  {
+    label: 'devices.primary_user_id -> users.id (SET NULL)',
+    childTable: 'devices',
+    childColumn: 'primary_user_id',
+    parentTable: 'users',
+    parentColumn: 'id',
+    action: 'set-null',
+  },
+  {
+    label: 'session_devices.active_speaker_id -> speakers.id (SET NULL)',
+    childTable: 'session_devices',
+    childColumn: 'active_speaker_id',
+    parentTable: 'speakers',
+    parentColumn: 'id',
+    action: 'set-null',
+  },
+  {
+    label: 'messages.speaker_id -> speakers.id (SET NULL)',
+    childTable: 'messages',
+    childColumn: 'speaker_id',
+    parentTable: 'speakers',
+    parentColumn: 'id',
+    action: 'set-null',
+  },
 ];
 
 function tableExists(db: Database.Database, name: string): boolean {

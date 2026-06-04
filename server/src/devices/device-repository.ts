@@ -21,7 +21,11 @@ interface DeviceRow {
   last_seen_at: string | null;
   config: string | null;
   created_at: string;
+  primary_user_id: string | null;
 }
+
+const DEVICE_COLUMNS = `id, workspace_id, name, mode, device_token_hash,
+       token_expires_at, last_seen_at, config, created_at, primary_user_id`;
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -53,6 +57,7 @@ function rowToDevice(row: DeviceRow): PersistedDevice {
     lastSeenAt: row.last_seen_at,
     config: row.config ? JSON.parse(row.config) : null,
     createdAt: row.created_at,
+    primaryUserId: row.primary_user_id,
   };
 }
 
@@ -69,8 +74,8 @@ export class DeviceRepository {
 
   findById(id: string): PersistedDevice | null {
     const stmt = this.db.prepare<[string], DeviceRow>(`
-      SELECT id, workspace_id, name, mode, device_token_hash, 
-             token_expires_at, last_seen_at, config, created_at
+      SELECT id, workspace_id, name, mode, device_token_hash,
+             token_expires_at, last_seen_at, config, created_at, primary_user_id
       FROM devices WHERE id = ?
     `);
     const row = stmt.get(id);
@@ -80,7 +85,7 @@ export class DeviceRepository {
   findByTokenHash(tokenHash: string): PersistedDevice | null {
     const stmt = this.db.prepare<[string], DeviceRow>(`
       SELECT id, workspace_id, name, mode, device_token_hash,
-             token_expires_at, last_seen_at, config, created_at
+             token_expires_at, last_seen_at, config, created_at, primary_user_id
       FROM devices WHERE device_token_hash = ?
     `);
     const row = stmt.get(tokenHash);
@@ -117,7 +122,7 @@ export class DeviceRepository {
   findByWorkspace(workspaceId: string): PersistedDevice[] {
     const stmt = this.db.prepare<[string], DeviceRow>(`
       SELECT id, workspace_id, name, mode, device_token_hash,
-             token_expires_at, last_seen_at, config, created_at
+             token_expires_at, last_seen_at, config, created_at, primary_user_id
       FROM devices WHERE workspace_id = ? ORDER BY last_seen_at DESC
     `);
     const rows = stmt.all(workspaceId);
@@ -213,6 +218,22 @@ export class DeviceRepository {
     const now = new Date().toISOString();
     const stmt = this.db.prepare('UPDATE devices SET last_seen_at = ? WHERE id = ?');
     stmt.run(now, id);
+  }
+
+  /**
+   * Record the authenticated user who claimed this device. Called by
+   * the QR-token / device-claim auth path (#383). Passing `null`
+   * explicitly clears the link — useful for "log out of this kiosk".
+   *
+   * Returns the updated row (or `null` if no such device).
+   */
+  setPrimaryUser(id: string, userId: string | null): PersistedDevice | null {
+    const stmt = this.db.prepare(
+      `UPDATE devices SET primary_user_id = ? WHERE id = ?`
+    );
+    const result = stmt.run(userId, id);
+    if (result.changes === 0) return null;
+    return this.findById(id);
   }
 
   /**

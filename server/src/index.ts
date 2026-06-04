@@ -35,6 +35,7 @@ import {
   createSessionSettingsService,
   type SessionSettingsService,
 } from './sessions/index.js';
+import { SpeakerRepository, createSpeakerRouter } from './speakers/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
@@ -188,8 +189,44 @@ let sessionRepository: SessionRepository | null = null;
 let sessionSettingsService: SessionSettingsService | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
 let agentEventRepository: AgentEventRepository | null = null;
+let speakerRepository: SpeakerRepository | null = null;
 let agentEventRehydrator: AgentEventRehydrator | null = null;
 let agentEventTtlInterval: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Resolve the workspace-scoped speaker for a device (#383).
+ *
+ * Looks up `devices.primary_user_id`, then the matching `speakers` row
+ * in the workspace. Returns the agent-driver-shaped `AgentSpeakerMeta`
+ * or `null` when the device is anonymous / no speaker exists yet.
+ *
+ * Best-effort & cheap: both lookups are indexed and run on every
+ * inbound utterance. Errors are logged and swallowed — speaker
+ * resolution must never crash the message-relay path.
+ */
+function resolveSpeakerForDevice(
+  workspaceId: string,
+  deviceId: string
+): { id: string; preferredName: string | null; pronouns: string | null } | null {
+  if (!deviceRepository || !speakerRepository) return null;
+  try {
+    const device = deviceRepository.findById(deviceId);
+    if (!device || !device.primaryUserId) return null;
+    const speaker = speakerRepository.findByWorkspaceUser(
+      workspaceId,
+      device.primaryUserId
+    );
+    if (!speaker) return null;
+    return {
+      id: speaker.id,
+      preferredName: speaker.preferredName,
+      pronouns: speaker.pronouns,
+    };
+  } catch (err) {
+    console.warn('[Speakers] resolve failed (non-fatal):', err);
+    return null;
+  }
+}
 
 // TTS service for AI response speech synthesis (set up after workspace repository)
 let ttsService: TtsService | null = null;
@@ -765,6 +802,13 @@ wss.on('connection', (ws: WebSocket) => {
             ? message.clientTimestamp
             : new Date().toISOString();
 
+          // Issue #383: resolve the speaker once per inbound utterance
+          // so the same id is stamped on the persisted row AND forwarded
+          // to the agent driver below.
+          const utteranceSpeaker = resolveSpeakerForDevice(
+            device.workspaceId,
+            deviceId
+          );
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
@@ -776,6 +820,7 @@ wss.on('connection', (ws: WebSocket) => {
             partial: message.partial,
             clientTimestamp,
             ...(device.timezone ? { senderTimezone: device.timezone } : {}),
+            ...(utteranceSpeaker ? { speakerId: utteranceSpeaker.id } : {}),
           };
 
           // Store final messages only (with session_id)
@@ -799,6 +844,10 @@ wss.on('connection', (ws: WebSocket) => {
           // intentionally do not await — the relay completes
           // out-of-band so subsequent inbound WS frames keep flowing.
           if (device.sessionId && !message.partial && agentDriver.hasSession(device.sessionId)) {
+            // Issue #383: reuse the speaker resolved above for the
+            // persisted row, so the sender meta and the message row
+            // always carry the same speaker id.
+            const resolvedSpeaker = utteranceSpeaker;
             relayAgentResponse(
               device.sessionId,
               device.workspaceId,
@@ -817,6 +866,7 @@ wss.on('connection', (ws: WebSocket) => {
                   senderName: device.displayName,
                   saidAtUtc: clientTimestamp,
                   ...(device.timezone ? { timezone: device.timezone } : {}),
+                  ...(resolvedSpeaker ? { speaker: resolvedSpeaker } : {}),
                 },
               }
             ).catch((err) => {
@@ -1119,7 +1169,8 @@ async function start() {
       sessionRepository = new SessionRepository(db);
       qrTokenRepository = new QrTokenRepository(db);
       agentEventRepository = new AgentEventRepository(db);
-      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent repositories initialized');
+      speakerRepository = new SpeakerRepository(db);
+      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent, Speaker repositories initialized');
 
       // Session settings service (issue #378). Single funnel for REST
       // and WS writes; installed once the repositories are available
@@ -1316,6 +1367,7 @@ async function start() {
         deviceRepository,
         sessionRepository,
         qrTokenRepository: qrTokenRepository ?? undefined,
+        speakerRepository: speakerRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,
@@ -1484,6 +1536,20 @@ async function start() {
       });
       app.use('/api/workspaces/:workspaceId/sessions', sessionRouter);
       console.log('[Sessions] API enabled');
+
+      // Set up workspace-scoped speaker profile routes (#383).
+      if (speakerRepository) {
+        const speakerRouter = createSpeakerRouter({
+          speakerRepository,
+          workspaceRepository,
+          authConfig: {
+            jwtService,
+            userRepository,
+          },
+        });
+        app.use('/api/workspaces/:workspaceId/speakers', speakerRouter);
+        console.log('[Speakers] API enabled');
+      }
 
       // Set up agent-events read API. Top-level mount: a sessionId already
       // resolves to its workspace via SessionRepository.findById, so we

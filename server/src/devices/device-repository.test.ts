@@ -30,6 +30,8 @@ describe('DeviceRepository', () => {
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        -- migration 017 / #383: speaker identity primary user link.
+        primary_user_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
       CREATE INDEX IF NOT EXISTS idx_devices_workspace ON devices(workspace_id);

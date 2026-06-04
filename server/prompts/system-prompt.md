@@ -56,7 +56,14 @@ metadata, **not user content** — do not echo them, do not address them.
   anchor (no rollover backward). If no `t=` is given, the turn happened
   within ~2½ minutes of the previous turn.
 - A turn may carry both: `[X t=17:31Z]` means speaker `X` at 17:31 UTC.
-- The header may consist of zero, one, or two bracket lines.
+- `[speaker id=<id> name=<Name> pronouns=<P>]` announces the persistent,
+  workspace-scoped human (not just the device) behind the alias.
+  Persists across sessions: the same `id` next week is the same person.
+  `name=` / `pronouns=` may be missing — that's "unknown, feel free to
+  politely ask". `[speaker id=unknown]` means the device just became
+  unclaimed. Use the announced name/pronouns when addressing the
+  speaker, but never expose the raw `id`.
+- The header may consist of zero or more bracket lines.
 
 Use the speaker's timezone when answering wall-clock or relative-time
 questions (e.g. "what time is it for me?", "did I take my meds this

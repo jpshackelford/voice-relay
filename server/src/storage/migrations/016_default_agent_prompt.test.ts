@@ -79,7 +79,10 @@ describe('migration 016: default_agent_prompt', () => {
     const migrator = new Migrator({ db, migrations });
     const res = await migrator.migrateTo(15);
     expect(res.direction).toBe('down');
-    expect(res.count).toBe(1);
+    // count grows by 1 for every migration newer than 016 that was
+    // applied before this rollback. Don't pin to a literal so this test
+    // doesn't break when future migrations are added (e.g. #383's 017).
+    expect(res.count).toBeGreaterThanOrEqual(1);
 
     // Column removed; non-prompt columns survive the down migration.
     expect(getColumns()).not.toContain('default_agent_prompt');

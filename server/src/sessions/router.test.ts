@@ -48,6 +48,8 @@ describe('Session Router', () => {
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        -- migration 017 / #383: speaker identity.
+        primary_user_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
 

@@ -185,6 +185,22 @@ export function createDeviceRouter({ deviceRepository, workspaceRepository, auth
       return;
     }
 
+    // Speaker identity (#383): claim the device for the authenticated
+    // user. The PATCH endpoint requires the caller to be a workspace
+    // member (checked above), so this binding is safe — and it lets a
+    // human "log in to" a shared kiosk simply by configuring it. Skip
+    // when the device already belongs to this user.
+    if (updated.primaryUserId !== req.user!.id) {
+      try {
+        deviceRepository.setPrimaryUser(updated.id, req.user!.id);
+      } catch (err) {
+        console.warn(
+          '[Devices] Failed to set primary_user_id (non-fatal):',
+          err
+        );
+      }
+    }
+
     res.json({
       id: updated.id,
       workspaceId: updated.workspaceId,

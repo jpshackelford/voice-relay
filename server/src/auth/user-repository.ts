@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
 import type { User, UserCreateInput } from './types.js';
+import { AuthIdentityRepository } from './identity-repository.js';
 
 interface UserRow {
   id: string;
@@ -34,7 +35,30 @@ const SELECT_USER_COLUMNS = `
 `;
 
 export class UserRepository {
+  /**
+   * Lazily-created identity repository sharing the same `db`. Exposed
+   * via {@link identities} so call-sites that only have a
+   * `UserRepository` can still write `auth_identities` rows without
+   * threading a second repo through every layer.
+   *
+   * Type-only `AuthIdentityRepository` reference so this file does not
+   * need to import `auth_identities` types eagerly.
+   */
+  private _identities: AuthIdentityRepository | null = null;
+
   constructor(private readonly db: Database.Database) {}
+
+  /**
+   * Access to the underlying `auth_identities` table. The
+   * \`UserRepository\` itself writes through this on `create` /
+   * `upsertFromGitHub` so the join row stays in sync.
+   */
+  get identities(): AuthIdentityRepository {
+    if (!this._identities) {
+      this._identities = new AuthIdentityRepository(this.db);
+    }
+    return this._identities;
+  }
 
   findById(id: string): User | null {
     const stmt = this.db.prepare<[string], UserRow>(`
@@ -58,21 +82,33 @@ export class UserRepository {
     const id = uuidv4();
     const now = new Date().toISOString();
 
-    const stmt = this.db.prepare(`
+    const insertUser = this.db.prepare(`
       INSERT INTO users (id, github_id, username, display_name, avatar_url, email, created_at, last_login_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
-      id,
-      input.githubId,
-      input.username,
-      input.displayName ?? null,
-      input.avatarUrl ?? null,
-      input.email ?? null,
-      now,
-      now
-    );
+    // Dual-write: keep \`users.github_id\` / \`users.username\` populated
+    // for legacy callers AND insert the corresponding \`auth_identities\`
+    // row that #383 introduced. Done inside a transaction so callers
+    // observe either both writes or neither.
+    const writePair = this.db.transaction((u: UserCreateInput, uid: string, ts: string) => {
+      insertUser.run(
+        uid,
+        u.githubId,
+        u.username,
+        u.displayName ?? null,
+        u.avatarUrl ?? null,
+        u.email ?? null,
+        ts,
+        ts
+      );
+      this.identities.create(uid, {
+        provider: 'github',
+        providerUserId: String(u.githubId),
+        providerUsername: u.username,
+      });
+    });
+    writePair(input, id, now);
 
     return {
       id,

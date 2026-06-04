@@ -14,6 +14,7 @@ import { migration as migration013 } from './013_fk_orphan_cleanup.js';
 import { migration as migration014 } from './014_user_github_installation.js';
 import { migration as migration015 } from './015_kiosk_footer_tickers.js';
 import { migration as migration016 } from './016_default_agent_prompt.js';
+import { migration as migration017 } from './017_speakers.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -33,6 +34,7 @@ export const migrations: Migration[] = [
   migration014,
   migration015,
   migration016,
+  migration017,
 ];
 
 export function getMigrations(): Migration[] {
