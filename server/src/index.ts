@@ -11,12 +11,13 @@ import { DeviceRegistry } from './registry.js';
 import { attachKeepalive } from './keepalive.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { AgentEventRepository } from './storage/agent-event-repository.js';
-import { getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
+import { getWorkspaceApiKey, OpenHandsClient, resolveSessionSystemPrompt } from './openhands.js';
 import {
   agentDriver,
   onAgentRawEvent,
   onAgentThinkingChange,
   onAgentAction,
+  setAgentSystemPromptResolver,
   shutdownAgentDriver,
 } from './agent-driver/index.js';
 import {
@@ -26,7 +27,14 @@ import {
 import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
-import { SessionRepository, createSessionRouter, createSessionAIRouter } from './sessions/index.js';
+import {
+  SessionRepository,
+  createSessionRouter,
+  createSessionAIRouter,
+  createSessionSettingsRouter,
+  createSessionSettingsService,
+  type SessionSettingsService,
+} from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
@@ -177,6 +185,7 @@ let workspaceRepository: WorkspaceRepository | null = null;
 let joinRequestRepository: JoinRequestRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
+let sessionSettingsService: SessionSettingsService | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
 let agentEventRepository: AgentEventRepository | null = null;
 let agentEventRehydrator: AgentEventRehydrator | null = null;
@@ -953,39 +962,26 @@ wss.on('connection', (ws: WebSocket) => {
             return;
           }
 
-          if (!sessionRepository) {
-            console.warn('[WS] Session repository not available');
+          if (!sessionRepository || !sessionSettingsService) {
+            console.warn('[WS] Session settings service not available');
             return;
           }
 
           const ttsMsg = message as SessionTtsSettingsMessage;
-          
-          // Update session metadata with new TTS settings
-          const session = sessionRepository.findById(sessionId);
-          if (!session) {
-            console.warn(`[WS] Session not found: ${sessionId}`);
-            return;
+
+          // Funnel through the unified settings service (issue #378) so
+          // REST and WS writes share validation, persistence, and
+          // broadcast. The service also emits the new
+          // `session-settings-changed` snapshot in addition to the
+          // legacy `session-tts-settings-changed` for back-compat.
+          try {
+            sessionSettingsService.applyPatch(sessionId, {
+              tts: { enabled: ttsMsg.enabled, outputDeviceId: ttsMsg.outputDeviceId },
+            });
+            console.log(`[TTS] Session settings updated for ${sessionId}: enabled=${ttsMsg.enabled}, outputDevice=${ttsMsg.outputDeviceId || 'all'}`);
+          } catch (err) {
+            console.warn(`[WS] session-tts-settings rejected for ${sessionId}:`, (err as Error).message);
           }
-
-          const newMetadata = {
-            ...session.metadata,
-            ttsSettings: {
-              enabled: ttsMsg.enabled,
-              outputDeviceId: ttsMsg.outputDeviceId,
-            },
-          };
-          sessionRepository.update(sessionId, { metadata: newMetadata });
-
-          console.log(`[TTS] Session settings updated for ${sessionId}: enabled=${ttsMsg.enabled}, outputDevice=${ttsMsg.outputDeviceId || 'all'}`);
-
-          // Broadcast to all devices in session
-          const broadcastMsg: SessionTtsSettingsChangedMessage = {
-            type: 'session-tts-settings-changed',
-            sessionId,
-            enabled: ttsMsg.enabled,
-            outputDeviceId: ttsMsg.outputDeviceId,
-          };
-          registry.broadcastMessageToSession(sessionId, broadcastMsg);
           break;
         }
 
@@ -1124,6 +1120,37 @@ async function start() {
       qrTokenRepository = new QrTokenRepository(db);
       agentEventRepository = new AgentEventRepository(db);
       console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent repositories initialized');
+
+      // Session settings service (issue #378). Single funnel for REST
+      // and WS writes; installed once the repositories are available
+      // and reused by the WS `session-tts-settings` handler.
+      sessionSettingsService = createSessionSettingsService({
+        sessionRepository,
+        workspaceRepository,
+        registry,
+      });
+
+      // Install the per-session system-prompt resolver on the
+      // production AISessionManager so future agent binds layer
+      // session > workspace > built-in (issue #378). Same resolver runs
+      // for both the lazy-bind (`getOrCreateForSession`) and the
+      // `restartSession` path because the driver calls into the
+      // manager for both.
+      const sessionRepoForResolver = sessionRepository;
+      const workspaceRepoForResolver = workspaceRepository;
+      setAgentSystemPromptResolver(({ sessionId, workspaceId, displayLines }) => {
+        const sess = sessionRepoForResolver.findById(sessionId);
+        const wsSettings = workspaceRepoForResolver.getSettings(workspaceId);
+        const resolved = resolveSessionSystemPrompt({
+          sessionMetadata: sess?.metadata ?? null,
+          workspaceSettings: wsSettings ?? null,
+          sessionId,
+          workspaceId,
+          displayLines,
+        });
+        return resolved.effective;
+      });
+      console.log('[Sessions] Settings service ready; agent prompt resolver installed');
 
       // Initialize TTS service for AI response speech synthesis
       ttsService = new TtsService({
@@ -1485,6 +1512,22 @@ async function start() {
       });
       app.use('/api/sessions', sessionAIRouter);
       console.log('[Sessions] AI control API enabled at /api/sessions/:sessionId/ai/restart');
+
+      // Session settings REST surface (issue #378). Mounted on the same
+      // `/api/sessions` prefix so the full paths are
+      // `GET|PATCH /api/sessions/:sessionId/settings`. The router shares
+      // the settings service with the WS handler so REST and WS writes
+      // are funneled through the same validation/persist/broadcast path.
+      if (sessionSettingsService) {
+        const sessionSettingsRouter = createSessionSettingsRouter({
+          sessionRepository,
+          workspaceRepository,
+          settingsService: sessionSettingsService,
+          authConfig: { jwtService, userRepository },
+        });
+        app.use('/api/sessions', sessionSettingsRouter);
+        console.log('[Sessions] Settings REST API enabled at /api/sessions/:sessionId/settings');
+      }
 
       if (qrTokenRepository) {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');
