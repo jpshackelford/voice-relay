@@ -231,3 +231,33 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `329d0f1` | implementation | Issue #378 — Expose session settings over REST + per-session agent prompt | **NEW** |
+
+**Spawned: Implementation Worker**
+- Issue: [#378 — Expose session settings (TTS, input mode, etc.) over REST + add per-session agent prompt](https://github.com/jpshackelford/voice-relay/issues/378) (priority:medium, scope:server-only)
+- Conversation: [`329d0f1`](https://app.all-hands.dev/conversations/329d0f16b4924e4291e5598853a3b4b8)
+
+**Reconciled state:**
+- `afbccd4` (expansion #378) → completed (added ready label + technical-approach comment)
+- `ca530a6` (expansion #379) → completed (added ready label, CSS Grid kiosk overlays)
+- `401f9d3` (implementation #377) → completed (PR #381 squash-merged at `c95f4f9`; #377 auto-closed)
+
+**Current State:**
+- Open PRs: 0
+- Issues needing expansion: 0 (all open issues are either expanded or `on-hold`/`needs-human`)
+- Ready issues: #378 (priority:medium, **now being implemented**), #382 (priority:medium, client-only), #379 (priority:low), #380 (priority:low)
+- On-hold (S3 freeze + earlier): #210, #239, #299, #300, #301, #302, #351, #363
+- Needs-human: #372
+
+**Action Taken:**
+🚀 Spawned implementation worker for #378 (highest priority ready, server-only, oldest of the medium-priority pair).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

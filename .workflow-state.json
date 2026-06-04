@@ -1,23 +1,12 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "afbccd4",
-        "issue": 378,
-        "started": "2026-06-04T17:03:00Z"
-      },
-      {
-        "conv_id": "ca530a6",
-        "issue": 379,
-        "started": "2026-06-04T17:03:00Z"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
-        "conv_id": "401f9d3",
-        "issue": 377,
-        "started": "2026-06-04T17:08:00Z"
+        "conv_id": "329d0f1",
+        "issue": 378,
+        "started": "2026-06-04T17:35:58.600787Z"
       }
     ],
     "review": []
@@ -27,46 +16,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-04T17:07:17Z",
+  "last_updated": "2026-06-04T17:35:58.600787Z",
   "completed": [
-    {
-      "conv_id": "bb4de8f",
-      "type": "implementation",
-      "issue": 373,
-      "started": "2026-06-01T10:18:41Z",
-      "finished": "2026-06-01T10:27:12Z",
-      "status": "success",
-      "outcome": "Created PR #374 — fix(server): don't clobber starting/reconnecting snapshot from reportDroppedText. CI green, bot review positive."
-    },
-    {
-      "conv_id": "3fb018d",
-      "type": "merge",
-      "pr": 374,
-      "issue": 373,
-      "started": "2026-06-01T10:36:00Z",
-      "finished": "2026-06-01T10:37:58Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #374 → main at 50d3fb5; issue #373 auto-closed via Fixes #373."
-    },
-    {
-      "conv_id": "50c1195",
-      "type": "implementation",
-      "issue": 375,
-      "started": "2026-06-01T11:17:53Z",
-      "finished": "2026-06-01T11:34:14Z",
-      "status": "success",
-      "outcome": "Created PR #376 — feat: forward device identity and UTC timestamp to OpenHands with token-efficient [vr ...] header. CI green, bot review 🟢 Good taste, 0 unresolved threads."
-    },
-    {
-      "conv_id": "b871afe",
-      "type": "merge",
-      "pr": 376,
-      "issue": 375,
-      "started": "2026-06-01T11:34:14Z",
-      "finished": "2026-06-01T11:52:14Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #376 → main at 4fac7b3; issue #375 auto-closed via Fixes #375."
-    },
     {
       "conv_id": "4bc9c35",
       "type": "expansion",
@@ -74,7 +25,34 @@
       "started": "2026-06-04T17:00:44Z",
       "finished": "2026-06-04T17:15:00Z",
       "status": "success",
-      "outcome": "Expanded #377 — added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
+      "outcome": "Expanded #377 \u2014 added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
+    },
+    {
+      "conv_id": "afbccd4",
+      "type": "expansion",
+      "issue": 378,
+      "started": "2026-06-04T17:03:00Z",
+      "finished": "2026-06-04T17:33:36.232972Z",
+      "status": "success",
+      "outcome": "Expanded #378 \u2014 labels enhancement/server/scope:server-only/priority:medium/ready; comment with REST settings architecture & migration 016"
+    },
+    {
+      "conv_id": "ca530a6",
+      "type": "expansion",
+      "issue": 379,
+      "started": "2026-06-04T17:03:00Z",
+      "finished": "2026-06-04T17:33:36.232972Z",
+      "status": "success",
+      "outcome": "Expanded #379 \u2014 labels enhancement/client/scope:client-only/priority:low/ready (CSS Grid kiosk overlays)"
+    },
+    {
+      "conv_id": "401f9d3",
+      "type": "implementation",
+      "issue": 377,
+      "started": "2026-06-04T17:08:00Z",
+      "finished": "2026-06-04T17:33:36.232972Z",
+      "status": "success",
+      "outcome": "Created PR #381 \u2014 fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
     }
   ],
   "quiet_ticks": 0
