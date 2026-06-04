@@ -220,12 +220,45 @@ export interface AudioEndMessage {
 /**
  * Server → All devices in session: TTS settings changed.
  * Broadcast when any device updates session TTS settings.
+ *
+ * Preserved for back-compat with kiosk/mobile clients that listen only
+ * for this message. New consumers should listen for
+ * `SessionSettingsChangedMessage` (which carries the full snapshot and
+ * is sent for every settings change, including TTS).
  */
 export interface SessionTtsSettingsChangedMessage {
   type: 'session-tts-settings-changed';
   sessionId: string;
   enabled: boolean;
   outputDeviceId: string | null;
+}
+
+/**
+ * Server → All devices in session: full session-settings snapshot changed
+ * (issue #378). Broadcast whenever any session-scoped setting is mutated
+ * via REST PATCH `/api/sessions/:id/settings` or the legacy WS
+ * `session-tts-settings` handler. Carries the full effective settings so
+ * clients can hydrate without protocol fan-out per field.
+ */
+export interface SessionSettingsChangedMessage {
+  type: 'session-settings-changed';
+  sessionId: string;
+  /** TTS toggle and output-device hint, or null if not yet set. */
+  tts: {
+    enabled: boolean;
+    outputDeviceId: string | null;
+  } | null;
+  /** Persisted mobile input mode (voice/unified/visualizer) or null. */
+  inputMode: 'voice' | 'unified' | 'visualizer' | null;
+  /** Persisted transcription auto-submit flag or null. */
+  autoSubmit: boolean | null;
+  /**
+   * Effective agent system prompt source identifier. The full prompt
+   * body is intentionally NOT included here; callers must `GET
+   * /api/sessions/:id/settings` if they need it (and only the display
+   * secret holder is authorised to do so).
+   */
+  agentPromptSource: 'session' | 'workspace-default' | 'builtin';
 }
 
 /** Server → Mobile: Transcription result from audio input */
@@ -266,6 +299,7 @@ export type ServerMessage =
   | AudioChunkMessage
   | AudioEndMessage
   | SessionTtsSettingsChangedMessage
+  | SessionSettingsChangedMessage
   | TranscriptionResultMessage
   | TranscriptionErrorMessage;
 
