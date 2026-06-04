@@ -3,12 +3,23 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "4bc9c35",
-        "issue": 377,
-        "started": "2026-06-04T17:00:44Z"
+        "conv_id": "afbccd4",
+        "issue": 378,
+        "started": "2026-06-04T17:03:00Z"
+      },
+      {
+        "conv_id": "ca530a6",
+        "issue": 379,
+        "started": "2026-06-04T17:03:00Z"
       }
     ],
-    "implementation": [],
+    "implementation": [
+      {
+        "conv_id": "401f9d3",
+        "issue": 377,
+        "started": "2026-06-04T17:08:00Z"
+      }
+    ],
     "review": []
   },
   "limits": {
@@ -16,7 +27,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-04T17:00:44Z",
+  "last_updated": "2026-06-04T17:07:17Z",
   "completed": [
     {
       "conv_id": "bb4de8f",
@@ -25,7 +36,7 @@
       "started": "2026-06-01T10:18:41Z",
       "finished": "2026-06-01T10:27:12Z",
       "status": "success",
-      "outcome": "Created PR #374 \u2014 fix(server): don't clobber starting/reconnecting snapshot from reportDroppedText. CI green, bot review positive."
+      "outcome": "Created PR #374 — fix(server): don't clobber starting/reconnecting snapshot from reportDroppedText. CI green, bot review positive."
     },
     {
       "conv_id": "3fb018d",
@@ -35,7 +46,7 @@
       "started": "2026-06-01T10:36:00Z",
       "finished": "2026-06-01T10:37:58Z",
       "status": "success",
-      "outcome": "Squash-merged PR #374 \u2192 main at 50d3fb5; issue #373 auto-closed via Fixes #373."
+      "outcome": "Squash-merged PR #374 → main at 50d3fb5; issue #373 auto-closed via Fixes #373."
     },
     {
       "conv_id": "50c1195",
@@ -44,7 +55,7 @@
       "started": "2026-06-01T11:17:53Z",
       "finished": "2026-06-01T11:34:14Z",
       "status": "success",
-      "outcome": "Created PR #376 \u2014 feat: forward device identity and UTC timestamp to OpenHands with token-efficient [vr ...] header. CI green, bot review \ud83d\udfe2 Good taste, 0 unresolved threads."
+      "outcome": "Created PR #376 — feat: forward device identity and UTC timestamp to OpenHands with token-efficient [vr ...] header. CI green, bot review 🟢 Good taste, 0 unresolved threads."
     },
     {
       "conv_id": "b871afe",
@@ -54,7 +65,16 @@
       "started": "2026-06-01T11:34:14Z",
       "finished": "2026-06-01T11:52:14Z",
       "status": "success",
-      "outcome": "Squash-merged PR #376 \u2192 main at 4fac7b3; issue #375 auto-closed via Fixes #375."
+      "outcome": "Squash-merged PR #376 → main at 4fac7b3; issue #375 auto-closed via Fixes #375."
+    },
+    {
+      "conv_id": "4bc9c35",
+      "type": "expansion",
+      "issue": 377,
+      "started": "2026-06-04T17:00:44Z",
+      "finished": "2026-06-04T17:15:00Z",
+      "status": "success",
+      "outcome": "Expanded #377 — added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
     }
   ],
   "quiet_ticks": 0
