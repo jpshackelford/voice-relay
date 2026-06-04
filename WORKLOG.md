@@ -317,3 +317,24 @@ When #383 ships (`devices.primary_user_id` + `workspace_speakers.preferred_name`
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-04 17:54 UTC - Expansion Worker (`6PqdOvr`)
+
+✅ **Expanded Issue #383 — Speaker identity model**
+
+- Issue: [#383](https://github.com/jpshackelford/voice-relay/issues/383)
+- Type: Enhancement (foundational schema + REST + agent-prompt wiring)
+- Status: **ready** for implementation
+
+**What I did**
+- Explored current schema (`users`, `devices`, `session_devices`, `messages`) and the agent header pipeline (`server/src/agent-driver/voice-relay-header.ts`) to confirm the design lines up with the actual code.
+- Rewrote issue body with Problem Statement, Proposed Solution (four-part schema: provider-agnostic `users` + `auth_identities`, `devices.primary_user_id`, workspace-scoped `speakers`, `session_devices.active_speaker_id` + `messages.speaker_id`), REST surface, agent wiring, Acceptance Criteria, Out of Scope, Related.
+- Added technical-approach comment: migration sketch (`server/src/storage/migrations/016_speakers.ts` with users-table recreate to drop `github_id NOT NULL`, plus additive ALTERs and two new tables), implementation plan (9 steps), files-affected table (~16 files), risks, sequencing notes vs #378 / #382.
+- Labels applied: `scope:server-only`, `priority:medium`, `ready`.
+
+**Unblocks**
+- #382 — transcription ticker can read `speakers.preferred_name` once this lands.
+- #384 — currently on-hold pending this issue.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
