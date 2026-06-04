@@ -428,3 +428,27 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 Rewrote issue body into Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope / Depends-on sections. Added a technical-approach comment with merge-order plan, file-by-file impact list, migration SQL sketch, API/WS changes, and risk list. Labeled `ready`.
 
 ---
+
+### 2026-06-04 18:10 UTC - Expansion Worker (#388)
+
+✅ **Expanded Issue #388** — Propagate per-device mic listening/mute state and show a muted icon on the kiosk oscilloscope
+
+- Issue: [#388](https://github.com/jpshackelford/voice-relay/issues/388)
+- Type: Enhancement
+- Status: Ready for implementation (`ready` label applied)
+- Scope: client + server (small additive WS message + 3-state indicator render)
+
+**What I did**
+
+- Rewrote the issue body with a tightened Problem Statement, three-state acceptance criteria, non-goals, and related-issue cross-references.
+- Added a technical-approach comment grounded in current code: file/line references for `KioskMode.tsx` L239/L487/L977, `MobileMode.tsx` L112/L174, `useWebSocket.ts` L402/L418, `registry.ts` L274, `index.ts` L728, `types.ts` L5/L302, `App.css` L1693.
+- Files-affected table (~14 files, 1–2 new), no database changes, no new migration, additive wire format that is backward-compatible with older clients.
+- Called out keepalive-driven disconnect semantics, effect-thrash mitigation on mobile, and PR-scope guidance per AGENTS.md (`feat:` no scope, or split client/server).
+
+**Approach summary**
+
+Symmetric with the existing `update-device` flow: new `device-listening-state` client→server message, two transient fields on the in-memory `Device`, projected on `broadcastDeviceList`, aggregated kiosk-side into `'no-mic' | 'muted' | 'listening'` driving the three render states (dimmed / flat+muted-glyph / animated-as-today).
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
