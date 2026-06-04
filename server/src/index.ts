@@ -11,12 +11,18 @@ import { DeviceRegistry } from './registry.js';
 import { attachKeepalive } from './keepalive.js';
 import { createStoreFromEnv, type MessageStore, SQLiteStore } from './storage/index.js';
 import { AgentEventRepository } from './storage/agent-event-repository.js';
-import { getWorkspaceApiKey, OpenHandsClient } from './openhands.js';
+import {
+  applyPromptSubstitutions,
+  getWorkspaceApiKey,
+  loadPrompt,
+  OpenHandsClient,
+} from './openhands.js';
 import {
   agentDriver,
   onAgentRawEvent,
   onAgentThinkingChange,
   onAgentAction,
+  setAgentPromptResolver,
   shutdownAgentDriver,
 } from './agent-driver/index.js';
 import {
@@ -26,7 +32,14 @@ import {
 import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
-import { SessionRepository, createSessionRouter, createSessionAIRouter } from './sessions/index.js';
+import {
+  SessionRepository,
+  createSessionRouter,
+  createSessionAIRouter,
+  createSessionSettingsRouter,
+  applySessionSettingsPatch,
+  resolveSessionSystemPrompt,
+} from './sessions/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
@@ -941,7 +954,9 @@ wss.on('connection', (ws: WebSocket) => {
         }
 
         case 'session-tts-settings': {
-          // Handle session TTS settings update from any device
+          // Handle session TTS settings update from any device.
+          // Delegates persistence + broadcast to the settings-service so
+          // the REST and WS surfaces share one code path (issue #378).
           if (!deviceId || !sessionId) {
             console.warn('[WS] Received session-tts-settings from unregistered device');
             return;
@@ -953,39 +968,33 @@ wss.on('connection', (ws: WebSocket) => {
             return;
           }
 
-          if (!sessionRepository) {
-            console.warn('[WS] Session repository not available');
+          if (!sessionRepository || !workspaceRepository) {
+            console.warn('[WS] Session/workspace repository not available');
             return;
           }
 
           const ttsMsg = message as SessionTtsSettingsMessage;
-          
-          // Update session metadata with new TTS settings
-          const session = sessionRepository.findById(sessionId);
-          if (!session) {
-            console.warn(`[WS] Session not found: ${sessionId}`);
+          const result = applySessionSettingsPatch(
+            { sessionRepository, workspaceRepository, registry },
+            sessionId,
+            {
+              tts: {
+                enabled: ttsMsg.enabled,
+                outputDeviceId: ttsMsg.outputDeviceId,
+              },
+            },
+          );
+
+          if (!result.ok) {
+            console.warn(
+              `[WS] session-tts-settings rejected for ${sessionId}: ${result.error}`,
+            );
             return;
           }
 
-          const newMetadata = {
-            ...session.metadata,
-            ttsSettings: {
-              enabled: ttsMsg.enabled,
-              outputDeviceId: ttsMsg.outputDeviceId,
-            },
-          };
-          sessionRepository.update(sessionId, { metadata: newMetadata });
-
-          console.log(`[TTS] Session settings updated for ${sessionId}: enabled=${ttsMsg.enabled}, outputDevice=${ttsMsg.outputDeviceId || 'all'}`);
-
-          // Broadcast to all devices in session
-          const broadcastMsg: SessionTtsSettingsChangedMessage = {
-            type: 'session-tts-settings-changed',
-            sessionId,
-            enabled: ttsMsg.enabled,
-            outputDeviceId: ttsMsg.outputDeviceId,
-          };
-          registry.broadcastMessageToSession(sessionId, broadcastMsg);
+          console.log(
+            `[TTS] Session settings updated for ${sessionId}: enabled=${result.settings.tts.enabled}, outputDevice=${result.settings.tts.outputDeviceId || 'all'}`,
+          );
           break;
         }
 
@@ -1485,6 +1494,38 @@ async function start() {
       });
       app.use('/api/sessions', sessionAIRouter);
       console.log('[Sessions] AI control API enabled at /api/sessions/:sessionId/ai/restart');
+
+      // Session settings surface (issue #378) — REST mirror of the legacy
+      // WS `session-tts-settings` message. Auth: DISPLAY_API_SECRET or JWT.
+      const sessionSettingsRouter = createSessionSettingsRouter({
+        sessionRepository,
+        workspaceRepository,
+        registry,
+        authConfig: { jwtService, userRepository },
+      });
+      app.use('/api/sessions', sessionSettingsRouter);
+      console.log('[Sessions] Settings API enabled at /api/sessions/:sessionId/settings');
+
+      // Install the per-session prompt resolver (issue #378) so the
+      // OpenHands driver picks up session-level `agentPrompt` overrides
+      // and workspace-level `defaultAgentPrompt` defaults when binding
+      // new conversations. Takes effect on the next `getOrCreateForSession`
+      // / `restartSession` call.
+      const sessionRepoForResolver = sessionRepository;
+      const workspaceRepoForResolver = workspaceRepository;
+      setAgentPromptResolver(({ sessionId, workspaceId, displayLines }) =>
+        resolveSessionSystemPrompt({
+          sessionRepository: sessionRepoForResolver,
+          workspaceRepository: workspaceRepoForResolver,
+          sessionId,
+          workspaceId,
+          displayLines,
+          applySubstitutions: applyPromptSubstitutions,
+          loadBuiltinPrompt: (lines, wsId, sid) =>
+            loadPrompt('system-prompt', lines, wsId, sid),
+        }).body,
+      );
+      console.log('[Sessions] Per-session prompt resolver installed');
 
       if (qrTokenRepository) {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');

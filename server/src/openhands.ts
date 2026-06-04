@@ -571,6 +571,49 @@ export function getServerUrl(): string {
 }
 
 /**
+ * Apply the standard prompt substitutions ({{SERVER_URL}},
+ * {{WORKSPACE_ID}}, {{SESSION_ID}}, display-line guidance) to an
+ * arbitrary prompt body. Extracted so that both the file-backed
+ * {@link loadPrompt} and the per-session/workspace override paths (issue
+ * #378) share identical substitution semantics.
+ */
+export function applyPromptSubstitutions(
+  body: string,
+  displayLines?: number,
+  workspaceId?: string,
+  sessionId?: string,
+): string {
+  let prompt = body;
+
+  if (displayLines !== undefined) {
+    prompt = prompt.replace(
+      /Maximum 10-12 lines of body text/g,
+      `Maximum ${displayLines} lines of body text`,
+    );
+    prompt = prompt.replace(
+      /content beyond ~10 lines will be invisible/g,
+      `content beyond ${displayLines} lines will be invisible`,
+    );
+  }
+
+  prompt = prompt.replace(/{{SERVER_URL}}/g, getServerUrl());
+
+  if (workspaceId) {
+    // Escape JSON-breaking characters so the curl examples in default
+    // prompts stay valid even when the workspace id contains a quote.
+    const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, escapedId);
+  }
+
+  if (sessionId) {
+    const escapedId = sessionId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    prompt = prompt.replace(/{{SESSION_ID}}/g, escapedId);
+  }
+
+  return prompt;
+}
+
+/**
  * Load a prompt from the prompts directory
  * @param promptName - Name of the prompt file (without .md extension)
  * @param displayLines - Optional number of display lines to inject into the prompt
@@ -585,44 +628,13 @@ export function loadPrompt(
 ): string {
   const promptsDir = path.join(__dirname, '..', 'prompts');
   const promptPath = path.join(promptsDir, `${promptName}.md`);
-  
+
   if (!fs.existsSync(promptPath)) {
     throw new Error(`Prompt not found: ${promptName}`);
   }
-  
-  let prompt = fs.readFileSync(promptPath, 'utf-8');
-  
-  // Replace placeholder with actual display lines if provided
-  if (displayLines !== undefined) {
-    // Replace generic "10-12 lines" guidance with actual calculated value
-    prompt = prompt.replace(
-      /Maximum 10-12 lines of body text/g,
-      `Maximum ${displayLines} lines of body text`
-    );
-    prompt = prompt.replace(
-      /content beyond ~10 lines will be invisible/g,
-      `content beyond ${displayLines} lines will be invisible`
-    );
-  }
-  
-  // Replace server URL placeholder for display API calls
-  // This ensures prompts work in any environment (dev, test, production)
-  prompt = prompt.replace(/{{SERVER_URL}}/g, getServerUrl());
-  
-  // Replace workspace ID placeholder if provided
-  // Escape JSON-breaking characters to prevent malformed curl examples in prompts
-  if (workspaceId) {
-    const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, escapedId);
-  }
 
-  // Replace session ID placeholder if provided
-  if (sessionId) {
-    const escapedId = sessionId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    prompt = prompt.replace(/{{SESSION_ID}}/g, escapedId);
-  }
-  
-  return prompt;
+  const raw = fs.readFileSync(promptPath, 'utf-8');
+  return applyPromptSubstitutions(raw, displayLines, workspaceId, sessionId);
 }
 
 /**
@@ -1684,6 +1696,39 @@ export class AISessionManager {
   }
 
   /**
+   * Optional resolver for the system prompt body used when creating a
+   * new OpenHands conversation for a session. When set, the manager
+   * calls this instead of {@link loadPrompt} so per-session overrides
+   * (`sessions.metadata.agentPrompt`) and workspace defaults
+   * (`workspace_settings.default_agent_prompt`) take effect. Issue #378.
+   *
+   * Must already apply `applyPromptSubstitutions` to the returned body.
+   */
+  private promptResolver?: (params: {
+    sessionId: string;
+    workspaceId: string;
+    displayLines: number | undefined;
+  }) => string;
+
+  /**
+   * Install (or clear) the per-session prompt resolver. Wired from
+   * `server/src/index.ts` once the session and workspace repositories
+   * are available. Calling this multiple times overwrites the previous
+   * resolver.
+   */
+  setPromptResolver(
+    resolver:
+      | ((params: {
+          sessionId: string;
+          workspaceId: string;
+          displayLines: number | undefined;
+        }) => string)
+      | undefined,
+  ): void {
+    this.promptResolver = resolver;
+  }
+
+  /**
    * Number of times the reconnect refresh has observed a rotated
    * `session_api_key` (i.e. fresh != cached). Exposed so platform metrics
    * and tests can assert on the counter. See #291.
@@ -2113,8 +2158,17 @@ export class AISessionManager {
 
     console.log(`[AI] Creating new session AI for session ${sessionId}${options.displayLines ? ` (${options.displayLines} display lines)` : ''}`);
 
-    // Load system prompt with session context
-    const systemPrompt = loadPrompt('system-prompt', options.displayLines, workspaceId, sessionId);
+    // Load system prompt with session context. The resolver (when
+    // installed) honours per-session and workspace-level overrides; in
+    // its absence we fall back to the built-in file (legacy behaviour).
+    // Issue #378.
+    const systemPrompt = this.promptResolver
+      ? this.promptResolver({
+          sessionId,
+          workspaceId,
+          displayLines: options.displayLines,
+        })
+      : loadPrompt('system-prompt', options.displayLines, workspaceId, sessionId);
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
     // Build secrets map

@@ -61,6 +61,20 @@ export interface AISessionManagerSurface {
   ): Promise<void>;
   endSessionAI(sessionId: string): Promise<void>;
   shutdown(): Promise<void>;
+  /**
+   * Install a per-session prompt resolver (issue #378). Optional on the
+   * surface because the fake driver and tests don't need it; the real
+   * `AISessionManager` always implements it.
+   */
+  setPromptResolver?(
+    resolver:
+      | ((params: {
+          sessionId: string;
+          workspaceId: string;
+          displayLines: number | undefined;
+        }) => string)
+      | undefined,
+  ): void;
 }
 
 /**

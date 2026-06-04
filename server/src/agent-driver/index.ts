@@ -124,3 +124,25 @@ export function onAgentAction(listener: ActionListener): () => void {
 export async function shutdownAgentDriver(): Promise<void> {
   await openHandsDriver.shutdown();
 }
+
+/**
+ * Install (or clear) the per-session system-prompt resolver used by the
+ * production `AISessionManager` when binding a new OpenHands conversation
+ * for a VR session. The resolver lets the platform inject session-level
+ * `agentPrompt` overrides and workspace-level defaults without bypassing
+ * the driver seam. Issue #378.
+ *
+ * Called once from `server/src/index.ts` after the session and workspace
+ * repositories are constructed.
+ */
+export function setAgentPromptResolver(
+  resolver:
+    | ((params: {
+        sessionId: string;
+        workspaceId: string;
+        displayLines: number | undefined;
+      }) => string)
+    | undefined,
+): void {
+  aiSessionManager.setPromptResolver(resolver);
+}
