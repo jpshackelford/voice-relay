@@ -296,3 +296,24 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:53 UTC - Expansion Worker (`d48597e`)
+
+🛑 **Expanded Issue #384 — Workspace page: show person name (device name) for connected devices**
+
+- Issue: [#384](https://github.com/jpshackelford/voice-relay/issues/384)
+- Type: Enhancement (client-visible, requires backend assist)
+- Status: **on-hold** — hard-blocked by #383 (speaker identity model not yet in schema)
+
+**What I did**
+- Verified current code: `server/src/workspaces/router.ts` `GET /:id/devices` returns no `primary_user_id`; no `workspace_speakers` table exists. Data source genuinely doesn't exist yet.
+- Rewrote issue body with Problem Statement, Proposed Solution, Acceptance Criteria, Out of Scope, Dependencies.
+- Added technical-approach comment: API shape change (additive `primaryUser` field on `/devices` payload), client `DeviceInfo` extension, `EditableDeviceName` render change, three test states, files affected.
+- Labels applied: `scope:full-stack`, `priority:medium`, `on-hold`, `enhancement`. **Did not** add `ready` (per skill: hard-blocked → on-hold, not ready).
+
+**Unblock condition**
+When #383 ships (`devices.primary_user_id` + `workspace_speakers.preferred_name` in schema), remove `on-hold` and add `ready`.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
