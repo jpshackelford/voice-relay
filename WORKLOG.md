@@ -552,3 +552,19 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 19:18 UTC - Implementation Worker (#383)
+
+🚧 **Opened PR [#391](https://github.com/jpshackelford/voice-relay/pull/391)** — Speaker identity model (server-only, scope: server, priority: medium)
+
+- **Status:** Draft → Ready. All CI green (Server Tests, Client Tests, Build Client, E2E Tests 2m14s, lint-pr-title, enable-orchestrator).
+- **Migration:** 017 `speakers` — additive only. Creates `auth_identities` + `speakers`; adds `devices.primary_user_id`, `session_devices.active_speaker_id`, `messages.speaker_id`. Backfills existing GitHub users into `auth_identities`. Down migration restores v16 schema and round-trips cleanly.
+- **REST surface added:** `GET/POST /api/workspaces/:wsId/speakers` and `GET/PUT/DELETE /api/workspaces/:wsId/speakers/:speakerId` — owner-only writes, member reads. Input validated (length caps, trim, blanks→null). 409 on duplicate speaker-per-user.
+- **Agent wiring:** `[speaker name=… pronouns=… notes=…]` header emitted into the next prompt frame on inbound utterances; falls back to `[speaker id=unknown]` when the resolved speaker has no `preferred_name`, prompting the agent to ask and `PUT` it back. Updated `prompts/system-prompt.md` with a "Speaker identity" section.
+- **Back-compat:** `users` table left intact (additive only). `UserRepository.create` dual-writes into `auth_identities` so existing GitHub OAuth flow keeps working unchanged.
+- **Test delta:** +59 server tests (10 migration, 20 SpeakerRepository, 17 router, 12 AuthIdentityRepository). Total **1447 server tests passing / 68 files**. Coverage on new code: speakers 92.5% stmts / 87.5% branch / 100% funcs; auth/identity-repository 100% / 91% / 100%; migration 017 100% across the board — all over the 80% gate.
+- **Production impact:** auto-deploys to vr.chorecraft.net on merge. Migration is additive on SQLite, safe on existing `sqlite.db`.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
