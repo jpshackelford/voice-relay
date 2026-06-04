@@ -247,6 +247,72 @@ The Display API requires a session-specific bearer token. This secret is provide
 
 For backward compatibility, `workspaceId` is also accepted but `sessionId` is preferred.
 
+## Session Settings API
+
+Read or mutate per-session settings (TTS, input mode, auto-submit, and the per-session agent prompt override) over REST. Same auth model as the Display API — either a `DISPLAY_API_SECRET` Bearer token (scoped to one session) or a JWT belonging to a workspace member.
+
+### Read
+
+```bash
+curl -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  https://vr.example.com/api/sessions/$SESSION_ID/settings
+```
+
+Response:
+
+```json
+{
+  "sessionId": "sess_…",
+  "workspaceId": "ws_…",
+  "tts": { "enabled": true, "outputDeviceId": null },
+  "inputMode": "voice",
+  "autoSubmit": true,
+  "agentPrompt": {
+    "effective": "…the full prompt body…",
+    "source": "session"
+  }
+}
+```
+
+`agentPrompt.source` is `"session"`, `"workspace-default"`, or `"builtin"` depending on which layer supplied the effective prompt.
+
+### Write
+
+Partial PATCH — only the keys you send are updated. Pass `agentPrompt: null` to clear the session override and fall back to the workspace default (or the built-in prompt if no workspace default is set).
+
+```bash
+curl -X PATCH \
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tts": { "enabled": false, "outputDeviceId": null },
+    "inputMode": "unified",
+    "autoSubmit": true,
+    "agentPrompt": "You are the kitchen kiosk. Be terse."
+  }' \
+  https://vr.example.com/api/sessions/$SESSION_ID/settings
+```
+
+Side effects:
+- The existing `session-tts-settings-changed` WebSocket message is broadcast on TTS changes (back-compat).
+- A new `session-settings-changed` WebSocket message is broadcast on every change with the full settings snapshot (minus the agent-prompt body — clients must `GET` if they need it).
+
+The agent-prompt cap is **8 KB**; over-cap requests return `400`. Unknown fields are also rejected with `400`.
+
+### Workspace default agent prompt
+
+The workspace owner can set or clear the workspace-wide default via the existing settings endpoint:
+
+```bash
+curl -X PATCH \
+  --cookie "voice_relay_auth=$JWT" \
+  -H "Content-Type: application/json" \
+  -d '{ "defaultAgentPrompt": "Be terse. Always update the display." }' \
+  https://vr.example.com/api/workspaces/$WORKSPACE_ID/settings
+```
+
+Send `"defaultAgentPrompt": null` to clear it.
+
 ## Message Protocol
 
 ### Client → Server
