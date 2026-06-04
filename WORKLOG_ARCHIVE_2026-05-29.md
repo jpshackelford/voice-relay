@@ -1792,3 +1792,40 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 **Production impact:** auto-deploys to vr.chorecraft.net. Restores rehydration recovery on the attach path. Manual verification (session `f1189e26-2af8-4a32-ae0d-27a2464af4c8` rehydrating cleanly on next `systemctl restart voice-relay` without `'missing WS handshake materials'` for conversation `739524055e…`) handed off to the operator per task instructions.
 
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
+### 2026-05-29 17:03 UTC - Orchestrator (manual `/orchestrate`)
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet ticks detected (`quiet_ticks` reached 2). No productive work was available either tick:
+
+| Slot | Active | Limit | Why no spawn? |
+|---|---|---|---|
+| expansion | 0 | 4 | Only `needs-expansion` candidates are #210, #239 — both `on-hold` |
+| implementation | 0 | 1 | The only `ready` issues are #351 and #363 — both `on-hold`; #299–#302 still under the workspace-persistence freeze (see AGENTS.md) |
+| review/merge | 0 | 2 | No open PRs (PR #371 squash-merged at `10b647b` on the previous productive tick) |
+
+**Open issues snapshot (all 8 carry `on-hold`):**
+- #210, #239 — needs expansion (`on-hold`)
+- #299, #300, #301, #302 — workspace-persistence freeze (Path B; see AGENTS.md "Active design freeze")
+- #351, #363 — `ready` + `on-hold` (server scope; awaiting human decision)
+
+**No human `## INSTRUCTION:`** entries found in WORKLOG.md.
+
+Automation **disabled** to prevent unnecessary cron wake-ups. Bounded heartbeat noise: only `.workflow-state.json` was committed on the prior quiet tick (no WORKLOG entry), and this tick writes a single disable entry. This is the design contract from the post-2026-05-22 livelock fix (see jpshackelford/.openhands#22).
+
+**To re-enable** (after the workspace-persistence S3 prereqs land, or after `on-hold` is removed from #351/#363):
+
+- OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+The orchestrator will resume on the next cron trigger after re-enable.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
