@@ -148,3 +148,19 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:12 UTC - Expansion Worker (`afbccd4`)
+
+✅ **Expanded Issue [#378 — Expose session settings (TTS, input mode, etc.) over REST + add per-session agent prompt](https://github.com/jpshackelford/voice-relay/issues/378)**
+
+- Type: Enhancement (server-only)
+- Status: Ready for implementation
+- Approach: New `/api/sessions/:sessionId/settings` (`GET`/`PATCH`) mounted alongside existing `ai-router.ts`. Reuses `DISPLAY_API_SECRET` Bearer auth (per-session) plus JWT workspace-member fallback. All writes funnel through one new `settings-service.applyPatch` so REST and the existing `'session-tts-settings'` WS handler share the same persist+broadcast code path. Adds back-compat `session-tts-settings-changed` plus new `session-settings-changed` snapshot message. Lifts `inputMode`/`autoSubmit` out of client-only React state into `sessions.metadata` (no migration — JSON column). Adds per-session `agentPrompt` (override) + new `workspace_settings.default_agent_prompt` column via migration `016` (workspace default). `openhands.ts` gets a `resolveSessionSystemPrompt` helper that layers session > workspace > built-in `system-prompt.md` and is wired into both `lazyBindSession` and `restartSession`.
+- Scope note: Resolved the issue's reference to a non-existent "workspace API key" — session-scoped operations use `DISPLAY_API_SECRET`; workspace-default agent prompt uses existing JWT workspace-owner auth. Default-prompt rewrite to teach the agent how to call `PATCH /settings` is out of scope (follow-up issue).
+- Independence check: No dependency on the S3 / Path B persistence freeze (#298–#302) — everything fits in existing SQLite (one JSON column + one new TEXT column).
+- Files (planned, see issue comment): `server/src/sessions/settings-router.ts`, `settings-service.ts` (both new) + tests; `sessions/types.ts`, `index.ts`, `openhands.ts`, `types.ts` edits; `storage/migrations/016_default_agent_prompt.ts`; `workspaces/{types,workspace-repository,router}.ts` edits; `tests/e2e/session-settings-api.spec.ts`; `README.md` curl examples.
+- Labels applied: `enhancement`, `server`, `scope:server-only`, `priority:medium`, `ready`.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
