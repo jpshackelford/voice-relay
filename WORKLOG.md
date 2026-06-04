@@ -180,3 +180,17 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:21 UTC - Merge Worker (#381 mobile settings safe-area)
+
+✅ Merged PR [#381](https://github.com/jpshackelford/voice-relay/pull/381) — `fix(client): respect iOS safe-area-inset-top in mobile settings modal`.
+
+- Squash-merge commit: `c95f4f9` on `main`.
+- Issue [#377](https://github.com/jpshackelford/voice-relay/issues/377) auto-closed via `Fixes #377` (state: COMPLETED, 17:21 UTC).
+- Scope: CSS-only (`client/src/App.css`, +11 lines across 3 adjacent rule blocks). No DB migration; production SQLite unchanged.
+- Pre-merge gate confirmed: all CI green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review); bot review 🟢 Good taste (LOW risk); 0 unresolved threads; 0 PR comments; MERGEABLE; not draft.
+- Auto-deploy to vr.chorecraft.net triggered by merge to main.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
