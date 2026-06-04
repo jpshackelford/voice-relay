@@ -164,3 +164,19 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:13 UTC - Implementation Worker (#377 mobile settings safe-area)
+
+✅ Implemented #377 — Mobile Settings: Back link hidden behind iOS status bar on iPhone SE.
+
+- Branch: `fix/377-mobile-settings-safe-area`
+- PR: [#381](https://github.com/jpshackelford/voice-relay/pull/381) — ready for review.
+- Scope: CSS-only (`client/src/App.css`), 11 lines added across three rule blocks.
+- Pattern: mirrored `.release-notes-modal` (L5504) — added `padding-top: env(safe-area-inset-top)`, `max-height: 100vh`/`100dvh`, flex column on `.mobile-settings-modal`; added `flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-height: 0;` on `.mobile-settings-content`; added `overscroll-behavior: contain` on the overlay.
+- CI: all checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title).
+- Tests: existing `MobileSettings.test.tsx` (32 tests) unchanged & passing — they assert DOM shape, not computed styles. Playwright safe-area assertion skipped: Chromium emulation reports `env(safe-area-inset-top)` as `0`, and the smoke suite lacks an authenticated mobile flow fixture — noted in the PR description.
+- Sibling modals (`.qr-modal`, `.delete-workspace-modal`) confirmed out-of-scope: centered, `max-width: 90vw`, small content, no full-viewport span.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
