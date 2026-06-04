@@ -43,6 +43,13 @@ export interface WorkspaceSettings {
    * current UX; see issue #340.
    */
   kioskFooterTickersEnabled: boolean;
+  /**
+   * Workspace-default agent system prompt override. NULL means the
+   * built-in `server/prompts/system-prompt.md` is used. Per-session
+   * overrides (stored on `sessions.metadata.agentPrompt`) take precedence
+   * over this workspace default. See issue #378.
+   */
+  defaultAgentPrompt: string | null;
   updatedAt: string | null;
 }
 
@@ -56,6 +63,11 @@ export interface WorkspaceSettingsInput {
   elevenlabsVoiceId?: string;
   elevenlabsTtsEnabled?: boolean;
   kioskFooterTickersEnabled?: boolean;
+  /**
+   * Workspace-default agent system prompt. Pass `null` to clear the
+   * override and fall back to the built-in prompt.
+   */
+  defaultAgentPrompt?: string | null;
 }
 
 export interface WorkspaceMember {
