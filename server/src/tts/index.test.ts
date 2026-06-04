@@ -19,6 +19,7 @@ describe('TtsService', () => {
     elevenlabsVoiceId: 'voice-123',
     elevenlabsTtsEnabled: true,
     kioskFooterTickersEnabled: false,
+    defaultAgentPrompt: null,
     updatedAt: null,
   };
 

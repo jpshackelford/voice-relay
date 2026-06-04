@@ -43,6 +43,14 @@ export interface WorkspaceSettings {
    * current UX; see issue #340.
    */
   kioskFooterTickersEnabled: boolean;
+  /**
+   * Workspace-wide default agent system prompt. Used as the base prompt
+   * body for every new OpenHands conversation in this workspace unless
+   * overridden by `sessions.metadata.agentPrompt`. When `null`, the
+   * server falls back to `server/prompts/system-prompt.md`. See
+   * `resolveSessionSystemPrompt` and issue #378.
+   */
+  defaultAgentPrompt: string | null;
   updatedAt: string | null;
 }
 
@@ -56,6 +64,12 @@ export interface WorkspaceSettingsInput {
   elevenlabsVoiceId?: string;
   elevenlabsTtsEnabled?: boolean;
   kioskFooterTickersEnabled?: boolean;
+  /**
+   * Pass `null` to clear the existing workspace default and fall back to
+   * the built-in `system-prompt.md`. Pass a non-empty string to set or
+   * replace the default. Omit (undefined) to leave the column untouched.
+   */
+  defaultAgentPrompt?: string | null;
 }
 
 export interface WorkspaceMember {

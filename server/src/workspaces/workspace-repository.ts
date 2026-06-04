@@ -34,6 +34,7 @@ interface WorkspaceSettingsRow {
   elevenlabs_voice_id: string | null;
   elevenlabs_tts_enabled: number | null;
   kiosk_footer_tickers_enabled: number | null;
+  default_agent_prompt: string | null;
   updated_at: string | null;
 }
 
@@ -72,6 +73,7 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     elevenlabsVoiceId: row.elevenlabs_voice_id,
     elevenlabsTtsEnabled: row.elevenlabs_tts_enabled === 1,
     kioskFooterTickersEnabled: row.kiosk_footer_tickers_enabled === 1,
+    defaultAgentPrompt: row.default_agent_prompt,
     updatedAt: row.updated_at,
   };
 }
@@ -284,11 +286,11 @@ export class WorkspaceRepository {
 
   getSettings(workspaceId: string): WorkspaceSettings | null {
     const stmt = this.db.prepare<[string], WorkspaceSettingsRow>(`
-      SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
+      SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv,
              openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
              require_qr_token, elevenlabs_api_key_encrypted, elevenlabs_api_key_iv,
              elevenlabs_api_key_tag, elevenlabs_voice_id, elevenlabs_tts_enabled,
-             kiosk_footer_tickers_enabled, updated_at
+             kiosk_footer_tickers_enabled, default_agent_prompt, updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -311,10 +313,22 @@ export class WorkspaceRepository {
       elevenlabsVoiceId?: string | null;
       elevenlabsTtsEnabled?: boolean;
       kioskFooterTickersEnabled?: boolean;
+      /**
+       * Tri-state: `undefined` leaves the column untouched, `null` clears
+       * any existing default (falls back to built-in prompt), a string
+       * sets it. Cannot use the COALESCE pattern because that conflates
+       * "unset" with "clear-to-null".
+       */
+      defaultAgentPrompt?: string | null;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
     const existing = this.getSettings(workspaceId);
+    // Tri-state encoding for default_agent_prompt: 0 = leave alone,
+    // 1 = overwrite with the supplied value (string or NULL).
+    const promptUpdateFlag =
+      settings.defaultAgentPrompt !== undefined ? 1 : 0;
+    const promptUpdateValue = settings.defaultAgentPrompt ?? null;
 
     if (existing) {
       // Update
@@ -333,6 +347,7 @@ export class WorkspaceRepository {
             elevenlabs_voice_id = COALESCE(?, elevenlabs_voice_id),
             elevenlabs_tts_enabled = COALESCE(?, elevenlabs_tts_enabled),
             kiosk_footer_tickers_enabled = COALESCE(?, kiosk_footer_tickers_enabled),
+            default_agent_prompt = CASE WHEN ? = 1 THEN ? ELSE default_agent_prompt END,
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -350,19 +365,21 @@ export class WorkspaceRepository {
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : null,
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : null,
+        promptUpdateFlag,
+        promptUpdateValue,
         now,
         workspaceId
       );
     } else {
       // Insert with defaults for new workspaces
       const stmt = this.db.prepare(`
-        INSERT INTO workspace_settings 
-        (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
+        INSERT INTO workspace_settings
+        (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv,
          openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token,
          elevenlabs_api_key_encrypted, elevenlabs_api_key_iv, elevenlabs_api_key_tag,
          elevenlabs_voice_id, elevenlabs_tts_enabled, kiosk_footer_tickers_enabled,
-         updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         default_agent_prompt, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -379,6 +396,7 @@ export class WorkspaceRepository {
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : 0,
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : 0,
+        promptUpdateValue,
         now
       );
     }

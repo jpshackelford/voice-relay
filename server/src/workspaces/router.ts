@@ -474,7 +474,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       }
 
       const settings = workspaceRepository.getSettings(workspace.id);
-      
+
       // Return settings with API key presence indicators (but not the keys themselves)
       res.json({
         workspaceId: workspace.id,
@@ -487,6 +487,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId: settings?.elevenlabsVoiceId ?? null,
         elevenlabsTtsEnabled: settings?.elevenlabsTtsEnabled ?? false,
         kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
+        defaultAgentPrompt: settings?.defaultAgentPrompt ?? null,
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -510,15 +511,41 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled, kioskFooterTickersEnabled } = req.body as { 
-        ttsVoice?: string; 
+      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled, kioskFooterTickersEnabled, defaultAgentPrompt } = req.body as {
+        ttsVoice?: string;
         sttLanguage?: string;
         allowAutoJoin?: boolean;
         requireQrToken?: boolean;
         elevenlabsVoiceId?: string;
         elevenlabsTtsEnabled?: boolean;
         kioskFooterTickersEnabled?: boolean;
+        defaultAgentPrompt?: string | null;
       };
+
+      // Validate defaultAgentPrompt if explicitly present in the body.
+      // `null` is allowed (means "clear the workspace default"); a string
+      // must be non-empty and within the 8 KB cap shared with per-session
+      // overrides (see settings-service.ts).
+      if ('defaultAgentPrompt' in req.body) {
+        if (defaultAgentPrompt === null) {
+          // ok — clear it
+        } else if (typeof defaultAgentPrompt !== 'string') {
+          res.status(400).json({
+            error: 'defaultAgentPrompt must be a string or null',
+          });
+          return;
+        } else if (defaultAgentPrompt.length === 0) {
+          res.status(400).json({
+            error: 'defaultAgentPrompt must be a non-empty string (use null to clear)',
+          });
+          return;
+        } else if (defaultAgentPrompt.length > 8192) {
+          res.status(400).json({
+            error: 'defaultAgentPrompt exceeds 8192-character limit',
+          });
+          return;
+        }
+      }
 
       // Note: API key encryption is handled by separate endpoints
       // This updates non-sensitive settings
@@ -530,6 +557,10 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId,
         elevenlabsTtsEnabled,
         kioskFooterTickersEnabled,
+        // Only forward defaultAgentPrompt when the caller explicitly
+        // included the key (so we don't accidentally clear it when other
+        // fields are PATCHed).
+        ...('defaultAgentPrompt' in req.body ? { defaultAgentPrompt } : {}),
       });
 
       res.json({
@@ -543,6 +574,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId: settings.elevenlabsVoiceId,
         elevenlabsTtsEnabled: settings.elevenlabsTtsEnabled,
         kioskFooterTickersEnabled: settings.kioskFooterTickersEnabled,
+        defaultAgentPrompt: settings.defaultAgentPrompt,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {
