@@ -261,3 +261,38 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:51 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `329d0f1` | implementation | Issue #378 — Expose session settings over REST + per-session agent prompt | running |
+| `21fe6fd` | expansion | Issue #383 — Speaker identity model | **NEW** |
+| `d48597e` | expansion | Issue #384 — Workspace page: show person/device name | **NEW** |
+
+**Spawned: 2 Expansion Workers (parallel)**
+
+1. **Expansion Worker — Issue #383**
+   - Issue: [#383 — Speaker identity model](https://github.com/jpshackelford/voice-relay/issues/383)
+   - Conversation: [`21fe6fd`](https://app.all-hands.dev/conversations/21fe6fd77f3449cc8d9a94f738635052)
+
+2. **Expansion Worker — Issue #384**
+   - Issue: [#384 — Workspace page: show person/device name](https://github.com/jpshackelford/voice-relay/issues/384)
+   - Conversation: [`d48597e`](https://app.all-hands.dev/conversations/d48597e7ec104e199b7d39e7184dc239)
+   - Note: prompt flags possible dependency on #383
+
+**Current State:**
+- Open PRs: none
+- Implementation slot: 1/1 (in flight on #378, conv `329d0f1`)
+- Expansion slots: 2/4 (just spawned #383, #384)
+- Review slots: 0/2
+- Ready+prioritized issues waiting on impl slot: #382 (priority:medium), #380 (priority:low), #379 (priority:low)
+- On-hold / needs-human (skipped): #372, #363, #351, #302, #301, #300, #299, #239, #210
+
+**Action Taken:**
+🚀 Spawned 2 expansion workers in parallel for the newest unlabeled issues (#383, #384). Implementation slot is occupied by `329d0f1` working on #378, so no new impl worker spawned this tick.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
