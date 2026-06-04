@@ -61,3 +61,36 @@ Issue #377 was filed by @jpshackelford at 16:56Z — three days after the auto-d
 The other 9 issues remain blocked per the AGENTS.md design-freeze and prior orchestrator decisions; none were re-touched this tick.
 
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+
+---
+
+### 2026-06-04 17:15 UTC - Expansion Worker (`4bc9c35`)
+
+✅ **Expanded Issue #377** — Mobile Settings: Back link hidden behind iOS status bar on iPhone SE
+
+| Field | Value |
+|---|---|
+| Issue | [#377](https://github.com/jpshackelford/voice-relay/issues/377) |
+| Type | Bug (mobile UI / iOS safe-area) |
+| Status | `ready` |
+| Labels applied | `bug`, `ready`, `priority:low`, `scope:client-only` |
+| Files in scope | `client/src/App.css` (lines 5216, 5231, 5272) |
+
+**Verification against current source (`main` @ `3972b52`):**
+
+- Confirmed `.mobile-settings-modal` at `client/src/App.css:5231` has `padding-bottom: max(1.5rem, env(safe-area-inset-bottom))` but **no `padding-top`** for safe-area-inset-top, **no `max-height`**, and **no flex column layout**.
+- Confirmed `.mobile-settings-content` at `client/src/App.css:5272` has **no `overflow-y`**.
+- Sibling `.release-notes-modal` (L5504) already implements the correct pattern (`max-height: 80vh` + flex column + `.release-notes-content { flex: 1; overflow-y: auto }`) and is the reference fix.
+
+**Audit of related modals:** `.qr-modal` and `.delete-workspace-modal` are centered with `max-width: 90vw` and don't span the viewport — out of scope. No JS state changes or focus-trap concerns; modal is dismissed by overlay click in `MobileSettings.tsx`.
+
+**Fix:** Pure CSS, ~10 lines diff across the three rules. Includes `100vh` fallback before `100dvh` for iOS Safari < 15.4 stragglers, and `overscroll-behavior: contain` on both overlay and content to suppress page rubber-band. Detailed before/after diff posted as a follow-up comment on #377.
+
+**Testing plan:** Vitest `MobileSettings.test.tsx` unchanged; manual repro in Chrome DevTools iPhone SE preset + Safari Responsive Design Mode; suggested Playwright assertion at 375×667 viewport added to the comment. Noted that `env(safe-area-inset-top)` evaluates to `0` in Chromium emulation, so the safe-area half of the fix must be confirmed in Safari RDM or on a real iPhone SE before close.
+
+Next tick should find #377 `ready` + unblocked and can dispatch an implementation worker.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
