@@ -134,3 +134,17 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:09 UTC - Expansion Worker (`ca530a6`)
+
+✅ **Expanded Issue [#379 — CSS Grid layout for kiosk overlays](https://github.com/jpshackelford/voice-relay/issues/379)**
+
+- Type: Enhancement (client-only CSS refactor)
+- Status: Ready for implementation
+- Approach: Replace `.kiosk-display` flex+5×`position: absolute` overlay pattern with `display: grid` + named areas (`tl`/`tr`/`bl`/`br`/`main`/`tick-l`/`tick-r`). 4rem gutter columns become the single source of truth for circle placement, retiring the `padding-{left,right}: 4rem` magic on both ticker strips. The `[data-tickers-enabled="true"] .connection-indicator` attribute toggle in `App.css:3809` is replaced by a grid-area assignment.
+- Files: primary edit in `client/src/App.css` (L1409, 1647, 1671, 1693, 3799–3815, 3842–3866, 3884); JSX in `client/src/components/KioskMode.tsx` likely needs no change (grid areas decouple visual from DOM order). Existing Playwright + unit tests are class-locator based and should pass unchanged — confirmed no `toHaveScreenshot` calls in `tests/`.
+- Labels applied: `scope:client-only`, `client`, `enhancement`, `priority:low`, `ready`. Clarified in the issue body that this does **not** subsume #377 (independent `MobileSettings.tsx` bug).
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
