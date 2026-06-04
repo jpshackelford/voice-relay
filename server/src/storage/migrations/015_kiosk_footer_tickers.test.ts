@@ -76,9 +76,13 @@ describe('migration 015: kiosk_footer_tickers', () => {
     const migrator = new Migrator({ db, migrations });
     const res = await migrator.migrateTo(14);
     expect(res.direction).toBe('down');
-    expect(res.count).toBe(1);
+    // Rollback now traverses migrations 16 (default_agent_prompt) and
+    // 15 (kiosk_footer_tickers) — both added after this test was first
+    // authored.
+    expect(res.count).toBe(2);
 
     expect(getColumns()).not.toContain('kiosk_footer_tickers_enabled');
+    expect(getColumns()).not.toContain('default_agent_prompt');
     const row = db
       .prepare(`SELECT allow_auto_join FROM workspace_settings WHERE workspace_id = ?`)
       .get('ws1') as { allow_auto_join: number };
