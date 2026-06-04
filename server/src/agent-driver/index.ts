@@ -51,7 +51,7 @@
  *   constructors). A `getAgentDriver()` accessor would let tests replace
  *   the production instance without monkey-patching the module.
  */
-import { AISessionManager } from '../openhands.js';
+import { AISessionManager, type SystemPromptResolver } from '../openhands.js';
 import {
   OpenHandsAgentDriver,
   type RawEventListener,
@@ -123,4 +123,16 @@ export function onAgentAction(listener: ActionListener): () => void {
  */
 export async function shutdownAgentDriver(): Promise<void> {
   await openHandsDriver.shutdown();
+}
+
+/**
+ * Install the system-prompt resolver on the production AISessionManager
+ * (issue #378). Platform code calls this from `index.ts` once the
+ * session and workspace repositories are constructed so that subsequent
+ * agent binds use the per-session > workspace-default > built-in
+ * precedence. Re-callable — last writer wins. Safe to call before any
+ * session is opened.
+ */
+export function setAgentSystemPromptResolver(resolver: SystemPromptResolver): void {
+  aiSessionManager.setSystemPromptResolver(resolver);
 }
