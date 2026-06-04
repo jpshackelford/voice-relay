@@ -520,3 +520,21 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 18:25 UTC - Merge Worker (#385)
+
+✅ Squash-merged PR #385 (`feat/378-session-settings-rest`) into `main`.
+
+- **Closes:** #378 (auto-closed via "Fixes #378")
+- **CI:** all 7 checks green; mergeable = CLEAN; no review threads
+- **Migration:** 016 `default_agent_prompt` — single `ALTER TABLE workspace_settings ADD COLUMN default_agent_prompt TEXT` (nullable, no default) → additive, safe for existing production rows. Down migration recreates the table and was round-trip tested.
+- **Surface added:** `GET`/`PATCH /api/sessions/:sessionId/settings` (Bearer or JWT), `session-settings-changed` WS snapshot; legacy `session-tts-settings-changed` preserved for back-compat.
+- **Behavior added:** per-session `agentPrompt` > workspace `default_agent_prompt` > built-in `system-prompt.md`, wired into `AISessionManager` via injectable `SystemPromptResolver`.
+- **Test delta:** +33 server tests + 1 Playwright e2e. Coverage: settings-service 96.3%, settings-router 87.3%, migration 100%.
+- **Production impact:** auto-deploys to vr.chorecraft.net; migration is purely additive on SQLite, so existing `sqlite.db` rows continue to use the built-in prompt until an operator sets one.
+
+Review verdict from `github-actions[bot]` (COMMENTED, no blockers): 🟢 Good taste — "Solid implementation that follows engineering best practices."
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
