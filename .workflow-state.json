@@ -3,31 +3,38 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "7c19afa",
-        "issue": 386,
-        "started": "2026-06-04T18:06:44.095647Z"
+        "conv_id": "2db4bd8",
+        "issue": 389,
+        "started": "2026-06-04T18:22:48.043114Z"
       },
       {
-        "conv_id": "ae7301e",
-        "issue": 388,
-        "started": "2026-06-04T18:06:44.095647Z"
+        "conv_id": "655a6df",
+        "issue": 390,
+        "started": "2026-06-04T18:22:48.043114Z"
       }
     ],
     "implementation": [
       {
-        "conv_id": "329d0f1",
-        "issue": 378,
-        "started": "2026-06-04T17:35:58.600787Z"
+        "conv_id": "a0b08f1",
+        "issue": 383,
+        "started": "2026-06-04T18:22:48.043114Z"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "692af3b",
+        "pr": 385,
+        "started": "2026-06-04T18:22:48.043114Z",
+        "type": "merge"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-04T18:06:44.095647Z",
+  "last_updated": "2026-06-04T18:22:48.043114Z",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -82,6 +89,33 @@
       "finished": "2026-06-04T18:06:44.095647Z",
       "status": "success",
       "outcome": "Triaged #384 \u2014 set on-hold (blocked by #383); did NOT add ready label per skill rules"
+    },
+    {
+      "conv_id": "7c19afa",
+      "type": "expansion",
+      "issue": 386,
+      "started": "2026-06-04T18:06:44.095647Z",
+      "finished": "2026-06-04T18:20:19.728618Z",
+      "status": "success",
+      "outcome": "Expanded #386 \u2014 Optional hosted STT with diarization (Deepgram/AssemblyAI); ready label added"
+    },
+    {
+      "conv_id": "ae7301e",
+      "type": "expansion",
+      "issue": 388,
+      "started": "2026-06-04T18:06:44.095647Z",
+      "finished": "2026-06-04T18:20:19.728618Z",
+      "status": "success",
+      "outcome": "Expanded #388 \u2014 Per-device mic listening/mute state propagation; ready label added"
+    },
+    {
+      "conv_id": "329d0f1",
+      "type": "implementation",
+      "issue": 378,
+      "started": "2026-06-04T17:35:58.600787Z",
+      "finished": "2026-06-04T18:20:19.728618Z",
+      "status": "success",
+      "outcome": "Created PR #385 \u2014 feat(server): expose session settings over REST + per-session agent prompt; all CI green, mergeable; (duplicate PR #387 closed)"
     }
   ],
   "quiet_ticks": 0

@@ -452,3 +452,55 @@ Symmetric with the existing `update-device` flow: new `device-listening-state` c
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-04 18:23 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `692af3b` | merge (review slot) | PR #385 — session settings REST | **NEW** |
+| `a0b08f1` | implementation | Issue #383 — Speaker identity model (priority:medium) | **NEW** |
+| `2db4bd8` | expansion | Issue #389 — Teach prompt to call PATCH /api/sessions/:id/settings | **NEW** |
+| `655a6df` | expansion | Issue #390 — Login page footer layout bug | **NEW** |
+
+**Previous workers (now in `completed`):**
+- `7c19afa` (expansion) → #386 expanded with hosted-STT/diarization design, `ready` label added
+- `ae7301e` (expansion) → #388 expanded with three-state mic/listening state design, `ready` label added
+- `329d0f1` (implementation) → #378 implemented as PR #385 (all CI green, mergeable); duplicate PR #387 closed
+
+🚀 **Spawned: 4 Workers (parallel)**
+
+1. **Merge Worker** for [PR #385 — feat(server): expose session settings over REST + per-session agent prompt](https://github.com/jpshackelford/voice-relay/pull/385)
+   - All checks green, mergeable, no unresolved review threads (only bot `COMMENTED`)
+   - Will close issue #378 on merge
+   - Conversation: [`692af3b`](https://app.all-hands.dev/conversations/692af3b420244ef992980fd42ac991f1)
+
+2. **Implementation Worker** for [Issue #383 — Speaker identity model](https://github.com/jpshackelford/voice-relay/issues/383) (priority:medium, scope:server-only)
+   - Builds on PR #385's REST/migration scaffold (worker instructed to pull main after #385 merges)
+   - Conversation: [`a0b08f1`](https://app.all-hands.dev/conversations/a0b08f15a8e045a08a2a920400d26920)
+
+3. **Expansion Worker** for [Issue #389 — Teach default system prompt to PATCH /api/sessions/:id/settings](https://github.com/jpshackelford/voice-relay/issues/389)
+   - Follow-up to PR #385; prompt-text-only change expected
+   - Conversation: [`2db4bd8`](https://app.all-hands.dev/conversations/2db4bd8c21a3445dbc43210579f8dd9e)
+
+4. **Expansion Worker** for [Issue #390 — Login page footer layout bug](https://github.com/jpshackelford/voice-relay/issues/390)
+   - Visual layout bug, needs reproduction + root cause; will be triaged with bug/client/scope:client-only/priority:low/ready
+   - Conversation: [`655a6df`](https://app.all-hands.dev/conversations/655a6df7d5cc4326a6101bd60d333c71)
+
+**Current State:**
+- Open PRs: **#385** (about to be merged) — closes #378
+- Ready issues (priority order, unblocked by stuck PRs):
+  - **#383** (medium, in impl) — speaker identity foundation
+  - **#382** (medium, blocked by #383) — ticker speaker identity
+  - **#386** (ready, no priority) — hosted STT (depends on #383, #378)
+  - **#388** (ready, no priority) — per-device mic state
+  - **#379** (low) — CSS Grid kiosk overlays
+  - **#380** (low) — kiosk indicator color
+- Issues needing expansion: **#389, #390** (now in flight)
+- On-hold: #210, #239, #299–302, #351, #363, #384, #372 (needs-human)
+
+**Action Taken:**
+🚀 Spawned 4 workers across 3 slot types. Remaining capacity: 2 expansion + 1 review slots free. Next tick (~15 min) will check progress and potentially fill remaining capacity (e.g. spawn impl for #379/#380 if #383 finishes, or expansion for newly-opened issues).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
