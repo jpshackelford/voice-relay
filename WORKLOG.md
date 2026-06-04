@@ -504,3 +504,19 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 18:24 UTC - Expansion Worker (issue #390)
+
+✅ **Expanded Issue #390** — Login page footer renders next to card instead of below
+
+- Issue: [Login page footer (Terms / Privacy) renders next to the card instead of below it](https://github.com/jpshackelford/voice-relay/issues/390)
+- Type: Bug (client-only, visual/layout)
+- Status: Ready for implementation
+- Root cause: `.login-page` uses `display: flex` with no `flex-direction` (defaults to `row`); `<footer>` is a flex sibling of `.login-card` so they sit side-by-side instead of stacked. Verified against `client/src/pages/Login.tsx` lines 57–89 and `client/src/App.css` line 1848.
+- Recommended fix: one-line CSS change — add `flex-direction: column;` to `.login-page` in `client/src/App.css`. No JSX changes, no new tests required (manual viewport check at 1440×900 / 768×1024 / 375×667).
+- Labels applied: `bug`, `client`, `scope:client-only`, `priority:low`, `ready`.
+- Issue body was already exceptionally complete (problem, repro, root cause, visual, fix, acceptance criteria); added a verification + recommendation comment rather than rewriting.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
