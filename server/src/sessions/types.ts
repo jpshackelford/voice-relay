@@ -14,6 +14,20 @@ export interface SessionTtsSettings {
 }
 
 /**
+ * Per-session input mode. Mirrors the React state historically held by
+ * `MobileMode.tsx` and `KioskMode.tsx`; lifted to server-side metadata so
+ * REST and WS clients agree on what's active (issue #378).
+ */
+export type SessionInputMode = 'voice' | 'unified' | 'visualizer';
+
+/** Valid input-mode literals; exported for runtime validation. */
+export const VALID_SESSION_INPUT_MODES: readonly SessionInputMode[] = [
+  'voice',
+  'unified',
+  'visualizer',
+] as const;
+
+/**
  * Session metadata (stored as JSON)
  */
 export interface SessionMetadata {
@@ -29,6 +43,49 @@ export interface SessionMetadata {
   };
   /** Session-level TTS settings (synced across all devices) */
   ttsSettings?: SessionTtsSettings;
+  /**
+   * Which input UI the session is using (issue #378). Persisted so a
+   * device that joins after another device flipped the toggle sees the
+   * current mode rather than the React default.
+   */
+  inputMode?: SessionInputMode;
+  /**
+   * Whether final transcriptions auto-submit. Same rationale as
+   * `inputMode` — lifted out of React state into the server record.
+   */
+  autoSubmit?: boolean;
+  /**
+   * Per-session override for the agent system prompt. Overrides the
+   * workspace-level `default_agent_prompt`. NULL/absent means "use
+   * the workspace default (or the built-in prompt if that's also
+   * unset)". See `resolveSessionSystemPrompt` in `openhands.ts`.
+   */
+  agentPrompt?: string | null;
+}
+
+/**
+ * Source of the effective agent prompt returned by `GET /settings`.
+ * - `session`: per-session `metadata.agentPrompt` override is in effect.
+ * - `workspace-default`: `workspace_settings.default_agent_prompt` applies.
+ * - `builtin`: neither is set; the built-in `system-prompt.md` is used.
+ */
+export type AgentPromptSource = 'session' | 'workspace-default' | 'builtin';
+
+/**
+ * DTO returned by `GET /api/sessions/:id/settings` and used as the
+ * payload of the `session-settings-changed` WS broadcast (issue #378).
+ */
+export interface SessionSettingsDTO {
+  sessionId: string;
+  workspaceId: string;
+  tts: SessionTtsSettings;
+  inputMode: SessionInputMode;
+  autoSubmit: boolean;
+  agentPrompt: {
+    /** The prompt string the agent will actually receive on its next bind. */
+    effective: string;
+    source: AgentPromptSource;
+  };
 }
 
 /**

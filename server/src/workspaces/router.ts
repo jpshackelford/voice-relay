@@ -7,6 +7,7 @@ import type { QrTokenRepository } from '../qr-tokens/index.js';
 import type { WorkspaceCreateInput, WorkspaceUpdateInput } from './types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 import { encryptApiKey, decryptApiKey, isValidApiKeyFormat } from './encryption.js';
+import { MAX_AGENT_PROMPT_LENGTH } from '../constants.js';
 
 // Rate limiter for auto-join endpoint to prevent enumeration/abuse
 const autoJoinLimiter = rateLimit({
@@ -487,6 +488,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId: settings?.elevenlabsVoiceId ?? null,
         elevenlabsTtsEnabled: settings?.elevenlabsTtsEnabled ?? false,
         kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
+        defaultAgentPrompt: settings?.defaultAgentPrompt ?? null,
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -510,15 +512,42 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         return;
       }
 
-      const { ttsVoice, sttLanguage, allowAutoJoin, requireQrToken, elevenlabsVoiceId, elevenlabsTtsEnabled, kioskFooterTickersEnabled } = req.body as { 
-        ttsVoice?: string; 
+      const body = req.body as {
+        ttsVoice?: string;
         sttLanguage?: string;
         allowAutoJoin?: boolean;
         requireQrToken?: boolean;
         elevenlabsVoiceId?: string;
         elevenlabsTtsEnabled?: boolean;
         kioskFooterTickersEnabled?: boolean;
+        defaultAgentPrompt?: string | null;
       };
+      const {
+        ttsVoice,
+        sttLanguage,
+        allowAutoJoin,
+        requireQrToken,
+        elevenlabsVoiceId,
+        elevenlabsTtsEnabled,
+        kioskFooterTickersEnabled,
+      } = body;
+
+      // Validate workspace-default agent prompt (issue #378). String or
+      // null only; over-cap values are rejected with 400.
+      const promptKeyProvided = 'defaultAgentPrompt' in body;
+      if (promptKeyProvided) {
+        const v = body.defaultAgentPrompt;
+        if (v !== null && typeof v !== 'string') {
+          res.status(400).json({ error: 'defaultAgentPrompt must be a string or null' });
+          return;
+        }
+        if (typeof v === 'string' && v.length > MAX_AGENT_PROMPT_LENGTH) {
+          res.status(400).json({
+            error: `defaultAgentPrompt exceeds ${MAX_AGENT_PROMPT_LENGTH} character limit`,
+          });
+          return;
+        }
+      }
 
       // Note: API key encryption is handled by separate endpoints
       // This updates non-sensitive settings
@@ -530,6 +559,10 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId,
         elevenlabsTtsEnabled,
         kioskFooterTickersEnabled,
+        // Forward the explicit-null intent. The repository checks
+        // `'defaultAgentPrompt' in settings` to distinguish "leave alone"
+        // from "set to null".
+        ...(promptKeyProvided ? { defaultAgentPrompt: body.defaultAgentPrompt ?? null } : {}),
       });
 
       res.json({
@@ -543,6 +576,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId: settings.elevenlabsVoiceId,
         elevenlabsTtsEnabled: settings.elevenlabsTtsEnabled,
         kioskFooterTickersEnabled: settings.kioskFooterTickersEnabled,
+        defaultAgentPrompt: settings.defaultAgentPrompt,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {

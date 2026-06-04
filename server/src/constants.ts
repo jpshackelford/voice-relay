@@ -42,3 +42,15 @@ export function isAnonymousMode(workspaceId: string | undefined | null): boolean
 export function isAnonymousSession(sessionId: string | undefined | null): boolean {
   return !sessionId || sessionId === ANONYMOUS_SESSION_ID;
 }
+
+/**
+ * Maximum length (in JS string characters, ~UTF-16 code units) for an agent
+ * system-prompt override. Caps both the per-session
+ * `sessions.metadata.agentPrompt` and the workspace-level
+ * `workspace_settings.default_agent_prompt` columns.
+ *
+ * 8 KB is generous enough for operator notes ("you are a kitchen kiosk,
+ * respond tersely") without letting one operator paste megabytes of text
+ * into a JSON column. See issue #378.
+ */
+export const MAX_AGENT_PROMPT_LENGTH = 8192;

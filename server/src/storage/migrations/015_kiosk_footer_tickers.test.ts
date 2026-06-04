@@ -76,7 +76,10 @@ describe('migration 015: kiosk_footer_tickers', () => {
     const migrator = new Migrator({ db, migrations });
     const res = await migrator.migrateTo(14);
     expect(res.direction).toBe('down');
-    expect(res.count).toBe(1);
+    // count grows by 1 for every migration newer than 015 that was applied
+    // before this rollback. Don't pin to a literal so this test doesn't
+    // break when future migrations are added (e.g. #378's 016).
+    expect(res.count).toBeGreaterThanOrEqual(1);
 
     expect(getColumns()).not.toContain('kiosk_footer_tickers_enabled');
     const row = db

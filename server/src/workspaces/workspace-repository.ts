@@ -34,6 +34,7 @@ interface WorkspaceSettingsRow {
   elevenlabs_voice_id: string | null;
   elevenlabs_tts_enabled: number | null;
   kiosk_footer_tickers_enabled: number | null;
+  default_agent_prompt: string | null;
   updated_at: string | null;
 }
 
@@ -72,6 +73,7 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     elevenlabsVoiceId: row.elevenlabs_voice_id,
     elevenlabsTtsEnabled: row.elevenlabs_tts_enabled === 1,
     kioskFooterTickersEnabled: row.kiosk_footer_tickers_enabled === 1,
+    defaultAgentPrompt: row.default_agent_prompt,
     updatedAt: row.updated_at,
   };
 }
@@ -288,7 +290,7 @@ export class WorkspaceRepository {
              openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
              require_qr_token, elevenlabs_api_key_encrypted, elevenlabs_api_key_iv,
              elevenlabs_api_key_tag, elevenlabs_voice_id, elevenlabs_tts_enabled,
-             kiosk_footer_tickers_enabled, updated_at
+             kiosk_footer_tickers_enabled, default_agent_prompt, updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -311,13 +313,28 @@ export class WorkspaceRepository {
       elevenlabsVoiceId?: string | null;
       elevenlabsTtsEnabled?: boolean;
       kioskFooterTickersEnabled?: boolean;
+      /**
+       * Workspace-default agent system prompt. Use `null` to clear the
+       * override. Omit the key (`undefined`) to leave the existing value
+       * unchanged — required to match the partial-update semantics the
+       * rest of this method uses for non-key fields.
+       */
+      defaultAgentPrompt?: string | null;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
     const existing = this.getSettings(workspaceId);
 
+    // The defaultAgentPrompt column needs both "set to null" and
+    // "leave unchanged" semantics. `undefined` = leave alone; explicit
+    // `null` = clear. We distinguish via `'defaultAgentPrompt' in settings`
+    // so callers can pass `null` without it being conflated with "absent".
+    const updatePrompt = 'defaultAgentPrompt' in settings;
+
     if (existing) {
-      // Update
+      // Update. For `default_agent_prompt`, a conditional CASE lets us
+      // either replace with the supplied value (including NULL) or leave
+      // the column untouched.
       const stmt = this.db.prepare(`
         UPDATE workspace_settings
         SET openhands_api_key_encrypted = COALESCE(?, openhands_api_key_encrypted),
@@ -333,6 +350,7 @@ export class WorkspaceRepository {
             elevenlabs_voice_id = COALESCE(?, elevenlabs_voice_id),
             elevenlabs_tts_enabled = COALESCE(?, elevenlabs_tts_enabled),
             kiosk_footer_tickers_enabled = COALESCE(?, kiosk_footer_tickers_enabled),
+            default_agent_prompt = CASE WHEN ? = 1 THEN ? ELSE default_agent_prompt END,
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -350,6 +368,8 @@ export class WorkspaceRepository {
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : null,
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : null,
+        updatePrompt ? 1 : 0,
+        settings.defaultAgentPrompt ?? null,
         now,
         workspaceId
       );
@@ -361,8 +381,8 @@ export class WorkspaceRepository {
          openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token,
          elevenlabs_api_key_encrypted, elevenlabs_api_key_iv, elevenlabs_api_key_tag,
          elevenlabs_voice_id, elevenlabs_tts_enabled, kiosk_footer_tickers_enabled,
-         updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         default_agent_prompt, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -379,6 +399,7 @@ export class WorkspaceRepository {
         settings.elevenlabsVoiceId ?? null,
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : 0,
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : 0,
+        settings.defaultAgentPrompt ?? null,
         now
       );
     }

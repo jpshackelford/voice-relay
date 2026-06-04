@@ -571,6 +571,68 @@ export function getServerUrl(): string {
 }
 
 /**
+ * Apply the standard prompt-body substitutions: display lines, server URL,
+ * workspace ID, session ID. Extracted from {@link loadPrompt} so the
+ * per-session / workspace-default override paths
+ * ({@link resolveSessionSystemPrompt}) reuse the same logic without
+ * re-implementing it.
+ *
+ * Mutating the input is fine since the caller always owns a fresh copy
+ * loaded from disk or DB.
+ */
+export function applyPromptSubstitutions(
+  prompt: string,
+  displayLines?: number,
+  workspaceId?: string,
+  sessionId?: string
+): string {
+  let out = prompt;
+
+  if (displayLines !== undefined) {
+    out = out.replace(
+      /Maximum 10-12 lines of body text/g,
+      `Maximum ${displayLines} lines of body text`
+    );
+    out = out.replace(
+      /content beyond ~10 lines will be invisible/g,
+      `content beyond ${displayLines} lines will be invisible`
+    );
+  }
+
+  // Server URL — required for display API curl examples in the prompt.
+  out = out.replace(/{{SERVER_URL}}/g, getServerUrl());
+
+  // Workspace + session IDs are escaped so a future opaque ID containing
+  // JSON-breaking chars doesn't corrupt curl examples.
+  if (workspaceId) {
+    const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    out = out.replace(/{{WORKSPACE_ID}}/g, escapedId);
+  }
+  if (sessionId) {
+    const escapedId = sessionId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    out = out.replace(/{{SESSION_ID}}/g, escapedId);
+  }
+
+  return out;
+}
+
+/**
+ * Read the built-in prompt file from disk. Throws if the file is missing.
+ * Separated from {@link loadPrompt} so {@link resolveSessionSystemPrompt}
+ * can read it without re-running the substitution pass (which is applied
+ * by the resolver after deciding which body to use).
+ */
+export function readBuiltinPrompt(promptName: string): string {
+  const promptsDir = path.join(__dirname, '..', 'prompts');
+  const promptPath = path.join(promptsDir, `${promptName}.md`);
+
+  if (!fs.existsSync(promptPath)) {
+    throw new Error(`Prompt not found: ${promptName}`);
+  }
+  return fs.readFileSync(promptPath, 'utf-8');
+}
+
+/**
  * Load a prompt from the prompts directory
  * @param promptName - Name of the prompt file (without .md extension)
  * @param displayLines - Optional number of display lines to inject into the prompt
@@ -583,46 +645,91 @@ export function loadPrompt(
   workspaceId?: string,
   sessionId?: string
 ): string {
-  const promptsDir = path.join(__dirname, '..', 'prompts');
-  const promptPath = path.join(promptsDir, `${promptName}.md`);
-  
-  if (!fs.existsSync(promptPath)) {
-    throw new Error(`Prompt not found: ${promptName}`);
-  }
-  
-  let prompt = fs.readFileSync(promptPath, 'utf-8');
-  
-  // Replace placeholder with actual display lines if provided
-  if (displayLines !== undefined) {
-    // Replace generic "10-12 lines" guidance with actual calculated value
-    prompt = prompt.replace(
-      /Maximum 10-12 lines of body text/g,
-      `Maximum ${displayLines} lines of body text`
-    );
-    prompt = prompt.replace(
-      /content beyond ~10 lines will be invisible/g,
-      `content beyond ${displayLines} lines will be invisible`
-    );
-  }
-  
-  // Replace server URL placeholder for display API calls
-  // This ensures prompts work in any environment (dev, test, production)
-  prompt = prompt.replace(/{{SERVER_URL}}/g, getServerUrl());
-  
-  // Replace workspace ID placeholder if provided
-  // Escape JSON-breaking characters to prevent malformed curl examples in prompts
-  if (workspaceId) {
-    const escapedId = workspaceId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    prompt = prompt.replace(/{{WORKSPACE_ID}}/g, escapedId);
+  return applyPromptSubstitutions(
+    readBuiltinPrompt(promptName),
+    displayLines,
+    workspaceId,
+    sessionId
+  );
+}
+
+/**
+ * Resolve the effective system prompt for a session.
+ *
+ * Precedence (issue #378):
+ *   1. `session.metadata.agentPrompt` — per-session override.
+ *   2. `workspaceSettings.defaultAgentPrompt` — workspace-wide default.
+ *   3. Built-in `server/prompts/system-prompt.md` — fallback.
+ *
+ * The same `{{SERVER_URL}}`, `{{WORKSPACE_ID}}`, `{{SESSION_ID}}` and
+ * display-line substitutions used by {@link loadPrompt} are applied to
+ * whichever body wins, so operator-authored prompts can reference the
+ * same placeholders as the built-in one.
+ */
+export interface ResolveSessionPromptInput {
+  /** Per-session metadata; only `agentPrompt` is read. */
+  sessionMetadata: { agentPrompt?: string | null } | null | undefined;
+  /** Workspace settings row; only `defaultAgentPrompt` is read. */
+  workspaceSettings: { defaultAgentPrompt: string | null } | null | undefined;
+  sessionId: string;
+  workspaceId: string;
+  displayLines?: number;
+}
+
+export interface ResolvedSessionPrompt {
+  /** The final, substitution-applied prompt body. */
+  effective: string;
+  /** Where the body came from. */
+  source: 'session' | 'workspace-default' | 'builtin';
+}
+
+/**
+ * Function-shape used by {@link AISessionManager.setSystemPromptResolver}.
+ * Production wiring (in `index.ts`) plugs in a closure that pulls the
+ * session metadata + workspace settings from their repositories and
+ * delegates to {@link resolveSessionSystemPrompt}. Returns just the
+ * prompt string for the call site — the source label is consumed by
+ * `GET /api/sessions/:id/settings`, not by the bind path.
+ */
+export type SystemPromptResolver = (input: {
+  sessionId: string;
+  workspaceId: string;
+  displayLines?: number;
+}) => string;
+
+export function resolveSessionSystemPrompt(
+  input: ResolveSessionPromptInput
+): ResolvedSessionPrompt {
+  const { sessionMetadata, workspaceSettings, sessionId, workspaceId, displayLines } = input;
+
+  // 1. Per-session override wins. Treat empty string as "no override".
+  const sessionPrompt = sessionMetadata?.agentPrompt;
+  if (typeof sessionPrompt === 'string' && sessionPrompt.length > 0) {
+    return {
+      effective: applyPromptSubstitutions(sessionPrompt, displayLines, workspaceId, sessionId),
+      source: 'session',
+    };
   }
 
-  // Replace session ID placeholder if provided
-  if (sessionId) {
-    const escapedId = sessionId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    prompt = prompt.replace(/{{SESSION_ID}}/g, escapedId);
+  // 2. Workspace default.
+  const wsPrompt = workspaceSettings?.defaultAgentPrompt ?? null;
+  if (typeof wsPrompt === 'string' && wsPrompt.length > 0) {
+    return {
+      effective: applyPromptSubstitutions(wsPrompt, displayLines, workspaceId, sessionId),
+      source: 'workspace-default',
+    };
   }
-  
-  return prompt;
+
+  // 3. Built-in.
+  return {
+    effective: applyPromptSubstitutions(
+      readBuiltinPrompt('system-prompt'),
+      displayLines,
+      workspaceId,
+      sessionId
+    ),
+    source: 'builtin',
+  };
 }
 
 /**
@@ -1659,6 +1766,16 @@ export class AISessionManager {
   private condenseImpl: CondenseFn = noopCondense;
 
   /**
+   * Resolver for the agent system prompt at lazy-bind / restart time
+   * (issue #378). Default returns the substituted built-in
+   * `system-prompt.md`. `index.ts` overrides this with a real resolver
+   * (per-session > workspace-default > built-in) once the session and
+   * workspace repositories are wired up.
+   */
+  private systemPromptResolver: SystemPromptResolver = (input) =>
+    loadPrompt('system-prompt', input.displayLines, input.workspaceId, input.sessionId);
+
+  /**
    * @param client - Optional pre-built client (test seam). When omitted, the
    * manager constructs its own `OpenHandsClient` using ambient env vars.
    */
@@ -1672,6 +1789,19 @@ export class AISessionManager {
     } catch (e) {
       console.warn('OpenHands client not initialized:', (e as Error).message);
     }
+  }
+
+  /**
+   * Inject a per-session system-prompt resolver. Production code wires
+   * this in `index.ts` so each agent bind picks up the effective prompt
+   * (per-session override > workspace default > built-in) per issue #378.
+   *
+   * Tests that don't exercise the prompt path can leave this alone — the
+   * default resolver returns the built-in prompt with the standard
+   * substitutions.
+   */
+  setSystemPromptResolver(resolver: SystemPromptResolver): void {
+    this.systemPromptResolver = resolver;
   }
 
   /**
@@ -2113,8 +2243,15 @@ export class AISessionManager {
 
     console.log(`[AI] Creating new session AI for session ${sessionId}${options.displayLines ? ` (${options.displayLines} display lines)` : ''}`);
 
-    // Load system prompt with session context
-    const systemPrompt = loadPrompt('system-prompt', options.displayLines, workspaceId, sessionId);
+    // Resolve the effective system prompt (issue #378). The injected
+    // resolver layers per-session > workspace-default > built-in; the
+    // default factory uses the built-in prompt directly so tests that
+    // don't wire a resolver still work.
+    const systemPrompt = this.systemPromptResolver({
+      sessionId,
+      workspaceId,
+      displayLines: options.displayLines,
+    });
     console.log(`[AI] Loaded system prompt (${systemPrompt.length} chars)`);
 
     // Build secrets map
