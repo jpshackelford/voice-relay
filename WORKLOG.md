@@ -194,3 +194,19 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 17:23 UTC - Expansion Worker (issue #380)
+
+✅ **Expanded Issue #380** — Left kiosk indicator (oscilloscope) should be blue, not purple
+
+- Issue: [#380](https://github.com/jpshackelford/voice-relay/issues/380)
+- Type: Bug (cosmetic)
+- Status: Ready for implementation
+- Root cause: Both kiosk indicators share `#a855f7` (AI purple). Left indicator's container styling lives in `client/src/App.css` (`.kiosk-oscilloscope-indicator` background + border, lines 1693–1708) and the canvas stroke/glow is driven by the `color="#a855f7"` prop passed to `<Oscilloscope>` in `client/src/components/KioskMode.tsx` line 987.
+- Proposed fix: Two-file, three-line change. Swap container background to `rgba(50, 130, 184, 0.2)` and border + canvas `color` prop to `#3282b8` (the existing user-message accent used by `.message` border-left / sender color). `.kiosk-ai-status` stays purple.
+- Labels applied: `bug`, `client`, `scope:client-only`, `ready`, `priority:low`
+- No blockers; can land independently of #379 (broader kiosk grid cleanup) per the original issue note.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
