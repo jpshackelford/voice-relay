@@ -3,14 +3,14 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "21fe6fd",
-        "issue": 383,
-        "started": "2026-06-04T17:51:21.389212Z"
+        "conv_id": "7c19afa",
+        "issue": 386,
+        "started": "2026-06-04T18:06:44.095647Z"
       },
       {
-        "conv_id": "d48597e",
-        "issue": 384,
-        "started": "2026-06-04T17:51:21.389212Z"
+        "conv_id": "ae7301e",
+        "issue": 388,
+        "started": "2026-06-04T18:06:44.095647Z"
       }
     ],
     "implementation": [
@@ -27,7 +27,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-04T17:51:21.389212Z",
+  "last_updated": "2026-06-04T18:06:44.095647Z",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -64,6 +64,24 @@
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
       "outcome": "Created PR #381 \u2014 fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
+    },
+    {
+      "conv_id": "21fe6fd",
+      "type": "expansion",
+      "issue": 383,
+      "started": "2026-06-04T17:51:21.389212Z",
+      "finished": "2026-06-04T18:06:44.095647Z",
+      "status": "success",
+      "outcome": "Expanded #383 \u2014 speaker identity model: schema + REST + agent wiring; ready label added"
+    },
+    {
+      "conv_id": "d48597e",
+      "type": "expansion",
+      "issue": 384,
+      "started": "2026-06-04T17:51:21.389212Z",
+      "finished": "2026-06-04T18:06:44.095647Z",
+      "status": "success",
+      "outcome": "Triaged #384 \u2014 set on-hold (blocked by #383); did NOT add ready label per skill rules"
     }
   ],
   "quiet_ticks": 0

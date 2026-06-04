@@ -378,3 +378,37 @@ All required checks green on commit `6223d17`: Server Tests ✅ · Client Tests 
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-04 18:07 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `329d0f1` | implementation | Issue #378 — session settings REST | running |
+| `7c19afa` | expansion | Issue #386 — hosted STT w/ diarization | **NEW** |
+| `ae7301e` | expansion | Issue #388 — kiosk mic muted icon | **NEW** |
+
+**Workers Completed Since Last Tick:**
+- `21fe6fd` (expansion) → Issue #383 expanded; `ready` label added
+- `d48597e` (expansion) → Issue #384 triaged to `on-hold` (hard-blocked by #383)
+
+🚀 **Spawned: 2 Expansion Workers (parallel)**
+
+1. **Expansion #386** — [Hosted STT with diarization (Deepgram/AssemblyAI)](https://github.com/jpshackelford/voice-relay/issues/386)
+   - Conversation: [`7c19afa`](https://app.all-hands.dev/conversations/7c19afa9ce2c44a79958395a2bedcb9b)
+
+2. **Expansion #388** — [Propagate per-device mic mute state + kiosk muted icon](https://github.com/jpshackelford/voice-relay/issues/388)
+   - Conversation: [`ae7301e`](https://app.all-hands.dev/conversations/ae7301e4add14aea894cc252d283fb8d)
+
+**Current State:**
+- Open PRs: **#385** (ready, all checks green, bot review COMMENTED, no review threads) and **#387** (also feat/session-settings, draft cleared, UNSTABLE — actively being pushed by impl worker `329d0f1`). ⚠️ Duplicate PRs for issue #378 — letting the running impl worker converge before spawning a merge worker.
+- Ready issues (priority order): #378 (in impl), #382 (medium, depends on #383 schema), #383 (medium, just expanded), #379 #380 (low)
+- Issues needing expansion: none remaining (#386, #388 now being expanded)
+- On-hold: #384 (blocked by #383)
+
+**Action Taken:**
+✅ Spawned 2 expansion workers for the last two unexpanded issues. Implementation slot still occupied by `329d0f1` working on #378 — deferring review/merge until that worker exits and the duplicate-PR situation resolves.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
