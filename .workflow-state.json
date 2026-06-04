@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-04T18:35:52.542343Z",
+  "last_updated": "2026-06-04T18:47:47Z",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -25,7 +25,7 @@
       "started": "2026-06-04T17:00:44Z",
       "finished": "2026-06-04T17:15:00Z",
       "status": "success",
-      "outcome": "Expanded #377 \u2014 added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
+      "outcome": "Expanded #377 — added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
     },
     {
       "conv_id": "afbccd4",
@@ -34,7 +34,7 @@
       "started": "2026-06-04T17:03:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Expanded #378 \u2014 labels enhancement/server/scope:server-only/priority:medium/ready; comment with REST settings architecture & migration 016"
+      "outcome": "Expanded #378 — labels enhancement/server/scope:server-only/priority:medium/ready; comment with REST settings architecture & migration 016"
     },
     {
       "conv_id": "ca530a6",
@@ -43,7 +43,7 @@
       "started": "2026-06-04T17:03:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Expanded #379 \u2014 labels enhancement/client/scope:client-only/priority:low/ready (CSS Grid kiosk overlays)"
+      "outcome": "Expanded #379 — labels enhancement/client/scope:client-only/priority:low/ready (CSS Grid kiosk overlays)"
     },
     {
       "conv_id": "401f9d3",
@@ -52,7 +52,7 @@
       "started": "2026-06-04T17:08:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Created PR #381 \u2014 fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
+      "outcome": "Created PR #381 — fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
     },
     {
       "conv_id": "21fe6fd",
@@ -61,7 +61,7 @@
       "started": "2026-06-04T17:51:21.389212Z",
       "finished": "2026-06-04T18:06:44.095647Z",
       "status": "success",
-      "outcome": "Expanded #383 \u2014 speaker identity model: schema + REST + agent wiring; ready label added"
+      "outcome": "Expanded #383 — speaker identity model: schema + REST + agent wiring; ready label added"
     },
     {
       "conv_id": "d48597e",
@@ -70,7 +70,7 @@
       "started": "2026-06-04T17:51:21.389212Z",
       "finished": "2026-06-04T18:06:44.095647Z",
       "status": "success",
-      "outcome": "Triaged #384 \u2014 set on-hold (blocked by #383); did NOT add ready label per skill rules"
+      "outcome": "Triaged #384 — set on-hold (blocked by #383); did NOT add ready label per skill rules"
     },
     {
       "conv_id": "7c19afa",
@@ -79,7 +79,7 @@
       "started": "2026-06-04T18:06:44.095647Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Expanded #386 \u2014 Optional hosted STT with diarization (Deepgram/AssemblyAI); ready label added"
+      "outcome": "Expanded #386 — Optional hosted STT with diarization (Deepgram/AssemblyAI); ready label added"
     },
     {
       "conv_id": "ae7301e",
@@ -88,7 +88,7 @@
       "started": "2026-06-04T18:06:44.095647Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Expanded #388 \u2014 Per-device mic listening/mute state propagation; ready label added"
+      "outcome": "Expanded #388 — Per-device mic listening/mute state propagation; ready label added"
     },
     {
       "conv_id": "329d0f1",
@@ -97,7 +97,7 @@
       "started": "2026-06-04T17:35:58.600787Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Created PR #385 \u2014 feat(server): expose session settings over REST + per-session agent prompt; all CI green, mergeable; (duplicate PR #387 closed)"
+      "outcome": "Created PR #385 — feat(server): expose session settings over REST + per-session agent prompt; all CI green, mergeable; (duplicate PR #387 closed)"
     },
     {
       "conv_id": "2db4bd8",
@@ -105,7 +105,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Expanded #389 \u2014 system prompt PATCH /api/sessions/:id/settings; ready label added (priority:low, scope:server-only)",
+      "outcome": "Expanded #389 — system prompt PATCH /api/sessions/:id/settings; ready label added (priority:low, scope:server-only)",
       "issue": 389
     },
     {
@@ -114,7 +114,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Expanded #390 \u2014 login page footer layout bug (bug); ready label added (priority:low, client, scope:client-only)",
+      "outcome": "Expanded #390 — login page footer layout bug (bug); ready label added (priority:low, client, scope:client-only)",
       "issue": 390
     },
     {
@@ -123,9 +123,9 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Squash-merged PR #385 at 18:24:35Z \u2014 feat(server): session settings REST + per-session agent prompt; auto-closed #378",
+      "outcome": "Squash-merged PR #385 at 18:24:35Z — feat(server): session settings REST + per-session agent prompt; auto-closed #378",
       "pr": 385
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 2
 }
