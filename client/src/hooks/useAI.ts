@@ -15,11 +15,6 @@ interface UseAIOptions {
   sessionId?: string;  // VR session ID for session-centric AI
 }
 
-interface AIStatus {
-  available: boolean;
-  message: string;
-}
-
 /** Result of a `restart()` invocation, surfaced to the calling component. */
 export type RestartResult =
   | { ok: true; status: AISessionStatus }
@@ -53,7 +48,6 @@ export interface AIState {
   restartError: string | null;
   conversationId: string | null;
   error: string | null;
-  checkAvailability: () => Promise<AIStatus>;
   /**
    * Trigger an explicit user-driven restart of the upstream agent session.
    * Optimistically transitions local state to `connecting`; the server's
@@ -212,14 +206,11 @@ export function useAI({ sessionId }: UseAIOptions = {}) {
    */
   const hasReceivedSessionStateRef = useRef(false);
 
-  const checkAvailability = useCallback(async (): Promise<AIStatus> => {
-    try {
-      const response = await fetch('/api/ai/status');
-      return await response.json();
-    } catch {
-      return { available: false, message: 'Failed to check AI status' };
-    }
-  }, []);
+  // `checkAvailability` and the `/api/ai/status` probe were removed in
+  // #404. Consumers should branch on the per-session reducer state
+  // (`connected` / `connecting` / `state`) — which is driven by
+  // `session-state` broadcasts from the server WebSocket — instead of
+  // pre-flighting a global "is AI configured?" check.
 
   // Handle unified `session-state` message (issue #295 — preferred shape).
   const handleSessionState = useCallback(
@@ -334,7 +325,6 @@ export function useAI({ sessionId }: UseAIOptions = {}) {
     error: state.error,
     /** Unified reducer state (issue #295). New code should prefer this. */
     aiStatus: state,
-    checkAvailability,
     restart,
     handleSessionState,
     handleSessionAIStatus,

@@ -29,7 +29,6 @@ function makeDriver(overrides: Partial<AgentDriver> = {}): AgentDriver {
       throw new Error(`AgentDriver.${name} not implemented in test`);
     });
   return {
-    isAvailable: vi.fn(() => true),
     hasSession: vi.fn(() => true),
     openSession: notImpl('openSession') as unknown as AgentDriver['openSession'],
     sendMessage: notImpl('sendMessage') as unknown as AgentDriver['sendMessage'],

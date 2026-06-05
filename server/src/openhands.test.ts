@@ -383,15 +383,49 @@ describe('AISessionManager', () => {
     });
 
     describe('getOrCreateForSession', () => {
-      test('throws error when OpenHands API not configured', async () => {
-        // In test environment, API key is not set, so client is null
+      test('throws when no workspace API key is provided (#404 contract)', async () => {
+        // Post-#404: the env-keyed singleton fallback was removed. A
+        // fresh manager with no test-installed client and no
+        // `options.apiKey` must surface a typed-message error rather
+        // than silently fall through to a stale singleton.
         await expect(
           manager.getOrCreateForSession(
             'test-session',
             'test-workspace',
             () => {}
           )
-        ).rejects.toThrow('OpenHands API not configured');
+        ).rejects.toThrow(/OpenHands API not configured.*#404/);
+      });
+
+      test('throws even when `options.apiKey` is the empty string (#404)', async () => {
+        // Empty/whitespace strings must NOT be treated as "key supplied"
+        // — they'd just blow up at upstream auth time with a confusing
+        // 401. We want the same typed error as the no-key case.
+        await expect(
+          manager.getOrCreateForSession(
+            'test-session',
+            'test-workspace',
+            () => {},
+            { apiKey: '' },
+          )
+        ).rejects.toThrow(/OpenHands API not configured.*#404/);
+      });
+    });
+
+    describe('attachExistingForSession (#404 contract)', () => {
+      test('throws when neither test-client nor workspace API key is provided', async () => {
+        // Mirror of the `getOrCreateForSession` post-#404 contract:
+        // attach-existing has no env fallback either. Without a
+        // `setClientForTesting` seam *and* without `options.apiKey`,
+        // we must throw — not silently no-op.
+        await expect(
+          manager.attachExistingForSession(
+            'sess-no-key',
+            'ws-no-key',
+            'conv-x',
+            () => {},
+          )
+        ).rejects.toThrow(/OpenHands API not configured.*#404/);
       });
     });
 
@@ -516,12 +550,11 @@ describe('AISessionManager', () => {
     });
   });
 
-  describe('isAvailable', () => {
-    test('returns false when API key not configured', () => {
-      // In test environment without API key
-      expect(manager.isAvailable()).toBe(false);
-    });
-  });
+  // `isAvailable` describe block removed in #404. The probe was a relic
+  // of the env-keyed singleton client fallback. Now that per-workspace
+  // API keys (#403, #406) are the only credential source, "available"
+  // can only be answered per-workspace at session-open time — there is
+  // no manager-level state to interrogate.
 
   describe('shutdown', () => {
     test('cleans up without error when no sessions exist', async () => {

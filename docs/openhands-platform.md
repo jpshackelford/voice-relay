@@ -3,6 +3,11 @@
 > Status: **reference document** (not a design). This is the consolidated, verified picture of how the OpenHands SaaS works as we integrate against it. Last updated 2026-05-23 after a probe pass against `https://app.all-hands.dev` using the `OPENHANDS_API_KEY` of an OpenHands employee account.
 >
 > Anything marked "verified" was confirmed by an API call or a code read against `OpenHands/runtime-api`, `OpenHands/OpenHands`, `OpenHands/OpenHands-Cloud`, or `All-Hands-AI/deploy`. Anything marked "assumed" is a working assumption pending future verification.
+>
+> **Note (#404):** `OPENHANDS_API_KEY` below is OpenHands' own term for the
+> account bearer token. Voice Relay no longer reads it from `process.env` at
+> runtime — keys are configured per-workspace in workspace settings and
+> stored encrypted in `workspace_settings.openhands_api_key_encrypted`.
 
 ## Two servers, two auth schemes
 

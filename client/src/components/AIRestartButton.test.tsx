@@ -12,7 +12,6 @@ import { AIRestartButton } from './AIRestartButton';
 import type { AIState, RestartResult } from '../hooks/useAI';
 
 function buildAIState(partial: Partial<AIState> = {}): AIState {
-  const noop = () => Promise.resolve({ available: true, message: 'ok' });
   return {
     connected: false,
     connecting: false,
@@ -22,7 +21,6 @@ function buildAIState(partial: Partial<AIState> = {}): AIState {
     restartError: null,
     conversationId: null,
     error: null,
-    checkAvailability: noop,
     restart: vi.fn(async () => ({ ok: true, status: {
       sessionId: 's1',
       state: 'starting',

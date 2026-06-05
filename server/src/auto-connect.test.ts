@@ -3,8 +3,9 @@
  *
  * Verifies that the platform's auto-connect path opens a session on the
  * driver (broadcasting connecting → connected status messages), handles
- * error and unavailable paths, and respects the driver's
- * `isAvailable` / `hasSession` interface.
+ * error and unavailable paths, and respects the driver's `hasSession`
+ * interface. The legacy `isAvailable` probe was removed in #404 once
+ * per-workspace API keys became the only credential source.
  */
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
@@ -56,14 +57,12 @@ function readyStatus(sessionId: string, conversationId: string | null = 'conv-12
 }
 
 function createMockAgentDriver(options: {
-  isAvailable?: boolean;
   hasSession?: boolean;
   shouldThrow?: boolean;
   throwMessage?: string;
   openStatus?: AgentSessionStatus;
 } = {}): AgentDriver {
   const {
-    isAvailable = true,
     hasSession = false,
     shouldThrow = false,
     throwMessage = 'API error',
@@ -71,7 +70,6 @@ function createMockAgentDriver(options: {
   } = options;
 
   return {
-    isAvailable: vi.fn().mockReturnValue(isAvailable),
     hasSession: vi.fn().mockReturnValue(hasSession),
     openSession: shouldThrow
       ? vi.fn().mockRejectedValue(new Error(throwMessage))
@@ -96,7 +94,10 @@ function createDependencies(overrides: Partial<AutoConnectDependencies> = {}): A
     workspaceRepository: createMockWorkspaceRepository(),
     agentDriver: createMockAgentDriver(),
     store: createMockStore(),
-    getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
+    // Default to a workspace key so the "happy path" tests proceed
+    // without per-test wiring. Tests exercising the post-#404 "no key
+    // configured" short-circuit override this on the returned deps.
+    getWorkspaceApiKey: vi.fn().mockResolvedValue('test-workspace-key'),
     ...overrides,
   };
 }
@@ -274,8 +275,11 @@ describe('autoConnectAI', () => {
   });
 
   describe('API key unavailable', () => {
-    test('skips when no workspace or env API key available', async () => {
-      const driver = createMockAgentDriver({ isAvailable: false });
+    test('skips when workspace has no configured API key', async () => {
+      // Post-#404 contract: workspace key is the only credential source.
+      // The legacy `isAvailable()` probe (env-keyed driver fallback) is
+      // gone, so a missing workspace key short-circuits auto-connect.
+      const driver = createMockAgentDriver();
       const deps = createDependencies({
         agentDriver: driver,
         getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
@@ -301,8 +305,8 @@ describe('autoConnectAI', () => {
       expect(driver.openSession).not.toHaveBeenCalled();
     });
 
-    test('proceeds with workspace API key even when env key unavailable', async () => {
-      const driver = createMockAgentDriver({ isAvailable: false });
+    test('proceeds with workspace API key', async () => {
+      const driver = createMockAgentDriver();
       const deps = createDependencies({
         agentDriver: driver,
         getWorkspaceApiKey: vi.fn().mockResolvedValue('workspace-key'),
@@ -311,26 +315,21 @@ describe('autoConnectAI', () => {
       await autoConnectAI('session-123', 'workspace-456', deps);
 
       expect(driver.openSession).toHaveBeenCalled();
-    });
-
-    test('proceeds with env API key even when workspace key unavailable', async () => {
-      const driver = createMockAgentDriver({ isAvailable: true });
-      const deps = createDependencies({
-        agentDriver: driver,
-        getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
-      });
-
-      await autoConnectAI('session-123', 'workspace-456', deps);
-
-      // Should open the session WITHOUT an apiKey in opts (uses env key)
+      // The workspace key must be threaded to `openSession` — the
+      // env-keyed singleton fallback was removed in #404.
       expect(driver.openSession).toHaveBeenCalledWith(
         expect.any(String),
-        expect.not.objectContaining({ apiKey: expect.anything() })
+        expect.objectContaining({ apiKey: 'workspace-key' }),
       );
     });
 
-    test('skips workspace key lookup when workspaceRepository is null', async () => {
-      const driver = createMockAgentDriver({ isAvailable: true });
+    test('skips auto-connect when workspaceRepository is null (#404)', async () => {
+      // Pre-#404 this test asserted the env-keyed driver fallback would
+      // open a session anyway. After the fallback was removed there's
+      // no credential source when `workspaceRepository` is null, so
+      // auto-connect must short-circuit with the same "unavailable"
+      // broadcast as the empty-key case above.
+      const driver = createMockAgentDriver();
       const getWorkspaceApiKey = vi.fn();
       const deps = createDependencies({
         agentDriver: driver,
@@ -341,7 +340,7 @@ describe('autoConnectAI', () => {
       await autoConnectAI('session-123', 'workspace-456', deps);
 
       expect(getWorkspaceApiKey).not.toHaveBeenCalled();
-      expect(driver.openSession).toHaveBeenCalled();
+      expect(driver.openSession).not.toHaveBeenCalled();
     });
   });
 

@@ -44,7 +44,6 @@ describe('KioskMode', () => {
     restartError: null,
     conversationId: null,
     error: null,
-    checkAvailability: vi.fn().mockResolvedValue({ available: false, message: 'Not configured' }),
     restart: vi.fn().mockResolvedValue({ ok: true, status: {
       sessionId: 'test',
       state: 'starting',

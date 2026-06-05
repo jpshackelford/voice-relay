@@ -108,7 +108,6 @@ describe('relayAgentResponse', () => {
     // Wrap the FakeDriver so we can inspect what was passed to sendMessage.
     const seen: Array<unknown> = [];
     const wrapper = {
-      isAvailable: () => driver.isAvailable(),
       hasSession: (sid: string) => driver.hasSession(sid),
       openSession: driver.openSession.bind(driver),
       sendMessage: (sessionId: string, utteranceId: string, text: string, sender?: unknown) => {
@@ -144,7 +143,6 @@ describe('relayAgentResponse', () => {
   test('forwards `sender = undefined` when none was supplied (#375)', async () => {
     const seen: Array<unknown> = [];
     const wrapper = {
-      isAvailable: () => driver.isAvailable(),
       hasSession: (sid: string) => driver.hasSession(sid),
       openSession: driver.openSession.bind(driver),
       sendMessage: (sessionId: string, utteranceId: string, text: string, sender?: unknown) => {

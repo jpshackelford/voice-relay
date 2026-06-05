@@ -81,13 +81,16 @@ export async function autoConnectAI(
   broadcastSessionState(registry, sessionId, startingStatus, 'auto-connect:connecting');
 
   try {
-    // Get workspace API key (if configured)
+    // Resolve workspace API key. After #404 the env-keyed driver fallback
+    // is gone — `getWorkspaceApiKey` is the sole source. When the
+    // workspace repository isn't wired (older code paths / tests),
+    // there's no key and auto-connect skips. The legacy
+    // `agentDriver.isAvailable()` probe was removed alongside.
     const apiKey = workspaceRepository
       ? await getWorkspaceApiKey(workspaceId)
       : null;
 
-    // Check if AI is available (workspace key or env key)
-    if (!apiKey && !agentDriver.isAvailable()) {
+    if (!apiKey) {
       console.log(`[AI] Auto-connect skipped for session ${sessionId}: No API key available`);
       const unavailableStatus: SessionAIStatusMessage = {
         type: 'session-ai-status',

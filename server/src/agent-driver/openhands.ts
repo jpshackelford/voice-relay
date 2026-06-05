@@ -37,7 +37,6 @@ import type {
  * full real manager (which constructs an `OpenHandsClient` on instantiation).
  */
 export interface AISessionManagerSurface {
-  isAvailable(): boolean;
   hasSessionAI(sessionId: string): boolean;
   setThinkingChangeCallback(cb: ThinkingChangeCallback | undefined): void;
   setActionCallback(cb: ActionCallback | undefined): void;
@@ -380,10 +379,6 @@ export class OpenHandsAgentDriver implements AgentDriver {
   // ---------------------------------------------------------------------------
   // AgentDriver implementation
   // ---------------------------------------------------------------------------
-
-  isAvailable(): boolean {
-    return this.mgr.isAvailable();
-  }
 
   hasSession(sessionId: string): boolean {
     return this.mgr.hasSessionAI(sessionId);
