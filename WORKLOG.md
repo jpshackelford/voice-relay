@@ -583,3 +583,17 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 04:25 UTC - Merge Worker (PR #397)
+
+✅ **Squash-merged PR #397 — `fix(client): use blue accent for left kiosk oscilloscope` (closes #380).**
+
+**Re-verified at merge time:** `MERGEABLE` / `CLEAN`, all required checks SUCCESS (`Build Client`, `Client Tests`, `Server Tests`, `E2E Tests`, `lint-pr-title`, `enable-orchestrator`; `pr-review` SKIPPED on first run and SUCCESS on re-run after ready-for-review), 0 review threads (0 unresolved), no `on-hold` / `needs-human` / `blocked` / `do-not-merge` labels.
+
+**Diff:** +34 / -5 across three client files — `client/src/App.css` (`.kiosk-oscilloscope-indicator` background/border `rgba(168,85,247,0.2)` / `#a855f7` → `rgba(50,130,184,0.2)` / `#3282b8`), `client/src/components/KioskMode.tsx` (`<Oscilloscope color="#a855f7" />` → `"#3282b8"`), and `client/src/components/KioskMode.test.tsx` (mock `./Oscilloscope`, add regression asserting the kiosk passes `color="#3282b8"`). `scope:client-only` — no DB / server / schema impact, no migrations.
+
+**Squash commit:** `0440d51` on `main`. Issue #380 auto-closed (state `CLOSED`, reason `COMPLETED`). Production auto-deploy to vr.chorecraft.net will pick this up on the next build.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
