@@ -1408,12 +1408,51 @@ header {
 /* Kiosk Display Area */
 .kiosk-display {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /*
+   * Issue #379: CSS Grid layout for the kiosk overlays. The outer 4rem
+   * gutter columns are the single source of truth for circle placement,
+   * which replaces the legacy `padding-{left,right}: 4rem` reservations
+   * on the ticker strips — change the gutter width and both the circles
+   * and the ticker text reflow together.
+   *
+   * Columns: outer 4rem gutters ("tl/bl" on the left, "tr/br" on the
+   * right) sandwich two 1fr columns where the ticker strips and the
+   * main content live.
+   *
+   * Rows: a top row (`auto`) for overlays that need the upper corners,
+   * a stretchy 1fr `main` row for centered content, and a fixed 3.5rem
+   * bottom row that hosts the corner circles and both ticker strips on
+   * a shared horizontal baseline (see the .kiosk-ticker /
+   * .kiosk-ai-status / .kiosk-oscilloscope-indicator rules below).
+   */
+  display: grid;
+  grid-template-columns: 4rem 1fr 1fr 4rem;
+  grid-template-rows: auto 1fr 3.5rem;
+  grid-template-areas:
+    "tl   .       .       tr"
+    "main main    main    main"
+    "bl   tick-l  tick-r  br";
   padding: 3rem;
   overflow: hidden;
+  /* Still needed for descendants that intentionally use absolute
+     positioning inside the `main` content area (e.g. .mini-qr-overlay,
+     .qr-skip-button). */
   position: relative;
+}
+
+/*
+ * Centered display content children all live in the `main` track and
+ * recenter the same way `display: flex; align-items/justify-content:
+ * center` used to before #379.
+ */
+.kiosk-display > .display-empty,
+.kiosk-display > .display-image,
+.kiosk-display > .display-markdown,
+.kiosk-display > .display-greeting,
+.kiosk-display > .display-idle-qr {
+  grid-area: main;
+  align-self: center;
+  justify-self: center;
 }
 
 .display-empty {
@@ -1643,11 +1682,14 @@ header {
   width: 100%;
 }
 
-/* QR Code Button - positioned inside kiosk-display */
+/* QR Code Button - bottom-left grid cell (#379). Shares the `bl` cell
+   with .kiosk-oscilloscope-indicator and the default-position
+   .connection-indicator; the three are mutually exclusive in current
+   render paths. */
 .kiosk-display .qr-code-btn {
-  position: absolute;
-  left: 1rem;
-  bottom: 1rem;
+  grid-area: bl;
+  align-self: center;
+  justify-self: center;
   width: 48px;
   height: 48px;
   background: rgba(17, 17, 17, 0.8);
@@ -1667,11 +1709,13 @@ header {
   transform: scale(1.05);
 }
 
-/* AI Status Indicator - positioned inside kiosk-display */
+/* AI Status Indicator - bottom-right grid cell (#379). Centered within
+   the fixed 3.5rem bottom row so its optical center sits on the same
+   horizontal line as the action ticker's text. */
 .kiosk-ai-status {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
+  grid-area: br;
+  align-self: center;
+  justify-self: center;
   width: 3rem;
   height: 3rem;
   display: flex;
@@ -1689,11 +1733,15 @@ header {
  * counterpart to .kiosk-ai-status. Same purple-circle treatment so the
  * two indicators read as a pair; the canvas inside renders a flat line
  * during silence and a waveform while transcription events are landing.
+ *
+ * Issue #379: lives in the bottom-left grid cell (`bl`); centered in
+ * the fixed bottom row so its optical center aligns with the
+ * transcription ticker text.
  */
 .kiosk-oscilloscope-indicator {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
+  grid-area: bl;
+  align-self: center;
+  justify-self: center;
   width: 3rem;
   height: 3rem;
   display: flex;
@@ -3794,41 +3842,44 @@ header {
   }
 }
 
-/* In kiosk display area, use absolute positioning.
-   Default position is bottom-left (pre-#340 behavior). */
+/* In kiosk display area, use grid-area placement (#379) instead of
+   absolute corner offsets. Default position is bottom-left (pre-#340
+   behavior). Shares the `bl` cell with .qr-code-btn and
+   .kiosk-oscilloscope-indicator; the three are mutually exclusive in
+   current render paths. */
 .kiosk-display .connection-indicator {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
+  grid-area: bl;
+  align-self: center;
+  justify-self: center;
 }
 
 /* Issue #340: when the footer tickers are enabled, relocate the dot to the
-   top-right so the ticker strips can own the bottom edge without overlap.
+   top-right so the ticker strips can own the bottom row without overlap.
    Gated on the data-tickers-enabled attribute set by KioskMode so workspaces
    that haven't opted into the tickers keep the original bottom-left placement. */
 .kiosk-display[data-tickers-enabled="true"] .connection-indicator {
-  bottom: auto;
-  left: auto;
-  top: 1rem;
-  right: 1rem;
+  grid-area: tr;
+  align-self: start;
+  justify-self: end;
 }
 
 /* ========================================
    Issue #340: kiosk footer ticker strips
    ======================================== */
 
-/* Common ticker base: single-line, fixed-height strip across the bottom edge.
-   We use absolute positioning relative to .kiosk-display so the strips sit
-   above whatever content is in the display area and the existing message
-   list reserves space via the displayLines calculation in
-   server/src/registry.ts. */
+/* Common ticker base: single-line, fixed-height strip living in the
+   bottom row of the .kiosk-display grid (#379). The outer 4rem gutter
+   columns own the spacing previously reserved by `padding-{left,right}:
+   4rem`; the strip itself fills its grid cell and centers text
+   vertically so the optical center lands on the same horizontal line
+   as the circle indicators in `bl` / `br`. */
 .kiosk-ticker {
-  position: absolute;
-  bottom: 0;
-  height: 2.25rem;
-  line-height: 2.25rem;
+  display: flex;
+  align-items: center;
+  height: 100%;
   padding: 0 1rem;
   font-size: 0.95rem;
+  line-height: 1.25;
   /* Match the kiosk's existing text rhythm; keep it monochrome so it reads
      as decoration rather than as a message. */
   color: rgba(255, 255, 255, 0.85);
@@ -3840,31 +3891,19 @@ header {
 }
 
 .kiosk-ticker-transcription {
-  left: 0;
-  /* Leave room for the action ticker on the right. The exact split doesn't
-     matter much; 60/40 leaves more space for human transcription which tends
-     to be longer than action titles like "Execute Bash". */
-  width: 60%;
+  grid-area: tick-l;
+  justify-content: flex-start;
   text-align: left;
   border-top-right-radius: 0.5rem;
-  /* Issue #346 item 1: reserve ~4rem on the left edge for the faux
-     oscilloscope indicator (.kiosk-oscilloscope-indicator: 3rem × 3rem +
-     1rem inset), mirroring the right-side reservation for the AI-status
-     sparkle. */
-  padding-left: 4rem;
 }
 
 .kiosk-ticker-action {
-  right: 0;
-  width: 40%;
+  grid-area: tick-r;
+  justify-content: flex-end;
+  /* Issue #346 item 3: drop the blue tint so both ticker strips share the
+     same transparent-black background (inherited from .kiosk-ticker). */
   text-align: right;
   border-top-left-radius: 0.5rem;
-  /* Issue #346 item 3: drop the blue tint so both ticker strips share the
-     same transparent-black background (inherited from .kiosk-ticker), and
-     reserve ~4rem on the right edge so the AI-status sparkle indicator
-     (.kiosk-ai-status: 3rem × 3rem + 1rem inset) sits on a clean black
-     backdrop instead of overlapping the strip's text area. */
-  padding-right: 4rem;
 }
 
 .kiosk-ticker-text {
@@ -3875,23 +3914,42 @@ header {
   white-space: nowrap;
 }
 
-/* Below a fairly narrow breakpoint there isn't useful room for two side-by-
-   side strips; stack them. The total ticker reservation in registry.ts
-   already assumes one line, so we keep this within that budget by halving
-   each strip's height. */
+/* Below a fairly narrow breakpoint there isn't useful room for two
+   side-by-side strips; stack them. The total ticker reservation in
+   registry.ts already assumes one line, so we keep this within that
+   budget by halving each strip's height.
+
+   Issue #379: re-expressed as a grid-template-areas redefinition.
+   Tickers each get their own row spanning the full width; the corner
+   circles (`bl`/`br`) span both ticker rows so they continue to overlay
+   at the bottom-left/right corners as they did before.
+
+   Sizing note: the desktop layout reserves a 3.5rem bottom row (see
+   `.kiosk-display` default `grid-template-rows`). On narrow screens we
+   stack the two tickers into two 1.5rem rows = 3rem total, intentionally
+   reclaiming 0.5rem of vertical space for `main` content. Each row is
+   sized to the ticker's own 1.5rem `height` declaration below. */
 @media (max-width: 480px) {
+  .kiosk-display {
+    grid-template-rows: auto 1fr 1.5rem 1.5rem;
+    /* `bl` and `br` are deliberately repeated on both ticker rows so the
+       bottom-left/right corner circles span the full stacked-ticker
+       block (rows 3 and 4) and stay anchored at the screen corners,
+       matching the desktop single-row layout. */
+    grid-template-areas:
+      "tl   .        .        tr"
+      "main main     main     main"
+      "bl   tick-l   tick-l   br"
+      "bl   tick-r   tick-r   br";
+  }
   .kiosk-ticker {
     height: 1.5rem;
-    line-height: 1.5rem;
     font-size: 0.8rem;
-    width: 100%;
   }
   .kiosk-ticker-transcription {
-    bottom: 1.5rem;
     border-top-right-radius: 0;
   }
   .kiosk-ticker-action {
-    bottom: 0;
     border-top-left-radius: 0;
   }
 }
