@@ -749,6 +749,10 @@ export interface AISession {
   taskId: string;
   /** VR session ID - the session this AI is connected to */
   sessionId?: string;
+  /** Workspace ID; used to resolve the per-workspace API key for refresh/rebind (#403). */
+  workspaceId?: string;
+  /** Per-workspace OpenHands API key snapshot for refresh/rebind (#403). When undefined, falls back to env singleton. */
+  apiKey?: string;
   mode: 'chat' | 'kiosk';
   ws?: WebSocket;
   agentServerUrl?: string;
@@ -1814,6 +1818,19 @@ export class AISessionManager {
   }
 
   /**
+   * Returns a workspace-scoped OpenHandsClient for the session's API key,
+   * or falls back to the env-keyed singleton when session.apiKey is unset
+   * (env fallback removal tracked by #404). Re-derived per call; key
+   * rotation is honored at the next attach (#403).
+   */
+  private clientForSession(session: AISession): OpenHandsClient | null {
+    if (session.apiKey) {
+      return new OpenHandsClient(session.apiKey);
+    }
+    return this.client;
+  }
+
+  /**
    * Number of times the reconnect refresh has observed a rotated
    * `session_api_key` (i.e. fresh != cached). Exposed so platform metrics
    * and tests can assert on the counter. See #291.
@@ -1916,7 +1933,8 @@ export class AISessionManager {
     session: AISession,
     maxRetries: number,
   ): Promise<void> {
-    if (!this.client) {
+    const client = this.clientForSession(session); // #403: honor workspace key
+    if (!client) {
       // No client means we can't refresh; surface as MISSING so the
       // reconnect loop stops rather than tight-looping with stale creds.
       throw new SandboxMissingError(session.conversationId);
@@ -1925,7 +1943,7 @@ export class AISessionManager {
     let lastTransientError: unknown;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const fresh = await this.client.getConversation(session.conversationId);
+        const fresh = await client.getConversation(session.conversationId);
         if (!fresh || fresh.sandbox_status === 'MISSING') {
           throw new SandboxMissingError(session.conversationId);
         }
@@ -1959,7 +1977,7 @@ export class AISessionManager {
             throw e;
           }
           try {
-            await this.client.resumeSandbox(fresh.sandbox_id);
+            await client.resumeSandbox(fresh.sandbox_id);
           } catch (e) {
             // 404 → sandbox is genuinely gone, not paused. Hand off to the
             // rebind path via SandboxMissingError.
@@ -1968,7 +1986,7 @@ export class AISessionManager {
             }
             throw e;
           }
-          const resumed = await this.pollSandboxRunning(session.conversationId);
+          const resumed = await this.pollSandboxRunning(session.conversationId, client);
           this.resumeTracker.recordSuccess(session.conversationId);
           this.sandboxResumeCount++;
           console.log(
@@ -2097,8 +2115,12 @@ export class AISessionManager {
    * timing (~19 s typical, most of it in STARTING; see
    * `docs/openhands-platform.md` § Verified timings).
    */
-  private async pollSandboxRunning(conversationId: string): Promise<ConversationInfo> {
-    if (!this.client) throw new SandboxMissingError(conversationId);
+  private async pollSandboxRunning(
+    conversationId: string,
+    client?: OpenHandsClient | null,
+  ): Promise<ConversationInfo> {
+    const effectiveClient = client ?? this.client; // #403: use workspace client when provided
+    if (!effectiveClient) throw new SandboxMissingError(conversationId);
     const deadline = Date.now() + this.resumePollBudgetMs;
     while (Date.now() < deadline) {
       // Check first, then sleep — avoids an unnecessary `resumePollIntervalMs`
@@ -2107,7 +2129,7 @@ export class AISessionManager {
       let info: ConversationInfo | null;
       let transient = false;
       try {
-        info = await this.client.getConversation(conversationId);
+        info = await effectiveClient.getConversation(conversationId);
       } catch (e) {
         // Transient HTTP failures during the poll are treated as "not ready
         // yet" — wait then keep polling until the budget expires.
@@ -2237,7 +2259,7 @@ export class AISessionManager {
         workspaceId,
         options.existingConversationId,
         onMessage,
-        { client },
+        { client, apiKey: options.apiKey },
       );
     }
 
@@ -2298,6 +2320,9 @@ export class AISessionManager {
       conversationId,
       taskId: startResponse.id,
       sessionId,  // Key by session, not device
+      // Capture workspace context for refresh/rebind client resolution (#403)
+      workspaceId,
+      apiKey: options.apiKey,
       mode: 'kiosk',
       agentServerUrl,
       sessionApiKey: convInfo.session_api_key,
@@ -2341,7 +2366,12 @@ export class AISessionManager {
     workspaceId: string,
     conversationId: string,
     onMessage: (message: string, serverTimestamp?: string) => void,
-    options: { client?: OpenHandsClient } = {},
+    options: {
+      /** Workspace-scoped OpenHandsClient; see clientForSession (#403). */
+      client?: OpenHandsClient;
+      /** Per-workspace API key to cache on the AISession (#403). */
+      apiKey?: string;
+    } = {},
   ): Promise<AISession> {
     const existing = this.sessionAI.get(sessionId);
     if (existing) {
@@ -2432,7 +2462,7 @@ export class AISessionManager {
         throw e;
       }
       try {
-        convInfo = await this.pollSandboxRunning(conversationId);
+        convInfo = await this.pollSandboxRunning(conversationId, client);
       } catch (e) {
         // A mid-poll MISSING (the sandbox vanished while we were
         // polling) is surfaced as ended so the caller drives degraded.
@@ -2474,6 +2504,9 @@ export class AISessionManager {
       // create path; reuse the conversation id for the attach case.
       taskId: conversationId,
       sessionId,
+      // Cache workspace context for refresh/rebind (#403)
+      workspaceId,
+      apiKey: options.apiKey,
       mode: 'kiosk',
       agentServerUrl,
       sessionApiKey: convInfo.session_api_key,
@@ -2864,10 +2897,12 @@ export class AISessionManager {
    * builders, never a previously-generated suffix, so successive rebinds
    * don't condense an already-condensed summary (lossy iteration).
    */
-  private async buildRebindReplaySuffix(conversationId: string): Promise<string> {
-    if (!this.client) return '';
+  private async buildRebindReplaySuffix(
+    conversationId: string,
+    client: OpenHandsClient,
+  ): Promise<string> {
     try {
-      const page = await this.client.getEventsPage(conversationId, { limit: 100 });
+      const page = await client.getEventsPage(conversationId, { limit: 100 });
       return await buildReplaySuffix(page.items, this.condenseImpl);
     } catch (err) {
       // Issue #364: also emit the structured upstream-failure line so the
@@ -2889,7 +2924,8 @@ export class AISessionManager {
   }
 
   private async doRebindSession(session: AISession): Promise<void> {
-    if (!this.client) {
+    const client = this.clientForSession(session); // #403: honor workspace key
+    if (!client) {
       session.degraded = true;
       session.degradedReason = 'OpenHands client not configured — cannot rebind';
       return;
@@ -2932,7 +2968,10 @@ export class AISessionManager {
     // server) survives sandbox death — see
     // `docs/openhands-platform.md` § Death and recovery. On any failure
     // we proceed without a suffix; the rebind itself is still useful.
-    const systemMessageSuffix = await this.buildRebindReplaySuffix(session.conversationId);
+    const systemMessageSuffix = await this.buildRebindReplaySuffix(
+      session.conversationId,
+      client,
+    );
 
     let result: RebindResult;
     try {
@@ -2942,7 +2981,7 @@ export class AISessionManager {
         // forwarding behaviour. The HTTP client drops empty strings.
         systemMessageSuffix,
       };
-      result = await rebindHttp(this.client, session.conversationId, httpOptions);
+      result = await rebindHttp(client, session.conversationId, httpOptions);
     } catch (err) {
       session.rebinding = false;
       session.degraded = true;

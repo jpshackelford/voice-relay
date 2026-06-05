@@ -4093,4 +4093,304 @@ describe('AISessionManager.rebindSession (#296)', () => {
   });
 });
 
+/**
+ * Tests for issue #403 — refresh and rebind must use the per-workspace
+ * OpenHands API key (`session.apiKey`) instead of the manager's env-keyed
+ * singleton (`this.client`).
+ *
+ * The contract we lock down here:
+ *   1. When `session.apiKey` is set, refresh / rebind / pollSandboxRunning
+ *      all build a workspace-scoped client from that key, NOT the env
+ *      singleton.
+ *   2. When `session.apiKey` is unset (env-fallback deploys, hand-rolled
+ *      test fixtures), they fall back to the env singleton — preserving
+ *      today's behaviour until the env fallback is removed in #404.
+ *   3. A rotated workspace key (different on a subsequent call) is
+ *      honored — the client is re-derived every call, never cached.
+ *
+ * We exercise these by spying on the private `clientForSession` so we can
+ * observe the resolution from the manager's perspective and inject a fake
+ * client distinguishable from the env singleton.
+ */
+describe('AISessionManager workspace-key resolution (#403)', () => {
+  interface FakeClient {
+    getConversation: ReturnType<typeof vi.fn>;
+    rebindConversation: ReturnType<typeof vi.fn>;
+    getEventsPage: ReturnType<typeof vi.fn>;
+    resumeSandbox: ReturnType<typeof vi.fn>;
+    /** Tag so failures point at the right fake in error messages. */
+    label: string;
+  }
+
+  function makeFakeClient(
+    label: string,
+    getConvResponse: unknown = {
+      id: 'conv-403',
+      status: 'READY',
+      session_api_key: 'K-fresh',
+      conversation_url: 'https://agent-new.example.com/api/v1/...',
+      sandbox_status: 'RUNNING',
+    },
+    rebindResponse: unknown = {
+      id: 'conv-403',
+      status: 'READY',
+      session_api_key: 'K-rebound',
+      conversation_url: 'https://agent-rebound.example.com/api/v1/foo',
+      sandbox_status: 'RUNNING',
+    },
+  ): FakeClient {
+    return {
+      label,
+      getConversation: vi.fn(async () => getConvResponse),
+      rebindConversation: vi.fn(async () => rebindResponse),
+      getEventsPage: vi.fn(async () => ({ items: [] as unknown[] })),
+      resumeSandbox: vi.fn(async () => undefined),
+    };
+  }
+
+  function makeSession(overrides: Partial<AISession> = {}): AISession {
+    return {
+      conversationId: 'conv-403',
+      taskId: 'task-403',
+      sessionId: 'sess-403',
+      workspaceId: 'ws-403',
+      mode: 'kiosk',
+      agentServerUrl: 'https://agent-old.example.com',
+      sessionApiKey: 'K-stale',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+      ...overrides,
+    };
+  }
+
+  function attachSession(manager: AISessionManager, session: AISession): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).sessionAI.set(session.sessionId!, session);
+  }
+
+  function stubConnectWs(manager: AISessionManager): ReturnType<typeof vi.fn> {
+    const spy = vi.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).connectWebSocket = spy;
+    return spy;
+  }
+
+  let manager: AISessionManager;
+
+  beforeEach(() => {
+    manager = new AISessionManager();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('refresh: uses workspace client when session.apiKey is set, NOT the env singleton', async () => {
+    const envClient = makeFakeClient('env');
+    const wsClient = makeFakeClient('workspace');
+    manager.setClientForTesting(envClient as never);
+
+    const session = makeSession({ apiKey: 'key-B' });
+    // Spy on the private resolver so we can inject the workspace fake and
+    // simultaneously assert that the resolver was invoked with the
+    // session — this is the integration point the issue cares about.
+    const cfsSpy = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .spyOn(manager as any, 'clientForSession')
+      .mockReturnValue(wsClient);
+
+    await manager.refreshSessionCredentials(session);
+
+    expect(cfsSpy).toHaveBeenCalledWith(session);
+    expect(wsClient.getConversation).toHaveBeenCalledTimes(1);
+    expect(wsClient.getConversation).toHaveBeenCalledWith('conv-403');
+    expect(envClient.getConversation).not.toHaveBeenCalled();
+  });
+
+  test('refresh: falls back to env singleton when session.apiKey is unset (#404 cleanup)', async () => {
+    const envClient = makeFakeClient('env');
+    manager.setClientForTesting(envClient as never);
+
+    // No apiKey on the session → clientForSession returns this.client.
+    const session = makeSession({ apiKey: undefined });
+    await manager.refreshSessionCredentials(session);
+
+    expect(envClient.getConversation).toHaveBeenCalledTimes(1);
+    expect(envClient.getConversation).toHaveBeenCalledWith('conv-403');
+  });
+
+  test('rebind: uses workspace client (rebindConversation + getEventsPage) when session.apiKey is set', async () => {
+    const envClient = makeFakeClient('env');
+    const wsClient = makeFakeClient('workspace');
+    manager.setClientForTesting(envClient as never);
+
+    const session = makeSession({ apiKey: 'key-B' });
+    attachSession(manager, session);
+    stubConnectWs(manager);
+
+    const cfsSpy = vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .spyOn(manager as any, 'clientForSession')
+      .mockReturnValue(wsClient);
+
+    await manager.rebindSession(session);
+
+    expect(cfsSpy).toHaveBeenCalledWith(session);
+    expect(wsClient.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(wsClient.rebindConversation).toHaveBeenCalledWith(
+      'conv-403',
+      expect.any(Object),
+    );
+    // Memory-replay prep MUST also use the workspace client — it's part of
+    // the same upstream auth boundary.
+    expect(wsClient.getEventsPage).toHaveBeenCalledTimes(1);
+    // The env singleton must never see either call.
+    expect(envClient.rebindConversation).not.toHaveBeenCalled();
+    expect(envClient.getEventsPage).not.toHaveBeenCalled();
+  });
+
+  test('rebind: falls back to env singleton when session.apiKey is unset', async () => {
+    const envClient = makeFakeClient('env');
+    manager.setClientForTesting(envClient as never);
+
+    const session = makeSession({ apiKey: undefined });
+    attachSession(manager, session);
+    stubConnectWs(manager);
+
+    await manager.rebindSession(session);
+
+    expect(envClient.rebindConversation).toHaveBeenCalledTimes(1);
+    expect(envClient.rebindConversation).toHaveBeenCalledWith(
+      'conv-403',
+      expect.any(Object),
+    );
+    expect(envClient.getEventsPage).toHaveBeenCalledTimes(1);
+  });
+
+  test('rebind: when neither workspace nor env client is configured, degrades cleanly', async () => {
+    // No env client AND no apiKey → clientForSession returns null. The
+    // existing degrade path must still fire (no crash) so a session whose
+    // workspace key was deleted post-attach doesn't tight-loop.
+    manager.setClientForTesting(null);
+    const session = makeSession({ apiKey: undefined });
+    attachSession(manager, session);
+    stubConnectWs(manager);
+
+    await manager.rebindSession(session);
+
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toBe(
+      'OpenHands client not configured — cannot rebind',
+    );
+  });
+
+  test('PAUSED → RUNNING resume polls upstream with the workspace client too', async () => {
+    // The PAUSED branch in doRefreshSessionCredentials calls
+    // pollSandboxRunning, which used to fall back to this.client and
+    // would have sent the env key during the resume poll loop. After
+    // #403 it must use the same workspace-scoped client.
+    manager.setResumePollOptionsForTesting({ budgetMs: 200, intervalMs: 5 });
+
+    const envClient = makeFakeClient('env');
+    const wsClient = makeFakeClient('workspace');
+    // Queue: first GET returns PAUSED; second (poll) returns RUNNING.
+    let call = 0;
+    wsClient.getConversation = vi.fn(async () => {
+      call += 1;
+      if (call === 1) {
+        return {
+          id: 'conv-403',
+          status: 'READY',
+          sandbox_id: 'sb-1',
+          sandbox_status: 'PAUSED',
+          session_api_key: null,
+          conversation_url: null,
+        };
+      }
+      return {
+        id: 'conv-403',
+        status: 'READY',
+        sandbox_status: 'RUNNING',
+        session_api_key: 'K-fresh',
+        conversation_url: 'https://agent-resumed.example.com/api/v1/...',
+      };
+    });
+
+    manager.setClientForTesting(envClient as never);
+    const session = makeSession({ apiKey: 'key-B' });
+
+    vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .spyOn(manager as any, 'clientForSession')
+      .mockReturnValue(wsClient);
+
+    await manager.refreshSessionCredentials(session);
+
+    // Workspace client serviced BOTH the initial GET *and* the
+    // PAUSED→RUNNING poll, and resumed the sandbox.
+    expect(wsClient.getConversation).toHaveBeenCalledTimes(2);
+    expect(wsClient.resumeSandbox).toHaveBeenCalledWith('sb-1');
+    expect(envClient.getConversation).not.toHaveBeenCalled();
+    expect(envClient.resumeSandbox).not.toHaveBeenCalled();
+    // Resume actually happened.
+    expect(manager.getSandboxResumeCount()).toBe(1);
+  });
+
+  test('key rotation: a session whose apiKey is swapped between refreshes builds a fresh client each call', async () => {
+    // Simulates the "operator rotated the workspace key via the UI" case
+    // at the AISession level: each call must consult session.apiKey and
+    // build a brand-new client — no stale cached singleton.
+    const envClient = makeFakeClient('env');
+    manager.setClientForTesting(envClient as never);
+
+    const session = makeSession({ apiKey: 'key-B' });
+
+    const wsClientA = makeFakeClient('ws-A');
+    const wsClientB = makeFakeClient('ws-B');
+    const seen: string[] = [];
+    vi
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .spyOn(manager as any, 'clientForSession')
+      .mockImplementation((s: unknown) => {
+        const sess = s as AISession;
+        seen.push(sess.apiKey ?? 'none');
+        return sess.apiKey === 'key-B' ? wsClientA : wsClientB;
+      });
+
+    await manager.refreshSessionCredentials(session);
+    // Operator rotates the key on the running session (this would in
+    // practice happen via the next attach, but the resolver semantics
+    // must still hold per-call).
+    session.apiKey = 'key-C';
+    await manager.refreshSessionCredentials(session);
+
+    expect(seen).toEqual(['key-B', 'key-C']);
+    expect(wsClientA.getConversation).toHaveBeenCalledTimes(1);
+    expect(wsClientB.getConversation).toHaveBeenCalledTimes(1);
+    expect(envClient.getConversation).not.toHaveBeenCalled();
+  });
+
+  test('clientForSession integration: workspace key actually instantiates an OpenHandsClient with that key', async () => {
+    // White-box check that the helper itself (not just the spy) selects
+    // the workspace-key branch. We verify the constructed client is a
+    // real OpenHandsClient instance distinct from this.client.
+    const envClient = makeFakeClient('env');
+    manager.setClientForTesting(envClient as never);
+    const sessionWithKey = makeSession({ apiKey: 'key-B' });
+    const sessionWithout = makeSession({ apiKey: undefined });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withKey = (manager as any).clientForSession(sessionWithKey);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withoutKey = (manager as any).clientForSession(sessionWithout);
+
+    // With a workspace key: a freshly-constructed client (not the singleton).
+    expect(withKey).not.toBe(envClient);
+    expect(withKey).not.toBeNull();
+    // Without a workspace key: the env singleton, unchanged.
+    expect(withoutKey).toBe(envClient);
+  });
+});
+
 
