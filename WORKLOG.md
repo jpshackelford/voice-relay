@@ -682,3 +682,63 @@ Issues #386 and #388 already carry the `ready` label but lack a `priority:*` lab
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 04:42 UTC - Merge worker (PR #398)
+
+✅ **Squash-merged PR #398** — `feat(server): teach system prompt to call PATCH /api/sessions/:id/settings` — closes #389.
+
+| Check | Result |
+| --- | --- |
+| `mergeable` / `mergeStateStatus` (re-verified at merge time) | `MERGEABLE` / `UNSTABLE`* |
+| CI required checks (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) | All ✅ SUCCESS |
+| Review threads | 0 (latest review is a `github-actions[bot]` COMMENTED entry — 🟢 LOW risk, ✅ "Worth merging") |
+| Labels | none (no `on-hold` / `needs-human` / `blocked` / `do-not-merge`) |
+| Migration check | `git diff merge-base..head -- server/migrations/ server/src/storage/migrations/` is empty. **No migration — prompt-only change.** |
+| Issue #389 auto-close | ✅ Closed at 04:40:45 UTC via PR body `Fixes #389`. |
+| Squash commit SHA | [`f3d8c4d`](https://github.com/jpshackelford/voice-relay/commit/f3d8c4df710ef512ef676c5c0da3c87b1e0e1aad) |
+
+\* `mergeStateStatus` flipped from `CLEAN` → `UNSTABLE` after the PR description edit re-triggered `pr-review`, but only because a prior duplicate `pr-review` run was still attached to the PR as `SKIPPED`. All required checks remained `SUCCESS` and `mergeable=MERGEABLE` was unchanged, so the merge proceeded per the standard "required checks green ⇒ safe" rule.
+
+**Diff scope (2 files, +88 / −2):**
+
+- `server/prompts/system-prompt.md` — new `## Session Settings API` section under the Display API section. Documents `PATCH {{SERVER_URL}}/api/sessions/{{SESSION_ID}}/settings` with `Authorization: Bearer $DISPLAY_API_SECRET`, the four mutable fields (`tts`, `inputMode`, `autoSubmit`, `agentPrompt`), five trigger-phrase curl examples ("turn off TTS", "turn TTS back on", "switch to push-to-talk" / "stop auto-sending", "show me the audio visualizer", "forget my custom prompt"), and a "When NOT to call this endpoint" sub-section (device volume, one-off muting, self-directed behaviour tweaks).
+- `server/src/openhands.test.ts` — new `unified prompt contains session settings API instructions` test asserting section markers, all four field names, `Bearer $DISPLAY_API_SECRET`, `PATCH /api/sessions/.../settings`, the trigger-phrase JSON snippets, and the "Device volume" out-of-scope guidance. `sessionIdMatches.length` bumped from `4` → `10` (4 Display API + 1 prose mention + 5 Session Settings curls) with an inline comment so future drift is caught.
+
+**Squash-commit message used:**
+
+```
+feat(server): teach system prompt to call PATCH /api/sessions/:id/settings (#398)
+
+Adds a "Session Settings API" section to server/prompts/system-prompt.md so
+the OpenHands agent knows how to call PATCH /api/sessions/:sessionId/settings
+(the REST surface shipped in PR #385). Without this prompt change the endpoint
+was effectively dead code — the agent had no way to act on natural-language
+requests to change session-level settings.
+
+Prompt now documents all four mutable fields from SessionSettingsPatch:
+tts, inputMode, autoSubmit, agentPrompt. Five concrete curl -X PATCH examples
+cover the common trigger phrases ("turn off TTS", "turn TTS back on",
+"switch to push-to-talk" / "stop auto-sending", "show me the audio
+visualizer", "forget my custom prompt"). A "When NOT to call this endpoint"
+sub-section explicitly carves out device-level volume, one-off muting, and
+self-directed behaviour tweaks. The agentPrompt field is gated on the user
+explicitly asking to change the agent's instructions, since it replaces the
+entire system prompt for the session.
+
+Test: server/src/openhands.test.ts gains
+`unified prompt contains session settings API instructions` and bumps the
+{{SESSION_ID}} occurrence count from 4 to 10.
+
+No migration, no schema change, no server runtime code change. Diff is
+confined to the prompt file and its unit test (2 files, +88 / -2).
+
+Closes #389.
+```
+
+**Production impact:** vr.chorecraft.net auto-deploys on merge. **No migration — prompt-only change.** The auto-deploy migration step is a no-op for this PR. New agent guidance takes effect on the next agent session that loads `system-prompt.md` after the deploy completes.
+
+**`.workflow-state.json`:** merge-worker entry `9f8df07` moved from `slots.review` → `completed[]` with `status=success` and outcome string. `quiet_ticks=0`; `last_updated=2026-06-05T04:42:00+00:00`.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
