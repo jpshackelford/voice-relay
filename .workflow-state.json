@@ -4,9 +4,11 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "7054aee",
+        "conv_id": "93a90b6",
         "issue": 388,
-        "started": "2026-06-05T11:37:04.281102+00:00"
+        "started": "2026-06-05T11:37:04.281102+00:00",
+        "note": "Corrected from start-task/duplicate id 7054aee (idle, $0) to actual running worker 93a90b6 (created 11:24:02Z, opened PR #401, $20.48). Both targeted issue #388.",
+        "pr": 401
       }
     ],
     "review": []
@@ -16,7 +18,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T11:37:04.281102+00:00",
+  "last_updated": "2026-06-05T11:51:40.828869+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -292,5 +294,5 @@
       "outcome": "Issue #392 -> PR #400 (feat(client): add workspace-home shortcut to mobile top bar for owners). All CI green; PR moved to ready."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
