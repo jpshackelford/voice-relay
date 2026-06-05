@@ -910,6 +910,25 @@ wss.on('connection', (ws: WebSocket) => {
           break;
         }
 
+        case 'device-listening-state': {
+          // Issue #388: mirror the `update-device` pattern. The mic state
+          // is runtime-only — it lives on the in-memory `Device` and is
+          // never persisted to SQLite. Fan out via `broadcastDeviceList`
+          // so peer devices (notably the kiosk indicator) see the new
+          // aggregate via the existing `device-list` payload.
+          if (deviceId) {
+            const device = registry.setListeningState(
+              deviceId,
+              message.listening,
+              message.sttSupported,
+            );
+            if (device) {
+              registry.broadcastDeviceList(device.workspaceId);
+            }
+          }
+          break;
+        }
+
         case 'text': {
           if (!deviceId || !workspaceId) {
             console.warn('[WS] Received text from unregistered device');

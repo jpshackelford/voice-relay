@@ -451,6 +451,31 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
+  /**
+   * Issue #388: report the per-device mic listening state to the server.
+   * Symmetric with `updateDevice`: fire on mount with the initial value
+   * and on every flip of the derived listening boolean. The server
+   * fans the new value out via `device-list` so the kiosk indicator
+   * aggregates across all peers in the workspace.
+   *
+   * Guards on `registeredRef.current` (set true synchronously after the
+   * register frame is sent — see the `ws.onopen` handler) so a
+   * mid-handshake call is silently dropped instead of racing the
+   * server's pre-registration reject. The caller's `useEffect`
+   * re-fires after the WS settles (its `connected` dep ensures resends
+   * after a reconnect).
+   */
+  const sendListeningState = useCallback((listening: boolean, sttSupported: boolean) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && registeredRef.current) {
+      const message: ClientMessage = {
+        type: 'device-listening-state',
+        listening,
+        sttSupported,
+      };
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+
   const sendJoinResponse = useCallback((response: JoinResponseMessage) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(response));
@@ -514,6 +539,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     sessionTtsSettings,
     sendText, 
     updateDevice, 
+    sendListeningState,
     sendJoinResponse, 
     sendDisplayResult,
     updateSessionTtsSettings,

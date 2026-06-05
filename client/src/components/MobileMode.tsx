@@ -17,6 +17,11 @@ interface MobileModeProps {
   devices: DeviceInfo[];
   utterances: Map<string, Utterance>;
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
+  /**
+   * Issue #388: report this mobile's mic listening state to the server.
+   * Optional so existing test fixtures don't have to plumb it through.
+   */
+  sendListeningState?: (listening: boolean, sttSupported: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
   sessionId?: string;
@@ -52,6 +57,7 @@ export function MobileMode({
   devices, 
   utterances,
   sendText, 
+  sendListeningState,
   onModeChange: _onModeChange,
   onAIStatusChange,
   sessionId,
@@ -150,6 +156,23 @@ export function MobileMode({
   useEffect(() => {
     audioAnalyserActiveRef.current = audioAnalyser.isActive;
   }, [audioAnalyser.isActive]);
+
+  // Issue #388: report the mobile's mic listening state to the server.
+  // Mobile's "listening" is the OR of Web Speech (`isListening`) and the
+  // raw audio analyser (`audioAnalyser.isActive`) — same expression
+  // already used to drive the visualizer UI below. `sttSupported` is
+  // the Web Speech support flag; an audio-only "visualizer" mode still
+  // counts as mic-capable for aggregation purposes because the user can
+  // still emit sound, so we OR the analyser availability in. Re-fires
+  // on `connected` so a reconnect re-sends the current state.
+  useEffect(() => {
+    const listening = isListening || audioAnalyser.isActive;
+    // The analyser hook exposes `isActive` only when it has successfully
+    // attached to a mic stream; if `sttSupported` is true OR the
+    // analyser is currently producing data, the device is mic-capable.
+    const micCapable = sttSupported || audioAnalyser.isActive;
+    sendListeningState?.(listening, micCapable);
+  }, [isListening, audioAnalyser.isActive, sttSupported, connected, sendListeningState]);
 
   // Helper to clean up the shared audio stream
   const cleanupAudioStream = useCallback(() => {

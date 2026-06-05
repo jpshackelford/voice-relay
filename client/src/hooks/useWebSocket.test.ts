@@ -146,6 +146,65 @@ describe('useWebSocket hook', () => {
     expect(result.current.devices[0].displayName).toBe('Phone 1');
   });
 
+  // Issue #388: per-device mic listening state.
+  describe('sendListeningState (issue #388)', () => {
+    it('propagates listening/sttSupported from device-list onto state', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+      const devices = [
+        { id: 'dev-1', displayName: 'Phone 1', mode: 'mobile', listening: true, sttSupported: true },
+        { id: 'dev-2', displayName: 'Kiosk 1', mode: 'kiosk', listening: false, sttSupported: true },
+        { id: 'dev-3', displayName: 'Display', mode: 'kiosk' }, // legacy: no flags
+      ];
+      await act(async () => {
+        ws.simulateMessage({ type: 'device-list', devices });
+      });
+      expect(result.current.devices[0]).toMatchObject({ listening: true, sttSupported: true });
+      expect(result.current.devices[1]).toMatchObject({ listening: false, sttSupported: true });
+      // Legacy entry: fields stay undefined and the kiosk aggregator
+      // treats them as not-mic-capable.
+      expect(result.current.devices[2].listening).toBeUndefined();
+      expect(result.current.devices[2].sttSupported).toBeUndefined();
+    });
+
+    it('sends a device-listening-state message once the WebSocket is open', async () => {
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      await act(async () => {
+        ws.simulateOpen();
+      });
+
+      const before = ws.sentMessages.length;
+      act(() => {
+        result.current.sendListeningState(true, true);
+      });
+      expect(ws.sentMessages.length).toBe(before + 1);
+      const msg = JSON.parse(ws.sentMessages[ws.sentMessages.length - 1]);
+      expect(msg).toEqual({
+        type: 'device-listening-state',
+        listening: true,
+        sttSupported: true,
+      });
+    });
+
+    it('drops sends issued before the WebSocket opens', () => {
+      // Pre-open: registeredRef is false and readyState !== OPEN, so the
+      // send is silently dropped instead of throwing — the next
+      // listening-state flip after the WS connects will catch up.
+      const { result } = renderHook(() => useWebSocket(defaultOptions));
+      const ws = MockWebSocket.instances[0];
+      // Do NOT call simulateOpen — wsRef.current?.readyState === CONNECTING.
+      const before = ws.sentMessages.length;
+      act(() => {
+        result.current.sendListeningState(false, true);
+      });
+      expect(ws.sentMessages.length).toBe(before);
+    });
+  });
+
   describe('device preservation during reconnection', () => {
     it('preserves devices when WebSocket reconnects due to dependency change', async () => {
       const { result, rerender } = renderHook(

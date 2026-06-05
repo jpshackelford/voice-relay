@@ -19,6 +19,22 @@ export interface DeviceInfo {
    * undefined for mobile devices.
    */
   lastUsedAt?: string | null;
+  /**
+   * Issue #388: per-device mic listening state. `true` when the device
+   * currently has its mic open (Web Speech listening or
+   * `getUserMedia` analyser active), `false` when muted. `undefined`
+   * for devices that have not yet reported a state — the kiosk
+   * indicator treats `undefined` conservatively as "not listening".
+   */
+  listening?: boolean;
+  /**
+   * Issue #388: whether the device is mic-capable (Web Speech support
+   * OR an accessible `getUserMedia` mic). The kiosk indicator excludes
+   * `sttSupported: false` (and `undefined`) devices from the
+   * "all muted" decision, so an STT-less kiosk doesn't show up as
+   * muted just because it can't speak.
+   */
+  sttSupported?: boolean;
 }
 
 /** Session-level TTS settings (synced across all devices in session) */
@@ -75,6 +91,26 @@ export interface UpdateDeviceMessage {
   ttsEnabled?: boolean;
 }
 
+/**
+ * Client → Server: report current per-device mic listening state
+ * (issue #388). Sent on mount with the initial value and on every flip
+ * of the derived listening boolean. Symmetric with `update-device` —
+ * the server identifies the device by the WebSocket connection.
+ *
+ * Runtime-only: nothing in this message is persisted to SQLite.
+ */
+export interface DeviceListeningStateMessage {
+  type: 'device-listening-state';
+  /** Mic is open and producing audio/STT events. */
+  listening: boolean;
+  /**
+   * False when the device has neither Web Speech recognition nor a
+   * `getUserMedia`-able mic. Devices with `sttSupported: false` are
+   * excluded from the kiosk's all-muted / any-listening aggregation.
+   */
+  sttSupported: boolean;
+}
+
 export interface TextMessage {
   type: 'text';
   utteranceId: string;
@@ -128,7 +164,7 @@ export interface AudioInputEndMessage {
   totalChunks: number;
 }
 
-export type ClientMessage = RegisterMessage | UpdateDeviceMessage | TextMessage | JoinResponseMessage | DisplayResultMessage | SessionTtsSettingsMessage | AudioInputChunkMessage | AudioInputEndMessage;
+export type ClientMessage = RegisterMessage | UpdateDeviceMessage | DeviceListeningStateMessage | TextMessage | JoinResponseMessage | DisplayResultMessage | SessionTtsSettingsMessage | AudioInputChunkMessage | AudioInputEndMessage;
 
 // Messages from server to client
 export interface SessionInfo {

@@ -8,7 +8,7 @@ import { pairAgentEvents } from '../utils/pairAgentEvents';
 import { QRCodeDisplay } from './QRCode';
 import { AgentEventCard } from './AgentEventCard';
 import { MarqueeTicker } from './MarqueeTicker';
-import { Oscilloscope } from './Oscilloscope';
+import { OscilloscopeIndicator, deriveIndicatorState } from './OscilloscopeIndicator';
 import { useFauxAudioActivity } from '../hooks/useFauxAudioActivity';
 import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
@@ -37,6 +37,15 @@ interface KioskModeProps {
   utterances: Map<string, Utterance>;
   displayContent: DisplayContent | null;
   sendText: (utteranceId: string, text: string, partial: boolean) => void;
+  /**
+   * Issue #388: report this kiosk's mic listening state to the server
+   * so peers can aggregate the three-state indicator
+   * (listening / muted / no-mic). Optional so tests and Storybook
+   * fixtures don't have to plumb it through; when omitted, the kiosk
+   * skips the outbound send but still renders the indicator from the
+   * incoming `devices` list.
+   */
+  sendListeningState?: (listening: boolean, sttSupported: boolean) => void;
   onModeChange: (mode: DeviceMode) => void;
   onAIStatusChange?: (connected: boolean) => void;
   onExit?: () => void;  // Navigate back to workspace home
@@ -111,6 +120,7 @@ export function KioskMode({
   utterances,
   displayContent,
   sendText, 
+  sendListeningState,
   onModeChange: _onModeChange,  // Kept for future "compact view" toggle
   onAIStatusChange,
   onExit,
@@ -252,6 +262,17 @@ export function KioskMode({
     onFinalResult: handleFinalResult,
     onError: handleSttError,
   });
+
+  // Issue #388: report this kiosk's mic listening state to the server so
+  // peer devices see the same aggregate. Kiosks don't run getUserMedia
+  // (only Web Speech), so `listening === isListening`. The effect fires
+  // on mount (with the initial value) and on every flip; `connected` is
+  // in the dep list so a reconnect re-sends the current state. The
+  // `sendListeningState` helper is a no-op when the WS is not yet
+  // registered, so a stale send during reconnect is harmless.
+  useEffect(() => {
+    sendListeningState?.(isListening, sttSupported);
+  }, [isListening, sttSupported, connected, sendListeningState]);
 
   // Image load handlers for display feedback
   // Note: These use displayContent (the server-sent content) for tracking/reporting,
@@ -541,6 +562,16 @@ export function KioskMode({
     setFauxPulse((p) => p + 1);
   }, [transcriptionTicker.text]);
   const fauxAudio = useFauxAudioActivity({ pulse: fauxPulse });
+
+  // Issue #388: three-state aggregation across mic-capable peers, recomputed
+  // whenever the `device-list` payload changes. `deriveIndicatorState` is a
+  // pure function (see OscilloscopeIndicator.ts) so it's cheap and easy
+  // to unit-test from this component's test suite.
+  const indicatorState = useMemo(() => deriveIndicatorState(devices), [devices]);
+  const indicatorAriaLabel =
+    indicatorState === 'listening' ? 'microphone active' :
+    indicatorState === 'muted'     ? 'microphone muted'
+                                   : 'no microphones';
 
   // Refinement 1 from the expansion: MessageEvent is filtered out before it
   // reaches `agentActions`. The AI reply lands in the utterance stream as a
@@ -1036,25 +1067,29 @@ export function KioskMode({
             {/*
               Issue #346 item 1: faux oscilloscope indicator anchored at the
               bottom-left of .kiosk-display. Visual counterpart to the
-              .kiosk-ai-status sparkle on the bottom-right. The Oscilloscope
-              draws a flat line while there's no transcription activity and
-              a sine-wave waveform while transcription events are streaming
-              (amplitude driven by useFauxAudioActivity since the kiosk has
-              no real mic stream — see hook docstring for the v1 rationale).
+              .kiosk-ai-status sparkle on the bottom-right.
+
+              Issue #388: the indicator is now three-state. The state is
+              derived from the broadcast device list — `'listening'` keeps
+              the original animated waveform, `'muted'` hides the waveform
+              and renders a centered pause glyph, and `'no-mic'` dims the
+              circle entirely (CSS via the data-state attribute). The
+              "muted overrides faux pulse" rule lives inside
+              `OscilloscopeIndicator` — when state is `'muted'` we render
+              the glyph instead of the canvas, so the transcription pulse
+              counter is ignored for that render.
             */}
             <div
               className="kiosk-oscilloscope-indicator"
               data-testid="kiosk-oscilloscope-indicator"
+              data-state={indicatorState}
+              aria-label={indicatorAriaLabel}
             >
-              <Oscilloscope
-                analyser={null}
+              <OscilloscopeIndicator
+                state={indicatorState}
                 dataArray={fauxAudio.dataArray}
                 isActive={fauxAudio.isActive}
-                width={48}
-                height={48}
                 color="#3282b8"
-                lineWidth={1.5}
-                glowIntensity={6}
               />
             </div>
             <div

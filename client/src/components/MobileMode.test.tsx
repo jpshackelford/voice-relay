@@ -768,4 +768,88 @@ describe('MobileMode', () => {
       expect(screen.queryByRole('button', { name: 'Workspace home' })).toBeNull();
     });
   });
+
+  // ====================================================================
+  // Issue #388: per-device mic listening state reporting
+  // ====================================================================
+  describe('sendListeningState (issue #388)', () => {
+    it('reports initial idle state on mount', () => {
+      const sendListeningState = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          sendListeningState={sendListeningState}
+        />,
+      );
+      // Default mocks: isListening=false, audioAnalyser.isActive=false,
+      // isSupported=true → (false, true).
+      expect(sendListeningState).toHaveBeenCalledWith(false, true);
+    });
+
+    it('reports (true, true) when speech recognition is active', () => {
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: true,
+        isSupported: true,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      const sendListeningState = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          sendListeningState={sendListeningState}
+        />,
+      );
+      expect(sendListeningState).toHaveBeenCalledWith(true, true);
+    });
+
+    it('reports mic-capable when the analyser is active even without STT', () => {
+      // Visualizer-only mode: Web Speech not supported but the raw mic
+      // is open. The mobile must still report listening=true & micCapable=true.
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: false,
+        isSupported: false,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      vi.mocked(useAudioAnalyser).mockReturnValue({
+        isActive: true,
+        analyser: null,
+        dataArray: null,
+        start: mockAudioStart,
+        stop: mockAudioStop,
+        error: null,
+      });
+      const sendListeningState = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          sendListeningState={sendListeningState}
+        />,
+      );
+      expect(sendListeningState).toHaveBeenCalledWith(true, true);
+    });
+
+    it('reports not-mic-capable when STT is unsupported and analyser is idle', () => {
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: false,
+        isSupported: false,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      const sendListeningState = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          sendListeningState={sendListeningState}
+        />,
+      );
+      expect(sendListeningState).toHaveBeenCalledWith(false, false);
+    });
+
+    it('renders without crashing when sendListeningState is omitted', () => {
+      // Backwards compat: the prop is optional.
+      expect(() => render(<MobileMode {...defaultProps} />)).not.toThrow();
+    });
+  });
 });
