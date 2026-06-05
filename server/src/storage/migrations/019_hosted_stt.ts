@@ -47,8 +47,8 @@ import type { Migration } from '../migrator.js';
  *
  *   - workspace_stt_usage(workspace_id, month, minutes_used)
  *     Per-workspace, per-calendar-month minute counter. Incremented
- *     by the client at the end of a hosted-STT session via the WS
- *     `stt-session-end` message. `month` is `YYYY-MM`.
+ *     by the client at the end of a hosted-STT session via
+ *     `POST /api/stt/usage`. `month` is `YYYY-MM`.
  *
  * Rollback strategy
  * -----------------

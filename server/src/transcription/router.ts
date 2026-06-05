@@ -24,6 +24,7 @@
  *   - everything else                   → 500
  */
 
+import crypto from 'crypto';
 import { Router, type Request, type Response } from 'express';
 import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import type { DeviceRepository } from '../devices/device-repository.js';
@@ -76,22 +77,31 @@ interface UsageRequestBody {
 }
 
 /**
- * In-process cache of `apiKey -> project_id` so we don't hit Deepgram's
- * `/v1/projects` endpoint on every token mint. Cache lifetime is the
- * process lifetime — workspaces rotate keys rarely enough that an
- * eviction policy isn't worth the complexity.
+ * In-process cache of `SHA256(apiKey) -> project_id` so we don't hit
+ * Deepgram's `/v1/projects` endpoint on every token mint. Cache
+ * lifetime is the process lifetime — workspaces rotate keys rarely
+ * enough that an eviction policy isn't worth the complexity.
+ *
+ * We hash the key before using it as the Map key so the plaintext
+ * Deepgram secret is never held in a structure that could leak via a
+ * heap dump, error report, or accidental `console.log(map)`.
  */
 const projectIdCache = new Map<string, string>();
+
+function cacheKey(apiKey: string): string {
+  return crypto.createHash('sha256').update(apiKey).digest('hex');
+}
 
 async function resolveProject(
   apiKey: string,
   fetchImpl: typeof fetch,
   baseUrl: string,
 ): Promise<DeepgramProjectInfo> {
-  const cached = projectIdCache.get(apiKey);
+  const key = cacheKey(apiKey);
+  const cached = projectIdCache.get(key);
   if (cached) return { projectId: cached };
   const id = await fetchProjectId(apiKey, { fetchImpl, baseUrl });
-  projectIdCache.set(apiKey, id);
+  projectIdCache.set(key, id);
   return { projectId: id };
 }
 
@@ -193,6 +203,14 @@ export function createTranscriptionRouter(
 
       // Cap check. `null` cap means "no cap"; non-null cap is enforced
       // in whole minutes against the REAL counter.
+      //
+      // Note: there is a small time-of-check / time-of-use gap between
+      // reading the counter and minting the token. Concurrent requests
+      // racing through this check can push usage a few minutes over
+      // the cap. This is acceptable for a soft billing guardrail —
+      // serialising with a per-workspace lock would add real
+      // complexity for marginal benefit when the actual cost ceiling
+      // (Deepgram's own usage limits) is set well above this cap.
       const cap = settings.sttMonthlyMinuteCap;
       if (cap !== null && cap !== undefined) {
         const used = usageRepository.getCurrentMonthMinutes(device.workspaceId);
@@ -256,6 +274,21 @@ export function createTranscriptionRouter(
     }
   });
 
+  // KNOWN LIMITATION — client-reported usage (#386 follow-up).
+  //
+  // Minutes are self-reported by the kiosk at session end. A
+  // malicious or buggy client can under-report (to dodge the cap) or
+  // over-report (to nudge a workspace toward its cap). We accept this
+  // because the JWT auth model already restricts callers to workspace
+  // members, and the monthly cap is a soft guardrail rather than a
+  // hard billing boundary — Deepgram itself enforces the real spend
+  // ceiling on the upstream account.
+  //
+  // For SaaS hardening we plan to reconcile this counter against
+  // Deepgram's `/v1/projects/:id/usage` API on a periodic schedule;
+  // see issue #386 follow-up. Server-side session tracking (mint =>
+  // session id, expire => recorded minutes) is the other option if
+  // workspace-member trust ever stops being acceptable.
   router.post('/usage', auth, async (req: Request, res: Response) => {
     try {
       const body = (req.body ?? {}) as TokenRequestBody & UsageRequestBody;
