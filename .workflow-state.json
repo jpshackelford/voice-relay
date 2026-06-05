@@ -3,22 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "8919f27",
-        "actual_conv_id": "8919f27bdaa542008b9856f88ea205dd",
-        "type": "merge",
-        "pr": 402,
-        "started": "2026-06-05T13:19:27.744139+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T13:19:27.744139+00:00",
+  "last_updated": "2026-06-05T13:33:58.390241+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -321,7 +313,17 @@
       "finished": "2026-06-05T13:19:27.744139+00:00",
       "status": "success",
       "outcome": "Addressed review feedback on PR #402 \u2014 all 4 inline threads resolved; CI green; latest pr-review bot verdict: 'Worth merging'"
+    },
+    {
+      "conv_id": "8919f27",
+      "actual_conv_id": "8919f27bdaa542008b9856f88ea205dd",
+      "type": "merge",
+      "pr": 402,
+      "started": "2026-06-05T13:19:27.744139+00:00",
+      "finished": "2026-06-05T13:33:58.390241+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #402 as b920f58 (feat(server): hosted STT (Deepgram) broker + workspace settings). Issue #386 auto-closed at 13:21:36Z. Migration 019_hosted_stt verified additive/safe."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
