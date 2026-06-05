@@ -451,3 +451,26 @@ The merge worker carried out the squash + auto-close cleanly in ~2 minutes.
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 03:30 UTC - Implementation Worker (#393 → PR #396)
+
+🚀 **Mobile kiosk picker for multi-kiosk workspaces — PR #396 opened (ready for review).**
+
+- PR: <https://github.com/jpshackelford/voice-relay/pull/396>
+- Branch: `feat/393-mobile-kiosk-picker`
+- All required checks green: Build Client, Client Tests (1039), Server Tests (1477), E2E Tests, lint-pr-title.
+
+**What landed (per expansion comment, four load-bearing call-outs):**
+
+1. ✅ **One active session per kiosk** invariant — new `SessionRepository.getOrCreateActiveSessionForKiosk(workspaceId, kioskDeviceId)` + `getActiveSessionForKiosk` query path.
+2. ✅ **Migration `018_session_target_kiosk`** — additive nullable `sessions.target_kiosk_device_id TEXT` column, default NULL. Backward compat verified.
+3. ✅ **Reuse `device-list` WS broadcast** — `DeviceRegistry.broadcastDeviceList` enriches each kiosk row with `activeSessionId` + `lastUsedAt` via `getKioskPickerEnrichment`. No new caching layer.
+4. ✅ **New WS message `kiosk-attention`** with `ttlMs` for the `📱 connecting…` banner on the chosen kiosk. Wired through `useWebSocket` → `KioskMode`.
+
+**Backward-compat tweak caught by E2E:** the first kiosk to register in a workspace now claims any existing **unbound** active session instead of opening a duplicate (fix commit `fa521c9`). Without this, single-kiosk workspaces created mobile-first ended up with two `View →` buttons on the dashboard — caught by `qr-join-flow.spec.ts` in CI, fixed before review.
+
+**Coverage:** new server tests in `018_session_target_kiosk.test.ts`, `session-repository.test.ts` (`per-kiosk active sessions (#393)` describe + new backward-compat case), `registry.test.ts`, `resolve-session-for-device.test.ts`. New client tests in `KioskPicker.test.tsx`, `MobileMode.test.tsx` `#393` describe, `KioskMode.test.tsx` `kiosk-attention #393` describe, `useWebSocket.test.ts` register + dispatch.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
