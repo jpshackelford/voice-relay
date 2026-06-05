@@ -71,7 +71,7 @@ export const migration: Migration = {
       id, user_id, provider, provider_user_id, provider_username, created_at
     )
     SELECT
-      lower(hex(randomblob(16))),
+      lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(2))) || '-' || lower(hex(randomblob(6))),
       id,
       'github',
       CAST(github_id AS TEXT),
