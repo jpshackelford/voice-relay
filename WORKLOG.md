@@ -751,3 +751,24 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 02:35 UTC - Implementation Worker (issue #382)
+
+✅ **Issue #382 implemented** — [PR #395](https://github.com/jpshackelford/voice-relay/pull/395)
+
+Transcription ticker now identifies the sending device/speaker on the kiosk: each new speaker's utterance is prefixed with their `senderName` (e.g. `JP's iPhone SE: I'll grab a coffee`), and same-sender follow-ups suppress the prefix so the marquee doesn't restart with a redundant `<name>: ` on every partial-update frame.
+
+| Area | Change |
+|------|--------|
+| `client/src/components/MarqueeTicker.tsx` | New optional `prefix?: string` prop, rendered as a sibling `<span class="kiosk-ticker-speaker">` before the text inside the existing measured inner span; layout effect re-runs on prefix change. |
+| `client/src/components/KioskMode.tsx` | Replaced `transcriptionTickerText: string` with a `transcriptionTicker: { prefix, text }` memo. Same-sender suppression via `lastRenderedSenderIdRef`, updated in a commit-time `useEffect`. `fauxPulse` keys off `transcriptionTicker.text` so a same-sender partial still pulses and a prefix appearing/disappearing alone does not. |
+| `client/src/App.css` | Added `.kiosk-ticker-speaker { font-weight: 600; color: rgba(255,255,255,0.7); margin-right: 0.4em }`. No layout changes; `@media (max-width: 480px)` stacked layout untouched. |
+| `client/src/components/{KioskMode,MarqueeTicker}.test.tsx` | +10 unit tests covering: prefix appears for new sender, suppressed on same-sender follow-up, re-emits on sender switch, empty strip has no orphan `:`, and that the overflow translation still works with prefix+text. |
+
+- **Scope verdict:** client-only as labeled. `Utterance.senderName` has been on the wire since #346; no server, DB, or WebSocket change. PR #391 (issue #383's `speakers` table) is still draft, so this PR ships against `Utterance.senderName` — a follow-up after #391 lands can swap the source to `speakers.preferred_name` and re-key suppression on `speaker_id`, per the revised acceptance comment on #382.
+- **Tests:** `npm run test -w client` → **1029/1029 ✅** (49 files; MarqueeTicker 7 → 13 tests, KioskMode 88 → 92 tests). `npm run build -w client` → ✅ (tsc + Vite). All required CI checks green on PR #395: Build Client, Client Tests, Server Tests, E2E Tests (1m40s), lint-pr-title.
+- **Workflow:** branch `feat/382-ticker-speaker-prefix` from main → implement → tests → commit (`feat(client): identify the sending device/speaker in the transcription ticker`) → push → DRAFT PR opened with `Fixes #382` → CI watched to green → PR moved to ready-for-review.
+- **Outstanding:** none from the issue's acceptance criteria; follow-up (post-#391) noted in the PR body for swapping the identity source to the workspace-scoped `speakers` table.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
