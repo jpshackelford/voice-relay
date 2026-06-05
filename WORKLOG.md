@@ -309,3 +309,48 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:17 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4e00461` | review | PR #407 — typed handshake reason (#405 fix) | **NEW** |
+| `1e12cd0` | implementation | Issue #404 — remove env-fallback API key | **NEW** |
+
+🚀 **Spawned 2 Workers (parallel)**
+
+1. **Review Worker for PR #407**
+   - PR: [#407 — feat(server): typed reason for missing-WS-handshake failure](https://github.com/jpshackelford/voice-relay/pull/407)
+   - Conversation: [`4e00461`](https://app.all-hands.dev/conversations/4e00461c7ec1445ea5bbeae1437d5241) (start-task `04f4c787` → READY → `execution_status=running`)
+   - Scope: rebase onto latest main (PR #406 just landed at `6641c71` and creates a conflict in `server/src/openhands.ts` + auto-connect/agent-rehydrate code paths), then condense the 5 pr-review bot 🟡 *Suggestion* threads (all about verbose change-history comments). No 🔴 *Blocker* threads.
+
+2. **Implementation Worker for Issue #404**
+   - Issue: [#404 — Remove vestigial OPENHANDS_CLOUD_API_KEY / OPENHANDS_API_KEY env fallback](https://github.com/jpshackelford/voice-relay/issues/404) (`priority:medium`, `audit`, `scope:full-stack`)
+   - Conversation: [`1e12cd0`](https://app.all-hands.dev/conversations/1e12cd0ee1264706bb41b2fa71f061c9) (start-task `57afa4b6` → READY → `execution_status=running`)
+   - Scope: remove env-key constructor default in `server/src/openhands.ts`, drop `AISessionManager.isAvailable()` + `/api/ai/status`, update `docs/DESIGN.md` env sample, swap regression guards in `auto-connect.test.ts` / `agent-rehydrate.test.ts` over to workspace-scoped keys. **Strictly-narrowing change** — production must have `workspace_settings.openhands_api_key_encrypted` set before this lands.
+
+**Workers Reaped to `completed`:**
+- `0211d27` (merge, PR #406) → finished. Outcome: squash-merged PR #406 as `6641c71` (`fix(server): refresh & rebind honor per-workspace OpenHands API key`). Issue #403 auto-closed at 23:07:52Z. Server-only logic change, no migration risk for prod auto-deploy.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #407](https://github.com/jpshackelford/voice-relay/pull/407) — `oR? dirty ready 💬5` (CI all green, `mergeStateStatus=DIRTY` from #406 landing, 5 unresolved pr-review bot suggestion threads — being addressed by `4e00461`).
+- **Ready+prioritized issues (unblocked):**
+  - **#404** (`priority:medium`) — implementation in flight via `1e12cd0` (dependency on #403 now satisfied).
+  - **#405** (`priority:low`) — covered by PR #407 (review in flight via `4e00461`).
+- **Issues needing expansion:** 0 actionable. All unexpanded issues remain `on-hold` (#210, #239, #299, #300, #301, #302, #384) or `needs-human` (#372).
+- **Ready issues on-hold (excluded):** #351, #363.
+- **Slot summary:** expansion 0/4 (no eligible work), implementation 1/1 (full — #404), review 1/2 (PR #407 in flight; second slot held for the next PR to need attention).
+
+**Decision rationale:**
+- `0211d27` merge worker for PR #406 transitioned to `finished` via `/api/v1/app-conversations/search`. PR was already squash-merged (last WORKLOG entry confirms the merge at 23:08 UTC), so the conv lingering was just sandbox cleanup. Reaped to `completed`.
+- PR #407 needed both rebase (DIRTY) **and** thread cleanup. Spawned one review worker to handle both in a single round — cheaper than two passes.
+- Issue #404's gate just opened (#403/PR #406 landed). Spawned the implementation worker immediately rather than waiting a tick; this is the only unblocked, prioritized, ready issue without a PR in flight.
+- No expansion worker spawned — every issue without `ready` is `on-hold` or `needs-human`. Same backlog state as the previous two ticks.
+
+**Quiet-tick counter:** reset `0 → 0` (productive tick: 2 workers spawned, 1 worker reaped).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
