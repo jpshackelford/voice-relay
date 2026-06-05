@@ -749,29 +749,9 @@ export interface AISession {
   taskId: string;
   /** VR session ID - the session this AI is connected to */
   sessionId?: string;
-  /**
-   * Workspace this session belongs to. Used to re-derive an OH client for
-   * refresh/rebind so those paths honor the per-workspace API key the same
-   * way attach does (issue #403). Optional only so existing tests that
-   * construct hand-rolled `AISession` objects don't have to be updated en
-   * masse; the production paths (`getOrCreateForSession`,
-   * `attachExistingForSession`) always populate it.
-   */
+  /** Workspace ID; used to resolve the per-workspace API key for refresh/rebind (#403). */
   workspaceId?: string;
-  /**
-   * Resolved OpenHands API key for this workspace, captured at attach /
-   * create time (issue #403). When set, refresh and rebind build a
-   * workspace-scoped `OpenHandsClient` from this key instead of using the
-   * manager's env-keyed singleton. When undefined (env-fallback deploys or
-   * test fixtures), the manager singleton is used — preserving today's
-   * fallback behaviour.
-   *
-   * NB: this is a snapshot from construction. A workspace key rotated
-   * mid-session will not be picked up until the next attach / restart;
-   * that's an acceptable trade-off because the next reconnect cycle will
-   * re-resolve it. If mid-session rotation becomes a requirement, plumb a
-   * `getWorkspaceApiKey` resolver into the manager and resolve per-call.
-   */
+  /** Per-workspace OpenHands API key snapshot for refresh/rebind (#403). When undefined, falls back to env singleton. */
   apiKey?: string;
   mode: 'chat' | 'kiosk';
   ws?: WebSocket;
@@ -1838,19 +1818,10 @@ export class AISessionManager {
   }
 
   /**
-   * Resolve the {@link OpenHandsClient} to use for an in-memory session
-   * (issue #403). Refresh and rebind must honor the per-workspace API key
-   * that was used to attach the session, not the manager's env-keyed
-   * singleton — otherwise workspace key rotation is silently ignored and
-   * a revoked env key sends every active session into an infinite
-   * NoCredentialsError → rebind → NoCredentialsError loop.
-   *
-   * The session's `apiKey` is a snapshot captured at construction time;
-   * see the docstring on {@link AISession.apiKey} for the rotation
-   * semantics. When the snapshot is absent we fall back to
-   * `this.client` so env-fallback deploys and test fixtures (which never
-   * set `apiKey`) keep working exactly as before. The follow-up cleanup
-   * to remove the env fallback entirely is tracked in #404.
+   * Returns a workspace-scoped OpenHandsClient for the session's API key,
+   * or falls back to the env-keyed singleton when session.apiKey is unset
+   * (env fallback removal tracked by #404). Re-derived per call; key
+   * rotation is honored at the next attach (#403).
    */
   private clientForSession(session: AISession): OpenHandsClient | null {
     if (session.apiKey) {
@@ -1962,11 +1933,7 @@ export class AISessionManager {
     session: AISession,
     maxRetries: number,
   ): Promise<void> {
-    // Issue #403: resolve a workspace-scoped client (or fall back to the
-    // env-keyed singleton) so refresh sends the same bearer the attach
-    // path used. Without this, a workspace-key rotation is silently
-    // ignored and a revoked env key sends refresh into a 401 loop.
-    const client = this.clientForSession(session);
+    const client = this.clientForSession(session); // #403: honor workspace key
     if (!client) {
       // No client means we can't refresh; surface as MISSING so the
       // reconnect loop stops rather than tight-looping with stale creds.
@@ -2152,11 +2119,7 @@ export class AISessionManager {
     conversationId: string,
     client?: OpenHandsClient | null,
   ): Promise<ConversationInfo> {
-    // Issue #403: the caller may pass an explicit (workspace-scoped) client
-    // so the PAUSED→RUNNING resume polls upstream with the same bearer the
-    // attach / refresh path used. When the caller has no session context
-    // (or didn't bother to pass it), fall back to the env-keyed singleton.
-    const effectiveClient = client ?? this.client;
+    const effectiveClient = client ?? this.client; // #403: use workspace client when provided
     if (!effectiveClient) throw new SandboxMissingError(conversationId);
     const deadline = Date.now() + this.resumePollBudgetMs;
     while (Date.now() < deadline) {
@@ -2296,8 +2259,6 @@ export class AISessionManager {
         workspaceId,
         options.existingConversationId,
         onMessage,
-        // Issue #403: forward the resolved workspace API key so the attach
-        // path can cache it on the AISession for refresh / rebind.
         { client, apiKey: options.apiKey },
       );
     }
@@ -2359,9 +2320,7 @@ export class AISessionManager {
       conversationId,
       taskId: startResponse.id,
       sessionId,  // Key by session, not device
-      // Issue #403: capture workspace context + workspace API key so
-      // refresh / rebind can re-derive a workspace-scoped OH client
-      // instead of falling back to the env-keyed singleton.
+      // Capture workspace context for refresh/rebind client resolution (#403)
       workspaceId,
       apiKey: options.apiKey,
       mode: 'kiosk',
@@ -2407,15 +2366,12 @@ export class AISessionManager {
     workspaceId: string,
     conversationId: string,
     onMessage: (message: string, serverTimestamp?: string) => void,
-    /**
-     * `apiKey` is the per-workspace OpenHands API key resolved by the
-     * caller (typically via `getWorkspaceApiKey(workspaceId)`). When
-     * supplied it is cached on the resulting {@link AISession} so refresh
-     * and rebind re-derive a workspace-scoped client instead of the
-     * env-keyed singleton (issue #403). When omitted, the env singleton
-     * is used — preserving today's fallback path until #404.
-     */
-    options: { client?: OpenHandsClient; apiKey?: string } = {},
+    options: {
+      /** Workspace-scoped OpenHandsClient; see clientForSession (#403). */
+      client?: OpenHandsClient;
+      /** Per-workspace API key to cache on the AISession (#403). */
+      apiKey?: string;
+    } = {},
   ): Promise<AISession> {
     const existing = this.sessionAI.get(sessionId);
     if (existing) {
@@ -2506,9 +2462,6 @@ export class AISessionManager {
         throw e;
       }
       try {
-        // Issue #403: pass the workspace-scoped `client` (already chosen
-        // above from `options.client`) so the resume poll uses the same
-        // bearer the attach call did.
         convInfo = await this.pollSandboxRunning(conversationId, client);
       } catch (e) {
         // A mid-poll MISSING (the sandbox vanished while we were
@@ -2551,8 +2504,7 @@ export class AISessionManager {
       // create path; reuse the conversation id for the attach case.
       taskId: conversationId,
       sessionId,
-      // Issue #403: cache workspace context + workspace API key so
-      // refresh / rebind can re-derive a workspace-scoped OH client.
+      // Cache workspace context for refresh/rebind (#403)
       workspaceId,
       apiKey: options.apiKey,
       mode: 'kiosk',
@@ -2972,11 +2924,7 @@ export class AISessionManager {
   }
 
   private async doRebindSession(session: AISession): Promise<void> {
-    // Issue #403: resolve a workspace-scoped client so the rebind POST and
-    // the memory-replay GET both go upstream with the same bearer the
-    // attach path used. Without this, rebind sends the env key and a
-    // revoked env key tight-loops every active session into degraded.
-    const client = this.clientForSession(session);
+    const client = this.clientForSession(session); // #403: honor workspace key
     if (!client) {
       session.degraded = true;
       session.degradedReason = 'OpenHands client not configured — cannot rebind';
