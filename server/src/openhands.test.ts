@@ -410,6 +410,23 @@ describe('AISessionManager', () => {
           )
         ).rejects.toThrow(/OpenHands API not configured.*#404/);
       });
+
+      test('throws when apiKey is whitespace (#404)', async () => {
+        // Pr-review regression: the sibling test's comment promised
+        // "Empty/whitespace strings" but only empty was exercised. An
+        // all-spaces key was previously truthy and would have built an
+        // `OpenHandsClient` with a doomed token. The manager now treats
+        // `apiKey?.trim()` falsiness the same as missing, surfacing the
+        // typed `#404` error instead of an upstream 401.
+        await expect(
+          manager.getOrCreateForSession(
+            'test-session',
+            'test-workspace',
+            () => {},
+            { apiKey: '   ' },
+          )
+        ).rejects.toThrow(/OpenHands API not configured.*#404/);
+      });
     });
 
     describe('attachExistingForSession (#404 contract)', () => {

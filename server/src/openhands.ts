@@ -251,7 +251,13 @@ export class OpenHandsClient {
    *   `OPENHANDS_BASE_URL`.
    */
   constructor(apiKey: string, baseUrl: string = OPENHANDS_BASE_URL) {
-    if (!apiKey) {
+    // #404 (pr-review): treat whitespace-only keys as missing too. A
+    // bare empty string was already rejected; an all-spaces value would
+    // have slipped through the `!apiKey` check and surfaced as a
+    // confusing upstream 401. Single source of truth — the manager's
+    // `getOrCreateForSession` also short-circuits whitespace before
+    // calling here, but defending here keeps every call site honest.
+    if (!apiKey || !apiKey.trim()) {
       throw new Error(
         'Missing OpenHands API key. Configure a per-workspace key in workspace settings.',
       );
@@ -2254,8 +2260,10 @@ export class AISessionManager {
     // Create new AI session. After #404 the workspace-scoped `apiKey` is
     // required; the env-keyed singleton fallback is gone. Tests that
     // installed a manager-wide client via `setClientForTesting` may still
-    // omit `options.apiKey`.
-    const client = options.apiKey ? new OpenHandsClient(options.apiKey) : this.client;
+    // omit `options.apiKey`. Whitespace-only keys are treated as missing
+    // (pr-review on #404) so they hit the typed `#404` error below
+    // instead of constructing a doomed client.
+    const client = options.apiKey?.trim() ? new OpenHandsClient(options.apiKey) : this.client;
     if (!client) {
       throw new Error(
         'OpenHands API not configured: workspace API key required (#404).',
