@@ -399,3 +399,55 @@ Fixes #382.
 **Production impact:** auto-deploy to vr.chorecraft.net on merge. Client-only change; no DB / WebSocket / server logic touched. SQLite production DB unaffected.
 
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+### 2026-06-05 03:11 UTC - Orchestrator
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ebe965d` | implementation | [Issue #393](https://github.com/jpshackelford/voice-relay/issues/393) — Mobile kiosk picker | running (~19 min, started 02:52Z) |
+
+**Workers Completed (this tick):**
+
+| Conv ID | Type | Target | Outcome |
+|---------|------|--------|---------|
+| `2f51f22` | review | PR #395 | Resolved merge conflict with main + tightened MarqueeTicker empty-state guard with regression test; CI 7/7 green; PR mergeable=CLEAN; bot re-reviewed 🟢 Good taste at 03:02Z. (Detailed entry by the review worker at 03:03Z, commit `9e15172`.) |
+| `13c7a55` | merge | PR #395 | Squash-merged as `8ee7f07` — `feat(client): identify the sending device/speaker in the transcription ticker (#395)`. Issue #382 auto-closed at 03:07:55Z. (Detailed entry by the merge worker at commit `0d4198a`.) Worker was spawned by this orchestrator at 03:06Z and completed at 03:08Z. |
+
+**🚀 Spawn rationale (for `13c7a55`):**
+
+At 03:06Z the review worker `2f51f22` had reached `finished` and PR #395 had every merge gate green:
+
+- ✅ CI 7/7 (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator)
+- ✅ `mergeable: MERGEABLE` / `mergeStateStatus: CLEAN`
+- ✅ Review threads: 1 total, 0 unresolved
+- ✅ Latest bot review: 🟢 **Good taste** (github-actions, 03:02:32Z)
+- ✅ No blocking labels (`on-hold`, `needs-human`, `do-not-merge`, `blocked` all absent)
+- ✅ Client-only (no `server/src/db/migrations/` files) — production-safe roll-forward on vr.chorecraft.net
+
+The merge worker carried out the squash + auto-close cleanly in ~2 minutes.
+
+**Slot Utilization (after this tick):**
+
+| Slot | Used | Limit | Available |
+|------|------|-------|-----------|
+| Expansion | 0 | 4 | 4 (intentionally idle — all unexpanded issues remain `on-hold` or `needs-human`) |
+| Implementation | 1 | 1 | 0 (`ebe965d` on #393 still running) |
+| Review/Merge | 0 | 2 | 2 (no open PRs — #395 just merged) |
+
+**No new workers spawned this tick beyond `13c7a55`:**
+
+- Implementation slot is occupied — only one impl at a time to avoid branch conflicts (skill rule).
+- No open PRs remain → review/merge slots have nothing to do.
+- All unexpanded issues are blocked behind `on-hold` (S3 freeze: #299–#302; #384) or `needs-human` (#372). Expansion slots correctly stay idle.
+
+**Backlog Snapshot:**
+
+- Ready & unblocked (awaiting impl): #380, #386, #388, #389, #390, #392 (priority:low / unprioritized). #393 in flight.
+- Needs expansion (all held): #210, #239, #299–#302, #372, #384.
+
+**State file:** `.workflow-state.json` v2 — `2f51f22` (review) and `13c7a55` (merge) moved to `completed[]`; 22 entries within the 24h audit window; `quiet_ticks = 0`.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

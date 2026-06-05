@@ -9,20 +9,14 @@
         "started": "2026-06-05T02:52:48.410180+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "2f51f22",
-        "pr": 395,
-        "started": "2026-06-05T02:52:48.410180+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T02:52:48.410180+00:00",
+  "last_updated": "2026-06-05T03:10:07.982539+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -203,6 +197,24 @@
       "finished": "2026-06-05T02:35:00Z",
       "status": "success",
       "outcome": "Addressed PR #394 two CSS-grid documentation suggestions (ab723f2); CI green; merged at c95f4f9-equivalent (squash)."
+    },
+    {
+      "conv_id": "2f51f22",
+      "type": "review",
+      "pr": 395,
+      "started": "2026-06-05T02:45:00+00:00",
+      "finished": "2026-06-05T03:03:00+00:00",
+      "status": "success",
+      "outcome": "PR #395 round 1: resolved merge conflict with main, tightened MarqueeTicker empty-state guard (JSX guard + regression test), replied + resolved github-actions thread; CI 7/7 green; PR back to ready, mergeable=CLEAN."
+    },
+    {
+      "conv_id": "13c7a55",
+      "type": "merge",
+      "pr": 395,
+      "started": "2026-06-05T03:06:00+00:00",
+      "finished": "2026-06-05T03:08:00+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #395 as 8ee7f07 (feat(client): identify the sending device/speaker in the transcription ticker). Issue #382 auto-closed at 03:07:55Z. WORKLOG updated as 0d4198a."
     }
   ],
   "quiet_ticks": 0
