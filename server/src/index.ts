@@ -194,27 +194,28 @@ let agentEventRehydrator: AgentEventRehydrator | null = null;
 let agentEventTtlInterval: ReturnType<typeof setInterval> | null = null;
 
 /**
- * Resolve the workspace-scoped speaker for a device (#383).
+ * Resolve the workspace-scoped speaker for a (workspace, user) pair (#383).
  *
- * Looks up `devices.primary_user_id`, then the matching `speakers` row
- * in the workspace. Returns the agent-driver-shaped `AgentSpeakerMeta`
- * or `null` when the device is anonymous / no speaker exists yet.
+ * Returns the agent-driver-shaped `AgentSpeakerMeta` or `null` when the
+ * device is anonymous (no `primaryUserId`) or no speaker row exists yet.
  *
- * Best-effort & cheap: both lookups are indexed and run on every
- * inbound utterance. Errors are logged and swallowed — speaker
- * resolution must never crash the message-relay path.
+ * Callers pass `primaryUserId` directly from the in-memory `Device`
+ * (cached at registration time in `DeviceRegistry`), so this path runs
+ * on every inbound utterance without re-querying the `devices` table.
+ *
+ * Best-effort & cheap: the speakers lookup is indexed by `(workspace_id,
+ * user_id)`. Errors are logged and swallowed — speaker resolution must
+ * never crash the message-relay path.
  */
-function resolveSpeakerForDevice(
+function resolveSpeakerForUser(
   workspaceId: string,
-  deviceId: string
+  primaryUserId: string | null | undefined
 ): { id: string; preferredName: string | null; pronouns: string | null } | null {
-  if (!deviceRepository || !speakerRepository) return null;
+  if (!speakerRepository || !primaryUserId) return null;
   try {
-    const device = deviceRepository.findById(deviceId);
-    if (!device || !device.primaryUserId) return null;
     const speaker = speakerRepository.findByWorkspaceUser(
       workspaceId,
-      device.primaryUserId
+      primaryUserId
     );
     if (!speaker) return null;
     return {
@@ -583,7 +584,12 @@ wss.on('connection', (ws: WebSocket) => {
           let deviceToken: string | null = null;
           let tokenExpiresAt: string | null = null;
           let session: { id: string; name: string | null };
-          
+          // Issue #383: surface the device's claimed user (if any) into the
+          // in-memory registry so per-utterance speaker resolution doesn't
+          // need to re-query the `devices` table. Anonymous mode has no
+          // workspace user, so this stays `null`.
+          let primaryUserId: string | null = null;
+
           if (isAnonymous) {
             // Anonymous mode: in-memory relay only, no persistence
             session = { id: ANONYMOUS_SESSION_ID, name: ANONYMOUS_SESSION_NAME };
@@ -650,7 +656,10 @@ wss.on('connection', (ws: WebSocket) => {
               tokenExpiresAt = result.expiresAt;
               console.log(`[WS] New device registered: ${message.displayName} (${message.deviceId})`);
             }
-            
+            // Issue #383: capture the persisted primary_user_id so we can
+            // seed the in-memory device cache below.
+            primaryUserId = result.device.primaryUserId;
+
             session = resolveSessionForDevice(sessionRepository, message.sessionId, requestedWorkspaceId);
             sessionId = session.id;
             
@@ -695,6 +704,7 @@ wss.on('connection', (ws: WebSocket) => {
             tickersEnabled,
             validatedTimezone,
             validatedTzOffset,
+            primaryUserId,
           );
           
           const response: RegisteredMessage = {
@@ -804,10 +814,12 @@ wss.on('connection', (ws: WebSocket) => {
 
           // Issue #383: resolve the speaker once per inbound utterance
           // so the same id is stamped on the persisted row AND forwarded
-          // to the agent driver below.
-          const utteranceSpeaker = resolveSpeakerForDevice(
+          // to the agent driver below. `device.primaryUserId` is cached
+          // on the in-memory registry entry at registration time, so this
+          // path runs without a per-utterance `devices` table lookup.
+          const utteranceSpeaker = resolveSpeakerForUser(
             device.workspaceId,
-            deviceId
+            device.primaryUserId
           );
           const relayMessage: RelayedTextMessage = {
             type: 'text',
@@ -1516,6 +1528,10 @@ async function start() {
       const deviceRouter = createDeviceRouter({
         deviceRepository,
         workspaceRepository,
+        // Issue #383: pass the registry so PATCH-time primary user changes
+        // also update the in-memory device cache (avoids a stale lookup on
+        // the next utterance from the same device session).
+        deviceRegistry: registry,
         authConfig: {
           jwtService,
           userRepository,

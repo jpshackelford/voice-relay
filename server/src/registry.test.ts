@@ -344,6 +344,53 @@ describe('DeviceRegistry', () => {
       const result = registry.updateDevice('non-existent', { displayName: 'Test' });
       expect(result).toBeNull();
     });
+
+    // Issue #383: primaryUserId is cached on the in-memory device so the
+    // per-utterance speaker resolver doesn't re-query `devices`.
+    it('caches primaryUserId from register and refreshes via updateDevice', () => {
+      const ws = createMockWebSocket();
+      const device = registry.register(
+        'device-1',
+        'workspace-1',
+        ws,
+        'Test',
+        'mobile',
+        undefined, // screenWidth
+        undefined, // screenHeight
+        undefined, // sessionId
+        undefined, // platform
+        undefined, // tickersEnabled
+        undefined, // timezone
+        undefined, // tzOffsetMinutes
+        'user-42'
+      );
+      expect(device.primaryUserId).toBe('user-42');
+
+      const updated = registry.updateDevice('device-1', { primaryUserId: 'user-99' });
+      expect(updated?.primaryUserId).toBe('user-99');
+      expect(registry.getDevice('device-1')?.primaryUserId).toBe('user-99');
+
+      const cleared = registry.updateDevice('device-1', { primaryUserId: null });
+      expect(cleared?.primaryUserId).toBeNull();
+    });
+
+    it('refreshes cached primaryUserId on reconnection', () => {
+      const ws1 = createMockWebSocket();
+      registry.register(
+        'device-1', 'workspace-1', ws1, 'Test', 'mobile',
+        undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+        null,
+      );
+      expect(registry.getDevice('device-1')?.primaryUserId).toBeNull();
+
+      const ws2 = createMockWebSocket();
+      const reconnected = registry.register(
+        'device-1', 'workspace-1', ws2, 'Test', 'mobile',
+        undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+        'user-7',
+      );
+      expect(reconnected.primaryUserId).toBe('user-7');
+    });
   });
 
   describe('sendToDevice', () => {

@@ -552,5 +552,50 @@ describe('Device Router', () => {
 
       expect(response.body.name).toBe('Trimmed Name');
     });
+
+    // Issue #383: PATCH claims the device for the authenticated user and
+    // must also refresh the in-memory registry cache so the next utterance
+    // resolves to the correct speaker without a DB lookup.
+    it('refreshes deviceRegistry cache when device is claimed (#383)', async () => {
+      const { DeviceRegistry } = await import('../registry.js');
+      const registry = new DeviceRegistry();
+
+      // Mount a fresh router wired to the registry.
+      const claimApp = express();
+      claimApp.use(express.json());
+      claimApp.use(
+        '/api/devices',
+        createDeviceRouter({
+          deviceRepository,
+          workspaceRepository,
+          deviceRegistry: registry,
+          authConfig: { jwtService, userRepository },
+        })
+      );
+
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      // Simulate a live websocket-registered device with no claimed user.
+      const fakeWs = { readyState: 1, OPEN: 1, send: vi.fn(), close: vi.fn() } as never;
+      registry.register(
+        device.id, testWorkspaceId, fakeWs, 'Kiosk', 'kiosk',
+        undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+        null,
+      );
+      expect(registry.getDevice(device.id)?.primaryUserId).toBeNull();
+
+      await request(claimApp)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Kiosk' })
+        .expect(200);
+
+      expect(deviceRepository.findById(device.id)?.primaryUserId).toBe(testUserId);
+      expect(registry.getDevice(device.id)?.primaryUserId).toBe(testUserId);
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import type { DeviceRepository } from './device-repository.js';
 import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
+import type { DeviceRegistry } from '../registry.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
 /** Max device name length (prevents UI overflow and DB bloat) */
@@ -10,6 +11,12 @@ export interface DeviceRouterOptions {
   deviceRepository: DeviceRepository;
   workspaceRepository: WorkspaceRepository;
   authConfig: AuthMiddlewareConfig;
+  /**
+   * In-memory device registry, used to keep cached fields (`primaryUserId`,
+   * #383) in sync when the PATCH endpoint claims the device for a user.
+   * Optional so tests that don't exercise the registry can omit it.
+   */
+  deviceRegistry?: DeviceRegistry;
 }
 
 /**
@@ -92,7 +99,7 @@ function rateLimitValidate(req: Request, res: Response, next: NextFunction): voi
  * Create the device API router.
  * Provides endpoints for device token management.
  */
-export function createDeviceRouter({ deviceRepository, workspaceRepository, authConfig }: DeviceRouterOptions): Router {
+export function createDeviceRouter({ deviceRepository, workspaceRepository, authConfig, deviceRegistry }: DeviceRouterOptions): Router {
   const router = Router();
   const auth = requireAuth(authConfig);
 
@@ -193,6 +200,10 @@ export function createDeviceRouter({ deviceRepository, workspaceRepository, auth
     if (updated.primaryUserId !== req.user!.id) {
       try {
         deviceRepository.setPrimaryUser(updated.id, req.user!.id);
+        // Keep the in-memory registry cache in sync so the next utterance
+        // resolves to the correct speaker without a DB lookup. No-op when
+        // the device isn't currently connected.
+        deviceRegistry?.updateDevice(updated.id, { primaryUserId: req.user!.id });
       } catch (err) {
         console.warn(
           '[Devices] Failed to set primary_user_id (non-fatal):',

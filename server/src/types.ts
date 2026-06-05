@@ -31,6 +31,14 @@ export interface Device {
    * for non-IANA-aware clients.
    */
   tzOffsetMinutes?: number;
+  /**
+   * Workspace member who claimed this device (issue #383). Cached here
+   * from `devices.primary_user_id` at registration time, refreshed when
+   * a user (re)claims the device via the PATCH endpoint. `null` means
+   * the device is anonymous / not yet claimed. Caching avoids a per-utterance
+   * DB lookup when resolving the workspace-scoped speaker for relayed text.
+   */
+  primaryUserId?: string | null;
 }
 
 export interface DisplayContent {
