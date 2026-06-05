@@ -403,3 +403,26 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 22:35 UTC - Implementation worker (#403)
+
+✅ PR opened and CI green for the workspace-key recovery-path fix.
+
+- Issue: [#403 — Refresh & rebind use the env-keyed singleton OpenHandsClient instead of the per-workspace API key](https://github.com/jpshackelford/voice-relay/issues/403)
+- PR: [#406](https://github.com/jpshackelford/voice-relay/pull/406) — `fix(server): refresh & rebind honor per-workspace OpenHands API key (#403)`
+- Branch: `fix/403-workspace-key-in-refresh-rebind`
+- Status: marked **ready for review** (review-bot triggered).
+
+**What landed:**
+- `AISession` gains `workspaceId` + `apiKey?`; populated at both construction sites (`getOrCreateForSession`, `attachExistingForSession`).
+- New `clientForSession(session)` helper used by `doRefreshSessionCredentials` and `doRebindSession`.
+- `pollSandboxRunning` and `buildRebindReplaySuffix` now take an explicit client so the resume poll and memory-replay GET use the same bearer as the rest of the path.
+- Env fallback (`this.client`) preserved end-to-end — strict superset of today's behaviour. Removing it is tracked in #404 (deliberately not rolled in).
+
+**Tests:** new `AISessionManager workspace-key resolution (#403)` describe block — 8 cases covering refresh, rebind (POST + events-page GET), PAUSED→RUNNING resume, key rotation, env-fallback preservation, and clean degrade when no client is configured. Full server suite passes (1547 tests / 76 files). The two regression guards called out in the issue body (`auto-connect.test.ts:317–329` and `agent-rehydrate.test.ts:238–258`) still pass.
+
+**CI status (PR #406):** Server Tests ✅ • Client Tests ✅ • Build Client ✅ • E2E Tests ✅ • lint-pr-title ✅
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
