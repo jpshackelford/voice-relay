@@ -344,3 +344,23 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
+
+---
+
+### 2026-06-05 03:03 UTC - Review worker (PR #395 round 1 — merge conflict + bot suggestion)
+
+✅ **PR #395 (feat/382-ticker-speaker-prefix) — back to ready, all 7 checks green.**
+
+| Action | Result |
+|---|---|
+| Resolve merge conflict with `main` | `client/src/App.css` — kept `.kiosk-ticker-speaker` from PR alongside the expanded `#379` grid-area comment that landed via PR #394. No other files touched. |
+| Address `github-actions[bot]` review thread on `MarqueeTicker.tsx` | Chose the bot's "fix the code" branch: added JSX guard `text.length > 0 && prefix` so a non-empty prefix paired with empty text never renders an orphan `"<name>: "`. Rewrote the adjacent comment to describe the new contract. Added regression test `suppresses an orphan prefix when text is empty (defensive guard)`. |
+| Client build + tests | `npm run build` clean (no TS errors). `npm test` 1030/1030 passing (was 1029 — new test adds 1). |
+| Push | Merge commit `277bc63`. PR diff vs main now 5 files / +349 / -8, no WORKLOG or workflow-state churn. |
+| CI rollup | Build Client ✓ · Client Tests ✓ · Server Tests ✓ · E2E Tests ✓ · lint-pr-title ✓ · pr-review ✓ · enable-orchestrator ✓. `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`. |
+| Review thread | Replied with commit reference + AI disclosure, then resolved via GraphQL (`PRRT_kwDOSTUWGM6HPwfH`). No new threads opened by `pr-review`. |
+| PR state | Demoted to draft at start (per process), promoted back to ready after green CI. |
+
+Ready for the next round (merge or human review) — no further action from this worker.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
