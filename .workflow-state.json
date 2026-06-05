@@ -4,19 +4,25 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "ebe965d",
-        "issue": 393,
-        "started": "2026-06-05T02:52:48.410180+00:00"
+        "conv_id": "fee6d4e",
+        "issue": 380,
+        "started": "2026-06-05T03:35:03.084872+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "c327b70",
+        "pr": 396,
+        "started": "2026-06-05T03:35:03.084872+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T03:19:37Z",
+  "last_updated": "2026-06-05T03:35:03.084872+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -215,7 +221,16 @@
       "finished": "2026-06-05T03:08:00+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #395 as 8ee7f07 (feat(client): identify the sending device/speaker in the transcription ticker). Issue #382 auto-closed at 03:07:55Z. WORKLOG updated as 0d4198a."
+    },
+    {
+      "conv_id": "ebe965d",
+      "type": "implementation",
+      "issue": 393,
+      "started": "2026-06-05T02:52:48.410180+00:00",
+      "finished": "2026-06-05T03:33:36.314013+00:00",
+      "status": "success",
+      "outcome": "Issue #393 \u2192 PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
