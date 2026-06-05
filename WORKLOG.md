@@ -742,3 +742,65 @@ Closes #389.
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 04:47 UTC - Implementation Worker (Issue #390)
+
+🚀 **Opened PR #399 — `fix(client): stack login footer below card` (Fixes #390).**
+
+**Scope:** `scope:client-only`, `priority:low`, `bug`. Pure CSS + test change — no server, no schema, no migration, no behaviour change.
+
+**Branch:** `fix/390-login-footer-below-card` (commit `54f9011`).
+**PR:** [#399](https://github.com/jpshackelford/voice-relay/pull/399).
+
+**Root cause:** `client/src/pages/Login.tsx` renders `.login-card` and `.login-footer` as sibling children of `<div className="login-page">`. `.login-page` set `display: flex` with `align-items: center; justify-content: center` but **never declared `flex-direction`**, so it defaulted to `row`. The footer laid out as a horizontal neighbor of the card, vertically centered with it — exactly the bug visualization in the issue body.
+
+**Fix:** One CSS property added to `.login-page` in `client/src/App.css` (variant 1 from the expansion comment — minimal change, preserves the existing 2rem visual gap from `.login-footer { margin-top: 2rem }`):
+
+```css
+.login-page {
+  display: flex;
+  flex-direction: column;   /* ← added */
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+```
+
+The loading-spinner branch in `Login.tsx` (lines 47–54) renders only a single `.login-card` child, so `flex-direction: column` is a no-op there — no regression risk.
+
+**Diff:** +37 / -0 across 2 files.
+- `client/src/App.css` (+1 line): `flex-direction: column;` added to `.login-page`.
+- `client/src/pages/Login.test.tsx` (+36 lines): new `describe('layout (regression #390)')` block with two tests.
+  1. **Structural test** — renders `<Login>`, asserts `.login-card` and `.login-footer` share the `.login-page` parent and that `compareDocumentPosition(footer) & DOCUMENT_POSITION_FOLLOWING` from the card is truthy. Locks in the JSX shape the CSS relies on.
+  2. **CSS-rule test** — reads `client/src/App.css` from disk via `fs.readFileSync` and asserts the `.login-page` rule body contains both `display: flex` and `flex-direction: column`. This is the actual regression guard; if anyone deletes the `flex-direction` line, this test fails. Chose this over a `getComputedStyle()` assertion because happy-dom does not reliably compute styles from `<link>`-style sheets, which would be flaky.
+
+The expansion comment recommended skipping an automated test entirely (computed-style brittleness). Adding a stylesheet-source regex check sidesteps that concern while still locking the regression in.
+
+**CI snapshot (all required checks green on first push):**
+
+| Check | Status | Duration |
+|---|---|---|
+| `Build Client` | ✅ pass | 26s |
+| `Client Tests` | ✅ pass | 40s (50 files, 1053 tests; +2 new from this PR) |
+| `Server Tests` | ✅ pass | 50s |
+| `E2E Tests` | ✅ pass | 1m31s |
+| `lint-pr-title` | ✅ pass | 4s (scope `client` accepted) |
+| `enable-orchestrator` | ✅ pass | 3s |
+| `pr-review` | skipping (expected — draft) | — |
+
+Local verification before push: `npm test` in `client/` → 50/50 files, 1053/1053 tests pass; `npm run build` (= `tsc -b && vite build`) → clean.
+
+**Acceptance criteria (from expansion):**
+
+- ✅ Footer sits below the login card on every viewport ≥ 320 px (column stacking is viewport-independent).
+- ✅ Card stays vertically centered when viewport is taller than `card + footer` (`justify-content: center` unchanged).
+- ✅ No regression to the loading-spinner branch (single child; column direction is a no-op).
+- 🟡 Manual visual check at 1440×900 / 768×1024 / 375×667 — to be confirmed post-deploy on vr.chorecraft.net.
+
+**`.workflow-state.json`:** implementation-worker entry `5132cf2` moved from `slots.implementation` → `completed[]` with `status=success`, outcome string referencing PR #399. `quiet_ticks=0`; `last_updated=2026-06-05T04:47:00+00:00`.
+
+**Status:** PR moved from draft to `ready for review` after CI greened. `pr-review` workflow now triggered. Exiting; review handling is a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---

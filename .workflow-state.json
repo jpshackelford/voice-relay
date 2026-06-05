@@ -2,13 +2,7 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
-      {
-        "conv_id": "5132cf2",
-        "issue": 390,
-        "started": "2026-06-05T04:38:17.767046+00:00"
-      }
-    ],
+    "implementation": [],
     "review": []
   },
   "limits": {
@@ -16,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T04:42:00+00:00",
+  "last_updated": "2026-06-05T04:47:00+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -271,6 +265,15 @@
       "finished": "2026-06-05T04:42:00+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #398 as f3d8c4d (feat(server): teach system prompt to call PATCH /api/sessions/:id/settings). Issue #389 auto-closed at 04:40:45Z. Prompt-only change, no migration."
+    },
+    {
+      "conv_id": "5132cf2",
+      "issue": 390,
+      "started": "2026-06-05T04:38:17.767046+00:00",
+      "type": "implementation",
+      "finished": "2026-06-05T04:47:00+00:00",
+      "status": "success",
+      "outcome": "Created PR #399 \u2014 fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
     }
   ],
   "quiet_ticks": 0
