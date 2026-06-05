@@ -1018,7 +1018,7 @@ export function KioskMode({
                 isActive={fauxAudio.isActive}
                 width={48}
                 height={48}
-                color="#a855f7"
+                color="#3282b8"
                 lineWidth={1.5}
                 glowIntensity={6}
               />
