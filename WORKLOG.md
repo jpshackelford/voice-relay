@@ -670,3 +670,25 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands expand worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:08 UTC - Impl worker (#379 kiosk grid)
+
+✅ Implemented #379 — *Adopt a CSS Grid layout for the kiosk display overlays
+(status circles, tickers, QR, connection dot)*. Draft PR
+[#394](https://github.com/jpshackelford/voice-relay/pull/394) opened, all CI
+checks green, then moved from draft → ready for review.
+
+| Aspect | Detail |
+|---|---|
+| Branch | `feat/379-kiosk-overlay-css-grid` |
+| Files touched | `client/src/App.css` (only; +107 / -59) |
+| Approach | Converted `.kiosk-display` from `display: flex` + six `position: absolute` overlays to a 4-column / 3-row named-area grid (`tl . . tr` / `main main main main` / `bl tick-l tick-r br`). Outer 4rem gutter columns replace the legacy `padding-{left,right}: 4rem` reservations on the ticker strips; fixed 3.5rem bottom row puts circles and ticker text on a shared horizontal baseline. |
+| `data-tickers-enabled` toggle | Retained, but now switches the connection dot's `grid-area` (`bl` ↔ `tr`) instead of overriding `top/right/bottom/left`. |
+| Mobile (≤480px) | `@media` block re-expressed as a `grid-template-areas` redefinition — tickers each get their own full-width row; `bl` / `br` span both rows so the corner circles continue to overlay at the bottom corners. |
+| Tests | `cd client && npm test -- KioskMode` → **88/88 pass** unchanged. `cd client && npm run build` (runs `tsc -b`) → clean. No Playwright visual baselines in repo to regenerate. |
+| CI | `Build Client`, `Client Tests`, `Server Tests`, `E2E Tests` (1m33s), `lint-pr-title`, `enable-orchestrator` all pass; `pr-review` is `skipping` until ready-state. |
+| Acceptance criteria | All six AC items checked: `display: grid` with documented `grid-template-areas`, all overlays placed via `grid-area` (no remaining `position: absolute` corner offsets in their selectors), `padding: 4rem` reservations removed, `@media (max-width: 480px)` redefines `grid-template-areas`, class names + `data-testid` preserved, fixed 3.5rem bottom row with vertically-centered circles + flex-centered ticker text (per the follow-up comment's recommendation). |
+
+_This worklog entry was written by an AI agent (OpenHands impl worker) on behalf of @jpshackelford._
+
+---
