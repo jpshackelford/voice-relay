@@ -1730,8 +1730,9 @@ header {
 
 /*
  * Issue #346 item 1: faux oscilloscope indicator, the left-side visual
- * counterpart to .kiosk-ai-status. Same purple-circle treatment so the
- * two indicators read as a pair; the canvas inside renders a flat line
+ * counterpart to .kiosk-ai-status. Uses the user-message blue accent
+ * (#3282b8) so the kiosk color language matches the sidebar bubbles:
+ * blue = human, purple = AI. The canvas inside renders a flat line
  * during silence and a waveform while transcription events are landing.
  *
  * Issue #379: lives in the bottom-left grid cell (`bl`); centered in
@@ -1747,8 +1748,8 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(168, 85, 247, 0.2);
-  border: 2px solid #a855f7;
+  background: rgba(50, 130, 184, 0.2);
+  border: 2px solid #3282b8;
   border-radius: 50%;
   z-index: 10;
   overflow: hidden;

@@ -23,6 +23,16 @@ vi.mock('./QRCode', () => ({
   ),
 }));
 
+// Mock the Oscilloscope so we can assert which color the kiosk passes
+// to it (issue #380: must be the user-message blue, not the AI purple).
+// The real component renders into a canvas, which is awkward to inspect
+// in happy-dom; the data-color attribute round-trips the prop cleanly.
+vi.mock('./Oscilloscope', () => ({
+  Oscilloscope: ({ color }: { color?: string }) => (
+    <div data-testid="oscilloscope-mock" data-color={color} />
+  ),
+}));
+
 describe('KioskMode', () => {
   // Mock AI state passed from parent (via useAI hook in SessionView)
   const mockAiState = {
@@ -1865,6 +1875,24 @@ describe('KioskMode', () => {
         );
       });
       expect(screen.getByTestId('kiosk-oscilloscope-indicator')).toBeDefined();
+    });
+
+    // Issue #380: the left indicator visualizes the human user's voice, so
+    // the waveform stroke must use the user-message blue accent (#3282b8),
+    // not the AI-accent purple. This pairs with the .kiosk-oscilloscope-
+    // indicator background/border swap in App.css.
+    it('passes the user-message blue accent to the oscilloscope waveform', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const oscilloscope = screen.getByTestId('oscilloscope-mock');
+      expect(oscilloscope.getAttribute('data-color')).toBe('#3282b8');
     });
 
     it('does not render the oscilloscope indicator when tickers are disabled', () => {
