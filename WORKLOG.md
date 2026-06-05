@@ -426,3 +426,46 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 22:35 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ca35fb8` | implementation | Issue #405 — Typed reason for missing WS handshake materials | **NEW** |
+
+**Worker Completed Last Tick:** `5e8b184` (implementation, Issue #403) → **finished**
+- Created [PR #406](https://github.com/jpshackelford/voice-relay/pull/406) — `fix(server): refresh & rebind honor per-workspace OpenHands API key (#403)`.
+- All required CI checks green; `pr-review` IN_PROGRESS; `mergeable=MERGEABLE` / `mergeStateStatus=UNSTABLE` (gated on pr-review verdict). No unresolved review threads yet — nothing to address this tick.
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#405 — Replace opaque 'missing WS handshake materials' error with a typed, self-describing reason](https://github.com/jpshackelford/voice-relay/issues/405) (`enhancement`, `ready`, `priority:low`, `scope:server-only`)
+- Conversation: [`ca35fb8`](https://app.all-hands.dev/conversations/ca35fb869e5d4f45bdcc567cfe01ed71)
+- Start-task id: `a2f89df0f4d34f109700c5d3214beaad` → `app_conversation_id = ca35fb869e5d4f45bdcc567cfe01ed71` (`status = READY` on first poll; `execution_status = running`, `sandbox_status = RUNNING`)
+- Plugin ref: `voice-relay-workflow @ main`
+- Heads-up given to worker: PR #406 also touches `server/src/openhands.ts`; rebase if it lands first; scope is the typed-reason error model in `getOrCreateForSession` only.
+
+**Current State:**
+- **Open PRs:** 1 — [PR #406](https://github.com/jpshackelford/voice-relay/pull/406) (Issue #403). Status: `o pending ready` — required CI green, `pr-review` IN_PROGRESS, no unresolved threads.
+- **Ready+prioritized issues (unblocked):**
+  - **#403** → covered by PR #406 (closes on merge).
+  - **#404** — `priority:medium`, depends on #403/PR #406 — **deferred** until #406 merges (avoids fighting the bugfix PR).
+  - **#405** — `priority:low` — **NOW IN IMPL SLOT** ✅ (independent of #406's diff modulo same file).
+- **Issues needing expansion:** 0.
+- **Ready issues on-hold (excluded):** #351, #363.
+- **Issues without `ready` label that are skipped:** all are `on-hold` or `needs-human` (#210, #239, #299, #300, #301, #302, #372, #384).
+- **Active slot summary:** expansion 0/4, implementation 1/1, review 0/2.
+
+**Decision rationale:**
+- Last tick's impl worker (5e8b184) successfully created PR #406 and exited — moved to `completed`.
+- PR #406 has no unresolved review threads yet (pr-review still running). No review worker spawn needed; merge worker can't run while `mergeStateStatus=UNSTABLE`. Next tick will reassess once pr-review reports.
+- Impl slot freed → spawn for highest-priority unblocked ready issue.
+- Priority order of eligible unblocked: #404 (medium, blocked by #403/#406) → **skip**; #405 (low, independent) → **spawn**.
+- Risk noted: #406 and #405 both edit `server/src/openhands.ts`. Surface areas are disjoint (#406 = refresh/rebind, #405 = `getOrCreateForSession` typed errors). Worker instructed to rebase if #406 merges first.
+- No expansion work — all unexpanded issues are `on-hold`/`needs-human`.
+
+**Quiet-tick counter:** reset `0 → 0` (productive tick: 1 worker spawned, 1 worker reaped to completed).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
