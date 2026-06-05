@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { Login } from './Login';
 
 // Mock useAuth
@@ -139,6 +142,39 @@ describe('Login', () => {
       );
 
       expect(screen.getByText('Authentication failed. Please try again.')).toBeDefined();
+    });
+  });
+
+  describe('layout (regression #390)', () => {
+    it('renders the footer as a sibling after the login card', async () => {
+      await act(async () => {
+        renderLogin();
+      });
+
+      const card = document.querySelector('.login-card');
+      const footer = document.querySelector('.login-footer');
+      expect(card).not.toBeNull();
+      expect(footer).not.toBeNull();
+      // Card and footer share the same parent (.login-page wrapper)
+      expect(card!.parentElement).toBe(footer!.parentElement);
+      expect(card!.parentElement?.classList.contains('login-page')).toBe(true);
+      // Footer comes after card in document order so a column flex stacks it below
+      expect(
+        card!.compareDocumentPosition(footer!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('stacks .login-page children vertically (flex-direction: column)', () => {
+      // CSS-only regression: in a row layout the footer renders beside the card
+      // instead of below it (see issue #390). Assert the rule directly from
+      // App.css so the fix can't be silently removed.
+      const here = dirname(fileURLToPath(import.meta.url));
+      const css = readFileSync(resolve(here, '../App.css'), 'utf8');
+      const match = css.match(/\.login-page\s*{([^}]*)}/);
+      expect(match, '.login-page rule not found in App.css').not.toBeNull();
+      const body = match![1];
+      expect(body).toMatch(/display\s*:\s*flex\s*;/);
+      expect(body).toMatch(/flex-direction\s*:\s*column\s*;/);
     });
   });
 });
