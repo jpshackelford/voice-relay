@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T04:47:00+00:00",
+  "last_updated": "2026-06-05T04:57:00+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -19,7 +19,7 @@
       "started": "2026-06-04T17:00:44Z",
       "finished": "2026-06-04T17:15:00Z",
       "status": "success",
-      "outcome": "Expanded #377 \u2014 added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
+      "outcome": "Expanded #377 — added bug/ready/priority:low/scope:client-only labels, posted CSS diff comment referencing release-notes-modal pattern"
     },
     {
       "conv_id": "afbccd4",
@@ -28,7 +28,7 @@
       "started": "2026-06-04T17:03:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Expanded #378 \u2014 labels enhancement/server/scope:server-only/priority:medium/ready; comment with REST settings architecture & migration 016"
+      "outcome": "Expanded #378 — labels enhancement/server/scope:server-only/priority:medium/ready; comment with REST settings architecture & migration 016"
     },
     {
       "conv_id": "ca530a6",
@@ -37,7 +37,7 @@
       "started": "2026-06-04T17:03:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Expanded #379 \u2014 labels enhancement/client/scope:client-only/priority:low/ready (CSS Grid kiosk overlays)"
+      "outcome": "Expanded #379 — labels enhancement/client/scope:client-only/priority:low/ready (CSS Grid kiosk overlays)"
     },
     {
       "conv_id": "401f9d3",
@@ -46,7 +46,7 @@
       "started": "2026-06-04T17:08:00Z",
       "finished": "2026-06-04T17:33:36.232972Z",
       "status": "success",
-      "outcome": "Created PR #381 \u2014 fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
+      "outcome": "Created PR #381 — fix(client): respect iOS safe-area-inset-top in mobile settings modal. Squash-merged at c95f4f9; issue #377 auto-closed."
     },
     {
       "conv_id": "21fe6fd",
@@ -55,7 +55,7 @@
       "started": "2026-06-04T17:51:21.389212Z",
       "finished": "2026-06-04T18:06:44.095647Z",
       "status": "success",
-      "outcome": "Expanded #383 \u2014 speaker identity model: schema + REST + agent wiring; ready label added"
+      "outcome": "Expanded #383 — speaker identity model: schema + REST + agent wiring; ready label added"
     },
     {
       "conv_id": "d48597e",
@@ -64,7 +64,7 @@
       "started": "2026-06-04T17:51:21.389212Z",
       "finished": "2026-06-04T18:06:44.095647Z",
       "status": "success",
-      "outcome": "Triaged #384 \u2014 set on-hold (blocked by #383); did NOT add ready label per skill rules"
+      "outcome": "Triaged #384 — set on-hold (blocked by #383); did NOT add ready label per skill rules"
     },
     {
       "conv_id": "7c19afa",
@@ -73,7 +73,7 @@
       "started": "2026-06-04T18:06:44.095647Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Expanded #386 \u2014 Optional hosted STT with diarization (Deepgram/AssemblyAI); ready label added"
+      "outcome": "Expanded #386 — Optional hosted STT with diarization (Deepgram/AssemblyAI); ready label added"
     },
     {
       "conv_id": "ae7301e",
@@ -82,7 +82,7 @@
       "started": "2026-06-04T18:06:44.095647Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Expanded #388 \u2014 Per-device mic listening/mute state propagation; ready label added"
+      "outcome": "Expanded #388 — Per-device mic listening/mute state propagation; ready label added"
     },
     {
       "conv_id": "329d0f1",
@@ -91,7 +91,7 @@
       "started": "2026-06-04T17:35:58.600787Z",
       "finished": "2026-06-04T18:20:19.728618Z",
       "status": "success",
-      "outcome": "Created PR #385 \u2014 feat(server): expose session settings over REST + per-session agent prompt; all CI green, mergeable; (duplicate PR #387 closed)"
+      "outcome": "Created PR #385 — feat(server): expose session settings over REST + per-session agent prompt; all CI green, mergeable; (duplicate PR #387 closed)"
     },
     {
       "conv_id": "2db4bd8",
@@ -99,7 +99,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Expanded #389 \u2014 system prompt PATCH /api/sessions/:id/settings; ready label added (priority:low, scope:server-only)",
+      "outcome": "Expanded #389 — system prompt PATCH /api/sessions/:id/settings; ready label added (priority:low, scope:server-only)",
       "issue": 389
     },
     {
@@ -108,7 +108,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Expanded #390 \u2014 login page footer layout bug (bug); ready label added (priority:low, client, scope:client-only)",
+      "outcome": "Expanded #390 — login page footer layout bug (bug); ready label added (priority:low, client, scope:client-only)",
       "issue": 390
     },
     {
@@ -117,7 +117,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-04T18:35:52.542343Z",
       "status": "success",
-      "outcome": "Squash-merged PR #385 at 18:24:35Z \u2014 feat(server): session settings REST + per-session agent prompt; auto-closed #378",
+      "outcome": "Squash-merged PR #385 at 18:24:35Z — feat(server): session settings REST + per-session agent prompt; auto-closed #378",
       "pr": 385
     },
     {
@@ -127,7 +127,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-05T01:55:03.962833Z",
       "status": "success",
-      "outcome": "Opened PR #391 \u2014 feat(server): speaker identity model. All 7 CI checks green, MERGEABLE/CLEAN, 1 unresolved bot review thread (UUID format suggestion)."
+      "outcome": "Opened PR #391 — feat(server): speaker identity model. All 7 CI checks green, MERGEABLE/CLEAN, 1 unresolved bot review thread (UUID format suggestion)."
     },
     {
       "conv_id": "6cb2073",
@@ -163,7 +163,7 @@
       "started": "2026-06-05T01:57:24.159396Z",
       "finished": "2026-06-05T02:19:08.379728+00:00",
       "status": "success",
-      "outcome": "Issue #379 \u2192 PR #394 (CSS Grid kiosk overlays)"
+      "outcome": "Issue #379 → PR #394 (CSS Grid kiosk overlays)"
     },
     {
       "conv_id": "82660be",
@@ -172,7 +172,7 @@
       "started": "2026-06-05T02:21:17.232374+00:00",
       "finished": "2026-06-05T02:35:00Z",
       "status": "success",
-      "outcome": "Created PR #395 \u2014 feat(client): identify the sending device/speaker in the transcription ticker (Fixes #382). CI green; PR moved to ready."
+      "outcome": "Created PR #395 — feat(client): identify the sending device/speaker in the transcription ticker (Fixes #382). CI green; PR moved to ready."
     },
     {
       "conv_id": "17e6c73",
@@ -217,7 +217,7 @@
       "started": "2026-06-05T02:52:48.410180+00:00",
       "finished": "2026-06-05T03:33:36.314013+00:00",
       "status": "success",
-      "outcome": "Issue #393 \u2192 PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
+      "outcome": "Issue #393 → PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
     },
     {
       "conv_id": "c327b70",
@@ -227,7 +227,7 @@
       "started": "2026-06-05T03:35:03.084872+00:00",
       "finished": "2026-06-05T03:53:08.825319+00:00",
       "status": "stuck",
-      "outcome": "Spawned but never executed \u2014 sub-conversation 3dd8f41 sat idle 10min with $0 cost. Replaced by eb2c297. Root cause: previous orchestrator stored start-task ID (c327b70) instead of app_conversation_id (3dd8f41) \u2014 a bug to fix in spawn flow."
+      "outcome": "Spawned but never executed — sub-conversation 3dd8f41 sat idle 10min with $0 cost. Replaced by eb2c297. Root cause: previous orchestrator stored start-task ID (c327b70) instead of app_conversation_id (3dd8f41) — a bug to fix in spawn flow."
     },
     {
       "conv_id": "fee6d4e",
@@ -237,7 +237,7 @@
       "started": "2026-06-05T03:35:03.084872+00:00",
       "finished": "2026-06-05T03:53:08.825319+00:00",
       "status": "stuck",
-      "outcome": "Spawned but never executed \u2014 sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
+      "outcome": "Spawned but never executed — sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
     },
     {
       "conv_id": "ebaceb3",
@@ -273,7 +273,7 @@
       "type": "implementation",
       "finished": "2026-06-05T04:47:00+00:00",
       "status": "success",
-      "outcome": "Created PR #399 \u2014 fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
+      "outcome": "Created PR #399 — fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
     }
   ],
   "quiet_ticks": 0

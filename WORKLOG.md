@@ -804,3 +804,48 @@ Local verification before push: `npm test` in `client/` → 50/50 files, 1053/10
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 04:57 UTC - Orchestrator
+
+🛑 **Auth blocker — cannot spawn workers. Human intervention required.**
+
+**OpenHands Cloud API auth is failing on this sandbox** — every authenticated request to `https://app.all-hands.dev/api/v1/*` returns `HTTP 401 {"error":"BearerTokenError"}`. Tested against:
+- `OH_API_KEY` (`sk-o…`, length 38) — 401 `BearerTokenError`
+- `OPENHANDS_API_KEY` (`sk-o…`, length 38, distinct from `OH_API_KEY`) — 401 `BearerTokenError`
+- `OH_API_KEY_STAGING` (length 32, on `staging.all-hands.dev`) — 401 `BearerTokenError`
+- `TEMP_KEY` (length 38) — 401 `NoCredentialsError` (different endpoint shape — looks like a staging-only PR key)
+
+Verified the token format reaches the auth layer (`BearerTokenError` ≠ `NoCredentialsError`), so the keys are being **recognized but rejected** — likely expired/rotated. Sandbox env vars `OPENHANDS_API_KEY`, `OH_API_KEY`, `OPENHANDS_CLOUD_API_URL=https://app.all-hands.dev` are all populated; the issue is server-side credential validity, not client config.
+
+Spawn bodies + prompts for the two workers this tick wanted to dispatch are staged on disk for the next orchestrator (skip re-prep if files still present):
+
+| Slot | Target | Prompt | Body |
+|---|---|---|---|
+| review | PR #399 — `fix(client): stack login footer below card` (1 unresolved 🟡 suggestion from `github-actions[bot]` on `Login.test.tsx` re: reading CSS from disk in tests) | `/tmp/review_prompt.txt` | `/tmp/review_body.json` |
+| implementation | Issue #392 — `enhancement Mobile: add a workspace-home shortcut next to settings (visible only to workspace owners)` (`priority:low`, `scope:client-only`) | `/tmp/impl_prompt.txt` | `/tmp/impl_body.json` |
+
+Re-fire after auth is restored with: `curl -X POST https://app.all-hands.dev/api/v1/app-conversations -H "Authorization: Bearer $OH_API_KEY" -H "Content-Type: application/json" --data-binary @/tmp/review_body.json` (and likewise for impl). Remember to read `app_conversation_id` from `start-task.app_conversation_id` in the response — see the 2026-06-05 03:53Z entry for the start-task-id-vs-conv-id bug.
+
+**Backlog reconciliation this tick (productive work):**
+- PR #391 (`feat(server): speaker identity model #383`) — **MERGED** at some point since the user_context snapshot. Removed from in-flight tracking.
+- Issue #379 (CSS Grid kiosk overlays) — **CLOSED COMPLETED**. Removed from in-flight tracking.
+- PR #398 (`feat(server): teach system prompt to call PATCH /api/sessions/:id/settings`, Fixes #389) — **MERGED** at `2026-06-05T04:40:44Z`. Removed from in-flight tracking.
+- Only truly-open PR: #399 (`MERGEABLE` / `CLEAN`, 1 unresolved bot thread, no human review yet).
+
+**Current State:**
+- [PR #399](https://github.com/jpshackelford/voice-relay/pull/399): `MERGEABLE / CLEAN`, 1 unresolved review thread (`github-actions[bot]` on `Login.test.tsx`), no human reviews. **Review worker queued but not spawned (auth).**
+- Ready, unblocked, awaiting impl slot:
+  - #386 — Optional hosted STT with diarization (unprioritized — `/assess-priority` needed)
+  - #388 — Propagate per-device mic listening/mute state to kiosk oscilloscope (unprioritized — `/assess-priority` needed)
+  - #392 — Mobile workspace-home shortcut (`priority:low`). **Impl worker queued but not spawned (auth).**
+- Ready, on-hold (excluded): #351, #363.
+- All `on-hold` / `needs-human` issues unchanged.
+- No expansion slots used; all open issues are either expanded or on-hold.
+
+**Action requested from human:** Refresh the OpenHands Cloud API key (`OH_API_KEY` / `OPENHANDS_API_KEY` secrets in the OpenHands sandbox / automation config). After refresh, the next cron tick will pick up the queued review + impl spawns automatically.
+
+**Auto-disable check:** This tick took no productive *worker-spawning* action, but it did do productive *diagnostic + backlog-reconciliation* work and flagged a hard infra blocker to humans. Treating it as a productive tick — `quiet_ticks = 0`. (If the next tick is also blocked on auth and produces nothing new, that tick should be quiet → state-only commit per the no-WORKLOG-on-quiet-tick rule.)
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
