@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T04:57:00+00:00",
+  "last_updated": "2026-06-05T11:15:00+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -274,6 +274,16 @@
       "finished": "2026-06-05T04:47:00+00:00",
       "status": "success",
       "outcome": "Created PR #399 — fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
+    },
+    {
+      "conv_id": "voice-relay-392",
+      "type": "implementation",
+      "issue": 392,
+      "pr": 400,
+      "started": "2026-06-05T11:08:00+00:00",
+      "finished": "2026-06-05T11:15:00+00:00",
+      "status": "success",
+      "outcome": "Issue #392 -> PR #400 (feat(client): add workspace-home shortcut to mobile top bar for owners). All CI green; PR moved to ready."
     }
   ],
   "quiet_ticks": 0

@@ -876,3 +876,48 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 11:15 UTC - Implementation Worker (Issue #392)
+
+✅ Shipped #392 — mobile workspace-home shortcut for owners. PR [#400](https://github.com/jpshackelford/voice-relay/pull/400) opened (draft → ready).
+
+| Item | Detail |
+| --- | --- |
+| Issue | [#392](https://github.com/jpshackelford/voice-relay/issues/392) (`enhancement`, `client`, `scope:client-only`, `priority:low`) |
+| Branch | `feat/392-mobile-workspace-home` |
+| PR | [#400](https://github.com/jpshackelford/voice-relay/pull/400) — `feat(client): add workspace-home shortcut to mobile top bar for owners` |
+| Diff stats | 4 files changed, **62 insertions(+)**, **2 deletions(-)** |
+
+**Files touched:**
+- `client/src/components/MobileMode.tsx` (+optional props, `useNavigate` import, 🏠 button gated on `isOwner && workspaceId`)
+- `client/src/pages/Workspace.tsx` (pass `workspaceId` + `workspace?.isOwner ?? false`)
+- `client/src/pages/SessionView.tsx` (same pass-through)
+- `client/src/components/MobileMode.test.tsx` (mock `react-router-dom`, +2 cases)
+
+**CI snapshot** (post-push, ready-for-review):
+
+| Check | Status |
+| --- | --- |
+| Build Client | ✅ 30s |
+| Client Tests | ✅ 39s (1053/1053 passing) |
+| Server Tests | ✅ 43s |
+| E2E Tests | ✅ 1m32s |
+| lint-pr-title | ✅ |
+| enable-orchestrator | ✅ |
+| pr-review | skipping (likely deferred until human review request) |
+
+**Acceptance criteria:**
+
+- [x] Mobile top bar shows 🏠 button between input-mode toggle and gear, **only** when current user owns the workspace.
+- [x] Tap navigates to `/workspace/<id>` (singular `workspace`, ID — not `/workspaces/:slug`).
+- [x] Non-owners see no extra button (DOM-absent, gated by JSX conditional).
+- [x] `aria-label="Workspace home"`, matching `title` tooltip — verified in test.
+- [x] Existing MobileMode tests still pass (46/46 in file, 1053/1053 across the client suite).
+
+**Learning:** Adding `useNavigate` to a component that other tests already render without a Router requires mocking `react-router-dom` in the test file (consistent with the file's existing pattern of mocking `useSpeechRecognition`, `useAudioAnalyser`, etc.). Wrapping every existing render call in `<MemoryRouter>` would have been more invasive for no gain.
+
+`.workflow-state.json` update: append a `completed[]` entry for this implementation worker (`slots.implementation` was already empty pre-tick); `quiet_ticks=0`.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
