@@ -655,3 +655,18 @@ PR moved back from draft → ready for review.
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:03 UTC - Expand worker (#393 mobile kiosk picker)
+
+✅ Expanded issue #393 — *Mobile: pick which kiosk drives a new session when the workspace has multiple kiosks*.
+
+| Action | Detail |
+|---|---|
+| Comment | Posted technical verification + approach ([#393 comment](https://github.com/jpshackelford/voice-relay/issues/393#issuecomment-4627487041)). Issue body was already comprehensive (Motivation/UX/Implementation outline/AC/Non-goals), so verified the proposal against current code rather than rewriting. |
+| Code walked | `server/src/sessions/*`, `server/src/registry.ts` (`broadcastDeviceList`), `server/src/index.ts` (WS register + `resolveSessionForDevice` + `/api/display`), `client/src/components/MobileMode.tsx`, `MobileSettings.tsx`, `KioskMode.tsx`. |
+| Key call-outs in comment | (1) **Session resolution model is the load-bearing change** — picker semantics require *one active session per kiosk* (Idle/In-session/Join branches all depend on it). (2) **A SQLite migration IS required** (`sessions.target_kiosk_device_id`) — contradicts the prompt's "probably none" hint. (3) `device-list` WS broadcast + `session.metadata.displayContent` can be reused for status pills and preview thumbnail — no new caching layer. (4) New WS message `kiosk-attention` for the on-screen "📱 connecting…" banner. |
+| Labels applied | `enhancement`, `scope:full-stack`, `priority:medium`, `ready`. |
+
+_This worklog entry was written by an AI agent (OpenHands expand worker) on behalf of @jpshackelford._
+
+---
