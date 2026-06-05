@@ -563,3 +563,23 @@ For the test, mocked `./Oscilloscope` with a `<div data-testid="oscilloscope-moc
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 03:59 UTC - Review Worker (PR #396, conv eb2c297)
+
+✅ **Addressed `github-actions[bot]` defensive-validation suggestion on `server/src/index.ts:732`.**
+
+**Fix:** Extracted the inline `kiosk-attention` broadcast into `sendKioskAttentionIfValid()` (server/src/index.ts) which now looks up `message.targetKioskDeviceId` in `DeviceRegistry` and requires `device.mode === 'kiosk'` before calling `sendToDevice`. Non-kiosk targets (missing, mobile, offline) are dropped with a `console.warn` — so a buggy or malicious mobile can't make the server broadcast a `kiosk-attention` to a non-kiosk peer.
+
+**Tests:** New `server/src/kiosk-attention.test.ts` — 6 cases covering happy path, mobile-targeting-mobile rejection, offline-kiosk drop, sender-is-kiosk no-op, missing-target no-op, self-target no-op. All 1484 server tests pass; full PR CI 5/5 green (`Build Client`, `Client Tests`, `Server Tests`, `E2E Tests`, `lint-pr-title`). `pr-review` + `enable-orchestrator` re-triggered by the ready-for-review transition.
+
+**Commit:** `3e8383a` — `fix(websocket): validate kiosk-attention target is a kiosk`.
+
+**Thread:** Replied on `PRRT_kwDOSTUWGM6HQOTw`, resolved via GraphQL.
+
+**Status:** PR #396 back in `ready` state, no unresolved review threads, awaiting human merge.
+
+**Note:** The previous spawn (`3dd8f41`) for this same PR was stuck — this conversation (`eb2c297`) is its replacement and completed the work in ~7 min wall-clock.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
