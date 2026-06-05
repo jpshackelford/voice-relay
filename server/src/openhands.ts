@@ -2412,14 +2412,7 @@ export class AISessionManager {
 
     const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
     if (!agentServerUrl || !convInfo.session_api_key) {
-      // Issue #405: replace the opaque error with a typed, self-describing
-      // reason. The create path has no preceding `pollSandboxRunning`
-      // (that's the attach path's PAUSED-recovery branch), so `lastError`
-      // is unavailable — `explainMissingHandshake` falls through to
-      // `sandbox_status` or `unknown`. We surface as
-      // `UpstreamConversationEndedError` for symmetry with the attach
-      // path and so callers (`auto-connect.ts`) can read the typed
-      // `reason` and propagate it into the `degraded` broadcast.
+      // Classify and throw with typed reason so callers can propagate to degraded broadcast.
       const reason = explainMissingHandshake(convInfo);
       throw new UpstreamConversationEndedError(
         conversationId,
@@ -2585,10 +2578,7 @@ export class AISessionManager {
       try {
         convInfo = await this.pollSandboxRunning(conversationId, client, {
           onTransientError: (err) => {
-            // Issue #405: remember the most recent swallowed transient
-            // error so the post-poll WS-handshake check can name the
-            // cause. Last write wins — we only care about the most
-            // recent observation for classification.
+            // Capture for post-poll handshake classification.
             lastPollError = err;
           },
         });
