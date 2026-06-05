@@ -613,3 +613,25 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 04:32 UTC - Implementation Worker (Issue #389)
+
+🚀 **Opened PR #398 — `feat(server): teach system prompt to call PATCH /api/sessions/:id/settings` (Fixes #389).**
+
+**Scope:** `scope:server-only`, `priority:low`. Pure prompt-text change — no server code, no schema, no migration, no client diff. Closes the loop opened by PR #385 (REST surface for per-session settings) by teaching the default system prompt how to call it.
+
+**Diff:** +88 / -2 across 2 files.
+- `server/prompts/system-prompt.md` (+55 lines): new `## Session Settings API` H2 inserted directly under the existing Display API section. Documents endpoint URL (`PATCH {{SERVER_URL}}/api/sessions/{{SESSION_ID}}/settings`), `Authorization: Bearer $DISPLAY_API_SECRET` header, and all four mutable fields from `SessionSettingsPatch` (`tts: { enabled, outputDeviceId }`, `inputMode`, `autoSubmit`, `agentPrompt`). Five concrete `curl -X PATCH` examples tied to natural-language trigger phrases ("turn off TTS", "turn TTS back on", "switch to push-to-talk" / "stop auto-sending", "show me the audio visualizer", "forget my custom prompt" / `agentPrompt: null`). Adds "When NOT to call this endpoint" sub-section calling out device-level volume, one-off muting, and self-directed behaviour tweaks as out-of-scope to discourage over-triggering.
+- `server/src/openhands.test.ts` (+33 / -2): new `unified prompt contains session settings API instructions` test mirrors the Display API assertion pattern (section markers + all four field names + `Bearer $DISPLAY_API_SECRET` + `PATCH /api/sessions/` + trigger-phrase JSON snippets + "Device volume" out-of-scope guidance). Bumps `sessionIdMatches.length` assertion from `4` → `10` (4 Display API curls + 1 Session Settings prose mention + 5 Session Settings curls) with an inline comment so future drift is caught.
+
+**REST-surface verification:** Confirmed prompt matches the live route mount before pushing. `server/src/sessions/settings-router.ts:142` exposes `router.patch('/:sessionId/settings', auth, …)`, mounted at `app.use('/api/sessions', sessionSettingsRouter)` in `server/src/index.ts:1610`. The `SessionSettingsPatch` shape in `server/src/sessions/settings-service.ts:47` exactly matches the four fields the prompt documents — no drift since PR #385 merged.
+
+**CI:** Branch `feat/389-system-prompt-session-settings` (commit `b41c6c8`). All required checks SUCCESS on first run — `Build Client` 28s, `Client Tests` 40s, `Server Tests` 45s (318/318), `E2E Tests` 1m30s, `lint-pr-title` (scope `server` accepted), `enable-orchestrator`. `pr-review` SKIPPED on the initial draft push; will re-run now that the PR is `ready for review`. Local `npx tsc --noEmit` clean.
+
+**Deferred:** Acceptance criterion #6 (end-to-end smoke confirming "user says X → agent issues PATCH Y → kiosk observes `session-settings-changed`") is intentionally deferred — real-LLM behaviour is non-deterministic so a CI-gating Playwright test would be flaky. The server-side half (WS observer + PATCH-issues-broadcasts contract) is already covered by `tests/session-settings-api.spec.ts` from PR #385. The live-LLM half should be validated post-merge by saying "turn off TTS" into a mobile and observing TTS muting on a kiosk on vr.chorecraft.net. Documented in the PR description under "Acceptance criteria" and "Risks".
+
+**Status:** PR marked `ready for review` after CI greened. Exiting; review handling is a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
