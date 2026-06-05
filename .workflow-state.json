@@ -3,11 +3,6 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "6cb2073",
-        "issue": 392,
-        "started": "2026-06-05T01:57:24.159396Z"
-      },
-      {
         "conv_id": "be136d2",
         "issue": 393,
         "started": "2026-06-05T01:57:24.159396Z"
@@ -20,20 +15,14 @@
         "started": "2026-06-05T01:57:24.159396Z"
       }
     ],
-    "review": [
-      {
-        "conv_id": "4a78335",
-        "pr": 391,
-        "started": "2026-06-05T01:57:24.159396Z"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T01:57:24.159396Z",
+  "last_updated": "2026-06-05T02:04:59.488814Z",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -151,7 +140,25 @@
       "finished": "2026-06-05T01:55:03.962833Z",
       "status": "success",
       "outcome": "Opened PR #391 \u2014 feat(server): speaker identity model. All 7 CI checks green, MERGEABLE/CLEAN, 1 unresolved bot review thread (UUID format suggestion)."
+    },
+    {
+      "conv_id": "6cb2073",
+      "type": "expansion",
+      "started": "2026-06-05T01:57:24.159396Z",
+      "finished": "2026-06-05T02:04:59.488814Z",
+      "status": "success",
+      "outcome": "Added ready label to issue #392",
+      "issue": 392
+    },
+    {
+      "conv_id": "4a78335",
+      "type": "review",
+      "started": "2026-06-05T01:57:24.159396Z",
+      "finished": "2026-06-05T02:04:59.488814Z",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #391, fixes pushed",
+      "pr": 391
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
