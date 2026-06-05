@@ -637,3 +637,21 @@ Labels added: `ready, enhancement, client, scope:client-only, priority:low`.
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:01 UTC - Review worker (PR #391)
+
+✅ Addressed the one unresolved review thread on PR #391
+(`feat/383-speaker-identity-model`) flagged by `github-actions[bot]`.
+
+| Thread | Decision | Commit |
+|---|---|---|
+| Migration 017 UUID format inconsistency | ✅ Accepted — backfill now emits canonical UUID v4 shape (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) so backfilled and `randomUUID()`-generated `auth_identities.id` values match. | [`9839844`](https://github.com/jpshackelford/voice-relay/commit/9839844) |
+
+Migration 017 tests (`017_speakers.test.ts`, 10 tests) still pass locally.
+All CI checks green on the PR (`Server Tests`, `Client Tests`, `E2E Tests`,
+`Build Client`, `lint-pr-title`). Thread replied to + resolved via GraphQL.
+PR moved back from draft → ready for review.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
