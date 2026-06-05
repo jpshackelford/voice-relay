@@ -338,3 +338,29 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker for issue #388) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 12:30 UTC - Unblock worker (PR #401)
+
+✅ Unblocked PR #401 (`feat/388-mic-listening-state`, fixes #388).
+
+**Three problems addressed:**
+
+| # | Problem | Resolution |
+|---|---------|------------|
+| 1 | Branch Hygiene (WORKLOG.md / `.workflow-state.json` on branch) | Already clean — `git diff origin/main...HEAD --name-only` showed neither file in the diff. No action needed. |
+| 2 | Merge conflict in `client/src/components/MobileMode.test.tsx` | Rebased on `origin/main`. Conflict was between two new `describe` blocks (#392 workspace-home shortcut from main, #388 sendListeningState from branch). Kept both blocks intact. |
+| 3 | CI did not fire on previous push | Resolved automatically — force-push of rebased branch (`c5deedb...2a4eeaa`) triggered all 5 expected checks within seconds. |
+
+**Verification (local on rebased branch):**
+- Client: 1076/1076 passed (`npx vitest run` in `client/`).
+- Server: 1491/1491 passed (`npx vitest run` in `server/`).
+- TypeScript build: clean (`npx tsc -b`).
+
+**CI status:** all 5 required checks green — `lint-pr-title`, `Server Tests`, `Client Tests`, `Build Client`, `E2E Tests`.
+
+**Final PR state:** `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `isDraft=false`, `state=OPEN`. PR is in "ready for review".
+
+**Hand-off:** PR #401 is ready for the review worker on the next orchestrator tick.
+
+_This worklog entry was written by an AI agent (OpenHands unblock worker for PR #401) on behalf of @jpshackelford._
+
+---
