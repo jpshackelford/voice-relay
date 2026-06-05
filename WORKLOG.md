@@ -734,3 +734,20 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 02:42 UTC - Review Worker (PR #391 round 1)
+
+✅ **PR #391 review feedback addressed** — [PR #391](https://github.com/jpshackelford/voice-relay/pull/391)
+
+| Thread | File:Line | Action | Commit |
+|--------|-----------|--------|--------|
+| Bot suggestion: redundant `devices.findById()` per utterance | `server/src/index.ts:207` (`resolveSpeakerForDevice`) | Accepted; cached `primary_user_id` on the in-memory `Device` and refactored the resolver to take it directly | `e5fd361` |
+
+- **Refactor:** added `primaryUserId?: string \| null` to the registry-side `Device`, seeded by `DeviceRegistry.register(...)` from `deviceRepository.registerOrUpdate().device.primaryUserId` at WS register, refreshed via `DeviceRegistry.updateDevice` whenever the device router's `PATCH /:deviceId` claims it for a workspace user. `resolveSpeakerForUser(workspaceId, primaryUserId)` now only touches the `speakers` table — the relay path no longer queries `devices` per inbound utterance.
+- **Tests:** +3 specs (registry cache from `register`, `updateDevice` refresh + clear, reconnect refresh, PATCH → registry sync). Suite 1447 → 1450, all green.
+- **Workflow:** PR converted to draft → refactor + tests → committed (`refactor(server): cache primaryUserId on in-memory device (#383)`) → pushed → CI all green (Build Client, Client Tests, Server Tests, E2E Tests 1m40s, lint-pr-title) → thread replied + resolved via GraphQL → PR marked ready.
+- **Scope:** server-only; the migration & schema from PR #391's prior commits are untouched, so the SQLite production DB on vr.chorecraft.net still rolls forward cleanly on merge.
+- **Outstanding:** none; awaiting next review round.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
