@@ -260,14 +260,8 @@ describe('OpenHandsAgentDriver', () => {
     });
 
     test('openSession preserves UpstreamConversationEndedError with typed reason (#405)', async () => {
-      // The driver previously wrapped any bind failure in a bare `new
-      // Error(msg)`, which dropped both the error class and the typed
-      // `reason` property that `auto-connect.ts` /
-      // `agent-rehydrate.ts` rely on to render a self-describing
-      // `degraded` broadcast (per issue #405). Verify that the
-      // original `UpstreamConversationEndedError` survives the driver
-      // layer so `instanceof` + `.reason` still work on the way back
-      // to the broadcast call-sites.
+      // Verify UpstreamConversationEndedError with typed `reason` survives
+      // the driver layer so `instanceof` + `.reason` work at broadcast sites.
       const original = new UpstreamConversationEndedError(
         'conv-X',
         'Conversation conv-X cannot open a WS session: sandbox is STOPPED.',
