@@ -1765,4 +1765,48 @@ describe('KioskMode', () => {
       expect(kioskDisplay?.getAttribute('data-tickers-enabled')).toBe('false');
     });
   });
+
+  // Issue #393: kiosk-attention banner.
+  describe('kiosk-attention banner (#393)', () => {
+    it('renders the banner when attention is set', () => {
+      render(
+        <KioskMode
+          {...defaultProps}
+          attention={{
+            mobileDeviceId: 'm1',
+            mobileDisplayName: 'Jane',
+            ttlMs: 5000,
+            at: Date.now(),
+          }}
+        />,
+      );
+      const banner = screen.getByTestId('kiosk-attention-banner');
+      expect(banner).toBeDefined();
+      expect(banner.textContent).toMatch('Jane connecting');
+    });
+    it('does not render the banner when attention is null', () => {
+      render(<KioskMode {...defaultProps} attention={null} />);
+      expect(screen.queryByTestId('kiosk-attention-banner')).toBeNull();
+    });
+    it('calls onAttentionDismiss after ttlMs', () => {
+      vi.useFakeTimers();
+      const onDismiss = vi.fn();
+      render(
+        <KioskMode
+          {...defaultProps}
+          attention={{
+            mobileDeviceId: 'm1',
+            mobileDisplayName: 'Jane',
+            ttlMs: 3000,
+            at: Date.now(),
+          }}
+          onAttentionDismiss={onDismiss}
+        />,
+      );
+      expect(onDismiss).not.toHaveBeenCalled();
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(onDismiss).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
+  });
 });

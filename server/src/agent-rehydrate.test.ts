@@ -47,6 +47,7 @@ function activeSession(
     displayApiSecretEncrypted: null,
     displayApiSecretIv: null,
     displayApiSecretTag: null,
+    targetKioskDeviceId: null,
   };
 }
 

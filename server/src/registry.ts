@@ -31,8 +31,33 @@ export function calculateDisplayLines(
   return Math.max(5, Math.min(30, lines));
 }
 
+/**
+ * Per-kiosk picker enrichment (issue #393). Populated by the consumer
+ * (`index.ts`) so the registry stays DB-free. When set,
+ * `broadcastDeviceList` hydrates kiosk entries with their active session
+ * anchor and last-used timestamp before broadcasting.
+ */
+export type KioskPickerEnricher = (
+  workspaceId: string
+) => Map<string, { activeSessionId: string | null; lastUsedAt: string | null }>;
+
 export class DeviceRegistry {
   private devices = new Map<string, Device>();
+  private kioskEnricher: KioskPickerEnricher | null = null;
+
+  /**
+   * Install the kiosk picker enrichment callback. Issue #393.
+   *
+   * The caller passes `(workspaceId) => Map<deviceId, {activeSessionId,
+   * lastUsedAt}>` (typically backed by
+   * `SessionRepository.getKioskPickerEnrichment`). Subsequent
+   * `broadcastDeviceList` calls use it to enrich kiosk entries.
+   *
+   * Calling with `null` clears the hook — used by tests.
+   */
+  setKioskEnricher(enricher: KioskPickerEnricher | null): void {
+    this.kioskEnricher = enricher;
+  }
 
   register(
     id: string, 
@@ -289,13 +314,26 @@ export class DeviceRegistry {
    */
   broadcastDeviceList(workspaceId: string): void {
     const devicesInWorkspace = this.getDevicesByWorkspace(workspaceId);
-    const deviceList = devicesInWorkspace.map(d => ({
-      id: d.id,
-      workspaceId: d.workspaceId,
-      displayName: d.displayName,
-      mode: d.mode,
-    }));
-    
+    // Issue #393: enrich kiosk entries with the active session anchor
+    // and last-used timestamp so the mobile kiosk picker can render
+    // status pills and "last used 2h ago" on first paint. Enricher is
+    // optional — anonymous mode and unit tests skip the DB hit entirely.
+    const enrichment = this.kioskEnricher?.(workspaceId);
+    const deviceList: DeviceInfo[] = devicesInWorkspace.map(d => {
+      const base: DeviceInfo = {
+        id: d.id,
+        workspaceId: d.workspaceId,
+        displayName: d.displayName,
+        mode: d.mode,
+      };
+      if (d.mode === 'kiosk' && enrichment) {
+        const extra = enrichment.get(d.id);
+        base.activeSessionId = extra?.activeSessionId ?? null;
+        base.lastUsedAt = extra?.lastUsedAt ?? null;
+      }
+      return base;
+    });
+
     const message: DeviceListMessage = {
       type: 'device-list',
       devices: deviceList,

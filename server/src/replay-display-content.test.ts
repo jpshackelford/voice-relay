@@ -40,6 +40,7 @@ function sessionWithDisplay(
     displayApiSecretEncrypted: null,
     displayApiSecretIv: null,
     displayApiSecretTag: null,
+    targetKioskDeviceId: null,
   };
 }
 
@@ -55,6 +56,7 @@ function bareSession(id: string, metadata: Session['metadata'] = null): Session 
     displayApiSecretEncrypted: null,
     displayApiSecretIv: null,
     displayApiSecretTag: null,
+    targetKioskDeviceId: null,
   };
 }
 

@@ -65,6 +65,7 @@ describe('AgentEvent Router', () => {
         started_at TEXT NOT NULL DEFAULT (datetime('now')),
         ended_at TEXT,
         metadata TEXT,
+        target_kiosk_device_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
       CREATE TABLE session_devices (

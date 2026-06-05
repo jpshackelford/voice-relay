@@ -34,6 +34,20 @@ interface UseWebSocketOptions {
   mode: DeviceMode;
   workspaceId?: string;
   sessionId?: string;  // Optional: if omitted, server auto-assigns to active session
+  /**
+   * Mobile-only (issue #393): the kiosk this mobile is targeting. When
+   * set, sent on the WS `register` payload so the server anchors the
+   * session to that kiosk and emits a `kiosk-attention` banner there.
+   * A change re-runs the effect → reconnects with the new target,
+   * which is the expected UX for switching kiosks mid-conversation.
+   */
+  targetKioskDeviceId?: string;
+  /**
+   * Callback for the `kiosk-attention` server message (issue #393).
+   * Kiosk components subscribe to render the `📱 <name> connecting…`
+   * banner. Mobile components don't subscribe.
+   */
+  onKioskAttentionMessage?: (message: ServerMessage & { type: 'kiosk-attention' }) => void;
   onTextMessage?: (message: ServerMessage & { type: 'text' }) => void;
   onHistoryMessage?: (message: ServerMessage & { type: 'history' }) => void;
   onDisplayMessage?: (message: ServerMessage & { type: 'display' }) => void;
@@ -66,7 +80,7 @@ interface UseWebSocketOptions {
   onTranscriptionErrorMessage?: (message: ServerMessage & { type: 'transcription-error' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onSessionStateMessage, onOpen, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, targetKioskDeviceId, onKioskAttentionMessage, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onSessionStateMessage, onOpen, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -94,6 +108,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onSessionTtsSettingsChangedRef = useRef(onSessionTtsSettingsChanged);
   const onTranscriptionResultMessageRef = useRef(onTranscriptionResultMessage);
   const onTranscriptionErrorMessageRef = useRef(onTranscriptionErrorMessage);
+  const onKioskAttentionMessageRef = useRef(onKioskAttentionMessage);
   
   // Track last known device state to preserve during reconnection
   // This prevents UI flicker when WebSocket reconnects (e.g., during QR token refresh)
@@ -130,6 +145,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onSessionTtsSettingsChangedRef.current = onSessionTtsSettingsChanged;
   onTranscriptionResultMessageRef.current = onTranscriptionResultMessage;
   onTranscriptionErrorMessageRef.current = onTranscriptionErrorMessage;
+  onKioskAttentionMessageRef.current = onKioskAttentionMessage;
 
   // Connect WebSocket with auto-reconnect on transient close (issue #285).
   //
@@ -221,6 +237,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
           screenHeight: window.innerHeight,
           ...(timezone ? { timezone } : {}),
           ...(tzOffsetMinutes !== undefined ? { tzOffsetMinutes } : {}),
+          // Issue #393: pin the session to the chosen kiosk. The server
+          // ignores this on kiosk-mode registers — see resolveSessionForDevice.
+          ...(targetKioskDeviceId ? { targetKioskDeviceId } : {}),
         };
         ws.send(JSON.stringify(registerMsg));
         registeredRef.current = true;
@@ -332,6 +351,11 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             case 'transcription-error':
               onTranscriptionErrorMessageRef.current?.(message);
               break;
+            case 'kiosk-attention':
+              // Issue #393: only kiosks subscribe, but a stray message
+              // to a mobile is harmless because no handler is registered.
+              onKioskAttentionMessageRef.current?.(message);
+              break;
           }
         } catch (err) {
           console.error('[WS] Error parsing message:', err);
@@ -384,7 +408,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
       }
       wsRef.current?.close();
     };
-  }, [deviceId, displayName, workspaceId, sessionId]);
+    // `targetKioskDeviceId` is in deps so changing the kiosk re-runs the
+    // effect → reconnects with the new target. Issue #393.
+  }, [deviceId, displayName, workspaceId, sessionId, targetKioskDeviceId]);
 
   // Update mode on server when it changes (without reconnecting)
   useEffect(() => {

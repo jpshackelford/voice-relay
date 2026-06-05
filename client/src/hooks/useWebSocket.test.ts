@@ -1308,6 +1308,67 @@ describe('useWebSocket - server message dispatching', () => {
       expect.anything()
     );
   });
+
+  // Issue #393: kiosk-attention server → kiosk dispatch.
+  it('dispatches kiosk-attention message to onKioskAttentionMessage', () => {
+    const onKioskAttentionMessage = vi.fn();
+    const { ws } = openConnection({ ...baseOpts, onKioskAttentionMessage });
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'kiosk-attention',
+        mobileDeviceId: 'm1',
+        mobileDisplayName: 'Jane',
+        ttlMs: 5000,
+      });
+    });
+
+    expect(onKioskAttentionMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'kiosk-attention',
+        mobileDeviceId: 'm1',
+        mobileDisplayName: 'Jane',
+        ttlMs: 5000,
+      }),
+    );
+  });
+
+  // Issue #393: mobile register payload carries targetKioskDeviceId.
+  it('includes targetKioskDeviceId on the register payload when provided', () => {
+    renderHook(() =>
+      useWebSocket({
+        deviceId: 'mobile-1',
+        displayName: 'M',
+        mode: 'mobile',
+        workspaceId: 'w1',
+        targetKioskDeviceId: 'kiosk-target',
+      }),
+    );
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => { ws.simulateOpen(); });
+
+    const sentMessages = ws.sentMessages.map((m: string) => JSON.parse(m));
+    const registerMsg = sentMessages.find((m: { type: string }) => m.type === 'register');
+    expect(registerMsg).toBeDefined();
+    expect(registerMsg.targetKioskDeviceId).toBe('kiosk-target');
+  });
+
+  it('omits targetKioskDeviceId from register payload when undefined', () => {
+    renderHook(() =>
+      useWebSocket({
+        deviceId: 'mobile-1',
+        displayName: 'M',
+        mode: 'mobile',
+        workspaceId: 'w1',
+      }),
+    );
+    const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    act(() => { ws.simulateOpen(); });
+    const sentMessages = ws.sentMessages.map((m: string) => JSON.parse(m));
+    const registerMsg = sentMessages.find((m: { type: string }) => m.type === 'register');
+    expect(registerMsg).toBeDefined();
+    expect('targetKioskDeviceId' in registerMsg).toBe(false);
+  });
 });
 
 describe('useWebSocket - client-to-server sends', () => {
