@@ -363,3 +363,43 @@ Quiet-tick counter went `1 → 2`, so per the auto-disable rule the v2 orchestra
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 22:18 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5e8b184` | implementation | Issue #403 — Refresh/rebind workspace API key | **NEW** |
+
+🔓 **Re-enabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316`** ("Voice Relay Workflow Orchestrator v2") — `PATCH /api/automation/v1/{id} {"enabled": true}` returned 200. Auto-disabled at 13:51Z; new work (#403, #404) has since landed, so resuming.
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#403 — Refresh & rebind use the env-keyed singleton OpenHandsClient instead of the per-workspace API key](https://github.com/jpshackelford/voice-relay/issues/403) (`bug`, `ready`, `priority:high`, `critical`, `scope:server-only`)
+- Conversation: [`5e8b184`](https://app.all-hands.dev/conversations/5e8b184eabaa45428fb04226194b3ff4)
+- Start-task id: `bb71d91466da4849ac449e07e0e81161` → `app_conversation_id = 5e8b184eabaa45428fb04226194b3ff4` (`status = READY` on first poll; `execution_status = running`, `sandbox_status = RUNNING`)
+- Plugin ref: `voice-relay-workflow @ main`
+
+**Current State:**
+- **Open PRs:** 0 (PR #402 squash-merged at 13:21:35Z — `feat(server): hosted STT (Deepgram) broker + workspace settings`, closed Issue #386).
+- **Ready+prioritized issues (unblocked):**
+  - **#403** — `priority:high`, `critical` — **NOW IN IMPL SLOT** ✅
+  - **#404** — `priority:medium`, depends on #403 per comment "Cleanup follow-up that depends on this fix: #404" → deliberately deferred until #403 lands so the cleanup PR isn't fighting the bugfix PR.
+- **Issues needing expansion:** 0 (both #403 and #404 already have `ready` label and full technical-approach bodies).
+- **Ready issues on-hold (excluded):** #351, #363.
+- **Issues without `ready` label that are skipped:** all are `on-hold` or `needs-human` (#210, #239, #299, #300, #301, #302, #372, #384).
+- **Active slot summary:** expansion 0/4, implementation 1/1, review 0/2.
+
+**Decision rationale:**
+- 0 open PRs → no review/merge work this tick.
+- Impl slot was empty (1 available) → spawn for highest-priority unblocked ready issue.
+- #403 (`priority:high` + `critical`) outranks #404 (`priority:medium`). #404 is also a dependent cleanup of #403, so even ignoring priority it must wait.
+- No expansion work — all unexpanded issues are `on-hold`/`needs-human`.
+- After this spawn: expansion 0/4 idle (nothing eligible), impl 1/1 full, review 0/2 idle (no open PRs).
+
+**Why the orchestrator was off when this tick fired:** the v2 automation auto-disabled at 13:51Z when the backlog was fully blocked (all 10 open issues at that moment were `on-hold` / `needs-human`). Between 13:51Z and 22:18Z, @jpshackelford filed #403 and #404, which made the backlog actionable again — but auto-disable correctly prevented the cron from spinning idle in the interim. Manual `/orchestrate` invocation is the documented unblock path.
+
+**Quiet-tick counter:** reset `2 → 0` (productive tick).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
