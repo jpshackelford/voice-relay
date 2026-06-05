@@ -361,6 +361,24 @@ describe('SessionRepository', () => {
       expect(b.targetKioskDeviceId).toBe(kioskB);
     });
 
+    it('getOrCreateActiveSessionForKiosk claims an existing unbound active session (backward compat)', () => {
+      // Mobile (or pre-#393 client) registered first and created a
+      // legacy workspace-wide session with no target kiosk.
+      const legacy = repo.create({ workspaceId: testWorkspaceId });
+      expect(legacy.targetKioskDeviceId).toBeNull();
+
+      // First kiosk to register should claim that session rather than
+      // opening a duplicate one — otherwise the dashboard ends up with
+      // two "View" buttons in single-kiosk workspaces.
+      const claimed = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      expect(claimed.id).toBe(legacy.id);
+      expect(claimed.targetKioskDeviceId).toBe(kioskA);
+
+      // And the DB row is actually updated, not just the returned value.
+      const reread = repo.findById(legacy.id);
+      expect(reread?.targetKioskDeviceId).toBe(kioskA);
+    });
+
     it('getKioskPickerEnrichment returns activeSessionId + lastUsedAt per kiosk', () => {
       // Kiosk A has an active bound session.
       const sessA = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);

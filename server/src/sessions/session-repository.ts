@@ -511,6 +511,22 @@ export class SessionRepository {
     if (existing && existing.workspaceId === workspaceId) {
       return existing;
     }
+    // Backward-compat (#393): if the workspace already has an active
+    // session that was never bound to a kiosk (created before the
+    // picker landed, or by a mobile that registered first), claim it
+    // for this kiosk instead of opening a brand-new one. This
+    // preserves the legacy "single active session per workspace"
+    // behavior whenever there is exactly one kiosk in play.
+    const unboundActive = this.getActiveSessions(workspaceId).find(
+      (s) => s.targetKioskDeviceId == null
+    );
+    if (unboundActive) {
+      const stmt = this.db.prepare(
+        'UPDATE sessions SET target_kiosk_device_id = ? WHERE id = ?'
+      );
+      stmt.run(kioskDeviceId, unboundActive.id);
+      return { ...unboundActive, targetKioskDeviceId: kioskDeviceId };
+    }
     return this.create({ workspaceId, targetKioskDeviceId: kioskDeviceId });
   }
 
