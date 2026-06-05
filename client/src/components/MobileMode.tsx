@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
@@ -34,6 +35,14 @@ interface MobileModeProps {
   onTargetKioskChange?: (kioskDeviceId: string) => void;
   /** Most recent kiosk display content — used as preview thumbnail. */
   displayContent?: DisplayContent | null;
+  /**
+   * Issue #392: workspace ID for the workspace-home shortcut. When provided
+   * with `isOwner=true`, a 🏠 button appears in the mobile top bar that
+   * navigates to `/workspace/${workspaceId}`.
+   */
+  workspaceId?: string;
+  /** Whether the current user owns this workspace; gates the home shortcut. */
+  isOwner?: boolean;
 }
 
 export function MobileMode({ 
@@ -51,7 +60,10 @@ export function MobileMode({
   targetKioskDeviceId,
   onTargetKioskChange,
   displayContent,
+  workspaceId,
+  isOwner,
 }: MobileModeProps) {
+  const navigate = useNavigate();
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
   const [autoSubmit, setAutoSubmit] = useState(true);
@@ -339,8 +351,18 @@ export function MobileMode({
         >
           {inputMode === 'voice' ? '🗣️' : inputMode === 'unified' ? '✨' : '📊'}
         </button>
-        <button 
-          className="walkie-header-btn" 
+        {isOwner && workspaceId && (
+          <button
+            className="walkie-header-btn"
+            onClick={() => navigate(`/workspace/${workspaceId}`)}
+            title="Workspace home"
+            aria-label="Workspace home"
+          >
+            🏠
+          </button>
+        )}
+        <button
+          className="walkie-header-btn"
           onClick={() => setSettingsOpen(true)}
           title="Settings"
           aria-label="Open settings"
