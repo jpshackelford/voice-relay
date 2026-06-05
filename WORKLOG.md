@@ -364,3 +364,38 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 Ready for the next round (merge or human review) — no further action from this worker.
 
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-05 03:08 UTC - Merge worker (PR #395)
+
+✅ **Squash-merged PR #395** — `feat(client): identify the sending device/speaker in the transcription ticker` — closes #382.
+
+| Check | Result |
+| --- | --- |
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / `CLEAN` |
+| CI (Server, Client, Build, E2E, lint-pr-title, pr-review) | All ✅ SUCCESS |
+| Review threads | 1 total, 0 unresolved |
+| Latest bot review (03:02 UTC) | 🟢 Good taste |
+| Migration check | Diff touches `client/src/**` only — no `server/src/db/migrations/` paths. Safe for prod (SQLite, auto-deploy). |
+| Issue #382 auto-close | ✅ Closed at 03:07:55 UTC via PR body `Fixes #382`. |
+
+**Squash-commit message used:**
+
+```
+feat(client): identify the sending device/speaker in the transcription ticker (#395)
+
+Render the kiosk transcription ticker as `{prefix}: {text}` so a viewer can tell whether a line came from `JP's iPhone SE` or `Mac-7acf1d6`. The prefix is a sibling span styled via `.kiosk-ticker-speaker` (heavier weight, muted color) inside the existing translated inner span, so marquee math is unchanged.
+
+Sender name is resolved from `Utterance.senderName` (already on the wire since #346); same-sender follow-ups suppress the prefix via `lastRenderedSenderIdRef`, set in a commit-time `useEffect` (never mutated inside the memo). The empty-state guard was tightened so an empty utterance no longer leaves an orphan `:` delimiter.
+
+Follow-up: once #391 (merged, deploys with this build) is in production, the ticker's identity source can swap from `Utterance.senderName` to `speakers.preferred_name` keyed on `speaker_id`. Out of scope here.
+
+Fixes #382.
+```
+
+**Follow-up unlocked:** with #391 (speaker identity model) already merged and deploying alongside this change, a future PR can swap the ticker's identity source from `Utterance.senderName` to `speakers.preferred_name` keyed on `speaker_id`, and re-key the same-sender suppression on `speaker_id` instead of `senderId`. Not in scope for this merge — left for a follow-up issue.
+
+**Production impact:** auto-deploy to vr.chorecraft.net on merge. Client-only change; no DB / WebSocket / server logic touched. SQLite production DB unaffected.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
