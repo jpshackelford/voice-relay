@@ -364,3 +364,49 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker 
 _This worklog entry was written by an AI agent (OpenHands unblock worker for PR #401) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 12:35 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity** (`quiet_ticks` reached 2)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- **Open PRs:** [PR #401](https://github.com/jpshackelford/voice-relay/pull/401) — `feat(websocket): mic listening state + three-state kiosk indicator` (fixes #388). `isDraft=false`, `mergeable=MERGEABLE`, 5/6 checks ✅, `pr-review` IN_PROGRESS, 0 review comments.
+- **Ready issues unblocked:** #388 (in flight via PR #401), #386 (priority:low, deferred — would create overlapping PR).
+- **Ready issues on-hold (excluded):** #351, #363.
+- **Unexpanded issues:** all 8 are `on-hold` or `needs-human` (#210, #239, #299, #300, #301, #302, #372, #384) — no expansion eligible.
+- **Active slot summary:** expansion 0/4, implementation 0/1, review 0/2.
+
+**Reconciliation:**
+- Moved finished impl worker `93a90b6` (issue #388) from `slots.implementation` → `completed` (`execution_status=null` on API; PR #401 was its product).
+
+**Why no action taken:**
+- No issues eligible for expansion (all on-hold/needs-human).
+- No implementation work spawnable: PR #401 is still in flight; spawning #386 now would violate the "0–1 PRs in flight at a time" convention.
+- No review work spawnable: PR #401 has no review feedback yet (`pr-review` bot still running) and is not approved → nothing to address, nothing to merge.
+
+**Quiet-tick counter:** 1 → 2 → **auto-disable triggered.**
+
+**Disable API call:**
+- `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` → `HTTP 200`, response confirms `"enabled": false`.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle on.
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+**Suggested re-enable trigger:** when the `pr-review` bot finishes on PR #401 and either (a) posts review threads to address, or (b) approves so the merge worker can take it.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
