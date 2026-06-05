@@ -16,7 +16,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T03:10:07.982539+00:00",
+  "last_updated": "2026-06-05T03:19:37Z",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -217,5 +217,5 @@
       "outcome": "Squash-merged PR #395 as 8ee7f07 (feat(client): identify the sending device/speaker in the transcription ticker). Issue #382 auto-closed at 03:07:55Z. WORKLOG updated as 0d4198a."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
