@@ -504,3 +504,39 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 03:53 UTC - Orchestrator
+
+🚀 **Respawned 2 workers — previous spawn attempts were stuck.**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `eb2c297` | review | PR #396 — `kiosk-attention` target validation | **NEW** (running, ~$1.21) |
+| `ebaceb3` | implementation | Issue #380 — kiosk oscilloscope blue accent | **NEW** (running, ~$1.08) |
+
+**Bug discovered & worked around:**
+The previous orchestrator (`c61a340` at 03:30Z) recorded `c327b70` and `fee6d4e` as worker conv_ids in `.workflow-state.json`. Those are actually **start-task IDs**, not `app_conversation_id`s. The real sub-conversations were `3dd8f41` (review) and `948a96a` (impl) — both spawned successfully but sat **idle for ~18 min at $0.00 cost** with `updated_at == created_at`. They never executed the initial message and would never have made progress.
+
+Detection method (worth recording for future ticks): query `GET /api/v1/app-conversations/start-tasks/search` to map start-task id → `app_conversation_id`, then check that conv for `execution_status == running` and `metrics.accumulated_cost > 0`. If cost is 0 and `updated_at == created_at` more than ~5 min after spawn, the worker is dead — respawn.
+
+**Action taken this tick:**
+1. Verified PR #396 (CI 7/7 green, MERGEABLE) still has 1 unresolved `github-actions[bot]` thread on `server/src/index.ts` re: defensive `targetKioskDeviceId` validation — review work is still needed.
+2. Verified Issue #380 (priority:low, scope:client-only CSS swap) is unimplemented.
+3. Marked `c327b70` and `fee6d4e` as `status: stuck` in `completed[]` (with `actual_conv_id` cross-reference for debugging).
+4. Spawned replacements via `/api/v1/app-conversations` with `run: true`; both confirmed `execution_status: running` and burning tokens after 25s.
+5. Reset `quiet_ticks` to 0.
+
+**Current State:**
+- [PR #396](https://github.com/jpshackelford/voice-relay/pull/396): `green ready 💬1` — `eb2c297` now addressing.
+- Ready, unblocked, awaiting impl slot: #386, #388 (both unprioritized — need `/assess-priority` next tick); #389, #390, #392 (priority:low).
+- Issues needing expansion: all on `on-hold` or `needs-human` (S3 freeze #299–#302, #372, #384, plus #210/#239).
+
+**Follow-up for skill maintainers:**
+The `/spawn-conversation` skill in the voice-relay plugin should record `app_conversation_id` (from `start-task.app_conversation_id`), not the start-task ID, into `.workflow-state.json`. This tick's stuck workers are the second instance of this bug class (see also the missing-conv pattern that motivated the `actual_conv_id` field). A patch to `spawn-conversation.md` to make the ID extraction explicit would prevent future repeats.
+
+**State file:** `.workflow-state.json` v2 — `c327b70` and `fee6d4e` archived as `stuck`; `eb2c297` + `ebaceb3` added to slots; 25 completed entries within audit window; `quiet_ticks = 0`.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

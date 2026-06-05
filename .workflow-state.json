@@ -4,16 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "fee6d4e",
+        "conv_id": "ebaceb3",
         "issue": 380,
-        "started": "2026-06-05T03:35:03.084872+00:00"
+        "started": "2026-06-05T03:53:08.825319+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "c327b70",
+        "conv_id": "eb2c297",
         "pr": 396,
-        "started": "2026-06-05T03:35:03.084872+00:00"
+        "started": "2026-06-05T03:53:08.825319+00:00"
       }
     ]
   },
@@ -22,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T03:35:03.084872+00:00",
+  "last_updated": "2026-06-05T03:53:08.825319+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -230,6 +230,26 @@
       "finished": "2026-06-05T03:33:36.314013+00:00",
       "status": "success",
       "outcome": "Issue #393 \u2192 PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
+    },
+    {
+      "conv_id": "c327b70",
+      "actual_conv_id": "3dd8f41efd0c4983b4954838a3af9507",
+      "type": "review",
+      "pr": 396,
+      "started": "2026-06-05T03:35:03.084872+00:00",
+      "finished": "2026-06-05T03:53:08.825319+00:00",
+      "status": "stuck",
+      "outcome": "Spawned but never executed \u2014 sub-conversation 3dd8f41 sat idle 10min with $0 cost. Replaced by eb2c297. Root cause: previous orchestrator stored start-task ID (c327b70) instead of app_conversation_id (3dd8f41) \u2014 a bug to fix in spawn flow."
+    },
+    {
+      "conv_id": "fee6d4e",
+      "actual_conv_id": "948a96a6978b4ea596205fd29025fcea",
+      "type": "implementation",
+      "issue": 380,
+      "started": "2026-06-05T03:35:03.084872+00:00",
+      "finished": "2026-06-05T03:53:08.825319+00:00",
+      "status": "stuck",
+      "outcome": "Spawned but never executed \u2014 sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
     }
   ],
   "quiet_ticks": 0
