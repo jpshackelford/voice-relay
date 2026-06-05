@@ -597,3 +597,19 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 04:26 UTC - Merge Worker (PR #396)
+
+✅ **Squash-merged PR #396 — `feat(websocket): mobile kiosk picker for multi-kiosk workspaces` (closes #393).**
+
+**Re-verified at merge time:** `MERGEABLE` / `CLEAN`, all 7 required checks SUCCESS (`Build Client`, `Client Tests`, `Server Tests`, `E2E Tests`, `lint-pr-title`, `enable-orchestrator`, `pr-review`), 1 review thread total / 0 unresolved (the single `github-actions[bot]` suggestion on `kiosk-attention` was already resolved by review worker `eb2c297` in commit `3e8383a`), no `on-hold` / `needs-human` / `blocked` / `do-not-merge` labels.
+
+**Diff:** +1878 / −38 across 36 files. Server: new migration `018_session_target_kiosk` (additive nullable `sessions.target_kiosk_device_id TEXT REFERENCES devices(id) ON DELETE SET NULL` + partial index), `SessionRepository.getOrCreateActiveSessionForKiosk` (enforces one-active-per-kiosk; claims unbound sessions), kiosk-aware `resolveSessionForDevice`, WS `register` accepts `targetKioskDeviceId`, `DeviceRegistry.broadcastDeviceList` enriches kiosks with `activeSessionId` + `lastUsedAt`, new WS server→client `kiosk-attention { ttlMs }` via `sendKioskAttentionIfValid()` with explicit `mode === 'kiosk'` validation. Client: new `KioskPicker.tsx` (radio list, status pills, preview), `MobileMode.tsx` gates the picker on ≥2 kiosks, `KioskMode.tsx` renders the `📱 connecting…` banner with TTL auto-dismiss, `useWebSocket.ts` plumbs `targetKioskDeviceId` + `onKioskAttentionMessage`.
+
+**Migration safety check (production SQLite):** `018_session_target_kiosk.up` is a single `ALTER TABLE … ADD COLUMN` (nullable, no default, no data rewrite) plus one partial `CREATE INDEX … WHERE target_kiosk_device_id IS NOT NULL`. Pre-existing sessions on vr.chorecraft.net will start with `NULL` and continue to use the legacy single-active resolution path (`resolveSessionForDevice` falls back when `targetKioskDeviceId` is absent). No service downtime expected; migrator runs additively inside its transaction.
+
+**Squash commit:** `c4b07d2` on `main`. Issue #393 auto-closed at `2026-06-05T04:25:48Z` (state `CLOSED`). PR body updated pre-merge to surface the review-round `sendKioskAttentionIfValid()` fix and the production migration notes. Production auto-deploy to vr.chorecraft.net will pick this up on the next build.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
