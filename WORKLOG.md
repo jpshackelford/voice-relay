@@ -233,6 +233,56 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 
 ---
 
+### 2026-06-05 23:05 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0211d27` | merge | PR #406 — workspace-key fix (#403) | **NEW** |
+
+🚀 **Spawned: Merge Worker for PR #406**
+
+- PR: [#406 — fix(server): refresh & rebind honor per-workspace OpenHands API key (#403)](https://github.com/jpshackelford/voice-relay/pull/406)
+- Conversation: [`0211d27`](https://app.all-hands.dev/conversations/0211d27a2d094956b46253cd45e7807d)
+- Start-task: `cebf9da4` → `app_conversation_id=0211d27a2d094956b46253cd45e7807d` (READY on 3rd poll; `execution_status=running`, `sandbox_status=RUNNING`)
+- Plugin ref: `voice-relay-workflow @ main`
+
+**PR #406 status at dispatch:**
+- All 7 CI checks ✅ green: Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator.
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `isDraft=false`.
+- **0 unresolved review threads** (all 11 pr-review bot suggestions were addressed by the last review worker in commit `819fd88`).
+- `reviewDecision=""` (no required human reviewers).
+- No schema/migration changes (server-only logic change) — production-safe.
+
+**Workers Reaped to `completed`:**
+- `ca35fb8` (implementation, issue #405) → finished. Outcome: opened [PR #407 — feat(server): typed reason for missing-WS-handshake failure](https://github.com/jpshackelford/voice-relay/pull/407). Required CI green; `pr-review` IN_PROGRESS at reaping; `mergeable=MERGEABLE/UNSTABLE`.
+- `e531d1f` (review, PR #406) → finished. Outcome: addressed all 11 pr-review bot 🟡 *Suggestion* threads in commit `819fd88` (`style(server): tighten comments per pr-review on #403 fix`). CI 5/5 required green; 0 unresolved threads.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #406](https://github.com/jpshackelford/voice-relay/pull/406) — `oRFC green ready 💬0`, merge worker in flight.
+  - [PR #407](https://github.com/jpshackelford/voice-relay/pull/407) — `o pending ready 💬0` (just opened by `ca35fb8`); 5 required checks green, `pr-review` IN_PROGRESS, `mergeStateStatus=UNSTABLE`. Defer to next tick once pr-review settles.
+- **Ready+prioritized issues (unblocked):**
+  - **#403** (`priority:high`) — covered by PR #406 (merge in flight).
+  - **#404** (`priority:medium`) — still depends on PR #406 landing → wait.
+  - **#405** (`priority:low`) — covered by PR #407 (just opened, pr-review pending).
+- **Issues needing expansion:** 0 actionable. All unexpanded issues are `on-hold` (#210, #239, #299, #300, #301, #302, #384) or `needs-human` (#372).
+- **Ready issues on-hold (excluded):** #351, #363.
+- **Active slot summary:** expansion 0/4 (no eligible work), implementation 0/1 (idle — all ready+prioritized issues covered by open PRs), review 1/2 (merge worker on #406; 1 slot held for #407 once its pr-review settles).
+
+**Decision rationale:**
+- `ca35fb8` and `e531d1f` both transitioned to `finished` (verified via `/api/v1/app-conversations/search`). Reaped to `completed` and slots cleared.
+- PR #406 now satisfies the full merge gate: CI green, threads resolved, mergeable=CLEAN, no schema changes. Spawned **merge worker** (review slot, per the slot model) rather than a redundant review round.
+- PR #407 has `pr-review` IN_PROGRESS — spawning a review worker now would race with the bot or trigger on stale signals. Defer one tick.
+- Implementation slot left idle: #404 is the only other priority issue and remains blocked by PR #406; #405 already has PR #407 open. Spawning a fresh impl worker would either duplicate or create no-op work.
+- No expansion work — same on-hold backlog as last tick.
+
+**Quiet-tick counter:** reset `0 → 0` (productive tick: 1 merge worker spawned, 2 workers reaped).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
 ### 2026-06-05 23:08 UTC - Merge worker (PR #406)
 
 ✅ **Squash-merged [PR #406](https://github.com/jpshackelford/voice-relay/pull/406)** — `fix(server): refresh & rebind honor per-workspace OpenHands API key (#403)` → main as `6641c71`.
