@@ -333,3 +333,33 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 13:51 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity** (2nd consecutive quiet tick)
+
+No actionable work remained after PR #402 merged at 13:21:35Z:
+
+- **Open PRs:** 0
+- **Issues needing expansion:** 0
+- **Ready+prioritized issues not on-hold/needs-human:** 0
+- **All 10 open issues are blocked:**
+  - `on-hold` (9): #210, #239, #299, #300, #301, #302, #351, #363, #384
+  - `needs-human` (1): #372
+- **Active workers:** 0 (merge worker `8919f27` for PR #402 finished cleanly; sandbox PAUSED at 13:21:51Z)
+
+Quiet-tick counter went `1 → 2`, so per the auto-disable rule the v2 orchestrator automation (`5f180989-ed9c-42b4-ac9f-5f30f0623316`) has been disabled to prevent unnecessary cron runs while the backlog is fully blocked. The S3 workspace-persistence design freeze (#298–#302, per `AGENTS.md`) is still in effect, which is why those issues remain `on-hold`.
+
+**To re-enable** (after a human unblocks one or more of the on-hold/needs-human issues, or files new work):
+
+- OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle on
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
