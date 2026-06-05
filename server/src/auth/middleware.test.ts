@@ -18,6 +18,19 @@ describe('Auth Middleware', () => {
     db = new Database(':memory:');
     db.exec(usersMigration.up);
     db.exec(userGithubInstallationMigration.up);
+    // Migration 017 / #383: UserRepository.create dual-writes to
+    // auth_identities; the table must exist for user creation below.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS auth_identities (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL,
+        provider_user_id TEXT NOT NULL,
+        provider_username TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(provider, provider_user_id)
+      );
+    `);
     jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
     userRepository = new UserRepository(db);
 

@@ -116,8 +116,8 @@ export class SQLiteStore implements MessageStore {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      INSERT INTO messages (utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO messages (utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, speaker_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -127,7 +127,8 @@ export class SQLiteStore implements MessageStore {
       message.senderId,
       message.senderName,
       message.text,
-      message.partial ? 1 : 0
+      message.partial ? 1 : 0,
+      message.speakerId ?? null
     );
   }
 
@@ -136,12 +137,12 @@ export class SQLiteStore implements MessageStore {
 
     // Filter by workspace if provided
     const sql = workspaceId
-      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
+      ? `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at, speaker_id
          FROM messages
          WHERE workspace_id = ?
          ORDER BY id DESC
          LIMIT ?`
-      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
+      : `SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at, speaker_id
          FROM messages
          ORDER BY id DESC
          LIMIT ?`;
@@ -157,7 +158,7 @@ export class SQLiteStore implements MessageStore {
     if (!this.db) throw new Error('SQLiteStore not connected');
 
     const stmt = this.db.prepare(`
-      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at
+      SELECT utterance_id, workspace_id, session_id, sender_id, sender_name, text, partial, created_at, speaker_id
       FROM messages
       WHERE session_id = ?
       ORDER BY id DESC
@@ -191,6 +192,7 @@ interface MessageRow {
    * see an ISO Zulu form (issue #264).
    */
   created_at: string | null;
+  speaker_id: string | null;
 }
 
 function rowToMessage(row: MessageRow): RelayedTextMessage {
@@ -205,5 +207,6 @@ function rowToMessage(row: MessageRow): RelayedTextMessage {
     text: row.text,
     partial: row.partial === 1,
     ...(createdAt && { createdAt }),
+    ...(row.speaker_id ? { speakerId: row.speaker_id } : {}),
   };
 }

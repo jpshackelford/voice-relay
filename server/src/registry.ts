@@ -47,6 +47,7 @@ export class DeviceRegistry {
     tickersEnabled?: boolean,
     timezone?: string,
     tzOffsetMinutes?: number,
+    primaryUserId?: string | null,
   ): Device {
     const existing = this.devices.get(id);
     if (existing) {
@@ -62,6 +63,10 @@ export class DeviceRegistry {
       // we overwrite. Clients that omit the field keep the prior value.
       if (timezone !== undefined) existing.timezone = timezone;
       if (tzOffsetMinutes !== undefined) existing.tzOffsetMinutes = tzOffsetMinutes;
+      // Issue #383: refresh cached primaryUserId on reconnect. The caller
+      // re-reads `devices.primary_user_id` from the DB, so this picks up
+      // any claim/clear that happened while the device was offline.
+      if (primaryUserId !== undefined) existing.primaryUserId = primaryUserId;
       // Only track screen dimensions for kiosk devices (they have the display)
       if (mode === 'kiosk') {
         if (screenWidth) existing.screenWidth = screenWidth;
@@ -99,6 +104,10 @@ export class DeviceRegistry {
       // the OpenHands per-turn header and peer-message rendering.
       timezone,
       tzOffsetMinutes,
+      // Issue #383: cache `devices.primary_user_id` so per-utterance speaker
+      // resolution doesn't need to re-query the DB. Refreshed on reconnect
+      // and via DeviceRegistry.updateDevice when a user (re)claims the device.
+      primaryUserId,
     };
     this.devices.set(id, device);
     
@@ -112,13 +121,20 @@ export class DeviceRegistry {
     return device;
   }
 
-  updateDevice(id: string, updates: Partial<Pick<Device, 'displayName' | 'mode' | 'ttsEnabled'>>): Device | null {
+  updateDevice(
+    id: string,
+    updates: Partial<Pick<Device, 'displayName' | 'mode' | 'ttsEnabled' | 'primaryUserId'>>
+  ): Device | null {
     const device = this.devices.get(id);
     if (!device) return null;
 
     if (updates.displayName !== undefined) device.displayName = updates.displayName;
     if (updates.mode !== undefined) device.mode = updates.mode;
     if (updates.ttsEnabled !== undefined) device.ttsEnabled = updates.ttsEnabled;
+    // Issue #383: keep the cached primaryUserId in sync when a workspace
+    // member (re)claims the device via the PATCH endpoint, so the very next
+    // utterance is stamped with the correct speaker without a DB lookup.
+    if (updates.primaryUserId !== undefined) device.primaryUserId = updates.primaryUserId;
 
     console.log(`[Registry] Device updated: ${device.displayName} (${id})`);
     return device;

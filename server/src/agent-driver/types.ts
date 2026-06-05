@@ -113,6 +113,27 @@ export interface AgentSenderMeta {
   saidAtUtc: string;
   /** Optional IANA timezone (e.g. "America/Los_Angeles"). */
   timezone?: string;
+  /**
+   * Optional resolved speaker context (#383). When the platform has
+   * matched the device + session to a `speakers` row, populate this
+   * field so the per-turn header carries the human's preferred name
+   * and pronouns. Drivers that ignore speaker context can keep
+   * ignoring this field.
+   */
+  speaker?: AgentSpeakerMeta;
+}
+
+/**
+ * Resolved speaker context for a single utterance (#383).
+ *
+ * `id` lets the agent address the speaker stably across renames; the
+ * other fields hint at how to refer to them in the conversation.
+ * Anything `null` is "unknown -- feel free to ask".
+ */
+export interface AgentSpeakerMeta {
+  id: string;
+  preferredName: string | null;
+  pronouns: string | null;
 }
 
 /**

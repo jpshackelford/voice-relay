@@ -23,6 +23,28 @@ export interface UserCreateInput {
   email?: string | null;
 }
 
+/**
+ * Row in the `auth_identities` join table (#383 / migration 017).
+ *
+ * One row per (user, provider) pair. `provider_user_id` is opaque so
+ * the schema accepts GitHub's numeric id, Google's `sub`, an email
+ * address (for magic-link providers), etc. without further migration.
+ */
+export interface AuthIdentity {
+  id: string;
+  userId: string;
+  provider: string;
+  providerUserId: string;
+  providerUsername: string | null;
+  createdAt: string;
+}
+
+export interface AuthIdentityCreateInput {
+  provider: string;
+  providerUserId: string;
+  providerUsername?: string | null;
+}
+
 export interface JWTPayload {
   sub: string; // user id
   username: string;
