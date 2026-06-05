@@ -354,3 +354,31 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:35 UTC - Review Worker (PR #407 — #405 typed handshake reason)
+
+✅ **Rebased + addressed pr-review feedback on PR #407**
+
+| Item | Status |
+|------|--------|
+| Rebase onto `8e07ac8` (post-#406) | ✅ resolved 2 conflicts in `server/src/openhands.ts` (`pollSandboxRunning` signature + call site) — combined #403's workspace-client param with #405's `onTransientError` option |
+| Server typecheck (`tsc --noEmit`) | ✅ clean |
+| Server tests (`vitest run`) | ✅ 1578 / 1578 pass (76 files) |
+| Force-push rebase (`ad6eca8`) | ✅ CI re-ran: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title all green |
+| Style-tightening commit (`3247e10`) — 5 pr-review 🟡 *Suggestion* threads | ✅ `style(server): tighten comments per pr-review on #405 typed-reason` (+11/-65) |
+| CI on combined branch | ✅ all green, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE` |
+| 5 review threads replied + resolved (referencing `3247e10`) | ✅ all `isResolved=true` |
+| PR back to ready | ✅ `isDraft=false` |
+
+**Changes in style commit:**
+- `MissingWsHandshakeReason` docblock — collapsed 19-line value-by-value enumeration into a 4-line priority-order summary.
+- `auto-connect.ts` / `agent-rehydrate.ts` `degradedError` comments — replaced 7-line change-history narration with a single-line invariant ("Propagate typed WS-handshake failures; sanitize everything else.").
+- `agent-driver/openhands.ts` `BindResult` docblock — dropped duplicate stale block + condensed the 11-line "intentional design" prose into a 3-line statement of the typed-cause invariant.
+- Two `throw bind.cause` comment blocks — replaced "used to drop / wrapping was wrong" change-narration with a one-liner.
+- Inline `// Issue #405: classify ...` block at the attach-path throw site — condensed to one line.
+
+**Next tick:** PR #407 is ready for the merge worker. No further review action needed unless a new push lands.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
