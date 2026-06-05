@@ -216,3 +216,26 @@ Re-fire after auth is restored with: `curl -X POST https://app.all-hands.dev/api
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 11:25 UTC - Merge worker (PR #400)
+
+✅ **Merged PR #400** — `feat(client): add workspace-home shortcut to mobile top bar for owners` (Fixes #392).
+
+| Item | Value |
+| --- | --- |
+| Merge commit | `a565b32c36691653a99990f1ff51f1e83ed6c35` |
+| Merged at | `2026-06-05T11:24:53Z` |
+| Strategy | squash |
+| Issue #392 | auto-closed at `2026-06-05T11:24:54Z` via `Fixes #392` |
+| CI at merge | all green (Server, Client, E2E, Build Client, lint-pr-title, pr-review) |
+| Mergeable / state | `MERGEABLE` / `CLEAN` |
+| Review threads | 0 (only one `COMMENTED` bot review — 🟢 LOW risk, no findings) |
+| Labels | none (no `on-hold` / `needs-human` / `needs-info`) |
+| Scope verified | client-only (`client/src/components/MobileMode.{tsx,test.tsx}`, `client/src/pages/{Workspace,SessionView}.tsx`); **no** files under `server/src/migrations/` — safe to auto-deploy to `vr.chorecraft.net` (SQLite, no schema change) |
+| Owner-guard test | ✅ both branches exercised — `isOwner=true` renders + navigates to `/workspace/<id>`, `isOwner=false` asserts button is DOM-absent (`queryByRole(...).toBeNull()`) |
+
+PR description already accurately reflected the final state — no edit needed pre-merge.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
