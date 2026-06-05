@@ -28,6 +28,11 @@ const baseWorkspaceSettings = (): WorkspaceSettings => ({
   elevenlabsTtsEnabled: false,
   kioskFooterTickersEnabled: false,
   defaultAgentPrompt: null,
+  sttEngine: 'web-speech',
+  sttMonthlyMinuteCap: null,
+  deepgramApiKeyEncrypted: null,
+  deepgramApiKeyIv: null,
+  deepgramApiKeyTag: null,
   updatedAt: null,
 });
 

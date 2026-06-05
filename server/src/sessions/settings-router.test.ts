@@ -26,6 +26,7 @@ import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tok
 import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
 import { migration as kioskTickersMigration } from '../storage/migrations/015_kiosk_footer_tickers.js';
 import { migration as defaultAgentPromptMigration } from '../storage/migrations/016_default_agent_prompt.js';
+import { migration as hostedSttMigration } from '../storage/migrations/019_hosted_stt.js';
 import type { DeviceRegistry } from '../registry.js';
 
 describe('Session Settings Router', () => {
@@ -74,6 +75,7 @@ describe('Session Settings Router', () => {
     db.exec(elevenlabsMigration.up);
     db.exec(kioskTickersMigration.up);
     db.exec(defaultAgentPromptMigration.up);
+    db.exec(hostedSttMigration.up);
 
     sessionRepo = new SessionRepository(db);
     workspaceRepo = new WorkspaceRepository(db);
