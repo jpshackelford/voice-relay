@@ -239,3 +239,27 @@ PR description already accurately reflected the final state — no edit needed p
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 11:27 UTC - Merge worker (PR #399)
+
+✅ **Merged PR #399** — `fix(client): stack login footer below card on narrow viewports` (Fixes #390).
+
+| Item | Value |
+| --- | --- |
+| Merge commit | `1473699b0541a7471c8432a897d7b54ea25f297c` |
+| Merged at | `2026-06-05T11:26:37Z` |
+| Strategy | squash |
+| Issue #390 | auto-closed at `2026-06-05T11:26:38Z` via `Fixes #390` |
+| CI at merge | all green (Server Tests, Client Tests, E2E Tests, Build Client, lint-pr-title, pr-review) |
+| Mergeable / state | `MERGEABLE` / `UNSTABLE` (UNSTABLE flag came from a `SKIPPED` `pr-review` run re-triggered by the body edit; all required checks SUCCESS) |
+| Review threads | 1 (bot 🟡 suggestion on `Login.test.tsx:172` reading `App.css` from disk — declined by maintainer with rationale that `getComputedStyle()` is unreliable under happy-dom and reading the deployed CSS is the intended regression guard; thread RESOLVED before merge) |
+| Labels | none (no `on-hold` / `needs-human` / `needs-info`) |
+| Scope verified | client-only (`client/src/App.css` +1 line, `client/src/pages/Login.test.tsx` +36 lines); **no** files under `server/src/migrations/` — safe to auto-deploy to `vr.chorecraft.net` (SQLite, no schema change) |
+| Fix shape | added `flex-direction: column;` to `.login-page` so the `<footer>` stacks below `.login-card` instead of rendering as a row-flex sibling beside it |
+| Tests added | (1) structural — asserts card + footer share `.login-page` parent and footer follows card in document order; (2) CSS-rule — reads `App.css` from disk and asserts the `.login-page` block contains both `display: flex` and `flex-direction: column` |
+
+PR description updated pre-merge to add an explicit **Review evolution** section documenting the declined bot suggestion and the maintainer's rationale (the test is *deliberately* coupled to the deployed `App.css` file — that coupling **is** the regression guard).
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
