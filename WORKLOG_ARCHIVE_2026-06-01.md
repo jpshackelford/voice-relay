@@ -279,3 +279,37 @@ typecheck clean. No schema changes — fully backward-compatible.
 | Issue #375 | auto-closed via "Fixes #375" |
 
 Merge commit: `4fac7b3` on `main`. Auto-deploy to vr.chorecraft.net will pick this up; no manual post-deploy steps required (clientTimestamp / timezone / tzOffsetMinutes are all optional fields, server falls back to receipt time when absent).
+
+---
+### 2026-06-01 12:19 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Second consecutive quiet tick — no actionable work available. All 9 open issues carry either `on-hold` (#363, #351, #302, #301, #300, #299, #239, #210) or `needs-human` (#372). No open PRs. No active workers in `.workflow-state.json`. Per the orchestrate skill's quiet-tick policy, `quiet_ticks` advanced 1 → 2, which triggers auto-disable.
+
+| Signal | Value |
+|---|---|
+| Open PRs | 0 |
+| Open issues | 9 (all `on-hold` or `needs-human`) |
+| Ready + unblocked | 0 |
+| Active workers | 0 (expansion / impl / review all empty) |
+| `quiet_ticks` | 2 → triggered auto-disable |
+| Automation | `5f180989-ed9c-42b4-ac9f-5f30f0623316` → `enabled: false` (confirmed via API) |
+
+Blocking context (see `AGENTS.md`):
+
+- **#298–#302** remain on hold pending S3 bucket provisioning by @jpshackelford (`VR_WORKSPACE_BUCKET` + AWS creds in production `.env`, plus end-to-end run of the S3 provisioning runbook).
+- **#363, #351** are explicitly `on-hold` from earlier orchestrator decisions.
+- **#372** carries `needs-human` and must be reviewed by a person before pickup.
+- **#239, #210** are `on-hold` (flaky test infra / deployment-failure taxonomy work, both deferred).
+
+**To re-enable** once any of the above is unblocked (label removed, or `ready` added to a new issue):
+
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+Or toggle via the OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → enable.

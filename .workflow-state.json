@@ -4,21 +4,16 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "82660be",
-        "issue": 382,
-        "started": "2026-06-05T02:21:17.232374+00:00"
+        "conv_id": "ebe965d",
+        "issue": 393,
+        "started": "2026-06-05T02:52:48.410180+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "17e6c73",
-        "pr": 391,
-        "started": "2026-06-05T02:21:17.232374+00:00"
-      },
-      {
-        "conv_id": "d905436",
-        "pr": 394,
-        "started": "2026-06-05T02:21:17.232374+00:00"
+        "conv_id": "2f51f22",
+        "pr": 395,
+        "started": "2026-06-05T02:52:48.410180+00:00"
       }
     ]
   },
@@ -27,7 +22,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T02:21:17.232374+00:00",
+  "last_updated": "2026-06-05T02:52:48.410180+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -181,6 +176,33 @@
       "finished": "2026-06-05T02:19:08.379728+00:00",
       "status": "success",
       "outcome": "Issue #379 \u2192 PR #394 (CSS Grid kiosk overlays)"
+    },
+    {
+      "conv_id": "82660be",
+      "type": "implementation",
+      "issue": 382,
+      "started": "2026-06-05T02:21:17.232374+00:00",
+      "finished": "2026-06-05T02:35:00Z",
+      "status": "success",
+      "outcome": "Created PR #395 \u2014 feat(client): identify the sending device/speaker in the transcription ticker (Fixes #382). CI green; PR moved to ready."
+    },
+    {
+      "conv_id": "17e6c73",
+      "type": "review",
+      "pr": 391,
+      "started": "2026-06-05T02:21:17.232374+00:00",
+      "finished": "2026-06-05T02:42:00Z",
+      "status": "success",
+      "outcome": "Addressed PR #391 redundant-device-lookup thread by caching primaryUserId on the in-memory Device (3 new specs); CI green; merged at 3ca5fdc."
+    },
+    {
+      "conv_id": "d905436",
+      "type": "review",
+      "pr": 394,
+      "started": "2026-06-05T02:21:17.232374+00:00",
+      "finished": "2026-06-05T02:35:00Z",
+      "status": "success",
+      "outcome": "Addressed PR #394 two CSS-grid documentation suggestions (ab723f2); CI green; merged at c95f4f9-equivalent (squash)."
     }
   ],
   "quiet_ticks": 0
