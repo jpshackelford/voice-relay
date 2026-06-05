@@ -3922,10 +3922,20 @@ header {
    Issue #379: re-expressed as a grid-template-areas redefinition.
    Tickers each get their own row spanning the full width; the corner
    circles (`bl`/`br`) span both ticker rows so they continue to overlay
-   at the bottom-left/right corners as they did before. */
+   at the bottom-left/right corners as they did before.
+
+   Sizing note: the desktop layout reserves a 3.5rem bottom row (see
+   `.kiosk-display` default `grid-template-rows`). On narrow screens we
+   stack the two tickers into two 1.5rem rows = 3rem total, intentionally
+   reclaiming 0.5rem of vertical space for `main` content. Each row is
+   sized to the ticker's own 1.5rem `height` declaration below. */
 @media (max-width: 480px) {
   .kiosk-display {
     grid-template-rows: auto 1fr 1.5rem 1.5rem;
+    /* `bl` and `br` are deliberately repeated on both ticker rows so the
+       bottom-left/right corner circles span the full stacked-ticker
+       block (rows 3 and 4) and stay anchored at the screen corners,
+       matching the desktop single-row layout. */
     grid-template-areas:
       "tl   .        .        tr"
       "main main     main     main"
