@@ -263,3 +263,40 @@ PR description updated pre-merge to add an explicit **Review evolution** section
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 11:37 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `7054aee` | implementation | Issue #388 — Per-device mic listening/mute state on kiosk oscilloscope | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#388 — Propagate per-device mic listening/mute state and show a muted icon on the kiosk oscilloscope](https://github.com/jpshackelford/voice-relay/issues/388) (`ready`, `priority:medium`, `scope:full-stack`)
+- Conversation: [`7054aee`](https://app.all-hands.dev/conversations/7054aeed1ac24452953e949772b0b101)
+- Start-task id: `8b7f74dda2d545288e84e30127bb143a` → `app_conversation_id = 7054aeed1ac24452953e949772b0b101` (`status = READY` after ~40s of polling)
+- Branch base: `main`
+
+**Current State:**
+- **Open PRs:** 0 (PR #399 merged `2026-06-05T11:26:37Z`; PR #400 merged `2026-06-05T11:24:53Z`; PR #391 + #398 merged earlier today)
+- **Ready issues (unblocked):**
+  - #388 — priority:medium, scope:full-stack — **NOW IN IMPL SLOT** ✅
+  - #386 — priority:low — next in line (waits for impl slot to free)
+- **Ready issues on-hold (excluded):** #351, #363
+- **Issues without `ready` label:** all are `on-hold` or `needs-human` (#210, #239, #299, #300, #301, #302, #372, #384) — no expansion needed
+- **Active slot summary:** expansion 0/4, implementation 1/1, review 0/2
+
+**Decision rationale:**
+- 0 open PRs → no review/merge work this tick
+- Impl slot empty (1 available) → spawn for highest-priority unblocked ready issue → #388 (priority:medium) beats #386 (priority:low)
+- No expansion work — all unexpanded issues are `on-hold`/`needs-human`
+- After this spawn: expansion 0/4 idle (nothing eligible), impl 1/1 full, review 0/2 idle (no open PRs)
+
+**Auth status:** OpenHands Cloud API key works again — successful `POST /api/v1/app-conversations` + `GET /api/v1/app-conversations/start-tasks?ids=…`. The auth blocker called out in the 11:15Z entry has been resolved (presumably via secret refresh between 11:15Z and 11:35Z). The staged `/tmp/review_body.json` + `/tmp/impl_body.json` files referenced in that entry are no longer relevant (their targets — PR #399 and Issue #392 — have since merged/closed).
+
+**Note on start-task polling:** the `start-tasks?ids=…` endpoint returns a **JSON array** at the top level (not a `{"items": [...]}` wrapper). Parsing must use `json.load(...)[0]`, not `.get("items", [])[0]`. Recording this here to save the next orchestrator a few wasted poll cycles.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
