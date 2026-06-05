@@ -540,3 +540,26 @@ The `/spawn-conversation` skill in the voice-relay plugin should record `app_con
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 03:58 UTC - Implementation worker (issue #380 replacement)
+
+✅ **Issue #380 — left kiosk oscilloscope is now blue, not purple.** Replacement for the stuck `948a96a…` sub-conversation flagged in the previous orchestrator entry (spawned but never executed; `cost == $0`, `updated_at == created_at`).
+
+| Item | Result |
+|---|---|
+| Branch | `fix/380-kiosk-oscilloscope-blue` |
+| PR | [#397](https://github.com/jpshackelford/voice-relay/pull/397) — opened draft, promoted to ready after CI |
+| Files changed | `client/src/App.css`, `client/src/components/KioskMode.tsx`, `client/src/components/KioskMode.test.tsx` |
+| Diff size | +34 / −5 across 3 files |
+| Client tests | 1031/1031 pass (added one assertion: kiosk passes `color="#3282b8"` to `<Oscilloscope>`) |
+| Client build | clean (`tsc -b && vite build`) |
+| CI | Build Client ✅, Client Tests ✅, Server Tests ✅, E2E Tests ✅, lint-pr-title ✅, enable-orchestrator ✅; pr-review skipping while draft, will run on ready |
+| Scope | `scope:client-only` — no DB, server, or schema impact |
+
+Followed the expansion comment's diff exactly: `rgba(168, 85, 247, 0.2)` → `rgba(50, 130, 184, 0.2)`, `2px solid #a855f7` → `2px solid #3282b8` on `.kiosk-oscilloscope-indicator`, and `color="#a855f7"` → `color="#3282b8"` on the `<Oscilloscope>` inside `KioskMode.tsx`. Also refreshed the stale "same purple-circle treatment" comment above the CSS rule. Right-side `.kiosk-ai-status` untouched (still purple, as required).
+
+For the test, mocked `./Oscilloscope` with a `<div data-testid="oscilloscope-mock" data-color={color}>` shim — canvas content is awkward to inspect in happy-dom, but the data-color prop round-trip is a clean, deterministic assertion. The existing `Oscilloscope.test.tsx` already covers the canvas-side mapping from `color` prop → `ctx.strokeStyle` / `ctx.shadowColor`.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
