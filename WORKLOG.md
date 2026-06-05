@@ -300,3 +300,41 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 12:01 UTC - Implementation Worker (issue #388)
+
+🚧 **PR opened: [#401 — feat(websocket): propagate per-device mic listening state and render three-state kiosk indicator](https://github.com/jpshackelford/voice-relay/pull/401)**
+
+- Issue: [#388 — Propagate per-device mic listening/mute state and show a muted icon on the kiosk oscilloscope](https://github.com/jpshackelford/voice-relay/issues/388) (`ready`, `priority:medium`, `scope:full-stack`)
+- Branch: `feat/388-mic-listening-state` (commits `d5bed3a`, `c5deedb`)
+- State: marked **ready for review** (transitioned from draft after CI quirk noted below)
+
+**Implementation summary:**
+- New WS message `device-listening-state` symmetric with `update-device`; routed in `server/src/index.ts`.
+- Server `Device` gains transient runtime fields `listening?` and `sttSupported?` — **no SQLite migration** (matches the Technical Approach comment on #388). Highest migration on `main` remains `016_*`.
+- `broadcastDeviceList` projects both fields onto `DeviceInfo` only when explicitly set, so legacy clients can never silently flip the aggregate to `muted`.
+- New pure-function `deriveIndicatorState(devices) → listening | muted | no-mic` in `client/src/components/OscilloscopeIndicator.tsx`. Muted state replaces the waveform with a centered muted-mic SVG glyph (capsule + cradle + base + diagonal slash, all strokes inheriting `currentColor`). This matches the design refinement to drop the flat line.
+- Kiosk + Mobile both call `useWebSocket.sendListeningState(...)` on mount and on every change to derived `isListening || isActive`.
+- A11y: `aria-label` set to `microphone active` / `microphone muted` / `no microphones` based on aggregate state.
+
+**Test coverage (all 2563 passing locally):**
+- 7 cases in `OscilloscopeIndicator.test.tsx` (aggregation matrix incl. the conservative-default rule for legacy peers).
+- 6 cases in `registry.test.ts` (set + projection + flip + unknown-id + disconnect via `disconnectBySocket` + workspace isolation).
+- 6 cases in `KioskMode.test.tsx` (three visual states + mic-capable filtering + kiosk-with-listening:false → muted + own-state report on mount).
+- 5 cases in `MobileMode.test.tsx` (initial idle / STT-active / analyser-only / unsupported / backwards-compat without prop).
+- 3 cases in `useWebSocket.test.ts` (round-trip new fields + send after open + pre-open silent drop).
+
+**CI status — pull_request events not firing this tick:**
+- `GET /actions/runs?branch=feat/388-mic-listening-state` → `total: 0` even ~15 min after PR open + transition to ready.
+- `gh pr view 401 --json statusCheckRollup` → `[]`.
+- Comparison: `push` triggers on `main` are firing normally (orchestrator commit `ad286a97` ran `CI main push completed success 2026-06-05T11:52:08Z`).
+- Looks like a transient GH Actions hiccup with `pull_request` events specifically. Re-pushing an empty `chore: trigger CI` commit (`c5deedb`) did not help. Workflow YAML on the branch is unchanged from main.
+- Noted in a comment on PR #401 so the review worker / human sees it. If CI is still empty when the next orchestrator tick runs, the unblock is either (a) wait for the next push to `main` to clear whatever is wedged, or (b) add `workflow_dispatch:` to `ci.yml` so it can be manually fired — not in scope for this PR.
+
+**Acceptance criteria self-check:** all 9 boxes satisfied (the flat-line + muted-mic overlay item is satisfied via the design-refined centered glyph, no flat line variant — the muted state DOM intentionally does not mount the underlying `Oscilloscope` component, so the faux-pulse-override rule is satisfied automatically).
+
+**Hand-off:** PR is ready for review. The orchestrator next tick should be able to dispatch a review worker on PR #401.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker for issue #388) on behalf of @jpshackelford._
+
+---
