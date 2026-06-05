@@ -346,6 +346,8 @@ export function Workspace() {
         targetKioskDeviceId={targetKioskDeviceId}
         onTargetKioskChange={setTargetKioskDeviceId}
         displayContent={displayContent}
+        workspaceId={workspaceId}
+        isOwner={workspace?.isOwner ?? false}
       />
     </>
   );

@@ -566,6 +566,8 @@ export function SessionView() {
         sessionId={sessionId}
         sessionTtsSettings={sessionTtsSettings}
         onSessionTtsSettingsChange={updateSessionTtsSettings}
+        workspaceId={workspaceId}
+        isOwner={workspace?.isOwner ?? false}
       />
     </>
   );

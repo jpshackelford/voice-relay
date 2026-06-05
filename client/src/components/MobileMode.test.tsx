@@ -41,6 +41,13 @@ vi.mock('../hooks/useAI', () => ({
   }),
 }));
 
+// Issue #392: MobileMode now uses useNavigate; mock react-router-dom so tests
+// don't need to wrap the component in a Router.
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 // Import after mocking so we can access the mock functions
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
@@ -732,6 +739,33 @@ describe('MobileMode', () => {
       );
       fireEvent.click(screen.getByTestId('kiosk-picker-card-k2'));
       expect(onTargetKioskChange).toHaveBeenCalledWith('k2');
+    });
+  });
+
+  describe('workspace-home shortcut (#392)', () => {
+    it('renders workspace-home button when isOwner=true and navigates on click', () => {
+      render(
+        <MobileMode
+          {...defaultProps}
+          workspaceId="ws-abc"
+          isOwner={true}
+        />,
+      );
+      const btn = screen.getByRole('button', { name: 'Workspace home' });
+      expect(btn).toBeDefined();
+      fireEvent.click(btn);
+      expect(mockNavigate).toHaveBeenCalledWith('/workspace/ws-abc');
+    });
+
+    it('does NOT render workspace-home button when isOwner=false', () => {
+      render(
+        <MobileMode
+          {...defaultProps}
+          workspaceId="ws-abc"
+          isOwner={false}
+        />,
+      );
+      expect(screen.queryByRole('button', { name: 'Workspace home' })).toBeNull();
     });
   });
 });
