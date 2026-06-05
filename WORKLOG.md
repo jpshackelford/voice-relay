@@ -455,3 +455,49 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:58 UTC - Review worker (PR #408, round 1)
+
+✅ **Addressed PR #408 pr-review 🟡 suggestion thread (`PRRT_kwDOSTUWGM6HgQnD`)**
+
+Picked **both** halves of the bot's suggestion in one commit — the tweaks are tiny and aligned with the audit-style scope of #404:
+
+| Layer | Change |
+|-------|--------|
+| `OpenHandsClient` ctor (`server/src/openhands.ts`) | Tightened guard to `if (!apiKey || !apiKey.trim())`. Direct construction (not just via the manager) with a doomed all-whitespace key now fails at the same gate with the same `Missing OpenHands API key…` message. |
+| `AISessionManager.getOrCreateForSession` | Short-circuited on `options.apiKey?.trim()` so a whitespace `options.apiKey` falls through to the manager-level typed `OpenHands API not configured: workspace API key required (#404).` error — same path as the existing empty-string sibling test. |
+| `server/src/openhands.test.ts` | Added the whitespace regression test the bot proposed. The sibling test's `"Empty/whitespace strings"` comment now matches reality. |
+
+**Verification (local):** `npx vitest run` in `server/` → 1547 tests pass (was 1546; +1, the new whitespace case). No other test files needed updates — the change is fully additive at the test layer and additive-narrowing at the runtime layer.
+
+**Verification (CI):** all 5 required checks ✅ on commit `ecfd0a6`.
+
+| Check | Status | Duration |
+|-------|--------|----------|
+| CI/Build Client | ✅ | 27s |
+| CI/Client Tests | ✅ | 38s |
+| CI/Server Tests | ✅ | 45s |
+| CI/E2E Tests | ✅ | 2m0s |
+| Conventional Commits/lint-pr-title | ✅ | 5s |
+
+`pr-review` did not re-run on this push (the bot only ran once at PR open, ~14m ago). No new bot threads posted; the original thread was the only one open and is now resolved with a reply pointing at commit `ecfd0a6`.
+
+**Workflow steps performed:**
+1. `gh pr ready 408 --undo` → PR back to draft for the iteration.
+2. Edits + local `vitest run` (server only — 1547 pass).
+3. Commit `ecfd0a6` (`fix(server): treat whitespace-only API key as missing per pr-review on #404`).
+4. Pushed; watched `gh pr checks 408 --watch` until all 5 required green.
+5. Posted reply via `addPullRequestReviewThreadReply` (comment `PRRC_kwDOSTUWGM7IoJ7K`) referencing `ecfd0a6`.
+6. `resolveReviewThread` on `PRRT_kwDOSTUWGM6HgQnD` → `isResolved: true`.
+7. `gh pr ready 408` → PR back to ready for review.
+
+**State at handoff:**
+- PR #408 — `o clean ready` (5/5 CI green, 0 unresolved review threads, no Branch Hygiene violations — neither `WORKLOG.md` nor `.workflow-state.json` touched on the feature branch).
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`.
+- Production impact unchanged from the original PR description: this is strictly a narrowing tightening. Production currently has `OPENHANDS_API_KEY` set; once #408 ships that env var becomes inert. The workspace must have `workspace_settings.openhands_api_key_encrypted` set or session-open errors hard with the typed `#404` message. Deploy target: `vr.chorecraft.net`.
+
+Ready for the merge worker.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
