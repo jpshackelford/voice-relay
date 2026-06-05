@@ -382,3 +382,32 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:50 UTC - Implementation Worker (#404)
+
+🚀 **Issue #404 — vestigial OPENHANDS_CLOUD_API_KEY env fallback removed**
+
+PR opened: [#408](https://github.com/jpshackelford/voice-relay/pull/408) (`chore/404-remove-env-fallback` → `main`), commit `878499f`. Built on top of `8e07ac8` and the post-#406 main HEAD `c9fbcdc`.
+
+| Layer | Change |
+|---|---|
+| Server `openhands.ts` | `OpenHandsClient` ctor now requires `apiKey` (env reads dropped). `AISessionManager` no-arg ctor no longer builds a client; `setClientForTesting` is the only test seam. `getOrCreateForSession` / `attachExistingForSession` throw a #404-tagged typed-message error when neither a test client nor `options.apiKey` is supplied (incl. empty-string `apiKey`). |
+| Server `index.ts` | `/api/ai/status` endpoint deleted (tombstone comment retained). |
+| Agent-driver interface | `isAvailable()` removed from `AgentDriver`, OH driver, and `FakeDriver` (incl. the `available` field + `setAvailable()`). |
+| Auto-connect / rehydrate | Gates collapsed to `if (!apiKey)`. Workspace key is now the only credential source. |
+| Client | `useAI.checkAvailability` + `aiAvailable` startup probe removed from `KioskMode` / `MobileMode` and matching test mocks. |
+| Docs | `.env.example`, `README.md`, `docs/DEPLOYMENT.md`, `docs/DESIGN.md` no longer reference the env var. `docs/openhands-platform.md` keeps `OPENHANDS_API_KEY` (OH's own bearer term) with a #404 note. `tests/smoke/*` updated. |
+| Tests | 1546 server + 1074 client all green locally. New positive tests cover the post-removal contract; env-fallback regression tests deleted. CI green: Build Client / Client Tests / Server Tests / E2E / lint-pr-title all ✅. |
+
+**Out of scope (per issue body):**
+- `scripts/openhands-websocket-demo.ts`, `scripts/capture-events.ts` — standalone dev CLIs with their own env contract.
+- `.github/workflows/enable-orchestrator.yml` `OPENHANDS_API_KEY` Actions secret — different system; not touched.
+- No schema changes.
+
+**Production risk:** strictly narrowing. After merge any deployment without `workspace_settings.openhands_api_key_encrypted` set will get a hard `'OpenHands API not configured: workspace API key required (#404).'` error at session-open time instead of the prior soft-warn → env-fallback. Production currently has the env vars set; they become noise once #404 ships and can be removed from `.env` on the next deploy.
+
+**Status:** PR #408 moved from draft → ready for review (CI fully green). Review handling is a separate orchestrator-spawned conversation.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
