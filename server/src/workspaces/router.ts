@@ -41,6 +41,14 @@ export interface WorkspaceRouterConfig {
   deviceRepository?: DeviceRepository;
   qrTokenRepository?: QrTokenRepository;
   sessionRepository?: import('../sessions/session-repository.js').SessionRepository;
+  /**
+   * Optional speaker repository (#383). When provided, the workspace
+   * `join` / `auto-join` / `request-join` resolve paths upsert a
+   * workspace-scoped speaker row for the joining user so the agent
+   * has a place to write learned facts (preferred name, pronouns,
+   * notes) from the very first session.
+   */
+  speakerRepository?: import('../speakers/speaker-repository.js').SpeakerRepository;
   authConfig: AuthMiddlewareConfig;
   /** Callback to broadcast join request to owner's kiosk devices */
   onJoinRequest?: (workspaceId: string, request: {
@@ -68,7 +76,8 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     joinRequestRepository, 
     deviceRepository,
     sessionRepository,
-    qrTokenRepository, 
+    qrTokenRepository,
+    speakerRepository,
     authConfig,
     onJoinRequest,
     onJoinResolved,
@@ -76,6 +85,30 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     onWorkspaceDeleted,
   } = config;
   const auth = requireAuth(authConfig);
+
+  /**
+   * Best-effort speaker upsert (#383). Wrapped so every join-path
+   * call-site is a one-liner and we never let speaker-bookkeeping
+   * break a workspace join.
+   *
+   * `seedName` is used only when the row is being created for the
+   * first time; an existing speaker row already carries the agent's
+   * preferred-name learnings and we don't want to clobber them.
+   */
+  const tryUpsertSpeaker = (
+    workspaceId: string,
+    userId: string,
+    seedName: string | null
+  ): void => {
+    if (!speakerRepository) return;
+    try {
+      speakerRepository.upsertForUser(workspaceId, userId, {
+        preferredName: seedName,
+      });
+    } catch (err) {
+      console.warn('[Workspaces] Speaker upsert failed (non-fatal):', err);
+    }
+  };
 
   // Public kiosk-facing client config (no auth required).
   //
@@ -320,6 +353,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       if (!workspaceRepository.canAccess(workspace.id, req.user!.id)) {
         workspaceRepository.addMember(workspace.id, req.user!.id);
       }
+      // Seed (or touch) the workspace-scoped speaker row for this user
+      // (#383). Best-effort — never block the join on speaker bookkeeping.
+      tryUpsertSpeaker(workspace.id, req.user!.id, req.user!.displayName ?? req.user!.username);
 
       res.json({
         ...workspace,
@@ -437,6 +473,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           res.status(500).json({ error: 'Failed to join workspace. Please try again.' });
           return;
         }
+        // Seed (or touch) the workspace-scoped speaker row for this user
+        // (#383). Best-effort — never block the join on speaker bookkeeping.
+        tryUpsertSpeaker(workspace.id, req.user!.id, req.user!.displayName ?? req.user!.username);
         
         // Audit log for successful auto-join
         console.log('[Workspaces] Auto-join successful:', {
@@ -1277,6 +1316,8 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
 
       // Add user as member
       workspaceRepository.addMember(workspace.id, request.userId);
+      // Seed (or touch) the workspace-scoped speaker row (#383).
+      tryUpsertSpeaker(workspace.id, request.userId, null);
 
       // Notify the requesting user via WebSocket
       if (onJoinResolved) {

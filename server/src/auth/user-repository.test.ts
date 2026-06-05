@@ -12,6 +12,19 @@ describe('UserRepository', () => {
     db = new Database(':memory:');
     db.exec(usersMigration.up);
     db.exec(installationMigration.up);
+    // Migration 017 / #383: UserRepository.create dual-writes to the
+    // new auth_identities table — must exist for these tests.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS auth_identities (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL,
+        provider_user_id TEXT NOT NULL,
+        provider_username TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(provider, provider_user_id)
+      );
+    `);
     repo = new UserRepository(db);
   });
 

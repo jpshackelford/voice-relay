@@ -158,6 +158,18 @@ describe('MarqueeTicker', () => {
       expect(screen.getByTestId('m').textContent).toBe('');
     });
 
+    it('suppresses an orphan prefix when text is empty (defensive guard)', () => {
+      // Bot review feedback on PR #395: in the (unlikely) case where
+      // KioskMode hands us a non-empty prefix with empty text, we must
+      // not render "<name>: " on its own. The JSX guard
+      // (`text.length > 0 && prefix`) drops the speaker span in that
+      // case so the strip looks idle, matching the resetting transform.
+      render(<MarqueeTicker text="" prefix="JP: " data-testid="m" />);
+      const wrapper = screen.getByTestId('m');
+      expect(wrapper.querySelector('.kiosk-ticker-speaker')).toBeNull();
+      expect(wrapper.textContent).toBe('');
+    });
+
     it('still translates by the combined overflow when a prefix is present', () => {
       // The inner span's scrollWidth reflects prefix + text. The
       // component does not need any special handling — it just measures

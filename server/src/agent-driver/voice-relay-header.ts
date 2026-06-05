@@ -58,6 +58,13 @@ export interface VoiceRelayHeaderState {
   lastUserAlias: string | null;
   /** `Date.now()` of the most recent user turn, or `null` before the first turn. */
   lastUserAtMs: number | null;
+  /**
+   * deviceId → last announced speaker id (#383). Used to suppress
+   * repeated `[speaker ...]` headers when the same human keeps
+   * talking, and to surface changes promptly when speakers swap on
+   * a borrowed device.
+   */
+  deviceSpeakerId: Map<string, string>;
 }
 
 /** Construct a fresh header state. Call this when constructing an `AISession`. */
@@ -66,6 +73,7 @@ export function makeVoiceRelayHeaderState(): VoiceRelayHeaderState {
     deviceAliases: new Map(),
     lastUserAlias: null,
     lastUserAtMs: null,
+    deviceSpeakerId: new Map(),
   };
 }
 
@@ -147,6 +155,33 @@ export function buildVoiceRelayHeader(
     const safeName = sanitizeDeviceName(sender.senderName);
     const tz = sender.timezone ? ` tz=${sender.timezone}` : '';
     lines.push(`[vr ${alias}=${safeName}${tz}]`);
+  }
+
+  // Speaker identity (#383). Emit a `[speaker ...]` line whenever the
+  // resolved speaker differs from the one we last announced for this
+  // device. This is independent of the alias/time decision above —
+  // borrowed devices flip speaker without flipping device, and the
+  // agent needs to see both.
+  const lastSpeakerForDevice = state.deviceSpeakerId.get(sender.deviceId);
+  if (
+    sender.speaker &&
+    sender.speaker.id !== lastSpeakerForDevice
+  ) {
+    const speakerBits: string[] = [`id=${sender.speaker.id}`];
+    if (sender.speaker.preferredName) {
+      speakerBits.push(`name=${sanitizeDeviceName(sender.speaker.preferredName)}`);
+    }
+    if (sender.speaker.pronouns) {
+      speakerBits.push(`pronouns=${sanitizeDeviceName(sender.speaker.pronouns)}`);
+    }
+    lines.push(`[speaker ${speakerBits.join(' ')}]`);
+    state.deviceSpeakerId.set(sender.deviceId, sender.speaker.id);
+  } else if (!sender.speaker && lastSpeakerForDevice !== undefined) {
+    // Speaker just became unknown again (device unclaimed, override
+    // cleared, etc). Announce so the agent stops attributing to the
+    // last speaker.
+    lines.push(`[speaker id=unknown]`);
+    state.deviceSpeakerId.delete(sender.deviceId);
   }
 
   if (needTime || needAlias) {

@@ -692,3 +692,149 @@ checks green, then moved from draft → ready for review.
 _This worklog entry was written by an AI agent (OpenHands impl worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:22 UTC - Orchestrator
+
+🚀 **Spawned 3 Workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `17e6c73` | review | PR #391 — speaker identity model | **NEW** |
+| `d905436` | review | PR #394 — CSS Grid kiosk overlays | **NEW** |
+| `82660be` | implementation | Issue #382 — ticker speaker identity | **NEW** |
+
+1. **Review Worker** — [PR #391](https://github.com/jpshackelford/voice-relay/pull/391) (1 unresolved bot suggestion on `server/src/index.ts:207` — redundant device lookup). Conv: [`17e6c73`](https://app.all-hands.dev/conversations/17e6c73463c14ec8a4ee37a97a5f4450).
+2. **Review Worker** — [PR #394](https://github.com/jpshackelford/voice-relay/pull/394) (2 unresolved bot suggestions on `client/src/App.css` — request clarifying comments around grid areas). Conv: [`d905436`](https://app.all-hands.dev/conversations/d905436f01d046e6bd2547f0ec081c8e).
+3. **Implementation Worker** — [Issue #382](https://github.com/jpshackelford/voice-relay/issues/382) — *Transcription ticker should identify the sending device / speaker* (priority:medium, scope:client-only). Selected over #393 (same priority) for being older and complementing the just-landed server-side speaker model. Conv: [`82660be`](https://app.all-hands.dev/conversations/82660be02f1f457fad5e0d3e3c2f5aaa).
+
+**Current State:**
+- Open PRs: [#391](https://github.com/jpshackelford/voice-relay/pull/391) (CI green, 1 unresolved thread), [#394](https://github.com/jpshackelford/voice-relay/pull/394) (CI green, 2 unresolved threads).
+- Ready & unblocked queue (after #382 dispatch): #393 (medium), #380/#389/#390/#392 (low), #386/#388 (unprioritized).
+- Issues needing expansion: all 8 carry `on-hold` or `needs-human` → expansion slots intentionally idle.
+
+**Slot Usage:** expansion 0/4, implementation 1/1, review 2/2 (6 of 7 total slots in use).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+### 2026-06-05 02:35 UTC - Review Worker (PR #394 round 1)
+
+✅ **PR #394 review feedback addressed** — [PR #394](https://github.com/jpshackelford/voice-relay/pull/394)
+
+| Thread | File:Line | Action | Commit |
+|--------|-----------|--------|--------|
+| Bot suggestion: document 3.5rem → 3rem reduction | `client/src/App.css:3928` | Accepted; added block comment | `ab723f2` |
+| Bot suggestion: clarify `bl`/`br` repeated across rows 3–4 | `client/src/App.css:3933` | Accepted; added inline comment | `ab723f2` |
+
+- **Workflow:** PR converted to draft → comments added in CSS → committed (`docs(client): clarify mobile kiosk grid sizing and bl/br span`) → pushed → CI green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title) → both threads replied + resolved via GraphQL → PR marked ready.
+- **Scope:** docs-only inside an existing comment block; no behavior change, no risk to deploy.
+- **Outstanding:** none; awaiting next review round.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-05 02:42 UTC - Review Worker (PR #391 round 1)
+
+✅ **PR #391 review feedback addressed** — [PR #391](https://github.com/jpshackelford/voice-relay/pull/391)
+
+| Thread | File:Line | Action | Commit |
+|--------|-----------|--------|--------|
+| Bot suggestion: redundant `devices.findById()` per utterance | `server/src/index.ts:207` (`resolveSpeakerForDevice`) | Accepted; cached `primary_user_id` on the in-memory `Device` and refactored the resolver to take it directly | `e5fd361` |
+
+- **Refactor:** added `primaryUserId?: string \| null` to the registry-side `Device`, seeded by `DeviceRegistry.register(...)` from `deviceRepository.registerOrUpdate().device.primaryUserId` at WS register, refreshed via `DeviceRegistry.updateDevice` whenever the device router's `PATCH /:deviceId` claims it for a workspace user. `resolveSpeakerForUser(workspaceId, primaryUserId)` now only touches the `speakers` table — the relay path no longer queries `devices` per inbound utterance.
+- **Tests:** +3 specs (registry cache from `register`, `updateDevice` refresh + clear, reconnect refresh, PATCH → registry sync). Suite 1447 → 1450, all green.
+- **Workflow:** PR converted to draft → refactor + tests → committed (`refactor(server): cache primaryUserId on in-memory device (#383)`) → pushed → CI all green (Build Client, Client Tests, Server Tests, E2E Tests 1m40s, lint-pr-title) → thread replied + resolved via GraphQL → PR marked ready.
+- **Scope:** server-only; the migration & schema from PR #391's prior commits are untouched, so the SQLite production DB on vr.chorecraft.net still rolls forward cleanly on merge.
+- **Outstanding:** none; awaiting next review round.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-05 02:35 UTC - Implementation Worker (issue #382)
+
+✅ **Issue #382 implemented** — [PR #395](https://github.com/jpshackelford/voice-relay/pull/395)
+
+Transcription ticker now identifies the sending device/speaker on the kiosk: each new speaker's utterance is prefixed with their `senderName` (e.g. `JP's iPhone SE: I'll grab a coffee`), and same-sender follow-ups suppress the prefix so the marquee doesn't restart with a redundant `<name>: ` on every partial-update frame.
+
+| Area | Change |
+|------|--------|
+| `client/src/components/MarqueeTicker.tsx` | New optional `prefix?: string` prop, rendered as a sibling `<span class="kiosk-ticker-speaker">` before the text inside the existing measured inner span; layout effect re-runs on prefix change. |
+| `client/src/components/KioskMode.tsx` | Replaced `transcriptionTickerText: string` with a `transcriptionTicker: { prefix, text }` memo. Same-sender suppression via `lastRenderedSenderIdRef`, updated in a commit-time `useEffect`. `fauxPulse` keys off `transcriptionTicker.text` so a same-sender partial still pulses and a prefix appearing/disappearing alone does not. |
+| `client/src/App.css` | Added `.kiosk-ticker-speaker { font-weight: 600; color: rgba(255,255,255,0.7); margin-right: 0.4em }`. No layout changes; `@media (max-width: 480px)` stacked layout untouched. |
+| `client/src/components/{KioskMode,MarqueeTicker}.test.tsx` | +10 unit tests covering: prefix appears for new sender, suppressed on same-sender follow-up, re-emits on sender switch, empty strip has no orphan `:`, and that the overflow translation still works with prefix+text. |
+
+- **Scope verdict:** client-only as labeled. `Utterance.senderName` has been on the wire since #346; no server, DB, or WebSocket change. PR #391 (issue #383's `speakers` table) is still draft, so this PR ships against `Utterance.senderName` — a follow-up after #391 lands can swap the source to `speakers.preferred_name` and re-key suppression on `speaker_id`, per the revised acceptance comment on #382.
+- **Tests:** `npm run test -w client` → **1029/1029 ✅** (49 files; MarqueeTicker 7 → 13 tests, KioskMode 88 → 92 tests). `npm run build -w client` → ✅ (tsc + Vite). All required CI checks green on PR #395: Build Client, Client Tests, Server Tests, E2E Tests (1m40s), lint-pr-title.
+- **Workflow:** branch `feat/382-ticker-speaker-prefix` from main → implement → tests → commit (`feat(client): identify the sending device/speaker in the transcription ticker`) → push → DRAFT PR opened with `Fixes #382` → CI watched to green → PR moved to ready-for-review.
+- **Outstanding:** none from the issue's acceptance criteria; follow-up (post-#391) noted in the PR body for swapping the identity source to the workspace-scoped `speakers` table.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-05 02:40 UTC - Merge worker (PR #394)
+
+✅ **PR #394 merged** — [feat(client): adopt CSS Grid for kiosk display overlays (#379)](https://github.com/jpshackelford/voice-relay/pull/394)
+
+CSS-only refactor of `.kiosk-display` from `flex` + six `position: absolute` overlays to a named-area CSS Grid. Outer 4rem gutter columns are now the single source of truth for circle placement; legacy `padding-{left,right}: 4rem` reservations on the ticker strips retired. Fixed 3.5rem bottom row places corner circles and both ticker strips on a shared horizontal baseline.
+
+| Check | Status |
+|------:|--------|
+| CI (7 checks: Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) | ✅ all SUCCESS |
+| Mergeable / mergeStateStatus | `MERGEABLE` / `CLEAN` |
+| Labels | none (no `on-hold` / `needs-human` / `do-not-merge`) |
+| Unresolved review threads | 0 (2 threads, both resolved) |
+| Latest review rating | 🟢 Good taste (LOW risk) |
+| Migration check | N/A — CSS-only diff (`client/src/App.css`) |
+| Issue #379 | auto-closed via `Closes #379` |
+
+- First merge attempt got `GraphQL: Base branch was modified. Review and try the merge again.` (main advanced between guard-check and merge). Re-checked mergeability → `CLEAN`, retried, succeeded.
+- Production note: app auto-deploys to vr.chorecraft.net on merge to main; this is a pure CSS change so DB / SQLite is unaffected.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-05 02:40 UTC - Merge worker (PR #391 → main)
+
+✅ **PR #391 merged** — `feat(server): speaker identity model (#383)` — closes #383.
+
+Squash commit: `3ca5fdc37cdca58104518794cb5bd7d2c6d51a1b`
+
+**Merge-readiness verification (immediately pre-merge):**
+
+| Guard | State |
+|------|-------|
+| CI checks | 7/7 SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) |
+| Unresolved review threads | 0 (2 total threads, both resolved) |
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / `CLEAN` |
+| Blocking labels | none (`on-hold`, `needs-human`, `do-not-merge` all absent) |
+| Draft | no |
+| Latest bot review | 🟡 Acceptable — solid implementation, only minor improvement opportunities (no blockers) |
+
+**Production migration check (017_speakers):**
+
+- Up path is **purely additive**: 2 × `CREATE TABLE` (`auth_identities`, `speakers`), 3 × `ALTER TABLE … ADD COLUMN` (`devices.primary_user_id`, `session_devices.active_speaker_id`, `messages.speaker_id`), plus indexes and a backfill `INSERT` from `users.github_id`. No existing rows touched, no FK breakage — safe to run inside the migrator transaction with `PRAGMA foreign_keys = ON`.
+- Down path rebuilds `messages`, `session_devices`, and `devices` to drop the new columns (SQLite < 3.35 has no `DROP COLUMN`) and round-trips cleanly per the new `017_speakers.test.ts`.
+- `users.github_id` / `users.username` are retained as a compatibility shadow — existing GitHub OAuth keeps working unchanged; a future migration can drop them once every read path uses `auth_identities`.
+- No manual post-deploy steps required: `vr.chorecraft.net` auto-applies migrations on boot via `SQLiteStore.connect()`. The orchestrator should monitor the next deploy for migration 017 applying cleanly.
+
+**What landed:**
+
+- `auth_identities` (provider-agnostic identity bookkeeping, backfilled from GitHub).
+- `speakers` (workspace-scoped persistent speaker profiles; partial unique index on `(workspace_id, user_id)` allows multiple anonymous speakers).
+- `devices.primary_user_id` (records the QR-mode authenticator).
+- `session_devices.active_speaker_id` + `messages.speaker_id` (per-utterance speaker attribution).
+- REST: `GET/POST /api/workspaces/:workspaceId/speakers` and `GET/PUT/DELETE /api/workspaces/:workspaceId/speakers/:speakerId` (owner-only writes, member reads, 409 on duplicate, 404/403/401 elsewhere).
+- `AuthIdentityRepository` + dual-write on user create.
+- `SpeakerRepository` + `createSpeakerRouter` mounted in `server/src/index.ts`.
+- `prompts/system-prompt.md` gains a "Speaker identity" section; `agent-driver/voice-relay-header` carries speaker context to OpenHands.
+
+**Tests:** 1447 server tests passing (49 new across migration round-trip, repo, router, identity repo). New-code coverage well above the 80% gate (router/repo 92.5% / 87.5% / 100% / 92.24%; identity repo 100%; migration 100%).
+
+**Follow-up unlocked:** PR #395 (issue #382 transcription ticker speaker prefix) explicitly noted that once #391 lands, the ticker's identity source can swap from `Utterance.senderName` to `speakers.preferred_name` keyed on `speaker_id`. That follow-up is now actionable.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---

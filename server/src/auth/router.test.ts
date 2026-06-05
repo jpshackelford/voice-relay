@@ -15,6 +15,21 @@ function setupTestEnv() {
   const db = new Database(':memory:');
   db.exec(usersMigration.up);
   db.exec(installationMigration.up);
+  // Migration 017 / #383: speaker identity. UserRepository.create
+  // dual-writes to `auth_identities`, so the table must exist for the
+  // GitHub OAuth callback test to succeed. Mirrors the subset of the
+  // migration's `up` SQL that this test actually depends on.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS auth_identities (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      provider_user_id TEXT NOT NULL,
+      provider_username TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(provider, provider_user_id)
+    );
+  `);
 
   const userRepository = new UserRepository(db);
 

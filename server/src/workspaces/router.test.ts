@@ -35,6 +35,7 @@ function setupTestEnv() {
       last_seen_at TEXT,
       config TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      primary_user_id TEXT,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
     );
   `);
@@ -540,6 +541,7 @@ describe('Workspace Router - GET /:id/devices', () => {
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        primary_user_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
     `);
@@ -1233,6 +1235,7 @@ function setupDeletionTestEnv() {
       last_seen_at TEXT,
       config TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      primary_user_id TEXT,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
     );
   `);

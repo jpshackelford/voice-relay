@@ -30,7 +30,10 @@ describe('Device Router', () => {
     db.exec(userGithubInstallationMigration.up);
     db.exec(workspacesMigration.up);
     db.exec(allowAutoJoinMigration.up);
-    // Create devices table with new secure schema
+    // Create devices table with new secure schema. `primary_user_id`
+    // is part of the live schema (migration 017, #383); the migration
+    // would ADD it via ALTER, so we just include it inline here to
+    // keep the test setup self-contained.
     db.exec(`
       CREATE TABLE IF NOT EXISTS devices (
         id TEXT PRIMARY KEY,
@@ -42,6 +45,7 @@ describe('Device Router', () => {
         last_seen_at TEXT,
         config TEXT,
         created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        primary_user_id TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
     `);
@@ -547,6 +551,51 @@ describe('Device Router', () => {
         .expect(200);
 
       expect(response.body.name).toBe('Trimmed Name');
+    });
+
+    // Issue #383: PATCH claims the device for the authenticated user and
+    // must also refresh the in-memory registry cache so the next utterance
+    // resolves to the correct speaker without a DB lookup.
+    it('refreshes deviceRegistry cache when device is claimed (#383)', async () => {
+      const { DeviceRegistry } = await import('../registry.js');
+      const registry = new DeviceRegistry();
+
+      // Mount a fresh router wired to the registry.
+      const claimApp = express();
+      claimApp.use(express.json());
+      claimApp.use(
+        '/api/devices',
+        createDeviceRouter({
+          deviceRepository,
+          workspaceRepository,
+          deviceRegistry: registry,
+          authConfig: { jwtService, userRepository },
+        })
+      );
+
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      // Simulate a live websocket-registered device with no claimed user.
+      const fakeWs = { readyState: 1, OPEN: 1, send: vi.fn(), close: vi.fn() } as never;
+      registry.register(
+        device.id, testWorkspaceId, fakeWs, 'Kiosk', 'kiosk',
+        undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+        null,
+      );
+      expect(registry.getDevice(device.id)?.primaryUserId).toBeNull();
+
+      await request(claimApp)
+        .patch(`/api/devices/${device.id}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Kiosk' })
+        .expect(200);
+
+      expect(deviceRepository.findById(device.id)?.primaryUserId).toBe(testUserId);
+      expect(registry.getDevice(device.id)?.primaryUserId).toBe(testUserId);
     });
   });
 });

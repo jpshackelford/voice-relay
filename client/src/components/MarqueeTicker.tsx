@@ -87,11 +87,13 @@ export function MarqueeTicker({
     const inner = innerRef.current;
     if (!wrapper || !inner) return;
 
-    // The strip is "empty" only when both prefix and text are empty. A
-    // standalone prefix without text shouldn't happen in normal flow
-    // (KioskMode clears both on stale/idle), but treat it the same as
-    // empty text to avoid showing an orphan "<name>: " sitting on a
-    // stale strip.
+    // The strip is treated as "empty" whenever `text` is empty: even if a
+    // prefix is non-empty, the JSX below suppresses it in that case (see
+    // the `text.length > 0 && prefix` guard), so the inner span has no
+    // content to scroll. A standalone prefix without text shouldn't
+    // happen in normal flow (KioskMode clears both on stale/idle), but
+    // we handle it defensively to avoid showing an orphan "<name>: "
+    // sitting on a stale strip.
     if (text.length === 0) {
       inner.style.transform = 'translateX(0)';
       return;
@@ -135,7 +137,9 @@ export function MarqueeTicker({
           willChange: 'transform',
         }}
       >
-        {prefix ? <span className="kiosk-ticker-speaker">{prefix}</span> : null}
+        {text.length > 0 && prefix ? (
+          <span className="kiosk-ticker-speaker">{prefix}</span>
+        ) : null}
         {text}
       </span>
     </span>

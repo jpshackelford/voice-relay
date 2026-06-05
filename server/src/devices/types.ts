@@ -18,6 +18,16 @@ export interface PersistedDevice {
   lastSeenAt: string | null;
   config: Record<string, unknown> | null;
   createdAt: string;
+  /**
+   * Stable id of the user who claimed this device via an authenticated
+   * flow (GitHub OAuth, QR-token auto-join, …). `null` for anonymous
+   * kiosks and for devices that pre-date #383 / migration 017.
+   *
+   * Used by the speaker-identity resolution path: when no per-session
+   * override is set on `session_devices.active_speaker_id`, the speaker
+   * is looked up via `primaryUserId` → workspace-scoped `speakers` row.
+   */
+  primaryUserId: string | null;
 }
 
 /**
