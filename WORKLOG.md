@@ -480,3 +480,36 @@ Automation v2 (`5f180989-ed9c-42b4-ac9f-5f30f0623316`) re-enabled via `PATCH /ap
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 13:01 UTC - Merge Worker (PR #401, conv `e87dca6`)
+
+✅ **Squash-merged [PR #401](https://github.com/jpshackelford/voice-relay/pull/401)** — `feat(websocket): propagate device mic listening state with three-state kiosk indicator` at `f468b5f`. [Issue #388](https://github.com/jpshackelford/voice-relay/issues/388) auto-closed at 13:00:47Z.
+
+**Pre-merge verification:**
+- Re-checked snapshot: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `isDraft=false`, `reviewDecision=""`, labels=[], 0 review threads, all 7 CI checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator).
+- `pr-review` bot: 🟢 LOW risk, "Good taste" (COMMENTED).
+- **No DB migration confirmed.** `git diff <merge-base> HEAD --name-only` covered 15 files: 11 client + 4 server, zero `migration`/`*.sql` paths. Both new fields (`listening`, `sttSupported`) live on the in-memory `Device` and `DeviceInfo` only.
+- Branch was behind main (orchestrator commits to `WORKLOG.md` / `.workflow-state.json` after branch was cut); did not affect the merge since main's mergeStateStatus stayed `CLEAN`.
+
+**What shipped (end-to-end):**
+| Layer | Change |
+|---|---|
+| **Wire format** | New `device-listening-state` client→server WS message symmetric with `update-device`; deviceId implicit from connection. |
+| **Server registry** | `setListeningState(id, listening, sttSupported)`; both fields projected onto `DeviceInfo` only when set, so legacy peers never appear with stale flags. Runtime-only — never touches SQLite. |
+| **Server router** | `server/src/index.ts` calls `registry.setListeningState(...)` then `broadcastDeviceList(workspaceId)` so peers see the new aggregate on the existing `device-list` payload. |
+| **Client hook** | `useWebSocket.sendListeningState(listening, sttSupported)`; guards on `registeredRef.current`. |
+| **Kiosk** | New `OscilloscopeIndicator` + pure-function `deriveIndicatorState`. Three states with `aria-label`: `listening` (animated waveform), `muted` (centered SVG glyph — replaces waveform, overrides faux-pulse), `no-mic` (30% opacity, no overlay). |
+| **Mobile** | Reports `listening = isListening \|\| audioAnalyser.isActive`; `micCapable = sttSupported \|\| audioAnalyser.isActive` so visualizer-mode users aggregate correctly. |
+| **Tests** | +27 unit tests across 5 suites (server registry, useWebSocket, KioskMode, MobileMode, OscilloscopeIndicator). All 2563 tests passed in CI. |
+
+**Key conservative-design call:** `deriveIndicatorState` requires `sttSupported === true` *explicitly* — `undefined` is intentionally NOT mic-capable. Legacy clients that haven't yet sent `device-listening-state` are excluded from the "all muted" decision, so they can't silently flip a multi-device workspace's indicator to muted just by existing.
+
+**Production impact:** Auto-deploys to vr.chorecraft.net. Runtime-only state means zero schema change against the live `sqlite.db`; no data migration, no rollback gymnastics. The new `device-list` payload fields are additive and optional, so legacy connected clients tolerate them without code changes.
+
+**Post-merge:**
+- Issue #388 ✅ auto-closed.
+- Orchestrator slot accounting: this clears the merge slot. PR #402 (#386 Deepgram STT) remains open and is the next item for the orchestrator to pick up once `pr-review` finishes.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
