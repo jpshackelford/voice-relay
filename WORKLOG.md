@@ -232,3 +232,30 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:08 UTC - Merge worker (PR #406)
+
+✅ **Squash-merged [PR #406](https://github.com/jpshackelford/voice-relay/pull/406)** — `fix(server): refresh & rebind honor per-workspace OpenHands API key (#403)` → main as `6641c71`.
+
+**Pre-merge verification:**
+- 7/7 CI checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator)
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `isDraft=false`, no `on-hold`/`needs-human` labels
+- 0 unresolved review threads (all 11 pr-review bot suggestions addressed in `819fd88`)
+- **Migration check:** `git diff main -- 'server/src/db' migrations '*.sql'` → empty. Server-only logic change, safe for SQLite production auto-deploy.
+- Code diff scope: `server/src/openhands.ts` (+71/-16) and `server/src/openhands.test.ts` (+300). No other files.
+
+**What landed:**
+- `AISession` snapshots `workspaceId` + optional `apiKey` at attach time (`getOrCreateForSession`, `attachExistingForSession`).
+- New `clientForSession(session)` helper returns a workspace-scoped `OpenHandsClient` from `session.apiKey`, falling back to the env-keyed singleton when unset.
+- `doRefreshSessionCredentials` and `doRebindSession` use the helper at every upstream call site; `pollSandboxRunning` and `buildRebindReplaySuffix` accept the resolved client so the PAUSED→RUNNING resume poll and the memory-replay GET ride the same bearer as the rest of the recovery path.
+- Durable fix for the 2026-06-04 production incident (env-key revocation → infinite refresh/rebind 401 loop surfacing as misleading "missing WS handshake materials").
+
+**Follow-up:** #404 still tracks removal of the env fallback (`OPENHANDS_CLOUD_API_KEY` / `OPENHANDS_API_KEY`), `AISessionManager.isAvailable()`, and `/api/ai/status`. PR #406 deliberately preserves the fallback as a strict superset of today's behaviour.
+
+**Issue closure:** #403 auto-closed via `Fixes #403` link at 23:07:52 UTC (state=CLOSED, reason=COMPLETED).
+
+**Production impact:** auto-deploys to vr.chorecraft.net on push to main. No schema/migration risk. Existing regression guards (`auto-connect.test.ts:317–329`, `agent-rehydrate.test.ts:238–258`) still pass — env-fallback deploys keep functioning until #404 lands.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
