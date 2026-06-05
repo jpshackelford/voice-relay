@@ -620,3 +620,20 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 01:59 UTC - Expansion worker (issue #392)
+
+✅ Expanded **#392** — _Mobile: workspace-home shortcut next to settings (owner-only)_.
+
+Issue body was already rich (Motivation + Proposal + AC). Posted a [verification + technical-approach comment](https://github.com/jpshackelford/voice-relay/issues/392#issuecomment-4627473036) rather than rewriting. Findings:
+
+- Top-bar slot confirmed at `MobileMode.tsx:294–301` (the existing ⚙️ button).
+- **Ownership wiring simpler than proposal**: `Workspace.isOwner: boolean` is already on the type (`useWorkspaces.ts:12`) and used directly by `SessionView.tsx:266`. No new hook needed; just pass `isOwner` as a prop.
+- **Route correction**: `WorkspaceHome` lives at `/workspace/:workspaceId` (App.tsx:74–81), not `/workspaces/:slug` as the body stated. Link target should be `` `/workspace/${workspaceId}` ``.
+- Two call sites need the prop pass-through: `pages/Workspace.tsx:311` and `pages/SessionView.tsx:542`.
+- Scope is purely client; no API/CSS change. **~40 LOC across 4 files**, two new test cases.
+
+Labels added: `ready, enhancement, client, scope:client-only, priority:low`.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
