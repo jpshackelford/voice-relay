@@ -207,3 +207,28 @@ PR #406 is ready for the merge worker on the next orchestrator tick.
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 23:00 UTC - Implementation worker (#405)
+
+✅ Opened [PR #407](https://github.com/jpshackelford/voice-relay/pull/407) — `feat(server): typed reason for missing-WS-handshake failure` (#405).
+
+**Branch:** `feat/405-typed-handshake-reason` off `main` @ `c64de6f` (does not collide with PR #406's refresh/rebind paths).
+
+**Scope:** server-only error-reporting refactor. No DB migrations, no env-var changes, no client changes, no new deps.
+
+**Changes:**
+- `server/src/openhands.ts`: new `MissingWsHandshakeReason` union (`auth-rejected` / `sandbox-stopped` / `sandbox-missing` / `paused-no-sandbox-id` / `unknown`); `UpstreamConversationEndedError` carries an optional readonly `reason`; pure classifier `explainMissingHandshake(convInfo, lastError?)`; renderer `formatMissingHandshakeMessage(id, reason)`; both throw sites (create-path in `getOrCreateForSession`, attach-path in `attachExistingForSession`) now emit the typed reason + self-describing message. `pollSandboxRunning` grew an optional `onTransientError` callback so the attach-path can capture the last swallowed 401 without leaking through the resolver contract.
+- `server/src/agent-driver/openhands.ts`: `BindResult.error.cause: Error` so `openSession` and `restartSession` re-throw the original typed error instead of wrapping in `new Error(msg)`. Prior wrapping silently dropped the `.reason` on `UpstreamConversationEndedError` before it could reach the broadcast layer — caught and fixed during implementation; covered by 3 new driver tests.
+- `server/src/auto-connect.ts` + `server/src/agent-rehydrate.ts`: when the caught error is an `UpstreamConversationEndedError` with a typed `reason`, propagate `err.message` into the `degraded` `session-state.error` field (and the matching legacy `session-ai-status.error` in `auto-connect.ts`). Otherwise keep the existing sanitized generic message.
+
+**Tests:** +31 tests total — 23 in `openhands.test.ts`, 3 in `agent-driver/openhands.test.ts`, 3 in `auto-connect.test.ts`, 2 in `agent-rehydrate.test.ts`. **All 1570 server tests pass.** Coverage stays at 93.9% statements / 88.6% branches (≥ 80% threshold).
+
+**CI on `d317d57`:** all required checks green — Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator. PR promoted from draft to ready for review; `pr-review` workflow will fire on the next tick.
+
+**Acceptance criteria:** all six AC bullets satisfied (see PR description for the per-bullet mapping). Out-of-scope items (kiosk UI changes, auto-rotation policy, class-hierarchy refactor of `UpstreamConversationEndedError`) deliberately untouched.
+
+**Coordination with PR #406:** different code paths (handshake throw sites + broadcast field vs. refresh/rebind). Will rebase onto `main` once #406 lands if there are textual conflicts in `server/src/openhands.ts` (none expected — different regions of the file).
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
