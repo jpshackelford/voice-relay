@@ -528,6 +528,11 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsTtsEnabled: settings?.elevenlabsTtsEnabled ?? false,
         kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
         defaultAgentPrompt: settings?.defaultAgentPrompt ?? null,
+        // Issue #386: hosted-STT settings. The API key itself is masked
+        // and only reported via the boolean `hasDeepgramApiKey` flag.
+        sttEngine: settings?.sttEngine ?? 'web-speech',
+        sttMonthlyMinuteCap: settings?.sttMonthlyMinuteCap ?? null,
+        hasDeepgramApiKey: !!settings?.deepgramApiKeyEncrypted,
         updatedAt: settings?.updatedAt ?? null,
       });
     } catch (err) {
@@ -560,6 +565,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsTtsEnabled?: boolean;
         kioskFooterTickersEnabled?: boolean;
         defaultAgentPrompt?: string | null;
+        // Issue #386
+        sttEngine?: 'web-speech' | 'deepgram';
+        sttMonthlyMinuteCap?: number | null;
       };
       const {
         ttsVoice,
@@ -569,7 +577,31 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsVoiceId,
         elevenlabsTtsEnabled,
         kioskFooterTickersEnabled,
+        sttEngine,
       } = body;
+
+      // Issue #386: validate engine + cap shape. The repo layer accepts
+      // any string in the column, but we want to reject typos before
+      // they land in the DB.
+      if (sttEngine !== undefined && sttEngine !== 'web-speech' && sttEngine !== 'deepgram') {
+        res.status(400).json({
+          error: "sttEngine must be 'web-speech' or 'deepgram'",
+        });
+        return;
+      }
+      const capProvided = 'sttMonthlyMinuteCap' in body;
+      if (capProvided) {
+        const cap = body.sttMonthlyMinuteCap;
+        if (
+          cap !== null &&
+          (typeof cap !== 'number' || !Number.isFinite(cap) || cap < 0)
+        ) {
+          res.status(400).json({
+            error: 'sttMonthlyMinuteCap must be a non-negative number or null',
+          });
+          return;
+        }
+      }
 
       // Validate workspace-default agent prompt (issue #378). String or
       // null only; over-cap values are rejected with 400.
@@ -602,6 +634,11 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         // `'defaultAgentPrompt' in settings` to distinguish "leave alone"
         // from "set to null".
         ...(promptKeyProvided ? { defaultAgentPrompt: body.defaultAgentPrompt ?? null } : {}),
+        ...(sttEngine !== undefined ? { sttEngine } : {}),
+        // Same explicit-null dance as `defaultAgentPrompt`: forwarding
+        // the key only when present preserves "leave alone" semantics
+        // for callers that omit the cap field entirely.
+        ...(capProvided ? { sttMonthlyMinuteCap: body.sttMonthlyMinuteCap ?? null } : {}),
       });
 
       res.json({
@@ -616,6 +653,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
         elevenlabsTtsEnabled: settings.elevenlabsTtsEnabled,
         kioskFooterTickersEnabled: settings.kioskFooterTickersEnabled,
         defaultAgentPrompt: settings.defaultAgentPrompt,
+        sttEngine: settings.sttEngine,
+        sttMonthlyMinuteCap: settings.sttMonthlyMinuteCap,
+        hasDeepgramApiKey: !!settings.deepgramApiKeyEncrypted,
         updatedAt: settings.updatedAt,
       });
     } catch (err) {
@@ -910,6 +950,86 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
     } catch (err) {
       console.error('[Workspaces] Remove ElevenLabs API key error:', err);
       res.status(500).json({ error: 'Failed to remove ElevenLabs API key' });
+    }
+  });
+
+  // Issue #386: Set the workspace's Deepgram API key (encrypted at rest).
+  //
+  // Mirrors the ElevenLabs endpoint shape. The plaintext key never
+  // touches storage; only the AES-256-GCM ciphertext + IV + auth tag
+  // are persisted. Audit logging is by key presence only — the key
+  // itself is never written to logs.
+  router.put('/:id/settings/deepgram-api-key', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can set Deepgram API key' });
+        return;
+      }
+
+      const { apiKey } = req.body as { apiKey?: string };
+      if (!apiKey || typeof apiKey !== 'string') {
+        res.status(400).json({ error: 'API key is required' });
+        return;
+      }
+      // Deepgram keys are ~40-character base64-ish strings; reuse the
+      // generic length sanity check from the existing
+      // `isValidApiKeyFormat` helper.
+      if (!isValidApiKeyFormat(apiKey)) {
+        res.status(400).json({ error: 'Invalid Deepgram API key format' });
+        return;
+      }
+
+      const encrypted = encryptApiKey(apiKey);
+      workspaceRepository.updateSettings(workspace.id, {
+        deepgramApiKeyEncrypted: encrypted.encrypted,
+        deepgramApiKeyIv: encrypted.iv,
+        deepgramApiKeyTag: encrypted.tag,
+      });
+
+      console.log('[Workspaces] Deepgram API key set:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      res.json({ success: true, hasDeepgramApiKey: true });
+    } catch (err) {
+      console.error('[Workspaces] Set Deepgram API key error:', err);
+      res.status(500).json({ error: 'Failed to set Deepgram API key' });
+    }
+  });
+
+  // Issue #386: Remove the workspace's Deepgram API key. This also
+  // resets the engine to `'web-speech'` (handled in the repository) so
+  // the next token-broker request returns 403 rather than 503.
+  router.delete('/:id/settings/deepgram-api-key', auth, async (req: Request, res: Response) => {
+    try {
+      const workspace = workspaceRepository.findById(req.params.id);
+      if (!workspace) {
+        res.status(404).json({ error: 'Workspace not found' });
+        return;
+      }
+      if (!workspaceRepository.isOwner(workspace.id, req.user!.id)) {
+        res.status(403).json({ error: 'Only owner can remove Deepgram API key' });
+        return;
+      }
+      workspaceRepository.clearDeepgramApiKey(workspace.id);
+      console.log('[Workspaces] Deepgram API key removed:', {
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        userId: req.user!.id,
+        timestamp: new Date().toISOString(),
+      });
+      res.status(204).send();
+    } catch (err) {
+      console.error('[Workspaces] Remove Deepgram API key error:', err);
+      res.status(500).json({ error: 'Failed to remove Deepgram API key' });
     }
   });
 

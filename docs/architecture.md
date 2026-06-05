@@ -593,6 +593,45 @@ The original `SESSION_STATE.md` checklist remains the operational checklist; how
 | #6 `degraded` state + "Restart agent" | `degraded` is a real `AgentSessionState`; OH's `execution_status: stuck` and the `MISSING` path both flow into it. "Restart agent" calls `driver.restartSession`. The 5-minute thinking deadline heuristic is **deleted** in favor of reading `execution_status` from OH. |
 | #7 unify wire state + reduce client | The `session-state` message + `useAI` reducer in this doc are exactly that. |
 
+## Speech-to-text engines
+
+Voice Relay supports two STT engines, selectable per workspace
+(`workspace_settings.stt_engine`) and overridable per device
+(`devices.config.stt_engine`):
+
+| Engine        | Where it runs       | Diarization | Cost             |
+|---------------|---------------------|-------------|------------------|
+| `web-speech`  | Browser (default)   | No          | Free             |
+| `deepgram`    | Deepgram cloud      | Yes (`S1`/`S2`/…) | Per-minute |
+
+The hosted-STT pipeline (#386) is deliberately **broker-only** — the
+server never sees raw audio. The flow is:
+
+1. Workspace owner stores a long-lived Deepgram API key via
+   `PUT /api/workspaces/:id/settings/deepgram-api-key`. The key is
+   encrypted at rest with AES-256-GCM (same helper used for
+   ElevenLabs / OpenHands keys).
+2. The kiosk calls `POST /api/stt/token` to get a short-lived
+   (≤60 s) Deepgram key, then opens a Deepgram WebSocket directly
+   for streaming transcription.
+3. As partial / final transcripts arrive, the kiosk emits the
+   existing `text` WS message with the new optional
+   `engineSpeakerLabel` field set to Deepgram's per-speaker
+   identifier (`S1`, `S2`, …). The server passes the label through
+   to other devices and, when a `(session, device, label)` mapping
+   exists in `session_engine_speakers`, swaps it for a
+   workspace-scoped `speakers.id` (#383) on `RelayedTextMessage`.
+4. On session end, the kiosk reports minute usage via
+   `POST /api/stt/usage`, which increments
+   `workspace_stt_usage(workspace_id, month)`. The token broker
+   refuses with HTTP 402 once `stt_monthly_minute_cap` is reached.
+
+Module: `server/src/transcription/` —
+[`deepgram-token.ts`](../server/src/transcription/deepgram-token.ts) is the
+side-effect-free broker (testable with an injected `fetch`),
+[`router.ts`](../server/src/transcription/router.ts) is the Express
+surface, and the two repositories live alongside.
+
 ## Out of scope
 
 - Anonymous sessions (`ANONYMOUS_SESSION_ID`). Short-circuit unchanged; no driver applies.

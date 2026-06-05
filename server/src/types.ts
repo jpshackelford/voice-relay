@@ -180,6 +180,15 @@ export interface TextMessage {
    * absent (issue #375). All timestamps on the wire are UTC.
    */
   clientTimestamp?: string;
+  /**
+   * Optional engine-emitted speaker label for hosted-STT pipelines
+   * (#386). For Deepgram this is rendered as `S1`, `S2`, ... — an
+   * opaque per-session identifier with no global meaning. Web Speech
+   * never sets this; the server passes it through to other devices
+   * and resolves it to a `speakers.id` via `session_engine_speakers`
+   * when a mapping exists.
+   */
+  engineSpeakerLabel?: string;
 }
 
 /**
@@ -445,6 +454,14 @@ export interface RelayedTextMessage {
    * utterances, anonymous devices, and pre-#383 messages.
    */
   speakerId?: string;
+  /**
+   * Engine-emitted speaker label for hosted-STT pipelines (#386).
+   * Pass-through from the inbound `TextMessage`. Kiosks render this
+   * as a `S1:` / `S2:` prefix on the ticker until the agent or the
+   * UI links it to a real speaker (at which point `speakerId` is also
+   * set and the prefix can be swapped for the human's name).
+   */
+  engineSpeakerLabel?: string;
 }
 
 /**

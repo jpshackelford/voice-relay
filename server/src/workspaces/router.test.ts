@@ -16,6 +16,7 @@ import { migration as qrTokensMigration } from '../storage/migrations/008_qr_tok
 import { migration as elevenlabsMigration } from '../storage/migrations/011_elevenlabs.js';
 import { migration as kioskTickersMigration } from '../storage/migrations/015_kiosk_footer_tickers.js';
 import { migration as defaultAgentPromptMigration } from '../storage/migrations/016_default_agent_prompt.js';
+import { migration as hostedSttMigration } from '../storage/migrations/019_hosted_stt.js';
 
 // Helper to set up test database and app
 function setupTestEnv() {
@@ -57,6 +58,7 @@ function setupTestEnv() {
   db.exec(elevenlabsMigration.up);
   db.exec(kioskTickersMigration.up);
   db.exec(defaultAgentPromptMigration.up);
+    db.exec(hostedSttMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);
@@ -563,6 +565,7 @@ describe('Workspace Router - GET /:id/devices', () => {
     db.exec(elevenlabsMigration.up);
     db.exec(kioskTickersMigration.up);
   db.exec(defaultAgentPromptMigration.up);
+    db.exec(hostedSttMigration.up);
 
     workspaceRepository = new WorkspaceRepository(db);
     deviceRepository = new DeviceRepository(db);
@@ -1258,6 +1261,7 @@ function setupDeletionTestEnv() {
   db.exec(elevenlabsMigration.up);
   db.exec(kioskTickersMigration.up);
   db.exec(defaultAgentPromptMigration.up);
+    db.exec(hostedSttMigration.up);
 
   const workspaceRepository = new WorkspaceRepository(db);
   const deviceRepository = new DeviceRepository(db);

@@ -36,6 +36,11 @@ import {
   type SessionSettingsService,
 } from './sessions/index.js';
 import { SpeakerRepository, createSpeakerRouter } from './speakers/index.js';
+import {
+  createTranscriptionRouter,
+  SessionEngineSpeakersRepository,
+  StttUsageRepository,
+} from './transcription/index.js';
 import { QrTokenRepository } from './qr-tokens/index.js';
 import { authenticateDisplayRequest } from './display-api/index.js';
 import { autoConnectAI, shouldAutoConnect } from './auto-connect.js';
@@ -286,6 +291,8 @@ let sessionSettingsService: SessionSettingsService | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
 let agentEventRepository: AgentEventRepository | null = null;
 let speakerRepository: SpeakerRepository | null = null;
+let engineSpeakersRepository: SessionEngineSpeakersRepository | null = null;
+let sttUsageRepository: StttUsageRepository | null = null;
 let agentEventRehydrator: AgentEventRehydrator | null = null;
 let agentEventTtlInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -939,6 +946,35 @@ wss.on('connection', (ws: WebSocket) => {
             device.workspaceId,
             device.primaryUserId
           );
+          // Issue #386: hosted STT (Deepgram) emits a per-session,
+          // per-device opaque speaker label (e.g. 'S1'). If the inbound
+          // message carries one AND the workspace has a resolved mapping
+          // for it (`session_engine_speakers`), swap the label for a
+          // real `speakers.id` so downstream history queries see the
+          // human, not the engine's anonymous bucket. Either field is
+          // optional and absent for Web Speech utterances.
+          const engineSpeakerLabel =
+            typeof message.engineSpeakerLabel === 'string'
+              ? message.engineSpeakerLabel
+              : undefined;
+          let resolvedFromEngineMapping: string | undefined;
+          if (
+            engineSpeakerLabel &&
+            device.sessionId &&
+            device.sessionId !== ANONYMOUS_SESSION_ID &&
+            engineSpeakersRepository
+          ) {
+            const mapped = engineSpeakersRepository.resolveSpeakerId(
+              device.sessionId,
+              device.id,
+              engineSpeakerLabel,
+            );
+            if (mapped) resolvedFromEngineMapping = mapped;
+          }
+
+          const finalSpeakerId =
+            resolvedFromEngineMapping ?? utteranceSpeaker?.id;
+
           const relayMessage: RelayedTextMessage = {
             type: 'text',
             utteranceId: message.utteranceId,
@@ -950,7 +986,8 @@ wss.on('connection', (ws: WebSocket) => {
             partial: message.partial,
             clientTimestamp,
             ...(device.timezone ? { senderTimezone: device.timezone } : {}),
-            ...(utteranceSpeaker ? { speakerId: utteranceSpeaker.id } : {}),
+            ...(finalSpeakerId ? { speakerId: finalSpeakerId } : {}),
+            ...(engineSpeakerLabel ? { engineSpeakerLabel } : {}),
           };
 
           // Store final messages only (with session_id)
@@ -1300,7 +1337,9 @@ async function start() {
       qrTokenRepository = new QrTokenRepository(db);
       agentEventRepository = new AgentEventRepository(db);
       speakerRepository = new SpeakerRepository(db);
-      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent, Speaker repositories initialized');
+      engineSpeakersRepository = new SessionEngineSpeakersRepository(db);
+      sttUsageRepository = new StttUsageRepository(db);
+      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent, Speaker, STT repositories initialized');
 
       // Issue #393: install the per-kiosk picker enrichment hook so
       // every `broadcastDeviceList` includes `activeSessionId` and
@@ -1740,6 +1779,20 @@ async function start() {
 
       if (qrTokenRepository) {
         console.log('[QR Tokens] Signed time-limited QR tokens enabled');
+      }
+
+      // Issue #386: hosted-STT token broker. Mounted regardless of
+      // whether any workspace has actually opted in — the broker
+      // refuses with the appropriate 4xx for workspaces that haven't.
+      if (workspaceRepository && sttUsageRepository) {
+        const transcriptionRouter = createTranscriptionRouter({
+          workspaceRepository,
+          deviceRepository: deviceRepository ?? undefined,
+          usageRepository: sttUsageRepository,
+          authConfig: { jwtService, userRepository },
+        });
+        app.use('/api/stt', transcriptionRouter);
+        console.log('[STT] Hosted-STT token broker enabled at /api/stt');
       }
     }
   }
