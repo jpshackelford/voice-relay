@@ -410,3 +410,36 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 
 ---
 
+
+### 2026-06-05 12:55 UTC - Implementation Worker (issue #386 -> PR #402)
+
+✅ **Optional hosted STT with diarization (Deepgram) — backend landed.**
+
+| Layer | What shipped | Tests |
+|-------|--------------|-------|
+| Migration 019 | `workspace_settings` STT fields + encrypted Deepgram key; `session_engine_speakers` + `workspace_stt_usage` tables | 8 |
+| `server/src/transcription/` | `deepgram-token` broker, `usage-repository`, `session-engine-speakers-repository`, `/api/stt` router | 38 |
+| Wire protocol | optional `engineSpeakerLabel` on `TextMessage` + `RelayedTextMessage` (Web Speech path unchanged) | 5 |
+| Workspaces router | `sttEngine` / `sttMonthlyMinuteCap` on settings; PUT/DELETE `/settings/deepgram-api-key` | 5 |
+| Docs | `.env.example` + `docs/architecture.md § Speech-to-text engines` | — |
+
+**56 new tests**, all green. Full server suite: 1531 / 1533 pass (the two `openhands.test.ts` failures are pre-existing on `main`, unrelated). Client suite: 1055 / 1055.
+
+**Design choices worth knowing about**
+
+- Broker-only — voice-relay never sees audio. Server mints ≤60s Deepgram keys and the kiosk goes direct to Deepgram's `/v1/listen`.
+- Diarization labels (`S1`, `S2`, …) flow as opaque `engineSpeakerLabel`s on `text` messages; the relay swaps them for `speakers.id` (#383) via `session_engine_speakers` when a mapping exists.
+- `session_engine_speakers.device_id` / `.speaker_id` are intentionally *not* FK-constrained — keeps migration usable in every existing test fixture without bringing #383's full schema along. The session FK is the only cascade that matters.
+- All four cost / config knobs live on `workspace_settings`, so device overrides via `devices.config.stt_engine` remain a single JSON field change.
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/402 (CI green, marked ready for review).
+
+**Follow-up issues to file once #402 lands** (also posted as a comment on #386):
+
+1. Client kiosk wiring — `useSpeechRecognition.ts` calls `/api/stt/token`, streams to Deepgram directly, emits `engineSpeakerLabel`, reports minutes at session end.
+2. Workspace Settings UI — engine picker, monthly cap, Deepgram API key entry/clear (mirror the existing ElevenLabs panel).
+3. Per-device override UI — backend already honours `devices.config.stt_engine`; expose it in the device editor.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
