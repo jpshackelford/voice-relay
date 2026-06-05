@@ -513,3 +513,33 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 13:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `5f5442f` | review | PR #402 - hosted STT (Deepgram) broker | **NEW** |
+
+**Worker Completed:** `e87dca6` (merge / PR #401)
+- Squash-merged PR #401 at 13:00:45Z — `feat(websocket): mic listening state + three-state kiosk indicator`
+- Issue #388 auto-closed at 13:00:47Z
+
+**Spawned: Review Worker for PR #402**
+- PR: [#402 - feat(server): hosted STT (Deepgram) broker + workspace settings](https://github.com/jpshackelford/voice-relay/pull/402) (Fixes #386)
+- Status: `oR green ready 💬4 mergeable=MERGEABLE` — 4 unresolved bot review threads, CI 7/7 green
+- Conversation: [`5f5442f`](https://app.all-hands.dev/conversations/5f5442f8eb9c43088f18c834a641c952)
+- PR was opened by @jpshackelford (AI-agent assisted) at 12:53Z while the merge worker was finishing #401, so it landed un-tracked. Picking it up now.
+
+**Current State:**
+- Open PRs: [#402](https://github.com/jpshackelford/voice-relay/pull/402) (in review)
+- Issues needing expansion: 0
+- Ready+prioritized issues: only #386 (already being implemented by PR #402)
+- On-hold / needs-human (skipped): #210, #239, #299, #300, #301, #302, #351, #363, #372, #384
+
+**Action Taken:**
+🚀 **Spawned review worker** for PR #402 (4 unresolved review threads)
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
