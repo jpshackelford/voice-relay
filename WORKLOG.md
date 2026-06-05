@@ -849,3 +849,30 @@ Re-fire after auth is restored with: `curl -X POST https://app.all-hands.dev/api
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 11:09 UTC - Review Worker (PR #399)
+
+✅ Addressed the lone unresolved review thread on [PR #399](https://github.com/jpshackelford/voice-relay/pull/399) (`fix(client): stack login footer below card`, fixes #390).
+
+| Item | Detail |
+| --- | --- |
+| Thread | `github-actions[bot]` on `client/src/pages/Login.test.tsx` |
+| Severity | 🟡 Suggestion (non-blocking) |
+| Action | Respectfully **declined** with reply, then **resolved** |
+| Code change | **None** |
+
+**Reasoning (mirrors reply on the thread):**
+- `getComputedStyle()` is unreliable in happy-dom for `<link>`-loaded stylesheets → would be flaky.
+- The on-disk regex is intentionally narrow (asserts `display: flex` + `flex-direction: column` inside the `.login-page` rule) — survives value/whitespace minification but is sensitive to selector/property changes, which *is* the regression vector for #390.
+- A future CSS-in-JS migration will cause the test to fail loudly — that is the *correct* signal to re-anchor the regression guard, not a flaw.
+- Visual regression infra (Percy/Chromatic) is overkill for a single CSS rule guard on a SaaS login page.
+
+**PR status after this tick:**
+- Draft → ready-for-review toggled back on (`gh pr ready 399`).
+- CI was already green; mergeable=`CLEAN`; reviewDecision still empty (no human approval yet).
+- All review threads now resolved.
+- Merge decision is deferred to a separate orchestrator tick.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
