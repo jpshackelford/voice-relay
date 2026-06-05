@@ -635,3 +635,50 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-05 04:38 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `9f8df07` | merge | PR #398 — feat(server): teach system prompt to call PATCH /api/sessions/:id/settings | **NEW** running |
+| `5132cf2` | implementation | Issue #390 — Login page footer renders next to card | **NEW** running |
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Merge Worker** for PR #398
+   - PR: [#398](https://github.com/jpshackelford/voice-relay/pull/398) — `feat(server): teach system prompt to call PATCH /api/sessions/:id/settings` (Fixes #389)
+   - Conversation: [`9f8df07`](https://app.all-hands.dev/conversations/9f8df0798b8e4f0ba5e4039534d56541)
+   - Pre-spawn verification: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, all 7 required checks SUCCESS (`Build Client`, `Client Tests`, `Server Tests`, `E2E Tests`, `lint-pr-title`, `enable-orchestrator`, `pr-review`), 0 review threads (only `github-actions[bot] COMMENTED` placeholder), 0 blocking labels. Migration check is a no-op — diff is prose-only (`server/prompts/system-prompt.md`) plus a mirror test (`server/src/openhands.test.ts`); no schema/runtime impact on production SQLite.
+
+2. **Implementation Worker** for Issue #390
+   - Issue: [#390](https://github.com/jpshackelford/voice-relay/issues/390) — "Login page footer (Terms / Privacy) renders next to the card instead of below it"
+   - Labels: `bug`, `ready`, `priority:low`, `client`, `scope:client-only`
+   - Conversation: [`5132cf2`](https://app.all-hands.dev/conversations/5132cf2c193b462a87ded1a1b0ff3872)
+   - Selected as oldest `priority:low` ready issue with no on-hold/needs-human/blocked label. Sibling `#392` (also `priority:low`, `scope:client-only`) was deferred to a future tick because the implementation slot is capped at 1 to avoid branch conflicts.
+
+**Slot reconciliation (this tick):**
+
+Two paused workers from prior ticks were verified `finished` against the OpenHands API and moved from `slots` → `completed[]` in `.workflow-state.json`:
+- `ebaceb3` (implementation, Issue #380) → status `success` — produced PR #397 `fix(client): blue kiosk oscilloscope`, squashed at `0440d51`, Issue #380 auto-closed.
+- `eb2c297` (review, PR #396) → status `success` — addressed `github-actions` kiosk-attention validation feedback at `3e8383a`, PR #396 squashed at `c4b07d2`, Issue #393 auto-closed.
+
+After reconciliation: `expansion=0/4`, `implementation=0/1`, `review=0/2` → all slots free. Both newly-spawned workers then re-occupied one implementation slot and one review slot, leaving `expansion=0/4`, `implementation=1/1`, `review=1/2` going into the next tick.
+
+**Current backlog snapshot (open issues, not on-hold / needs-human):**
+
+| # | Title | Priority | Scope | Status |
+|---|-------|----------|-------|--------|
+| 386 | Optional hosted STT with diarization (Deepgram / AssemblyAI) | _missing_ | _missing_ | Needs `/assess-priority` before it can be implemented |
+| 388 | Propagate per-device mic listening/mute state, show muted icon on kiosk oscilloscope | _missing_ | _missing_ | Needs `/assess-priority` before it can be implemented |
+| 390 | Login page footer renders next to card | low | client-only | **In progress (this tick)** |
+| 392 | Mobile: workspace-home shortcut next to settings | low | client-only | Queued — next impl tick after #390 completes |
+
+Issues #386 and #388 already carry the `ready` label but lack a `priority:*` label, so they are not eligible for the implementation queue yet. Surfacing here so the next orchestrator tick can either inline-prioritize them or dispatch a priority-assessment pass. They were NOT picked up this tick because the implementation slot is now occupied by #390 and the orchestrator's "Ready, unprioritized" rule defers to "Ready, prioritized" when a prioritized candidate exists.
+
+**On-hold issues (skipped, not eligible):** #210, #239, #299, #300, #301, #302, #351, #363, #372 (`needs-human`), #384. The `#299–#302` quartet remains held under the active S3 / workspace-persistence design freeze documented in `AGENTS.md`.
+
+**`quiet_ticks`** reset to `0` — this is a productive tick (2 worker spawns, 2 slot reconciliations).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

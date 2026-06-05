@@ -4,16 +4,17 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "ebaceb3",
-        "issue": 380,
-        "started": "2026-06-05T03:53:08.825319+00:00"
+        "conv_id": "5132cf2",
+        "issue": 390,
+        "started": "2026-06-05T04:38:17.767046+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "eb2c297",
-        "pr": 396,
-        "started": "2026-06-05T03:53:08.825319+00:00"
+        "conv_id": "9f8df07",
+        "pr": 398,
+        "started": "2026-06-05T04:38:17.767046+00:00",
+        "type": "merge"
       }
     ]
   },
@@ -22,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T03:53:08.825319+00:00",
+  "last_updated": "2026-06-05T04:38:17.767046+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -250,6 +251,24 @@
       "finished": "2026-06-05T03:53:08.825319+00:00",
       "status": "stuck",
       "outcome": "Spawned but never executed \u2014 sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
+    },
+    {
+      "conv_id": "ebaceb3",
+      "type": "implementation",
+      "issue": 380,
+      "started": "2026-06-05T03:53:08.825319+00:00",
+      "finished": "2026-06-05T04:35:54.532923+00:00",
+      "status": "success",
+      "outcome": "Created PR #397 (fix(client): blue kiosk oscilloscope); merge worker squashed at 0440d51; issue #380 auto-closed"
+    },
+    {
+      "conv_id": "eb2c297",
+      "type": "review",
+      "pr": 396,
+      "started": "2026-06-05T03:53:08.825319+00:00",
+      "finished": "2026-06-05T04:35:54.532923+00:00",
+      "status": "success",
+      "outcome": "Addressed github-actions kiosk-attention validation feedback at 3e8383a; PR #396 merge-ready and squashed at c4b07d2; issue #393 auto-closed"
     }
   ],
   "quiet_ticks": 0
