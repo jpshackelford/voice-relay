@@ -795,3 +795,46 @@ CSS-only refactor of `.kiosk-display` from `flex` + six `position: absolute` ove
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:40 UTC - Merge worker (PR #391 → main)
+
+✅ **PR #391 merged** — `feat(server): speaker identity model (#383)` — closes #383.
+
+Squash commit: `3ca5fdc37cdca58104518794cb5bd7d2c6d51a1b`
+
+**Merge-readiness verification (immediately pre-merge):**
+
+| Guard | State |
+|------|-------|
+| CI checks | 7/7 SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) |
+| Unresolved review threads | 0 (2 total threads, both resolved) |
+| `mergeable` / `mergeStateStatus` | `MERGEABLE` / `CLEAN` |
+| Blocking labels | none (`on-hold`, `needs-human`, `do-not-merge` all absent) |
+| Draft | no |
+| Latest bot review | 🟡 Acceptable — solid implementation, only minor improvement opportunities (no blockers) |
+
+**Production migration check (017_speakers):**
+
+- Up path is **purely additive**: 2 × `CREATE TABLE` (`auth_identities`, `speakers`), 3 × `ALTER TABLE … ADD COLUMN` (`devices.primary_user_id`, `session_devices.active_speaker_id`, `messages.speaker_id`), plus indexes and a backfill `INSERT` from `users.github_id`. No existing rows touched, no FK breakage — safe to run inside the migrator transaction with `PRAGMA foreign_keys = ON`.
+- Down path rebuilds `messages`, `session_devices`, and `devices` to drop the new columns (SQLite < 3.35 has no `DROP COLUMN`) and round-trips cleanly per the new `017_speakers.test.ts`.
+- `users.github_id` / `users.username` are retained as a compatibility shadow — existing GitHub OAuth keeps working unchanged; a future migration can drop them once every read path uses `auth_identities`.
+- No manual post-deploy steps required: `vr.chorecraft.net` auto-applies migrations on boot via `SQLiteStore.connect()`. The orchestrator should monitor the next deploy for migration 017 applying cleanly.
+
+**What landed:**
+
+- `auth_identities` (provider-agnostic identity bookkeeping, backfilled from GitHub).
+- `speakers` (workspace-scoped persistent speaker profiles; partial unique index on `(workspace_id, user_id)` allows multiple anonymous speakers).
+- `devices.primary_user_id` (records the QR-mode authenticator).
+- `session_devices.active_speaker_id` + `messages.speaker_id` (per-utterance speaker attribution).
+- REST: `GET/POST /api/workspaces/:workspaceId/speakers` and `GET/PUT/DELETE /api/workspaces/:workspaceId/speakers/:speakerId` (owner-only writes, member reads, 409 on duplicate, 404/403/401 elsewhere).
+- `AuthIdentityRepository` + dual-write on user create.
+- `SpeakerRepository` + `createSpeakerRouter` mounted in `server/src/index.ts`.
+- `prompts/system-prompt.md` gains a "Speaker identity" section; `agent-driver/voice-relay-header` carries speaker context to OpenHands.
+
+**Tests:** 1447 server tests passing (49 new across migration round-trip, repo, router, identity repo). New-code coverage well above the 80% gate (router/repo 92.5% / 87.5% / 100% / 92.24%; identity repo 100%; migration 100%).
+
+**Follow-up unlocked:** PR #395 (issue #382 transcription ticker speaker prefix) explicitly noted that once #391 lands, the ticker's identity source can swap from `Utterance.senderName` to `speakers.preferred_name` keyed on `speaker_id`. That follow-up is now actionable.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
