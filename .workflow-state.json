@@ -5,11 +5,11 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "5f5442f",
-        "actual_conv_id": "5f5442f8eb9c43088f18c834a641c952",
-        "type": "review",
+        "conv_id": "8919f27",
+        "actual_conv_id": "8919f27bdaa542008b9856f88ea205dd",
+        "type": "merge",
         "pr": 402,
-        "started": "2026-06-05T13:05:04.184928+00:00"
+        "started": "2026-06-05T13:19:27.744139+00:00"
       }
     ]
   },
@@ -18,7 +18,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-05T13:05:04.184928+00:00",
+  "last_updated": "2026-06-05T13:19:27.744139+00:00",
   "completed": [
     {
       "conv_id": "4bc9c35",
@@ -311,6 +311,16 @@
       "finished": "2026-06-05T13:00:45Z",
       "status": "success",
       "outcome": "Squash-merged PR #401 (feat(websocket): mic listening state + three-state kiosk indicator). Issue #388 auto-closed at 13:00:47Z."
+    },
+    {
+      "conv_id": "5f5442f",
+      "actual_conv_id": "5f5442f8eb9c43088f18c834a641c952",
+      "type": "review",
+      "pr": 402,
+      "started": "2026-06-05T13:05:04.184928+00:00",
+      "finished": "2026-06-05T13:19:27.744139+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #402 \u2014 all 4 inline threads resolved; CI green; latest pr-review bot verdict: 'Worth merging'"
     }
   ],
   "quiet_ticks": 0
