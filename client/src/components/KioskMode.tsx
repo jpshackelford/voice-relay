@@ -478,11 +478,41 @@ export function KioskMode({
     return () => window.clearTimeout(timeout);
   }, [mostRecentForeignUtterance]);
 
-  const transcriptionTickerText = useMemo(() => {
-    if (!kioskFooterTickersEnabled) return '';
-    if (transcriptionStale) return '';
-    return mostRecentForeignUtterance?.text ?? '';
+  // Issue #382: the ticker now identifies the sender so a viewer can tell
+  // which device said what. We carry the sender name through as a
+  // separate `prefix` so MarqueeTicker can style it distinctly (heavier
+  // weight, muted color via `.kiosk-ticker-speaker`) without touching the
+  // existing overflow math.
+  //
+  // Same-sender suppression: when consecutive utterances come from the
+  // same `senderId` (e.g. a partial growing into a final, or a speaker
+  // saying two things back-to-back), we omit the prefix so the marquee
+  // doesn't restart with a redundant "<name>: " on every frame. The ref
+  // is updated inside an effect, never inside the memo, so React's
+  // purity rules are preserved.
+  const lastRenderedSenderIdRef = useRef<string | null>(null);
+  const transcriptionTicker = useMemo<{ prefix: string; text: string }>(() => {
+    if (!kioskFooterTickersEnabled || transcriptionStale) {
+      return { prefix: '', text: '' };
+    }
+    const u = mostRecentForeignUtterance;
+    if (!u) return { prefix: '', text: '' };
+    const prefix =
+      u.senderId === lastRenderedSenderIdRef.current ? '' : `${u.senderName}: `;
+    return { prefix, text: u.text };
   }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
+
+  // Track the last-rendered senderId after the render commits so the
+  // next memo evaluation can compare against it. We also reset to null
+  // when the strip clears so the next speaker's prefix re-appears even
+  // if they happen to be the same sender as before the idle.
+  useEffect(() => {
+    if (transcriptionTicker.text.length === 0) {
+      lastRenderedSenderIdRef.current = null;
+      return;
+    }
+    lastRenderedSenderIdRef.current = mostRecentForeignUtterance?.senderId ?? null;
+  }, [transcriptionTicker, mostRecentForeignUtterance]);
 
   // Issue #346 item 1 — faux audio activity for the left-side oscilloscope.
   // We don't have a real mic stream on the kiosk, so we derive a "pulse"
@@ -490,11 +520,15 @@ export function KioskMode({
   // transcription text changes (new partial, new utterance), bump the
   // pulse counter. The useFauxAudioActivity hook reads pulse and produces
   // a sine-wave dataArray whose amplitude decays back to flat-line.
+  //
+  // We key the pulse off `transcriptionTicker.text` so a same-sender
+  // partial update still fires the pulse, and a prefix appearing /
+  // disappearing on its own does not.
   const [fauxPulse, setFauxPulse] = useState(0);
   useEffect(() => {
-    if (transcriptionTickerText.length === 0) return;
+    if (transcriptionTicker.text.length === 0) return;
     setFauxPulse((p) => p + 1);
-  }, [transcriptionTickerText]);
+  }, [transcriptionTicker.text]);
   const fauxAudio = useFauxAudioActivity({ pulse: fauxPulse });
 
   // Refinement 1 from the expansion: MessageEvent is filtered out before it
@@ -1001,7 +1035,8 @@ export function KioskMode({
                 we just feed it the latest text.
               */}
               <MarqueeTicker
-                text={transcriptionTickerText}
+                text={transcriptionTicker.text}
+                prefix={transcriptionTicker.prefix}
                 data-testid="kiosk-ticker-transcription"
                 className="kiosk-ticker-text"
               />

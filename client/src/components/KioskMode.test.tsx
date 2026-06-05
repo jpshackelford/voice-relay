@@ -1527,6 +1527,180 @@ describe('KioskMode', () => {
       expect(screen.getByTestId('kiosk-ticker-transcription').textContent).not.toContain('self speech');
     });
 
+    // ====================================================================
+    // Issue #382: speaker prefix on the transcription ticker
+    // ====================================================================
+    describe('speaker prefix (issue #382)', () => {
+      it("prefixes the ticker with '<senderName>: ' for the first foreign utterance", () => {
+        const utterances = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone SE",
+              text: "I'll grab a coffee",
+            }),
+          ],
+        ]);
+        act(() => {
+          render(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={utterances}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent).toBe("JP's iPhone SE: I'll grab a coffee");
+        // The speaker chunk is styled via its own class.
+        const speakerSpan = strip.querySelector('.kiosk-ticker-speaker');
+        expect(speakerSpan?.textContent).toBe("JP's iPhone SE: ");
+      });
+
+      it('omits the prefix on a same-sender follow-up utterance', () => {
+        const t0 = new Date(Date.now() - 1_000);
+        const t1 = new Date();
+        const utterances = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone SE",
+              text: 'partial',
+              receivedAt: t0,
+            }),
+          ],
+        ]);
+        const { rerender } = render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            utterances={utterances}
+          />
+        );
+        // First render shows the prefix.
+        expect(
+          screen.getByTestId('kiosk-ticker-transcription').textContent
+        ).toBe("JP's iPhone SE: partial");
+
+        // Same sender, growing partial → prefix should be suppressed.
+        const updated = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone SE",
+              text: 'partial growing into a final',
+              receivedAt: t1,
+            }),
+          ],
+        ]);
+        act(() => {
+          rerender(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={updated}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent).toBe('partial growing into a final');
+        expect(strip.querySelector('.kiosk-ticker-speaker')).toBeNull();
+      });
+
+      it("re-emits the prefix when the next utterance comes from a different senderId", () => {
+        const t0 = new Date(Date.now() - 1_000);
+        const t1 = new Date();
+        const first = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone",
+              text: 'yes',
+              receivedAt: t0,
+            }),
+          ],
+        ]);
+        const { rerender } = render(
+          <KioskMode
+            {...defaultProps}
+            devices={[
+              createMobileDevice('mobile-1'),
+              createMobileDevice('mobile-2'),
+              createKioskDevice('kiosk-1'),
+            ]}
+            kioskFooterTickersEnabled
+            utterances={first}
+          />
+        );
+        expect(
+          screen.getByTestId('kiosk-ticker-transcription').textContent
+        ).toBe("JP's iPhone: yes");
+
+        // A different sender says the same word back-to-back. The
+        // ticker must re-display the speaker label so the viewer can
+        // tell the two "yes" lines apart.
+        const switched = new Map<string, Utterance>([
+          ...first,
+          [
+            'u2',
+            makeUtterance({
+              id: 'u2',
+              senderId: 'mobile-2',
+              senderName: "Mac-7acf1d6",
+              text: 'yes',
+              receivedAt: t1,
+            }),
+          ],
+        ]);
+        act(() => {
+          rerender(
+            <KioskMode
+              {...defaultProps}
+              devices={[
+                createMobileDevice('mobile-1'),
+                createMobileDevice('mobile-2'),
+                createKioskDevice('kiosk-1'),
+              ]}
+              kioskFooterTickersEnabled
+              utterances={switched}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent).toBe('Mac-7acf1d6: yes');
+        expect(strip.querySelector('.kiosk-ticker-speaker')?.textContent).toBe(
+          'Mac-7acf1d6: '
+        );
+      });
+
+      it("renders an empty strip (no orphan ':') when there is no foreign utterance", () => {
+        act(() => {
+          render(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={new Map<string, Utterance>()}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent?.trim()).toBe('');
+        expect(strip.querySelector('.kiosk-ticker-speaker')).toBeNull();
+      });
+    });
+
     it('shows the latest agentAction summary in the action ticker', () => {
       const actions: AgentAction[] = [
         makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),
