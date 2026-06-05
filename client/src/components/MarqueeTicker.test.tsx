@@ -118,4 +118,86 @@ describe('MarqueeTicker', () => {
     render(<MarqueeTicker text="x" data-testid="m" className="custom-class" />);
     expect(screen.getByTestId('m').classList.contains('custom-class')).toBe(true);
   });
+
+  // ====================================================================
+  // Issue #382: speaker prefix
+  // ====================================================================
+  describe('speaker prefix (issue #382)', () => {
+    it("renders the prefix in a sibling span with class 'kiosk-ticker-speaker'", () => {
+      render(
+        <MarqueeTicker
+          text="hello world"
+          prefix="JP's iPhone: "
+          data-testid="m"
+        />
+      );
+      const wrapper = screen.getByTestId('m');
+      const speakerSpan = wrapper.querySelector('.kiosk-ticker-speaker');
+      expect(speakerSpan).not.toBeNull();
+      expect(speakerSpan?.textContent).toBe("JP's iPhone: ");
+      // Combined visible content is prefix + text.
+      expect(wrapper.textContent).toBe("JP's iPhone: hello world");
+    });
+
+    it('omits the speaker span when no prefix is provided', () => {
+      render(<MarqueeTicker text="hello world" data-testid="m" />);
+      expect(
+        screen.getByTestId('m').querySelector('.kiosk-ticker-speaker')
+      ).toBeNull();
+    });
+
+    it('omits the speaker span when the prefix is an empty string', () => {
+      render(<MarqueeTicker text="hello world" prefix="" data-testid="m" />);
+      expect(
+        screen.getByTestId('m').querySelector('.kiosk-ticker-speaker')
+      ).toBeNull();
+    });
+
+    it("renders nothing visible when both prefix and text are empty (no orphan ':')", () => {
+      render(<MarqueeTicker text="" prefix="" data-testid="m" />);
+      expect(screen.getByTestId('m').textContent).toBe('');
+    });
+
+    it('still translates by the combined overflow when a prefix is present', () => {
+      // The inner span's scrollWidth reflects prefix + text. The
+      // component does not need any special handling — it just measures
+      // the inner span — so we assert the existing overflow math still
+      // works end-to-end with a prefix.
+      stubWidths(600, 200);
+      const { getByTestId } = render(
+        <MarqueeTicker
+          text="lots of overflowing words"
+          prefix="JP: "
+          data-testid="m"
+        />
+      );
+      const inner = getByTestId('m').querySelector('span');
+      expect(inner?.style.transform).toBe('translateX(-400px)');
+    });
+
+    it('recomputes the transform when only the prefix changes', () => {
+      // Same text, but the prefix grew → scrollWidth would grow → the
+      // useLayoutEffect must re-run. We can't assert the actual new
+      // overflow without a new stub, but we can assert the transform
+      // got re-applied (not left stale at the initial value).
+      stubWidths(300, 200);
+      const { getByTestId, rerender } = render(
+        <MarqueeTicker text="same text" prefix="A: " data-testid="m" />
+      );
+      const inner = getByTestId('m').querySelector('span');
+      expect(inner?.style.transform).toBe('translateX(-100px)');
+
+      stubWidths(500, 200);
+      act(() => {
+        rerender(
+          <MarqueeTicker
+            text="same text"
+            prefix="A much longer name: "
+            data-testid="m"
+          />
+        );
+      });
+      expect(inner?.style.transform).toBe('translateX(-300px)');
+    });
+  });
 });

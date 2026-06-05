@@ -3875,6 +3875,17 @@ header {
   white-space: nowrap;
 }
 
+/* Issue #382: speaker prefix inside the transcription ticker (e.g.
+   "JP's iPhone SE: "). Lives inside the MarqueeTicker's measured inner
+   span so it scrolls in unison with the utterance text; heavier weight
+   and slightly muted color separate "who" from "what" at a glance
+   without breaking the marquee math. */
+.kiosk-ticker-speaker {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  margin-right: 0.4em;
+}
+
 /* Below a fairly narrow breakpoint there isn't useful room for two side-by-
    side strips; stack them. The total ticker reservation in registry.ts
    already assumes one line, so we keep this within that budget by halving

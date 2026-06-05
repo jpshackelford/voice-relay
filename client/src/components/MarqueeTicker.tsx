@@ -11,6 +11,18 @@ interface MarqueeTickerProps {
    */
   text: string;
   /**
+   * Issue #382: optional speaker prefix (e.g. `"JP's iPhone SE: "`).
+   * Rendered as a sibling span before `text` inside the same measured
+   * inner span so the marquee math (`scrollWidth - clientWidth`) still
+   * accounts for both chunks. The prefix span gets its own
+   * `.kiosk-ticker-speaker` class so callers can style "who" distinct
+   * from "what".
+   *
+   * The caller (KioskMode) owns the suppression rule: pass an empty
+   * string to omit the prefix on same-sender follow-ups.
+   */
+  prefix?: string;
+  /**
    * Test hook for the JSX wrapper. Forwarded to the outer `<span>` so
    * `screen.getByTestId(...)` can find it from KioskMode tests.
    */
@@ -55,6 +67,7 @@ interface MarqueeTickerProps {
  */
 export function MarqueeTicker({
   text,
+  prefix,
   'data-testid': dataTestId,
   transitionMs = 200,
   className,
@@ -65,11 +78,20 @@ export function MarqueeTicker({
   // useLayoutEffect so the measure-and-translate happens synchronously
   // before the browser paints — avoids a one-frame flash of "text on the
   // left edge before scrolling".
+  //
+  // The inner span includes both the optional `.kiosk-ticker-speaker`
+  // prefix and the utterance text, so `scrollWidth` already accounts for
+  // the combined width — no math changes are needed for issue #382.
   useLayoutEffect(() => {
     const wrapper = wrapperRef.current;
     const inner = innerRef.current;
     if (!wrapper || !inner) return;
 
+    // The strip is "empty" only when both prefix and text are empty. A
+    // standalone prefix without text shouldn't happen in normal flow
+    // (KioskMode clears both on stale/idle), but treat it the same as
+    // empty text to avoid showing an orphan "<name>: " sitting on a
+    // stale strip.
     if (text.length === 0) {
       inner.style.transform = 'translateX(0)';
       return;
@@ -81,7 +103,7 @@ export function MarqueeTicker({
     } else {
       inner.style.transform = 'translateX(0)';
     }
-  }, [text]);
+  }, [text, prefix]);
 
   // Set the transition once. We do it in a separate effect rather than
   // inline style so the first render doesn't animate from a default 0
@@ -113,6 +135,7 @@ export function MarqueeTicker({
           willChange: 'transform',
         }}
       >
+        {prefix ? <span className="kiosk-ticker-speaker">{prefix}</span> : null}
         {text}
       </span>
     </span>
