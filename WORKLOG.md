@@ -543,3 +543,33 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 13:13 UTC - Review Worker (PR #402)
+
+✅ **Addressed all 4 review threads on PR #402** (`feat(server): hosted STT (Deepgram) broker + workspace settings`, Fixes #386).
+
+**Threads resolved (commit `f774a5e`):**
+
+| Thread | Severity | Disposition |
+|---|---|---|
+| `router.ts:84` plaintext API key as Map cache key | 🟠 security | **Accepted** — now `SHA256(apiKey)` derives the Map key; plaintext secret never lives in the cache |
+| `router.ts:266` client-reported usage trust boundary | 🔴 critical | **Acknowledged as known limitation** — workspace-member auth is the current trust boundary; periodic Deepgram `/usage` reconciliation filed as #386 follow-up |
+| `migrations/019:50` doc says WS but code uses REST | 🟡 doc | **Accepted** — docstring now references `POST /api/stt/usage` |
+| `router.ts:207` TOCTOU race on cap | 🟡 design | **Accepted** — explicit comment documents the intentional soft-guardrail trade-off |
+
+**Verification:**
+- All 23 affected server tests pass locally (`router.test.ts` + `019_hosted_stt.test.ts`).
+- All 5 CI checks green (Server / Client / Build Client / E2E / lint-pr-title).
+- PR state: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, draft → ready.
+- Branch is 2 commits behind `main` but only on orchestrator-owned files (`WORKLOG.md`, `.workflow-state.json`), so no rebase needed.
+
+**Cross-links posted on related issues:**
+- #383 (speaker identity): `session_engine_speakers` table is now wired and tested — ready to hook into speaker-id resolution.
+- #384 (device-name display): broker honours `devices.config.stt_engine` override; UI could surface effective engine alongside device name.
+- #389 (settings prompt teaching): workspace-level STT settings now flow through the same settings router/repo pattern.
+
+**Next:** review / merge in a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
