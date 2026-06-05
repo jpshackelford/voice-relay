@@ -568,3 +568,55 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 01:57 UTC - Orchestrator (manual `/orchestrate`)
+
+**Active Workers:**
+
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4a78335` | review | [PR #391 — speaker identity model](https://github.com/jpshackelford/voice-relay/pull/391) (UUID-format bot suggestion) | **NEW** |
+| `0171bb1` | implementation | [Issue #379 — CSS Grid kiosk overlays](https://github.com/jpshackelford/voice-relay/issues/379) (priority:low, scope:client-only) | **NEW** |
+| `6cb2073` | expansion | [Issue #392 — Mobile workspace-home shortcut](https://github.com/jpshackelford/voice-relay/issues/392) | **NEW** |
+| `be136d2` | expansion | [Issue #393 — Mobile multi-kiosk selector](https://github.com/jpshackelford/voice-relay/issues/393) | **NEW** |
+
+**Spawned: 4 Workers (parallel)**
+
+1. **Review Worker** — [PR #391 (speaker identity model)](https://github.com/jpshackelford/voice-relay/pull/391)
+   - CI is fully green (7/7) and PR is `MERGEABLE / CLEAN`, but there is 1 unresolved review thread from `github-actions[bot]`: a 🟡 _Suggestion_ about UUID format inconsistency in migration 017 (`lower(hex(randomblob(...)))` vs canonical UUID v4).
+   - Conversation: [`4a78335`](https://app.all-hands.dev/conversations/4a783354a9d24d9083ae7dcabf415de6)
+
+2. **Implementation Worker** — [Issue #379 (CSS Grid kiosk overlays)](https://github.com/jpshackelford/voice-relay/issues/379)
+   - Highest unblocked work: priority:low + client-only + oldest of the ready+low set.
+   - #382 (priority:medium) was skipped because it sits on top of PR #391's still-unmerged `speakers` schema — picking it up now would conflict.
+   - Conversation: [`0171bb1`](https://app.all-hands.dev/conversations/0171bb1c3e22434bba1c6c96e2576799)
+
+3. **Expansion Worker** — [Issue #392 (mobile workspace-home shortcut)](https://github.com/jpshackelford/voice-relay/issues/392)
+   - Conversation: [`6cb2073`](https://app.all-hands.dev/conversations/6cb207359459433b869c28d1ef4a4cb7)
+
+4. **Expansion Worker** — [Issue #393 (mobile multi-kiosk selector)](https://github.com/jpshackelford/voice-relay/issues/393)
+   - Conversation: [`be136d2`](https://app.all-hands.dev/conversations/be136d224c8a4f0f9aea5173794090de)
+
+**Pre-spawn state reconciliation:**
+- Implementation worker `a0b08f1` (issue #383) was still listed as active in `.workflow-state.json` but its OpenHands `execution_status` is `null` (no longer running). It had already shipped its work: PR #391 was opened at 2026-06-04 19:18 UTC. Moved to `.completed` with outcome _"Opened PR #391 — speaker identity model; CI green, MERGEABLE/CLEAN, 1 unresolved bot review thread."_
+
+**Current State:**
+- Open PRs: **#391** (review worker now addressing the lone bot thread)
+- Ready+prioritized issues being acted on: **#379** (impl)
+- Ready+prioritized, queued (still unblocked):
+  - **#382** medium — ticker speaker identity (waits for PR #391 to merge)
+  - **#389** low — system-prompt PATCH /api/sessions/:id/settings
+  - **#380** low — kiosk indicator color
+  - **#390** low — login footer layout
+- Ready, unprioritized: **#386** (hosted STT), **#388** (per-device mic state) — need `/assess-priority`
+- Expansion in flight: **#392, #393**
+- On-hold: #210, #239, #299–#302, #351, #363, #384
+- Needs-human: #372
+
+**Slot usage after spawn: 2/4 expansion, 1/1 impl, 1/2 review (4/7 total).** Remaining capacity: 2 expansion + 1 review.
+
+`quiet_ticks` reset `2 → 0` (productive tick — 4 workers spawned + state reconciliation).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
