@@ -125,6 +125,32 @@ describe('loadPrompt', () => {
       expect(prompt).toContain('"type": "clear"');
     });
 
+    test('unified prompt contains session settings API instructions', () => {
+      const prompt = loadPrompt('system-prompt');
+      // Section markers
+      expect(prompt).toContain('Session Settings API');
+      expect(prompt).toContain('When NOT to call this endpoint');
+      // Endpoint + auth
+      expect(prompt).toContain('PATCH');
+      expect(prompt).toContain('/api/sessions/');
+      expect(prompt).toContain('/settings');
+      expect(prompt).toContain('Bearer $DISPLAY_API_SECRET');
+      expect(prompt).toContain('curl -X PATCH');
+      // All four mutable fields (mirrors SessionSettingsPatch shape)
+      expect(prompt).toContain('"tts"');
+      expect(prompt).toContain('"inputMode"');
+      expect(prompt).toContain('"autoSubmit"');
+      expect(prompt).toContain('"agentPrompt"');
+      // Concrete trigger-phrase examples
+      expect(prompt).toContain('"enabled": false');
+      expect(prompt).toContain('"enabled": true');
+      expect(prompt).toContain('"agentPrompt": null');
+      expect(prompt).toContain('"inputMode": "visualizer"');
+      expect(prompt).toContain('"autoSubmit": false');
+      // Out-of-scope guidance
+      expect(prompt).toContain('Device volume');
+    });
+
     test('unified prompt contains voice response guidelines', () => {
       const prompt = loadPrompt('system-prompt');
       expect(prompt).toContain('spoken aloud via text-to-speech');
@@ -170,8 +196,15 @@ describe('loadPrompt', () => {
       // Verify it appears in all curl examples
       const sessionIdMatches = prompt.match(new RegExp(testSessionId, 'g'));
       expect(sessionIdMatches).toBeTruthy();
-      // Should appear 4 times (greeting, markdown, image, clear commands)
-      expect(sessionIdMatches!.length).toBe(4);
+      // Should appear 10 times:
+      //   - 4 in Display API curls (greeting, markdown, image, clear)
+      //   - 1 in the Session Settings API prose line
+      //     ("PATCH .../api/sessions/{{SESSION_ID}}/settings")
+      //   - 5 in Session Settings API curls (tts off, tts on,
+      //     autoSubmit, inputMode, agentPrompt null)
+      // Bump this count when you add/remove references to
+      // {{SESSION_ID}} so future drift is caught here.
+      expect(sessionIdMatches!.length).toBe(10);
     });
 
     test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {
