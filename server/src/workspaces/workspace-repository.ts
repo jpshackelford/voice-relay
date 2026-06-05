@@ -35,6 +35,11 @@ interface WorkspaceSettingsRow {
   elevenlabs_tts_enabled: number | null;
   kiosk_footer_tickers_enabled: number | null;
   default_agent_prompt: string | null;
+  stt_engine: string;
+  stt_monthly_minute_cap: number | null;
+  deepgram_api_key_encrypted: string | null;
+  deepgram_api_key_iv: string | null;
+  deepgram_api_key_tag: string | null;
   updated_at: string | null;
 }
 
@@ -74,6 +79,12 @@ function rowToSettings(row: WorkspaceSettingsRow): WorkspaceSettings {
     elevenlabsTtsEnabled: row.elevenlabs_tts_enabled === 1,
     kioskFooterTickersEnabled: row.kiosk_footer_tickers_enabled === 1,
     defaultAgentPrompt: row.default_agent_prompt,
+    sttEngine:
+      row.stt_engine === 'deepgram' ? 'deepgram' : 'web-speech',
+    sttMonthlyMinuteCap: row.stt_monthly_minute_cap,
+    deepgramApiKeyEncrypted: row.deepgram_api_key_encrypted,
+    deepgramApiKeyIv: row.deepgram_api_key_iv,
+    deepgramApiKeyTag: row.deepgram_api_key_tag,
     updatedAt: row.updated_at,
   };
 }
@@ -286,11 +297,14 @@ export class WorkspaceRepository {
 
   getSettings(workspaceId: string): WorkspaceSettings | null {
     const stmt = this.db.prepare<[string], WorkspaceSettingsRow>(`
-      SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
+      SELECT workspace_id, openhands_api_key_encrypted, openhands_api_key_iv,
              openhands_api_key_tag, tts_voice, stt_language, allow_auto_join,
              require_qr_token, elevenlabs_api_key_encrypted, elevenlabs_api_key_iv,
              elevenlabs_api_key_tag, elevenlabs_voice_id, elevenlabs_tts_enabled,
-             kiosk_footer_tickers_enabled, default_agent_prompt, updated_at
+             kiosk_footer_tickers_enabled, default_agent_prompt,
+             stt_engine, stt_monthly_minute_cap,
+             deepgram_api_key_encrypted, deepgram_api_key_iv, deepgram_api_key_tag,
+             updated_at
       FROM workspace_settings WHERE workspace_id = ?
     `);
     const row = stmt.get(workspaceId);
@@ -320,6 +334,16 @@ export class WorkspaceRepository {
        * rest of this method uses for non-key fields.
        */
       defaultAgentPrompt?: string | null;
+      sttEngine?: 'web-speech' | 'deepgram';
+      /**
+       * Monthly hosted-STT minute cap (#386). Pass `null` to clear the
+       * cap; omit the key to leave it unchanged. Same "set vs leave"
+       * dance as `defaultAgentPrompt`.
+       */
+      sttMonthlyMinuteCap?: number | null;
+      deepgramApiKeyEncrypted?: string | null;
+      deepgramApiKeyIv?: string | null;
+      deepgramApiKeyTag?: string | null;
     }
   ): WorkspaceSettings {
     const now = new Date().toISOString();
@@ -330,6 +354,7 @@ export class WorkspaceRepository {
     // `null` = clear. We distinguish via `'defaultAgentPrompt' in settings`
     // so callers can pass `null` without it being conflated with "absent".
     const updatePrompt = 'defaultAgentPrompt' in settings;
+    const updateSttCap = 'sttMonthlyMinuteCap' in settings;
 
     if (existing) {
       // Update. For `default_agent_prompt`, a conditional CASE lets us
@@ -351,6 +376,11 @@ export class WorkspaceRepository {
             elevenlabs_tts_enabled = COALESCE(?, elevenlabs_tts_enabled),
             kiosk_footer_tickers_enabled = COALESCE(?, kiosk_footer_tickers_enabled),
             default_agent_prompt = CASE WHEN ? = 1 THEN ? ELSE default_agent_prompt END,
+            stt_engine = COALESCE(?, stt_engine),
+            stt_monthly_minute_cap = CASE WHEN ? = 1 THEN ? ELSE stt_monthly_minute_cap END,
+            deepgram_api_key_encrypted = COALESCE(?, deepgram_api_key_encrypted),
+            deepgram_api_key_iv = COALESCE(?, deepgram_api_key_iv),
+            deepgram_api_key_tag = COALESCE(?, deepgram_api_key_tag),
             updated_at = ?
         WHERE workspace_id = ?
       `);
@@ -370,19 +400,27 @@ export class WorkspaceRepository {
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : null,
         updatePrompt ? 1 : 0,
         settings.defaultAgentPrompt ?? null,
+        settings.sttEngine ?? null,
+        updateSttCap ? 1 : 0,
+        settings.sttMonthlyMinuteCap ?? null,
+        settings.deepgramApiKeyEncrypted ?? null,
+        settings.deepgramApiKeyIv ?? null,
+        settings.deepgramApiKeyTag ?? null,
         now,
         workspaceId
       );
     } else {
       // Insert with defaults for new workspaces
       const stmt = this.db.prepare(`
-        INSERT INTO workspace_settings 
-        (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv, 
+        INSERT INTO workspace_settings
+        (workspace_id, openhands_api_key_encrypted, openhands_api_key_iv,
          openhands_api_key_tag, tts_voice, stt_language, allow_auto_join, require_qr_token,
          elevenlabs_api_key_encrypted, elevenlabs_api_key_iv, elevenlabs_api_key_tag,
          elevenlabs_voice_id, elevenlabs_tts_enabled, kiosk_footer_tickers_enabled,
-         default_agent_prompt, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         default_agent_prompt, stt_engine, stt_monthly_minute_cap,
+         deepgram_api_key_encrypted, deepgram_api_key_iv, deepgram_api_key_tag,
+         updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         workspaceId,
@@ -400,6 +438,11 @@ export class WorkspaceRepository {
         settings.elevenlabsTtsEnabled !== undefined ? (settings.elevenlabsTtsEnabled ? 1 : 0) : 0,
         settings.kioskFooterTickersEnabled !== undefined ? (settings.kioskFooterTickersEnabled ? 1 : 0) : 0,
         settings.defaultAgentPrompt ?? null,
+        settings.sttEngine ?? 'web-speech',
+        settings.sttMonthlyMinuteCap ?? null,
+        settings.deepgramApiKeyEncrypted ?? null,
+        settings.deepgramApiKeyIv ?? null,
+        settings.deepgramApiKeyTag ?? null,
         now
       );
     }
@@ -432,6 +475,25 @@ export class WorkspaceRepository {
           elevenlabs_api_key_iv = NULL,
           elevenlabs_api_key_tag = NULL,
           elevenlabs_tts_enabled = 0,
+          updated_at = ?
+      WHERE workspace_id = ?
+    `);
+    stmt.run(now, workspaceId);
+  }
+
+  /**
+   * Wipe the encrypted Deepgram API key (#386). Also forces the engine
+   * back to `'web-speech'` so the broker can't keep minting tokens
+   * against a now-empty key on the next request.
+   */
+  clearDeepgramApiKey(workspaceId: string): void {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      UPDATE workspace_settings
+      SET deepgram_api_key_encrypted = NULL,
+          deepgram_api_key_iv = NULL,
+          deepgram_api_key_tag = NULL,
+          stt_engine = 'web-speech',
           updated_at = ?
       WHERE workspace_id = ?
     `);

@@ -50,6 +50,23 @@ export interface WorkspaceSettings {
    * over this workspace default. See issue #378.
    */
   defaultAgentPrompt: string | null;
+  /**
+   * Which STT engine devices in this workspace should use by default
+   * (#386). `'web-speech'` (browser API, free) is the default; `'deepgram'`
+   * opts the workspace into the hosted Deepgram pipeline. Devices may
+   * override per-device via `devices.config.stt_engine`.
+   */
+  sttEngine: 'web-speech' | 'deepgram';
+  /**
+   * Optional cost guardrail: when current-month hosted-STT usage hits
+   * this many minutes, the token broker refuses to mint new tokens and
+   * the client falls back to Web Speech. `null` disables the cap.
+   */
+  sttMonthlyMinuteCap: number | null;
+  /** Per-workspace Deepgram API key, encrypted at rest (#386). */
+  deepgramApiKeyEncrypted: string | null;
+  deepgramApiKeyIv: string | null;
+  deepgramApiKeyTag: string | null;
   updatedAt: string | null;
 }
 
@@ -68,6 +85,15 @@ export interface WorkspaceSettingsInput {
    * override and fall back to the built-in prompt.
    */
   defaultAgentPrompt?: string | null;
+  /** Workspace-default STT engine selection (#386). */
+  sttEngine?: 'web-speech' | 'deepgram';
+  /**
+   * Monthly hosted-STT minute cap (#386). Pass `null` to clear the cap;
+   * omit the key to leave it unchanged.
+   */
+  sttMonthlyMinuteCap?: number | null;
+  /** Plain-text Deepgram API key; encrypted before storage (#386). */
+  deepgramApiKey?: string;
 }
 
 export interface WorkspaceMember {
