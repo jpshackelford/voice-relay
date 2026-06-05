@@ -316,20 +316,9 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
 }
 
 /**
- * Result of a binding attempt. Either the upstream session is bound and
- * subsequent `sendSessionMessage` calls are safe, or upstream rejected and
- * the caller should surface a terminal `error` `AgentEvent`.
- */
-/**
- * Outcome of an upstream bind attempt. `kind:'error'` carries both a
- * client-safe {@link AgentEvent} (for relays that consume the event
- * stream) and the underlying `cause` (so callers that need the
- * concrete error class — e.g. `auto-connect.ts` reading the typed
- * `MissingWsHandshakeReason` on {@link UpstreamConversationEndedError}
- * per issue #405 — can keep their `instanceof` checks working). The
- * `cause` is intentionally typed `Error` rather than `unknown` so the
- * common path (`throw bind.cause`) stays clean; the driver always
- * normalises non-Error rejections before stashing them.
+ * Outcome of an upstream bind. Error results preserve the original Error
+ * subclass (e.g. UpstreamConversationEndedError) so callers can read typed
+ * properties like `.reason`.
  */
 type BindResult =
   | { kind: 'ok' }
@@ -440,13 +429,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
     if (!this.mgr.hasSessionAI(sessionId)) {
       const bind = await this.lazyBindSession(sessionId, state);
       if (bind.kind === 'error') {
-        // Surface the error to the caller so the auto-connect path can
-        // broadcast a connection-failed status. Re-throw the original
-        // `cause` (#405) so callers can read typed properties such as
-        // `UpstreamConversationEndedError.reason` — wrapping into a
-        // bare `Error` here used to drop those, hiding the typed
-        // handshake reason from `auto-connect.ts` /
-        // `agent-rehydrate.ts` even though they look for it.
+        // Re-throw the original cause to preserve typed error properties.
         throw bind.cause;
       }
     }
@@ -483,8 +466,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
     // matching the legacy `getOrCreateForSession` contract.
     const bind = await this.lazyBindSession(sessionId, state);
     if (bind.kind === 'error') {
-      // Re-throw the original cause (#405) so typed properties such as
-      // `UpstreamConversationEndedError.reason` reach the caller.
+      // Re-throw the original cause to preserve typed error properties.
       throw bind.cause;
     }
     return this.synthesizeStatus(sessionId);

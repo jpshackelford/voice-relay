@@ -195,26 +195,9 @@ export class UpstreamConversationEndedError extends Error {
 }
 
 /**
- * Typed reason a WS handshake could not be opened against an upstream
- * OpenHands conversation, used to disambiguate the historically opaque
- * "Conversation X is missing WS handshake materials" error (issue #405).
- *
- * Each value maps to one of the genuinely different upstream conditions
- * that can produce an `AppConversation` record with `conversation_url:
- * null` and/or `session_api_key: null`:
- *
- * - `auth-rejected` — the polling call observed a `401
- *   NoCredentialsError`; the workspace's upstream API key has been
- *   rotated or forgotten and needs to be re-issued.
- * - `sandbox-stopped` — `sandbox_status === 'STOPPED'`; the conversation
- *   was deleted or the sandbox lifecycle ended. The kiosk should start
- *   a new session.
- * - `sandbox-missing` — `sandbox_status === 'MISSING'` after a resume
- *   attempt (or returned by a mid-poll lookup). Usually transient.
- * - `paused-no-sandbox-id` — `sandbox_status === 'PAUSED'` with no
- *   `sandbox_id`. Upstream contract violation — file it.
- * - `unknown` — none of the above signals were available; the cause is
- *   unknown / transient.
+ * Reason a WS handshake failed. The classifier checks in priority order:
+ * auth-rejected (401 NoCredentialsError), then sandbox_status (STOPPED >
+ * MISSING > PAUSED-without-sandbox_id), falling back to unknown.
  */
 export type MissingWsHandshakeReason =
   | 'auth-rejected'
@@ -2634,13 +2617,7 @@ export class AISessionManager {
 
     const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
     if (!agentServerUrl || !convInfo.session_api_key) {
-      // Issue #405: classify the failure so the journal and the
-      // downstream `degraded` broadcast carry a self-describing cause
-      // instead of the historical opaque "missing WS handshake
-      // materials" string. `lastPollError` is populated by
-      // `pollSandboxRunning`'s `onTransientError` hook above (if the
-      // PAUSED branch ran) so an intervening `401 NoCredentialsError`
-      // surfaces as `auth-rejected`.
+      // Classify so the journal and `degraded` broadcast name the cause.
       const reason = explainMissingHandshake(convInfo, lastPollError);
       throw new UpstreamConversationEndedError(
         conversationId,
