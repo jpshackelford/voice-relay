@@ -76,6 +76,15 @@ interface KioskModeProps {
    * Defaults to false so workspaces that haven't opted in see no change.
    */
   kioskFooterTickersEnabled?: boolean;
+  /**
+   * Issue #393: most recent kiosk-attention payload. When present, the
+   * kiosk renders a transient `📱 <mobileDisplayName> connecting…`
+   * banner so the user can confirm they targeted the right physical
+   * screen in rooms with multiple visible kiosks.
+   */
+  attention?: { mobileDeviceId: string; mobileDisplayName: string; ttlMs: number; at: number } | null;
+  /** Called by the kiosk after the banner has auto-dismissed. */
+  onAttentionDismiss?: () => void;
 }
 
 // Hook to detect mobile devices
@@ -121,6 +130,8 @@ export function KioskMode({
   agentHistoryConversationId,
   onRetryAgentHistory,
   kioskFooterTickersEnabled = false,
+  attention = null,
+  onAttentionDismiss,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -604,10 +615,32 @@ export function KioskMode({
   const deviceExists = selectedDeviceId === null || kioskDevices.some(d => d.id === selectedDeviceId);
   const effectiveTtsDeviceValue = deviceExists ? (selectedDeviceId ?? 'all') : 'all';
 
+  // Issue #393: auto-dismiss the kiosk-attention banner after ttlMs.
+  useEffect(() => {
+    if (!attention) return;
+    const elapsed = Date.now() - attention.at;
+    const remaining = Math.max(0, attention.ttlMs - elapsed);
+    const t = window.setTimeout(() => onAttentionDismiss?.(), remaining);
+    return () => window.clearTimeout(t);
+  }, [attention, onAttentionDismiss]);
+
+  // Banner rendered into both mobile + desktop kiosk layouts.
+  const attentionBanner = attention ? (
+    <div
+      className="kiosk-attention-banner"
+      role="status"
+      aria-live="polite"
+      data-testid="kiosk-attention-banner"
+    >
+      📱 {attention.mobileDisplayName} connecting…
+    </div>
+  ) : null;
+
   // On mobile, render a simplified conversation-only view
   if (isMobile) {
     return (
       <div className="kiosk-mode mobile">
+        {attentionBanner}
         <header className="kiosk-header">
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
@@ -707,6 +740,7 @@ export function KioskMode({
   // Desktop kiosk view with drawer
   return (
     <div className="kiosk-mode">
+      {attentionBanner}
       {/* Left sidebar - Chat (now a drawer) */}
       <aside className={`kiosk-sidebar ${drawerOpen ? 'open' : 'closed'}`}>
         <header className="kiosk-header">

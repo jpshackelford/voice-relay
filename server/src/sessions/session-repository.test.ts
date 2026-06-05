@@ -58,8 +58,12 @@ describe('SessionRepository', () => {
         display_api_secret_encrypted TEXT,
         display_api_secret_iv TEXT,
         display_api_secret_tag TEXT,
+        target_kiosk_device_id TEXT REFERENCES devices(id) ON DELETE SET NULL,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
+      CREATE INDEX IF NOT EXISTS idx_sessions_target_kiosk
+        ON sessions(target_kiosk_device_id, status)
+        WHERE target_kiosk_device_id IS NOT NULL;
       
       CREATE TABLE IF NOT EXISTS session_devices (
         session_id TEXT NOT NULL,
@@ -281,6 +285,116 @@ describe('SessionRepository', () => {
       const session = repo.getOrCreateActiveSession(testWorkspaceId);
       expect(session.id).not.toBe(old.id);
       expect(session.status).toBe('active');
+    });
+  });
+
+  // Issue #393: per-kiosk active sessions for the mobile kiosk picker.
+  describe('per-kiosk active sessions (#393)', () => {
+    const kioskA = 'kiosk-a';
+    const kioskB = 'kiosk-b';
+
+    beforeEach(() => {
+      db.prepare(
+        `INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`,
+      ).run(kioskA, testWorkspaceId, 'Kiosk A', 'kiosk');
+      db.prepare(
+        `INSERT INTO devices (id, workspace_id, name, mode) VALUES (?, ?, ?, ?)`,
+      ).run(kioskB, testWorkspaceId, 'Kiosk B', 'kiosk');
+    });
+
+    it('create() persists targetKioskDeviceId when provided', () => {
+      const sess = repo.create({
+        workspaceId: testWorkspaceId,
+        targetKioskDeviceId: kioskA,
+      });
+      expect(sess.targetKioskDeviceId).toBe(kioskA);
+
+      const fresh = repo.findById(sess.id);
+      expect(fresh?.targetKioskDeviceId).toBe(kioskA);
+    });
+
+    it('create() defaults targetKioskDeviceId to null when omitted', () => {
+      const sess = repo.create({ workspaceId: testWorkspaceId });
+      expect(sess.targetKioskDeviceId).toBeNull();
+    });
+
+    it('getActiveSessionForKiosk returns null when no session is bound', () => {
+      expect(repo.getActiveSessionForKiosk(kioskA)).toBeNull();
+    });
+
+    it('getActiveSessionForKiosk returns only the kiosk-bound active session', () => {
+      // Workspace-wide legacy session (unbound) should NOT be returned.
+      repo.create({ workspaceId: testWorkspaceId });
+      // Bound session for kiosk A.
+      const bound = repo.create({
+        workspaceId: testWorkspaceId,
+        targetKioskDeviceId: kioskA,
+      });
+
+      const found = repo.getActiveSessionForKiosk(kioskA);
+      expect(found?.id).toBe(bound.id);
+      // Kiosk B has no binding yet.
+      expect(repo.getActiveSessionForKiosk(kioskB)).toBeNull();
+    });
+
+    it('getActiveSessionForKiosk ignores ended sessions', () => {
+      const bound = repo.create({
+        workspaceId: testWorkspaceId,
+        targetKioskDeviceId: kioskA,
+      });
+      repo.endSession(bound.id);
+      expect(repo.getActiveSessionForKiosk(kioskA)).toBeNull();
+    });
+
+    it('getOrCreateActiveSessionForKiosk reuses an existing binding', () => {
+      const first = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      const second = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      expect(second.id).toBe(first.id);
+      expect(second.targetKioskDeviceId).toBe(kioskA);
+    });
+
+    it('getOrCreateActiveSessionForKiosk creates separate sessions per kiosk', () => {
+      const a = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      const b = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskB);
+      expect(a.id).not.toBe(b.id);
+      expect(a.targetKioskDeviceId).toBe(kioskA);
+      expect(b.targetKioskDeviceId).toBe(kioskB);
+    });
+
+    it('getOrCreateActiveSessionForKiosk claims an existing unbound active session (backward compat)', () => {
+      // Mobile (or pre-#393 client) registered first and created a
+      // legacy workspace-wide session with no target kiosk.
+      const legacy = repo.create({ workspaceId: testWorkspaceId });
+      expect(legacy.targetKioskDeviceId).toBeNull();
+
+      // First kiosk to register should claim that session rather than
+      // opening a duplicate one — otherwise the dashboard ends up with
+      // two "View" buttons in single-kiosk workspaces.
+      const claimed = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      expect(claimed.id).toBe(legacy.id);
+      expect(claimed.targetKioskDeviceId).toBe(kioskA);
+
+      // And the DB row is actually updated, not just the returned value.
+      const reread = repo.findById(legacy.id);
+      expect(reread?.targetKioskDeviceId).toBe(kioskA);
+    });
+
+    it('getKioskPickerEnrichment returns activeSessionId + lastUsedAt per kiosk', () => {
+      // Kiosk A has an active bound session.
+      const sessA = repo.getOrCreateActiveSessionForKiosk(testWorkspaceId, kioskA);
+      repo.addDevice(sessA.id, kioskA);
+      // Kiosk B has no session yet.
+
+      const enrichment = repo.getKioskPickerEnrichment(testWorkspaceId);
+
+      expect(enrichment.get(kioskA)?.activeSessionId).toBe(sessA.id);
+      expect(typeof enrichment.get(kioskA)?.lastUsedAt).toBe('string');
+
+      expect(enrichment.get(kioskB)?.activeSessionId).toBeNull();
+      expect(enrichment.get(kioskB)?.lastUsedAt).toBeNull();
+
+      // Mobile devices are not included in the enrichment map.
+      expect(enrichment.has(testDeviceId)).toBe(false);
     });
   });
 

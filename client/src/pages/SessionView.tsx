@@ -81,6 +81,12 @@ export function SessionView() {
   const [mode, setMode] = useState<DeviceMode>(autoMode);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+  // Issue #393: kiosk receives `kiosk-attention` notifications and shows a
+  // transient banner so the user can confirm they targeted the right
+  // physical screen.
+  const [kioskAttention, setKioskAttention] = useState<
+    { mobileDeviceId: string; mobileDisplayName: string; ttlMs: number; at: number } | null
+  >(null);
 
   // AI status - lifted from KioskMode for WebSocket wiring
   // Session ID is available from URL params; used to filter AI status messages
@@ -318,6 +324,14 @@ export function SessionView() {
     onAgentActionMessage: agentActions.handleAgentAction,
     onAudioChunkMessage: (msg) => audioPlayback.handleAudioChunk(msg as AudioChunkMessage),
     onAudioEndMessage: (msg) => audioPlayback.handleAudioEnd(msg as AudioEndMessage),
+    // Issue #393.
+    onKioskAttentionMessage: (msg) =>
+      setKioskAttention({
+        mobileDeviceId: msg.mobileDeviceId,
+        mobileDisplayName: msg.mobileDisplayName,
+        ttlMs: msg.ttlMs,
+        at: Date.now(),
+      }),
   });
 
   // Helper to clear timeout for a request
@@ -529,6 +543,8 @@ export function SessionView() {
           agentHistoryConversationId={agentEventHistory.conversationId}
           onRetryAgentHistory={agentEventHistory.retry}
           kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
+          attention={kioskAttention}
+          onAttentionDismiss={() => setKioskAttention(null)}
         />
       </>
     );

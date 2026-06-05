@@ -105,6 +105,16 @@ export interface Session {
   displayApiSecretIv: string | null;
   /** Auth tag for display API secret encryption (base64) */
   displayApiSecretTag: string | null;
+  /**
+   * Optional kiosk anchor for this session (issue #393). When set, the
+   * session represents "the conversation owned by that kiosk" — the
+   * mobile kiosk picker uses this to give every kiosk its own
+   * idle/in-session pill, its own `metadata.displayContent`, and its
+   * own Join-in-progress affordance. `null` means the session is not
+   * bound to a specific kiosk and resolves via the legacy
+   * workspace-wide single-active rule.
+   */
+  targetKioskDeviceId: string | null;
 }
 
 /**
@@ -113,6 +123,13 @@ export interface Session {
 export interface SessionCreateInput {
   workspaceId: string;
   name?: string;
+  /**
+   * Optional kiosk to anchor the session to (issue #393). When provided,
+   * the session is created with `target_kiosk_device_id = kioskDeviceId`
+   * so that `getActiveSessionForKiosk` can find it on the next mobile
+   * register. Leave undefined for the legacy workspace-wide flow.
+   */
+  targetKioskDeviceId?: string | null;
 }
 
 /**

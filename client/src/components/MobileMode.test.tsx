@@ -666,4 +666,72 @@ describe('MobileMode', () => {
       expect(indicator).toBeDefined();
     });
   });
+
+  // Issue #393: kiosk picker gate.
+  describe('kiosk picker gate (#393)', () => {
+    const kiosk = (id: string, name: string, extras = {}) => ({
+      id, displayName: name, mode: 'kiosk' as const, ...extras,
+    });
+
+    it('shows the picker when there are 2+ kiosks and no target chosen', () => {
+      const onTargetKioskChange = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          devices={[kiosk('k1', 'Alpha'), kiosk('k2', 'Bravo')]}
+          targetKioskDeviceId={undefined}
+          onTargetKioskChange={onTargetKioskChange}
+        />,
+      );
+      expect(screen.getByTestId('kiosk-picker')).toBeDefined();
+    });
+
+    it('skips the picker when there is only one kiosk', () => {
+      render(
+        <MobileMode
+          {...defaultProps}
+          devices={[kiosk('k1', 'Solo')]}
+          onTargetKioskChange={vi.fn()}
+        />,
+      );
+      expect(screen.queryByTestId('kiosk-picker')).toBeNull();
+    });
+
+    it('skips the picker once a target is chosen and the kiosk is connected', () => {
+      render(
+        <MobileMode
+          {...defaultProps}
+          devices={[kiosk('k1', 'Alpha'), kiosk('k2', 'Bravo')]}
+          targetKioskDeviceId="k1"
+          onTargetKioskChange={vi.fn()}
+        />,
+      );
+      expect(screen.queryByTestId('kiosk-picker')).toBeNull();
+    });
+
+    it('re-shows the picker when the previously chosen kiosk disconnects', () => {
+      render(
+        <MobileMode
+          {...defaultProps}
+          devices={[kiosk('k2', 'Bravo'), kiosk('k3', 'Charlie')]}
+          targetKioskDeviceId="k1"
+          onTargetKioskChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId('kiosk-picker')).toBeDefined();
+    });
+
+    it('clicking a card calls onTargetKioskChange with the kiosk id', () => {
+      const onTargetKioskChange = vi.fn();
+      render(
+        <MobileMode
+          {...defaultProps}
+          devices={[kiosk('k1', 'Alpha'), kiosk('k2', 'Bravo')]}
+          onTargetKioskChange={onTargetKioskChange}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('kiosk-picker-card-k2'));
+      expect(onTargetKioskChange).toHaveBeenCalledWith('k2');
+    });
+  });
 });

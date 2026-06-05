@@ -59,6 +59,7 @@ describe('Session Settings Router', () => {
         display_api_secret_encrypted TEXT,
         display_api_secret_iv TEXT,
         display_api_secret_tag TEXT,
+        target_kiosk_device_id TEXT,
         metadata TEXT,
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );

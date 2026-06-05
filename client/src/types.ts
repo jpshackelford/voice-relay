@@ -4,6 +4,21 @@ export interface DeviceInfo {
   id: string;
   displayName: string;
   mode: DeviceMode;
+  /**
+   * Issue #393: id of the active session anchored to this kiosk,
+   * derived from `sessions.target_kiosk_device_id` on the server.
+   * Mobile uses this to render a `🔴 In session` pill and a
+   * `Join in progress` button in the kiosk picker. Mobile devices
+   * carry no value here.
+   */
+  activeSessionId?: string | null;
+  /**
+   * Issue #393: ISO-8601 timestamp of the kiosk's most recent
+   * `session_devices.joined_at`. Renders as "last used 2h ago" on
+   * picker cards. `null` for kiosks that have never been used yet;
+   * undefined for mobile devices.
+   */
+  lastUsedAt?: string | null;
 }
 
 /** Session-level TTS settings (synced across all devices in session) */
@@ -43,6 +58,14 @@ export interface RegisterMessage {
    * `Date.prototype.getTimezoneOffset()` (issue #375).
    */
   tzOffsetMinutes?: number;
+  /**
+   * Issue #393: mobile-only. The kiosk this mobile is targeting. When
+   * present, the server anchors the session to that kiosk instead of
+   * the workspace-wide single-active session, and emits a
+   * `kiosk-attention` banner to the chosen kiosk. Ignored when the
+   * registering device is a kiosk.
+   */
+  targetKioskDeviceId?: string;
 }
 
 export interface UpdateDeviceMessage {
@@ -448,12 +471,29 @@ export interface TranscriptionErrorMessage {
   code?: 'no-speech' | 'service-unavailable' | 'rate-limited' | 'unknown';
 }
 
-export type ServerMessage = 
-  | RegisteredMessage 
-  | DeviceListMessage 
-  | RelayedTextMessage 
-  | HistoryMessage 
-  | DisplayMessage 
+/**
+ * Server → specific kiosk: a mobile is connecting to this kiosk
+ * (issue #393). The kiosk renders a brief
+ * `📱 <mobileDisplayName> connecting…` banner so the user can confirm
+ * they targeted the right physical screen in rooms with multiple
+ * visible kiosks. Transient: no persistence, no echo.
+ */
+export interface KioskAttentionMessage {
+  type: 'kiosk-attention';
+  /** Id of the mobile device that triggered the attention. */
+  mobileDeviceId: string;
+  /** Human-readable name to render in the banner. */
+  mobileDisplayName: string;
+  /** How long the kiosk should show the banner. */
+  ttlMs: number;
+}
+
+export type ServerMessage =
+  | RegisteredMessage
+  | DeviceListMessage
+  | RelayedTextMessage
+  | HistoryMessage
+  | DisplayMessage
   | AIStatusMessage
   | AIThinkingMessage
   | SessionAIStatusMessage
@@ -467,7 +507,8 @@ export type ServerMessage =
   | AudioEndMessage
   | SessionTtsSettingsChangedMessage
   | TranscriptionResultMessage
-  | TranscriptionErrorMessage;
+  | TranscriptionErrorMessage
+  | KioskAttentionMessage;
 
 export interface Utterance {
   id: string;

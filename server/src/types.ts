@@ -134,6 +134,18 @@ export interface RegisterMessage {
    * backward compatibility (issue #375).
    */
   tzOffsetMinutes?: number;
+  /**
+   * Mobile-only (issue #393): the kiosk this mobile is targeting.
+   * When set, the server resolves the session via
+   * `getOrCreateActiveSessionForKiosk(workspaceId, targetKioskDeviceId)`
+   * instead of the legacy workspace-wide single-active rule. The picked
+   * kiosk also receives a `kiosk-attention` banner so the user can
+   * physically confirm which kiosk picked up the connection.
+   *
+   * Ignored when the registering device is a kiosk (a kiosk always
+   * anchors to its own session) or when the workspace is anonymous.
+   */
+  targetKioskDeviceId?: string;
 }
 
 /**
@@ -291,6 +303,25 @@ export interface TranscriptionErrorMessage {
   code?: 'no-speech' | 'service-unavailable' | 'rate-limited' | 'unknown';
 }
 
+/**
+ * Server → specific kiosk: a mobile is connecting to this kiosk
+ * (issue #393). The kiosk renders a brief
+ * `📱 <mobileDisplayName> connecting…` banner so the user can confirm
+ * with their eyes that they targeted the right physical screen — this
+ * matters in rooms where two kiosks are visible at once.
+ *
+ * The banner is purely transient: no persistence, no echo, no ack.
+ */
+export interface KioskAttentionMessage {
+  type: 'kiosk-attention';
+  /** Id of the mobile device that triggered the attention. */
+  mobileDeviceId: string;
+  /** Human-readable name to render in the banner. */
+  mobileDisplayName: string;
+  /** How long the kiosk should show the banner. */
+  ttlMs: number;
+}
+
 // Messages from server to client
 export type ServerMessage =
   | RegisteredMessage
@@ -311,7 +342,8 @@ export type ServerMessage =
   | SessionTtsSettingsChangedMessage
   | SessionSettingsChangedMessage
   | TranscriptionResultMessage
-  | TranscriptionErrorMessage;
+  | TranscriptionErrorMessage
+  | KioskAttentionMessage;
 
 export interface DisplayMessage {
   type: 'display';
@@ -348,6 +380,24 @@ export interface DeviceInfo {
   workspaceId: string;
   displayName: string;
   mode: DeviceMode;
+  /**
+   * The id of the active session this device is anchored to (kiosk only;
+   * issue #393). Populated from `sessions.target_kiosk_device_id`. Lets
+   * the mobile kiosk picker show a `🔴 In session` pill and a
+   * `Join in progress` button without an extra round-trip.
+   *
+   * `null` for mobile devices and for kiosks that have not been bound to
+   * a session yet.
+   */
+  activeSessionId?: string | null;
+  /**
+   * ISO-8601 timestamp of the kiosk's most recent `session_devices.joined_at`
+   * row (issue #393). The picker renders this as a "last used N hours ago"
+   * line. `null` for kiosks that have never participated in a session.
+   *
+   * Omitted (not `null`) for mobile devices to keep payloads small.
+   */
+  lastUsedAt?: string | null;
 }
 
 export interface RelayedTextMessage {

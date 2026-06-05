@@ -710,4 +710,73 @@ describe('DeviceRegistry', () => {
       expect(ws2.close).not.toHaveBeenCalled();
     });
   });
+
+  // Issue #393: kiosk picker enrichment on broadcastDeviceList.
+  describe('kiosk picker enrichment (#393)', () => {
+    it('enriches kiosk entries with activeSessionId and lastUsedAt', () => {
+      const wsMobile = createMockWebSocket();
+      const wsKiosk = createMockWebSocket();
+      registry.register('mobile-1', 'ws-1', wsMobile, 'Mobile', 'mobile');
+      registry.register('kiosk-1', 'ws-1', wsKiosk, 'Conference Room A', 'kiosk');
+
+      registry.setKioskEnricher(() => new Map([
+        ['kiosk-1', { activeSessionId: 'sess-1', lastUsedAt: '2026-06-04T10:00:00Z' }],
+      ]));
+
+      registry.broadcastDeviceList('ws-1');
+
+      const mobileMsg = JSON.parse((wsMobile.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      expect(mobileMsg.type).toBe('device-list');
+      const kioskEntry = mobileMsg.devices.find(
+        (d: { id: string }) => d.id === 'kiosk-1',
+      );
+      expect(kioskEntry.activeSessionId).toBe('sess-1');
+      expect(kioskEntry.lastUsedAt).toBe('2026-06-04T10:00:00Z');
+
+      const mobileEntry = mobileMsg.devices.find(
+        (d: { id: string }) => d.id === 'mobile-1',
+      );
+      // Mobile entries are NOT enriched.
+      expect(mobileEntry.activeSessionId).toBeUndefined();
+      expect(mobileEntry.lastUsedAt).toBeUndefined();
+    });
+
+    it('falls back to null when the enricher has no entry for a kiosk', () => {
+      const ws = createMockWebSocket();
+      registry.register('kiosk-orphan', 'ws-1', ws, 'Orphan', 'kiosk');
+      registry.setKioskEnricher(() => new Map());
+
+      registry.broadcastDeviceList('ws-1');
+      const msg = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      const entry = msg.devices[0];
+      expect(entry.id).toBe('kiosk-orphan');
+      expect(entry.activeSessionId).toBeNull();
+      expect(entry.lastUsedAt).toBeNull();
+    });
+
+    it('omits enrichment entirely when no enricher is installed', () => {
+      const ws = createMockWebSocket();
+      registry.register('kiosk-bare', 'ws-1', ws, 'Bare', 'kiosk');
+
+      registry.broadcastDeviceList('ws-1');
+      const msg = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      const entry = msg.devices[0];
+      expect('activeSessionId' in entry).toBe(false);
+      expect('lastUsedAt' in entry).toBe(false);
+    });
+
+    it('clears the enricher when set to null', () => {
+      const ws = createMockWebSocket();
+      registry.register('kiosk-1', 'ws-1', ws, 'K', 'kiosk');
+
+      registry.setKioskEnricher(() => new Map([
+        ['kiosk-1', { activeSessionId: 'sess-x', lastUsedAt: null }],
+      ]));
+      registry.setKioskEnricher(null);
+
+      registry.broadcastDeviceList('ws-1');
+      const msg = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+      expect('activeSessionId' in msg.devices[0]).toBe(false);
+    });
+  });
 });

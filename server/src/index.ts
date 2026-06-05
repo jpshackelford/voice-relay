@@ -94,29 +94,125 @@ const __dirname = dirname(__filename);
 
 /**
  * Resolves the session for a device during registration in authenticated mode.
- * 
+ *
+ * Resolution order (issue #393 extended this):
+ *   1. Explicit `clientSessionId` — honoured when it points to an active
+ *      session in this workspace.
+ *   2. Kiosk registering (`mode === 'kiosk'`) — anchors to its own
+ *      per-kiosk session via `getOrCreateActiveSessionForKiosk(self)`,
+ *      so every kiosk has a well-defined "Idle / In session" pill and
+ *      its own `metadata.displayContent`.
+ *   3. Mobile registering with `targetKioskDeviceId` — joins (or creates)
+ *      the active session anchored to that kiosk. This is the
+ *      multi-kiosk picker path.
+ *   4. Otherwise — legacy workspace-wide single-active fallback.
+ *      Single-kiosk and zero-kiosk workspaces keep working unchanged.
+ *
  * @param sessionRepository - The session repository (must be defined in authenticated mode)
  * @param clientSessionId - Optional session ID provided by the client
  * @param workspaceId - The workspace the device is joining
+ * @param deviceId - The id of the registering device (mode-2 anchor when kiosk)
+ * @param mode - The registering device's mode (kiosk vs mobile)
+ * @param targetKioskDeviceId - Mobile-only: kiosk the mobile is targeting
  * @returns The resolved session (existing or newly created active session)
  */
-function resolveSessionForDevice(
+export function resolveSessionForDevice(
   sessionRepository: SessionRepository,
   clientSessionId: string | undefined,
-  workspaceId: string
+  workspaceId: string,
+  deviceId: string,
+  mode: 'mobile' | 'kiosk',
+  targetKioskDeviceId?: string
 ): { id: string; name: string | null } {
-  // If client provided a sessionId, try to use it
+  // 1. If client provided a sessionId, try to use it
   if (clientSessionId) {
     const requestedSession = sessionRepository.findById(clientSessionId);
     if (requestedSession && requestedSession.workspaceId === workspaceId && requestedSession.status === 'active') {
       return { id: requestedSession.id, name: requestedSession.name };
     }
-    console.warn(`[WS] Invalid session ${clientSessionId} requested, using active session`);
+    console.warn(`[WS] Invalid session ${clientSessionId} requested, falling back`);
   }
-  
-  // Fall back to active session for this workspace
+
+  // 2. Kiosks anchor to their own per-kiosk session (#393).
+  if (mode === 'kiosk') {
+    const kioskSession = sessionRepository.getOrCreateActiveSessionForKiosk(workspaceId, deviceId);
+    return { id: kioskSession.id, name: kioskSession.name };
+  }
+
+  // 3. Mobile with a kiosk target — join the kiosk's session.
+  if (targetKioskDeviceId) {
+    const kioskSession = sessionRepository.getOrCreateActiveSessionForKiosk(workspaceId, targetKioskDeviceId);
+    return { id: kioskSession.id, name: kioskSession.name };
+  }
+
+  // 4. Legacy fallback: workspace-wide single active session.
   const activeSession = sessionRepository.getOrCreateActiveSession(workspaceId);
   return { id: activeSession.id, name: activeSession.name };
+}
+
+/**
+ * Duration (ms) the chosen kiosk shows the
+ * `📱 <mobile> connecting…` banner from a `kiosk-attention` message
+ * (issue #393). Long enough to confirm the right physical screen by
+ * eye, short enough to disappear by the time the user actually starts
+ * talking.
+ */
+export const KIOSK_ATTENTION_TTL_MS = 3000;
+
+/**
+ * Minimal registry surface needed to look up the targeted kiosk and
+ * deliver the attention banner. Defined as a structural interface so
+ * the helper can be unit-tested with a lightweight fake.
+ */
+export interface KioskAttentionRegistry {
+  getDevice(id: string): { mode: 'mobile' | 'kiosk' } | undefined;
+  sendToDevice(deviceId: string, message: object): boolean;
+}
+
+/**
+ * Send a `kiosk-attention` nudge to the target kiosk, but only when the
+ * sender is a mobile and the target device is actually a registered
+ * kiosk in the workspace. Returns true when a message was sent.
+ *
+ * Defensive guard (PR #396 review feedback): a mobile client could in
+ * principle send another mobile's deviceId in `targetKioskDeviceId`.
+ * Without this check, the attention message would be relayed to that
+ * mobile, which silently ignores `kiosk-attention` — harmless but
+ * confusing during debugging. Validating `device.mode === 'kiosk'`
+ * here makes the contract explicit at the call site.
+ */
+export function sendKioskAttentionIfValid(
+  registry: KioskAttentionRegistry,
+  params: {
+    senderMode: 'mobile' | 'kiosk';
+    senderDeviceId: string;
+    senderDisplayName: string;
+    targetKioskDeviceId: string | undefined;
+  }
+): boolean {
+  const { senderMode, senderDeviceId, senderDisplayName, targetKioskDeviceId } = params;
+  if (senderMode !== 'mobile') return false;
+  if (!targetKioskDeviceId) return false;
+  if (targetKioskDeviceId === senderDeviceId) return false;
+
+  const targetDevice = registry.getDevice(targetKioskDeviceId);
+  if (!targetDevice || targetDevice.mode !== 'kiosk') {
+    // Mobile sent a target that doesn't resolve to a registered kiosk
+    // (offline kiosk, stale id, or — the guarded case — another mobile's
+    // id). Log and drop so we never broadcast attention to a non-kiosk.
+    console.warn(
+      `[WS] kiosk-attention dropped: target ${targetKioskDeviceId} is not a registered kiosk ` +
+        `(sender=${senderDeviceId})`
+    );
+    return false;
+  }
+
+  return registry.sendToDevice(targetKioskDeviceId, {
+    type: 'kiosk-attention' as const,
+    mobileDeviceId: senderDeviceId,
+    mobileDisplayName: senderDisplayName,
+    ttlMs: KIOSK_ATTENTION_TTL_MS,
+  });
 }
 
 // Version info loaded at startup from version.json (generated during deployment)
@@ -660,11 +756,33 @@ wss.on('connection', (ws: WebSocket) => {
             // seed the in-memory device cache below.
             primaryUserId = result.device.primaryUserId;
 
-            session = resolveSessionForDevice(sessionRepository, message.sessionId, requestedWorkspaceId);
+            session = resolveSessionForDevice(
+              sessionRepository,
+              message.sessionId,
+              requestedWorkspaceId,
+              message.deviceId,
+              message.mode,
+              message.targetKioskDeviceId,
+            );
             sessionId = session.id;
-            
+
             // Track device in session_devices table (device must exist for FK constraint)
             sessionRepository.addDevice(sessionId, message.deviceId);
+
+            // Issue #393: nudge the chosen kiosk's screen so the user
+            // can confirm the right physical kiosk picked up the
+            // connection. Fire-and-forget — when the kiosk is offline
+            // (no WS in the registry), the helper drops the send and
+            // the mobile flow proceeds anyway. The helper also enforces
+            // that the target is actually a registered kiosk (PR #396
+            // review feedback) so we never broadcast attention to a
+            // non-kiosk device.
+            sendKioskAttentionIfValid(registry, {
+              senderMode: message.mode,
+              senderDeviceId: message.deviceId,
+              senderDisplayName: message.displayName,
+              targetKioskDeviceId: message.targetKioskDeviceId,
+            });
           }
           
           deviceId = message.deviceId;
@@ -1183,6 +1301,15 @@ async function start() {
       agentEventRepository = new AgentEventRepository(db);
       speakerRepository = new SpeakerRepository(db);
       console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent, Speaker repositories initialized');
+
+      // Issue #393: install the per-kiosk picker enrichment hook so
+      // every `broadcastDeviceList` includes `activeSessionId` and
+      // `lastUsedAt` for kiosks. Mobile picker cards depend on this
+      // for the status pill and "last used 2h ago" line.
+      const sessionRepoForEnricher = sessionRepository;
+      registry.setKioskEnricher((wsId) =>
+        sessionRepoForEnricher.getKioskPickerEnrichment(wsId),
+      );
 
       // Session settings service (issue #378). Single funnel for REST
       // and WS writes; installed once the repositories are available

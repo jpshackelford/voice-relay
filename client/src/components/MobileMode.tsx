@@ -6,7 +6,8 @@ import { generateUUID } from '../utils/uuid';
 import { Oscilloscope } from './Oscilloscope';
 import { MobileSettings, type InputMode } from './MobileSettings';
 import { ConversationPane } from './ConversationPane';
-import type { DeviceInfo, DeviceMode, Utterance, SessionTtsSettings } from '../types';
+import { KioskPicker } from './KioskPicker';
+import type { DeviceInfo, DeviceMode, Utterance, SessionTtsSettings, DisplayContent } from '../types';
 
 interface MobileModeProps {
   deviceId: string;
@@ -22,6 +23,17 @@ interface MobileModeProps {
   sessionTtsSettings?: SessionTtsSettings | null;
   /** Callback to update session TTS settings */
   onSessionTtsSettingsChange?: (settings: SessionTtsSettings) => void;
+  /**
+   * Issue #393: when there are ≥2 kiosks in the workspace, the mobile
+   * must pick which kiosk drives the new session. The chosen kiosk is
+   * lifted to the parent so the WebSocket re-registers and the server
+   * resolves to the kiosk-bound session.
+   */
+  targetKioskDeviceId?: string;
+  /** Callback when the user picks (or switches) a kiosk. */
+  onTargetKioskChange?: (kioskDeviceId: string) => void;
+  /** Most recent kiosk display content — used as preview thumbnail. */
+  displayContent?: DisplayContent | null;
 }
 
 export function MobileMode({ 
@@ -36,6 +48,9 @@ export function MobileMode({
   sessionId,
   sessionTtsSettings,
   onSessionTtsSettingsChange,
+  targetKioskDeviceId,
+  onTargetKioskChange,
+  displayContent,
 }: MobileModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -260,6 +275,39 @@ export function MobileMode({
   // Device counts for settings
   const mobileCount = devices.filter(d => d.mode === 'mobile').length;
   const kioskCount = devices.filter(d => d.mode === 'kiosk').length;
+
+  // Issue #393: the picker is shown only when:
+  //   - there are ≥2 kiosks in the workspace, AND
+  //   - the user hasn't already picked one (or that pick has disconnected).
+  // Single-kiosk and no-kiosk cases fall through unchanged.
+  const selectedKioskStillConnected =
+    !!targetKioskDeviceId && kioskDevices.some((d) => d.id === targetKioskDeviceId);
+  const needsKioskPick =
+    !!onTargetKioskChange && kioskDevices.length >= 2 && !selectedKioskStillConnected;
+
+  if (needsKioskPick) {
+    return (
+      <div className="mobile-mode mobile-walkie">
+        <header className="walkie-header">
+          <div
+            className={`connection-dot ${connectionStatus}`}
+            title={connected ? 'Connected' : 'Disconnected'}
+            role="status"
+            aria-label={connected ? 'Connected to server' : 'Disconnected from server'}
+            data-ws-state={connectionStatus}
+          />
+          <div className="walkie-header-spacer" />
+          <div className="walkie-display-name">{displayName}</div>
+        </header>
+        <KioskPicker
+          kiosks={kioskDevices}
+          selectedKioskId={targetKioskDeviceId}
+          onSelect={(id) => onTargetKioskChange?.(id)}
+          displayContent={displayContent}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mobile-mode mobile-walkie">

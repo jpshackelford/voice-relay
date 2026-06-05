@@ -26,6 +26,7 @@ interface SessionRow {
   display_api_secret_encrypted: string | null;
   display_api_secret_iv: string | null;
   display_api_secret_tag: string | null;
+  target_kiosk_device_id: string | null;
 }
 
 interface SessionDeviceRow {
@@ -46,8 +47,15 @@ function rowToSession(row: SessionRow): Session {
     displayApiSecretEncrypted: row.display_api_secret_encrypted,
     displayApiSecretIv: row.display_api_secret_iv,
     displayApiSecretTag: row.display_api_secret_tag,
+    targetKioskDeviceId: row.target_kiosk_device_id,
   };
 }
+
+/** Columns selected for `rowToSession`. Kept in one place so adding a
+ *  new column is a single-file change. */
+const SESSION_COLUMNS = `id, workspace_id, name, status, started_at, ended_at, metadata,
+       display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag,
+       target_kiosk_device_id`;
 
 function rowToSessionDevice(row: SessionDeviceRow): SessionDevice {
   return {
@@ -67,7 +75,7 @@ export class SessionRepository {
   findById(id: string): Session | null {
     const stmt = this.db.prepare<[string], SessionRow>(`
       SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
-             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag, target_kiosk_device_id
       FROM sessions WHERE id = ?
     `);
     const row = stmt.get(id);
@@ -78,7 +86,7 @@ export class SessionRepository {
     if (status) {
       const stmt = this.db.prepare<[string, string], SessionRow>(`
         SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
-               display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+               display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag, target_kiosk_device_id
         FROM sessions WHERE workspace_id = ? AND status = ?
         ORDER BY started_at DESC
       `);
@@ -87,7 +95,7 @@ export class SessionRepository {
 
     const stmt = this.db.prepare<[string], SessionRow>(`
       SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
-             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag, target_kiosk_device_id
       FROM sessions WHERE workspace_id = ?
       ORDER BY started_at DESC
     `);
@@ -117,7 +125,7 @@ export class SessionRepository {
   listActiveWithAiConversation(): Session[] {
     const stmt = this.db.prepare<[], SessionRow>(`
       SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
-             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag, target_kiosk_device_id
       FROM sessions
       WHERE status = 'active'
         AND metadata IS NOT NULL
@@ -184,10 +192,10 @@ export class SessionRepository {
     const name = input.name || `Session ${now.split('T')[0]}`;
 
     const stmt = this.db.prepare(`
-      INSERT INTO sessions (id, workspace_id, name, status, started_at)
-      VALUES (?, ?, ?, 'active', ?)
+      INSERT INTO sessions (id, workspace_id, name, status, started_at, target_kiosk_device_id)
+      VALUES (?, ?, ?, 'active', ?, ?)
     `);
-    stmt.run(id, input.workspaceId, name, now);
+    stmt.run(id, input.workspaceId, name, now, input.targetKioskDeviceId ?? null);
 
     const session = this.findById(id);
     if (!session) {
@@ -215,9 +223,10 @@ export class SessionRepository {
     const stmt = this.db.prepare(`
       INSERT INTO sessions (
         id, workspace_id, name, status, started_at,
-        display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag
+        display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag,
+        target_kiosk_device_id
       )
-      VALUES (?, ?, ?, 'active', ?, ?, ?, ?)
+      VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?)
     `);
     stmt.run(
       id,
@@ -226,7 +235,8 @@ export class SessionRepository {
       now,
       encrypted.encrypted,
       encrypted.iv,
-      encrypted.tag
+      encrypted.tag,
+      input.targetKioskDeviceId ?? null
     );
 
     const session = this.findById(id);
@@ -410,7 +420,8 @@ export class SessionRepository {
   getDeviceSession(deviceId: string): Session | null {
     const stmt = this.db.prepare<[string], SessionRow>(`
       SELECT s.id, s.workspace_id, s.name, s.status, s.started_at, s.ended_at, s.metadata,
-             s.display_api_secret_encrypted, s.display_api_secret_iv, s.display_api_secret_tag
+             s.display_api_secret_encrypted, s.display_api_secret_iv, s.display_api_secret_tag,
+             s.target_kiosk_device_id
       FROM sessions s
       JOIN session_devices sd ON s.id = sd.session_id
       WHERE sd.device_id = ? AND s.status = 'active'
@@ -419,6 +430,104 @@ export class SessionRepository {
     `);
     const row = stmt.get(deviceId);
     return row ? rowToSession(row) : null;
+  }
+
+  /**
+   * Get the active session anchored to a specific kiosk device (#393).
+   *
+   * Returns `null` when no active session has been bound to this kiosk
+   * yet — callers fall back to either `getOrCreateActiveSession` (legacy
+   * workspace-wide single-active) or to creating a new session with
+   * `targetKioskDeviceId` set.
+   */
+  getActiveSessionForKiosk(kioskDeviceId: string): Session | null {
+    const stmt = this.db.prepare<[string], SessionRow>(`
+      SELECT id, workspace_id, name, status, started_at, ended_at, metadata,
+             display_api_secret_encrypted, display_api_secret_iv, display_api_secret_tag,
+             target_kiosk_device_id
+      FROM sessions
+      WHERE target_kiosk_device_id = ? AND status = 'active'
+      ORDER BY started_at DESC
+      LIMIT 1
+    `);
+    const row = stmt.get(kioskDeviceId);
+    return row ? rowToSession(row) : null;
+  }
+
+  /**
+   * Build the per-kiosk picker enrichment for a workspace (#393).
+   *
+   * One round-trip returns, for every kiosk in `workspaceId`, the
+   * active-session anchor (`activeSessionId`) and the most recent
+   * `session_devices.joined_at` (`lastUsedAt`). The registry's
+   * `broadcastDeviceList` calls this so mobile picker cards have the
+   * status pill and the "last used N hours ago" line on first render
+   * without an extra REST round-trip.
+   */
+  getKioskPickerEnrichment(
+    workspaceId: string
+  ): Map<string, { activeSessionId: string | null; lastUsedAt: string | null }> {
+    const stmt = this.db.prepare<[string], {
+      device_id: string;
+      active_session_id: string | null;
+      last_used_at: string | null;
+    }>(`
+      SELECT d.id AS device_id,
+             active_s.id AS active_session_id,
+             (
+               SELECT MAX(sd.joined_at)
+               FROM session_devices sd
+               WHERE sd.device_id = d.id
+             ) AS last_used_at
+      FROM devices d
+      LEFT JOIN sessions active_s
+        ON active_s.target_kiosk_device_id = d.id
+        AND active_s.status = 'active'
+      WHERE d.workspace_id = ? AND d.mode = 'kiosk'
+    `);
+    const rows = stmt.all(workspaceId);
+    const result = new Map<string, { activeSessionId: string | null; lastUsedAt: string | null }>();
+    for (const row of rows) {
+      result.set(row.device_id, {
+        activeSessionId: row.active_session_id,
+        lastUsedAt: row.last_used_at,
+      });
+    }
+    return result;
+  }
+
+  /**
+   * Get or create the active session anchored to a specific kiosk (#393).
+   *
+   * `workspaceId` is verified against the kiosk's existing binding when
+   * one is found — a stale or cross-workspace binding is ignored and a
+   * fresh session is created in the requested workspace.
+   */
+  getOrCreateActiveSessionForKiosk(
+    workspaceId: string,
+    kioskDeviceId: string
+  ): Session {
+    const existing = this.getActiveSessionForKiosk(kioskDeviceId);
+    if (existing && existing.workspaceId === workspaceId) {
+      return existing;
+    }
+    // Backward-compat (#393): if the workspace already has an active
+    // session that was never bound to a kiosk (created before the
+    // picker landed, or by a mobile that registered first), claim it
+    // for this kiosk instead of opening a brand-new one. This
+    // preserves the legacy "single active session per workspace"
+    // behavior whenever there is exactly one kiosk in play.
+    const unboundActive = this.getActiveSessions(workspaceId).find(
+      (s) => s.targetKioskDeviceId == null
+    );
+    if (unboundActive) {
+      const stmt = this.db.prepare(
+        'UPDATE sessions SET target_kiosk_device_id = ? WHERE id = ?'
+      );
+      stmt.run(kioskDeviceId, unboundActive.id);
+      return { ...unboundActive, targetKioskDeviceId: kioskDeviceId };
+    }
+    return this.create({ workspaceId, targetKioskDeviceId: kioskDeviceId });
   }
 
   /**

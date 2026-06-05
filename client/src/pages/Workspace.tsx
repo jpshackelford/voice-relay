@@ -52,6 +52,27 @@ export function Workspace() {
   const [mode, setMode] = useState<DeviceMode | null>(null);
   const [utterances, setUtterances] = useState<Map<string, Utterance>>(new Map());
   const [displayContent, setDisplayContent] = useState<DisplayContent | null>(null);
+  // Issue #393: mobile picks which kiosk drives the new session.
+  // - Mobile clients: `targetKioskDeviceId` triggers a reconnect that
+  //   anchors the session to that kiosk.
+  // - Kiosk clients: `kioskAttention` carries the most recent
+  //   `kiosk-attention` payload, which the kiosk turns into a transient
+  //   on-screen banner.
+  const [targetKioskDeviceId, setTargetKioskDeviceId] = useState<string | undefined>(undefined);
+  const [kioskAttention, setKioskAttention] = useState<
+    { mobileDeviceId: string; mobileDisplayName: string; ttlMs: number; at: number } | null
+  >(null);
+  const handleKioskAttention = useCallback(
+    (message: ServerMessage & { type: 'kiosk-attention' }) => {
+      setKioskAttention({
+        mobileDeviceId: message.mobileDeviceId,
+        mobileDisplayName: message.mobileDisplayName,
+        ttlMs: message.ttlMs,
+        at: Date.now(),
+      });
+    },
+    [],
+  );
 
   // Issue #340: anonymous-safe per-workspace ticker config for the kiosk.
   const { config: kioskConfig } = useKioskConfig(workspaceId);
@@ -170,9 +191,13 @@ export function Workspace() {
     displayName: displayName || 'Unknown Device',
     mode: mode || 'mobile',
     workspaceId: workspace?.id,
+    // Issue #393: kiosk-bound session resolution. Only mobiles send
+    // this; the server ignores it for kiosk-mode registers.
+    targetKioskDeviceId: mode === 'mobile' ? targetKioskDeviceId : undefined,
     onTextMessage: handleTextMessage,
     onHistoryMessage: handleHistoryMessage,
     onDisplayMessage: handleDisplayMessage,
+    onKioskAttentionMessage: handleKioskAttention,
   });
 
   const handleSetup = async (name: string, selectedMode: DeviceMode) => {
@@ -299,6 +324,8 @@ export function Workspace() {
           sendText={sendText}
           onModeChange={handleModeChange}
           kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
+          attention={kioskAttention}
+          onAttentionDismiss={() => setKioskAttention(null)}
         />
       </>
     );
@@ -316,6 +343,9 @@ export function Workspace() {
         utterances={utterances}
         sendText={sendText}
         onModeChange={handleModeChange}
+        targetKioskDeviceId={targetKioskDeviceId}
+        onTargetKioskChange={setTargetKioskDeviceId}
+        displayContent={displayContent}
       />
     </>
   );
