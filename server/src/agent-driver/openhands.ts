@@ -320,7 +320,20 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
  * subsequent `sendSessionMessage` calls are safe, or upstream rejected and
  * the caller should surface a terminal `error` `AgentEvent`.
  */
-type BindResult = { kind: 'ok' } | { kind: 'error'; event: AgentEvent };
+/**
+ * Outcome of an upstream bind attempt. `kind:'error'` carries both a
+ * client-safe {@link AgentEvent} (for relays that consume the event
+ * stream) and the underlying `cause` (so callers that need the
+ * concrete error class — e.g. `auto-connect.ts` reading the typed
+ * `MissingWsHandshakeReason` on {@link UpstreamConversationEndedError}
+ * per issue #405 — can keep their `instanceof` checks working). The
+ * `cause` is intentionally typed `Error` rather than `unknown` so the
+ * common path (`throw bind.cause`) stays clean; the driver always
+ * normalises non-Error rejections before stashing them.
+ */
+type BindResult =
+  | { kind: 'ok' }
+  | { kind: 'error'; event: AgentEvent; cause: Error };
 
 export class OpenHandsAgentDriver implements AgentDriver {
   private readonly states = new Map<string, DriverSessionState>();
@@ -428,10 +441,13 @@ export class OpenHandsAgentDriver implements AgentDriver {
       const bind = await this.lazyBindSession(sessionId, state);
       if (bind.kind === 'error') {
         // Surface the error to the caller so the auto-connect path can
-        // broadcast a connection-failed status. Same shape as the legacy
-        // `getOrCreateForSession` rejection.
-        const msg = bind.event.kind === 'error' ? bind.event.message : 'failed to open agent session';
-        throw new Error(msg);
+        // broadcast a connection-failed status. Re-throw the original
+        // `cause` (#405) so callers can read typed properties such as
+        // `UpstreamConversationEndedError.reason` — wrapping into a
+        // bare `Error` here used to drop those, hiding the typed
+        // handshake reason from `auto-connect.ts` /
+        // `agent-rehydrate.ts` even though they look for it.
+        throw bind.cause;
       }
     }
     return this.synthesizeStatus(sessionId);
@@ -467,9 +483,9 @@ export class OpenHandsAgentDriver implements AgentDriver {
     // matching the legacy `getOrCreateForSession` contract.
     const bind = await this.lazyBindSession(sessionId, state);
     if (bind.kind === 'error') {
-      const msg =
-        bind.event.kind === 'error' ? bind.event.message : 'failed to restart agent session';
-      throw new Error(msg);
+      // Re-throw the original cause (#405) so typed properties such as
+      // `UpstreamConversationEndedError.reason` reach the caller.
+      throw bind.cause;
     }
     return this.synthesizeStatus(sessionId);
   }
@@ -647,8 +663,12 @@ export class OpenHandsAgentDriver implements AgentDriver {
       );
       return { kind: 'ok' };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { kind: 'error', event: { kind: 'error', message, recoverable: false } };
+      const cause = err instanceof Error ? err : new Error(String(err));
+      return {
+        kind: 'error',
+        event: { kind: 'error', message: cause.message, recoverable: false },
+        cause,
+      };
     } finally {
       state.startingSince = null;
     }

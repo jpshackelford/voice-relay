@@ -20,6 +20,7 @@ import type { SessionAIStatusMessage } from './types.js';
 import { isAnonymousSession } from './constants.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
 import { persistAiConversationId } from './sessions/persist-ai-conversation-id.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -164,13 +165,23 @@ export async function autoConnectAI(
   } catch (err) {
     // Log full error server-side for debugging
     console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err);
-    // Sanitize error message for clients to avoid leaking internal details
+    // Issue #405: when the failure carries a typed
+    // `MissingWsHandshakeReason`, propagate the self-describing
+    // message into the `degraded` `session-state.error` field so the
+    // journal — and any downstream consumer — sees the cause rather
+    // than the historical generic "Failed to connect AI assistant"
+    // string. We keep the generic fallback for every other error so
+    // we don't risk leaking unrelated internal details to clients.
+    const degradedError =
+      err instanceof UpstreamConversationEndedError && err.reason
+        ? err.message
+        : 'Failed to connect AI assistant';
     const errorStatus: SessionAIStatusMessage = {
       type: 'session-ai-status',
       sessionId,
       connecting: false,
       connected: false,
-      error: 'Failed to connect AI assistant',
+      error: degradedError,
     };
     registry.broadcastMessageToSession(sessionId, errorStatus);
     broadcastSessionState(
@@ -180,7 +191,7 @@ export async function autoConnectAI(
         sessionId,
         state: 'degraded',
         conversationId: null,
-        error: 'Failed to connect AI assistant',
+        error: degradedError,
         thinkingSince: null,
         startingSince: null,
       },

@@ -19,6 +19,7 @@ import type { SessionRepository } from './sessions/index.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import type { Session } from './sessions/types.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 function readyStatus(sessionId: string, conversationId: string): AgentSessionStatus {
   return {
@@ -313,5 +314,84 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(driver.openSession).toHaveBeenCalled();
     // Should not have queried the workspace key path
     expect(deps.getWorkspaceApiKey).not.toHaveBeenCalled();
+  });
+
+  test('propagates typed MissingWsHandshakeReason into the degraded broadcast (#405)', async () => {
+    // When the driver throws `UpstreamConversationEndedError` carrying
+    // a typed `reason`, the `degraded` `session-state` broadcast
+    // should surface the error's self-describing message instead of
+    // the generic "Upstream conversation no longer available — restart
+    // session" string. The reconnecting device then sees the specific
+    // cause (auth rejected / sandbox stopped / etc.) in the journal.
+    const sessions = [activeSession('session-typed', 'ws-1', 'conv-typed')];
+    const driver = createMockAgentDriver({
+      responses: {
+        'session-typed': {
+          throw: new UpstreamConversationEndedError(
+            'conv-typed',
+            'Conversation conv-typed cannot open a WS session: sandbox is STOPPED.',
+            'sandbox-stopped',
+          ),
+        },
+      },
+    });
+    const registry = createRegistry();
+    const deps = {
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+    };
+
+    await rehydrateAgentSessions(deps);
+
+    const stateBroadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls
+      .filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    const degraded = stateBroadcasts
+      .map((c) => c[1] as { sessionId: string; ai: AgentSessionStatus })
+      .find((m) => m.sessionId === 'session-typed' && m.ai.state === 'degraded');
+    expect(degraded).toBeDefined();
+    expect(degraded!.ai.error).toBe(
+      'Conversation conv-typed cannot open a WS session: sandbox is STOPPED.',
+    );
+  });
+
+  test('falls back to generic message when UpstreamConversationEndedError has no reason (#405)', async () => {
+    // `UpstreamConversationEndedError` thrown from the 404-on-attach
+    // branch (or generic lookup failure) has no `reason` — the
+    // degraded broadcast keeps the historical "Upstream conversation
+    // no longer available — restart session" string so kiosks still
+    // get a recovery-actionable hint.
+    const sessions = [activeSession('session-plain', 'ws-1', 'conv-plain')];
+    const driver = createMockAgentDriver({
+      responses: {
+        'session-plain': {
+          throw: new UpstreamConversationEndedError(
+            'conv-plain',
+            'Failed to look up conversation conv-plain: HTTP 404',
+          ),
+        },
+      },
+    });
+    const registry = createRegistry();
+    const deps = {
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+    };
+
+    await rehydrateAgentSessions(deps);
+
+    const stateBroadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>).mock.calls
+      .filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    const degraded = stateBroadcasts
+      .map((c) => c[1] as { sessionId: string; ai: AgentSessionStatus })
+      .find((m) => m.sessionId === 'session-plain' && m.ai.state === 'degraded');
+    expect(degraded).toBeDefined();
+    expect(degraded!.ai.error).toContain('restart');
+    expect(degraded!.ai.error).not.toContain('HTTP 404');
   });
 });

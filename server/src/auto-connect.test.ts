@@ -15,6 +15,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { MessageStore } from './storage/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import { ANONYMOUS_SESSION_ID } from './constants.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 // Mock factories for test dependencies
 function createMockRegistry(): DeviceRegistry {
@@ -393,6 +394,89 @@ describe('autoConnectAI', () => {
       const deps = createDependencies({ agentDriver: driver });
 
       await expect(autoConnectAI('session-123', 'workspace-456', deps)).resolves.toBeUndefined();
+    });
+
+    test('propagates typed MissingWsHandshakeReason into the degraded broadcast (#405)', async () => {
+      // When the driver throws `UpstreamConversationEndedError` carrying
+      // a typed `reason`, the `degraded` `session-state` broadcast
+      // should surface the error's self-describing message instead of
+      // the generic "Failed to connect AI assistant" string. The legacy
+      // `session-ai-status` broadcast mirrors it so devices subscribed
+      // to either channel see the same cause.
+      const driver = createMockAgentDriver();
+      (driver.openSession as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new UpstreamConversationEndedError(
+          'conv-typed',
+          'Conversation conv-typed cannot open a WS session: sandbox is STOPPED.',
+          'sandbox-stopped',
+        ),
+      );
+      const deps = createDependencies({ agentDriver: driver });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      const legacy = legacyCalls(deps);
+      const lastLegacy = legacy[legacy.length - 1];
+      expect((lastLegacy[1] as { error: string }).error).toBe(
+        'Conversation conv-typed cannot open a WS session: sandbox is STOPPED.',
+      );
+
+      const stateMsgs = sessionStateMessages(deps);
+      const degraded = stateMsgs.find(
+        (m) => (m as { ai?: { state?: string } }).ai?.state === 'degraded',
+      );
+      expect(degraded).toBeDefined();
+      expect((degraded as { ai: { error: string } }).ai.error).toBe(
+        'Conversation conv-typed cannot open a WS session: sandbox is STOPPED.',
+      );
+    });
+
+    test('falls back to generic message when error has no typed reason (#405)', async () => {
+      // `UpstreamConversationEndedError` without a `reason` (e.g. the
+      // 404-on-attach branch) MUST NOT leak its raw message — fall
+      // back to the generic sanitized string to avoid revealing
+      // internal details to clients.
+      const driver = createMockAgentDriver();
+      (driver.openSession as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new UpstreamConversationEndedError(
+          'conv-untyped',
+          'Failed to look up conversation conv-untyped: Internal /var/secrets path',
+        ),
+      );
+      const deps = createDependencies({ agentDriver: driver });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      const stateMsgs = sessionStateMessages(deps);
+      const degraded = stateMsgs.find(
+        (m) => (m as { ai?: { state?: string } }).ai?.state === 'degraded',
+      );
+      expect(degraded).toBeDefined();
+      expect((degraded as { ai: { error: string } }).ai.error).toBe(
+        'Failed to connect AI assistant',
+      );
+      expect((degraded as { ai: { error: string } }).ai.error).not.toContain('/var/secrets');
+    });
+
+    test('non-Upstream errors still surface the generic message (#405)', async () => {
+      // A plain `Error` (or any unrelated throw) MUST keep the
+      // pre-#405 sanitized behaviour.
+      const driver = createMockAgentDriver({
+        shouldThrow: true,
+        throwMessage: 'Random failure with sensitive info',
+      });
+      const deps = createDependencies({ agentDriver: driver });
+
+      await autoConnectAI('session-123', 'workspace-456', deps);
+
+      const stateMsgs = sessionStateMessages(deps);
+      const degraded = stateMsgs.find(
+        (m) => (m as { ai?: { state?: string } }).ai?.state === 'degraded',
+      );
+      expect(degraded).toBeDefined();
+      expect((degraded as { ai: { error: string } }).ai.error).toBe(
+        'Failed to connect AI assistant',
+      );
     });
   });
 

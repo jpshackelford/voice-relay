@@ -173,10 +173,117 @@ export class SandboxMissingError extends Error {
  */
 export class UpstreamConversationEndedError extends Error {
   readonly conversationId: string;
-  constructor(conversationId: string, message?: string) {
+  /**
+   * Typed reason for the failure, when the error originates from a
+   * "missing WS handshake materials" condition (issue #405). Allows
+   * downstream callers (`auto-connect.ts`, `agent-rehydrate.ts`) to
+   * surface a self-describing message in the `degraded` `session-state`
+   * broadcast without grepping the error string. Absent for other
+   * upstream-ended conditions (404 on attach, generic lookup failure).
+   */
+  readonly reason?: MissingWsHandshakeReason;
+  constructor(
+    conversationId: string,
+    message?: string,
+    reason?: MissingWsHandshakeReason,
+  ) {
     super(message ?? `Upstream conversation ${conversationId} no longer available`);
     this.name = 'UpstreamConversationEndedError';
     this.conversationId = conversationId;
+    this.reason = reason;
+  }
+}
+
+/**
+ * Typed reason a WS handshake could not be opened against an upstream
+ * OpenHands conversation, used to disambiguate the historically opaque
+ * "Conversation X is missing WS handshake materials" error (issue #405).
+ *
+ * Each value maps to one of the genuinely different upstream conditions
+ * that can produce an `AppConversation` record with `conversation_url:
+ * null` and/or `session_api_key: null`:
+ *
+ * - `auth-rejected` — the polling call observed a `401
+ *   NoCredentialsError`; the workspace's upstream API key has been
+ *   rotated or forgotten and needs to be re-issued.
+ * - `sandbox-stopped` — `sandbox_status === 'STOPPED'`; the conversation
+ *   was deleted or the sandbox lifecycle ended. The kiosk should start
+ *   a new session.
+ * - `sandbox-missing` — `sandbox_status === 'MISSING'` after a resume
+ *   attempt (or returned by a mid-poll lookup). Usually transient.
+ * - `paused-no-sandbox-id` — `sandbox_status === 'PAUSED'` with no
+ *   `sandbox_id`. Upstream contract violation — file it.
+ * - `unknown` — none of the above signals were available; the cause is
+ *   unknown / transient.
+ */
+export type MissingWsHandshakeReason =
+  | 'auth-rejected'
+  | 'sandbox-stopped'
+  | 'sandbox-missing'
+  | 'paused-no-sandbox-id'
+  | 'unknown';
+
+/**
+ * Derive a {@link MissingWsHandshakeReason} from the upstream
+ * `ConversationInfo` plus, optionally, the most recent
+ * {@link OpenHandsApiError} observed while polling. Pure and
+ * side-effect-free — called at the two WS-handshake throw sites in
+ * {@link AISessionManager.getOrCreateForSession} (create path) and
+ * {@link AISessionManager.attachExistingForSession} (attach path).
+ *
+ * Branch priority — first match wins:
+ *   1. `lastError?.status === 401` with a `NoCredentialsError` body →
+ *      `auth-rejected`. Tried first so a known auth failure is never
+ *      masked by a stale `sandbox_status` field on the conversation
+ *      record.
+ *   2. `sandbox_status === 'STOPPED'` → `sandbox-stopped`.
+ *   3. `sandbox_status === 'MISSING'` → `sandbox-missing`.
+ *   4. `sandbox_status === 'PAUSED'` with no `sandbox_id` →
+ *      `paused-no-sandbox-id`.
+ *   5. Fallback → `unknown`.
+ */
+export function explainMissingHandshake(
+  convInfo: ConversationInfo,
+  lastError?: OpenHandsApiError,
+): MissingWsHandshakeReason {
+  if (lastError?.status === 401 && /NoCredentialsError/.test(lastError.body ?? '')) {
+    return 'auth-rejected';
+  }
+  if (convInfo.sandbox_status === 'STOPPED') return 'sandbox-stopped';
+  if (convInfo.sandbox_status === 'MISSING') return 'sandbox-missing';
+  if (convInfo.sandbox_status === 'PAUSED' && !convInfo.sandbox_id) {
+    return 'paused-no-sandbox-id';
+  }
+  return 'unknown';
+}
+
+/**
+ * Render a self-describing error message for a missing-WS-handshake
+ * failure (issue #405). Shape:
+ *
+ *   "Conversation <id> cannot open a WS session: <reason-specific tail>."
+ *
+ * Used at both throw sites and in the `degraded` `session-state`
+ * broadcast's `error` field so the journal carries a human-readable
+ * cause without consumers having to map the typed `reason`.
+ */
+export function formatMissingHandshakeMessage(
+  conversationId: string,
+  reason: MissingWsHandshakeReason,
+): string {
+  const prefix = `Conversation ${conversationId} cannot open a WS session`;
+  switch (reason) {
+    case 'auth-rejected':
+      return `${prefix}: upstream credentials rejected (HTTP 401 NoCredentialsError).`;
+    case 'sandbox-stopped':
+      return `${prefix}: sandbox is STOPPED.`;
+    case 'sandbox-missing':
+      return `${prefix}: sandbox MISSING after resume.`;
+    case 'paused-no-sandbox-id':
+      return `${prefix}: PAUSED with no sandbox_id (upstream contract violation).`;
+    case 'unknown':
+    default:
+      return `${prefix}: no conversation_url / session_api_key returned (cause unknown).`;
   }
 }
 
@@ -2118,6 +2225,16 @@ export class AISessionManager {
   private async pollSandboxRunning(
     conversationId: string,
     client?: OpenHandsClient | null,
+    options: {
+      /**
+       * Invoked with each transient {@link OpenHandsApiError} swallowed
+       * by the poll loop. Used by the attach path (#405) to remember
+       * the most recent upstream error so a downstream
+       * "missing WS handshake materials" classification can name the
+       * cause (e.g. an intervening `401 NoCredentialsError`).
+       */
+      onTransientError?: (err: OpenHandsApiError) => void;
+    } = {},
   ): Promise<ConversationInfo> {
     const effectiveClient = client ?? this.client; // #403: use workspace client when provided
     if (!effectiveClient) throw new SandboxMissingError(conversationId);
@@ -2137,6 +2254,7 @@ export class AISessionManager {
         if (e instanceof OpenHandsApiError && e.transient) {
           info = null;
           transient = true;
+          options.onTransientError?.(e);
         } else {
           throw e;
         }
@@ -2311,7 +2429,20 @@ export class AISessionManager {
 
     const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
     if (!agentServerUrl || !convInfo.session_api_key) {
-      throw new Error('Missing agent server URL or session API key');
+      // Issue #405: replace the opaque error with a typed, self-describing
+      // reason. The create path has no preceding `pollSandboxRunning`
+      // (that's the attach path's PAUSED-recovery branch), so `lastError`
+      // is unavailable — `explainMissingHandshake` falls through to
+      // `sandbox_status` or `unknown`. We surface as
+      // `UpstreamConversationEndedError` for symmetry with the attach
+      // path and so callers (`auto-connect.ts`) can read the typed
+      // `reason` and propagate it into the `degraded` broadcast.
+      const reason = explainMissingHandshake(convInfo);
+      throw new UpstreamConversationEndedError(
+        conversationId,
+        formatMissingHandshakeMessage(conversationId, reason),
+        reason,
+      );
     }
 
     console.log(`[AI] Agent server: ${agentServerUrl}`);
@@ -2429,6 +2560,13 @@ export class AISessionManager {
     // `ConversationInfo` and let the agent-server / session-key derivation
     // below pick up the fresh values (attach *constructs* an `AISession`;
     // it doesn't mutate one, so `applyFreshCreds` isn't the right tool).
+    //
+    // `lastPollError` (issue #405) captures the most recent transient
+    // upstream error observed during `pollSandboxRunning` (if any), so
+    // the post-poll WS-handshake check below can classify an
+    // intervening `401 NoCredentialsError` as `auth-rejected` rather
+    // than `unknown`.
+    let lastPollError: OpenHandsApiError | undefined;
     if (convInfo.sandbox_status === 'PAUSED') {
       if (!convInfo.sandbox_id) {
         // PAUSED with no sandbox_id is a platform contract violation;
@@ -2462,7 +2600,15 @@ export class AISessionManager {
         throw e;
       }
       try {
-        convInfo = await this.pollSandboxRunning(conversationId, client);
+        convInfo = await this.pollSandboxRunning(conversationId, client, {
+          onTransientError: (err) => {
+            // Issue #405: remember the most recent swallowed transient
+            // error so the post-poll WS-handshake check can name the
+            // cause. Last write wins — we only care about the most
+            // recent observation for classification.
+            lastPollError = err;
+          },
+        });
       } catch (e) {
         // A mid-poll MISSING (the sandbox vanished while we were
         // polling) is surfaced as ended so the caller drives degraded.
@@ -2488,9 +2634,18 @@ export class AISessionManager {
 
     const agentServerUrl = convInfo.conversation_url?.split('/api/')[0];
     if (!agentServerUrl || !convInfo.session_api_key) {
+      // Issue #405: classify the failure so the journal and the
+      // downstream `degraded` broadcast carry a self-describing cause
+      // instead of the historical opaque "missing WS handshake
+      // materials" string. `lastPollError` is populated by
+      // `pollSandboxRunning`'s `onTransientError` hook above (if the
+      // PAUSED branch ran) so an intervening `401 NoCredentialsError`
+      // surfaces as `auth-rejected`.
+      const reason = explainMissingHandshake(convInfo, lastPollError);
       throw new UpstreamConversationEndedError(
         conversationId,
-        `Conversation ${conversationId} is missing WS handshake materials`,
+        formatMissingHandshakeMessage(conversationId, reason),
+        reason,
       );
     }
 

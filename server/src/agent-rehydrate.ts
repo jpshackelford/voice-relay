@@ -31,6 +31,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import type { DeviceRegistry } from './registry.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 /**
  * Dependencies required by `rehydrateAgentSessions`. Mirrors the dependency
@@ -149,11 +150,23 @@ async function rehydrateSingleSession(
     // Surface as `degraded` so a later device join shows the right UX.
     // The kiosk-side recovery action (POST /api/sessions/:id/ai/restart,
     // wired in #294) lets the user start a fresh conversation.
+    //
+    // Issue #405: when the failure carries a typed
+    // `MissingWsHandshakeReason`, prefer the error's self-describing
+    // message so the journal — and any reconnecting device — sees the
+    // specific cause (auth rejected / sandbox stopped / etc.) rather
+    // than the generic "Upstream conversation no longer available"
+    // string. Other upstream-ended causes (404 on attach, generic
+    // lookup failure) fall through to the generic message.
+    const degradedError =
+      err instanceof UpstreamConversationEndedError && err.reason
+        ? err.message
+        : 'Upstream conversation no longer available — restart session';
     const degradedStatus: AgentSessionStatus = {
       sessionId,
       state: 'degraded',
       conversationId,
-      error: 'Upstream conversation no longer available — restart session',
+      error: degradedError,
       thinkingSince: null,
       startingSince: null,
     };
