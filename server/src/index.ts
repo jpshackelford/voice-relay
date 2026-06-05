@@ -157,7 +157,63 @@ export function resolveSessionForDevice(
  * eye, short enough to disappear by the time the user actually starts
  * talking.
  */
-const KIOSK_ATTENTION_TTL_MS = 3000;
+export const KIOSK_ATTENTION_TTL_MS = 3000;
+
+/**
+ * Minimal registry surface needed to look up the targeted kiosk and
+ * deliver the attention banner. Defined as a structural interface so
+ * the helper can be unit-tested with a lightweight fake.
+ */
+export interface KioskAttentionRegistry {
+  getDevice(id: string): { mode: 'mobile' | 'kiosk' } | undefined;
+  sendToDevice(deviceId: string, message: object): boolean;
+}
+
+/**
+ * Send a `kiosk-attention` nudge to the target kiosk, but only when the
+ * sender is a mobile and the target device is actually a registered
+ * kiosk in the workspace. Returns true when a message was sent.
+ *
+ * Defensive guard (PR #396 review feedback): a mobile client could in
+ * principle send another mobile's deviceId in `targetKioskDeviceId`.
+ * Without this check, the attention message would be relayed to that
+ * mobile, which silently ignores `kiosk-attention` — harmless but
+ * confusing during debugging. Validating `device.mode === 'kiosk'`
+ * here makes the contract explicit at the call site.
+ */
+export function sendKioskAttentionIfValid(
+  registry: KioskAttentionRegistry,
+  params: {
+    senderMode: 'mobile' | 'kiosk';
+    senderDeviceId: string;
+    senderDisplayName: string;
+    targetKioskDeviceId: string | undefined;
+  }
+): boolean {
+  const { senderMode, senderDeviceId, senderDisplayName, targetKioskDeviceId } = params;
+  if (senderMode !== 'mobile') return false;
+  if (!targetKioskDeviceId) return false;
+  if (targetKioskDeviceId === senderDeviceId) return false;
+
+  const targetDevice = registry.getDevice(targetKioskDeviceId);
+  if (!targetDevice || targetDevice.mode !== 'kiosk') {
+    // Mobile sent a target that doesn't resolve to a registered kiosk
+    // (offline kiosk, stale id, or — the guarded case — another mobile's
+    // id). Log and drop so we never broadcast attention to a non-kiosk.
+    console.warn(
+      `[WS] kiosk-attention dropped: target ${targetKioskDeviceId} is not a registered kiosk ` +
+        `(sender=${senderDeviceId})`
+    );
+    return false;
+  }
+
+  return registry.sendToDevice(targetKioskDeviceId, {
+    type: 'kiosk-attention' as const,
+    mobileDeviceId: senderDeviceId,
+    mobileDisplayName: senderDisplayName,
+    ttlMs: KIOSK_ATTENTION_TTL_MS,
+  });
+}
 
 // Version info loaded at startup from version.json (generated during deployment)
 const versionInfo = loadVersionInfo();
@@ -716,21 +772,17 @@ wss.on('connection', (ws: WebSocket) => {
             // Issue #393: nudge the chosen kiosk's screen so the user
             // can confirm the right physical kiosk picked up the
             // connection. Fire-and-forget — when the kiosk is offline
-            // (no WS in the registry), sendToDevice returns false and
-            // the mobile flow proceeds anyway.
-            if (
-              message.mode === 'mobile' &&
-              message.targetKioskDeviceId &&
-              message.targetKioskDeviceId !== message.deviceId
-            ) {
-              const attention = {
-                type: 'kiosk-attention' as const,
-                mobileDeviceId: message.deviceId,
-                mobileDisplayName: message.displayName,
-                ttlMs: KIOSK_ATTENTION_TTL_MS,
-              };
-              registry.sendToDevice(message.targetKioskDeviceId, attention);
-            }
+            // (no WS in the registry), the helper drops the send and
+            // the mobile flow proceeds anyway. The helper also enforces
+            // that the target is actually a registered kiosk (PR #396
+            // review feedback) so we never broadcast attention to a
+            // non-kiosk device.
+            sendKioskAttentionIfValid(registry, {
+              senderMode: message.mode,
+              senderDeviceId: message.deviceId,
+              senderDisplayName: message.displayName,
+              targetKioskDeviceId: message.targetKioskDeviceId,
+            });
           }
           
           deviceId = message.deviceId;
