@@ -692,3 +692,29 @@ checks green, then moved from draft → ready for review.
 _This worklog entry was written by an AI agent (OpenHands impl worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:22 UTC - Orchestrator
+
+🚀 **Spawned 3 Workers (parallel)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `17e6c73` | review | PR #391 — speaker identity model | **NEW** |
+| `d905436` | review | PR #394 — CSS Grid kiosk overlays | **NEW** |
+| `82660be` | implementation | Issue #382 — ticker speaker identity | **NEW** |
+
+1. **Review Worker** — [PR #391](https://github.com/jpshackelford/voice-relay/pull/391) (1 unresolved bot suggestion on `server/src/index.ts:207` — redundant device lookup). Conv: [`17e6c73`](https://app.all-hands.dev/conversations/17e6c73463c14ec8a4ee37a97a5f4450).
+2. **Review Worker** — [PR #394](https://github.com/jpshackelford/voice-relay/pull/394) (2 unresolved bot suggestions on `client/src/App.css` — request clarifying comments around grid areas). Conv: [`d905436`](https://app.all-hands.dev/conversations/d905436f01d046e6bd2547f0ec081c8e).
+3. **Implementation Worker** — [Issue #382](https://github.com/jpshackelford/voice-relay/issues/382) — *Transcription ticker should identify the sending device / speaker* (priority:medium, scope:client-only). Selected over #393 (same priority) for being older and complementing the just-landed server-side speaker model. Conv: [`82660be`](https://app.all-hands.dev/conversations/82660be02f1f457fad5e0d3e3c2f5aaa).
+
+**Current State:**
+- Open PRs: [#391](https://github.com/jpshackelford/voice-relay/pull/391) (CI green, 1 unresolved thread), [#394](https://github.com/jpshackelford/voice-relay/pull/394) (CI green, 2 unresolved threads).
+- Ready & unblocked queue (after #382 dispatch): #393 (medium), #380/#389/#390/#392 (low), #386/#388 (unprioritized).
+- Issues needing expansion: all 8 carry `on-hold` or `needs-human` → expansion slots intentionally idle.
+
+**Slot Usage:** expansion 0/4, implementation 1/1, review 2/2 (6 of 7 total slots in use).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
