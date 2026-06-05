@@ -443,3 +443,40 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 12:58 UTC - Orchestrator
+
+🚀 **Spawned merge worker for PR #401** + 🔓 re-enabled automation.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `e87dca6` | review (merge) | PR #401 — feat(websocket): mic listening state + three-state kiosk indicator | **NEW** running |
+
+**Re-enable trigger met.** Manual `/orchestrate` invocation found PR #401 in fully merge-ready state:
+- `isDraft=false`, `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`
+- All 7 CI checks ✅ (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator)
+- `pr-review` bot review: 🟢 LOW risk, "Good taste" (COMMENTED state, no changes requested)
+- 0 unresolved review threads, 0 outstanding comments to address
+
+Automation v2 (`5f180989-ed9c-42b4-ac9f-5f30f0623316`) re-enabled via `PATCH /api/automation/v1/<id>` → `enabled: true`. Quiet-tick counter reset 2 → 0.
+
+**Current State (post-spawn):**
+- [PR #401](https://github.com/jpshackelford/voice-relay/pull/401) — merge worker dispatched (`e87dca6`).
+- [PR #402](https://github.com/jpshackelford/voice-relay/pull/402) — Deepgram STT backend (fixes #386). Implementation worker just marked it ready for review at 12:55Z; `pr-review` bot is now IN_PROGRESS. **No review action eligible yet** — wait for bot review to complete next tick.
+- Ready issues: none free to implement (the two open PRs cover #388 and #386).
+- Ready issues on-hold (excluded): #351, #363.
+- Unexpanded issues: all 8 are on-hold or needs-human (#210, #239, #299, #300, #301, #302, #372, #384) — no expansion eligible.
+- **Slot summary:** expansion 0/4, implementation 0/1, review 1/2.
+
+**Spawned: Merge Worker (PR #401)**
+- Conversation: [`e87dca6`](https://app.all-hands.dev/conversations/e87dca69ae8d413cb18ddff2036040b5)
+- Instructions: re-verify state, confirm no DB migration, study diff holistically, update PR description, squash-merge with `feat(websocket): …(#401)` title + `Fixes #388.`, verify #388 auto-closes, append productive WORKLOG entry on main.
+
+**Why no second review worker for PR #402:**
+- `pr-review` bot is still IN_PROGRESS; no review feedback exists to address yet. Spawning now would have nothing to do.
+- Next orchestrator tick will pick this up once the bot finishes (threads to address → review worker; clean approval → merge worker).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
