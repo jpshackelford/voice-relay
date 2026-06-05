@@ -269,6 +269,84 @@ describe('DeviceRegistry', () => {
       expect(sentMessage.devices.every((d: { workspaceId: string }) => d.workspaceId === 'workspace-1')).toBe(true);
     });
 
+    // Issue #388: per-device mic listening state propagation.
+    describe('listening state projection (issue #388)', () => {
+      it('omits listening/sttSupported when never set', () => {
+        registry.broadcastDeviceList('workspace-1');
+        const sent = JSON.parse((ws1.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+        for (const d of sent.devices) {
+          expect(d).not.toHaveProperty('listening');
+          expect(d).not.toHaveProperty('sttSupported');
+        }
+      });
+
+      it('projects listening/sttSupported on the device-list payload after setListeningState', () => {
+        registry.setListeningState('device-1', true, true);
+        registry.broadcastDeviceList('workspace-1');
+        const sent = JSON.parse((ws1.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+        const dev1 = sent.devices.find((d: { id: string }) => d.id === 'device-1');
+        const dev2 = sent.devices.find((d: { id: string }) => d.id === 'device-2');
+        expect(dev1).toMatchObject({ listening: true, sttSupported: true });
+        // device-2 never reported state — omitted (treated as not mic-capable)
+        expect(dev2).not.toHaveProperty('listening');
+        expect(dev2).not.toHaveProperty('sttSupported');
+      });
+
+      it('projects the latest values when state flips', () => {
+        registry.setListeningState('device-1', true, true);
+        registry.setListeningState('device-1', false, true);
+        registry.broadcastDeviceList('workspace-1');
+        const sent = JSON.parse((ws1.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+        const dev1 = sent.devices.find((d: { id: string }) => d.id === 'device-1');
+        expect(dev1).toMatchObject({ listening: false, sttSupported: true });
+      });
+
+      it('setListeningState returns null for unknown ids (no-op)', () => {
+        expect(registry.setListeningState('missing', true, true)).toBeNull();
+      });
+
+      it('drops projected listening row when device disconnects', () => {
+        registry.setListeningState('device-1', true, true);
+        // device-1 reported listening; verify it's there first.
+        registry.broadcastDeviceList('workspace-1');
+        const before = JSON.parse((ws2.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+        expect(before.devices.find((d: { id: string }) => d.id === 'device-1')).toBeDefined();
+
+        // Disconnect via socket — the same path the WS close handler takes.
+        const disconnectedId = registry.disconnectBySocket(ws1);
+        expect(disconnectedId).toBe('device-1');
+
+        // The next broadcast must not include device-1 at all (which means
+        // the kiosk aggregate stops counting it toward "any listening"
+        // within one round-trip, per the acceptance criteria).
+        registry.broadcastDeviceList('workspace-1');
+        const after = JSON.parse((ws2.send as ReturnType<typeof vi.fn>).mock.calls[1][0]);
+        expect(after.devices.find((d: { id: string }) => d.id === 'device-1')).toBeUndefined();
+      });
+
+      it('isolates listening state per workspace', () => {
+        registry.setListeningState('device-1', true, true);   // workspace-1
+        registry.setListeningState('device-3', false, true);  // workspace-2
+
+        registry.broadcastDeviceList('workspace-1');
+        registry.broadcastDeviceList('workspace-2');
+
+        const ws1Payload = JSON.parse((ws1.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+        const ws3Payload = JSON.parse((ws3.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
+
+        expect(ws1Payload.devices.find((d: { id: string }) => d.id === 'device-1')).toMatchObject({
+          listening: true,
+          sttSupported: true,
+        });
+        expect(ws3Payload.devices.find((d: { id: string }) => d.id === 'device-3')).toMatchObject({
+          listening: false,
+          sttSupported: true,
+        });
+        // Cross-workspace: device-1 must not leak into workspace-2's payload.
+        expect(ws3Payload.devices.find((d: { id: string }) => d.id === 'device-1')).toBeUndefined();
+      });
+    });
+
     it('should broadcast to kiosks only within workspace', () => {
       const displayContent = {
         type: 'markdown' as const,

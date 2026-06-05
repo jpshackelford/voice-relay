@@ -39,6 +39,23 @@ export interface Device {
    * DB lookup when resolving the workspace-scoped speaker for relayed text.
    */
   primaryUserId?: string | null;
+  /**
+   * Per-device mic listening state (issue #388). `true` when the device
+   * currently has its mic open and is producing audio/STT events,
+   * `false` when muted, `undefined` for legacy clients that have not
+   * yet sent a `device-listening-state` message. Runtime-only — never
+   * persisted to SQLite.
+   */
+  listening?: boolean;
+  /**
+   * Whether this device is capable of producing mic input (issue #388):
+   * has Web Speech recognition support OR an accessible `getUserMedia`
+   * mic. `false` means the device should be excluded from kiosk
+   * "any listening / all muted" aggregation. `undefined` is the
+   * conservative default for legacy clients and is treated the same
+   * as `false` by the kiosk aggregator. Runtime-only.
+   */
+  sttSupported?: boolean;
 }
 
 export interface DisplayContent {
@@ -79,6 +96,7 @@ export interface AudioInputEndMessage {
 export type ClientMessage =
   | RegisterMessage
   | UpdateDeviceMessage
+  | DeviceListeningStateMessage
   | TextMessage
   | JoinResponseMessage
   | DisplayResultMessage
@@ -167,6 +185,30 @@ export interface UpdateDeviceMessage {
   displayName?: string;
   mode?: DeviceMode;
   ttsEnabled?: boolean;
+}
+
+/**
+ * Client → Server: report current per-device mic listening state
+ * (issue #388). Sent on mount (with the initial value) and on every
+ * change to the derived listening boolean. The server uses these
+ * fields to drive the kiosk's three-state mic indicator
+ * (listening / muted / no-mic).
+ *
+ * `deviceId` is implicit — the server identifies the device by the
+ * WebSocket connection, matching how `update-device` works today.
+ * Runtime-only: nothing in this message is persisted to SQLite.
+ */
+export interface DeviceListeningStateMessage {
+  type: 'device-listening-state';
+  /** True when the mic is open and producing audio/STT events. */
+  listening: boolean;
+  /**
+   * False when the device has neither Web Speech recognition nor any
+   * accessible `getUserMedia` mic. Devices with `sttSupported: false`
+   * are excluded from the kiosk's "any listening / all muted"
+   * aggregation.
+   */
+  sttSupported: boolean;
 }
 
 export interface TextMessage {
@@ -398,6 +440,21 @@ export interface DeviceInfo {
    * Omitted (not `null`) for mobile devices to keep payloads small.
    */
   lastUsedAt?: string | null;
+  /**
+   * Per-device mic listening state (issue #388). `true` when the device
+   * is actively producing mic input, `false` when muted. `undefined` for
+   * clients that have not yet sent a `device-listening-state` message
+   * (legacy clients, or a brand-new connection before the first flip).
+   * Treated as "not listening" by the kiosk aggregator.
+   */
+  listening?: boolean;
+  /**
+   * Whether the device is mic-capable (issue #388). Used by the kiosk
+   * aggregator to exclude STT-less kiosks from the "all muted" decision.
+   * `undefined` is the conservative legacy default: device is excluded
+   * from aggregation entirely.
+   */
+  sttSupported?: boolean;
 }
 
 export interface RelayedTextMessage {

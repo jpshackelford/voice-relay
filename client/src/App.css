@@ -1754,11 +1754,42 @@ header {
   z-index: 10;
   overflow: hidden;
   pointer-events: none;
+  /*
+   * Issue #388: `color` drives the muted-state pause glyph via
+   * `currentColor` on the inline SVG. Matches the ring stroke from
+   * #380 so the muted indicator stays visually coherent with the
+   * listening state — same hue, just frozen.
+   */
+  color: #3282b8;
+  /* Transition the opacity flip between mic-capable and no-mic states */
+  transition: opacity 200ms ease-out;
 }
 
 .kiosk-oscilloscope-indicator .oscilloscope-canvas {
   width: 100%;
   height: 100%;
+}
+
+/*
+ * Issue #388: muted state — the muted-mic glyph fills ~60% of the
+ * circle and inherits stroke color from the parent. The
+ * .oscilloscope-mute-icon class is set on the inline SVG by
+ * OscilloscopeIndicator. The slash-through-mic shape is rendered as
+ * strokes, not fills, so it stays visually crisp at 3rem.
+ */
+.kiosk-oscilloscope-indicator[data-state="muted"] .oscilloscope-mute-icon {
+  width: 60%;
+  height: 60%;
+}
+
+/*
+ * Issue #388: no-mic state — dim the entire indicator (no overlay)
+ * so a viewer can tell at a glance that there's no peer that can
+ * speak, distinct from "everyone's muted". 0.3 opacity matches the
+ * existing convention used on other "inactive" kiosk affordances.
+ */
+.kiosk-oscilloscope-indicator[data-state="no-mic"] {
+  opacity: 0.3;
 }
 
 .kiosk-ai-status.connecting {

@@ -1908,6 +1908,136 @@ describe('KioskMode', () => {
       expect(screen.queryByTestId('kiosk-oscilloscope-indicator')).toBeNull();
     });
 
+    // ====================================================================
+    // Issue #388: three-state mic indicator (listening / muted / no-mic)
+    // ====================================================================
+
+    // Helper to create a mic-capable mobile, optionally listening.
+    const createMicMobile = (id: string, listening: boolean): DeviceInfo => ({
+      id,
+      mode: 'mobile',
+      displayName: `Mic ${id}`,
+      listening,
+      sttSupported: true,
+    });
+
+    it('renders the no-mic state when zero peers are mic-capable', () => {
+      // Default test devices (createMobileDevice / createKioskDevice)
+      // have no sttSupported / listening — they look like legacy clients
+      // that never reported a state. Aggregator treats them as not
+      // mic-capable, so the indicator should be no-mic, no glyph.
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const indicator = screen.getByTestId('kiosk-oscilloscope-indicator');
+      expect(indicator.getAttribute('data-state')).toBe('no-mic');
+      expect(indicator.getAttribute('aria-label')).toBe('no microphones');
+      // No mute glyph in this state.
+      expect(screen.queryByTestId('oscilloscope-mute-icon')).toBeNull();
+    });
+
+    it('renders the muted state with the pause glyph when every mic-capable peer is silent', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMicMobile('mobile-1', false), createMicMobile('mobile-2', false)]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const indicator = screen.getByTestId('kiosk-oscilloscope-indicator');
+      expect(indicator.getAttribute('data-state')).toBe('muted');
+      expect(indicator.getAttribute('aria-label')).toBe('microphone muted');
+      // Pause glyph is present; underlying waveform mock is NOT.
+      expect(screen.getByTestId('oscilloscope-mute-icon')).toBeDefined();
+      expect(screen.queryByTestId('oscilloscope-mock')).toBeNull();
+    });
+
+    it('renders the listening state with the waveform when at least one peer is listening', () => {
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMicMobile('mobile-1', true), createMicMobile('mobile-2', false)]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const indicator = screen.getByTestId('kiosk-oscilloscope-indicator');
+      expect(indicator.getAttribute('data-state')).toBe('listening');
+      expect(indicator.getAttribute('aria-label')).toBe('microphone active');
+      // Waveform mock IS rendered; mute glyph is NOT.
+      expect(screen.getByTestId('oscilloscope-mock')).toBeDefined();
+      expect(screen.queryByTestId('oscilloscope-mute-icon')).toBeNull();
+    });
+
+    it('excludes non-mic-capable devices from the all-muted decision', () => {
+      // STT-less mobile + STT-less kiosk — neither is mic-capable so the
+      // indicator should report no-mic (issue #388 AC). The mobile is
+      // here purely to suppress the idle-QR overlay; without a mobile
+      // `qrHasPriority` would short-circuit the indicator render.
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const indicator = screen.getByTestId('kiosk-oscilloscope-indicator');
+      expect(indicator.getAttribute('data-state')).toBe('no-mic');
+    });
+
+    it('counts a mic-capable kiosk with listening:false as muted (not no-mic)', () => {
+      // Per the issue's AC: a kiosk with STT enabled and listening:false
+      // does count toward "all muted". The legacy mobile is here purely
+      // to keep the QR overlay out of the way.
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[
+              createMobileDevice('mobile-1'),
+              {
+                id: 'kiosk-1',
+                mode: 'kiosk',
+                displayName: 'Mic Kiosk',
+                listening: false,
+                sttSupported: true,
+              },
+            ]}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      const indicator = screen.getByTestId('kiosk-oscilloscope-indicator');
+      expect(indicator.getAttribute('data-state')).toBe('muted');
+    });
+
+    it('reports its own initial listening state on mount via sendListeningState', () => {
+      const sendListeningState = vi.fn();
+      act(() => {
+        render(
+          <KioskMode
+            {...defaultProps}
+            devices={[]}
+            sendListeningState={sendListeningState}
+            kioskFooterTickersEnabled
+          />
+        );
+      });
+      // useSpeechRecognition mock returns isListening:false / isSupported:true.
+      expect(sendListeningState).toHaveBeenCalledWith(false, true);
+    });
+
     it('does not append a checkmark when the observation has not arrived yet', () => {
       const actions: AgentAction[] = [
         makeAction({ id: 'a1', kind: 'ExecuteBashAction', summary: 'Running ls' }),

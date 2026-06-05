@@ -165,6 +165,31 @@ export class DeviceRegistry {
     return device;
   }
 
+  /**
+   * Issue #388: record the device's current mic listening state.
+   *
+   * Both fields are transient runtime-only — they live on the in-memory
+   * `Device` record and are never persisted to SQLite. The caller is
+   * expected to call `broadcastDeviceList(device.workspaceId)` afterward
+   * so every peer in the workspace observes the new aggregate via the
+   * existing `device-list` payload.
+   *
+   * Returns the mutated device for chaining; `null` if the id is unknown
+   * (e.g. a `device-listening-state` arrived before `register` — that
+   * happens on flaky reconnects and is a benign no-op).
+   */
+  setListeningState(
+    id: string,
+    listening: boolean,
+    sttSupported: boolean,
+  ): Device | null {
+    const device = this.devices.get(id);
+    if (!device) return null;
+    device.listening = listening;
+    device.sttSupported = sttSupported;
+    return device;
+  }
+
   disconnect(id: string): void {
     const device = this.devices.get(id);
     if (device) {
@@ -331,6 +356,14 @@ export class DeviceRegistry {
         base.activeSessionId = extra?.activeSessionId ?? null;
         base.lastUsedAt = extra?.lastUsedAt ?? null;
       }
+      // Issue #388: surface the per-device mic listening state on the
+      // existing device-list payload so the kiosk can derive the
+      // three-state indicator (listening / muted / no-mic) without a
+      // separate broadcast. Both fields stay `undefined` for clients that
+      // haven't sent `device-listening-state` yet; the kiosk treats
+      // `undefined` conservatively as "not mic-capable".
+      if (d.listening !== undefined) base.listening = d.listening;
+      if (d.sttSupported !== undefined) base.sttSupported = d.sttSupported;
       return base;
     });
 

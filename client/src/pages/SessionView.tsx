@@ -300,6 +300,7 @@ export function SessionView() {
     sessionTtsSettings,
     sendText, 
     updateDevice, 
+    sendListeningState,
     sendJoinResponse, 
     sendDisplayResult,
     updateSessionTtsSettings,
@@ -525,6 +526,7 @@ export function SessionView() {
           utterances={utterances}
           displayContent={displayContent}
           sendText={sendText}
+          sendListeningState={sendListeningState}
           onModeChange={handleModeChange}
           onExit={handleExit}
           workspaceId={workspaceId}
@@ -562,6 +564,7 @@ export function SessionView() {
         devices={devices}
         utterances={utterances}
         sendText={sendText}
+        sendListeningState={sendListeningState}
         onModeChange={handleModeChange}
         sessionId={sessionId}
         sessionTtsSettings={sessionTtsSettings}
