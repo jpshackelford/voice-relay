@@ -772,3 +772,26 @@ Transcription ticker now identifies the sending device/speaker on the kiosk: eac
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-05 02:40 UTC - Merge worker (PR #394)
+
+✅ **PR #394 merged** — [feat(client): adopt CSS Grid for kiosk display overlays (#379)](https://github.com/jpshackelford/voice-relay/pull/394)
+
+CSS-only refactor of `.kiosk-display` from `flex` + six `position: absolute` overlays to a named-area CSS Grid. Outer 4rem gutter columns are now the single source of truth for circle placement; legacy `padding-{left,right}: 4rem` reservations on the ticker strips retired. Fixed 3.5rem bottom row places corner circles and both ticker strips on a shared horizontal baseline.
+
+| Check | Status |
+|------:|--------|
+| CI (7 checks: Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) | ✅ all SUCCESS |
+| Mergeable / mergeStateStatus | `MERGEABLE` / `CLEAN` |
+| Labels | none (no `on-hold` / `needs-human` / `do-not-merge`) |
+| Unresolved review threads | 0 (2 threads, both resolved) |
+| Latest review rating | 🟢 Good taste (LOW risk) |
+| Migration check | N/A — CSS-only diff (`client/src/App.css`) |
+| Issue #379 | auto-closed via `Closes #379` |
+
+- First merge attempt got `GraphQL: Base branch was modified. Review and try the merge again.` (main advanced between guard-check and merge). Re-checked mergeability → `CLEAN`, retried, succeeded.
+- Production note: app auto-deploys to vr.chorecraft.net on merge to main; this is a pure CSS change so DB / SQLite is unaffected.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
