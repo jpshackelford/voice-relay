@@ -796,3 +796,20 @@ _This worklog entry was created by an AI agent (OpenHands merge worker) on behal
 
 ---
 
+
+### 2026-06-06 16:46 UTC - Implementation worker (issue #413, docs-only)
+
+🚀 Opened PR [#425](https://github.com/jpshackelford/voice-relay/pull/425) — `docs: add hosted STT (Deepgram) section to README` → fixes [#413](https://github.com/jpshackelford/voice-relay/issues/413) (`priority:low`, `scope:docs-only`).
+
+| Check | Result |
+| --- | --- |
+| Diff scope | ✅ README.md-only (1 file, +72/-2). Matches AC #9. |
+| AC gate (`Fixes #413`) | ✅ **PASS** — all 10 ACs satisfied by the diff: new `## Hosted STT (Deepgram)` section between AI Assistant Integration and Display API; Setup names Deepgram console + #412 forward-link + `devices.config.stt_engine` override + `DEEPGRAM_BASE_URL`; Cost expectations cite Nova-2 streaming pricing (~$0.0077/min as of 2026-06) with a 1-hour worked example and the `stt_monthly_minute_cap` soft-guardrail/TOCTOU caveat from PR #402; "Web Speech remains the default" notes migration 019 backfill; Privacy invariant covers no-audio-through-server + ≤60 s tokens + link to `docs/architecture.md § Speech-to-text engines`; line-76 HTTPS note qualified as Web-Speech-only; Browser Support row annotated; PR body has AI-agent disclosure footer. No follow-up issues required. |
+| Required CI | ✅ Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title all green; `pr-review` fires on the draft→ready transition. |
+| Follow-up issues | None — gate is clean. |
+
+PR moved from draft to ready; review handling proceeds in a separate conversation.
+
+_This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
