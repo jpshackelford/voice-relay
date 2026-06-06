@@ -354,3 +354,27 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:23 UTC - Implementation worker (issue #411 → PR #420)
+
+✅ **Implemented issue #411** — `feat(server,client): propagate engineSpeakerLabel through agent driver + render kiosk ticker S1: prefix` (follow-up to PR #402 / issue #386).
+
+**PR:** https://github.com/jpshackelford/voice-relay/pull/420 (ready for review)
+**Branch:** `feat/411-engine-speaker-label-propagation`
+**Trailer:** `Fixes #411`
+
+| Layer | Change |
+| --- | --- |
+| Server | `AgentSenderMeta.engineSpeakerLabel` added; `voice-relay-header.ts` emits `[speaker engine=<label>]` as fallback when `sender.speaker` is unresolved; resolved speaker still wins; per-device `deviceEngineSpeakerLabel` suppression map mirrors the existing `deviceSpeakerId` map. `index.ts` forwards the field on the `sender` literal. |
+| Client | `RelayedTextMessage` + `Utterance` extended with `engineSpeakerLabel?: string`; threaded through `SessionView.handleTextMessage` / `handleHistoryMessage` and the same handlers in `Workspace.tsx`; `KioskMode.transcriptionTicker` memo prefers the engine label over `senderName` when set. |
+| Tests | +8 cases on `voice-relay-header.test.ts`, +1 on `agent-message-relay.test.ts`, +3 on `KioskMode.test.tsx` (S1 prefix, Web-Speech regression guard, post-resolution flip). |
+
+**AC-gate verdict:** ✅ all in-scope items in #411 (inherited Message-pipeline group from #386) satisfied → trailer is `Fixes #411`. No follow-up issues filed.
+
+**CI:** Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title — all green on `dd42e5a`. `pr-review` skipped on draft (will re-trigger now that PR is ready).
+
+**Production impact:** auto-deploys to vr.chorecraft.net on merge. Server agent-driver header gains a `[speaker engine=…]` line only when hosted-STT is configured AND `session_engine_speakers` hasn't resolved the label yet — Web-Speech sessions are untouched (explicit regression-guard test). Kiosk ticker shows `S1: …` before resolution and falls back to `senderName: …` after — both paths covered by tests.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
