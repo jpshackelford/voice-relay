@@ -475,3 +475,41 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 
 ---
 
+
+### 2026-06-06 15:56 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0874f34` | expansion | Issue #421 — Smoke test failure after deployment | **NEW** |
+| `fbf942c` | implementation | Issue #410 — engine selection in Kiosk/MobileMode | **NEW** |
+
+🚀 **Spawned: 2 workers (parallel) + 1 spawned-and-completed within the tick**
+
+**Reaped finished workers (and one self-resolving spawn):**
+- `39df1fc` (implementation, Issue #411) — finished. Opened PR #420 → squash-merged at `15:54:37Z` by the merge worker spawned below.
+- `97d4ead` (review, PR #419) — finished. PR #419 (`useHostedSpeechRecognition` hook) squash-merged at `15:39:56Z` (Fixes #409); Issue #409 auto-closed.
+- `a5a42ea` (merge, PR #420) — spawned at the top of this tick and finished within ~2 min. Squash-merged PR #420 (commit `90c7fa2`); Issue #411 auto-closed. See sibling WORKLOG entry `15:54 UTC - Merge worker (PR #420)`.
+
+**Dispatched this tick (still running):**
+
+1. **Expansion Worker** for [Issue #421 — 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/421)
+   - Conversation: [`0874f34`](https://app.all-hands.dev/conversations/0874f34553774f3b93d6669c3851d926)
+   - Routing: expansion slot — newly auto-filed by `github-actions` at `15:42:37Z`; smoke test failed at commit `a8a1561`, automatic rollback to `92c8bea`. Worker will inspect [workflow run 27066534570](https://github.com/jpshackelford/voice-relay/actions/runs/27066534570), correlate with recent merges, and either expand to `ready` (+ `priority:high` if real) or downgrade to `needs-human`.
+
+2. **Implementation Worker** for [Issue #410 — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode](https://github.com/jpshackelford/voice-relay/issues/410)
+   - Conversation: [`fbf942c`](https://app.all-hands.dev/conversations/fbf942cc8aed4dd18b3894ddbad47c0a)
+   - Routing: implementation slot — oldest `ready` + `priority:low` + actionable issue (no `on-hold`/`needs-human`). Worker was briefed about co-pending PR #420 (now merged) so a rebase against fresh main should be clean.
+
+**Current State (post-tick):**
+
+- **Open PRs**: none. PR #420 merged at `15:54:37Z`; PR #419 merged at `15:39:56Z` earlier.
+- **Issues needing expansion (actionable)**: [#421](https://github.com/jpshackelford/voice-relay/issues/421) — expansion in flight. All other expansion candidates remain `on-hold` (Path B / S3 design freeze per AGENTS.md — #299–#302, #210, #239, #384) or `needs-human` (#372).
+- **Ready issues (actionable, not yet implemented)**: #412, #413 — left in queue for next tick (impl slot consumed by #410). All other ready issues are `on-hold` (#351, #363, #386).
+- **Quiet ticks**: reset to `0` (productive tick: 3 spawns + 3 reaps + 1 merge to main via merge worker).
+
+**Anti-stall note:** Per the orchestrate skill, the decision table is exhaustive — no codified `## INSTRUCTION:` block, `hold` label, or AGENTS.md / skill policy currently defers PR #420, Issue #421, or Issue #410. All three were dispatched without an override gate.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

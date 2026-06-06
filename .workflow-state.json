@@ -1,30 +1,30 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [
+    "expansion": [
       {
-        "conv_id": "39df1fc",
-        "actual_conv_id": "39df1fcb743f4c23a5732c5d78bff7b8",
-        "issue": 411,
-        "started": "2026-06-06T15:09:00Z"
+        "conv_id": "0874f34",
+        "actual_conv_id": "0874f34553774f3b93d6669c3851d926",
+        "issue": 421,
+        "started": "2026-06-06T15:56:00.827995Z"
       }
     ],
-    "review": [
+    "implementation": [
       {
-        "conv_id": "97d4ead",
-        "actual_conv_id": "97d4ead55ea74e4990d2915eeb4dff01",
-        "pr": 419,
-        "started": "2026-06-06T15:21:33Z"
+        "conv_id": "fbf942c",
+        "actual_conv_id": "fbf942cc8aed4dd18b3894ddbad47c0a",
+        "issue": 410,
+        "started": "2026-06-06T15:56:00.827995Z"
       }
-    ]
+    ],
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T15:22:00Z",
+  "last_updated": "2026-06-06T15:56:00.827995Z",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -34,7 +34,7 @@
       "started": "2026-06-05T22:18:49Z",
       "finished": "2026-06-05T22:34:41.182605Z",
       "status": "success",
-      "outcome": "Created PR #406 — fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Created PR #406 \u2014 fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "ca35fb8",
@@ -45,7 +45,7 @@
       "started": "2026-06-05T22:35:42.534334Z",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Opened PR #407 — feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Opened PR #407 \u2014 feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "e531d1f",
@@ -55,7 +55,7 @@
       "started": "2026-06-05T22:50:12.575172+00:00",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Addressed all 11 pr-review bot 🟡 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
+      "outcome": "Addressed all 11 pr-review bot \ud83d\udfe1 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
     },
     {
       "conv_id": "0211d27",
@@ -76,7 +76,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Opened PR #408 — refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
+      "outcome": "Opened PR #408 \u2014 refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
     },
     {
       "conv_id": "4e00461",
@@ -86,7 +86,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review 🟡 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
+      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review \ud83d\udfe1 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
     },
     {
       "conv_id": "7264a05",
@@ -145,7 +145,7 @@
       "started": "2026-06-06T14:51:37.083742+00:00",
       "finished": "2026-06-06T14:54:14.015980+00:00",
       "status": "success",
-      "outcome": "Expanded #413 — rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
+      "outcome": "Expanded #413 \u2014 rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
     },
     {
       "conv_id": "a682dfa",
@@ -155,7 +155,39 @@
       "started": "2026-06-06T14:51:37.083742+00:00",
       "finished": "2026-06-06T15:09:00Z",
       "status": "success",
-      "outcome": "Opened PR #419 — feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
+      "outcome": "Opened PR #419 \u2014 feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
+    },
+    {
+      "conv_id": "39df1fc",
+      "actual_conv_id": "39df1fcb743f4c23a5732c5d78bff7b8",
+      "type": "implementation",
+      "issue": 411,
+      "pr": 420,
+      "started": "2026-06-06T15:09:00Z",
+      "finished": "2026-06-06T15:56:00.827995Z",
+      "status": "success",
+      "outcome": "Opened PR #420 (Fixes #411). PR squash-merged at 2026-06-06T15:54:37Z (commit 90c7fa2); Issue #411 auto-closed."
+    },
+    {
+      "conv_id": "97d4ead",
+      "actual_conv_id": "97d4ead55ea74e4990d2915eeb4dff01",
+      "type": "review",
+      "pr": 419,
+      "started": "2026-06-06T15:21:33Z",
+      "finished": "2026-06-06T15:56:00.827995Z",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #419; PR squash-merged at 2026-06-06T15:39:56Z (Fixes #409). Issue #409 auto-closed."
+    },
+    {
+      "conv_id": "a5a42ea",
+      "actual_conv_id": "a5a42ea82bb9420597e52e51739c6558",
+      "type": "merge",
+      "pr": 420,
+      "issue": 411,
+      "started": "2026-06-06T15:56:00.827995Z",
+      "finished": "2026-06-06T15:56:00.827995Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #420 at 2026-06-06T15:54:37Z (commit 90c7fa2); Issue #411 auto-closed. AC gate verdict logged in worker WORKLOG entry."
     }
   ],
   "quiet_ticks": 0
