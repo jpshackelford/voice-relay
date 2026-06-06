@@ -840,3 +840,17 @@ No other state changed. PR #402 body is unchanged (still references #409–#413)
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:37 UTC - Expansion Worker (issue #412)
+
+✅ **Expanded Issue [#412](https://github.com/jpshackelford/voice-relay/issues/412)** — `feat(client): workspace settings UI for hosted STT engine, cap, key, and usage (follow-up to #386)`
+
+- **Type:** Enhancement (client-only follow-up filed by retroactive AC Gate on PR #402 / umbrella #386).
+- **Verdict:** Already well-specified by the AC Gate body. Sanity-checked the technical plan against the codebase — no rewrite needed.
+- **Verified file paths exist:** `client/src/pages/WorkspaceHome.tsx` (1315 lines) and `client/src/hooks/useWorkspaceSettings.ts` (325 lines). The hook already implements the exact mask-aware + PUT/DELETE pattern for the ElevenLabs key (`setElevenlabsApiKey` / `removeElevenlabsApiKey` / `hasElevenlabsApiKey`, lines ~201–263) that the issue tells the implementer to mirror for Deepgram. No Deepgram or `sttEngine` fields exist on the client side yet — confirms the server-only landing of PR #402.
+- **Test scope:** No `WorkspaceHome.test.tsx` exists today; sibling components have their own `*.test.tsx` (e.g. `MobileSettings.test.tsx`, `JoinPage.test.tsx`). The issue explicitly allows "component-level" tests, so the implementer can either add `WorkspaceHome.test.tsx` or split out a small `WorkspaceSettingsPanel` component and test that. No additional guidance needed.
+- **Action:** Added `ready` label. No comment added (issue body is already complete per AC-Gate convention — adding boilerplate would just be noise).
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
