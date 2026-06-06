@@ -184,14 +184,8 @@ test.describe('AI Assistant Integration', () => {
     // connectivity is verified by the auto-connect and 'send message' tests.
     // See GitHub Issue #88 for investigation details.
     test.skip('AI displays image on kiosk canvas', async ({ page }) => {
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
+      // `/api/ai/status` was retired in #404; AI availability is now a
+      // per-workspace fact. `getAIEnabledWorkspace` handles the gate.
       const workspace = await getAIEnabledWorkspace(page);
       if (!workspace) {
         test.skip(true, 'No workspace available');
@@ -239,14 +233,8 @@ test.describe('AI Assistant Integration', () => {
     // connectivity is verified by the auto-connect and 'send message' tests.
     // See GitHub Issue #88 for investigation details.
     test.skip('AI displays markdown content on canvas', async ({ page }) => {
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
+      // `/api/ai/status` was retired in #404; AI availability is now a
+      // per-workspace fact. `getAIEnabledWorkspace` handles the gate.
       const workspace = await getAIEnabledWorkspace(page);
       if (!workspace) {
         test.skip(true, 'No workspace available');
@@ -287,23 +275,45 @@ test.describe('AI Assistant Integration', () => {
   test.describe('AI Unavailable Scenarios', () => {
     test.use({ storageState: AUTH_FILE });
 
-    test('AI status indicator not visible when AI unavailable', async ({ page }) => {
-      // First check if AI is actually unavailable - if available, skip
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (status.available) {
-        test.skip(true, 'AI is available - cannot test unavailable scenario');
-        return;
-      }
-
-      // Get any workspace
+    // Helper: find an owned workspace that does NOT have an OpenHands API
+    // key configured. Post-#404 the global `/api/ai/status` probe was
+    // retired and AI availability became a per-workspace question answered
+    // by `workspace_settings.openhands_api_key_encrypted` (surfaced as
+    // `hasApiKey` on `GET /api/workspaces/:id/settings`). See issue #421.
+    async function getAIDisabledWorkspace(
+      page: import('@playwright/test').Page,
+    ): Promise<{ id: string; name: string } | null> {
       const wsResponse = await page.request.get(`${BASE_URL}/api/workspaces`);
-      const workspaces = await wsResponse.json();
-      const workspace = workspaces[0];
+      if (!wsResponse.ok()) return null;
+      const workspaces: Array<{ id: string; name: string; isOwner: boolean }> =
+        await wsResponse.json();
 
+      // The settings endpoint requires owner permission, so only owned
+      // workspaces can be probed for `hasApiKey`.
+      for (const ws of workspaces) {
+        if (!ws.isOwner) continue;
+        const settingsResp = await page.request.get(
+          `${BASE_URL}/api/workspaces/${ws.id}/settings`,
+        );
+        if (!settingsResp.ok()) continue;
+        const settings = (await settingsResp.json()) as { hasApiKey?: boolean };
+        if (!settings.hasApiKey) return ws;
+      }
+      return null;
+    }
+
+    test('AI status indicator not visible when AI unavailable', async ({ page }) => {
+      // Find a workspace where AI is genuinely unavailable (no per-workspace
+      // OpenHands API key). If none exists in the smoke account, skip — the
+      // previous global `/api/ai/status` probe was deleted in #404 and a
+      // workspace with AI configured will auto-connect, leaving
+      // `.ai-status` visible (issue #421).
+      const workspace = await getAIDisabledWorkspace(page);
       if (!workspace) {
-        test.skip(true, 'No workspace available');
+        test.skip(
+          true,
+          'No AI-unconfigured owned workspace available - cannot test unavailable scenario',
+        );
         return;
       }
 
