@@ -539,3 +539,18 @@ No follow-up issues filed; nothing deferred. Per-device override UI (#386 § Out
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:59 UTC - Expansion Worker (CI-failure triage #421)
+
+✅ **Expanded Issue #421** (auto-filed by smoke-test failure on `a8a1561`, rolled back to `92c8bea`)
+
+- Issue: [🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/421)
+- Type: CI failure (deploy gate)
+- Root cause: Smoke test at `tests/smoke/ai-integration.spec.ts:290` calls `GET /api/ai/status`, which was deleted in PR #408 / #404. The endpoint now returns `404 {"error":"Not found"}`, so `status.available` is permanently `undefined` and the `if (status.available) test.skip(...)` guard never fires. The test then asserts `.ai-status` is hidden against `workspaces[0]`, which on production happens to be a workspace whose `useAI` reducer is broadcasting `state: 'starting'` from a real auto-connect. PR #419 did NOT cause the regression — it only added two new files (`useHostedSpeechRecognition.ts` + test). The test became a non-deterministic probe of OpenHands cloud runtime state the moment #408 merged at `e68580d` (00:13 UTC). At `e68580d` smoke-time the workspace happened to be idle; 15h later at `a8a1561` smoke-time it was actively connecting.
+- Proposed fix (Option 1, low-risk): mark the failing `test(...)` as `test.skip(...)` with a comment pointing at #421 — same approach as #238/#239 for other AI-API-dependent smoke tests. Follow-up (Option 2): introduce a `getAIDisabledWorkspace(page)` helper that picks a workspace without an OpenHands API key and assert hidden against *that*, recovering the original test intent without depending on the deleted endpoint.
+- Labels applied: `ready`, `priority:high`, `scope:ci-only` (deploy gate is currently blocked — rollback already fired)
+- Files affected (Option 1): `tests/smoke/ai-integration.spec.ts` only; no server / client / migration changes.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
