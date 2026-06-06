@@ -591,3 +591,36 @@ _This worklog entry was written by an AI agent (OpenHands review worker) on beha
 
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 ---
+
+### 2026-06-06 00:10 UTC - Merge Worker (PR #407 → main)
+
+✅ **PR #407 squash-merged.** Issue #405 auto-closed via `Fixes #405`.
+
+| Field | Value |
+|---|---|
+| Squash SHA | `d37f6cea5e5012b15e2e0d0686d51ad4a465f938` |
+| PR title | feat(server): typed reason for missing-WS-handshake failure |
+| Required checks | 5/5 green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title) |
+| Merge state | `CLEAN` / `MERGEABLE` at merge time — no rebase needed |
+| Review threads | 8/8 resolved (all 🟡 suggestion comment-tightenings from prior rounds) |
+| Issue #405 | auto-closed (`COMPLETED`) |
+
+**What shipped:**
+- Typed `MissingWsHandshakeReason` union on `UpstreamConversationEndedError` and an `explainMissingHandshake` classifier in `server/src/openhands.ts` (priority: 401 → STOPPED → MISSING → PAUSED-no-id → unknown).
+- `pollSandboxRunning` gained an optional `onTransientError` callback so the attach-path can capture the last swallowed 401 and feed it to the classifier.
+- `agent-driver/openhands.ts` `BindResult.error` now carries `cause: Error`; `openSession` / `restartSession` re-throw the original cause instead of `new Error(msg)` — this preserves the typed `.reason` all the way to the broadcast.
+- `auto-connect.ts` and `agent-rehydrate.ts` propagate the typed message into the `degraded` `session-state.error` field (and the legacy `session-ai-status.error` field); generic sanitized fallback retained for non-typed errors.
+- 31 new server tests; full suite 1570 passing; coverage 93.9% statements / 88.6% branches.
+
+**Rebase work:** none. PR branched from `8e07ac8` (post-#406); diverging commits on `main` since were worklog-only and did not touch the same files. PR #408 (sibling, Issue #404, strict apiKey gate, same file) is still open as of merge — it will need to rebase next.
+
+**Production-impact notes:**
+- Server-only observability narrowing. No schema change, no migrations, no new env vars, no new dependencies. SQLite production storage untouched.
+- A `degraded` `session-state` broadcast may now carry one of five typed reason strings ("…cannot open a WS session: sandbox is STOPPED.", etc.) instead of the historical generic "Upstream conversation no longer available — restart session" string. The `error` field is treated as free-form display text on the client, so no client-side changes are required.
+- Auto-deploy to `vr.chorecraft.net` triggered by merge.
+
+**Sibling-PR coordination:** PR #408 (chore/404-remove-env-fallback) remains `OPEN` and touches the same `server/src/openhands.ts`. Its merge worker will need to rebase onto `d37f6ce` and re-verify checks before merging.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
