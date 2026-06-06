@@ -543,5 +543,51 @@ All three threads replied to via `addPullRequestReviewThreadReply` with the comm
 Ready for the merge worker.
 
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+---
 
+### 2026-06-06 00:08 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4515f17` | merge | PR #407 — typed handshake reason (#405) | **NEW** |
+| `60663f9` | merge | PR #408 — drop env-key fallback (#404) | **NEW** |
+
+🚀 **Spawned 2 Merge Workers (parallel)**
+
+1. **Merge Worker for PR #407** ([typed handshake reason](https://github.com/jpshackelford/voice-relay/pull/407))
+   - Conversation: [`4515f17`](https://app.all-hands.dev/conversations/4515f17f520146688eca73f4175384d2) (start-task `eedc35de` → READY → `execution_status=running`)
+   - Issue: [#405](https://github.com/jpshackelford/voice-relay/issues/405) (`priority:low`, `scope:server-only`).
+   - Final state at hand-off: 5/5 required CI ✅, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE`, 0 unresolved review threads.
+   - Sibling-merge note baked into the prompt: PR #408 touches the same file (`server/src/openhands.ts`); if #407 merges second, the worker will rebase + force-push + re-verify CI before re-attempting the squash.
+
+2. **Merge Worker for PR #408** ([drop env-key fallback](https://github.com/jpshackelford/voice-relay/pull/408))
+   - Conversation: [`60663f9`](https://app.all-hands.dev/conversations/60663f95e3334f0db7969a5f73c317ab) (start-task `7ccfc5be` → READY → `execution_status=running`)
+   - Issue: [#404](https://github.com/jpshackelford/voice-relay/issues/404) (`priority:medium`, `audit`, `scope:full-stack`).
+   - Final state at hand-off: 5/5 required CI ✅, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE`, 0 unresolved review threads.
+   - Production-impact note baked into the prompt: post-merge, any deploy without `workspace_settings.openhands_api_key_encrypted` set will hard-error at session-open with the typed `#404` message. Production has the env var set, so live sessions are unaffected; the env var becomes inert and can be removed on the next deploy.
+
+**Workers Reaped to `completed`:**
+- `7264a05` (review, PR #407) → finished (success). Outcome: addressed the 8→2-line comment-condensation 🟡 suggestion that was the only open thread; PR back to `CLEAN`/`MERGEABLE`, 0 unresolved threads, 5/5 required CI green.
+- `910dfdc` (review, PR #408) → finished (success). Outcome: tightened `OpenHandsClient` ctor to `if (!apiKey || !apiKey.trim())`, added the matching whitespace regression test (1546 → 1547 server tests), resolved the only open 🟡 thread; commit `ecfd0a6` landed; 5/5 required CI green.
+
+**Current State:**
+- **Open PRs (both fully green, both merge-ready, both in flight via merge workers):**
+  - [PR #407](https://github.com/jpshackelford/voice-relay/pull/407) — `oCRF clean ready 💬0`
+  - [PR #408](https://github.com/jpshackelford/voice-relay/pull/408) — `oRF clean ready 💬0`
+- **Ready+prioritized issues (unblocked):** 0 actionable. The only two prioritized-ready issues — #404 and #405 — both have PRs about to merge.
+- **Issues needing expansion:** 0 actionable. All unexpanded issues remain `on-hold` (#210, #239, #299, #300, #301, #302, #384) or `needs-human` (#372).
+- **Ready issues on-hold (excluded):** #351 (`priority:low`, `on-hold`), #363 (`priority:medium`, `on-hold`).
+- **Slot summary:** expansion 0/4 (no eligible work), implementation 0/1 (no eligible work — every unblocked ready issue has an in-flight PR), review 2/2 (full — both PRs in merge round).
+
+**Decision rationale:**
+- Both review workers from the 23:55Z tick had completed productive work end-to-end (see WORKLOG entry at 23:58 UTC for PR #408; PR #407's round-2 condensation was confirmed via PR poll: 0 unresolved threads, all required CI green). Reaped both to `completed`.
+- Both PRs cleared the merge criteria (CI green, MERGEABLE, CLEAN, 0 unresolved threads), so spawning merge workers was the obvious next step.
+- Spawned both merge workers in parallel (filling the 2-slot review pool) rather than serializing one-per-tick. Both prompts explicitly cover the rebase-on-conflict path because the two PRs co-locate in `server/src/openhands.ts` — the second to merge will need a rebase + force-push + CI re-verify. Each worker carries the resolution recipe for the specific overlap (typed-reason plumbing + `onTransientError` vs. strict apiKey gate + whitespace trim).
+- No implementation worker spawned — every unblocked, prioritized, ready issue has a PR about to land. Once these merge, the next tick will find an empty work pool unless the S3 design-freeze on #298–#302 lifts or #372 comes off `needs-human`.
+- No expansion worker spawned — same backlog as the prior two ticks: every unexpanded issue is `on-hold` or `needs-human`.
+
+**Quiet-tick counter:** reset `0 → 0` (productive tick: 2 workers spawned, 2 workers reaped).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 ---
