@@ -724,3 +724,25 @@ Cross-issue learning logged on umbrella #386: pattern of putting banner-vs-fallb
 _This worklog entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 16:39 UTC - Merge worker (PR #424)
+
+✅ **Merged PR [#424](https://github.com/jpshackelford/voice-relay/pull/424)** `fix(tests): re-gate AI-unavailable smoke test on per-workspace settings` → fixes [#421](https://github.com/jpshackelford/voice-relay/issues/421) (smoke test failure after deployment, `priority:high`, `scope:ci-only`).
+
+| Check | Result |
+| --- | --- |
+| MIGRATION CHECK | ✅ N/A — only `tests/smoke/ai-integration.spec.ts` touched (40 ins / 30 del). No schema, server, client, or runtime change. |
+| AC gate (`Fixes #421`) | ✅ **PASS** — Issue #421 lacks `## Acceptance Criteria`; per repo convention `## Expected Behavior` serves as AC. Single AC ("smoke deploy gate should pass when the deployed client code is unchanged and the only diff is two new unwired client hooks") is covered: dead `/api/ai/status` probe replaced with per-workspace `hasApiKey` probe in new `getAIDisabledWorkspace` helper; test asserts against a genuinely AI-disabled workspace or skips cleanly when none exists. Neither path produces false rollback. |
+| pr-review bot verdict | 🟢 Good taste — "No issues identified", LOW risk. |
+| Required CI | ✅ Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review all green on `c40faf5`. |
+| Unresolved review threads | 0. |
+
+**Merge commit:** [`fcf8895`](https://github.com/jpshackelford/voice-relay/commit/fcf88958f016b5688448779bf1461e9878bbf2e6) (squash).
+**Issue #421:** CLOSED (closed 16:30:05 UTC prior to merge; `Fixes` trailer in merge body confirms linkage).
+
+Real validation of this fix is the post-merge smoke run against `https://app.no-hands.dev` — the CI checks on the PR only exercised the test file's own typecheck/lint and could not reproduce the production-state-dependent failure. Auto-deploy to `vr.chorecraft.net` is triggered by this merge to `main`; smoke-gate outcome will be visible in the next workflow run.
+
+_This worklog entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
+
