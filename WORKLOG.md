@@ -702,3 +702,25 @@ _This worklog entry was created by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 16:38 UTC - Review Worker (PR #423, round 1)
+
+✅ **Completed:** Addressed 3 review threads on PR [#423](https://github.com/jpshackelford/voice-relay/pull/423) `feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode`.
+
+| Thread | Severity | Resolution |
+| --- | --- | --- |
+| Race condition: `wsStartRef.current()` could fire after unmount via `setTimeout(0)` | 🟠 important | Fixed in `013cf16` — added `isMountedRef` + `fallbackRestartTimerRef`, cleanup effect clears the pending timer and flips the mount flag, deferred callback bails when unmounted. New test `does not call wsStartRef after the component unmounts (race-condition guard)` covers it. |
+| String matching on hosted-error messages is fragile | 🟡 suggestion | Fixed in `045c5a5` — added explicit `bannerEligible?: boolean` to `HostedSpeechRecognitionError`, set in `tokenMintErrorFromStatus` for 402/503. Wrapper reduced to `if (err.bannerEligible)`; `shouldBanner` substring helper deleted. Token-mint matrix in `useHostedSpeechRecognition.test.ts` now asserts `bannerEligible` per status. |
+| Comment noise above the `shouldBanner` call | 🟡 suggestion | Fixed in `045c5a5` alongside the substring removal — the verbose explanatory block is gone with the helper. |
+
+CI: Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title — all green on `045c5a5`.
+
+**AC gate re-run: unchanged.** Both #410 acceptance criteria (engine-selection hook routing, transparent fallback + one-time warning) remain ✅ SATISFIED. Trailer stays `Closes #410`. No follow-up issues filed. Behavior is identical; the fallback is now unmount-safe and the banner decision flag-based instead of substring-based.
+
+Cross-issue learning logged on umbrella #386: pattern of putting banner-vs-fallback decisions on the error producer (explicit flag) rather than the consumer (substring match), reusable for future hosted-engine hooks; also the `isMountedRef` guard for any deferred-restart timer in a hook's error path.
+
+**PR state:** ready for review.
+
+_This worklog entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
