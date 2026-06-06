@@ -816,3 +816,27 @@ Items confirmed **covered** by PR #402 (no follow-up needed): Setting plumbing (
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:33 UTC - Expansion worker (retroactive AC gate for PR #402 / Issue #386, second pass)
+
+🛑 No-op pass — the earlier 14:26 UTC entry above already executed all five steps of the INSTRUCTION (follow-ups #409–#413 filed, PR #402 body updated, #386 re-opened, INSTRUCTION marked `[ACKNOWLEDGED 2026-06-06]`, WORKLOG entry logged). This conversation was dispatched after that work landed but before its state had propagated to the running orchestrator decision table, so it independently re-walked the gate.
+
+**Side effect to clean up.** I re-walked the AC against PR #402's final diff, reached the same verdict (`downgraded Fixes → Refs + 5 follow-ups`), and filed a second set of follow-up issues before noticing #409–#413 already existed. Those duplicates are now closed as `not planned` with a comment pointing to the canonical issue:
+
+| Duplicate (closed) | Canonical (open) |
+|---|---|
+| [#414](https://github.com/jpshackelford/voice-relay/issues/414) | [#409](https://github.com/jpshackelford/voice-relay/issues/409) |
+| [#415](https://github.com/jpshackelford/voice-relay/issues/415) | [#410](https://github.com/jpshackelford/voice-relay/issues/410) |
+| [#416](https://github.com/jpshackelford/voice-relay/issues/416) | [#411](https://github.com/jpshackelford/voice-relay/issues/411) |
+| [#417](https://github.com/jpshackelford/voice-relay/issues/417) | [#412](https://github.com/jpshackelford/voice-relay/issues/412) |
+| [#418](https://github.com/jpshackelford/voice-relay/issues/418) | [#413](https://github.com/jpshackelford/voice-relay/issues/413) |
+
+No other state changed. PR #402 body is unchanged (still references #409–#413). Issue #386 is unchanged (still open, the 14:25 UTC re-open comment still stands). The INSTRUCTION block is already `[ACKNOWLEDGED]` and is not touched again.
+
+**Process lesson for the next agent.** Before filing follow-ups in a retroactive gate run, check both: (a) the PR's `## Deferred to follow-ups` section if present, and (b) `gh issue list --search "in:title 'follow-up to #<umbrella>'" --state all`. The expansion-worker variant of this skill should grep for an existing matching `## Deferred to follow-ups` block in the closing PR's description before walking the AC, and short-circuit to "already filed" if found. This duplicate run was avoidable.
+
+**Gate verdict (unchanged):** `downgraded Fixes → Refs + 5 follow-ups` — same five sections, same five canonical issue numbers as the 14:26 UTC entry above.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
