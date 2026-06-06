@@ -851,4 +851,37 @@ describe('MobileMode', () => {
       expect(() => render(<MobileMode {...defaultProps} />)).not.toThrow();
     });
   });
+
+  // Issue #410: engine-selection wrapper. MobileMode now mounts
+  // useSttEngine instead of useSpeechRecognition directly. The full
+  // dispatch/fallback matrix is exercised in useSttEngine.test.ts;
+  // these smoke tests confirm MobileMode accepts and round-trips the
+  // sttEngine prop without throwing or violating rules-of-hooks.
+  describe('STT engine selection (#410)', () => {
+    it('mounts cleanly with the default sttEngine (web-speech)', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<MobileMode {...defaultProps} />);
+      const hooksWarning = errorSpy.mock.calls.find(([msg]) =>
+        typeof msg === 'string' && msg.includes('rendered more hooks'),
+      );
+      expect(hooksWarning).toBeUndefined();
+      errorSpy.mockRestore();
+    });
+
+    it('mounts cleanly with sttEngine="deepgram"', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<MobileMode {...defaultProps} sttEngine="deepgram" />);
+      const hooksWarning = errorSpy.mock.calls.find(([msg]) =>
+        typeof msg === 'string' && msg.includes('rendered more hooks'),
+      );
+      expect(hooksWarning).toBeUndefined();
+      errorSpy.mockRestore();
+    });
+
+    it('does not throw when the sttEngine prop flips between renders', () => {
+      const { rerender } = render(<MobileMode {...defaultProps} sttEngine="web-speech" />);
+      expect(() => rerender(<MobileMode {...defaultProps} sttEngine="deepgram" />)).not.toThrow();
+      expect(() => rerender(<MobileMode {...defaultProps} sttEngine="web-speech" />)).not.toThrow();
+    });
+  });
 });

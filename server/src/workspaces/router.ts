@@ -114,8 +114,14 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
   //
   // Returns only flags safe to expose without authentication so that anonymous
   // kiosk displays can adapt their UI. Currently exposes the issue #340
-  // footer-ticker toggle. Mirrors WS auth-less access: kiosks register over
-  // WebSocket without a session.
+  // footer-ticker toggle and the issue #410 STT-engine selector. Mirrors WS
+  // auth-less access: kiosks register over WebSocket without a session.
+  //
+  // Issue #410: `sttEngine` is the workspace default. The kiosk/mobile mode
+  // resolves the effective engine as `device.config.stt_engine ?? sttEngine
+  // ?? 'web-speech'`. The engine name itself is not sensitive — the
+  // Deepgram API key never leaves the server, and any hosted-STT session
+  // is gated independently by the auth'd `POST /api/stt/token` broker.
   router.get('/:id/kiosk-config', async (req: Request, res: Response) => {
     try {
       const workspace = workspaceRepository.findById(req.params.id);
@@ -127,6 +133,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       res.json({
         workspaceId: workspace.id,
         kioskFooterTickersEnabled: settings?.kioskFooterTickersEnabled ?? false,
+        sttEngine: settings?.sttEngine ?? 'web-speech',
       });
     } catch (err) {
       console.error('[Workspaces] Get kiosk-config error:', err);

@@ -2140,4 +2140,40 @@ describe('KioskMode', () => {
       vi.useRealTimers();
     });
   });
+
+  // Issue #410: engine-selection wrapper. KioskMode now mounts
+  // useSttEngine instead of useSpeechRecognition directly. The full
+  // dispatch/fallback matrix is exercised in useSttEngine.test.ts;
+  // these smoke tests confirm KioskMode accepts and round-trips the
+  // sttEngine prop without throwing or violating rules-of-hooks.
+  describe('STT engine selection (#410)', () => {
+    it('mounts cleanly with the default sttEngine (web-speech)', () => {
+      // Default prop value should result in no errors / warnings.
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<KioskMode {...defaultProps} />);
+      // No React rules-of-hooks violation has been logged.
+      const hooksWarning = errorSpy.mock.calls.find(([msg]) =>
+        typeof msg === 'string' && msg.includes('rendered more hooks'),
+      );
+      expect(hooksWarning).toBeUndefined();
+      errorSpy.mockRestore();
+    });
+
+    it('mounts cleanly with sttEngine="deepgram"', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      render(<KioskMode {...defaultProps} sttEngine="deepgram" />);
+      const hooksWarning = errorSpy.mock.calls.find(([msg]) =>
+        typeof msg === 'string' && msg.includes('rendered more hooks'),
+      );
+      expect(hooksWarning).toBeUndefined();
+      errorSpy.mockRestore();
+    });
+
+    it('does not throw when the sttEngine prop flips between renders', () => {
+      // Rules of hooks would catch a conditional call here.
+      const { rerender } = render(<KioskMode {...defaultProps} sttEngine="web-speech" />);
+      expect(() => rerender(<KioskMode {...defaultProps} sttEngine="deepgram" />)).not.toThrow();
+      expect(() => rerender(<KioskMode {...defaultProps} sttEngine="web-speech" />)).not.toThrow();
+    });
+  });
 });

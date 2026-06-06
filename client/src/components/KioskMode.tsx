@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useSttEngine } from '../hooks/useSttEngine';
+import type { SttEngine } from '../hooks/useKioskConfig';
 import { generateUUID } from '../utils/uuid';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
 import { pairAgentEvents } from '../utils/pairAgentEvents';
@@ -86,6 +87,17 @@ interface KioskModeProps {
    */
   kioskFooterTickersEnabled?: boolean;
   /**
+   * Issue #410: STT engine for this kiosk. Resolved by the page
+   * container as `device.config.stt_engine ?? kioskConfig.sttEngine ??
+   * 'web-speech'`. The kiosk always mounts the wrapper hook
+   * `useSttEngine`, which calls both `useSpeechRecognition` and
+   * `useHostedSpeechRecognition` for React-rules-of-hooks safety and
+   * routes the active engine based on this prop. Defaults to
+   * `'web-speech'` so workspaces that haven't opted into hosted STT
+   * see no change.
+   */
+  sttEngine?: SttEngine;
+  /**
    * Issue #393: most recent kiosk-attention payload. When present, the
    * kiosk renders a transient `📱 <mobileDisplayName> connecting…`
    * banner so the user can confirm they targeted the right physical
@@ -140,6 +152,7 @@ export function KioskMode({
   agentHistoryConversationId,
   onRetryAgentHistory,
   kioskFooterTickersEnabled = false,
+  sttEngine = 'web-speech',
   attention = null,
   onAttentionDismiss,
 }: KioskModeProps) {
@@ -257,7 +270,16 @@ export function KioskMode({
     setTimeout(() => setSttError(null), 5000);
   }, []);
 
-  const { isListening, isSupported: sttSupported, startListening, stopListening } = useSpeechRecognition({
+  // Issue #410: wrapper hook that always calls both useSpeechRecognition
+  // and useHostedSpeechRecognition under the hood and dispatches to the
+  // active engine. Without this, swapping engines at the consumer level
+  // would violate React rules of hooks. Fallback semantics
+  // (deepgram→web-speech, one-time warn, banner on 402/503) live inside
+  // the wrapper — see useSttEngine.ts for the matrix.
+  const { isListening, isSupported: sttSupported, startListening, stopListening } = useSttEngine({
+    resolvedEngine: sttEngine,
+    deviceId,
+    workspaceId,
     onInterimResult: handleInterimResult,
     onFinalResult: handleFinalResult,
     onError: handleSttError,
