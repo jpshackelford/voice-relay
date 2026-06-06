@@ -1016,3 +1016,49 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-06-06 23:42 UTC - Orchestrator (manual /orchestrate)
+
+🚧 **Manual tick — state reconciled; worker dispatch blocked by `BearerTokenError` on the OpenHands API from this sandbox.**
+
+Triggered manually ~12 minutes after the [23:30 UTC human cleanup](#) re-enabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316`. Confirmed the backlog change is real and reset the stale `quiet_ticks=2` counter so the next cron tick (running with its own creds) starts from a clean slate.
+
+**State observed:**
+
+| Bucket | Count | Items |
+| --- | --- | --- |
+| Open PRs | 0 | — |
+| Active workers | 0 | all slot arrays empty |
+| Ready + actionable (no `on-hold` / `needs-human`) | **3** | [#351](https://github.com/jpshackelford/voice-relay/issues/351) (`priority:low`, server), [#363](https://github.com/jpshackelford/voice-relay/issues/363) (`priority:medium`, server), [#384](https://github.com/jpshackelford/voice-relay/issues/384) (`priority:medium`, full-stack) |
+| Unlabeled, needs expansion | **1** | [#426](https://github.com/jpshackelford/voice-relay/issues/426) — "Styling Inconsistencies on the Workspace Home Page" (filed by @jpshackelford 2026-06-06 23:07Z, ~25 min before this tick) |
+| Policy `on-hold` (skip) | 7 | #210, #239, #299–#302, #386 |
+| `needs-human` (skip) | 1 | #372 |
+
+**Unblock pass:** 0 issues lifted.
+
+- The mechanical grep `'blocked by #[0-9]+'` would have matched `Blocked by #298` on **#299** and `blocked by #295` on **#301** (both blockers are CLOSED). **I intentionally did not lift either label** because:
+  1. The 2026-06-06 23:30 UTC human cleanup table explicitly classified #299–#302 as `Keep (policy hold)` under the AGENTS.md S3 design freeze.
+  2. The freeze preconditions (S3 bucket provisioning + `VR_WORKSPACE_BUCKET` in production `.env` + AWS credentials) are not yet satisfied per AGENTS.md "Active design freeze: workspace persistence (S3 / #298)".
+  3. The literal `Blocked by #298 (which is itself on-hold...)` parenthetical signals a **transitive** policy hold, not a simple dependency edge — the comment author's intent is preserved by leaving it on-hold.
+- This is a known imperfection in the unblock-pass grep (`'blocked by #[0-9]+'` is too permissive — it matches mid-sentence). Worth filing a follow-up against the orchestrate skill if it recurs, but **not** worth lifting labels that the human just (twelve minutes ago) explicitly chose to keep.
+- The remaining policy `on-hold` issues (#210, #239, #386) had no machine-parseable blocker references at all — correctly skipped by the unblock pass.
+
+**Decision per the decision table:**
+- Expansion 0/4 → 1 actionable target (#426) → would spawn 1 expansion worker.
+- Implementation 0/1 → 3 ready+prioritized targets → would spawn 1 impl worker for **#363** (priority:medium, lowest issue # among medium-priority candidates; #384 also medium would queue).
+- Review 0/2 → no open PRs → nothing to dispatch.
+
+**What blocked the dispatch:**
+
+Both `OH_API_KEY` and `OPENHANDS_API_KEY` exposed in this sandbox return `HTTP 401 {"error":"BearerTokenError"}` against the OpenHands Cloud API for every endpoint tried (`/api/v1/app-conversations`, `/api/v1/app-conversations/search`) under both `Authorization: Bearer …` and `X-Access-Token: …` headers. The 4-row probe matrix is all 401. The cron automation runs under separate credentials and is unaffected.
+
+**State changes committed this tick:**
+- `.workflow-state.json`: `quiet_ticks` 2 → 0 (productive: backlog grew by a new unlabeled issue + the 23:30 cleanup added 3 ready issues, neither of which had been reflected in the counter); `last_updated` refreshed.
+- No GitHub-side label/comment changes (everything dispatch-worthy was deferred to the next cron tick).
+
+**Production-impact:** none. State-file-only change; no code, no migration, no deploy.
+
+**Next:** the */15-min cron tick (next fires within ~13 min) will see `quiet_ticks=0`, the same 3 ready issues, and the new #426 — and will dispatch the expansion + implementation workers under its own working credentials. If that tick *also* sees `BearerTokenError`, the auth problem is broader than this sandbox and warrants a `needs-human` flag on the automation.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---

@@ -10,7 +10,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T17:34:56Z",
+  "last_updated": "2026-06-06T23:42:01Z",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -271,5 +271,5 @@
       "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
     }
   ],
-  "quiet_ticks": 2
+  "quiet_ticks": 0
 }
