@@ -624,3 +624,40 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 00:13 UTC - Merge worker (PR #408 / Issue #404)
+
+✅ **PR #408 squash-merged.** Issue #404 auto-closed via `Fixes #404`.
+
+| Field | Value |
+|---|---|
+| Squash SHA | `e68580d62777b0d365314027cdb8ff6b6052efed` |
+| PR title | refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (#404) |
+| Required checks | 5/5 green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title) |
+| Merge state | `CLEAN` / `MERGEABLE` at merge time |
+| Review threads | 1/1 resolved (the lone 🟡 whitespace-coverage suggestion, addressed in `ecfd0a6`) |
+| Issue #404 | auto-closed at `00:13:24Z` via `Fixes #404` link in PR body |
+
+**What shipped:**
+- `OpenHandsClient` ctor: `apiKey` now required; `OPENHANDS_CLOUD_API_KEY` / `OPENHANDS_API_KEY` env reads deleted. Whitespace-only keys are rejected via `!apiKey || !apiKey.trim()` (pr-review on #404) so they don't construct a doomed client.
+- `AISessionManager` no-arg ctor no longer builds a default client. The only construction paths are `setClientForTesting(client)` (tests) and `clientForSession(session)` (per-request, using `session.apiKey`).
+- `getOrCreateForSession` / `attachExistingForSession` throw a typed `'OpenHands API not configured: workspace API key required (#404).'` error when no test client and no usable workspace `apiKey` are supplied. Empty-string and whitespace-string cases now have positive test coverage.
+- `isAvailable()` deleted from `AgentDriver`, `AISessionManager`, `OpenHandsAgentDriver`, and `FakeDriver`. `/api/ai/status` endpoint removed; per-session readiness is broadcast via `session-state`.
+- Client: `useAI.checkAvailability`, the `/api/ai/status` probe, and the `aiAvailable` startup flag deleted from `useAI`, `KioskMode`, and `MobileMode`. The AI status indicator gates purely on `connected || connecting` from the session-state reducer.
+- Auto-connect / agent-rehydrate gates collapse to `if (!apiKey)`; comments tombstone-reference #404.
+- Docs scrub: `.env.example`, `README.md`, `docs/DEPLOYMENT.md`, `docs/DESIGN.md` no longer mention the env vars. `docs/openhands-platform.md` keeps the term (it's OH's own bearer-token name) with a #404 note.
+- 1546 / 1546 server + 1074 / 1074 client tests pass locally; full suite 1578 passing after the rebase replay (with #407's typed-reason work also in).
+
+**Rebase work:** PR #407 (issue #405, typed handshake reason) merged at `00:10:34Z` as `d37f6ce`, three minutes before this merge. The two PRs both touch `server/src/openhands.ts` but in disjoint regions, so the rebase was a no-op — `git merge-tree` showed no conflict markers and a dry-run `git rebase origin/main` succeeded without prompts. Re-ran `npx vitest run` in `server/` post-rebase: **1578 / 1578 passing**. The PR's recorded `mergeStateStatus` flipped from `CLEAN` → `UNKNOWN` → `CLEAN` over ~15s while GitHub re-validated against the new base; merged via `gh pr merge 408 --squash` from the original PR head (no force-push needed).
+
+**Production-impact notes:**
+- Auto-deploy to `vr.chorecraft.net` triggered by merge to `main`.
+- **Hard breaking change at session-open time.** Any workspace without `workspace_settings.openhands_api_key_encrypted` configured will now fail to start AI sessions with `Error: 'OpenHands API not configured: workspace API key required (#404).'` (previously a `console.warn` soft-deprecation). Production currently has both `OPENHANDS_CLOUD_API_KEY` and `OPENHANDS_API_KEY` set in `/var/www/vr.chorecraft.net/app/.env`; **existing sessions keep working** because they're flowing through per-workspace keys (plumbed in #406/#403). The env vars are now inert and can be removed on the next deploy.
+- **No schema / migration changes.** SQLite production DB unchanged. `workspace_settings.openhands_api_key_encrypted` (migration `003`) already exists on production.
+- Failure mode for a mis-configured workspace is a `session-state` broadcast with `error: 'OpenHands API not configured…'` — same wire shape the kiosk already handles. No silent degradation.
+
+**Cleanup follow-up (informational, not blocking):** at the next deploy, remove `OPENHANDS_CLOUD_API_KEY` and `OPENHANDS_API_KEY` from `/var/www/vr.chorecraft.net/app/.env`. The server no longer reads them. Leaving them in place is harmless (inert) until then.
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
