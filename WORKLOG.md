@@ -2,7 +2,7 @@
 
 ## Log
 
-## INSTRUCTION: Retroactive Closing-Trailer AC Gate run for PR #402 / Issue #386
+## INSTRUCTION: Retroactive Closing-Trailer AC Gate run for PR #402 / Issue #386 [ACKNOWLEDGED 2026-06-06]
 
 **Context.** PR #402 (`feat(server): hosted STT (Deepgram) broker + workspace settings`) merged on 2026-06-05 at 13:21:36Z with a `Fixes #386` trailer, auto-closing issue #386. The diff is server-scoped and does not cover #386's client-side acceptance-criteria sections (notably the `useHostedSpeechRecognition` hook, the `KioskMode.tsx` / `MobileMode.tsx` engine-selection wiring, the workspace-settings UI showing per-month usage and the configured cap, and any per-device override UI). A human observer noticed that the production app (vr.chorecraft.net) shows the change-log entry for hosted STT but has no UI surface for any of the new settings — exactly the failure mode the now-codified Closing-Trailer Acceptance-Criteria Gate (`plugins/voice-relay-workflow/SKILL.md`, merged in [.openhands#30](https://github.com/jpshackelford/.openhands/pull/30)) is designed to catch.
 
@@ -735,3 +735,45 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 
 ---
 
+### 2026-06-06 14:21 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cb181e6` | expansion (one-off) | INSTRUCTION: retroactive AC gate run for PR #402 / Issue #386 | **NEW** |
+
+📋 **Following Human Instructions** + 🔓 **Re-enabled automation** + 🚀 **Spawned worker**
+
+Found unacknowledged `## INSTRUCTION:` block at the top of WORKLOG.md authorizing a one-off retroactive Closing-Trailer Acceptance-Criteria Gate run on PR #402 / Issue #386 (per the policy merged in [.openhands#30](https://github.com/jpshackelford/.openhands/pull/30)). Acknowledged the instruction (`[ACKNOWLEDGED 2026-06-06]`) and dispatched a dedicated worker conversation to execute its five required steps end-to-end.
+
+**Spawned: Retroactive AC-Gate Worker**
+
+- Task: Re-walk Issue #386's `## Acceptance Criteria` checklist against PR #402's final diff; for each uncovered AC section file one follow-up issue with `Refs #386` and inherited `priority:low` + appropriate `scope:*` label; add `## Deferred to follow-ups` block to PR #402's body just above the (immutable) `Fixes #386` trailer; re-open Issue #386 as the umbrella tracker with an explanatory comment; log a `Retroactive AC gate run for PR #402 / Issue #386` WORKLOG entry with the verdict.
+- Start-task id: `544dcf2ad4494399ae90cb98946d5997` → `app_conversation_id = cb181e6c08b041b8be9da0b8ccb45c79` (status `READY` on second poll; `execution_status = running`, `sandbox_status = RUNNING` at verification).
+- Conversation: [`cb181e6`](https://app.all-hands.dev/conversations/cb181e6c08b041b8be9da0b8ccb45c79)
+- Plugin ref: `voice-relay-workflow @ main`
+- Slot accounting: filed in the expansion slot (issue-touching, no PR creation, runs alongside the parallel-safe expansion fleet).
+
+🔓 **Re-enabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316`** ("Voice Relay Workflow Orchestrator v2") — `PATCH /api/automation/v1/{id}` with `{"enabled": true}` returned 200. Was auto-disabled at 2026-06-06 00:31Z after two quiet ticks following the PR #407 / #408 merges. The human-filed INSTRUCTION block (which is itself actionable work) plus the expected fan-out of follow-up issues makes the next several ticks productive, so resuming.
+
+**Current State (pre-worker):**
+
+- **Open PRs:** 0.
+- **Issues needing expansion (actionable):** 0. All open expansion candidates are `on-hold` (#210, #239, #299–#302, #384) or `needs-human` (#372).
+- **Ready issues (actionable):** 0. #351, #363 are both `on-hold`; the recently-merged #403/#404/#405 chain is closed.
+- **Active slot summary after this spawn:** expansion 1/4, implementation 0/1, review 0/2.
+
+**Decision rationale:**
+
+- The decision-table-driven dispatch yields nothing this tick (every open issue carries `on-hold` or `needs-human`, and there are no PRs).
+- However, the `## INSTRUCTION:` block at the top of WORKLOG.md takes precedence over the decision table per the orchestrate skill's "Step 1: Check for Human Instructions" rule, and that instruction is explicit, single-use, and authorized.
+- The instruction allows either inline execution or a spawned conversation. Spawning is cleaner: it gives the gate run its own short-lived context, keeps writes (issue create / reopen / PR-body edit / WORKLOG append) attributable, and survives the end of this orchestrator tick.
+- After the worker finishes, several new follow-up issues (likely 2–4, all `priority:low`, mostly `scope:client-only`) will appear and trigger normal expansion-slot dispatch on the next tick.
+
+**Quiet-tick counter:** reset `2 → 0` (productive tick — instruction followed + worker spawned).
+
+**Production-impact:** none. The dispatched work is GitHub-metadata-only (issue create / reopen / labels / PR body edit / WORKLOG). No code change, no migration, no deploy.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---

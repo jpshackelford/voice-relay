@@ -1,7 +1,16 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "cb181e6",
+        "actual_conv_id": "cb181e6c08b041b8be9da0b8ccb45c79",
+        "type_note": "one-off retroactive AC gate run (PR #402 / Issue #386)",
+        "issue": 386,
+        "pr": 402,
+        "started": "2026-06-06T14:22:57.920009Z"
+      }
+    ],
     "implementation": [],
     "review": []
   },
@@ -10,7 +19,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T00:31:40Z",
+  "last_updated": "2026-06-06T14:22:57.920009Z",
   "completed": [
     {
       "conv_id": "a0b08f1",
@@ -19,7 +28,7 @@
       "started": "2026-06-04T18:22:48.043114Z",
       "finished": "2026-06-05T01:55:03.962833Z",
       "status": "success",
-      "outcome": "Opened PR #391 — feat(server): speaker identity model. All 7 CI checks green, MERGEABLE/CLEAN, 1 unresolved bot review thread (UUID format suggestion)."
+      "outcome": "Opened PR #391 \u2014 feat(server): speaker identity model. All 7 CI checks green, MERGEABLE/CLEAN, 1 unresolved bot review thread (UUID format suggestion)."
     },
     {
       "conv_id": "6cb2073",
@@ -55,7 +64,7 @@
       "started": "2026-06-05T01:57:24.159396Z",
       "finished": "2026-06-05T02:19:08.379728+00:00",
       "status": "success",
-      "outcome": "Issue #379 → PR #394 (CSS Grid kiosk overlays)"
+      "outcome": "Issue #379 \u2192 PR #394 (CSS Grid kiosk overlays)"
     },
     {
       "conv_id": "82660be",
@@ -64,7 +73,7 @@
       "started": "2026-06-05T02:21:17.232374+00:00",
       "finished": "2026-06-05T02:35:00Z",
       "status": "success",
-      "outcome": "Created PR #395 — feat(client): identify the sending device/speaker in the transcription ticker (Fixes #382). CI green; PR moved to ready."
+      "outcome": "Created PR #395 \u2014 feat(client): identify the sending device/speaker in the transcription ticker (Fixes #382). CI green; PR moved to ready."
     },
     {
       "conv_id": "17e6c73",
@@ -109,7 +118,7 @@
       "started": "2026-06-05T02:52:48.410180+00:00",
       "finished": "2026-06-05T03:33:36.314013+00:00",
       "status": "success",
-      "outcome": "Issue #393 → PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
+      "outcome": "Issue #393 \u2192 PR #396 (mobile kiosk picker for multi-kiosk workspaces). All CI checks green, PR ready with 1 unresolved bot review thread."
     },
     {
       "conv_id": "c327b70",
@@ -119,7 +128,7 @@
       "started": "2026-06-05T03:35:03.084872+00:00",
       "finished": "2026-06-05T03:53:08.825319+00:00",
       "status": "stuck",
-      "outcome": "Spawned but never executed — sub-conversation 3dd8f41 sat idle 10min with $0 cost. Replaced by eb2c297. Root cause: previous orchestrator stored start-task ID (c327b70) instead of app_conversation_id (3dd8f41) — a bug to fix in spawn flow."
+      "outcome": "Spawned but never executed \u2014 sub-conversation 3dd8f41 sat idle 10min with $0 cost. Replaced by eb2c297. Root cause: previous orchestrator stored start-task ID (c327b70) instead of app_conversation_id (3dd8f41) \u2014 a bug to fix in spawn flow."
     },
     {
       "conv_id": "fee6d4e",
@@ -129,7 +138,7 @@
       "started": "2026-06-05T03:35:03.084872+00:00",
       "finished": "2026-06-05T03:53:08.825319+00:00",
       "status": "stuck",
-      "outcome": "Spawned but never executed — sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
+      "outcome": "Spawned but never executed \u2014 sub-conversation 948a96a sat idle 10min with $0 cost. Replaced by ebaceb3."
     },
     {
       "conv_id": "ebaceb3",
@@ -165,7 +174,7 @@
       "type": "implementation",
       "finished": "2026-06-05T04:47:00+00:00",
       "status": "success",
-      "outcome": "Created PR #399 — fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
+      "outcome": "Created PR #399 \u2014 fix(client): stack login footer below card. All required CI checks green; PR moved to ready."
     },
     {
       "conv_id": "voice-relay-392",
@@ -204,7 +213,7 @@
       "started": "2026-06-05T13:05:04.184928+00:00",
       "finished": "2026-06-05T13:19:27.744139+00:00",
       "status": "success",
-      "outcome": "Addressed review feedback on PR #402 — all 4 inline threads resolved; CI green; latest pr-review bot verdict: 'Worth merging'"
+      "outcome": "Addressed review feedback on PR #402 \u2014 all 4 inline threads resolved; CI green; latest pr-review bot verdict: 'Worth merging'"
     },
     {
       "conv_id": "8919f27",
@@ -224,7 +233,7 @@
       "started": "2026-06-05T22:18:49Z",
       "finished": "2026-06-05T22:34:41.182605Z",
       "status": "success",
-      "outcome": "Created PR #406 — fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Created PR #406 \u2014 fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "ca35fb8",
@@ -235,7 +244,7 @@
       "started": "2026-06-05T22:35:42.534334Z",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Opened PR #407 — feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Opened PR #407 \u2014 feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "e531d1f",
@@ -245,7 +254,7 @@
       "started": "2026-06-05T22:50:12.575172+00:00",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Addressed all 11 pr-review bot 🟡 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
+      "outcome": "Addressed all 11 pr-review bot \ud83d\udfe1 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
     },
     {
       "conv_id": "0211d27",
@@ -266,7 +275,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Opened PR #408 — refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
+      "outcome": "Opened PR #408 \u2014 refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
     },
     {
       "conv_id": "4e00461",
@@ -276,7 +285,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review 🟡 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
+      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review \ud83d\udfe1 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
     },
     {
       "conv_id": "7264a05",
@@ -317,5 +326,5 @@
       "outcome": "Squash-merged PR #408 at 00:13:22Z (e68580d). Issue #404 auto-closed."
     }
   ],
-  "quiet_ticks": 2
+  "quiet_ticks": 0
 }
