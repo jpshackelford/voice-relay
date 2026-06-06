@@ -4,10 +4,10 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "a682dfa",
-        "actual_conv_id": "a682dfaeb6fe4243a79f4146e68e713e",
-        "issue": 409,
-        "started": "2026-06-06T14:51:37.083742+00:00"
+        "conv_id": "39df1fc",
+        "actual_conv_id": "39df1fcb743f4c23a5732c5d78bff7b8",
+        "issue": 411,
+        "started": "2026-06-06T15:09:00Z"
       }
     ],
     "review": []
@@ -17,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T15:05:18Z",
+  "last_updated": "2026-06-06T15:09:00Z",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -139,7 +139,17 @@
       "finished": "2026-06-06T14:54:14.015980+00:00",
       "status": "success",
       "outcome": "Expanded #413 — rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
+    },
+    {
+      "conv_id": "a682dfa",
+      "actual_conv_id": "a682dfaeb6fe4243a79f4146e68e713e",
+      "type": "implementation",
+      "issue": 409,
+      "started": "2026-06-06T14:51:37.083742+00:00",
+      "finished": "2026-06-06T15:09:00Z",
+      "status": "success",
+      "outcome": "Opened PR #419 — feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
