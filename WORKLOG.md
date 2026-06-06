@@ -865,3 +865,36 @@ _This worklog entry was created by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 17:08 UTC - Merge worker (PR #423)
+
+✅ **Merged [PR #423](https://github.com/jpshackelford/voice-relay/pull/423)** — `feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode` — squash commit [`b2f7453`](https://github.com/jpshackelford/voice-relay/commit/b2f74536ac5594fc70f1f25d3401d7903aa6bf49).
+
+**Pre-merge verification (HEAD `045c5a5`):**
+
+| Check | Result |
+| --- | --- |
+| Required CI (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) | ✅ all SUCCESS |
+| `mergeable` / `mergeStateStatus` | MERGEABLE / CLEAN |
+| Unresolved review threads | 0 / 3 |
+| Draft state | ready for review |
+| Migration check (`server/src/workspaces/router.ts`) | ✅ additive only — new `sttEngine` field on existing `GET /:id/kiosk-config` response; reads existing `workspace_settings.stt_engine` column from PR #402, no schema change, wire-compat (additive field) |
+
+**Closing-Trailer AC Gate re-run vs. HEAD `045c5a5`:**
+
+| #410 AC item | Verdict |
+| --- | --- |
+| `KioskMode.tsx` / `MobileMode.tsx` select hook based on resolved `stt_engine` (device override > workspace default) without conditional-hook violations | ✅ SATISFIED — both mount `useSttEngine` wrapper that always calls both child hooks; smoke tests assert no rules-of-hooks errors across engine prop flips |
+| Hosted-engine token failure → transparent Web Speech fallback + one-time warning | ✅ SATISFIED — `useSttEngine.test.ts` covers downgrade, session-scoped dedupe via `useRef<boolean>`, auto-restart, banner-eligible 402 / 503; post-review-worker refactor (commit `045c5a5`) made the banner decision explicit via `bannerEligible?: boolean` flag instead of message-substring matching, and `013cf16` added unmount-race coverage |
+
+**Verdict: all non-exempt items SATISFIED → `Closes #410` retained.** Net behavioral change vs. the initial implementation (`965a2ab`) from review rounds: zero. Fallback path is now *safer* (unmount-guarded) and the banner decision is now *explicit*.
+
+**Post-merge state:**
+
+- Issue #410: CLOSED (was already CLOSED at 16:11:38Z prior to merge — squash-merge `Closes #410` was a no-op auto-close as expected). No re-close action taken.
+- Issue #386 (umbrella tracker): OPEN — correct, trailer was `Refs #386`, not `Fixes/Closes`. Untouched.
+- vr.chorecraft.net auto-deploy: triggered by merge to `main`. SQLite production unaffected at DB layer (no schema change).
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
