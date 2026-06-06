@@ -253,3 +253,31 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 - If `a682dfa` is done without a PR (failure / no work) → impl slot frees; orchestrator will dispatch the next priority issue (likely `#411` or `#412`, whichever doesn't depend on `#409` being merged first).
 
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+### 2026-06-06 15:03 UTC - Implementation Worker (issue #409)
+
+✅ Shipped the `useHostedSpeechRecognition` hook — the client piece that PR #402 left out when shipping the Deepgram broker server-side.
+
+| Field | Value |
+|---|---|
+| PR | [#419](https://github.com/jpshackelford/voice-relay/pull/419) — ready for review |
+| Issue | [#409](https://github.com/jpshackelford/voice-relay/issues/409) |
+| AC-gate verdict | **closes #409** (all 5 non-exempt AC items satisfied — both passes) |
+| Follow-ups filed | none — gate was clean both passes |
+| CI | green: Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title |
+| Coverage on new file | 90.7% lines / 80.2% branches / 94.7% functions / 93.8% statements |
+| Production impact | client-only; auto-deploys to vr.chorecraft.net on merge. No schema change. Hook is dormant until #410 wires it into KioskMode/MobileMode. |
+
+**Implementation notes worth carrying forward:**
+
+- Used `ScriptProcessorNode` rather than `AudioWorkletNode` (issue's technical-approach mentioned AudioWorklet). Reasoning: matches existing `useAudioStreaming` pattern, no separate worklet asset to ship, equivalent 16 kHz Int16 PCM output, easier to test in happy-dom. Documented in the file-level JSDoc with a future-swap pointer.
+- Deepgram browser WS auth uses the sub-protocol field (`new WebSocket(url, ['token', key])`) — `Authorization: Token …` is not settable from browser JS. Worth knowing for the engine-selection wrapper (#410) in case it ever needs to peek at the connection.
+- Speaker label mapping picks the dominant speaker per result, then maps `0→S1`, `1→S2`, … (human-readable). When Deepgram returns no diarization info, `speakerLabel` is `undefined` — the relay's `engineSpeakerLabel?: string` field on `TextMessage` already tolerates that.
+- A clean `1000` close *after* `is_final` is treated as the normal stop path and NOT surfaced as an error. Without that guard every successful session would have ended in `onError`.
+- Usage reporting is `Math.max(1, ceil((Date.now() - startedAt) / 60000))` — happy-dom returned `0` for sub-millisecond sessions in tests, but more importantly a session that opened the mic at all should count as ≥1 minute against the soft cap.
+
+**Reflection (Step 11):** Verdict unchanged between the first and second AC-gate pass. The CI run added no new commits. Single-take implementation; the only mid-flight adjustment was the `Math.max(1, …)` floor for the usage-minutes path described above.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford as part of the implementation worker for #409._
+
+---
