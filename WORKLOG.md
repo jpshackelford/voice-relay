@@ -554,3 +554,33 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 16:08 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `fbf942c` | implementation | Issue #410 — engine selection in Kiosk/MobileMode | running |
+| `64a10a2` | review | PR #422 — workspace settings UI for hosted STT (#412) | **NEW** |
+
+**Worker Completed:** `0874f34` (expansion)
+- Issue #421 (🚨 Smoke test failure after deployment) now `ready` + `priority:high`.
+- Will be picked up by the implementation slot once `fbf942c` (Issue #410) finishes.
+
+🚀 **Spawned: Review Worker**
+- PR: [#422 — feat(client): workspace settings UI for hosted STT engine, cap, key, and usage](https://github.com/jpshackelford/voice-relay/pull/422) (Fixes #412)
+- Conversation: [`64a10a2`](https://app.all-hands.dev/conversations/64a10a244c5c44d08a93fb192b647a07)
+- Trigger: 5 unresolved 🟡 Suggestion threads from `github-actions` review bot on `useWorkspaceSettings.ts` + `WorkspaceHome.tsx`, all asking to drop `Issue #412:` change-history comments and redundant doc comments. Legitimate per AGENTS.md / global code-quality guideline.
+- AC-gate re-run expected to be **unchanged** (comment-only diff, behavior unchanged) → `Fixes #412` trailer stays.
+
+**Current State:**
+- Open PRs: [#422](https://github.com/jpshackelford/voice-relay/pull/422) — `oR` green ready 💬5 (now being addressed).
+- Ready + actionable issues: #421 (priority:high, awaits impl slot), #410 (in-progress via `fbf942c`), #412 (PR open), #413 (priority:low, awaits impl slot).
+- Ready + blocked (on-hold/needs-human): #351, #363, #386.
+- Needs-expansion + blocked: #210, #239, #299–#302, #372, #384. **No actionable expansion candidates** this tick.
+
+**Slot summary after this tick:** expansion 0/4, implementation 1/1, review 1/2.
+
+**Action Taken:** 🚀 Spawned 1 review worker for PR #422; reaped expansion worker `0874f34` (Issue #421 → ready). Implementation slot remains held by `fbf942c` on #410 (priority:low); #421 (priority:high) will be dispatched on the next tick after `fbf942c` returns. No INSTRUCTION blocks left to action (the retroactive AC-gate INSTRUCTION at 14:26Z was already `[ACKNOWLEDGED 2026-06-06]` and executed by conversation `cb181e6`).
+
+---

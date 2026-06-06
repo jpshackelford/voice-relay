@@ -1,14 +1,7 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "0874f34",
-        "actual_conv_id": "0874f34553774f3b93d6669c3851d926",
-        "issue": 421,
-        "started": "2026-06-06T15:56:00.827995Z"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
         "conv_id": "fbf942c",
@@ -17,14 +10,22 @@
         "started": "2026-06-06T15:56:00.827995Z"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "64a10a2",
+        "actual_conv_id": "64a10a244c5c44d08a93fb192b647a07",
+        "pr": 422,
+        "issue": 412,
+        "started": "2026-06-06T16:07:19Z"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T15:56:00.827995Z",
+  "last_updated": "2026-06-06T16:08:30.711716+00:00",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -188,6 +189,16 @@
       "finished": "2026-06-06T15:56:00.827995Z",
       "status": "success",
       "outcome": "Squash-merged PR #420 at 2026-06-06T15:54:37Z (commit 90c7fa2); Issue #411 auto-closed. AC gate verdict logged in worker WORKLOG entry."
+    },
+    {
+      "conv_id": "0874f34",
+      "actual_conv_id": "0874f34553774f3b93d6669c3851d926",
+      "type": "expansion",
+      "issue": 421,
+      "started": "2026-06-06T15:56:00.827995Z",
+      "finished": "2026-06-06T16:00:25Z",
+      "status": "success",
+      "outcome": "Expanded #421 (smoke test failure after deployment) and labeled ready (priority:high). Root cause + recommended remediation posted in technical-approach comment."
     }
   ],
   "quiet_ticks": 0
