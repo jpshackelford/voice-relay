@@ -653,3 +653,38 @@ _This worklog entry was created by an AI agent (OpenHands orchestrator) on behal
 
 ---
 
+
+### 2026-06-06 16:24 UTC - Merge worker (PR #422 → main)
+
+✅ **Merged.** PR #422 (`feat(client): workspace settings UI for hosted STT engine, cap, key, and usage`) squash-merged to `main` as [`cec97cc`](https://github.com/jpshackelford/voice-relay/commit/cec97cc553f1ef247e75019bbaba3649ebfdbbd9). Auto-deploys to vr.chorecraft.net.
+
+**Pre-merge checks:**
+- CI: all 7 checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review).
+- Review threads: 5/5 resolved (all comment-cleanup suggestions addressed by review worker `64a10a2`).
+- Mergeable: `CLEAN`. No conflicts.
+- Migration check: **N/A — client-only diff.** Files touched: `client/src/hooks/useWorkspaceSettings.{ts,test.ts}`, `client/src/pages/WorkspaceHome.{tsx,test.tsx}`. No server, schema, or migration files. Production SQLite deploy is safe.
+
+**Closing-Trailer AC Gate (Issue #412): PASS.**
+
+Trailer = `Fixes #412`. Walked the 7 non-exempt AC items from #412 against the final diff:
+
+| AC item | Status | Diff anchor |
+| --- | --- | --- |
+| Workspace settings page shows current month's usage + configured cap | ✅ | `stt-usage-setting` + `stt-cap-setting` rows in `WorkspaceHome.tsx` |
+| Engine selector (`web-speech` vs `deepgram`) | ✅ | `stt-engine-setting` radio group |
+| Deepgram API key entry / clear control (mirror ElevenLabs) | ✅ | `deepgram-api-key-setting` row + `setDeepgramApiKey` / `removeDeepgramApiKey` |
+| Monthly minute-cap input (integer or "no cap") | ✅ | `stt-cap-setting` number input; empty ⇒ `null` |
+| Read usage from `GET /api/stt/usage`; hide row when engine is `web-speech` | ✅ | `fetchSttUsage` effect; test asserts `queryByTestId('stt-usage-setting')` is null on web-speech |
+| Owner-gated controls | ✅ | All new rows inside existing `{workspace.isOwner && (<section …>)}` wrapper |
+| `WorkspaceHome.test.tsx` covering engine flip, cap, key set/clear, usage | ✅ | New file, 8 tests |
+
+Exempt (per #386 / #412 scope notes): per-device override UI, KioskMode/MobileMode streaming hook wiring (tracked separately under #409, #411).
+
+**Post-merge state:**
+- Issue #412 auto-closed by GitHub at `2026-06-06T16:24:28Z` via `Fixes` trailer. ✅ Verified.
+- No follow-up issues filed (gate passed cleanly).
+- vr.chorecraft.net auto-deploy will pick up the change on the next deploy cycle.
+
+_This worklog entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
