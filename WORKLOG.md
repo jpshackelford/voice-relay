@@ -314,3 +314,43 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford as part of the orchestrator tick._
 
 ---
+
+### 2026-06-06 15:22 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `39df1fc` | implementation | Issue #411 — propagate `engineSpeakerLabel` (server agent-driver + kiosk ticker `S1:` prefix) → PR [#420](https://github.com/jpshackelford/voice-relay/pull/420) (draft) | running |
+| `97d4ead` | review | PR [#419](https://github.com/jpshackelford/voice-relay/pull/419) — `useHostedSpeechRecognition` hook | **NEW** |
+
+🚀 **Spawned: Review Worker** for [PR #419](https://github.com/jpshackelford/voice-relay/pull/419) (`feat(client): useHostedSpeechRecognition hook for hosted STT`, Fixes #409)
+- Conversation: [`97d4ead`](https://app.all-hands.dev/conversations/97d4ead55ea74e4990d2915eeb4dff01) — verified `execution_status=running`, `sandbox_status=RUNNING` at 15:22Z.
+- Plugin ref: `voice-relay-workflow @ main`.
+- Rationale: PR #419 is ready (not draft), all required CI green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title; `pr-review` SUCCESS), but carries **1 unresolved review thread** from the `pr-review` bot — a 🟡 Suggestion that a comment in `useHostedSpeechRecognition.ts` referencing "the live ref pattern above" is confusing because `workspaceId` and `deviceId` aren't refs. Per the decision table (REVIEW_AVAILABLE=2, PR needs review with 💬>0), dispatching a review worker is the correct action.
+
+**Current State:**
+- **Open PRs (2):**
+  - [#419](https://github.com/jpshackelford/voice-relay/pull/419) — Fixes #409, ready, 1 unresolved 🟡 suggestion thread, `mergeable=UNKNOWN` (GitHub still computing), no human reviews. **Now being addressed.**
+  - [#420](https://github.com/jpshackelford/voice-relay/pull/420) — Fixes #411, draft, `mergeable=MERGEABLE`, CI 6/7 green (E2E Tests `IN_PROGRESS`). In flight under impl worker `39df1fc`.
+- **Active workers:** 1 impl (`39df1fc` on #411), 1 review (`97d4ead` on #419), 0 expansion. Slot accounting: expansion 0/4, implementation 1/1 (full), review 1/2.
+- **Unexpanded eligible issues:** 0 — every open unexpanded issue is `on-hold` (#210, #239, #299–#302, #384) or `needs-human` (#372). No expansion to dispatch.
+- **Ready, prioritised, eligible queue (behind impl slot):** #410 (depends on #409 / PR #419 merging first), #412, #413 — all `priority:low`. Cannot dispatch this tick.
+- **Ready, skipped:** #351, #363, #386 (umbrella) — all `on-hold`.
+
+**Decision rationale:**
+- Impl slot full → cannot dispatch more impl. The eligible ready/prioritised queue (#410, #412, #413) waits for either #411 → PR #420 to land, or for a future tick where the impl slot frees.
+- Review slot 1/2 available → PR #419 has 1 unresolved 🟡 suggestion → spawn review worker. The single bot-only "Suggestion" is advisory and the worker prompt explicitly authorises a respectfully-decline-with-reply outcome if the suggestion is a nit; the worker will also re-run the closing-trailer AC gate.
+- Anti-stall rule: no codified gate (`## INSTRUCTION:`, `hold` label, AGENTS.md / skill policy) defers PR #419's review pass.
+
+**Quiet-tick counter:** reset to `0` (productive tick — 1 review worker spawned).
+
+**Production-impact:** none from this orchestrator action. The review worker may push a docs/comment-only follow-up commit to PR #419's branch; that does not auto-deploy until PR #419 merges. PR #420 (separate impl worker) is still draft and isolated to server agent-driver + kiosk ticker paths — disjoint from PR #419's client `hooks/` footprint, so no conflict surface.
+
+**Next tick expectations:**
+- If `97d4ead` finishes with PR #419 back to ready and CI green / 0 unresolved threads → review slot frees up and a merge worker can be dispatched.
+- If `39df1fc` finishes with PR #420 moved to ready → review slot still has capacity (1/2 → 2/2 absorbable) for a parallel review round on #420.
+- The eligible queue (#410 blocked on #419 merge; #412, #413 free) will start dispatching once the impl slot frees.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
