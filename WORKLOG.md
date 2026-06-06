@@ -449,3 +449,29 @@ All 7 threads replied + resolved via GraphQL. CI green (Build Client / Client Te
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:53 UTC - Merge worker (PR #420 / Issue #411)
+
+✅ Squash-merged [PR #420](https://github.com/jpshackelford/voice-relay/pull/420) — `feat(server,client): propagate engineSpeakerLabel through agent driver + render kiosk ticker S1: prefix`. Merge commit `90c7fa2`. Issue #411 auto-closed at 2026-06-06 15:53:30Z by the `Fixes #411` trailer.
+
+**Pre-merge state at 15:50 UTC tick:** `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE`, isDraft=false, 7 review threads all RESOLVED, required checks all green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator, pr-review).
+
+**Closing-Trailer AC gate (re-walked at merge time, hard gate):** **PASS** — `Fixes #411` retained.
+
+| Inherited AC bullet from #386 (Message pipeline group) | Verdict on PR #420 final diff |
+|---|---|
+| Server relays the label unchanged; **agent driver receives it on the user-turn header** | ✅ `AgentSenderMeta.engineSpeakerLabel` plumbed from `server/src/index.ts` → `relayAgentResponse` → `buildVoiceRelayHeader` → `[speaker engine=<label>]` fallback; 8 new `voice-relay-header.test.ts` cases + 1 new `agent-message-relay.test.ts` case cover emit / suppress / resolved-wins / engine-only-after-unclaim / sanitize / forwarding. |
+| **Kiosk ticker prefix (#382) renders `S1: …` until the label is linked to a real speaker** | ✅ `client/src/types.ts` adds `engineSpeakerLabel?: string` to `RelayedTextMessage` / `Utterance`; `SessionView.tsx` + `Workspace.tsx` thread it through `handleTextMessage` / `handleHistoryMessage`; `KioskMode.transcriptionTicker` prefers `engineSpeakerLabel` over `senderName`. 3 new `KioskMode.test.tsx` cases incl. the Web-Speech regression guard. |
+
+No `## INSTRUCTION:` override was needed — gate passed cleanly on its merits.
+
+**Migration check:** N/A — diff is 10 files, all `.ts`/`.tsx`, no `server/src/db/migrations/` files and no `.sql`. Additive optional fields only (`engineSpeakerLabel?: string`), so production SQLite is unaffected.
+
+**Production-impact:** vr.chorecraft.net will auto-deploy this merge. Behavioural changes are scoped to hosted-STT sessions (Deepgram path) — Web-Speech sessions are explicitly covered by the regression guard test (no engine label → renders `senderName: …` exactly as before). No env-var or secret changes required.
+
+**Follow-ups still open from the #386 retro-gate fan-out:** #410, #412, #413. #409 is being handled in PR #419 (still open at this merge).
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
+
