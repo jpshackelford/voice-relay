@@ -402,3 +402,29 @@ PR moved back to ready; next review round (if any) is a separate conversation.
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:40 UTC - Merge worker (PR #419)
+
+✅ Merged [PR #419](https://github.com/jpshackelford/voice-relay/pull/419) — `feat(client): useHostedSpeechRecognition hook for hosted STT` — squash commit `a8a1561`.
+
+**Closing-Trailer AC Gate (Issue #409): PASSED**
+
+| AC item | Evidence |
+|---|---|
+| Hook surface `{ isListening, isSupported, startListening, stopListening, error }` matches `useSpeechRecognition` | `UseHostedSpeechRecognitionReturn` (line 89) + return at line 563 of `client/src/hooks/useHostedSpeechRecognition.ts` |
+| `onInterimResult(text, speakerLabel)` / `onFinalResult(text, speakerLabel)` callbacks | Options interface lines 80–81; dominant-speaker mapping in `dominantSpeakerLabel` |
+| Network errors surface fallback-eligible error for Web Speech downgrade | `tokenMintErrorFromStatus` + WS-close / WS-error / network-failure paths; `fallbackEligible: true` on 5xx / network / mid-stream close |
+| Releases mic + WebSocket on `stopListening` and on unmount | `cleanup()` invoked from `stopListening` (line 542) and unmount `useEffect` (line 550) |
+| Lifecycle tests at `client/src/hooks/useHostedSpeechRecognition.test.ts` | 27 tests covering cold-start, stop, unmount, full token-mint matrix, mic-denial, mid-stream WS close, WS error, clean close after final, swallowed usage failure |
+
+All 5 non-exempt AC items covered → gate passes; trailer `Fixes #409` honored.
+
+**Migration check:** client-only diff (`useHostedSpeechRecognition.ts` + tests). No schema / migration files touched — production SQLite is unaffected, auto-deploy to vr.chorecraft.net safe.
+
+**Issue #409:** already `CLOSED` (`COMPLETED`) at 2026-06-06T15:04:37Z prior to merge; no manual close needed.
+
+**Pre-merge state:** `MERGEABLE / CLEAN`, 0 unresolved review threads, required CI all green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title / pr-review).
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
