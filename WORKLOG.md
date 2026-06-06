@@ -870,3 +870,22 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:48 UTC - Expansion Worker (issue #410)
+
+✅ **Expanded Issue [#410](https://github.com/jpshackelford/voice-relay/issues/410)** — `feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode (follow-up to #386)`
+
+- **Type:** Enhancement (client-only follow-up filed by retroactive AC Gate on PR #402 / umbrella #386).
+- **Verdict:** Issue body already well-specified by the AC Gate. Sanity-checked against `main` and added one clarification re: anonymous-safe engine discovery before labeling ready.
+- **Verified against main:**
+  - `client/src/components/KioskMode.tsx:4,260` and `client/src/components/MobileMode.tsx:3,142` both mount `useSpeechRecognition` unconditionally — confirms the AC's "currently always Web Speech" framing.
+  - Existing `useSpeechRecognition` hook at `client/src/hooks/useSpeechRecognition.ts` (to wrap, not replace).
+  - `useWorkspaceSettings` (`client/src/hooks/useWorkspaceSettings.ts`) is owner-only via `GET /api/workspaces/:id/settings` (returns 403 for non-owners) and currently does **not** expose `sttEngine`.
+  - `useKioskConfig` (`client/src/hooks/useKioskConfig.ts`) is the anonymous-safe slice via `GET /api/workspaces/:id/kiosk-config` (`server/src/workspaces/router.ts:119`). Currently returns only `kioskFooterTickersEnabled`.
+- **Key clarification added in [comment](https://github.com/jpshackelford/voice-relay/issues/410#issuecomment-4639245225):** non-owner kiosks/mobile devices joining via QR cannot read `sttEngine` from the owner-scoped `/settings` endpoint, so the implementation must extend the `/kiosk-config` endpoint (and `useKioskConfig`) with an anonymous-safe `sttEngine` field. Included implementation plan (wrapper hook `useSttEngine` that always calls both `useSpeechRecognition` and `useHostedSpeechRecognition` to avoid conditional-hook violations), fallback semantics (session-scoped `useRef` dedupe for the one-time warn), banner-eligible errors (402 cap-exhausted, 503 missing-key), and explicit test scope.
+- **Dependency flagged:** blocks on #409 (`useHostedSpeechRecognition`) — must merge first so there's a second hook to wrap.
+- **Action:** Added expansion comment, added `ready` label.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
