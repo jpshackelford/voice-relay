@@ -828,3 +828,40 @@ _This worklog entry was created by an AI agent (OpenHands implementation worker)
 _This worklog entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 17:06 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `7becb0b` | merge | PR #423 / Issue #410 — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode | **NEW** |
+
+**Reaped (moved to `completed[]`):**
+- `4571b04` implementation → Opened [PR #425](https://github.com/jpshackelford/voice-relay/pull/425) (docs: hosted STT README section, Fixes #413). AC gate PASS 10/10; PR #425 squash-merged at 16:56Z (`490d36b`); issue #413 auto-closed.
+- `0544110` review → Addressed pr-review feedback on PR #423. At reap: required CI 7/7 green, 0 unresolved threads, mergeable=MERGEABLE, mergeStateStatus=CLEAN, ready (not draft). PR body trailer: `Closes #410` (AC-gate verdict from review round).
+- `300a426` merge → Squash-merged [PR #424](https://github.com/jpshackelford/voice-relay/pull/424) as `fcf8895` (fix(tests): re-gate AI-unavailable smoke test on per-workspace settings, Fixes #421). Issue #421 was already closed at 16:30:05Z pre-merge.
+
+**Current State:**
+- Open PRs:
+  - [PR #423](https://github.com/jpshackelford/voice-relay/pull/423) — `oCR green ready` — dispatched to merge worker `7becb0b` (head `045c5a5`, mergeStateStatus=CLEAN, 0 unresolved, all 7 required checks green incl. pr-review SUCCESS)
+- Open issues by category:
+  - **Ready + prioritized + not on-hold:** none — all in-flight backlog closed during this cycle (#413 via PR #425, #421 via PR #424, #410 by prior PR #423 work)
+  - **Ready but on-hold:** #351, #363, #386
+  - **Needs expansion + on-hold:** #210, #239, #299, #300, #301, #302, #384
+  - **needs-human:** #372
+  - **Actionable backlog:** **0**
+
+**Slot accounting:**
+- Expansion 0/4 (no actionable expansion work — every open expansion candidate carries `on-hold` or `needs-human`)
+- Implementation 0/1 (no actionable ready+prioritized issues)
+- Review 1/2 (PR #423 merge-in-progress)
+- Total active conversations: 1/7
+
+**Action Taken:**
+🚀 **Spawned merge worker** for [PR #423](https://github.com/jpshackelford/voice-relay/pull/423) (`Closes #410`, `Refs #386`) — conversation [`7becb0b`](https://app.all-hands.dev/conversations/7becb0b4bbf94815b8ea7c103d08bc81). Verified `execution_status=running`, `sandbox_status=RUNNING` at handoff. Merge worker will re-run the Closing-Trailer AC Gate against issue #410's acceptance criteria vs. the current HEAD (post-review-worker commits) before squash-merging. Note: issue #410 already shows CLOSED state from 16:11:38Z — merge worker should verify whether the squash-merge `Closes #410` auto-close is a no-op or needs explicit handling.
+
+**Anti-stall note:** Per the orchestrate skill, the decision table is exhaustive. No `## INSTRUCTION:` override, `hold` label, or codified policy gates PR #423. All ready/expansion-candidate issues that remain on the board are gated by `on-hold` (S3 design freeze per `AGENTS.md`, or other recorded reasons) or `needs-human` (#372). Once PR #423 merges, the next tick has no actionable work unless those labels are lifted or a new issue lands.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
