@@ -31,6 +31,7 @@ import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import type { DeviceRegistry } from './registry.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 /**
  * Dependencies required by `rehydrateAgentSessions`. Mirrors the dependency
@@ -149,11 +150,16 @@ async function rehydrateSingleSession(
     // Surface as `degraded` so a later device join shows the right UX.
     // The kiosk-side recovery action (POST /api/sessions/:id/ai/restart,
     // wired in #294) lets the user start a fresh conversation.
+    // Propagate typed WS-handshake reasons; fall through to generic message otherwise.
+    const degradedError =
+      err instanceof UpstreamConversationEndedError && err.reason
+        ? err.message
+        : 'Upstream conversation no longer available — restart session';
     const degradedStatus: AgentSessionStatus = {
       sessionId,
       state: 'degraded',
       conversationId,
-      error: 'Upstream conversation no longer available — restart session',
+      error: degradedError,
       thinkingSince: null,
       startingSince: null,
     };

@@ -316,11 +316,13 @@ function adaptAction(ohAction: OHAgentAction): AgentAction {
 }
 
 /**
- * Result of a binding attempt. Either the upstream session is bound and
- * subsequent `sendSessionMessage` calls are safe, or upstream rejected and
- * the caller should surface a terminal `error` `AgentEvent`.
+ * Outcome of an upstream bind. Error results preserve the original Error
+ * subclass (e.g. UpstreamConversationEndedError) so callers can read typed
+ * properties like `.reason`.
  */
-type BindResult = { kind: 'ok' } | { kind: 'error'; event: AgentEvent };
+type BindResult =
+  | { kind: 'ok' }
+  | { kind: 'error'; event: AgentEvent; cause: Error };
 
 export class OpenHandsAgentDriver implements AgentDriver {
   private readonly states = new Map<string, DriverSessionState>();
@@ -427,11 +429,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
     if (!this.mgr.hasSessionAI(sessionId)) {
       const bind = await this.lazyBindSession(sessionId, state);
       if (bind.kind === 'error') {
-        // Surface the error to the caller so the auto-connect path can
-        // broadcast a connection-failed status. Same shape as the legacy
-        // `getOrCreateForSession` rejection.
-        const msg = bind.event.kind === 'error' ? bind.event.message : 'failed to open agent session';
-        throw new Error(msg);
+        // Re-throw the original cause to preserve typed error properties.
+        throw bind.cause;
       }
     }
     return this.synthesizeStatus(sessionId);
@@ -467,9 +466,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
     // matching the legacy `getOrCreateForSession` contract.
     const bind = await this.lazyBindSession(sessionId, state);
     if (bind.kind === 'error') {
-      const msg =
-        bind.event.kind === 'error' ? bind.event.message : 'failed to restart agent session';
-      throw new Error(msg);
+      // Re-throw the original cause to preserve typed error properties.
+      throw bind.cause;
     }
     return this.synthesizeStatus(sessionId);
   }
@@ -647,8 +645,12 @@ export class OpenHandsAgentDriver implements AgentDriver {
       );
       return { kind: 'ok' };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      return { kind: 'error', event: { kind: 'error', message, recoverable: false } };
+      const cause = err instanceof Error ? err : new Error(String(err));
+      return {
+        kind: 'error',
+        event: { kind: 'error', message: cause.message, recoverable: false },
+        cause,
+      };
     } finally {
       state.startingSince = null;
     }

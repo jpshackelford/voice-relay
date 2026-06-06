@@ -20,6 +20,7 @@ import type { SessionAIStatusMessage } from './types.js';
 import { isAnonymousSession } from './constants.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
 import { persistAiConversationId } from './sessions/persist-ai-conversation-id.js';
+import { UpstreamConversationEndedError } from './openhands.js';
 
 /**
  * Dependencies required by autoConnectAI function.
@@ -164,13 +165,17 @@ export async function autoConnectAI(
   } catch (err) {
     // Log full error server-side for debugging
     console.error(`[AI] Auto-connect failed for session ${sessionId}:`, err);
-    // Sanitize error message for clients to avoid leaking internal details
+    // Propagate typed WS-handshake failures; sanitize everything else.
+    const degradedError =
+      err instanceof UpstreamConversationEndedError && err.reason
+        ? err.message
+        : 'Failed to connect AI assistant';
     const errorStatus: SessionAIStatusMessage = {
       type: 'session-ai-status',
       sessionId,
       connecting: false,
       connected: false,
-      error: 'Failed to connect AI assistant',
+      error: degradedError,
     };
     registry.broadcastMessageToSession(sessionId, errorStatus);
     broadcastSessionState(
@@ -180,7 +185,7 @@ export async function autoConnectAI(
         sessionId,
         state: 'degraded',
         conversationId: null,
-        error: 'Failed to connect AI assistant',
+        error: degradedError,
         thinkingSince: null,
         startingSince: null,
       },

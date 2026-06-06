@@ -10,13 +10,14 @@
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { OpenHandsAgentDriver, type AISessionManagerSurface } from './openhands.js';
-import type {
-  AISession,
-  ActionCallback,
-  AgentAction as OHAgentAction,
-  EventCallback,
-  RawOpenHandsEvent,
-  ThinkingChangeCallback,
+import {
+  UpstreamConversationEndedError,
+  type AISession,
+  type ActionCallback,
+  type AgentAction as OHAgentAction,
+  type EventCallback,
+  type RawOpenHandsEvent,
+  type ThinkingChangeCallback,
 } from '../openhands.js';
 import type { AgentEvent } from './types.js';
 
@@ -256,6 +257,64 @@ describe('OpenHandsAgentDriver', () => {
         throw new Error('no API key');
       };
       await expect(driver.openSession('s1', OPTS)).rejects.toThrow(/no API key/);
+    });
+
+    test('openSession preserves UpstreamConversationEndedError with typed reason (#405)', async () => {
+      // Verify UpstreamConversationEndedError with typed `reason` survives
+      // the driver layer so `instanceof` + `.reason` work at broadcast sites.
+      const original = new UpstreamConversationEndedError(
+        'conv-X',
+        'Conversation conv-X cannot open a WS session: sandbox is STOPPED.',
+        'sandbox-stopped',
+      );
+      mgr.getOrCreateImpl = async () => {
+        throw original;
+      };
+      await expect(driver.openSession('s1', OPTS)).rejects.toBe(original);
+      // Also verify via instanceof for completeness — the same
+      // checks the production call-sites perform.
+      try {
+        await driver.openSession('s1', OPTS);
+        throw new Error('expected openSession to reject');
+      } catch (err) {
+        expect(err).toBeInstanceOf(UpstreamConversationEndedError);
+        expect((err as UpstreamConversationEndedError).reason).toBe('sandbox-stopped');
+        expect((err as UpstreamConversationEndedError).conversationId).toBe('conv-X');
+      }
+    });
+
+    test('openSession preserves non-Error rejections by wrapping them once (#405)', async () => {
+      // A non-Error rejection (e.g. a string) must still propagate
+      // — but as a real `Error` so callers can rely on `err.message`.
+      mgr.getOrCreateImpl = async () => {
+        // eslint-disable-next-line @typescript-eslint/no-throw-literal
+        throw 'string-rejection';
+      };
+      try {
+        await driver.openSession('s1', OPTS);
+        throw new Error('expected openSession to reject');
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        expect((err as Error).message).toBe('string-rejection');
+      }
+    });
+
+    test('restartSession also preserves the typed UpstreamConversationEndedError (#405)', async () => {
+      // First, get a healthy binding.
+      await driver.openSession('s1', OPTS);
+      // Now arrange the next bind to fail with a typed reason. The
+      // restart path drops the current binding and re-binds via the
+      // same `lazyBindSession`, so it must also re-throw the typed
+      // cause rather than wrap into a bare `Error`.
+      const original = new UpstreamConversationEndedError(
+        'conv-Y',
+        'Conversation conv-Y cannot open a WS session: sandbox is MISSING.',
+        'sandbox-missing',
+      );
+      mgr.getOrCreateImpl = async () => {
+        throw original;
+      };
+      await expect(driver.restartSession('s1')).rejects.toBe(original);
     });
 
     test('openSession threads existingConversationId through to the manager (#341)', async () => {
