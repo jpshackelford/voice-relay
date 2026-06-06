@@ -16,7 +16,36 @@ export interface WorkspaceSettings {
    * (transcription + AI action). See issue #340.
    */
   kioskFooterTickersEnabled: boolean;
+  /**
+   * Hosted-STT engine selection. See issues #386 / #412.
+   * `'web-speech'` uses the browser's built-in Web Speech API (no usage).
+   * `'deepgram'` routes audio through Deepgram via the workspace's key.
+   */
+  sttEngine: 'web-speech' | 'deepgram';
+  /**
+   * Monthly cap for Deepgram-routed minutes. `null` means "no cap".
+   * Only meaningful when `sttEngine === 'deepgram'`.
+   */
+  sttMonthlyMinuteCap: number | null;
+  /**
+   * Whether a Deepgram API key has been configured for the workspace.
+   * The key itself is never returned by the server; this is the
+   * mask-aware boolean read of presence.
+   */
+  hasDeepgramApiKey: boolean;
   updatedAt: string | null;
+}
+
+/**
+ * Current-month STT usage snapshot as reported by
+ * `GET /api/stt/usage?workspaceId=...`. Used to render the
+ * "Used X / Y minutes" row in the workspace settings UI (issue #412).
+ */
+export interface SttUsage {
+  workspaceId: string;
+  minutesUsedThisMonth: number;
+  cap: number | null;
+  engine: 'web-speech' | 'deepgram';
 }
 
 export interface ApiKeyTestResult {
@@ -40,7 +69,7 @@ interface UseWorkspaceSettingsReturn {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled'>>) => Promise<void>;
+  updateSettings: (updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled' | 'sttEngine' | 'sttMonthlyMinuteCap'>>) => Promise<void>;
   setApiKey: (apiKey: string) => Promise<void>;
   testApiKey: (apiKey?: string) => Promise<ApiKeyTestResult>;
   removeApiKey: () => Promise<void>;
@@ -49,6 +78,22 @@ interface UseWorkspaceSettingsReturn {
   removeElevenlabsApiKey: () => Promise<void>;
   fetchElevenlabsVoices: () => Promise<ElevenlabsVoice[]>;
   generateVoicePreview: (voiceId: string) => Promise<VoicePreviewResult>;
+  /**
+   * Set / replace the workspace's Deepgram API key (PUT). The plaintext
+   * key is sent once and never returned by subsequent reads (mask-aware
+   * pattern; see `hasDeepgramApiKey`). Issue #412.
+   */
+  setDeepgramApiKey: (apiKey: string) => Promise<void>;
+  /**
+   * Clear the workspace's Deepgram API key (DELETE). Server-side this
+   * also resets `sttEngine` back to `'web-speech'`. Issue #412.
+   */
+  removeDeepgramApiKey: () => Promise<void>;
+  /**
+   * Read the current-month STT usage snapshot from `/api/stt/usage`.
+   * Used for the "Used X / Y minutes" row in the settings UI. Issue #412.
+   */
+  fetchSttUsage: () => Promise<SttUsage>;
 }
 
 /**
@@ -108,7 +153,7 @@ export function useWorkspaceSettings(
   }, [refresh]);
 
   const updateSettings = useCallback(async (
-    updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled'>>
+    updates: Partial<Pick<WorkspaceSettings, 'ttsVoice' | 'sttLanguage' | 'allowAutoJoin' | 'requireQrToken' | 'elevenlabsVoiceId' | 'elevenlabsTtsEnabled' | 'kioskFooterTickersEnabled' | 'sttEngine' | 'sttMonthlyMinuteCap'>>
   ) => {
     if (!workspaceId) {
       throw new Error('No workspace selected');
@@ -307,6 +352,74 @@ export function useWorkspaceSettings(
     return await res.json() as VoicePreviewResult;
   }, [workspaceId, ensureValidToken]);
 
+  // Issue #412: Deepgram (hosted STT) API key management. Mirrors the
+  // ElevenLabs flow above — set/clear plaintext key via PUT/DELETE, then
+  // refresh() so the masked `hasDeepgramApiKey` flag updates.
+  const setDeepgramApiKey = useCallback(async (apiKey: string) => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/deepgram-api-key`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to set Deepgram API key');
+    }
+
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
+  const removeDeepgramApiKey = useCallback(async () => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/workspaces/${workspaceId}/settings/deepgram-api-key`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!res.ok && res.status !== 204) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to remove Deepgram API key');
+    }
+
+    await refresh();
+  }, [workspaceId, ensureValidToken, refresh]);
+
+  // Issue #412: current-month usage snapshot. Note the endpoint lives on
+  // /api/stt/ rather than under /api/workspaces — it takes workspaceId
+  // as a query param.
+  const fetchSttUsage = useCallback(async (): Promise<SttUsage> => {
+    if (!workspaceId) {
+      throw new Error('No workspace selected');
+    }
+
+    await ensureValidToken?.();
+
+    const res = await fetch(`/api/stt/usage?workspaceId=${encodeURIComponent(workspaceId)}`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to fetch STT usage');
+    }
+
+    return await res.json() as SttUsage;
+  }, [workspaceId, ensureValidToken]);
+
   return {
     settings,
     loading,
@@ -321,5 +434,8 @@ export function useWorkspaceSettings(
     removeElevenlabsApiKey,
     fetchElevenlabsVoices,
     generateVoicePreview,
+    setDeepgramApiKey,
+    removeDeepgramApiKey,
+    fetchSttUsage,
   };
 }
