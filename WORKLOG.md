@@ -501,3 +501,47 @@ Ready for the merge worker.
 _This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 00:02 UTC - Review worker (PR #407 residual bot suggestions)
+
+✅ Cleared the last unresolved 🟡 pr-review thread on PR #407 and the two follow-up threads the bot posted after the re-trigger. PR is ready for review with all CI green and 0 unresolved threads.
+
+**Round 1 — thread `PRRT_kwDOSTUWGM6HgMp2`** (`server/src/agent-driver/openhands.test.ts:270`):
+- Bot suggested condensing an 8-line "previously/now" test comment to a 2-line invariant. Applied verbatim.
+- Commit: `3fc43af` — `style(server): tighten test comment per pr-review on #405 typed-reason`.
+
+**Round 2 — re-triggered pr-review after `gh pr ready 407` posted 2 new threads on `server/src/openhands.ts`:**
+- `PRRT_kwDOSTUWGM6HgVxT` (line 2422) — 8-line #405-narrating block above `explainMissingHandshake`. Condensed to a single-line invariant.
+- `PRRT_kwDOSTUWGM6HgVxb` (line 2592) — 5-line "remember the most recent swallowed transient error" comment on `lastPollError = err`. Condensed to a single-line capture comment.
+- Commit: `055f687` — `style(server): tighten openhands.ts comments per pr-review on #405 typed-reason`.
+
+All three threads replied to via `addPullRequestReviewThreadReply` with the commit SHA, then resolved via `resolveReviewThread`. No further bot rounds expected (we explicitly capped at one extra round per the task brief; if a third batch posts after this, it's a separate cycle).
+
+| Check | Status | Duration |
+|-------|--------|----------|
+| CI/Build Client | ✅ | 26s |
+| CI/Client Tests | ✅ | 46s |
+| CI/Server Tests | ✅ | 44s |
+| CI/E2E Tests | ✅ | 2m9s |
+| Conventional Commits/lint-pr-title | ✅ | 5s |
+
+**Workflow steps performed:**
+1. `gh pr ready 407 --undo` → draft.
+2. Edit + commit `3fc43af` for the test-file thread; push.
+3. `gh pr checks 407 --watch` → all 5 green.
+4. Replied & resolved `PRRT_kwDOSTUWGM6HgMp2` referencing `3fc43af`.
+5. `gh pr ready 407` → triggered a fresh `PR Review by OpenHands` run.
+6. Bot posted 2 new 🟡 suggestions on `openhands.ts`. Applied both verbatim in commit `055f687`; pushed.
+7. `gh pr checks 407 --watch` → all 5 green again.
+8. Replied & resolved `PRRT_kwDOSTUWGM6HgVxT` and `PRRT_kwDOSTUWGM6HgVxb` referencing `055f687`.
+
+**State at handoff:**
+- PR #407 — ready for review (not draft), 5/5 required CI green, 0 unresolved review threads, no Branch Hygiene violations (neither `WORKLOG.md` nor `.workflow-state.json` modified on the feature branch).
+- `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, `reviewDecision=""` (no required human reviewer).
+- Production impact: server-only typed-reason refactor for missing-WS-handshake failures; no DB migration. Comment-tightening commits are documentation-only — no behavior change since `ad6eca8`. Deploy target: `vr.chorecraft.net`.
+
+Ready for the merge worker.
+
+_This worklog entry was written by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
