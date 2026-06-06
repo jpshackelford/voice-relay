@@ -965,3 +965,54 @@ PATCH https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-06 23:30 UTC - Human-directed cleanup (stale `on-hold` sweep + skill fix)
+
+🧹 **Retroactive unblock pass** + 📚 **Codified `Unblock Pass` in the orchestrator skill** + 🔓 **Re-enabled automation** (the auto-disable from `00:31Z` was a stale-label artifact, not a real lack of work).
+
+@jpshackelford reported that "all the issues are marked on hold" and asked for an investigation. A code/worklog walk traced this to a one-way ratchet in the workflow plugin: the `expand-issue` worker applies `on-hold` to hard-blocked issues, but no skill ever removes the label after the blockers close. Over ~9 days the `on-hold` pile grew from the four legitimate S3-freeze issues (#299–#302) to cover every open issue, which then caused the orchestrator to declare two quiet ticks in a row and auto-disable at `2026-06-06 00:31 UTC`.
+
+**Diagnosis — which on-holds were stale vs legitimate:**
+
+| Issue | On-hold applied | Blocker(s) | Blocker state | Verdict |
+| --- | --- | --- | --- | --- |
+| [#210](https://github.com/jpshackelford/voice-relay/issues/210) | 2026-05-18 | None — "still valid (but de-urgented)" per status-check comment | n/a | Keep (de-urgented, not blocker-tracked) |
+| [#239](https://github.com/jpshackelford/voice-relay/issues/239) | 2026-05-19 | External (OpenHands API `401 BearerTokenError`) | external | Keep (external dep) |
+| [#299–#302](https://github.com/jpshackelford/voice-relay/issues/299) | 2026-05-24 | AGENTS.md S3 design freeze | S3 bucket + creds not yet provisioned | Keep (policy hold) |
+| [#351](https://github.com/jpshackelford/voice-relay/issues/351) | 2026-05-29 02:20Z | #358 | **CLOSED 2026-05-29 13:16Z** | **Lift (stale ~9d)** |
+| [#363](https://github.com/jpshackelford/voice-relay/issues/363) | 2026-05-29 12:21Z | #360, #362 | **both CLOSED 2026-05-29** | **Lift (stale ~9d)** |
+| [#384](https://github.com/jpshackelford/voice-relay/issues/384) | 2026-06-04 17:52Z | #383 | **CLOSED 2026-06-05 02:39Z** | **Lift (stale ~1.5d)** |
+| [#386](https://github.com/jpshackelford/voice-relay/issues/386) | 2026-06-06 14:49Z | Umbrella tracker for #409–#413 | open children | Keep (orchestrator-design umbrella) |
+
+**Skill-side fix:** [jpshackelford/.openhands#38](https://github.com/jpshackelford/.openhands/pull/38) (merged) adds:
+
+1. An "Issue is hard-blocked" subsection in `skills/expand-issue.md` that tells expansion workers to emit one machine-parseable `Blocked by #N` line per blocker in the `## 🛑 on-hold rationale` comment. The `on-hold` label is also added to the Labels Reference table.
+2. A new **Unblock Pass** step in `skills/orchestrate.md` that runs during Gather State on every tick, walks every open `on-hold` issue, parses `Blocked by #N` from the body and all comments, and lifts `on-hold` (and adds `ready`) when all named blockers are CLOSED. Only the literal `Blocked by #N` form is parsed — prose like "depends on #N" or "once #N lands" is ignored by design so policy holds (AGENTS.md design freeze, umbrella trackers, external-dep holds) survive untouched.
+3. The Issue Categories table now distinguishes **machine-tracked** vs **policy-tracked** `on-hold`, and the Anti-Stall section now requires the unblock pass to have run before the orchestrator may auto-disable.
+
+**Repo-side cleanup (this entry):**
+
+- Posted "✅ Unblock pass (manual / retroactive)" comments on #351, #363, #384 naming the closed blocker(s) and pointing at [.openhands#38](https://github.com/jpshackelford/.openhands/pull/38).
+- `gh issue edit 351 --remove-label on-hold` — kept existing `ready`.
+- `gh issue edit 363 --remove-label on-hold` — kept existing `ready`.
+- `gh issue edit 384 --remove-label on-hold --add-label ready` — added `ready` because the expansion worker had correctly withheld it pending #383.
+- Did **not** touch #210, #239, #299–#302, #386 (all are legitimate per the table above; the existing `on-hold` rationales are prose-only so the new unblock pass will leave them alone too).
+
+**Why the stale on-hold rationales weren't in the parseable form:** they predate [.openhands#38](https://github.com/jpshackelford/.openhands/pull/38). Existing prose forms ("depends on #N", "once #N lands") are now documented as *non-parseable*. New expansion workers will use the `Blocked by #N` form documented in `expand-issue.md`, and the unblock pass will pick them up the moment all referenced blockers close.
+
+**Backlog after cleanup:**
+
+| Bucket | Count | Items |
+| --- | --- | --- |
+| Open PRs | 0 | — |
+| Ready + actionable (no `on-hold` / `needs-human`) | **3** | #351 (`bug`, `priority:low`, server), #363 (`enhancement`, `priority:medium`, server), #384 (`enhancement`, `priority:medium`, full-stack) |
+| Needs expansion + actionable | 0 | — (all unexpanded issues are still under the S3 freeze or `needs-human`) |
+| Policy/legit `on-hold` | 7 | #210, #239, #299–#302, #386 |
+| `needs-human` | 1 | #372 |
+
+🔓 **Re-enabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316`** ("Voice Relay Workflow Orchestrator v2") via `PATCH /api/automation/v1/{id}` with `{"enabled": true}` — returned 200. The next tick has three productive `ready` issues to dispatch from (impl slot 0/1 → will pick the highest-priority of #363, #351, #384). Quiet-tick counter reset to `0`.
+
+**Production-impact:** none. GitHub-metadata-only changes (3 issue labels, 3 issue comments) plus the skill-plugin merge in a separate repo. No code change, no migration, no deploy.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
