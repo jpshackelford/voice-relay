@@ -222,6 +222,17 @@ export interface RelayedTextMessage {
    * senders whose timezone is unknown.
    */
   senderTimezone?: string;
+  /**
+   * For user utterances: the hosted-STT engine's per-session, per-device
+   * speaker label (e.g. `'S1'`) when one was attached (issue #386 /
+   * #411). The server forwards it unchanged on the outbound
+   * `RelayedTextMessage` until a `session_engine_speakers` mapping
+   * resolves it to a real `speakers.id`; at that point the server
+   * substitutes the real speaker on `senderName` and this field is no
+   * longer meaningful. Undefined for AI utterances and for Web-Speech
+   * sessions that have no engine labels.
+   */
+  engineSpeakerLabel?: string;
 }
 
 export interface HistoryMessage {
@@ -553,6 +564,14 @@ export interface Utterance {
   text: string;
   partial: boolean;
   receivedAt: Date;
+  /**
+   * Optional hosted-STT engine speaker label (issue #386 / #411).
+   * Propagated from `RelayedTextMessage.engineSpeakerLabel` so the
+   * kiosk ticker can render `S1: …` until the engine label is linked
+   * to a real `speakers.id`. Undefined for Web-Speech and AI
+   * utterances.
+   */
+  engineSpeakerLabel?: string;
 }
 
 /**

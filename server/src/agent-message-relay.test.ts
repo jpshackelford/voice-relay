@@ -140,6 +140,43 @@ describe('relayAgentResponse', () => {
     });
   });
 
+  test('forwards `engineSpeakerLabel` on the sender object when present (#411)', async () => {
+    const seen: Array<unknown> = [];
+    const wrapper = {
+      hasSession: (sid: string) => driver.hasSession(sid),
+      openSession: driver.openSession.bind(driver),
+      sendMessage: (sessionId: string, utteranceId: string, text: string, sender?: unknown) => {
+        seen.push(sender);
+        return driver.sendMessage(sessionId, utteranceId, text);
+      },
+      restartSession: driver.restartSession.bind(driver),
+      getSessionStatus: driver.getSessionStatus.bind(driver),
+      closeSession: driver.closeSession.bind(driver),
+    };
+    driver.script('s1', [{ kind: 'message', text: 'ack' } as AgentEvent]);
+    const deps = makeDeps(driver, {
+      agentDriver: wrapper as never,
+      sender: {
+        deviceId: 'd-1',
+        senderName: 'Kitchen iPad',
+        saidAtUtc: '2026-06-01T17:23:45Z',
+        timezone: 'America/Los_Angeles',
+        engineSpeakerLabel: 'S1',
+      },
+    });
+
+    await relayAgentResponse('s1', 'wk-1', 'u-1', 'hi', deps);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual({
+      deviceId: 'd-1',
+      senderName: 'Kitchen iPad',
+      saidAtUtc: '2026-06-01T17:23:45Z',
+      timezone: 'America/Los_Angeles',
+      engineSpeakerLabel: 'S1',
+    });
+  });
+
   test('forwards `sender = undefined` when none was supplied (#375)', async () => {
     const seen: Array<unknown> = [];
     const wrapper = {

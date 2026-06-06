@@ -529,8 +529,11 @@ export function KioskMode({
     }
     const u = mostRecentForeignUtterance;
     if (!u) return { prefix: '', text: '' };
+    // Issue #411: Prefer engine label (e.g. S1) over device name until
+    // speaker resolves. Same-sender suppression stays on senderId.
+    const speakerLabel = u.engineSpeakerLabel ?? u.senderName;
     const prefix =
-      u.senderId === lastRenderedSenderIdRef.current ? '' : `${u.senderName}: `;
+      u.senderId === lastRenderedSenderIdRef.current ? '' : `${speakerLabel}: `;
     return { prefix, text: u.text };
   }, [kioskFooterTickersEnabled, transcriptionStale, mostRecentForeignUtterance]);
 

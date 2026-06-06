@@ -149,6 +149,9 @@ export function Workspace() {
         text: message.text,
         partial: message.partial,
         receivedAt: serverTime ?? prev.get(message.utteranceId)?.receivedAt ?? new Date(),
+        ...(message.engineSpeakerLabel
+          ? { engineSpeakerLabel: message.engineSpeakerLabel }
+          : {}),
       });
       return next;
     });
@@ -170,6 +173,9 @@ export function Workspace() {
             text: msg.text,
             partial: msg.partial,
             receivedAt: createdAt ?? new Date(),
+            ...(msg.engineSpeakerLabel
+              ? { engineSpeakerLabel: msg.engineSpeakerLabel }
+              : {}),
           });
         }
       }

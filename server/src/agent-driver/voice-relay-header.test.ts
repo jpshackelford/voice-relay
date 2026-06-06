@@ -306,4 +306,209 @@ describe('buildVoiceRelayHeader', () => {
     );
     expect(state.lastUserAtMs).toBe(t1);
   });
+
+  // ========================================================================
+  // Engine-speaker label fallback (#386 / #411)
+  //
+  // When a hosted-STT engine attaches a per-session label (e.g. `S1`) to
+  // an utterance and no real `speakers.id` is bound yet, the header
+  // builder must surface that label so the agent can attribute the turn
+  // to a stable bucket. Once a `speaker` becomes available, it wins and
+  // the engine label is silently dropped.
+  // ========================================================================
+  describe('engine-speaker label fallback (#386 / #411)', () => {
+    test('emits `[speaker engine=...]` when only the engine label is present', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS,
+      );
+      expect(header).toContain('[speaker engine=S1]');
+      // Sanity: the announcement + anchor still surround it.
+      expect(header.split('\n')).toEqual([
+        '[vr A=Kitchen iPad tz=America/Los_Angeles]',
+        '[speaker engine=S1]',
+        '[t=2026-06-01T17:23Z]',
+      ]);
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBe('S1');
+    });
+
+    test('suppresses repeat `[speaker engine=...]` on consecutive same-label turns from same device', () => {
+      const state = makeVoiceRelayHeaderState();
+      buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'A',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS,
+      );
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'A',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS + 10_000,
+      );
+      // Same speaker, same engine label, within quiet period → nothing.
+      expect(header).toBe('');
+      expect(header).not.toContain('[speaker');
+    });
+
+    test('emits a new `[speaker engine=...]` when the engine label changes on the same device', () => {
+      const state = makeVoiceRelayHeaderState();
+      buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'A',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS,
+      );
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'A',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          engineSpeakerLabel: 'S2',
+        }),
+        T0_MS + 10_000,
+      );
+      expect(header).toBe('[speaker engine=S2]');
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBe('S2');
+    });
+
+    test('resolved `speaker` wins over `engineSpeakerLabel` when both are present', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+          speaker: { id: 'sp-1', preferredName: 'Sam', pronouns: 'they/them' },
+        }),
+        T0_MS,
+      );
+      // Only the resolved-speaker line should be in the output; the
+      // engine label is fully ignored.
+      expect(header).toContain('[speaker id=sp-1 name=Sam pronouns=they/them]');
+      expect(header).not.toContain('engine=S1');
+      // State: resolved-speaker map is populated; engine map is *not*
+      // populated because the resolved path takes over completely.
+      expect(state.deviceSpeakerId.get('d1')).toBe('sp-1');
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBeUndefined();
+    });
+
+    test('switching from engine-only to a resolved speaker emits the speaker line and clears engine state', () => {
+      const state = makeVoiceRelayHeaderState();
+      buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS,
+      );
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBe('S1');
+
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          engineSpeakerLabel: 'S1',
+          speaker: { id: 'sp-1', preferredName: 'Sam', pronouns: null },
+        }),
+        T0_MS + 10_000,
+      );
+      expect(header).toBe('[speaker id=sp-1 name=Sam]');
+      expect(state.deviceSpeakerId.get('d1')).toBe('sp-1');
+      // Engine cache for this device cleared so a later unclaim that
+      // loses `speaker` can re-emit the engine fallback cleanly.
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBeUndefined();
+    });
+
+    test('losing the resolved speaker but still carrying the engine label re-emits the engine line', () => {
+      const state = makeVoiceRelayHeaderState();
+      buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S1',
+          speaker: { id: 'sp-1', preferredName: 'Sam', pronouns: null },
+        }),
+        T0_MS,
+      );
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'Kitchen iPad',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          engineSpeakerLabel: 'S1',
+        }),
+        T0_MS + 10_000,
+      );
+      // First: the speaker disappears → `id=unknown`. Second: engine
+      // label re-asserts because the engine cache was cleared.
+      expect(header.split('\n')).toEqual([
+        '[speaker id=unknown]',
+        '[speaker engine=S1]',
+      ]);
+      expect(state.deviceSpeakerId.get('d1')).toBeUndefined();
+      expect(state.deviceEngineSpeakerLabel.get('d1')).toBe('S1');
+    });
+
+    test('engine label is sanitized (control chars / `]` stripped)', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'd1',
+          senderName: 'A',
+          saidAtUtc: T0,
+          engineSpeakerLabel: 'S]1\n!',
+        }),
+        T0_MS,
+      );
+      expect(header).toContain('[speaker engine=S 1 !]');
+    });
+
+    test('no `engineSpeakerLabel` → no `[speaker ...]` line (Web Speech path unchanged)', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'd1', senderName: 'Kitchen iPad', saidAtUtc: T0 }),
+        T0_MS,
+      );
+      // Regression guard: utterances without an engine label or
+      // resolved speaker must produce only the announcement +
+      // time anchor.
+      expect(header).toBe(
+        '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]',
+      );
+      expect(header).not.toContain('[speaker');
+    });
+  });
 });
