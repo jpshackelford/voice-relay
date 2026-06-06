@@ -854,3 +854,19 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:40 UTC - Expansion Worker (issue #409)
+
+✅ **Expanded Issue [#409](https://github.com/jpshackelford/voice-relay/issues/409)** — `feat(client): useHostedSpeechRecognition hook for hosted STT (follow-up to #386)`
+
+- **Type:** Enhancement (client-only follow-up filed by retroactive AC Gate on PR #402 / umbrella #386).
+- **Verdict:** Issue body already well-specified by the AC Gate. Sanity-checked against `main` — server prerequisites and reference hook all exist as claimed. No rewrite needed.
+- **Verified against main:**
+  - Reference hook `client/src/hooks/useSpeechRecognition.ts` (147 lines) and test scaffolding `useSpeechRecognition.test.ts` (`FakeSpeechRecognition` class pattern) — confirmed mirror target.
+  - Server endpoints `POST /api/stt/token`, `POST /api/stt/usage`, `GET /api/stt/usage` live at `server/src/transcription/router.ts` with the full 401/402/403/404/502/503 error matrix. Verified token-success shape: `{ engine: 'deepgram', token, expiresAt }`.
+  - `engineSpeakerLabel?: string` is already on `TextMessage` / `RelayedTextMessage` (`server/src/types.ts:233,521`) and is relayed in `server/src/index.ts:972-1006` — confirms zero server-side work for this issue.
+- **Action:** Added a single implementation-notes [comment](https://github.com/jpshackelford/voice-relay/issues/409#issuecomment-4639239842) covering the verified response shape, fallback-eligible error matrix, Deepgram WS URL/sub-protocol auth note, and recommended `error` shape (`{ message, fallbackEligible, cause }`). Added `ready` label.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
