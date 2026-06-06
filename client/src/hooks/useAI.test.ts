@@ -15,35 +15,10 @@ describe('useAI hook', () => {
     vi.restoreAllMocks();
   });
 
-  describe('checkAvailability', () => {
-    it('returns availability status from API', async () => {
-      const { result } = renderHook(() => useAI(defaultOptions));
-
-      global.fetch = vi.fn().mockResolvedValueOnce({
-        json: () => Promise.resolve({ available: true, message: 'AI is ready' }),
-      });
-
-      let status;
-      await act(async () => {
-        status = await result.current.checkAvailability();
-      });
-
-      expect(status).toEqual({ available: true, message: 'AI is ready' });
-    });
-
-    it('returns not available on fetch error', async () => {
-      const { result } = renderHook(() => useAI(defaultOptions));
-
-      global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network error'));
-
-      let status;
-      await act(async () => {
-        status = await result.current.checkAvailability();
-      });
-
-      expect(status).toEqual({ available: false, message: 'Failed to check AI status' });
-    });
-  });
+  // `checkAvailability` removed in #404 — the `/api/ai/status` endpoint
+  // was deleted server-side once per-workspace OpenHands API keys
+  // became mandatory. Components branch on the session-state-driven
+  // reducer (`connected` / `connecting` / `state`) instead.
 
   describe('handleAIThinking', () => {
     it('updates thinking state from WebSocket message', async () => {

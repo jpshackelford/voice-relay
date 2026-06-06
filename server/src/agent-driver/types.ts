@@ -143,18 +143,16 @@ export interface AgentSpeakerMeta {
  */
 export interface AgentDriver {
   /**
-   * True when the driver is configured and can serve requests. Used by the
-   * platform's auto-connect path to skip provisioning entirely when no
-   * credentials are available. Cheap; no upstream calls.
-   */
-  isAvailable(): boolean;
-
-  /**
    * True when the driver has a registered (and likely upstream-bound)
    * session for `sessionId`. Cheap synchronous check used by hot-path
    * dispatch decisions in the WS handler. Equivalent in spirit to
    * `getSessionStatus(sessionId).state !== 'absent'` but synchronous so
    * callers don't pay an `await` per inbound text frame.
+   *
+   * Note: the prior `isAvailable()` method was removed in #404. After
+   * per-workspace API keys became mandatory, "is the driver configured?"
+   * lost its meaning — availability is now a per-workspace property
+   * resolved by `getWorkspaceApiKey(workspaceId)`.
    */
   hasSession(sessionId: string): boolean;
 

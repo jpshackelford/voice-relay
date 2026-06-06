@@ -74,7 +74,6 @@ export function MobileMode({
   const [interimText, setInterimText] = useState('');
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
-  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [conversationOpen, setConversationOpen] = useState(false);
   // Input mode: 'voice' uses Web Speech API only, 'visualizer' uses getUserMedia for oscilloscope only,
@@ -93,13 +92,11 @@ export function MobileMode({
   const ai = useAI({ sessionId });
   const audioAnalyser = useAudioAnalyser();
 
-  // Memoize checkAvailability to avoid unstable dependency
-  const checkAvailability = ai.checkAvailability;
-
-  // Check AI availability on mount
-  useEffect(() => {
-    checkAvailability().then(status => setAiAvailable(status.available));
-  }, [checkAvailability]);
+  // The legacy `aiAvailable` startup probe (calling `/api/ai/status`)
+  // was removed in #404 once per-workspace OpenHands API keys became
+  // mandatory. The AI status indicator below now gates purely on
+  // `ai.connecting || ai.connected`, both of which are driven by
+  // session-state broadcasts.
 
   // Notify parent of AI status changes
   useEffect(() => {
@@ -492,7 +489,7 @@ export function MobileMode({
         </button>
 
         {/* AI Status Badge */}
-        {aiAvailable && (ai.connecting || ai.connected) && (
+        {(ai.connecting || ai.connected) && (
           <div className={`walkie-ai-badge ${ai.thinking ? 'thinking' : ''}`}>
             {ai.connecting ? '🔗 Connecting...' : ai.thinking ? '🤔 Thinking...' : '✨ AI Connected'}
           </div>

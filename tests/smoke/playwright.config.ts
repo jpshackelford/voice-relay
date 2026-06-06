@@ -10,7 +10,7 @@ import * as path from 'path';
  * Test files:
  * - smoke.spec.ts: Core health/auth/connectivity tests
  * - invite-link.spec.ts: Workspace invite link flow tests
- * - ai-integration.spec.ts: AI assistant E2E tests (requires OPENHANDS_API_KEY)
+ * - ai-integration.spec.ts: AI assistant E2E tests (requires a per-workspace OpenHands API key)
  */
 export default defineConfig({
   testDir: '.',

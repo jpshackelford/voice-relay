@@ -45,13 +45,6 @@ class FakeAISessionManager implements AISessionManagerSurface {
   getOrCreateImpl?: (sessionId: string, workspaceId: string) => Promise<FakeAIBinding>;
   /** Optional override of `sendSessionMessage` behavior per test. */
   sendImpl?: (sessionId: string, message: string) => Promise<void>;
-  /** Override of `isAvailable` per test. Defaults to true. */
-  available = true;
-
-  isAvailable(): boolean {
-    return this.available;
-  }
-
   hasSessionAI(sessionId: string): boolean {
     return this.bindings.has(sessionId);
   }
@@ -1009,12 +1002,11 @@ describe('OpenHandsAgentDriver', () => {
   // ---------------------------------------------------------------------------
 
   describe('platform fan-out hooks (T-2.3.D.*)', () => {
-    test('T-2.3.D.1: isAvailable delegates to manager.isAvailable', () => {
-      mgr.available = true;
-      expect(driver.isAvailable()).toBe(true);
-      mgr.available = false;
-      expect(driver.isAvailable()).toBe(false);
-    });
+    // T-2.3.D.1 (isAvailable delegation) removed in #404. The
+    // `isAvailable()` method was deleted from the `AgentDriver`
+    // contract once per-workspace API keys became the only credential
+    // source — availability is now resolved per-workspace by
+    // `getWorkspaceApiKey(workspaceId)` in auto-connect / rehydrate.
 
     test('T-2.3.D.2: hasSession delegates to manager.hasSessionAI', () => {
       expect(driver.hasSession('s1')).toBe(false);

@@ -67,15 +67,13 @@ function createMockWorkspaceRepository(): WorkspaceRepository {
 }
 
 interface MockDriverConfig {
-  isAvailable?: boolean;
   /** Per-sessionId overrides: 'throw' (UpstreamConversationEnded-like) or a status. */
   responses?: Record<string, AgentSessionStatus | { throw: Error }>;
 }
 
 function createMockAgentDriver(config: MockDriverConfig = {}): AgentDriver {
-  const { isAvailable = true, responses = {} } = config;
+  const { responses = {} } = config;
   return {
-    isAvailable: vi.fn().mockReturnValue(isAvailable),
     hasSession: vi.fn().mockReturnValue(false),
     openSession: vi.fn().mockImplementation(async (sessionId: string) => {
       const r = responses[sessionId];
@@ -218,9 +216,11 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(degraded!.ai.error).toContain('restart');
   });
 
-  test('skips session when no workspace key and driver advertises unavailable', async () => {
+  test('skips session when workspace has no configured API key', async () => {
+    // Post-#404: workspace key is the only credential source. The legacy
+    // `isAvailable()` driver probe (env-keyed fallback) is gone.
     const sessions = [activeSession('session-x', 'ws-no-key', 'conv-x')];
-    const driver = createMockAgentDriver({ isAvailable: false });
+    const driver = createMockAgentDriver();
     const deps = {
       sessionRepository: createMockSessionRepository(sessions),
       workspaceRepository: createMockWorkspaceRepository(),
@@ -236,15 +236,19 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(driver.openSession).not.toHaveBeenCalled();
   });
 
-  test('uses env driver when workspace key is null but driver isAvailable', async () => {
+  test('threads workspace API key through to openSession (#404)', async () => {
+    // Pre-#404 the rehydrate path had two branches: workspace key, or
+    // env-keyed driver fallback. Post-#404 only the first remains, and
+    // the workspace key MUST be forwarded so the OH adapter can build a
+    // workspace-scoped client per session (see #403 plumbing).
     const sessions = [activeSession('session-y', 'ws-1', 'conv-y')];
-    const driver = createMockAgentDriver({ isAvailable: true });
+    const driver = createMockAgentDriver();
     const deps = {
       sessionRepository: createMockSessionRepository(sessions),
       workspaceRepository: createMockWorkspaceRepository(),
       agentDriver: driver,
       registry: createRegistry() as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
-      getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('workspace-key-abc'),
     };
 
     const outcomes = await rehydrateAgentSessions(deps);
@@ -252,7 +256,7 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(outcomes[0].status).toBe('rehydrated');
     expect(driver.openSession).toHaveBeenCalledWith(
       'session-y',
-      expect.not.objectContaining({ apiKey: expect.anything() }),
+      expect.objectContaining({ apiKey: 'workspace-key-abc' }),
     );
   });
 
@@ -297,9 +301,14 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(driver.openSession).not.toHaveBeenCalled();
   });
 
-  test('works without workspaceRepository (env-driver only)', async () => {
+  test('skips rehydration when workspaceRepository is null (#404)', async () => {
+    // Pre-#404 this asserted that the env-keyed driver kept rehydration
+    // working when no workspace repo was wired. After the env fallback
+    // was removed, there's no credential source in that mode, so each
+    // session must be skipped rather than silently opened with a
+    // missing key.
     const sessions = [activeSession('session-z', 'ws-1', 'conv-z')];
-    const driver = createMockAgentDriver({ isAvailable: true });
+    const driver = createMockAgentDriver();
     const deps = {
       sessionRepository: createMockSessionRepository(sessions),
       workspaceRepository: null,
@@ -310,8 +319,8 @@ describe('rehydrateAgentSessions (#341)', () => {
 
     const outcomes = await rehydrateAgentSessions(deps);
 
-    expect(outcomes[0].status).toBe('rehydrated');
-    expect(driver.openSession).toHaveBeenCalled();
+    expect(outcomes[0].status).toBe('skipped');
+    expect(driver.openSession).not.toHaveBeenCalled();
     // Should not have queried the workspace key path
     expect(deps.getWorkspaceApiKey).not.toHaveBeenCalled();
   });

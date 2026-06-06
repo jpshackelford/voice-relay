@@ -193,7 +193,10 @@ See `.env.example` for required variables. Key ones:
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App Client Secret |
 | `JWT_SECRET` | Secret for signing JWT tokens |
 | `BASE_URL` | `https://app.no-hands.dev` (for OAuth callbacks) |
-| `OPENHANDS_CLOUD_API_KEY` | OpenHands AI integration |
+
+> **OpenHands API key:** configured per-workspace via the workspace settings
+> UI and stored encrypted in `workspace_settings.openhands_api_key_encrypted`.
+> The server no longer honours any process-wide env-var fallback (#404).
 
 ## Deployment
 

@@ -612,16 +612,13 @@ app.post('/api/display', async (req, res) => {
   res.json({ success: true, kioskCount });
 });
 
-// AI conversation management endpoints
-app.get('/api/ai/status', (_req, res) => {
-  const available = agentDriver.isAvailable();
-  res.json({
-    available,
-    message: available
-      ? 'OpenHands AI is available'
-      : 'OpenHands API key not configured'
-  });
-});
+// Legacy `/api/ai/status` removed in #404. The probe answered "is
+// `OPENHANDS_CLOUD_API_KEY` set on the process?" — a question with no
+// meaning after per-workspace API keys became mandatory. Clients that
+// need to know whether AI is configured for a given workspace should
+// look at `workspace_settings.openhands_api_key_encrypted` via the
+// workspace-settings UI; per-session readiness is broadcast as
+// `session-state` over the session WebSocket.
 
 // Legacy device-centric AI endpoints - deprecated in favor of session-centric auto-connect
 // These endpoints now return 410 Gone to guide clients to the new architecture

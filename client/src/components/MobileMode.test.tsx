@@ -37,7 +37,6 @@ vi.mock('../hooks/useAI', () => ({
     connecting: false,
     thinking: false,
     error: null,
-    checkAvailability: vi.fn().mockResolvedValue({ available: false }),
   }),
 }));
 

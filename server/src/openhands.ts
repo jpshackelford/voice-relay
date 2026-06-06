@@ -332,12 +332,27 @@ export class OpenHandsClient {
   private apiKey: string;
   private baseUrl: string;
 
-  constructor(apiKey?: string, baseUrl: string = OPENHANDS_BASE_URL) {
-    const resolvedKey = apiKey || process.env.OPENHANDS_CLOUD_API_KEY || process.env.OPENHANDS_API_KEY;
-    if (!resolvedKey) {
-      throw new Error('Missing OpenHands API key. Set OPENHANDS_CLOUD_API_KEY or OPENHANDS_API_KEY environment variable.');
+  /**
+   * @param apiKey - Per-workspace OpenHands API key. Required; the
+   *   process-scoped `OPENHANDS_CLOUD_API_KEY` / `OPENHANDS_API_KEY` env
+   *   fallback was removed in #404 once every runtime caller flowed
+   *   through `clientForSession(session)` (issue #403).
+   * @param baseUrl - OpenHands SaaS base URL; defaults to
+   *   `OPENHANDS_BASE_URL`.
+   */
+  constructor(apiKey: string, baseUrl: string = OPENHANDS_BASE_URL) {
+    // #404 (pr-review): treat whitespace-only keys as missing too. A
+    // bare empty string was already rejected; an all-spaces value would
+    // have slipped through the `!apiKey` check and surfaced as a
+    // confusing upstream 401. Single source of truth — the manager's
+    // `getOrCreateForSession` also short-circuits whitespace before
+    // calling here, but defending here keeps every call site honest.
+    if (!apiKey || !apiKey.trim()) {
+      throw new Error(
+        'Missing OpenHands API key. Configure a per-workspace key in workspace settings.',
+      );
     }
-    this.apiKey = resolvedKey;
+    this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/$/, '');
   }
 
@@ -1870,19 +1885,19 @@ export class AISessionManager {
     loadPrompt('system-prompt', input.displayLines, input.workspaceId, input.sessionId);
 
   /**
-   * @param client - Optional pre-built client (test seam). When omitted, the
-   * manager constructs its own `OpenHandsClient` using ambient env vars.
+   * @param client - Optional pre-built client (test seam only). Production
+   * starts client-less; per-workspace clients are derived per session via
+   * {@link clientForSession} (issue #403). The env-keyed singleton path
+   * was removed in #404 — `setClientForTesting` is the only sanctioned
+   * way to install a manager-wide client, and only for tests.
    */
   constructor(client?: OpenHandsClient) {
     if (client !== undefined) {
       this.client = client;
-      return;
     }
-    try {
-      this.client = new OpenHandsClient();
-    } catch (e) {
-      console.warn('OpenHands client not initialized:', (e as Error).message);
-    }
+    // No default client. Per-session callers must supply
+    // `options.apiKey` (or `options.client` for tests); the manager has
+    // no global key after #404.
   }
 
   /**
@@ -1908,15 +1923,20 @@ export class AISessionManager {
   }
 
   /**
-   * Returns a workspace-scoped OpenHandsClient for the session's API key,
-   * or falls back to the env-keyed singleton when session.apiKey is unset
-   * (env fallback removal tracked by #404). Re-derived per call; key
-   * rotation is honored at the next attach (#403).
+   * Returns a workspace-scoped OpenHandsClient for the session's API key.
+   * Falls back to a test-installed client if the session has no cached key
+   * (only possible in tests that use `setClientForTesting`). Re-derived
+   * per call; key rotation is honored at the next attach (#403). The env
+   * fallback was removed in #404 — production sessions must carry an
+   * `apiKey` (plumbed in #406).
    */
   private clientForSession(session: AISession): OpenHandsClient | null {
     if (session.apiKey) {
       return new OpenHandsClient(session.apiKey);
     }
+    // Test seam only: when `setClientForTesting` installed a manager-wide
+    // client, sessions without an apiKey reuse it. Production never hits
+    // this branch because per-session apiKeys are required (#404).
     return this.client;
   }
 
@@ -2260,10 +2280,6 @@ export class AISessionManager {
     throw new SandboxResumeTimeoutError(conversationId);
   }
 
-  isAvailable(): boolean {
-    return this.client !== null;
-  }
-
   /**
    * Set callback for thinking state changes
    * Used by the server to broadcast ai-thinking messages
@@ -2342,10 +2358,17 @@ export class AISessionManager {
       return existing;
     }
 
-    // Create new AI session
-    const client = options.apiKey ? new OpenHandsClient(options.apiKey) : this.client;
+    // Create new AI session. After #404 the workspace-scoped `apiKey` is
+    // required; the env-keyed singleton fallback is gone. Tests that
+    // installed a manager-wide client via `setClientForTesting` may still
+    // omit `options.apiKey`. Whitespace-only keys are treated as missing
+    // (pr-review on #404) so they hit the typed `#404` error below
+    // instead of constructing a doomed client.
+    const client = options.apiKey?.trim() ? new OpenHandsClient(options.apiKey) : this.client;
     if (!client) {
-      throw new Error('OpenHands API not configured');
+      throw new Error(
+        'OpenHands API not configured: workspace API key required (#404).',
+      );
     }
 
     // Attach-to-existing path (issue #341). Skip `startConversation` and go
@@ -2486,9 +2509,14 @@ export class AISessionManager {
       return existing;
     }
 
+    // After #404, the caller is expected to supply a workspace-scoped
+    // client (`options.client`). The `this.client` fallback only fires
+    // when a test installed one via `setClientForTesting`.
     const client = options.client ?? this.client;
     if (!client) {
-      throw new Error('OpenHands API not configured');
+      throw new Error(
+        'OpenHands API not configured: workspace API key required (#404).',
+      );
     }
 
     console.log(

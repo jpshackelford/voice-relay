@@ -195,25 +195,14 @@ Voice Relay integrates with OpenHands AI for interactive conversations. AI auto-
 ### Setup
 
 1. Get an API key from [OpenHands Cloud](https://app.all-hands.dev)
-2. Configure per-workspace in the workspace settings UI, or set globally:
-
-```bash
-OPENHANDS_CLOUD_API_KEY=your-api-key-here
-```
+2. Configure the key per-workspace in the workspace settings UI. There is no
+   global env-var fallback — each workspace owns its own key (#404).
 
 ### Usage
 
 - AI auto-connects when a device joins a session
 - Speak or type messages — AI responses appear in chat
 - In kiosk mode, AI can display rich content (markdown, images) on the display area
-
-### AI Status API
-
-```bash
-# Check if AI is available
-GET /api/ai/status
-# Returns: { available: boolean, message: string }
-```
 
 ## Display API
 
@@ -379,9 +368,9 @@ For backward compatibility, `workspaceId` is also accepted but `sessionId` is pr
 
 ### AI Integration
 
-| Variable | Description |
-|----------|-------------|
-| `OPENHANDS_CLOUD_API_KEY` | Global OpenHands API key (workspace keys override) |
+OpenHands API keys are configured per-workspace via the workspace settings UI
+and stored encrypted in `workspace_settings.openhands_api_key_encrypted`. The
+server no longer reads any global OpenHands key from the environment (#404).
 
 ## Testing
 

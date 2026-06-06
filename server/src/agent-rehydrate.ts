@@ -94,11 +94,13 @@ async function rehydrateSingleSession(
   const workspaceId = session.workspaceId;
 
   try {
-    // Resolve workspace API key (may be null when the workspace relies
-    // on the env-configured driver).
+    // Resolve workspace API key. After #404 the env-keyed driver
+    // fallback is gone — `getWorkspaceApiKey` is the only credential
+    // source. When the workspace repo isn't wired or the workspace has
+    // no key configured, rehydration is skipped.
     const apiKey = workspaceRepository ? await getWorkspaceApiKey(workspaceId) : null;
 
-    if (!apiKey && !agentDriver.isAvailable()) {
+    if (!apiKey) {
       console.warn(
         `[AI] Rehydration skipped for session ${sessionId}: no API key available (workspace ${workspaceId}, conversation ${conversationId})`,
       );

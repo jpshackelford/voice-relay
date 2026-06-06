@@ -147,7 +147,6 @@ export function KioskMode({
   const [interimText, setInterimText] = useState('');
   const [autoSubmit, setAutoSubmit] = useState(true);
   const [sttError, setSttError] = useState<string | null>(null);
-  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);  // Start collapsed per F3
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [imageLoadError, setImageLoadError] = useState<string | null>(null);
@@ -175,11 +174,12 @@ export function KioskMode({
   const actionsEndRef = useRef<HTMLDivElement>(null);
 
   // AI state is now passed from parent via props (wired to WebSocket in SessionView)
-
-  // Check AI availability on mount
-  useEffect(() => {
-    ai?.checkAvailability().then(status => setAiAvailable(status.available));
-  }, [ai]);
+  //
+  // The legacy `aiAvailable` startup probe was removed in #404 — the
+  // `/api/ai/status` endpoint answered "is a process-wide OpenHands key
+  // set?" which has no meaning once per-workspace keys are mandatory.
+  // The AI status indicator below now gates purely on `ai.connecting ||
+  // ai.connected`, both of which are driven by `session-state` broadcasts.
 
   // Notify parent of AI status changes
   useEffect(() => {
@@ -716,7 +716,7 @@ export function KioskMode({
           )}
           <div className="kiosk-input-row">
             {/* AI status indicator (display only - AI auto-connects to session) */}
-            {aiAvailable && (ai?.connecting || ai?.connected) && (
+            {(ai?.connecting || ai?.connected) && (
               <div
                 className={`ai-status ${ai?.connected ? 'active' : ''} ${ai?.connecting ? 'connecting' : ''} ${ai?.thinking ? 'thinking' : ''}`}
                 title={ai?.connecting ? 'AI connecting...' : ai?.thinking ? 'AI thinking...' : 'AI connected'}
@@ -902,7 +902,7 @@ export function KioskMode({
           )}
           <div className="kiosk-input-row">
             {/* AI status indicator (display only - AI auto-connects to session) */}
-            {aiAvailable && (ai?.connecting || ai?.connected) && (
+            {(ai?.connecting || ai?.connected) && (
               <div
                 className={`ai-status ${ai?.connected ? 'active' : ''} ${ai?.connecting ? 'connecting' : ''} ${ai?.thinking ? 'thinking' : ''}`}
                 title={ai?.connecting ? 'AI connecting...' : ai?.thinking ? 'AI thinking...' : 'AI connected'}

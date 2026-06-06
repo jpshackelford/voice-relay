@@ -870,7 +870,7 @@ WantedBy=multi-user.target
 DATABASE_URL=mysql://user:pass@localhost:3306/voice_relay
 GITHUB_CLIENT_ID=xxx
 GITHUB_CLIENT_SECRET=xxx
-OPENHANDS_CLOUD_API_KEY=xxx
+# OpenHands API keys are per-workspace (workspace_settings.openhands_api_key_encrypted) — see #404
 JWT_SECRET=xxx
 ```
 

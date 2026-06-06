@@ -15,7 +15,7 @@ import * as path from 'path';
  *
  * Prerequisites:
  * - TEST_AUTH_SECRET env var set for automated auth
- * - Test workspace with OPENHANDS_API_KEY configured
+ * - Test workspace with a per-workspace OpenHands API key configured (#404)
  *
  * Usage:
  *   TEST_AUTH_SECRET=xxx SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
@@ -38,20 +38,9 @@ test.describe('AI Assistant Integration', () => {
     }
   }
 
-  test.describe('AI Status API', () => {
-    test.use({ storageState: AUTH_FILE });
-
-    test('AI status endpoint returns availability info', async ({ request }) => {
-      const response = await request.get(`${BASE_URL}/api/ai/status`);
-      expect(response.ok()).toBeTruthy();
-
-      const data = await response.json();
-      expect(data).toHaveProperty('available');
-      expect(data).toHaveProperty('message');
-      expect(typeof data.available).toBe('boolean');
-      expect(typeof data.message).toBe('string');
-    });
-  });
+  // `/api/ai/status` describe block removed in #404. The global probe was
+  // retired alongside the env-keyed singleton client; availability is now a
+  // per-workspace question answered by the workspace settings UI.
 
   test.describe('Kiosk AI Features', () => {
     // Only AI interaction tests need extended timeout for API response times
@@ -129,18 +118,12 @@ test.describe('AI Assistant Integration', () => {
     // TODO(#239): Re-enable once OpenHands API stability improves or we implement better retry logic.
 
     test.skip('AI auto-connects to session and shows status indicator', async ({ page }) => {
-      // Check if AI is available
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available - no OPENHANDS_API_KEY configured');
-        return;
-      }
-
+      // Post-#404: AI availability is per-workspace. We probe by looking
+      // for a workspace that has an OpenHands API key configured; if none
+      // exists this test environment can't exercise the AI path.
       const workspace = await getAIEnabledWorkspace(page);
       if (!workspace) {
-        test.skip(true, 'No workspace available for testing');
+        test.skip(true, 'AI not available - no workspace with a per-workspace OpenHands API key configured');
         return;
       }
 
@@ -155,14 +138,6 @@ test.describe('AI Assistant Integration', () => {
     });
 
     test.skip('AI status shows connected state after auto-connect', async ({ page }) => {
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
       const workspace = await getAIEnabledWorkspace(page);
       if (!workspace) {
         test.skip(true, 'No workspace available');
@@ -180,14 +155,6 @@ test.describe('AI Assistant Integration', () => {
     });
 
     test.skip('send message to AI and receive response', async ({ page }) => {
-      const statusResponse = await page.request.get(`${BASE_URL}/api/ai/status`);
-      const status = await statusResponse.json();
-
-      if (!status.available) {
-        test.skip(true, 'AI not available');
-        return;
-      }
-
       const workspace = await getAIEnabledWorkspace(page);
       if (!workspace) {
         test.skip(true, 'No workspace available');

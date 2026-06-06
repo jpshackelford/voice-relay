@@ -77,7 +77,11 @@ function buildHarness(): Harness {
     workspaceRepository: createWorkspaceRepo(),
     agentDriver: driver as AgentDriver,
     store,
-    getWorkspaceApiKey: vi.fn().mockResolvedValue(null),
+    // Default to a workspace key so the FakeDriver test cases that just
+    // want to drive through `openSession` succeed without each test
+    // having to wire one. Cases that exercise the "no key configured"
+    // short-circuit override this on `h.deps.getWorkspaceApiKey`.
+    getWorkspaceApiKey: vi.fn().mockResolvedValue('test-workspace-key'),
   };
   return { driver, deps, registry, sessionRepo, store };
 }
@@ -242,8 +246,12 @@ describe('driver-substitution proof (issue #289 / T-2.3.F.*)', () => {
     expect(h.driver.hasSession('session-1')).toBe(false);
   });
 
-  test('T-2.3.F.5: unavailable driver short-circuits with sanitized status', async () => {
-    h.driver.setAvailable(false);
+  test('T-2.3.F.5: missing workspace API key short-circuits with sanitized status (post-#404)', async () => {
+    // Pre-#404 this asserted that an "unavailable" driver (no env key)
+    // short-circuited auto-connect. After #404 there is no driver-level
+    // availability bit — the only way to short-circuit is for the
+    // workspace to have no configured API key.
+    (h.deps.getWorkspaceApiKey as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const openSpy = vi.spyOn(h.driver, 'openSession');
 
     await autoConnectAI('session-1', 'workspace-1', h.deps);

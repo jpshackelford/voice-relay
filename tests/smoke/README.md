@@ -102,7 +102,7 @@ SMOKE_TEST_URL=https://app.no-hands.dev npx playwright test tests/smoke/smoke.sp
 | API error handling | ✅ | Proper errors for invalid requests |
 | Display API validation | ✅ | Validates required parameters |
 
-> **Note**: AI integration tests require a workspace with `OPENHANDS_API_KEY` configured and sufficient API quota. Tests gracefully skip when AI is unavailable. AI tests use longer timeouts (up to 120s) due to API response times.
+> **Note**: AI integration tests require a workspace with a per-workspace OpenHands API key configured (in workspace settings) and sufficient API quota. Tests gracefully skip when AI is unavailable. AI tests use longer timeouts (up to 120s) due to API response times.
 
 ## CI/CD Integration
 
