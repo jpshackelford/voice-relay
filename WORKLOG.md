@@ -584,3 +584,26 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 **Action Taken:** 🚀 Spawned 1 review worker for PR #422; reaped expansion worker `0874f34` (Issue #421 → ready). Implementation slot remains held by `fbf942c` on #410 (priority:low); #421 (priority:high) will be dispatched on the next tick after `fbf942c` returns. No INSTRUCTION blocks left to action (the retroactive AC-gate INSTRUCTION at 14:26Z was already `[ACKNOWLEDGED 2026-06-06]` and executed by conversation `cb181e6`).
 
 ---
+
+### 2026-06-06 16:09 UTC - Implementation Worker (Issue #410 → PR #423)
+
+✅ **Completed:** Issue #410 — engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode.
+
+- **PR:** [#423 — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode](https://github.com/jpshackelford/voice-relay/pull/423)
+- **Branch:** `feat/410-engine-selection-modes` (branched from current `main`; #420 was still open at branch time but touches the message-pipeline layer, not STT hooks — no conflict surface).
+- **AC-Gate verdict:** all non-exempt items SATISFIED → `Closes #410`. Re-ran the gate against the final diff after CI green (Step 11 reflection) — verdict unchanged.
+
+| AC item | Status |
+|---|---|
+| `KioskMode.tsx` / `MobileMode.tsx` select hook based on resolved `stt_engine` without conditional-hook violations | ✅ SATISFIED via `useSttEngine` wrapper that always calls both child hooks |
+| Hosted-engine failure → transparent fallback to Web Speech + one-time warning | ✅ SATISFIED — `useSttEngine.handleHostedError` flips `effectiveEngine='web-speech'`, deduped via `useRef<boolean>`, auto-restarts WS if user was listening; 402/503 additionally banner via `onError` |
+
+**Notes:**
+
+- Small additive server change: `GET /api/workspaces/:id/kiosk-config` now also returns `sttEngine`. Anonymous-safe; no migration needed (the column existed since #402's migration 019).
+- Per-device override (`device.config.stt_engine`) is documented in the resolution chain for forward-compat but always `undefined` today — exposing it requires UI work that #386 / #402 ruled out-of-scope. No follow-up needed; #412 (workspace-settings UI) is the natural next consumer.
+- New hook coverage: 100% lines/funcs/stmts, 97% branches.
+- CI: Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title / enable-orchestrator all green at marking-ready time.
+- No follow-ups filed.
+
+---
