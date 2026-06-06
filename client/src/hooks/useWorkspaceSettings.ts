@@ -81,17 +81,17 @@ interface UseWorkspaceSettingsReturn {
   /**
    * Set / replace the workspace's Deepgram API key (PUT). The plaintext
    * key is sent once and never returned by subsequent reads (mask-aware
-   * pattern; see `hasDeepgramApiKey`). Issue #412.
+   * pattern; see `hasDeepgramApiKey`).
    */
   setDeepgramApiKey: (apiKey: string) => Promise<void>;
   /**
    * Clear the workspace's Deepgram API key (DELETE). Server-side this
-   * also resets `sttEngine` back to `'web-speech'`. Issue #412.
+   * also resets `sttEngine` back to `'web-speech'`.
    */
   removeDeepgramApiKey: () => Promise<void>;
   /**
    * Read the current-month STT usage snapshot from `/api/stt/usage`.
-   * Used for the "Used X / Y minutes" row in the settings UI. Issue #412.
+   * Used for the "Used X / Y minutes" row in the settings UI.
    */
   fetchSttUsage: () => Promise<SttUsage>;
 }
@@ -352,9 +352,7 @@ export function useWorkspaceSettings(
     return await res.json() as VoicePreviewResult;
   }, [workspaceId, ensureValidToken]);
 
-  // Issue #412: Deepgram (hosted STT) API key management. Mirrors the
-  // ElevenLabs flow above — set/clear plaintext key via PUT/DELETE, then
-  // refresh() so the masked `hasDeepgramApiKey` flag updates.
+  // Set Deepgram API key and refresh to update hasDeepgramApiKey flag
   const setDeepgramApiKey = useCallback(async (apiKey: string) => {
     if (!workspaceId) {
       throw new Error('No workspace selected');

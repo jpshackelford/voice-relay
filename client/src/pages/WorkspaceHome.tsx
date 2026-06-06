@@ -328,8 +328,6 @@ export function WorkspaceHome() {
   const [elevenlabsApiKeyStatus, setElevenlabsApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
   const [elevenlabsApiKeyMessage, setElevenlabsApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Issue #412: Deepgram (hosted STT) API key + engine + cap UI state.
-  // Mirrors the ElevenLabs flow above for visual + UX parity.
   const [deepgramApiKeyInput, setDeepgramApiKeyInput] = useState('');
   const [deepgramApiKeyStatus, setDeepgramApiKeyStatus] = useState<'idle' | 'saving' | 'removing'>('idle');
   const [deepgramApiKeyMessage, setDeepgramApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -341,7 +339,6 @@ export function WorkspaceHome() {
   const [sttCapMessage, setSttCapMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sttEngineStatus, setSttEngineStatus] = useState<'idle' | 'saving'>('idle');
   const [sttEngineMessage, setSttEngineMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  // Current-month usage snapshot, fetched lazily from /api/stt/usage.
   const [sttUsage, setSttUsage] = useState<SttUsage | null>(null);
   const [sttUsageError, setSttUsageError] = useState<string | null>(null);
 
@@ -444,7 +441,6 @@ export function WorkspaceHome() {
     }
   }, [elevenlabsApiKeyMessage]);
 
-  // Issue #412: clear Deepgram / STT success messages after 3 seconds
   useEffect(() => {
     if (deepgramApiKeyMessage?.type === 'success') {
       const timer = setTimeout(() => setDeepgramApiKeyMessage(null), 3000);
