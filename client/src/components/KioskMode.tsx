@@ -529,20 +529,8 @@ export function KioskMode({
     }
     const u = mostRecentForeignUtterance;
     if (!u) return { prefix: '', text: '' };
-    // Issue #411: when the hosted-STT engine attached a per-session
-    // speaker label (e.g. `S1`) and the server has not yet linked it
-    // to a real speaker, prefer the engine label over `senderName`
-    // so the ticker renders `S1: …` instead of the device's display
-    // name. Once `session_engine_speakers` resolves the label, the
-    // server substitutes the real speaker on the outbound row and
-    // `engineSpeakerLabel` is no longer set — the ticker falls back
-    // to `senderName:` naturally. Web-Speech utterances leave the
-    // engine label undefined and follow the original code path.
-    //
-    // Same-sender suppression stays keyed on `senderId` so a single
-    // device speaking back-to-back doesn't restart the marquee, even
-    // when the engine label changes mid-stream (the agent-side header
-    // builder already announces that change).
+    // Issue #411: Prefer engine label (e.g. S1) over device name until
+    // speaker resolves. Same-sender suppression stays on senderId.
     const speakerLabel = u.engineSpeakerLabel ?? u.senderName;
     const prefix =
       u.senderId === lastRenderedSenderIdRef.current ? '' : `${speakerLabel}: `;
