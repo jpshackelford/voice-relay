@@ -3,23 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "7becb0b",
-        "actual_conv_id": "7becb0b4bbf94815b8ea7c103d08bc81",
-        "pr": 423,
-        "issue": 410,
-        "started": "2026-06-06T17:05:27.287679+00:00",
-        "worker_type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T17:05:27.287679+00:00",
+  "last_updated": "2026-06-06T17:20:16.938492+00:00",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -267,7 +258,18 @@
       "finished": "2026-06-06T17:05:27.287679+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #424 (fcf8895) \u2014 fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). Issue #421 auto-closed at 16:30:05Z (closed pre-merge; trailer confirmed linkage). Tests-only diff, no migration."
+    },
+    {
+      "conv_id": "7becb0b",
+      "actual_conv_id": "7becb0b4bbf94815b8ea7c103d08bc81",
+      "type": "merge",
+      "issue": 410,
+      "pr": 423,
+      "started": "2026-06-06T17:05:27.287679+00:00",
+      "finished": "2026-06-06T17:20:16.938492+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) \u2014 feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
