@@ -513,3 +513,29 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:56 UTC - Implementation worker (Issue #412)
+
+✅ Opened [PR #422](https://github.com/jpshackelford/voice-relay/pull/422) — `feat(client): workspace settings UI for hosted STT engine, cap, key, and usage`. Marked ready-for-review after all required CI checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator).
+
+**AC-gate verdict: PASS — trailer `Fixes #412`.** All seven non-exempt AC items satisfied by concrete changes in the diff:
+
+| AC item | Where in diff |
+|---|---|
+| Usage + cap on workspace settings page | `stt-usage-setting` + `stt-cap-setting` rows in `WorkspaceHome.tsx` |
+| Engine selector (web-speech / deepgram) | `stt-engine-setting` radio group |
+| Deepgram API key entry/clear mirroring ElevenLabs | `deepgram-api-key-setting` reusing `.api-key-*` CSS classes |
+| Monthly minute-cap input (integer or "no cap") | `stt-cap-input` with empty ⇒ `null` semantics + client-side integer validation |
+| `/api/stt/usage` read + hide row when engine is `web-speech` | `fetchSttUsage` effect short-circuits on web-speech; usage row gated on `sttEngine === 'deepgram'` |
+| Owner gate | All new rows live inside the existing `{workspace.isOwner && (<section className="settings-section">…)}` wrapper |
+| `WorkspaceHome.test.tsx` covering engine flip / cap entry / key set+clear / usage display | New file with 8 tests; full client suite at 1094 tests still green |
+
+Hook surface additions (`useWorkspaceSettings`): `sttEngine`, `sttMonthlyMinuteCap`, `hasDeepgramApiKey` fields; `setDeepgramApiKey` / `removeDeepgramApiKey` / `fetchSttUsage` methods; new `SttUsage` type. 13 new hook tests cover PUT/DELETE/GET error fallbacks, URL-encoded `workspaceId`, no-id guards, and PATCH with `sttEngine` + `sttMonthlyMinuteCap` including explicit-null cap-clear.
+
+No follow-up issues filed; nothing deferred. Per-device override UI (#386 § Out of Scope) and the streaming-hook/KioskMode wiring (separate follow-ups, incl. #411 already merged via #420, #409 in flight via #419) remain explicitly out of scope per #412 § Scope notes.
+
+**Coordination:** No file collisions with PR #419 (`useHostedSpeechRecognition`) — that work is on a new hook file and `KioskMode.tsx`. PR #420 already merged; its `engineSpeakerLabel` plumbing touches different files. Rebase-on-merge unlikely to need anything beyond a fast-forward.
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
