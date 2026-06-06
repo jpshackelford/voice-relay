@@ -73,7 +73,7 @@ hostname  # e.g., my-macbook.local
 http://my-macbook.local:5173
 ```
 
-**Note:** Speech-to-text requires HTTPS or localhost. On non-localhost URLs, STT may not work in Chrome.
+**Note:** The default Web Speech API speech-to-text path requires HTTPS or localhost. On non-localhost URLs, Web Speech STT may not work in Chrome. The optional hosted Deepgram STT path (see [Hosted STT (Deepgram)](#hosted-stt-deepgram)) is not subject to this restriction.
 
 ### Development Scripts
 
@@ -203,6 +203,76 @@ Voice Relay integrates with OpenHands AI for interactive conversations. AI auto-
 - AI auto-connects when a device joins a session
 - Speak or type messages — AI responses appear in chat
 - In kiosk mode, AI can display rich content (markdown, images) on the display area
+
+## Hosted STT (Deepgram)
+
+Voice Relay supports an optional hosted speech-to-text engine via Deepgram in
+addition to the default Web Speech API. The relay server **never sees raw
+audio** — it only mints short-lived (≤60 s, hard-capped server-side) Deepgram
+tokens that the kiosk uses to open a WebSocket directly to Deepgram. See
+[docs/architecture.md § Speech-to-text engines](docs/architecture.md#speech-to-text-engines)
+for the full data-flow diagram and module pointers.
+
+### Setup
+
+1. Get a project API key from the [Deepgram console](https://console.deepgram.com).
+2. Paste it in the workspace settings UI (settings UI in progress — see #412).
+   Until #412 lands, advanced operators can call the backend endpoint
+   directly:
+
+   ```
+   PUT /api/workspaces/:id/settings/deepgram-api-key
+   ```
+
+   The key is encrypted at rest using the same `ENCRYPTION_SECRET` used for
+   ElevenLabs and OpenHands keys.
+3. Per-device override: set `devices.config.stt_engine` to `'web-speech'` or
+   `'deepgram'` to override the workspace-level default for a single device.
+4. Optional: set `DEEPGRAM_BASE_URL` in the server environment if you need to
+   point at a staging or regional Deepgram deployment. Defaults to
+   `https://api.deepgram.com`. See `.env.example` for the full block.
+
+### Cost expectations
+
+Deepgram's Nova-2 streaming tier is priced per minute of audio — see
+[Deepgram's pricing page](https://deepgram.com/pricing) for the current
+published rate (Nova-2 streaming was ~$0.0077/minute as of 2026-06; verify
+against Deepgram's page before quoting to a customer).
+
+Worked example, at ~$0.0077/minute:
+
+- 1-hour kiosk session ≈ 60 min × $0.0077 = **~$0.46/session**.
+- 8-hour kiosk day ≈ 480 min × $0.0077 = **~$3.70/day**.
+
+The per-workspace `stt_monthly_minute_cap` field is a **soft guardrail, not a
+hard quota.** There is a documented TOCTOU window between the token-mint cap
+check and the kiosk's end-of-session usage report (see PR #402's "Risk
+acknowledgements"): a workspace can overrun the cap by at most one session
+between checks. Deepgram's own account-level rate limits and your project's
+spend controls in the Deepgram console remain the hard ceiling — set those
+defensively.
+
+### Web Speech remains the default
+
+Migration `019` backfills `stt_engine='web-speech'` on every existing
+`workspace_settings` row, and the `/api/stt/token` broker returns HTTP 403
+when the resolved engine is `'web-speech'`. **No existing workspace's
+behaviour changes until an owner explicitly opts in** via the settings UI
+(#412) or the `PUT /api/workspaces/:id/settings/deepgram-api-key` endpoint.
+
+### Privacy invariant
+
+The voice-relay server never sees audio when the hosted engine is enabled:
+
+- The kiosk's `AudioWorklet` streams PCM frames directly to Deepgram over
+  WebSocket.
+- The server only mints Deepgram tokens with a TTL of ≤60 seconds — the cap is
+  enforced server-side, regardless of what the client requests.
+- The long-lived Deepgram API key is stored encrypted at rest per workspace;
+  it never leaves the server.
+
+See [docs/architecture.md § Speech-to-text engines](docs/architecture.md#speech-to-text-engines)
+for the full sequence diagram and the broker module's source pointers.
 
 ## Display API
 
@@ -409,7 +479,7 @@ SMOKE_TEST_URL=https://app.no-hands.dev npm run smoke
 
 ## Browser Support
 
-- **Speech-to-text**: Chrome, Edge (Web Speech API)
+- **Speech-to-text**: Chrome, Edge (Web Speech API) — or any modern browser when the workspace opts in to `stt_engine='deepgram'` (see [Hosted STT (Deepgram)](#hosted-stt-deepgram))
 - **Text-to-speech**: All modern browsers
 - **WebSocket**: All modern browsers
 
