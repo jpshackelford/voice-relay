@@ -378,3 +378,27 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:35 UTC - Review worker (PR #419, review round 1)
+
+✅ Addressed review feedback on [PR #419](https://github.com/jpshackelford/voice-relay/pull/419) (`feat(client): useHostedSpeechRecognition hook for hosted STT`, Fixes #409).
+
+**Threads addressed (1):**
+
+| Thread | Reviewer | Severity | Action | Commit |
+|---|---|---|---|---|
+| Confusing "live ref pattern above" comment in unmount `useEffect` (line 552–556) | `github-actions` (pr-review bot) | 🟡 Suggestion | Accepted — comment was misleading: `workspaceId`/`deviceId` are closure-captured via `cleanup`'s own `useCallback` deps, not via the live-ref pattern (which only solves callback staleness around lines 263–271). Reworded to call out closure capture, intent of empty deps array, and separation from the callback live-ref pattern. | `82accbf` |
+
+**AC-gate re-run (Issue #409):** **unchanged** — verdict remains `Fixes #409`.
+
+Change was a single-comment rewording in `client/src/hooks/useHostedSpeechRecognition.ts`; none of #409's 5 AC items (hook surface, callback surface, fallback-eligible errors, mic+WS release, lifecycle tests) are affected by a docs-only edit. All still satisfied by the diff.
+
+**CI:** Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title — all green on `82accbf`. `pr-review` skipped while in draft; will re-trigger now that PR is ready.
+
+**No follow-up issues filed.** No new learnings impacting other open issues.
+
+PR moved back to ready; next review round (if any) is a separate conversation.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
