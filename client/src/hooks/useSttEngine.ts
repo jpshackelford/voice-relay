@@ -117,6 +117,20 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
   // Tracks whether the user has clicked "start" — needed to decide
   // whether a fallback should transparently kick off Web Speech.
   const userWantsListeningRef = useRef(false);
+  // Guards the deferred Web Speech restart in `handleHostedError`
+  // from firing after the component has unmounted (the setTimeout(0)
+  // hop is enough of a window for unmount to land in between).
+  const isMountedRef = useRef(true);
+  const fallbackRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (fallbackRestartTimerRef.current !== null) {
+        clearTimeout(fallbackRestartTimerRef.current);
+        fallbackRestartTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // Follow caller's `resolvedEngine` unless we've already fallen back
   // for this session. Using a layout-style sync ensures the render
@@ -173,7 +187,12 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
         // Defer to next tick so the hosted cleanup completes first.
         // setTimeout 0 is fine here — we just need to escape the
         // current render/onError callstack before mutating Web Speech.
-        setTimeout(() => {
+        // Guard against unmount: a 0ms hop is enough to land after
+        // the component has gone away, which would otherwise trigger
+        // a setState-on-unmounted-component warning from Web Speech.
+        fallbackRestartTimerRef.current = setTimeout(() => {
+          fallbackRestartTimerRef.current = null;
+          if (!isMountedRef.current) return;
           if (userWantsListeningRef.current) wsStartRef.current();
         }, 0);
       }

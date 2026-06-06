@@ -322,6 +322,26 @@ describe('useSttEngine (issue #410)', () => {
       expect(wsStart).not.toHaveBeenCalled();
     });
 
+    it('does not call wsStartRef after the component unmounts (race-condition guard)', () => {
+      const { result, unmount } = renderHook(() =>
+        useSttEngine({ resolvedEngine: 'deepgram', deviceId: 'dev-1' }),
+      );
+      act(() => result.current.startListening());
+      // Fallback fires (auto-restart scheduled via setTimeout(0)) and
+      // the component unmounts before the timer flushes.
+      act(() =>
+        hostedOptions!.onError!(makeHostedError(true, 'Hosted STT connection closed (1006).', 'ws-close')),
+      );
+      unmount();
+      act(() => {
+        vi.runAllTimers();
+      });
+      // The pending setTimeout must not call into Web Speech once the
+      // component is gone — otherwise it would trigger state updates on
+      // an unmounted child hook.
+      expect(wsStart).not.toHaveBeenCalled();
+    });
+
     it('stays on web-speech across renders after a fallback (no auto-upgrade)', () => {
       type Engine = 'web-speech' | 'deepgram';
       const { result, rerender } = renderHook(
