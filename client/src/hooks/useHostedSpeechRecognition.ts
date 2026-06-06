@@ -549,10 +549,14 @@ export function useHostedSpeechRecognition(
     return () => {
       cleanup({ reportUsage: true });
     };
-    // We intentionally only run cleanup at unmount; `cleanup`'s
-    // identity depends on `workspaceId`/`deviceId`, which we want to
-    // capture at unmount via the live ref pattern above. Re-running
-    // this effect mid-session would cause spurious teardown.
+    // We intentionally only run cleanup at unmount. `cleanup` captures
+    // `workspaceId`/`deviceId` via closure (its own `useCallback` deps),
+    // so adding it here would re-run teardown whenever those change —
+    // a spurious mid-session teardown. The empty deps array ensures
+    // cleanup runs once at unmount with whatever cleanup instance was
+    // current then. (This is unrelated to the callback live-ref pattern
+    // around lines 263–271, which solves a different staleness problem
+    // for the user-supplied callbacks.)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
