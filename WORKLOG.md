@@ -428,3 +428,24 @@ All 5 non-exempt AC items covered → gate passes; trailer `Fixes #409` honored.
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 15:42 UTC - Review worker (PR #420 round 1)
+
+✅ **PR #420** — `feat(server,client): propagate engineSpeakerLabel through agent driver + render kiosk ticker S1: prefix (Fixes #411)` — addressed 1st review round.
+
+| Thread source | Severity | Count | Disposition |
+| --- | --- | --- | --- |
+| `pr-review` bot | 🟡 Suggestion | 7 | All accepted (verbose / redundant comments) |
+
+**Commits pushed:**
+
+- `b859de3` — `style(server): trim verbose comments in voice-relay-header` (threads ×2 on `server/src/agent-driver/voice-relay-header.ts`)
+- `d574f1f` — `style(client): trim verbose engineSpeakerLabel comments` (threads ×1 KioskMode + ×2 SessionView + ×2 Workspace)
+
+All 7 threads replied + resolved via GraphQL. CI green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title). PR moved back to ready.
+
+**AC gate re-run:** **unchanged** — trailer remains `Fixes #411`. Round was comment-only with no behavior change; both in-scope AC bullets inherited from #386 (agent driver receives engine label on user-turn header; kiosk ticker renders `S1: …` prefix) still satisfied by the now-current diff. No follow-up issues filed or closed.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
