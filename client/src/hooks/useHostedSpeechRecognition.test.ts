@@ -476,17 +476,18 @@ describe('useHostedSpeechRecognition', () => {
 
   describe('token-mint error matrix', () => {
     it.each([
-      [401, false, 'token-mint'],
-      [402, true, 'token-mint'],
-      [403, true, 'token-mint'],
-      [404, false, 'token-mint'],
-      [500, true, 'token-mint'],
-      [502, true, 'token-mint'],
-      [503, true, 'token-mint'],
+      // [status, fallbackEligible, cause, bannerEligible]
+      [401, false, 'token-mint', false],
+      [402, true, 'token-mint', true],
+      [403, true, 'token-mint', false],
+      [404, false, 'token-mint', false],
+      [500, true, 'token-mint', false],
+      [502, true, 'token-mint', false],
+      [503, true, 'token-mint', true],
     ])(
-      'status %s -> fallbackEligible=%s, cause=%s',
-      async (status, eligible, cause) => {
-        mockFetchToken(status, { error: 'mocked' });
+      'status %s -> fallbackEligible=%s, cause=%s, bannerEligible=%s',
+      async (status, eligible, cause, bannerEligible) => {
+        mockFetchToken(status as number, { error: 'mocked' });
         const onError = vi.fn();
         const { result } = renderHook(() =>
           useHostedSpeechRecognition({ deviceId: 'dev-1', onError }),
@@ -498,6 +499,7 @@ describe('useHostedSpeechRecognition', () => {
         const err = onError.mock.calls[0][0] as HostedSpeechRecognitionError;
         expect(err.fallbackEligible).toBe(eligible);
         expect(err.cause).toBe(cause);
+        expect(err.bannerEligible).toBe(bannerEligible);
         expect(result.current.error).toEqual(err);
         expect(result.current.isListening).toBe(false);
         // No WS was opened on token-mint failure.

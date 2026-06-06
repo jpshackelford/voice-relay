@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useSttEngine } from '../hooks/useSttEngine';
+import type { SttEngine } from '../hooks/useKioskConfig';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
@@ -48,6 +49,15 @@ interface MobileModeProps {
   workspaceId?: string;
   /** Whether the current user owns this workspace; gates the home shortcut. */
   isOwner?: boolean;
+  /**
+   * Issue #410: STT engine for this mobile device. Resolved by the
+   * page container as `device.config.stt_engine ?? kioskConfig.sttEngine
+   * ?? 'web-speech'`. Defaults to `'web-speech'` so workspaces that
+   * haven't opted into hosted STT see no change. See `useSttEngine.ts`
+   * for the wrapper's React-rules-of-hooks-safe routing and the
+   * deepgram→web-speech transparent fallback.
+   */
+  sttEngine?: SttEngine;
 }
 
 export function MobileMode({ 
@@ -68,6 +78,7 @@ export function MobileMode({
   displayContent,
   workspaceId,
   isOwner,
+  sttEngine = 'web-speech',
 }: MobileModeProps) {
   const navigate = useNavigate();
   const [text, setText] = useState('');
@@ -139,7 +150,16 @@ export function MobileMode({
     setTimeout(() => setSttError(null), 5000);
   }, []);
 
-  const { isListening, isSupported: sttSupported, startListening, stopListening } = useSpeechRecognition({
+  // Issue #410: wrapper hook that always calls both useSpeechRecognition
+  // and useHostedSpeechRecognition under the hood and dispatches to the
+  // active engine. Without this, swapping engines at the consumer level
+  // would violate React rules of hooks. Fallback semantics
+  // (deepgram→web-speech, one-time warn, banner on 402/503) live inside
+  // the wrapper — see useSttEngine.ts for the matrix.
+  const { isListening, isSupported: sttSupported, startListening, stopListening } = useSttEngine({
+    resolvedEngine: sttEngine,
+    deviceId,
+    workspaceId,
     onInterimResult: handleInterimResult,
     onFinalResult: handleFinalResult,
     onError: handleSttError,

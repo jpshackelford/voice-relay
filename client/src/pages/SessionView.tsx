@@ -551,6 +551,9 @@ export function SessionView() {
           agentHistoryConversationId={agentEventHistory.conversationId}
           onRetryAgentHistory={agentEventHistory.retry}
           kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
+          // Issue #410: workspace-default engine; per-device override
+          // lands in a future PR via `devices.config.stt_engine`.
+          sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
           attention={kioskAttention}
           onAttentionDismiss={() => setKioskAttention(null)}
         />
@@ -577,6 +580,9 @@ export function SessionView() {
         onSessionTtsSettingsChange={updateSessionTtsSettings}
         workspaceId={workspaceId}
         isOwner={workspace?.isOwner ?? false}
+        // Issue #410: workspace-default engine; per-device override
+        // lands in a future PR via `devices.config.stt_engine`.
+        sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
       />
     </>
   );

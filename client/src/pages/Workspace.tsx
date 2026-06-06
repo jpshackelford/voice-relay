@@ -329,7 +329,11 @@ export function Workspace() {
           displayContent={displayContent}
           sendText={sendText}
           onModeChange={handleModeChange}
+          workspaceId={workspaceId}
           kioskFooterTickersEnabled={kioskConfig?.kioskFooterTickersEnabled ?? false}
+          // Issue #410: workspace-default engine. Per-device override
+          // lands in a future PR via `devices.config.stt_engine`.
+          sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
           attention={kioskAttention}
           onAttentionDismiss={() => setKioskAttention(null)}
         />
@@ -354,6 +358,9 @@ export function Workspace() {
         displayContent={displayContent}
         workspaceId={workspaceId}
         isOwner={workspace?.isOwner ?? false}
+        // Issue #410: workspace-default engine; per-device override
+        // lands in a future PR via `devices.config.stt_engine`.
+        sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
       />
     </>
   );

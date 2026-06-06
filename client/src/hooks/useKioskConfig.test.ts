@@ -31,7 +31,7 @@ describe('useKioskConfig (issue #340)', () => {
 
   it('fetches and exposes config when workspaceId is set', async () => {
     fetchSpy.mockResolvedValueOnce(
-      jsonResponse({ workspaceId: 'ws-1', kioskFooterTickersEnabled: true })
+      jsonResponse({ workspaceId: 'ws-1', kioskFooterTickersEnabled: true, sttEngine: 'web-speech' })
     );
     const { result } = renderHook(() => useKioskConfig('ws-1'));
     await waitFor(() => expect(result.current.config).not.toBeNull());
@@ -40,7 +40,38 @@ describe('useKioskConfig (issue #340)', () => {
       expect.objectContaining({ headers: expect.any(Object) })
     );
     expect(result.current.config?.kioskFooterTickersEnabled).toBe(true);
+    expect(result.current.config?.sttEngine).toBe('web-speech');
     expect(result.current.error).toBeNull();
+  });
+
+  // Issue #410: sttEngine must round-trip so the mode component can switch hooks.
+  it('exposes sttEngine=deepgram when the server reports it', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse({ workspaceId: 'ws-1', kioskFooterTickersEnabled: false, sttEngine: 'deepgram' })
+    );
+    const { result } = renderHook(() => useKioskConfig('ws-1'));
+    await waitFor(() => expect(result.current.config).not.toBeNull());
+    expect(result.current.config?.sttEngine).toBe('deepgram');
+  });
+
+  // Older servers (pre-#410) won't include sttEngine; the consumer must
+  // be able to rely on the field always being one of two literals.
+  it("defaults sttEngine to 'web-speech' when the server omits it", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse({ workspaceId: 'ws-1', kioskFooterTickersEnabled: false })
+    );
+    const { result } = renderHook(() => useKioskConfig('ws-1'));
+    await waitFor(() => expect(result.current.config).not.toBeNull());
+    expect(result.current.config?.sttEngine).toBe('web-speech');
+  });
+
+  it("normalizes an unknown sttEngine value to 'web-speech'", async () => {
+    fetchSpy.mockResolvedValueOnce(
+      jsonResponse({ workspaceId: 'ws-1', kioskFooterTickersEnabled: false, sttEngine: 'whisper' })
+    );
+    const { result } = renderHook(() => useKioskConfig('ws-1'));
+    await waitFor(() => expect(result.current.config).not.toBeNull());
+    expect(result.current.config?.sttEngine).toBe('web-speech');
   });
 
   it('reports an error and keeps prior config on failed fetch', async () => {

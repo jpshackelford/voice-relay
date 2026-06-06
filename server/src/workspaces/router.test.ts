@@ -1718,13 +1718,14 @@ describe('Workspace Router - GET /:id/kiosk-config', () => {
     db.close();
   });
 
-  it('returns kioskFooterTickersEnabled=false by default without auth', async () => {
+  it('returns kioskFooterTickersEnabled=false and sttEngine=web-speech by default without auth', async () => {
     const response = await request(app)
       .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
       .expect(200);
     expect(response.body).toEqual({
       workspaceId: testWorkspaceId,
       kioskFooterTickersEnabled: false,
+      sttEngine: 'web-speech',
     });
   });
 
@@ -1736,6 +1737,19 @@ describe('Workspace Router - GET /:id/kiosk-config', () => {
       .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
       .expect(200);
     expect(response.body.kioskFooterTickersEnabled).toBe(true);
+  });
+
+  // Issue #410: kiosk/mobile mode reads the resolved STT engine from this
+  // anonymous slice. Owner-only `/settings` is unavailable for non-owners
+  // viewing the kiosk over QR.
+  it('reflects the updated sttEngine setting', async () => {
+    workspaceRepository.updateSettings(testWorkspaceId, {
+      sttEngine: 'deepgram',
+    });
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/kiosk-config`)
+      .expect(200);
+    expect(response.body.sttEngine).toBe('deepgram');
   });
 
   it('returns 404 for an unknown workspace', async () => {
