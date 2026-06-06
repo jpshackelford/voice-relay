@@ -620,3 +620,36 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 - **PR state:** dropped to draft during fix, returned to `ready` after the closing comment was posted. Closing comment: <https://github.com/jpshackelford/voice-relay/pull/422#issuecomment-4639627002>.
 
 ---
+
+### 2026-06-06 16:23 UTC - Orchestrator
+
+🚀 **Spawned: 3 Workers (parallel)** — both prior workers finished, all 3 slot types had work.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a9fd499` | implementation | Issue #421 - 🚨 Smoke test failure after deployment (priority:high) | **NEW** |
+| `49ca8be` | review (merge) | PR #422 - workspace STT settings UI (closes #412) | **NEW** |
+| `0544110` | review | PR #423 - engine selection (Deepgram vs Web Speech) (closes #410) | **NEW** |
+
+**Workers Completed Last Cycle:**
+- `fbf942c` (implementation, issue #410) → finished — produced PR #423.
+- `64a10a2` (review, PR #422) → finished — addressed 5 threads, AC gate re-run unchanged.
+
+**Current State:**
+- [PR #422](https://github.com/jpshackelford/voice-relay/pull/422): `oRFc` green ready 💬-- — **all threads resolved, CI green, mergeable: CLEAN** → merge worker dispatched.
+- [PR #423](https://github.com/jpshackelford/voice-relay/pull/423): `oR` green ready 💬3 — 1 important race-condition + 2 suggestions → review worker dispatched.
+- Issue #421 (priority:high, ci-failure, scope:ci-only) — root-caused (deleted `/api/ai/status` probe, `undefined` skip-guard) → impl worker dispatched.
+- Other ready, non-on-hold issues: #413 (docs, priority:low) — left for next cycle.
+
+**Spawned Conversations:**
+1. **Merge Worker** — [`49ca8be`](https://app.all-hands.dev/conversations/49ca8beb789b4144b8bf480deecb2861) → [PR #422](https://github.com/jpshackelford/voice-relay/pull/422)
+2. **Review Worker** — [`0544110`](https://app.all-hands.dev/conversations/054411040e2f43ed96ae993254556d26) → [PR #423](https://github.com/jpshackelford/voice-relay/pull/423)
+3. **Implementation Worker** — [`a9fd499`](https://app.all-hands.dev/conversations/a9fd499abf2642a3bf3d7f55b60b2f8a) → [Issue #421](https://github.com/jpshackelford/voice-relay/issues/421)
+
+**Slot Usage:** expansion 0/4, implementation 1/1, review 2/2 — fully booked.
+
+_This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+

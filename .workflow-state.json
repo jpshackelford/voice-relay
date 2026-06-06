@@ -4,19 +4,26 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "fbf942c",
-        "actual_conv_id": "fbf942cc8aed4dd18b3894ddbad47c0a",
-        "issue": 410,
-        "started": "2026-06-06T15:56:00.827995Z"
+        "conv_id": "a9fd499",
+        "actual_conv_id": "a9fd499abf2642a3bf3d7f55b60b2f8a",
+        "issue": 421,
+        "started": "2026-06-06T16:22:34.291629+00:00"
       }
     ],
     "review": [
       {
-        "conv_id": "64a10a2",
-        "actual_conv_id": "64a10a244c5c44d08a93fb192b647a07",
+        "conv_id": "49ca8be",
+        "actual_conv_id": "49ca8beb789b4144b8bf480deecb2861",
         "pr": 422,
         "issue": 412,
-        "started": "2026-06-06T16:07:19Z"
+        "started": "2026-06-06T16:22:34.291629+00:00"
+      },
+      {
+        "conv_id": "0544110",
+        "actual_conv_id": "054411040e2f43ed96ae993254556d26",
+        "pr": 423,
+        "issue": 410,
+        "started": "2026-06-06T16:22:34.291629+00:00"
       }
     ]
   },
@@ -25,7 +32,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T16:08:30.711716+00:00",
+  "last_updated": "2026-06-06T16:22:34.291629+00:00",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -199,6 +206,25 @@
       "finished": "2026-06-06T16:00:25Z",
       "status": "success",
       "outcome": "Expanded #421 (smoke test failure after deployment) and labeled ready (priority:high). Root cause + recommended remediation posted in technical-approach comment."
+    },
+    {
+      "conv_id": "fbf942c",
+      "type": "implementation",
+      "issue": 410,
+      "started": "2026-06-06T15:56:00.827995Z",
+      "finished": "2026-06-06T16:18:36.533715+00:00",
+      "status": "success",
+      "outcome": "Implemented issue #410 (check PR)"
+    },
+    {
+      "conv_id": "64a10a2",
+      "type": "review",
+      "issue": 412,
+      "pr": 422,
+      "started": "2026-06-06T16:07:19Z",
+      "finished": "2026-06-06T16:18:36.533715+00:00",
+      "status": "success",
+      "outcome": "Addressed review feedback on PR #422"
     }
   ],
   "quiet_ticks": 0
