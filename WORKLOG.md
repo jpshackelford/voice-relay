@@ -607,3 +607,16 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 - No follow-ups filed.
 
 ---
+
+### 2026-06-06 16:18 UTC - Review Worker (PR #422)
+
+✅ **Completed:** Addressed all 5 unresolved review threads on PR #422 (feat(client): workspace settings UI for hosted STT engine, cap, key, and usage — Fixes #412).
+
+- **Commit:** `4b32b94` — `style(client): trim redundant change-history comments per PR #422 review`
+- **Diff:** 4 insertions / 10 deletions across `client/src/hooks/useWorkspaceSettings.ts` (lines 84, 89, 94, 355) and `client/src/pages/WorkspaceHome.tsx` (lines 331, 344, 447). No behavior change.
+- **Review threads:** all 5 replied to (referencing the fix commit SHA) and resolved via the `addPullRequestReviewThreadReply` + `resolveReviewThread` GraphQL mutations. All were 🟡 Suggestions from @github-actions about removing `Issue #412:` change-history prefixes and comments that just restate self-documenting code — accepted in full as legitimate per AGENTS.md code-quality guidance.
+- **CI:** Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title all green on `4b32b94`.
+- **AC gate re-run: unchanged.** Comment-only diff → verdict remains **PASS — `Fixes #412` retained**. The AC table in the PR description (engine selector, Deepgram key entry/clear, monthly minute-cap input, usage row, owner gating, `WorkspaceHome.test.tsx` coverage) is satisfied by the same code that landed in earlier commits; no AC bullet was touched by the cleanup.
+- **PR state:** dropped to draft during fix, returned to `ready` after the closing comment was posted. Closing comment: <https://github.com/jpshackelford/voice-relay/pull/422#issuecomment-4639627002>.
+
+---
