@@ -1707,3 +1707,254 @@ describe('useWorkspaceSettings hook - OpenHands API key operations', () => {
     ).rejects.toThrow('Failed to generate voice preview');
   });
 });
+
+// Issue #412: hosted STT (Deepgram) key + cap + engine + usage UI hook surface.
+describe('useWorkspaceSettings hook - hosted STT (Deepgram) operations', () => {
+  const baseSettings = {
+    workspaceId: 'ws1',
+    hasApiKey: false,
+    ttsVoice: null,
+    sttLanguage: null,
+    allowAutoJoin: true,
+    requireQrToken: false,
+    hasElevenlabsApiKey: false,
+    elevenlabsVoiceId: null,
+    elevenlabsTtsEnabled: false,
+    kioskFooterTickersEnabled: false,
+    sttEngine: 'web-speech',
+    sttMonthlyMinuteCap: null,
+    hasDeepgramApiKey: false,
+    updatedAt: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mockAuthState = {
+      isAuthenticated: true,
+      ensureValidToken: vi.fn().mockResolvedValue(true),
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('exposes setDeepgramApiKey / removeDeepgramApiKey / fetchSttUsage', () => {
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    expect(typeof result.current.setDeepgramApiKey).toBe('function');
+    expect(typeof result.current.removeDeepgramApiKey).toBe('function');
+    expect(typeof result.current.fetchSttUsage).toBe('function');
+  });
+
+  it('setDeepgramApiKey PUTs to the deepgram endpoint and refreshes settings', async () => {
+    const updated = { ...baseSettings, hasDeepgramApiKey: true };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => updated });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.setDeepgramApiKey('dg-test-key');
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/deepgram-api-key',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ apiKey: 'dg-test-key' }),
+      }),
+    );
+    expect(result.current.settings?.hasDeepgramApiKey).toBe(true);
+  });
+
+  it('setDeepgramApiKey surfaces server error message', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'Invalid Deepgram API key format' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.setDeepgramApiKey('bad')).rejects.toThrow(
+      'Invalid Deepgram API key format',
+    );
+  });
+
+  it('setDeepgramApiKey falls back to default error message when none provided', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.setDeepgramApiKey('x')).rejects.toThrow(
+      'Failed to set Deepgram API key',
+    );
+  });
+
+  it('removeDeepgramApiKey DELETEs and accepts 204 without body', async () => {
+    const cleared = { ...baseSettings, hasDeepgramApiKey: false, sttEngine: 'web-speech' };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 204, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => cleared });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.removeDeepgramApiKey();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/workspaces/ws1/settings/deepgram-api-key',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('removeDeepgramApiKey throws when non-204 failure', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'delete failed' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.removeDeepgramApiKey()).rejects.toThrow('delete failed');
+  });
+
+  it('updateSettings can PATCH sttEngine + sttMonthlyMinuteCap', async () => {
+    const updated = {
+      ...baseSettings,
+      sttEngine: 'deepgram' as const,
+      sttMonthlyMinuteCap: 120,
+    };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => updated });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.updateSettings({
+        sttEngine: 'deepgram',
+        sttMonthlyMinuteCap: 120,
+      });
+    });
+
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/workspaces/ws1/settings',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ sttEngine: 'deepgram', sttMonthlyMinuteCap: 120 }),
+      }),
+    );
+    expect(result.current.settings).toEqual(updated);
+  });
+
+  it('updateSettings forwards explicit null cap (clear)', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ ...baseSettings, sttMonthlyMinuteCap: null }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await act(async () => {
+      await result.current.updateSettings({ sttMonthlyMinuteCap: null });
+    });
+
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/workspaces/ws1/settings',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ sttMonthlyMinuteCap: null }),
+      }),
+    );
+  });
+
+  it('fetchSttUsage GETs /api/stt/usage with the workspaceId query param', async () => {
+    const usage = {
+      workspaceId: 'ws1',
+      minutesUsedThisMonth: 12,
+      cap: 100,
+      engine: 'deepgram' as const,
+    };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => usage });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    const got = await result.current.fetchSttUsage();
+    expect(got).toEqual(usage);
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/stt/usage?workspaceId=ws1',
+      expect.objectContaining({ credentials: 'include' }),
+    );
+  });
+
+  it('fetchSttUsage URL-encodes workspaceId', async () => {
+    const usage = {
+      workspaceId: 'ws/with space',
+      minutesUsedThisMonth: 0,
+      cap: null,
+      engine: 'web-speech' as const,
+    };
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => usage });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws/with space', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await result.current.fetchSttUsage();
+    expect(global.fetch).toHaveBeenLastCalledWith(
+      '/api/stt/usage?workspaceId=ws%2Fwith%20space',
+      expect.anything(),
+    );
+  });
+
+  it('fetchSttUsage surfaces server error message', async () => {
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => baseSettings })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'Access denied to workspace' }),
+      });
+
+    const { result } = renderHook(() => useWorkspaceSettings('ws1', true));
+    await waitFor(() => expect(result.current.settings).toEqual(baseSettings));
+
+    await expect(result.current.fetchSttUsage()).rejects.toThrow(
+      'Access denied to workspace',
+    );
+  });
+
+  it('setDeepgramApiKey / removeDeepgramApiKey / fetchSttUsage throw when no workspaceId', async () => {
+    const { result } = renderHook(() => useWorkspaceSettings(undefined, true));
+    await expect(result.current.setDeepgramApiKey('x')).rejects.toThrow('No workspace selected');
+    await expect(result.current.removeDeepgramApiKey()).rejects.toThrow('No workspace selected');
+    await expect(result.current.fetchSttUsage()).rejects.toThrow('No workspace selected');
+  });
+});
+

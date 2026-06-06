@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspaces, type Workspace } from '../hooks/useWorkspaces';
 import { useSessions, type SessionSummary } from '../hooks/useSessions';
 import { useDevices, type DeviceInfo } from '../hooks/useDevices';
-import { useWorkspaceSettings, type ElevenlabsVoice } from '../hooks/useWorkspaceSettings';
+import { useWorkspaceSettings, type ElevenlabsVoice, type SttUsage } from '../hooks/useWorkspaceSettings';
 import { DeleteWorkspaceModal } from '../components/DeleteWorkspaceModal';
 import { ReleaseNotes } from '../components/ReleaseNotes';
 
@@ -328,6 +328,20 @@ export function WorkspaceHome() {
   const [elevenlabsApiKeyStatus, setElevenlabsApiKeyStatus] = useState<'idle' | 'saving' | 'testing' | 'removing'>('idle');
   const [elevenlabsApiKeyMessage, setElevenlabsApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [deepgramApiKeyInput, setDeepgramApiKeyInput] = useState('');
+  const [deepgramApiKeyStatus, setDeepgramApiKeyStatus] = useState<'idle' | 'saving' | 'removing'>('idle');
+  const [deepgramApiKeyMessage, setDeepgramApiKeyMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // Cap input is a free-text string so we can distinguish "" (no cap)
+  // from "0" (zero-minute cap) without fighting React's controlled-number
+  // semantics. Persisted as number | null.
+  const [sttCapInput, setSttCapInput] = useState<string>('');
+  const [sttCapStatus, setSttCapStatus] = useState<'idle' | 'saving'>('idle');
+  const [sttCapMessage, setSttCapMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [sttEngineStatus, setSttEngineStatus] = useState<'idle' | 'saving'>('idle');
+  const [sttEngineMessage, setSttEngineMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [sttUsage, setSttUsage] = useState<SttUsage | null>(null);
+  const [sttUsageError, setSttUsageError] = useState<string | null>(null);
+
   // ElevenLabs voice selection state
   const [voices, setVoices] = useState<ElevenlabsVoice[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
@@ -346,10 +360,10 @@ export function WorkspaceHome() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
 
   // Workspace settings hook
-  const { 
-    settings, 
-    setApiKey, 
-    testApiKey, 
+  const {
+    settings,
+    setApiKey,
+    testApiKey,
     removeApiKey,
     setElevenlabsApiKey,
     testElevenlabsApiKey,
@@ -357,6 +371,9 @@ export function WorkspaceHome() {
     fetchElevenlabsVoices,
     generateVoicePreview,
     updateSettings,
+    setDeepgramApiKey,
+    removeDeepgramApiKey,
+    fetchSttUsage,
   } = useWorkspaceSettings(workspaceId, workspace?.isOwner ?? false);
   
   // Use ref to prevent race condition with auto-create
@@ -423,6 +440,68 @@ export function WorkspaceHome() {
       return () => clearTimeout(timer);
     }
   }, [elevenlabsApiKeyMessage]);
+
+  useEffect(() => {
+    if (deepgramApiKeyMessage?.type === 'success') {
+      const timer = setTimeout(() => setDeepgramApiKeyMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [deepgramApiKeyMessage]);
+
+  useEffect(() => {
+    if (sttCapMessage?.type === 'success') {
+      const timer = setTimeout(() => setSttCapMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [sttCapMessage]);
+
+  useEffect(() => {
+    if (sttEngineMessage?.type === 'success') {
+      const timer = setTimeout(() => setSttEngineMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [sttEngineMessage]);
+
+  // Issue #412: keep the cap input field in sync with the server-loaded
+  // settings. We render the cap as an empty string when null ("no cap")
+  // and as a decimal string otherwise.
+  useEffect(() => {
+    if (settings) {
+      setSttCapInput(
+        settings.sttMonthlyMinuteCap === null
+          ? ''
+          : String(settings.sttMonthlyMinuteCap),
+      );
+    }
+  }, [settings?.sttMonthlyMinuteCap]);
+
+  // Issue #412: fetch the current-month usage when (and only when) the
+  // engine resolves to deepgram. For web-speech we skip both the fetch
+  // and the row render — there is no Deepgram traffic to report.
+  useEffect(() => {
+    if (!settings || settings.sttEngine !== 'deepgram') {
+      setSttUsage(null);
+      setSttUsageError(null);
+      return;
+    }
+    let cancelled = false;
+    fetchSttUsage()
+      .then((usage) => {
+        if (!cancelled) {
+          setSttUsage(usage);
+          setSttUsageError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setSttUsage(null);
+          setSttUsageError(getErrorMessage(err));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [settings?.sttEngine, settings?.sttMonthlyMinuteCap, settings?.hasDeepgramApiKey, fetchSttUsage]);
 
   // Fetch ElevenLabs voices when key is configured
   useEffect(() => {
@@ -688,6 +767,87 @@ export function WorkspaceHome() {
       await updateSettings({ kioskFooterTickersEnabled: enabled });
     } catch (err) {
       setElevenlabsApiKeyMessage({ type: 'error', text: 'Failed to update kiosk ticker setting: ' + getErrorMessage(err) });
+    }
+  };
+
+  // Issue #412: hosted STT engine + cap + Deepgram key handlers.
+  const handleSttEngineChange = async (engine: 'web-speech' | 'deepgram') => {
+    if (engine === settings?.sttEngine) return;
+    setSttEngineStatus('saving');
+    setSttEngineMessage(null);
+    try {
+      await updateSettings({ sttEngine: engine });
+      setSttEngineMessage({
+        type: 'success',
+        text: engine === 'deepgram'
+          ? 'Switched to hosted (Deepgram) speech recognition'
+          : 'Switched to browser (Web Speech) speech recognition',
+      });
+    } catch (err) {
+      setSttEngineMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setSttEngineStatus('idle');
+    }
+  };
+
+  const handleSaveSttCap = async () => {
+    setSttCapStatus('saving');
+    setSttCapMessage(null);
+    const raw = sttCapInput.trim();
+    let cap: number | null;
+    if (raw === '') {
+      cap = null;
+    } else {
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+        setSttCapMessage({
+          type: 'error',
+          text: 'Monthly cap must be a non-negative whole number, or leave blank for no cap.',
+        });
+        setSttCapStatus('idle');
+        return;
+      }
+      cap = parsed;
+    }
+    try {
+      await updateSettings({ sttMonthlyMinuteCap: cap });
+      setSttCapMessage({
+        type: 'success',
+        text: cap === null ? 'Monthly cap cleared' : `Monthly cap set to ${cap} minutes`,
+      });
+    } catch (err) {
+      setSttCapMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setSttCapStatus('idle');
+    }
+  };
+
+  const handleSaveDeepgramApiKey = async () => {
+    if (!deepgramApiKeyInput.trim()) return;
+    setDeepgramApiKeyStatus('saving');
+    setDeepgramApiKeyMessage(null);
+    try {
+      await setDeepgramApiKey(deepgramApiKeyInput.trim());
+      setDeepgramApiKeyInput('');
+      setDeepgramApiKeyMessage({ type: 'success', text: 'Deepgram API key saved successfully' });
+    } catch (err) {
+      setDeepgramApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setDeepgramApiKeyStatus('idle');
+    }
+  };
+
+  const handleRemoveDeepgramApiKey = async () => {
+    if (!confirm('Are you sure you want to remove the Deepgram API key? This will disable hosted speech recognition for this workspace.')) return;
+    setDeepgramApiKeyStatus('removing');
+    setDeepgramApiKeyMessage(null);
+    try {
+      await removeDeepgramApiKey();
+      setDeepgramApiKeyMessage({ type: 'success', text: 'Deepgram API key removed' });
+    } catch (err) {
+      setDeepgramApiKeyMessage({ type: 'error', text: getErrorMessage(err) });
+    } finally {
+      setDeepgramApiKeyStatus('idle');
     }
   };
 
@@ -1246,6 +1406,166 @@ export function WorkspaceHome() {
                   current AI action on the right. Reduces visible display lines by 1.
                 </span>
               </div>
+
+              {/* Issue #412 — hosted STT (Deepgram) workspace settings UI.
+                  Server-side plumbing landed in PR #402; this section makes
+                  it operator-reachable. Lives inside the same owner-gated
+                  settings-section so the owner check covers the controls. */}
+              <div className="setting-row stt-engine-setting" data-testid="stt-engine-setting">
+                <label>Speech recognition engine</label>
+                <div className="stt-engine-row">
+                  <label className="stt-engine-option">
+                    <input
+                      type="radio"
+                      name="stt-engine"
+                      value="web-speech"
+                      checked={(settings?.sttEngine ?? 'web-speech') === 'web-speech'}
+                      onChange={() => handleSttEngineChange('web-speech')}
+                      disabled={sttEngineStatus !== 'idle'}
+                    />
+                    <span>Browser (Web Speech) — free, runs on the device</span>
+                  </label>
+                  <label className="stt-engine-option">
+                    <input
+                      type="radio"
+                      name="stt-engine"
+                      value="deepgram"
+                      checked={settings?.sttEngine === 'deepgram'}
+                      onChange={() => handleSttEngineChange('deepgram')}
+                      disabled={sttEngineStatus !== 'idle' || !settings?.hasDeepgramApiKey}
+                    />
+                    <span>
+                      Hosted (Deepgram) — higher accuracy
+                      {!settings?.hasDeepgramApiKey && (
+                        <em className="setting-hint inline-hint"> (set an API key below first)</em>
+                      )}
+                    </span>
+                  </label>
+                </div>
+                {sttEngineMessage && (
+                  <div className={`api-key-message ${sttEngineMessage.type}`}>
+                    {sttEngineMessage.text}
+                  </div>
+                )}
+                <span className="setting-hint">
+                  Web Speech runs locally in supported browsers and reports no usage.
+                  Deepgram routes audio through your workspace API key and counts against
+                  the monthly cap below.
+                </span>
+              </div>
+
+              {/* Deepgram API Key — mirrors the ElevenLabs entry above. */}
+              <div className="setting-row api-key-setting deepgram-setting" data-testid="deepgram-api-key-setting">
+                <label>Deepgram API Key</label>
+                <div className="api-key-status">
+                  {settings?.hasDeepgramApiKey ? (
+                    <span className="status-configured">✓ Configured</span>
+                  ) : (
+                    <span className="status-not-configured">⚠️ Not Configured</span>
+                  )}
+                </div>
+                <div className="api-key-input-row">
+                  <input
+                    type="password"
+                    placeholder={settings?.hasDeepgramApiKey ? '••••••••••••••••' : 'Enter your Deepgram API key'}
+                    value={deepgramApiKeyInput}
+                    onChange={(e) => setDeepgramApiKeyInput(e.target.value)}
+                    disabled={deepgramApiKeyStatus !== 'idle'}
+                    className="api-key-input"
+                    aria-label="Deepgram API key"
+                  />
+                  <button
+                    onClick={handleSaveDeepgramApiKey}
+                    disabled={deepgramApiKeyStatus !== 'idle' || !deepgramApiKeyInput.trim()}
+                    className="api-key-btn save-btn"
+                  >
+                    {deepgramApiKeyStatus === 'saving' ? 'Saving...' : 'Save'}
+                  </button>
+                  {settings?.hasDeepgramApiKey && (
+                    <button
+                      onClick={handleRemoveDeepgramApiKey}
+                      disabled={deepgramApiKeyStatus !== 'idle'}
+                      className="api-key-btn remove-btn"
+                    >
+                      {deepgramApiKeyStatus === 'removing' ? 'Removing...' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+                {deepgramApiKeyMessage && (
+                  <div className={`api-key-message ${deepgramApiKeyMessage.type}`}>
+                    {deepgramApiKeyMessage.text}
+                  </div>
+                )}
+                <span className="setting-hint">
+                  Your Deepgram API key for hosted speech-to-text.
+                  Get one at <a href="https://console.deepgram.com" target="_blank" rel="noopener noreferrer">console.deepgram.com</a>.
+                  Removing the key also resets the engine back to Browser (Web Speech).
+                </span>
+              </div>
+
+              {/* Monthly minute cap. Empty = no cap. */}
+              <div className="setting-row stt-cap-setting" data-testid="stt-cap-setting">
+                <label>Monthly minute cap</label>
+                <div className="api-key-input-row">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    placeholder="No cap"
+                    value={sttCapInput}
+                    onChange={(e) => setSttCapInput(e.target.value)}
+                    disabled={sttCapStatus !== 'idle'}
+                    className="api-key-input stt-cap-input"
+                    aria-label="Monthly Deepgram minute cap"
+                  />
+                  <button
+                    onClick={handleSaveSttCap}
+                    disabled={sttCapStatus !== 'idle'}
+                    className="api-key-btn save-btn"
+                  >
+                    {sttCapStatus === 'saving' ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+                {sttCapMessage && (
+                  <div className={`api-key-message ${sttCapMessage.type}`}>
+                    {sttCapMessage.text}
+                  </div>
+                )}
+                <span className="setting-hint">
+                  Maximum minutes per calendar month routed through Deepgram. Leave blank for no cap.
+                </span>
+              </div>
+
+              {/* Current-month usage display. Hidden when engine is web-speech
+                  (no Deepgram traffic to report). */}
+              {settings?.sttEngine === 'deepgram' && (
+                <div className="setting-row stt-usage-setting" data-testid="stt-usage-setting">
+                  <label>Usage this month</label>
+                  <div className="stt-usage-row">
+                    {sttUsageError ? (
+                      <span className="api-key-message error">
+                        Failed to load usage: {sttUsageError}
+                      </span>
+                    ) : sttUsage ? (
+                      <span className="stt-usage-counter">
+                        Used <strong>{sttUsage.minutesUsedThisMonth}</strong>
+                        {sttUsage.cap !== null ? (
+                          <> / <strong>{sttUsage.cap}</strong> minutes</>
+                        ) : (
+                          <> minutes (no cap)</>
+                        )}
+                        {' '}(engine: {sttUsage.engine})
+                      </span>
+                    ) : (
+                      <span className="setting-hint">Loading usage…</span>
+                    )}
+                  </div>
+                  <span className="setting-hint">
+                    Counter resets on the first of each calendar month.
+                  </span>
+                </div>
+              )}
             </div>
           </section>
         )}
