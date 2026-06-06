@@ -889,3 +889,24 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:42 UTC - Expansion Worker (issue #411)
+
+✅ **Expanded Issue [#411](https://github.com/jpshackelford/voice-relay/issues/411)** — `feat(server,client): propagate engineSpeakerLabel through agent driver + render kiosk ticker S1: prefix (follow-up to #386)`
+
+- **Type:** Enhancement (full-stack follow-up filed by retroactive AC Gate on PR #402 / umbrella #386).
+- **Verdict:** Issue body already well-specified by the AC Gate. Sanity-checked against `main`, found one client-side gap (mirror type missing), and added a single concrete file-path + test-scope comment before labeling ready.
+- **Verified against main:**
+  - Server wire/storage already done: `engineSpeakerLabel?: string` on `TextMessage` and `RelayedTextMessage` at `server/src/types.ts:233,521`; WS handler reads + relays + does the `session_engine_speakers` swap at `server/src/index.ts:972-1006`.
+  - Server-side gap confirmed: `server/src/agent-message-relay.ts` and `server/src/agent-message-relay.test.ts` have **zero** references to `engineSpeakerLabel`; existing `sender` plumbing test at L107 forwards `AgentSenderMeta` to the driver but never carries the engine label.
+  - Header builder lives in `server/src/agent-driver/voice-relay-header.ts` (not in `agent-message-relay.ts`); the `[speaker …]` line at L160–L185 already dedupes per-device via `state.deviceSpeakerId` — natural place to add an `engine=…` fallback when `sender.speaker` is unresolved.
+  - **Client-side mirror gap found:** `client/src/types.ts:190` `RelayedTextMessage` is missing `engineSpeakerLabel?: string`; `Utterance` at L549 is also missing it; `handleTextMessage` in both `client/src/pages/SessionView.tsx:192` and `client/src/pages/Workspace.tsx:139` need to thread it through. The kiosk ticker `transcriptionTicker` memo at `client/src/components/KioskMode.tsx:526` is where the `S1:` prefix lands.
+- **Key clarification added in [comment](https://github.com/jpshackelford/voice-relay/issues/411#issuecomment-4639249948):**
+  - Plumbing spine: extend `AgentSenderMeta` (`server/src/agent-driver/types.ts:107`) with `engineSpeakerLabel?: string`; spread into the existing `sender` literal in `server/src/index.ts:1047-1053`; extend the `[speaker …]` line in `voice-relay-header.ts` to emit `[speaker engine=S1]` when `sender.speaker` is absent. Resolved `speaker` always wins — engine label is fallback only.
+  - Explicit file-path list for client mirror (`types.ts`, `SessionView.tsx`, `Workspace.tsx`, `KioskMode.tsx`).
+  - Test scope: `agent-message-relay.test.ts` (forwarding), `voice-relay-header.test.ts` (4 new cases incl. dedup), `KioskMode.test.tsx` (prefix render + Web-Speech regression guard).
+- **Action:** Added expansion comment, added `ready` label.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
