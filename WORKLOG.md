@@ -910,3 +910,11 @@ _This worklog entry was written by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:51 UTC - Expansion Worker (issue #413)
+
+✅ **Expanded Issue [#413](https://github.com/jpshackelford/voice-relay/issues/413)** — `docs: README section "Hosted STT (Deepgram)" (follow-up to #386)` — docs-only follow-up from the retroactive AC Gate on PR #402; rewrote body with Problem Statement / Proposed Solution / Acceptance Criteria (9 verifiable bullets the closing-trailer gate will walk), added technical-approach comment with insertion-point line numbers (between README.md:191 and :207) + pricing-source guidance, labeled `ready`.
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
