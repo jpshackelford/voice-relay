@@ -2,6 +2,47 @@
 
 ## Log
 
+## INSTRUCTION: Retroactive Closing-Trailer AC Gate run for PR #402 / Issue #386
+
+**Context.** PR #402 (`feat(server): hosted STT (Deepgram) broker + workspace settings`) merged on 2026-06-05 at 13:21:36Z with a `Fixes #386` trailer, auto-closing issue #386. The diff is server-scoped and does not cover #386's client-side acceptance-criteria sections (notably the `useHostedSpeechRecognition` hook, the `KioskMode.tsx` / `MobileMode.tsx` engine-selection wiring, the workspace-settings UI showing per-month usage and the configured cap, and any per-device override UI). A human observer noticed that the production app (vr.chorecraft.net) shows the change-log entry for hosted STT but has no UI surface for any of the new settings — exactly the failure mode the now-codified Closing-Trailer Acceptance-Criteria Gate (`plugins/voice-relay-workflow/SKILL.md`, merged in [.openhands#30](https://github.com/jpshackelford/.openhands/pull/30)) is designed to catch.
+
+**This instruction authorizes a one-off retroactive gate run, not a normal expansion-slot dispatch.**
+
+**Required actions** (single conversation; spawn an expansion worker or do it inline):
+
+1. **Re-walk issue #386's `## Acceptance Criteria` checklist against PR #402's final diff.**
+   ```bash
+   gh issue view 386 --repo jpshackelford/voice-relay --json body -q '.body'
+   gh pr diff 402 --repo jpshackelford/voice-relay
+   gh pr view 402 --repo jpshackelford/voice-relay --json files -q '[.files[].path] | sort'
+   ```
+   Apply the gate's standard rules from `SKILL.md` (exempt items: those marked `(deferred)` / `(out of scope)` / `(follow-up)` in the issue body; otherwise the diff must contain a concrete change a reviewer can point to that delivers the behavior). Note: #386's `## Out of Scope` section is authoritative for "this is intentionally not in this issue at all"; an item appearing only in `## Acceptance Criteria` and not satisfied by the diff is a real gap.
+
+2. **For each AC section with one or more unsatisfied items, file ONE follow-up issue** (group by the bold bullet-group boundary in #386's body — e.g. "Client hook `useHostedSpeechRecognition`" is one follow-up, "Engine selection" is another, etc.). Each follow-up must:
+   - Open with one line stating which AC section from #386 it covers.
+   - Include the bullet list of unsatisfied AC items, copied verbatim.
+   - Carry forward any relevant technical-approach prose from #386 so the eventual expansion worker doesn't re-derive it.
+   - Reference back with `Refs #386` (NOT `Fixes #386` — closing #386 is decided in step 4 below).
+   - Inherit #386's `priority:low` label and add the appropriate `scope:*` label (most will be `scope:client-only`; the workspace-settings UI portion may be `scope:full-stack`).
+   - Do NOT add the `ready` label yet — that's the expansion worker's job on the next normal tick.
+
+3. **Update PR #402's body** (post-merge edit is permitted for the description) to add a `## Deferred to follow-ups` section listing the new issue numbers with a one-line summary of each. Place it just above the `Fixes #386` trailer line, and leave the trailer in place for historical accuracy — the squash commit is immutable.
+
+4. **Re-open issue #386 with a comment** explaining: (a) this gate run is retroactive per the merged `.openhands#30` policy, (b) the original `Fixes #386` trailer was incorrect because the diff did not cover client-side AC items, (c) the filed follow-up issues are listed (with #-links), and (d) #386 stays open as the umbrella tracker and will close when all follow-ups close.
+
+5. **Log a WORKLOG entry** on `main` for this cycle titled "Retroactive AC gate run for PR #402 / Issue #386" listing: the unsatisfied AC sections found, the follow-up issue numbers filed, and a one-line gate verdict (`downgraded Fixes → Refs + N follow-ups`).
+
+**This instruction is single-use** — once the WORKLOG entry from step 5 lands, this `INSTRUCTION:` block is satisfied and the next tick should resume normal decision-table dispatch.
+
+**Authorization specifically granted:**
+- Re-opening closed issue #386 (one-time).
+- Editing PR #402's body post-merge (one-time, description-only).
+- Filing follow-up issues without first running an expansion worker on each (they will get expanded on subsequent normal ticks).
+
+_This instruction was written by an AI agent (OpenHands) on behalf of @jpshackelford as part of the retroactive backfill for the closing-trailer drift that produced this rule. See [.openhands#30](https://github.com/jpshackelford/.openhands/pull/30) and [.openhands#32](https://github.com/jpshackelford/.openhands/pull/32)._
+
+---
+
 ### 2026-06-05 13:51 UTC - Orchestrator
 
 🔒 **Auto-disabled due to inactivity** (2nd consecutive quiet tick)
