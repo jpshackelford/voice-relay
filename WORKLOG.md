@@ -777,3 +777,42 @@ Found unacknowledged `## INSTRUCTION:` block at the top of WORKLOG.md authorizin
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 14:26 UTC - Expansion worker (retroactive AC gate for PR #402 / Issue #386)
+
+✅ Retroactive Closing-Trailer Acceptance-Criteria Gate run for [PR #402](https://github.com/jpshackelford/voice-relay/pull/402) (`feat(server): hosted STT (Deepgram) broker + workspace settings`, merged 2026-06-05 13:21:35Z with a `Fixes #386` trailer) and [Issue #386](https://github.com/jpshackelford/voice-relay/issues/386). Authorised by the `## INSTRUCTION:` block at the top of `WORKLOG.md` and the policy codified in [.openhands#30](https://github.com/jpshackelford/.openhands/pull/30).
+
+**AC sections found unsatisfied** by re-walking #386's `## Acceptance Criteria` against PR #402's final diff (server-scoped, 25 files, no `client/` paths and no `README.md` change):
+
+- **Client hook `useHostedSpeechRecognition`** — entire section unsatisfied; no hook file in `client/src/hooks/`, no lifecycle test.
+- **Engine selection** — `KioskMode.tsx` and `MobileMode.tsx` untouched; no resolved-engine wiring; no transparent Web-Speech fallback.
+- **Message pipeline** (partial) — server-side WS relay + engine-label → `speakers.id` swap ✓ covered in `server/src/index.ts`; **agent driver** (`server/src/agent-message-relay.ts`) and **kiosk ticker `S1: …` prefix** (#382) ✗ uncovered.
+- **Usage / cap** (partial) — table, counter, `GET`/`POST /api/stt/usage` ✓ covered; **workspace settings page showing minutes-used + cap** ✗ uncovered (no UI surface on vr.chorecraft.net — exactly the failure the human observer flagged).
+- **Docs** (partial) — `docs/architecture.md` paragraph ✓ covered; **README "Hosted STT (Deepgram)" section** ✗ uncovered.
+
+Items confirmed **covered** by PR #402 (no follow-up needed): Setting plumbing (migration 019 columns + owner-gated mutations), Token broker (`POST /api/stt/token` + full 401/402/403/404/503/502 error matrix), Session mapping table + repository (`session_engine_speakers` + `resolveEngineSpeaker`), server side of Usage / cap, wire-protocol field `engineSpeakerLabel?` on `TextMessage` / `RelayedTextMessage`, `docs/architecture.md` paragraph.
+
+**Follow-up issues filed** (each carries `priority:low` inherited from #386 and `Refs #386`; none carries `ready` — the expansion worker will add that on subsequent normal ticks):
+
+| Issue | Title | Scope |
+|-------|-------|-------|
+| [#409](https://github.com/jpshackelford/voice-relay/issues/409) | `feat(client): useHostedSpeechRecognition hook for hosted STT (follow-up to #386)` | `scope:client-only` |
+| [#410](https://github.com/jpshackelford/voice-relay/issues/410) | `feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode (follow-up to #386)` | `scope:client-only` |
+| [#411](https://github.com/jpshackelford/voice-relay/issues/411) | `feat(server,client): propagate engineSpeakerLabel through agent driver + render kiosk ticker S1: prefix (follow-up to #386)` | `scope:full-stack` |
+| [#412](https://github.com/jpshackelford/voice-relay/issues/412) | `feat(client): workspace settings UI for hosted STT engine, cap, key, and usage (follow-up to #386)` | `scope:client-only` |
+| [#413](https://github.com/jpshackelford/voice-relay/issues/413) | `docs: README section "Hosted STT (Deepgram)" (follow-up to #386)` | `scope:docs-only` |
+
+**Gate verdict:** `downgraded Fixes → Refs + 5 follow-ups`.
+
+**Other artefacts written:**
+
+- [PR #402](https://github.com/jpshackelford/voice-relay/pull/402) body edited (post-merge, description-only) to add a `## Deferred to follow-ups` section listing #409–#413, placed just above the (immutable) `Fixes #386` trailer. The squash commit on `main` is unchanged. A note about the retroactive gate edit was appended to the AI-disclosure footer.
+- [Issue #386](https://github.com/jpshackelford/voice-relay/issues/386) re-opened as the umbrella tracker with an explanatory comment ([#issuecomment-4639185739](https://github.com/jpshackelford/voice-relay/issues/386#issuecomment-4639185739)) covering (a) the retroactive nature of the gate per `.openhands#30`, (b) why the original `Fixes #386` trailer was incorrect, (c) the filed follow-ups, and (d) that #386 will close once all five follow-ups close.
+
+**Branch hygiene:** This WORKLOG entry was pushed directly to `main` per the `AGENTS.md` exception for `docs(worklog):` commits. No feature branch touched WORKLOG. `.workflow-state.json` was **not** modified — the orchestrator already attributed this conversation in its expansion-slot entry when it spawned the worker.
+
+[ACKNOWLEDGED: ## INSTRUCTION: Retroactive Closing-Trailer AC Gate run for PR #402 / Issue #386]
+
+_This worklog entry was written by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
