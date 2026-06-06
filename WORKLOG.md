@@ -661,3 +661,36 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 00:31 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet ticks (`quiet_ticks` 1 → 2) with no productive work available — every open issue carries an `on-hold` or `needs-human` label, and there are no open PRs after PR #407 / #408 merged at `00:10–00:13Z`. Automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` ("Voice Relay Workflow Orchestrator v2") has been disabled to stop tick-cadence noise.
+
+**State snapshot at disable:**
+
+| Bucket | Count | Items |
+|---|---|---|
+| Open PRs | 0 | — |
+| Active workers | 0 | — |
+| Issues needing expansion (actionable) | 0 | All open expansion candidates are `on-hold` (#210, #239, #299–#302, #384) or `needs-human` (#372) |
+| Ready issues (actionable) | 0 | #351, #363 both `on-hold` |
+
+The Path B / S3 design freeze documented in `AGENTS.md` still gates #299–#302; the workspace-persistence prep work has not yet landed, so those remain `on-hold` by design. #372 (`needs-human`) is awaiting a human decision.
+
+**To re-enable** once new actionable issues land (e.g., a fresh bug report, or the S3 freeze lifts):
+
+```bash
+curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+  -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": true}'
+```
+
+Or toggle via the OpenHands UI: <https://app.all-hands.dev/automations> → "Voice Relay Workflow Orchestrator v2" → enable.
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
