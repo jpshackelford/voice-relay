@@ -65,6 +65,14 @@ export interface VoiceRelayHeaderState {
    * a borrowed device.
    */
   deviceSpeakerId: Map<string, string>;
+  /**
+   * deviceId → last announced hosted-STT engine label (#386 / #411),
+   * e.g. `'S1'`. Used in the same suppress-when-unchanged spirit as
+   * `deviceSpeakerId`, but for the engine-label fallback path that
+   * fires when no real `speakers.id` has been linked yet. Cleared on
+   * the device entry when a real `speaker` is resolved.
+   */
+  deviceEngineSpeakerLabel: Map<string, string>;
 }
 
 /** Construct a fresh header state. Call this when constructing an `AISession`. */
@@ -74,6 +82,7 @@ export function makeVoiceRelayHeaderState(): VoiceRelayHeaderState {
     lastUserAlias: null,
     lastUserAtMs: null,
     deviceSpeakerId: new Map(),
+    deviceEngineSpeakerLabel: new Map(),
   };
 }
 
@@ -157,12 +166,23 @@ export function buildVoiceRelayHeader(
     lines.push(`[vr ${alias}=${safeName}${tz}]`);
   }
 
-  // Speaker identity (#383). Emit a `[speaker ...]` line whenever the
-  // resolved speaker differs from the one we last announced for this
-  // device. This is independent of the alias/time decision above —
-  // borrowed devices flip speaker without flipping device, and the
-  // agent needs to see both.
+  // Speaker identity (#383, #386, #411). Emit a `[speaker ...]` line
+  // whenever the resolved speaker differs from the one we last
+  // announced for this device. This is independent of the alias/time
+  // decision above — borrowed devices flip speaker without flipping
+  // device, and the agent needs to see both.
+  //
+  // When `sender.speaker` is absent but `sender.engineSpeakerLabel`
+  // is set, fall back to announcing the engine label (e.g.
+  // `[speaker engine=S1]`) so the agent can still attribute the
+  // utterance to a stable per-session bucket until the engine label
+  // is linked to a real `speakers.id`. The engine label fallback is
+  // suppressed on consecutive same-label turns from the same device
+  // for the same reason the resolved-speaker path is.
   const lastSpeakerForDevice = state.deviceSpeakerId.get(sender.deviceId);
+  const lastEngineLabelForDevice = state.deviceEngineSpeakerLabel.get(
+    sender.deviceId,
+  );
   if (
     sender.speaker &&
     sender.speaker.id !== lastSpeakerForDevice
@@ -176,12 +196,36 @@ export function buildVoiceRelayHeader(
     }
     lines.push(`[speaker ${speakerBits.join(' ')}]`);
     state.deviceSpeakerId.set(sender.deviceId, sender.speaker.id);
+    // Real speaker just won — drop any cached engine-label state for
+    // this device so a later unclaim that loses `speaker` can re-emit
+    // the engine fallback cleanly.
+    state.deviceEngineSpeakerLabel.delete(sender.deviceId);
   } else if (!sender.speaker && lastSpeakerForDevice !== undefined) {
     // Speaker just became unknown again (device unclaimed, override
     // cleared, etc). Announce so the agent stops attributing to the
-    // last speaker.
+    // last speaker. If an engine label is also present we still
+    // announce `id=unknown` first; the engine line below picks up the
+    // new bucket on the next divergence.
     lines.push(`[speaker id=unknown]`);
     state.deviceSpeakerId.delete(sender.deviceId);
+    state.deviceEngineSpeakerLabel.delete(sender.deviceId);
+  }
+
+  // Engine-label fallback (#386 / #411). Only when there's no
+  // resolved speaker — once a real `speakers.id` is available it
+  // wins. We sanitize because the engine label flows from the client
+  // unchanged, just like display names do.
+  if (
+    !sender.speaker &&
+    sender.engineSpeakerLabel &&
+    sender.engineSpeakerLabel !== lastEngineLabelForDevice
+  ) {
+    const safeLabel = sanitizeDeviceName(sender.engineSpeakerLabel);
+    lines.push(`[speaker engine=${safeLabel}]`);
+    state.deviceEngineSpeakerLabel.set(
+      sender.deviceId,
+      sender.engineSpeakerLabel,
+    );
   }
 
   if (needTime || needAlias) {

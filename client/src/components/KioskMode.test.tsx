@@ -1693,6 +1693,143 @@ describe('KioskMode', () => {
         );
       });
 
+      // ================================================================
+      // Issue #411: hosted-STT engine speaker label prefix
+      //
+      // When the inbound utterance carries `engineSpeakerLabel`, the
+      // ticker prefers it over `senderName` so the kiosk shows e.g.
+      // `S1: …` until the label is linked to a real `speakers.id`. The
+      // Web-Speech path (no engine label) must continue to render
+      // exactly as before — that's the regression guard at the bottom
+      // of this block.
+      // ================================================================
+      it("prefixes the ticker with the engineSpeakerLabel when set (issue #411)", () => {
+        const utterances = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone SE",
+              text: "I'll grab a coffee",
+              engineSpeakerLabel: 'S1',
+            }),
+          ],
+        ]);
+        act(() => {
+          render(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={utterances}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        // Engine label wins over the device's display name.
+        expect(strip.textContent).toBe("S1: I'll grab a coffee");
+        expect(
+          strip.querySelector('.kiosk-ticker-speaker')?.textContent
+        ).toBe('S1: ');
+      });
+
+      it('falls back to senderName when engineSpeakerLabel is undefined (Web-Speech regression guard, issue #411)', () => {
+        // This is the explicit regression guard called out in #411's
+        // expansion comment: utterances with no engine label must
+        // render exactly as they did before #411 — i.e. prefixed by
+        // `senderName: …`, NOT some empty fallback.
+        const utterances = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: 'Kitchen iPad',
+              text: 'where are the kids',
+              // intentionally no engineSpeakerLabel
+            }),
+          ],
+        ]);
+        act(() => {
+          render(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={utterances}
+            />
+          );
+        });
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent).toBe('Kitchen iPad: where are the kids');
+        expect(
+          strip.querySelector('.kiosk-ticker-speaker')?.textContent
+        ).toBe('Kitchen iPad: ');
+      });
+
+      it('engine-label prefix flips back to senderName once the server resolves the speaker (issue #411)', () => {
+        // Before the server links the engine label to a real speaker,
+        // the row carries `engineSpeakerLabel: 'S1'`. After resolution
+        // the server substitutes the real speaker on `senderName` and
+        // omits `engineSpeakerLabel`. The ticker must follow.
+        const utterances = new Map<string, Utterance>([
+          [
+            'u1',
+            makeUtterance({
+              id: 'u1',
+              senderId: 'mobile-1',
+              senderName: "JP's iPhone SE",
+              text: 'pre-resolution',
+              engineSpeakerLabel: 'S1',
+            }),
+          ],
+        ]);
+        const { rerender } = render(
+          <KioskMode
+            {...defaultProps}
+            devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+            kioskFooterTickersEnabled
+            utterances={utterances}
+          />
+        );
+        expect(
+          screen.getByTestId('kiosk-ticker-transcription').textContent
+        ).toBe('S1: pre-resolution');
+
+        // Same senderId, but now a different utterance whose
+        // engineSpeakerLabel was resolved server-side and the row
+        // carries the real speaker name as `senderName`.
+        const resolved = new Map<string, Utterance>([
+          [
+            'u2',
+            makeUtterance({
+              id: 'u2',
+              senderId: 'mobile-1',
+              senderName: 'Sam',
+              text: 'post-resolution',
+              receivedAt: new Date(Date.now() + 1_000),
+            }),
+          ],
+        ]);
+        act(() => {
+          rerender(
+            <KioskMode
+              {...defaultProps}
+              devices={[createMobileDevice('mobile-1'), createKioskDevice('kiosk-1')]}
+              kioskFooterTickersEnabled
+              utterances={resolved}
+            />
+          );
+        });
+        // Same senderId → prefix is normally suppressed; assert the
+        // *text* updates and the speaker chunk is empty rather than
+        // showing a stale `S1:`.
+        const strip = screen.getByTestId('kiosk-ticker-transcription');
+        expect(strip.textContent).toBe('post-resolution');
+        expect(strip.querySelector('.kiosk-ticker-speaker')).toBeNull();
+      });
+
       it("renders an empty strip (no orphan ':') when there is no foreign utterance", () => {
         act(() => {
           render(

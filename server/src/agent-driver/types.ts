@@ -121,6 +121,16 @@ export interface AgentSenderMeta {
    * ignoring this field.
    */
   speaker?: AgentSpeakerMeta;
+  /**
+   * Optional hosted-STT engine speaker label (#386 / #411), e.g. `'S1'`.
+   *
+   * Fallback hint used **only when `speaker` is unresolved** — once
+   * `session_engine_speakers` links the engine label to a real
+   * `speakers.id`, the platform populates `speaker` and the engine
+   * label is ignored. Drivers that don't compose per-turn speaker
+   * context (e.g. `FakeDriver`) may ignore this field.
+   */
+  engineSpeakerLabel?: string;
 }
 
 /**

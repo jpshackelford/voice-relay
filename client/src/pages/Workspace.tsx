@@ -149,6 +149,11 @@ export function Workspace() {
         text: message.text,
         partial: message.partial,
         receivedAt: serverTime ?? prev.get(message.utteranceId)?.receivedAt ?? new Date(),
+        // Issue #411: propagate hosted-STT engine label so the kiosk
+        // ticker can render `S1: …` until a real speaker is bound.
+        ...(message.engineSpeakerLabel
+          ? { engineSpeakerLabel: message.engineSpeakerLabel }
+          : {}),
       });
       return next;
     });
@@ -170,6 +175,10 @@ export function Workspace() {
             text: msg.text,
             partial: msg.partial,
             receivedAt: createdAt ?? new Date(),
+            // Issue #411: history rows may also carry the engine label.
+            ...(msg.engineSpeakerLabel
+              ? { engineSpeakerLabel: msg.engineSpeakerLabel }
+              : {}),
           });
         }
       }

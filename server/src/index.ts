@@ -1044,12 +1044,16 @@ wss.on('connection', (ws: WebSocket) => {
                 ttsService: ttsService ?? undefined,
                 // Issue #375: forward speaker identity + UTC timestamp so
                 // the OpenHands driver can compose its per-turn header.
+                // Issue #411: also forward the hosted-STT engine label
+                // (e.g. `S1`) as a fallback hint — the header builder
+                // ignores it when `speaker` is already resolved.
                 sender: {
                   deviceId: device.id,
                   senderName: device.displayName,
                   saidAtUtc: clientTimestamp,
                   ...(device.timezone ? { timezone: device.timezone } : {}),
                   ...(resolvedSpeaker ? { speaker: resolvedSpeaker } : {}),
+                  ...(engineSpeakerLabel ? { engineSpeakerLabel } : {}),
                 },
               }
             ).catch((err) => {
