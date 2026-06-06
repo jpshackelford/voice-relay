@@ -702,26 +702,76 @@ _This worklog entry was created by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-06 16:38 UTC - Orchestrator
 
-### 2026-06-06 16:38 UTC - Review Worker (PR #423, round 1)
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0544110` | review | PR #423 / Issue #410 — Engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode | running |
+| `300a426` | merge | PR #424 / Issue #421 — fix(tests): re-gate AI-unavailable smoke test on per-workspace settings | **NEW** |
+| `4571b04` | implementation | Issue #413 — docs: README section "Hosted STT (Deepgram)" (follow-up to #386) | **NEW** |
 
-✅ **Completed:** Addressed 3 review threads on PR [#423](https://github.com/jpshackelford/voice-relay/pull/423) `feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode`.
+**Reaped (moved to `completed[]`):**
+- `49ca8be` review → PR #422 merged earlier (Fixes #412)
+- `a9fd499` implementation → PR #424 opened (CI green, pr-review bot ✅ "Worth merging", 0 unresolved threads, mergeStateStatus=CLEAN)
 
-| Thread | Severity | Resolution |
-| --- | --- | --- |
-| Race condition: `wsStartRef.current()` could fire after unmount via `setTimeout(0)` | 🟠 important | Fixed in `013cf16` — added `isMountedRef` + `fallbackRestartTimerRef`, cleanup effect clears the pending timer and flips the mount flag, deferred callback bails when unmounted. New test `does not call wsStartRef after the component unmounts (race-condition guard)` covers it. |
-| String matching on hosted-error messages is fragile | 🟡 suggestion | Fixed in `045c5a5` — added explicit `bannerEligible?: boolean` to `HostedSpeechRecognitionError`, set in `tokenMintErrorFromStatus` for 402/503. Wrapper reduced to `if (err.bannerEligible)`; `shouldBanner` substring helper deleted. Token-mint matrix in `useHostedSpeechRecognition.test.ts` now asserts `bannerEligible` per status. |
-| Comment noise above the `shouldBanner` call | 🟡 suggestion | Fixed in `045c5a5` alongside the substring removal — the verbose explanatory block is gone with the helper. |
+**Current State:**
+- Open PRs:
+  - [PR #423](https://github.com/jpshackelford/voice-relay/pull/423) — `oRFc green draft` (review worker `0544110` still running)
+  - [PR #424](https://github.com/jpshackelford/voice-relay/pull/424) — `oC green ready` — dispatched to merge worker `300a426`
+- Open issues by category:
+  - **Ready + prioritized + not on-hold:** [#413](https://github.com/jpshackelford/voice-relay/issues/413) (priority:low, scope:docs-only) — dispatched to implementation worker `4571b04`
+  - **Ready but on-hold / needs-human:** #351, #363, #386 (skipped per `on-hold` label)
+  - **Needs expansion + actionable:** none. All other open issues are `on-hold` (#210, #239, #299, #300, #301, #302, #384) or `needs-human` (#372).
 
-CI: Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title — all green on `045c5a5`.
+**Slot accounting:**
+- Expansion 0/4 (no actionable expansion work)
+- Implementation 1/1 (issue #413)
+- Review 2/2 (PR #423 review-in-progress, PR #424 merge-in-progress)
+- Total active conversations: 3/7
 
-**AC gate re-run: unchanged.** Both #410 acceptance criteria (engine-selection hook routing, transparent fallback + one-time warning) remain ✅ SATISFIED. Trailer stays `Closes #410`. No follow-up issues filed. Behavior is identical; the fallback is now unmount-safe and the banner decision flag-based instead of substring-based.
+**Action Taken:**
+🚀 **Spawned merge worker** for [PR #424](https://github.com/jpshackelford/voice-relay/pull/424) (Fixes #421) — conversation [`300a426`](https://app.all-hands.dev/conversations/300a426b43614263a570cfdeb338f57a). PR is CLEAN/green with a positive pr-review bot review and 0 unresolved threads; merge worker will re-run the Closing-Trailer AC Gate against issue #421's acceptance criteria before squash-merging.
 
-Cross-issue learning logged on umbrella #386: pattern of putting banner-vs-fallback decisions on the error producer (explicit flag) rather than the consumer (substring match), reusable for future hosted-engine hooks; also the `isMountedRef` guard for any deferred-restart timer in a hook's error path.
+🚀 **Spawned implementation worker** for [Issue #413](https://github.com/jpshackelford/voice-relay/issues/413) — conversation [`4571b04`](https://app.all-hands.dev/conversations/4571b04ce2a74e2d849c0b1aeac5bec5). Docs-only follow-up to #386; adds a "Hosted STT (Deepgram)" section to `README.md` at the line numbers identified during expansion.
 
-**PR state:** ready for review.
+**Anti-stall note:** Per the orchestrate skill, the decision table is exhaustive. No `## INSTRUCTION:` override, `hold` label, or codified policy gates PR #424 or Issue #413. Both dispatched on their merits.
 
-_This worklog entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+---
+### 2026-06-06 16:38 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0544110` | review | PR #423 / Issue #410 — Engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode | running |
+| `300a426` | merge | PR #424 / Issue #421 — fix(tests): re-gate AI-unavailable smoke test on per-workspace settings | **NEW** |
+| `4571b04` | implementation | Issue #413 — docs: README section "Hosted STT (Deepgram)" (follow-up to #386) | **NEW** |
+
+**Reaped (moved to `completed[]`):**
+- `49ca8be` review → PR #422 merged earlier (Fixes #412)
+- `a9fd499` implementation → PR #424 opened (CI green, pr-review bot ✅ "Worth merging", 0 unresolved threads, mergeStateStatus=CLEAN)
+
+**Current State:**
+- Open PRs:
+  - [PR #423](https://github.com/jpshackelford/voice-relay/pull/423) — `oRFc green draft` (review worker `0544110` still running)
+  - [PR #424](https://github.com/jpshackelford/voice-relay/pull/424) — `oC green ready` — dispatched to merge worker `300a426`
+- Open issues by category:
+  - **Ready + prioritized + not on-hold:** [#413](https://github.com/jpshackelford/voice-relay/issues/413) (priority:low, scope:docs-only) — dispatched to implementation worker `4571b04`
+  - **Ready but on-hold / needs-human:** #351, #363, #386 (skipped per `on-hold` label)
+  - **Needs expansion + actionable:** none. All other open issues are `on-hold` (#210, #239, #299, #300, #301, #302, #384) or `needs-human` (#372).
+
+**Slot accounting:**
+- Expansion 0/4 (no actionable expansion work)
+- Implementation 1/1 (issue #413)
+- Review 2/2 (PR #423 review-in-progress, PR #424 merge-in-progress)
+- Total active conversations: 3/7
+
+**Action Taken:**
+🚀 **Spawned merge worker** for [PR #424](https://github.com/jpshackelford/voice-relay/pull/424) (Fixes #421) — conversation [`300a426`](https://app.all-hands.dev/conversations/300a426b43614263a570cfdeb338f57a). PR is CLEAN/green with a positive pr-review bot review and 0 unresolved threads; merge worker will re-run the Closing-Trailer AC Gate against issue #421's acceptance criteria before squash-merging.
+
+🚀 **Spawned implementation worker** for [Issue #413](https://github.com/jpshackelford/voice-relay/issues/413) — conversation [`4571b04`](https://app.all-hands.dev/conversations/4571b04ce2a74e2d849c0b1aeac5bec5). Docs-only follow-up to #386; adds a "Hosted STT (Deepgram)" section to `README.md` at the line numbers identified during expansion.
+
+**Anti-stall note:** Per the orchestrate skill, the decision table is exhaustive. No `## INSTRUCTION:` override, `hold` label, or codified policy gates PR #424 or Issue #413. Both dispatched on their merits.
 
 ---
 
