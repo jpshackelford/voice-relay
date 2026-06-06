@@ -813,3 +813,18 @@ PR moved from draft to ready; review handling proceeds in a separate conversatio
 _This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 16:56 UTC - Merge worker (PR #425, issue #413)
+
+✅ **Merged** PR [#425](https://github.com/jpshackelford/voice-relay/pull/425) — `docs: add hosted STT (Deepgram) section to README` (squash commit `490d36b`). `Fixes #413` trailer auto-closed [#413](https://github.com/jpshackelford/voice-relay/issues/413) at 2026-06-06 16:56:20 UTC.
+
+| Check | Result |
+| --- | --- |
+| Closing-trailer AC gate | ✅ **PASS** — all 10 non-exempt ACs from #413 verified against the final diff (new `## Hosted STT (Deepgram)` section between AI Assistant Integration and Display API; Setup covers Deepgram console + #412 forward-link + `devices.config.stt_engine` override + `DEEPGRAM_BASE_URL`; Cost expectations cite Nova-2 streaming pricing with worked 1-hour example and `stt_monthly_minute_cap` soft-guardrail/TOCTOU caveat; Web-Speech-default subsection notes migration 019 backfill + opt-in semantics; Privacy invariant covers no-audio-through-server + ≤60 s tokens + architecture.md link; line-76 HTTPS note qualified Web-Speech-only; Browser Support row annotated; PR description AC table present; diff is README.md-only; AI-agent disclosure footer in PR body). Gate verdict recorded in squash commit body. |
+| CI on merge commit | ✅ All required checks green at merge time (server tests, client tests, build, E2E, lint-pr-title, pr-review). |
+| Production impact | Docs-only — no migrations, no code paths affected. Auto-deploy to vr.chorecraft.net is a no-op for the running app. |
+| Issue closure | ✅ #413 auto-closed by `Fixes` trailer. |
+
+_This worklog entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
