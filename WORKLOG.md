@@ -688,3 +688,17 @@ Exempt (per #386 / #412 scope notes): per-device override UI, KioskMode/MobileMo
 _This worklog entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-06 16:32 UTC - Implementation Worker (#421)
+
+✅ **Completed:** Implemented #421 → PR [#424](https://github.com/jpshackelford/voice-relay/pull/424) `fix(tests): re-gate AI-unavailable smoke test on per-workspace settings`.
+
+- **Root cause:** `tests/smoke/ai-integration.spec.ts:290` probed the deleted `/api/ai/status` endpoint and used `if (status.available) test.skip(…)` as its "AI available — skip" gate. Post-#404 the endpoint returns 404 `{ "error": "Not found" }`, so `status.available` is permanently `undefined` (falsy), the skip never fires, and the test asserts `toBeHidden({ timeout: 10000 })` against `workspaces[0]` — which in production has an OpenHands key and is auto-connecting, leaving `.ai-status` visible. That tripped the deploy gate three times in a row (a8a1561, 90c7fa2, 23be314) and triggered the automatic rollback that filed #421.
+- **Fix (Option 2 from the RCA, not Option 1):** Replaced the dead global probe with a `getAIDisabledWorkspace(page)` helper that walks `GET /api/workspaces` → `GET /api/workspaces/:id/settings.hasApiKey` for each owned workspace, returns the first one with `hasApiKey: false`, and the test navigates to *that* workspace before asserting `.ai-status` is hidden. If no AI-disabled owned workspace exists in the smoke account the test skips cleanly with a clear message. The two already-`test.skip()`d display-API tests had their dead `/api/ai/status` lines removed for clarity. Diff is `scope:ci-only`: only `tests/smoke/ai-integration.spec.ts` (40 ins / 30 del); no server, client, schema, or runtime change. The RCA's suggested follow-up to "implement Option 2 properly" is **resolved in this PR**, so no new follow-up issue was filed.
+- **CI on PR:** Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title / enable-orchestrator all green on `c40faf5`. Real validation is the next post-merge smoke run against `https://app.no-hands.dev` (CI here only exercises the test file's own typecheck/lint).
+- **AC gate verdict:** **PASS — `Fixes #421`.** Issue body has no explicit `## Acceptance Criteria` heading, so per the implement-issue procedure the `## Expected Behavior` section ("smoke deploy gate should pass when the deployed client code is unchanged") was treated as the AC. The new test logic asserts only on genuinely AI-unavailable workspaces and skips otherwise — neither path produces a false rollback. No follow-up issues filed.
+- **PR state:** ready for review.
+
+_This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
