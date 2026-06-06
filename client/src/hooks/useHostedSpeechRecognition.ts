@@ -55,6 +55,20 @@ export interface HostedSpeechRecognitionError {
    * issue #409 for the per-status-code mapping.
    */
   fallbackEligible: boolean;
+  /**
+   * True when the engine-selection wrapper should additionally surface
+   * this error to the operator via the kiosk/mobile `sttError` banner,
+   * even though we're also auto-falling-back transparently. Set for the
+   * "operator-actionable" cases — cap-exhausted (402) and missing-key
+   * (503) — where silently downgrading would hide a billing or config
+   * problem the operator needs to fix.
+   *
+   * This is the explicit replacement for the substring matching the
+   * wrapper used to do on `message`; keeping the banner-eligibility
+   * decision next to the status-code switch keeps both ends honest at
+   * compile time (review feedback on PR #423).
+   */
+  bannerEligible?: boolean;
   cause: HostedSpeechRecognitionErrorCause;
 }
 
@@ -150,6 +164,10 @@ function dominantSpeakerLabel(words: DeepgramWord[] | undefined): string | undef
  */
 function tokenMintErrorFromStatus(status: number, fallbackText: string): HostedSpeechRecognitionError {
   let fallbackEligible: boolean;
+  // bannerEligible defaults to false; only the operator-actionable
+  // cases (cap-exhausted, missing-key) flip it on so the wrapper
+  // surfaces them in addition to the transparent fallback.
+  let bannerEligible = false;
   let message: string;
   switch (status) {
     case 401:
@@ -159,6 +177,7 @@ function tokenMintErrorFromStatus(status: number, fallbackText: string): HostedS
       break;
     case 402:
       fallbackEligible = true;
+      bannerEligible = true;
       message = 'Hosted STT monthly minute cap reached.';
       break;
     case 403:
@@ -177,6 +196,7 @@ function tokenMintErrorFromStatus(status: number, fallbackText: string): HostedS
       break;
     case 503:
       fallbackEligible = true;
+      bannerEligible = true;
       message = fallbackText || 'Hosted STT temporarily unavailable.';
       break;
     default:
@@ -185,7 +205,7 @@ function tokenMintErrorFromStatus(status: number, fallbackText: string): HostedS
       fallbackEligible = status >= 500;
       message = `Hosted STT token request failed (HTTP ${status}).`;
   }
-  return { message, fallbackEligible, cause: 'token-mint' };
+  return { message, fallbackEligible, bannerEligible, cause: 'token-mint' };
 }
 
 function detectSupport(): boolean {

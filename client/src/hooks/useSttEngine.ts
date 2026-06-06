@@ -77,23 +77,6 @@ export interface UseSttEngineReturn {
   activeEngine: SttEngine;
 }
 
-/**
- * Decide whether a hosted error should also surface as a banner to
- * the operator. Cap-exhausted (402) and missing-key (503) are the two
- * cases the issue calls out — both arrive via `cause: 'token-mint'`
- * with distinctive substrings in `message` (set in
- * `tokenMintErrorFromStatus`).
- */
-function shouldBanner(err: HostedSpeechRecognitionError): boolean {
-  if (err.cause !== 'token-mint') return false;
-  // The token-mint message strings are stable internal constants in
-  // useHostedSpeechRecognition (see `tokenMintErrorFromStatus`). We
-  // match on substrings rather than introducing a status code or
-  // sub-cause field, which would widen the hosted hook's surface.
-  const m = err.message.toLowerCase();
-  return m.includes('cap reached') || m.includes('temporarily unavailable');
-}
-
 export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
   const {
     resolvedEngine,
@@ -172,11 +155,10 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
           err.message,
         );
       }
-      // Pass cap-exhausted / missing-key through so the existing
-      // kiosk/mobile sttError banner shows up. Other fallback-eligible
-      // causes (ws-close, transient token-mint 5xx, ws-error) stay
-      // silent because the fallback itself is invisible to the user.
-      if (shouldBanner(err)) {
+      // Surface operator-actionable causes (cap-exhausted / missing-key)
+      // to the kiosk/mobile sttError banner; see the bannerEligible
+      // docstring on HostedSpeechRecognitionError.
+      if (err.bannerEligible) {
         onErrorRef.current?.(err.message);
       }
       hasFallenBackRef.current = true;

@@ -82,8 +82,9 @@ function makeHostedError(
   fallbackEligible: boolean,
   message: string,
   cause: HostedSpeechRecognitionError['cause'] = 'token-mint',
+  bannerEligible = false,
 ): HostedSpeechRecognitionError {
-  return { fallbackEligible, message, cause };
+  return { fallbackEligible, message, cause, bannerEligible };
 }
 
 describe('useSttEngine (issue #410)', () => {
@@ -252,7 +253,9 @@ describe('useSttEngine (issue #410)', () => {
         useSttEngine({ resolvedEngine: 'deepgram', deviceId: 'dev-1', onError }),
       );
       act(() =>
-        hostedOptions!.onError!(makeHostedError(true, 'Hosted STT monthly minute cap reached.')),
+        hostedOptions!.onError!(
+          makeHostedError(true, 'Hosted STT monthly minute cap reached.', 'token-mint', true),
+        ),
       );
       expect(onError).toHaveBeenCalledWith('Hosted STT monthly minute cap reached.');
     });
@@ -263,9 +266,29 @@ describe('useSttEngine (issue #410)', () => {
         useSttEngine({ resolvedEngine: 'deepgram', deviceId: 'dev-1', onError }),
       );
       act(() =>
-        hostedOptions!.onError!(makeHostedError(true, 'Hosted STT temporarily unavailable.')),
+        hostedOptions!.onError!(
+          makeHostedError(true, 'Hosted STT temporarily unavailable.', 'token-mint', true),
+        ),
       );
       expect(onError).toHaveBeenCalledWith('Hosted STT temporarily unavailable.');
+    });
+
+    it('does not banner fallback-eligible errors that are not banner-eligible', () => {
+      // Belt-and-suspenders: ws-close, transient 5xx, etc. carry
+      // `bannerEligible: false` and must remain silent in the UI even
+      // though the message itself happens to contain banner-eligible
+      // substrings. This pins the contract to the explicit flag and
+      // not to the message text.
+      const onError = vi.fn();
+      renderHook(() =>
+        useSttEngine({ resolvedEngine: 'deepgram', deviceId: 'dev-1', onError }),
+      );
+      act(() =>
+        hostedOptions!.onError!(
+          makeHostedError(true, 'Hosted STT monthly minute cap reached.', 'token-mint', false),
+        ),
+      );
+      expect(onError).not.toHaveBeenCalled();
     });
 
     it('passes non-fallback-eligible errors through to onError without downgrade', () => {
