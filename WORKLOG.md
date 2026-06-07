@@ -909,3 +909,50 @@ already on `main`. Production SQLite unaffected at deploy time.
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 14:35 UTC - Implementation worker (issue #439)
+
+🚀 **Opened PR #444** — `feat(client): wire post-OAuth-return device PATCH + speaker preferred_name seeding (#433 follow-up)`
+
+- Branch: `feat/439-post-oauth-claim` → `main`
+- PR: https://github.com/jpshackelford/voice-relay/pull/444
+- Status: **ready for review**, CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title — all pass)
+- Mergeable: clean
+
+**Coordination note:** Started 14:10 UTC when PR #438 was still OPEN, so
+followed Path B from the dispatch brief — branched from
+`origin/feat/433-first-run-claim-card`. PR #438 merged at 14:25 UTC mid-flight;
+re-based my single commit onto `origin/main`, re-targeted the PR base to
+`main`, and force-pushed. Diff identical to the pre-rebase commit
+(8 files, +803/-1).
+
+**AC gate verdict (issue #439):** ✅ ALL 8 ACs satisfied → trailer `Fixes #439`.
+
+| AC | Status |
+|----|--------|
+| 1. Pending-claim flag set on sign-in click | ✅ `ClaimSpeakerCard.handleSignIn` |
+| 2. Exactly one post-OAuth PATCH, flag consumed pre-await, no double-fire | ✅ `useFirstRunClaim` + `firedRef` |
+| 3a. `devices.primary_user_id` updated | ✅ pre-existing #383 wiring |
+| 3b. `speakers` row seeded with `displayName ?? username` | ✅ server PATCH handler + tests |
+| 3c. Existing `preferred_name` preserved on re-claim | ✅ `upsertForUser` semantics + test |
+| 4. Next agent turn carries `[speaker …]` header | ✅ registry refresh + seed |
+| 5. Claim card hides immediately on PATCH success | ✅ `markDeviceClaimedLocally` |
+| 6. Refresh after claim does not re-fire PATCH | ✅ flag-gone + test |
+| 7. Non-2xx logged, no throw, flag still consumed | ✅ tests |
+| 8. Client + server test coverage | ✅ 19 new tests |
+
+**Tests added:**
+- Client: `useFirstRunClaim.test.ts` (10 new) + `ClaimSpeakerCard.test.tsx` (5 new)
+- Server: `devices/router.test.ts` (4 new — `speaker upsert on claim (#439)` describe block)
+- Suite totals: client 1187 passed (+15), server 1682 passed (+4)
+
+**No follow-up issues filed** — the AC gate is fully satisfied.
+
+**Migration safety:** no new schema migration. Reuses existing
+`speakers` table from `017_speakers`. Production SQLite unaffected at deploy.
+
+**Avoided the #441 duplicate pattern:** confirmed PR #438 existed before
+branching by running `gh pr view 438 --json state` per dispatch brief.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
