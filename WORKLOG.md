@@ -248,3 +248,37 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 **Production-impact:** none from this orchestrator action. The dispatched impl worker will eventually open a draft PR; production deploys only on merge to `main`. State + WORKLOG changes are repo-metadata-only.
 
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-07 01:55 UTC - Implementation Worker (#363)
+
+✅ **Shipped: `feat(server): persist operational AISession state in SQLite (#363)`**
+
+- PR: [#427](https://github.com/jpshackelford/voice-relay/pull/427) (draft → ready)
+- Branch: `feat/363-persist-ai-session-state`
+- Base: `34ebbd6`
+- AC-gate verdict: **all 8 non-exempt items satisfied → trailer `Fixes #363`**.
+- Follow-up issues: **none required** (no `## Deferred to follow-ups` section).
+
+**What lands:**
+
+| Layer | Change |
+|---|---|
+| DB | Migration `020_session_ai_state.ts` — additive, idempotent. New table + index + `INSERT OR IGNORE` backfill from `sessions.metadata.aiConversationId` for `active` rows. `state` CHECK excludes `paused` per the issue (#360 extends). |
+| Sessions repo | New `SessionAIStateRepository` with `findBySessionId`, `listByState`, `listAll`, `upsert`, `transitionTo`, `setRebindAttempts`, `deleteBySessionId`. 22 unit tests at 100% coverage. |
+| AISessionManager | Single `transitionTo(session, state, reason)` chokepoint replaces all scattered `session.degraded = …` / `session.rebinding = …` writes. Added `persistInitialState` (UPSERT on create), `persistRebindAttempts` (after every `recordSuccess`), `setAIStateRepository` (also seeds the rebind tracker from disk). |
+| Lifecycle | `shutdown()` no longer calls `endSessionAI` — closes WS + clears in-memory cache but **preserves** the durable rows. Only user-initiated driver `close`/`restart` paths delete rows. |
+| Rebind budget | `RebindWindowTracker.getHistory` + `seedFromHistory` (tracker stays storage-agnostic). Budget survives restart end-to-end (test: a restored tracker with 2 entries lets a 3rd succeed and a 4th throw). |
+| Rehydrate | `rehydrateAgentSessions` branches on the durable state — `running` re-attach, `degraded` skip+broadcast, `rebinding` 2 s backoff + 1 retry then degrade, `ended` skip silently. Failed re-attach on a `running` row upserts `degraded` so the next restart doesn't loop. |
+| Wiring | `index.ts` constructs `SessionAIStateRepository` next to the other repos and installs it via `setAgentAIStateRepository`. Same repo passed into `rehydrateAgentSessions`. |
+| Docs | `docs/architecture.md` § Persistence layer → new subsection "Durable AI-session state (#363)" — schema, write/read paths, rollback. |
+
+**Test summary:** server suite 1633/1633 pass; coverage 94.43% lines / 89.22% branches / 97.08% functions / 95.28% statements (above the 80% gate). New code (repository + migration) at 100%.
+
+**CI:** all checks green at ready-mark — Build Client ✅, Client Tests ✅, Server Tests ✅, E2E Tests ✅, lint-pr-title ✅, enable-orchestrator ✅, pr-review pending (will run on ready).
+
+**Production-impact:** safe — purely additive schema. Rollback is `DROP TABLE`; every code path falls back to in-memory only (= pre-#363 behavior).
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
