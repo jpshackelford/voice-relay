@@ -1497,3 +1497,42 @@ PR body updated with the new AC table footnote + the `## Deferred to follow-ups`
 _This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 16:54 UTC - Merge worker (PR #450)
+
+✅ Merged PR #450 — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName` — squash SHA `7d41ba2`.
+
+**AC Gate verdict (final):** PASS — `Refs #446` retained (NOT `Fixes`).
+
+| #   | Criterion                                                                | Status   |
+| --- | ------------------------------------------------------------------------ | -------- |
+| 1   | `senderName` substitutes `utteranceSpeaker.preferredName`                | ✅       |
+| 2   | Persisted `messages.sender_name` carries substituted name                | ✅       |
+| 3   | Engine-label-only path keeps device alias                                | ✅       |
+| 4   | Unclaimed-device path keeps device alias                                 | ✅       |
+| 5   | Agent-driver `sender.senderName` unchanged (intentional)                 | ✅       |
+| 6   | New server-side test pins substituted-broadcast contract                 | ✅       |
+| 7   | #442 e2e flips `TODO(#446)` assertions                                   | ⏭️ #449  |
+| 8   | Close #433                                                               | ⏭️ #449  |
+
+6/8 covered by diff; AC #7 deferred to **#449** (blocked on **#452** helper bug); AC #8 (close #433) waits on #449. All three follow-ups verified open at merge time (#452 `bug, tests`; #449 + #433 `ready`).
+
+**CI at merge:** required checks all 🟢 (Server Tests, Client Tests, Build Client, lint-pr-title, enable-orchestrator, pr-review). Non-required CI/E2E Tests 🔴 due to upstream `navigateKioskToFirstSession` strict-mode flake (#452) — confirmed not caused by this diff via base-commit force-push reproduction.
+
+**Migration check:** `git diff main -- '*migrations*' '*schema*' '*.sql'` empty. Server-only TS extraction.
+
+**Review state:** 0 unresolved review threads (both pr-review bot threads resolved in round-1 commit `5f267b6`). Final pr-review bot verdict ✅ "Good taste / clean substitution".
+
+**Linked-issue handling:** `Refs #446` trailer used; #446 verified still OPEN post-merge — stays open until #449's TODO-flip lands (gated on #452). No manual close.
+
+| State                          | Value                                |
+| ------------------------------ | ------------------------------------ |
+| PR #450 status                 | ✅ MERGED (squash)                   |
+| Merge commit                   | `7d41ba257f9270707966fd62d141f1fbbdcb8bff` |
+| Trailer                        | `Refs #446`                          |
+| #446 state post-merge          | OPEN (intentional)                   |
+| Active follow-up chain         | #452 → #449 → close #433 → close #446 |
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
