@@ -2210,14 +2210,10 @@ describe('KioskMode', () => {
     });
 
     it('App.css overrides position:fixed on .kiosk-display .connection-indicator (regression #434)', () => {
-      // PR #394 converted the kiosk override to grid-area placement but
-      // forgot to reset `position: fixed` from the base
-      // `.connection-indicator` rule, so the dot stayed pinned to the
-      // viewport's bottom-left (inside the desktop sidebar) instead of
-      // landing in the .kiosk-display grid cell. This test inspects the
-      // CSS source directly because happy-dom doesn't reliably resolve
-      // computed styles across multiple stylesheets, and a Playwright
-      // visual-bbox check would be much heavier than the one-line fix.
+      // Verify the kiosk override resets `position: fixed` so grid-area
+      // placement applies. Reading CSS source directly because happy-dom
+      // doesn't reliably resolve computed styles across stylesheets;
+      // Playwright would catch this too but is far heavier for a CSS-only fix.
       const cssPath = join(__dirname, '..', 'App.css');
       // Strip CSS comments before matching so stray `{` / `}` inside a
       // comment can't truncate the rule body. (`/\*[\s\S]*?\*/` is the

@@ -3898,12 +3898,7 @@ header {
    .kiosk-oscilloscope-indicator; the three are mutually exclusive in
    current render paths. */
 .kiosk-display .connection-indicator {
-  /* Reset the base `.connection-indicator { position: fixed }` so the
-     element actually participates in the kiosk-display grid. Without
-     this, `grid-area: bl` is silently ignored on a viewport-pinned
-     element and the dot lands at viewport bottom-left — which on the
-     desktop kiosk view sits inside the open sidebar. See #434 (the
-     regression from #394) and #379 (original grid contract). */
+  /* Reset the base `position: fixed` so grid-area placement applies. */
   position: static;
   grid-area: bl;
   align-self: center;
