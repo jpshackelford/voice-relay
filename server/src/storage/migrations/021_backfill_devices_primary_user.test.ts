@@ -139,32 +139,12 @@ describe('migration 021: backfill_devices_primary_user', () => {
     await migrator.migrateUp();
     expect(getDevicePrimaryUser('dev-e')).toBe('user-e');
 
-    // Re-applying the up SQL directly should match zero rows
-    // (primary_user_id is no longer NULL) and should not throw.
+    // Re-applying the migration's own up SQL should be a no-op:
+    // the value remains unchanged and db.exec returns the db handle
+    // without throwing. This mirrors migration 017's idempotency test
+    // and avoids duplicating the migration SQL in the test.
     const result = db.exec(migration021.up);
-    // `db.exec` returns the Database instance, not row counts; rely on
-    // SQLite's "changes()" function to confirm zero rows were updated.
-    const { changes } = db
-      .prepare(
-        `UPDATE devices
-         SET primary_user_id = (
-           SELECT wm.user_id
-           FROM workspace_members wm
-           WHERE wm.workspace_id = devices.workspace_id
-             AND wm.role = 'owner'
-         )
-         WHERE devices.primary_user_id IS NULL
-           AND (
-             SELECT COUNT(*)
-             FROM workspace_members wm
-             WHERE wm.workspace_id = devices.workspace_id
-               AND wm.role = 'owner'
-           ) = 1`
-      )
-      .run();
-    expect(changes).toBe(0);
     expect(getDevicePrimaryUser('dev-e')).toBe('user-e');
-    // Sanity: db.exec didn't throw and returned the db handle.
     expect(result).toBe(db);
   });
 
