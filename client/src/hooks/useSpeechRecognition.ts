@@ -75,15 +75,9 @@ export function useSpeechRecognition({
     return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
   });
 
-  // Issue #457: read reporting IDs through refs so `startListening`'s
-  // identity does NOT change when sessionId / workspaceId / deviceId
-  // flip. On iOS 18+ Safari, a React commit between `recognition.start()`
-  // and the `onstart` event (e.g. when the WS upgrades from the
-  // default-workspace session to the real one while the mic-permission
-  // dialog is up) is interpreted as an external `stop()` and surfaces
-  // as `onerror({ error: "aborted" })` BEFORE any `onstart` fires —
-  // wedging STT permanently. Mirrors the pattern already used in
-  // `useHostedSpeechRecognition`.
+  // Issue #457: IDs stored in refs to prevent startListening rebuilds
+  // when sessionId/workspaceId/deviceId change (iOS 18+ Safari treats
+  // mid-start() rebuilds as external stop()). Mirrors useHostedSpeechRecognition.
   const sessionIdRef = useRef(sessionId);
   const workspaceIdRef = useRef(workspaceId);
   const deviceIdRef = useRef(deviceId);
