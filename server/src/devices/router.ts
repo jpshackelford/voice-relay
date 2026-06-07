@@ -333,19 +333,8 @@ export function createDeviceRouter({
   });
 
   // Issue #433: device-token-authenticated active-speaker endpoint.
-  // Lets the first-run claim card on the unclaimed device say "this turn
-  // is from <name>" WITHOUT requiring the human to be a workspace
-  // member. Authenticates with the device's bearer token (the same
-  // token issued at registration and refreshed via /:deviceId/token),
-  // so the caller proves possession of the kiosk/phone but doesn't need
-  // a user cookie.
-  //
-  // Server side: creates an anonymous `speakers` row in the device's
-  // workspace (`user_id = NULL`) and writes
-  // `session_devices.active_speaker_id` for the (session, device) pair.
-  // The next inbound utterance picks up the new speaker via
-  // `resolveSpeakerForSession` in index.ts — no WS reconnect, no full
-  // reload.
+  // Lets unclaimed devices set a per-session speaker without requiring
+  // the human to be a workspace member.
   if (sessionRepository && speakerRepository) {
     router.post(
       '/:deviceId/sessions/:sessionId/active-speaker',

@@ -1,33 +1,6 @@
 /**
- * First-run "claim this device" prompt for unknown speakers (#433).
- *
- * Renders when a kiosk-mode device connects and the server's `registered`
- * payload reports it as unclaimed (`deviceClaimed === false`) and with no
- * per-session active-speaker override. The card is non-blocking: it pins
- * to a corner of the kiosk overlay grid so voice and chat input behind
- * it stay usable per AC #3.
- *
- * Three actions, per the issue's AC:
- *   1. "I'm a workspace member" → hands off to `useAuth().login()`
- *      (GitHub OAuth). On return the existing PATCH-as-authenticated-user
- *      side-effect inside `SessionView` claims the device for the
- *      now-logged-in user (server-side: see `devices/router.ts:200`).
- *   2. "Remember a name for this device" → POSTs the device-token
- *      authenticated endpoint
- *      `/api/devices/:deviceId/sessions/:sessionId/active-speaker`
- *      with `{ preferredName, pronouns? }`. The server creates an
- *      anonymous speakers row in the workspace (user_id = NULL) and
- *      writes `session_devices.active_speaker_id` for the current
- *      (session, device). Returns the new speakerId.
- *   3. "Skip / shared device" → writes a 7-day localStorage TTL keyed
- *      by `workspaceId+deviceId` so the same browser stops prompting
- *      on that device for a week.
- *
- * Visual treatment is the kiosk corner-card style (mirrors
- * `JoinRequestNotification`), with a top-right `×` that maps to the
- * same "dismiss until this session ends" semantic as the per-form
- * "Not now" button — kept in keeping with the existing `× ` close
- * affordance on `JoinRequestNotification`.
+ * First-run claim prompt for unclaimed kiosk devices (#433).
+ * Non-blocking corner card with three actions: sign in, remember name, or skip.
  */
 import { useState, type FormEvent } from 'react';
 
