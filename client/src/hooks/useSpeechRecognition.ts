@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { reportClientError } from '../utils/reportClientError';
 
 // Web Speech API types
@@ -75,6 +75,24 @@ export function useSpeechRecognition({
     return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
   });
 
+  // Issue #457: read reporting IDs through refs so `startListening`'s
+  // identity does NOT change when sessionId / workspaceId / deviceId
+  // flip. On iOS 18+ Safari, a React commit between `recognition.start()`
+  // and the `onstart` event (e.g. when the WS upgrades from the
+  // default-workspace session to the real one while the mic-permission
+  // dialog is up) is interpreted as an external `stop()` and surfaces
+  // as `onerror({ error: "aborted" })` BEFORE any `onstart` fires —
+  // wedging STT permanently. Mirrors the pattern already used in
+  // `useHostedSpeechRecognition`.
+  const sessionIdRef = useRef(sessionId);
+  const workspaceIdRef = useRef(workspaceId);
+  const deviceIdRef = useRef(deviceId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    workspaceIdRef.current = workspaceId;
+    deviceIdRef.current = deviceId;
+  }, [sessionId, workspaceId, deviceId]);
+
   const startListening = useCallback(() => {
     if (!isSupported) {
       onError?.('Speech recognition is not supported in this browser');
@@ -136,9 +154,9 @@ export function useSpeechRecognition({
       }
 
       reportClientError({
-        sessionId,
-        workspaceId,
-        deviceId,
+        sessionId: sessionIdRef.current,
+        workspaceId: workspaceIdRef.current,
+        deviceId: deviceIdRef.current,
         source: 'useSpeechRecognition',
         errorCode: errorType,
         message: errorMessage,
@@ -154,7 +172,7 @@ export function useSpeechRecognition({
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isSupported, onInterimResult, onFinalResult, onError, sessionId, workspaceId, deviceId]);
+  }, [isSupported, onInterimResult, onFinalResult, onError]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();

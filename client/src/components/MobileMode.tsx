@@ -305,7 +305,16 @@ export function MobileMode({
         cleanupAudioStream();
       }
     }
-  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer, sessionId, workspaceId, deviceId]);
+    // Issue #457: sessionId/workspaceId/deviceId are intentionally NOT
+    // in this dep array. Including them rebuilt handleMicToggle while
+    // the iOS 18 Safari mic-permission dialog was up (the WS upgrades
+    // session ids ~1s after first connect), which iOS 18+ treats as an
+    // external `stop()` on the in-flight `recognition` and surfaces as
+    // `onerror({error:"aborted"})` BEFORE any `onstart`. The catch
+    // blocks above read those IDs synchronously via closure capture —
+    // safe because no async boundary intervenes between the prop read
+    // and the `reportClientError` call.
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.
