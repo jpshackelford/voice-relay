@@ -18,12 +18,9 @@ export const SKIP_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** localStorage key prefix used by `getSkipUntil` / `setSkipUntil`. */
 export const SKIP_KEY_PREFIX = 'voice_relay_first_run_skip_';
 /**
- * Issue #439: sessionStorage key prefix for the post-OAuth-return device
- * claim handoff. Scoped to `(workspaceId, deviceId)` so a browser visiting
- * two unclaimed kiosks back-to-back can't accidentally claim the wrong
- * device. `sessionStorage` (not `localStorage`) so it auto-clears on tab
- * close — we never want to replay an intent the user abandoned by closing
- * the browser before OAuth completed.
+ * Issue #439: sessionStorage key prefix for post-OAuth device claim.
+ * Scoped to (workspaceId, deviceId). sessionStorage (not localStorage)
+ * clears on tab close so abandoned OAuth flows don't replay.
  */
 export const PENDING_CLAIM_KEY_PREFIX = 'voice_relay_pending_claim_';
 
@@ -246,13 +243,7 @@ export function ClaimSpeakerCard({
     onSkip();
   }
 
-  /**
-   * Issue #439: write the pending-claim flag before kicking off OAuth.
-   * The flag is set inside the card (not the parent) so it persists even
-   * if the parent unmounts between click and OAuth return. `onSignIn`
-   * typically navigates away via `window.location`, so this assignment
-   * must finish synchronously before the redirect — keep it inline.
-   */
+  // Write pending-claim flag before OAuth redirect (must complete before window.location changes).
   function handleSignIn() {
     setPendingClaim(workspaceId, deviceId);
     onSignIn();

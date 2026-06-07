@@ -260,16 +260,9 @@ export function createDeviceRouter({
       }
     }
 
-    // Issue #439: seed the speaker row for the now-authenticated user so
-    // `resolveSpeakerForUser` returns a row on the very next utterance
-    // (the in-memory registry already has `primaryUserId`; what was
-    // missing was a `speakers` row to look up). Run on EVERY authenticated
-    // PATCH — not gated by `primaryUserId !== req.user.id` — so devices
-    // that already have `primary_user_id` set but no speaker row (e.g.
-    // historical backfills like #432) self-heal on the next claim
-    // attempt. `upsertForUser` is idempotent and explicitly preserves an
-    // existing `preferred_name` (agent-learned name wins), so re-running
-    // it on already-seeded rows is cheap.
+    // Issue #439: seed speaker row for the authenticated user. Runs on every
+    // authenticated PATCH (not gated by primaryUserId change) to self-heal
+    // devices with primary_user_id but no speaker row (e.g. #432 backfills).
     if (speakerRepository) {
       try {
         speakerRepository.upsertForUser(updated.workspaceId, req.user!.id, {
