@@ -1202,3 +1202,53 @@ Closes orchestrator slot for #443; next pickup is the orchestrator's call.
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 16:00 UTC - Review-feedback worker (PR #447, /address-review)
+
+🚧 **Addressed pr-review feedback on PR #447** — `test(e2e): kiosk-level smoke test for first-run claim → next-utterance speaker resolution (#442)`
+
+| Item | Status |
+|---|---|
+| PR dropped to draft at start | ✅ `gh pr ready 447 --undo` |
+| Review threads addressed | 4 / 4 (all from `github-actions` pr-review bot) |
+| Fix commit | [`4ade3b0`](https://github.com/jpshackelford/voice-relay/commit/4ade3b0) — `test(e2e): condense verbose comments in first-run-claim spec` |
+| Diff scope | comments-only in `tests/first-run-claim.spec.ts` (−45/+10) — no behavior change |
+| CI after push | ✅ 5/5 green (Build Client, Client Tests, Server Tests, E2E Tests 1m41s, lint-pr-title) |
+| Threads resolved with replies | ✅ all four via GraphQL `addPullRequestReviewThreadReply` + `resolveReviewThread` |
+| PR back to ready | ✅ `isDraft=false`, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE` |
+
+**Threads addressed** (all 🟡 suggestions, all accepted as readability/verbosity wins):
+
+1. `tests/first-run-claim.spec.ts:39` — file header 36 → 12 lines (detailed context already in PR body + issues #442/#433/#446).
+2. `tests/first-run-claim.spec.ts:90` — dropped 3-line comment that restated self-documenting role-based selector flow under step 3.
+3. `tests/first-run-claim.spec.ts:159` — wire-assertion comment 5 → 1 line; assertion block documents the contract.
+4. `tests/first-run-claim.spec.ts:172` — TODO(#446) block 7 → 2 lines; detail lives in issue #446.
+
+**Closing-Trailer AC Gate RE-RUN** (against current diff, vs #442's ACs):
+
+| # | AC item | Verdict |
+|---|---|---|
+| 1 | New `tests/first-run-claim.spec.ts` exists | ✅ |
+| 2 | Spec skips when `TEST_AUTH_SECRET` unset | ✅ |
+| 3 | Uses `setupTwoDeviceSession`, no fixture changes | ✅ |
+| 4 | Claim card visible at start | ✅ |
+| 5 | Drives name-only flow through real DOM | ✅ |
+| 6 | Card disappears within 2 s of save | ✅ |
+| 7 | Mobile peer sees just-saved name as rendered sender within 2 s | ⚠️ Deferred → **#446** |
+| 8 | Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ Deferred → **#446** |
+| 9 | Runs under default `chromium` project | ✅ |
+| 10 | < 30 s wall-clock | ✅ (~4.3 s) |
+| 11 | Stable on 5 back-to-back local runs | ✅ |
+| 12 | No regressions to existing specs | ✅ |
+
+- **Verdict unchanged:** `Refs #442` (NOT `Fixes`). Diff was comment-only — neither ACs 7/8 nor the server senderName substitution moved.
+- **Follow-up #446** is still OPEN (`priority:high`, `scope:server-only`).
+- PR body's `## Deferred to follow-ups` block remains accurate (single-line server fix in #446 unblocks the two TODO-tagged assertions).
+
+**Cross-issue learnings:** none worth surfacing — the four threads were straight verbosity nits, no shared pattern across #433/#442/#446 to capture.
+
+Next review round dispatched as a separate conversation.
+
+_This entry was created by an AI agent (OpenHands review-feedback worker) on behalf of @jpshackelford._
+
+---
+
