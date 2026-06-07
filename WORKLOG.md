@@ -271,3 +271,42 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 11:23 UTC - Merge Worker (#435 → #431)
+
+✅ Merged PR #435 — server emits speaker header on every session start, agent opening is dynamic.
+
+| Item | Value |
+|------|-------|
+| PR | [#435](https://github.com/jpshackelford/voice-relay/pull/435) → **MERGED** at 11:22:56Z |
+| Issue | [#431](https://github.com/jpshackelford/voice-relay/issues/431) → **CLOSED** at 11:22:57Z (auto via `Fixes #431` trailer) |
+| Squash commit | [`1dfc2b3`](https://github.com/jpshackelford/voice-relay/commit/1dfc2b3ca9c47116e2ea61466155e3819878b245) |
+| CI on merge SHA | ✅ all required checks green (Build Client, Client Tests, Server Tests, E2E, lint-pr-title, pr-review) |
+| Mergeable / state | `MERGEABLE` / `CLEAN` |
+| Review threads | 0 unresolved |
+| Bot review | 🟢 Good taste |
+| Diff size | 5 files, +293 / -27 |
+
+**AC-gate verdict: PASS** (re-run against final diff at merge time)
+
+| # | Criterion | Evidence in final diff |
+|---|-----------|------------------------|
+| 1 | Exactly one `[speaker …]` line per joining device on first agent frame | New branch in `voice-relay-header.ts` (lines 202–225) emits `[speaker id=unknown device=<deviceId>]` when `!sender.speaker && lastSpeakerForDevice === undefined && isFirstFromDevice` |
+| 2 | Header form matches three branches | Resolved+name and bare `id=<sp>` branches already in code; new unknown-device branch added |
+| 3 | Multi-device sessions emit distinct `device=` values | Test `two unclaimed devices each emit their own device= line` |
+| 4 | Default prompt branches opening on header | `system-prompt.md` "FIRST ACTION" rewrite with 3 explicit branches |
+| 5 | Tests cover all three branches + prompt smoke | 6 new cases in `voice-relay-header.test.ts` (`unknown-on-first-turn (#431)`); 4 new cases in `resolve-session-system-prompt.test.ts` (`built-in prompt dynamic greeting (#431)`) |
+
+Out-of-scope items from issue body (pre-017 backfill, kiosk first-run claim UX, anonymous speaker row creation on unauthenticated input) are explicitly deferred per the issue itself — exempt from gate.
+
+**Migration check:** no-op. Diff touches no `db/migrations/*` files — server-only TypeScript change. Safe for production auto-deploy to vr.chorecraft.net.
+
+**Production deploy:** triggered automatically on merge to main. No post-deploy steps required (no schema, no env changes, no data backfill).
+
+**Follow-ups:**
+- None filed — full AC coverage in this PR.
+- #433 remains on-hold; the next orchestrator unblock pass will lift it (this merge worker explicitly does not).
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
