@@ -2,364 +2,6 @@
 
 ## Log
 
-### 2026-06-07 14:11 UTC - Expansion Worker (issue #443)
-
-✅ **Expanded Issue #443** — `feat(server): workspace-level quota for anonymous speakers (#433 follow-up)`
-
-- Issue: [#443](https://github.com/jpshackelford/voice-relay/issues/443)
-- Type: Enhancement (server)
-- Status: Ready for implementation (`ready` label applied)
-- Approach: ship Layer A (`findOrCreateAnonymous` — case-insensitive name + exact pronouns match, no schema change) plus Layer B (workspace cap default 100, override via `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE`). Both reads + insert wrapped in `db.transaction(...)` so two concurrent claim-card submissions resolve to a single row and the count-then-insert window is race-free against the cap.
-
-**Decisions baked in:**
-
-| Decision | Rationale |
-|---|---|
-| Case-insensitive name match (`COLLATE NOCASE`) | "Alex" / "alex" / "  Alex  " is almost always the same human re-claiming a kiosk; over-collapsing on case is the friendlier failure mode. |
-| Pronouns part of identity (exact match, `IS` handles `NULL`) | A name+pronouns mismatch likely means a different human or a deliberate update — better to over-create than collapse two real people. |
-| Dedup hit bypasses cap | Otherwise a workspace at the cap can never re-recognise an existing anonymous speaker, locking out steady-state kiosk reuse. |
-| No periodic prune | Out of scope. Cap + dedup bound the population; cron / FK-aware cleanup is a separate, larger problem. |
-| No schema change | Partial unique index on `(workspace_id, user_id) WHERE user_id IS NOT NULL` stays as the guard for authenticated speakers; anonymous dedup is query + in-transaction logic. |
-
-**Files identified for the implementer:** `server/src/speakers/speaker-repository.ts` (+ `types.ts`), `server/src/devices/router.ts`, `server/src/index.ts` (env-var read), and the two corresponding `.test.ts` files. Concrete method signatures, the transaction body, and the env-var parsing skeleton are in the issue's Technical Approach comment.
-
-**Estimated size:** ~70 lines repo code, ~15 lines router glue, ~10 lines bootstrap, ~80 lines tests. Low complexity, no new deps, no background work.
-
-**Not blocked:** PR #438 has the live endpoint on its branch but is already CI-green and ready for review; implementation can start immediately once #438 merges. No `on-hold` needed.
-
-_This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:23 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a7f12c5` | merge | PR #438 → main | **NEW** |
-
-**Action Taken:**
-🚀 Spawned 1 merge worker for PR #438. Reaped 1 stale implementation slot. Productive tick → `quiet_ticks = 0`.
-
-**Spawned: Merge Worker**
-- PR: [#438 — feat(client): first-run claim-card prompt for unknown speakers](https://github.com/jpshackelford/voice-relay/pull/438) (`Refs #433`)
-- Conversation: [`a7f12c5`](https://app.all-hands.dev/conversations/a7f12c5d286b406fac16fb06c357ae5c) (verified: `execution_status=running`, `sandbox_status=RUNNING`)
-
-**PR #438 readiness verification:**
-- CI: ✅ 7/7 SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, Branch Hygiene, …)
-- Mergeable: `MERGEABLE`
-- Review threads: 5/5 resolved (`ocRFRFc` history — 2 review rounds, both addressed and closed)
-- Labels: none blocking (no `on-hold`/`needs-human`/`blocked`/`do-not-merge`)
-- Trailer: `Refs #433` (carrying gate verdict from 14:00 round-2 review-address worker — `#433` stays OPEN, follow-ups #439, #440 cover deferred AC items; #443 is post-launch hardening filed during round-2 review)
-
-**Stale-slot reap:** implementation slot was held by `14b76de` (impl, #433, started 13:06 UTC). Per WORKLOG 13:50 UTC entry and current OH API state (`sandbox_status=PAUSED`, `execution_status=null`), that worker recognized PR #438 as the canonical implementation, closed its own duplicate PR #441, closed duplicate follow-up issue #442 (later reopened + re-scoped at 14:00 as a distinct Playwright e2e), and exited. Moved to `completed[]` with outcome "Closed duplicate PR #441, referred to canonical PR #438".
-
-**Unblock pass:**
-- Mechanical hits: #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
-- **Override applied (AGENTS.md):** the "Active design freeze: workspace persistence (S3 / #298)" remains in effect — production `VR_WORKSPACE_BUCKET`, AWS creds, and `docs/runbooks/s3-bucket-provisioning.md` smoke test are still pending. Per the prior orchestrator's documented policy (worklog 11:39 UTC and 12:13 UTC), #299/#301 stay `on-hold` until a human (or new `## INSTRUCTION:` block) removes the freeze section from AGENTS.md.
-- Policy-tracked (skipped): #210, #239, #386 — no machine-parseable `Blocked by #N` references.
-- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
-- Net: 0 issues lifted.
-
-**Current State:**
-- Open PRs: [#438](https://github.com/jpshackelford/voice-relay/pull/438) (merge-in-flight via `a7f12c5`).
-- Ready, prioritized issues:
-  - `priority:medium`: #433 (parent of PR #438 — will stay OPEN after merge per `Refs` trailer; follow-ups cover remainder), #439 (post-OAuth-return PATCH + `preferred_name` seeding), #440 (kiosk integration smoke test).
-  - `priority:low`: #442 (Playwright e2e — hard dep on #438), #443 (workspace quota for anonymous speakers — hard dep on #438), #386 (also `on-hold` per AGENTS.md S3 freeze).
-- Issues needing expansion: **none** 🎉.
-- On-hold backlog: #210, #239, #299, #300, #301, #302, #386 (all policy-tracked per AGENTS.md S3 freeze or no machine signal).
-- `needs-human`: #372 (skip).
-- Slots end-of-tick: expansion 0/4, implementation 0/1, review 1/2.
-
-**Implementation slot deliberately left idle this tick.** All 5 ready priority issues (#433, #439, #440, #442, #443) are hard-dependent on PR #438's surface (`ClaimSpeakerCard`, `POST /active-speaker`, `speakerState` plumbing, `resolveSpeakerForUtterance`). Dispatching impl now would race the merge worker and either (a) branch off pre-#438 main and hit reconciliation conflicts, or (b) wait inside the impl worker for the merge — wasteful sandbox time. Next tick (~14:38 UTC) will pick up impl from clean post-merge main.
-
-**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override block in WORKLOG.md, no `on-hold`/`needs-human`/`blocked` label on PR #438, no AGENTS.md policy gating it. Spawned cleanly on its merits. The "wait for #438 to land before impl dispatch" decision is a productive-tick optimization, not a deferral — `quiet_ticks` was correctly reset by the merge spawn.
-
-**Quiet-tick counter:** reset `1 → 0` (productive — 1 merge worker dispatched + 1 stale slot reaped).
-
-_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:26 UTC - Merge worker (PR #438)
-
-✅ **Merged PR #438** — `feat(client): first-run claim-card prompt for unknown speakers`
-- Squash commit: `768a2785`
-- Merged into `main` at 14:25:54 UTC; auto-deploy to vr.chorecraft.net will follow.
-
-**AC gate verdict (issue #433):** re-verified at merge time — acceptable
-with documented follow-ups. Trailer is `Refs #433` (deferred-AC trailer,
-not auto-close), so #433 remains OPEN until the follow-ups drain.
-
-| AC area | Status |
-|---------|--------|
-| `speakerState` WS surface + render condition | ✅ |
-| Kiosk overlay placement (corner card via `position: fixed`) | ⚠️ accepted |
-| Voice/chat input usable behind card | ✅ |
-| GitHub-auth action → `useAuth().login()` | ✅ |
-| Post-OAuth-return PATCH + `preferred_name` seeding | ❌ → **#439** |
-| Name-only action → device-token endpoint | ✅ |
-| Skip action → 7-day localStorage TTL | ✅ |
-| Optimistic dismiss after any action | ✅ |
-| Visual treatment (title / 3 buttons / × / slide-in) | ⚠️ accepted (new keyframe) |
-| Component-level Vitest coverage (16 tests) | ✅ |
-| Server-level endpoint coverage (7 tests) | ✅ |
-| Integration smoke test | ❌ → **#440** |
-
-**Follow-ups tracking remaining work:**
-- #439 — post-OAuth-return device PATCH + speaker `preferred_name` seeding
-- #440 — kiosk integration smoke test for the first-run claim flow
-- #443 — workspace-level quota for anonymous speakers (round-2 hardening)
-
-**Migration safety:** no new schema migration required. The PR only uses
-`session_devices.active_speaker_id`, which was added by `017_speakers`
-already on `main`. Production SQLite unaffected at deploy time.
-
-**Quiet-tick counter:** reset `0 → 0` (productive — merge worker landed PR #438).
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:35 UTC - Implementation worker (issue #439)
-
-🚀 **Opened PR #444** — `feat(client): wire post-OAuth-return device PATCH + speaker preferred_name seeding (#433 follow-up)`
-
-- Branch: `feat/439-post-oauth-claim` → `main`
-- PR: https://github.com/jpshackelford/voice-relay/pull/444
-- Status: **ready for review**, CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title — all pass)
-- Mergeable: clean
-
-**Coordination note:** Started 14:10 UTC when PR #438 was still OPEN, so
-followed Path B from the dispatch brief — branched from
-`origin/feat/433-first-run-claim-card`. PR #438 merged at 14:25 UTC mid-flight;
-re-based my single commit onto `origin/main`, re-targeted the PR base to
-`main`, and force-pushed. Diff identical to the pre-rebase commit
-(8 files, +803/-1).
-
-**AC gate verdict (issue #439):** ✅ ALL 8 ACs satisfied → trailer `Fixes #439`.
-
-| AC | Status |
-|----|--------|
-| 1. Pending-claim flag set on sign-in click | ✅ `ClaimSpeakerCard.handleSignIn` |
-| 2. Exactly one post-OAuth PATCH, flag consumed pre-await, no double-fire | ✅ `useFirstRunClaim` + `firedRef` |
-| 3a. `devices.primary_user_id` updated | ✅ pre-existing #383 wiring |
-| 3b. `speakers` row seeded with `displayName ?? username` | ✅ server PATCH handler + tests |
-| 3c. Existing `preferred_name` preserved on re-claim | ✅ `upsertForUser` semantics + test |
-| 4. Next agent turn carries `[speaker …]` header | ✅ registry refresh + seed |
-| 5. Claim card hides immediately on PATCH success | ✅ `markDeviceClaimedLocally` |
-| 6. Refresh after claim does not re-fire PATCH | ✅ flag-gone + test |
-| 7. Non-2xx logged, no throw, flag still consumed | ✅ tests |
-| 8. Client + server test coverage | ✅ 19 new tests |
-
-**Tests added:**
-- Client: `useFirstRunClaim.test.ts` (10 new) + `ClaimSpeakerCard.test.tsx` (5 new)
-- Server: `devices/router.test.ts` (4 new — `speaker upsert on claim (#439)` describe block)
-- Suite totals: client 1187 passed (+15), server 1682 passed (+4)
-
-**No follow-up issues filed** — the AC gate is fully satisfied.
-
-**Migration safety:** no new schema migration. Reuses existing
-`speakers` table from `017_speakers`. Production SQLite unaffected at deploy.
-
-**Avoided the #441 duplicate pattern:** confirmed PR #438 existed before
-branching by running `gh pr view 438 --json state` per dispatch brief.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:47 UTC - Review-addressing worker (PR #444 round 1)
-
-✅ Addressed all 9 review threads on PR [#444](https://github.com/jpshackelford/voice-relay/pull/444) (feat(client): post-OAuth-return device PATCH + speaker preferred_name seeding, fixes #439).
-
-All 9 threads were from `github-actions` flagging over-verbose comments that paraphrased the PR description / restated self-evident code. Accepted all 9 and trimmed in a single thematic commit `f3778c4` ("refactor(client,server): trim verbose comments per review feedback"):
-
-| File | Trim |
-| --- | --- |
-| `client/src/hooks/useFirstRunClaim.ts` | 18-line file header → 4 lines; remove inline narration around `firedRef` / `consumePendingClaim` / fetch call; condense catch + eslint-disable explanations |
-| `client/src/components/ClaimSpeakerCard.tsx` | `PENDING_CLAIM_KEY_PREFIX` doc + `handleSignIn` comment condensed |
-| `server/src/devices/router.ts` | 10-line speaker-upsert block → 3 lines |
-
-Net: 60 lines removed, 13 added. No behavior change.
-
-**CI:** ✅ Build Client / Client Tests (1188 pass) / Server Tests (1682 pass) / E2E / lint-pr-title — all green on `f3778c4`.
-
-**AC gate re-run: unchanged.** Re-walked Issue #439's 8 acceptance criteria against the current diff. Trims were textual only; runtime behavior, idempotency guarantees, and test coverage are identical to pre-trim. Verdict remains `Fixes #439` — no `## Deferred to follow-ups` change, no new follow-up issues filed.
-
-**Cross-issue learning** logged as a comment on #439 for future implementation workers in this codepath (default to terser comments; keep file headers to 1–2 sentences; explain the empty-body PATCH semantic once, not at every call site).
-
-**Workflow:** PR briefly dropped to draft (`gh pr ready 444 --undo`) at start of round; moved back to ready (`gh pr ready 444`) after CI green and threads resolved. PR is now `ready / MERGEABLE / CI green / 0 unresolved threads`.
-
-_This entry was created by an AI agent (OpenHands review-addressing worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:50 UTC - Implementation worker (issue #440)
-
-🚀 **Opened PR #445** — `test(client): kiosk integration smoke test for first-run claim flow`
-
-- Branch: `test/440-kiosk-claim-flow-smoke` → `main`
-- PR: https://github.com/jpshackelford/voice-relay/pull/445
-- Status: **ready for review**, CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title — all pass)
-- Mergeable: clean
-
-**AC gate verdict (issue #440):** ✅ ALL 9 ACs satisfied → trailer `Fixes #440`.
-
-| AC | Status |
-|----|--------|
-| 1. New file `client/src/components/KioskMode.claim-flow.test.tsx` exists, imports `KioskMode` | ✅ |
-| 2. Reuses existing `useSpeechRecognition` / `QRCode` / `Oscilloscope` mock pattern, no new deps | ✅ |
-| 3. Test 1: workspace-member action invokes `onSpeakerSignIn`, zero `fetch` calls | ✅ |
-| 4. Test 2: POST once to `/api/devices/dev-1/sessions/test-session/active-speaker` w/ `Bearer tok-abc` + body, card disappears | ✅ |
-| 5. Test 3: skip writes `~now+7d` ISO to `voice_relay_first_run_skip_ws-1_dev-1`, card hides | ✅ |
-| 6. Test 4a (re-render after claim) + 4b (re-mount after skip) both keep card hidden | ✅ |
-| 7. Test 5: `×` close hides card without writing 7-day TTL | ✅ |
-| 8. Specs run in <2 s under `npm run test -- KioskMode.claim-flow` (actual: 178 ms) | ✅ |
-| 9. Full client suite still green (1179 / 1179 passing) | ✅ |
-
-**Tests added:** single new file, 6 `it()` blocks (Test 4 split into 4a/4b per issue body). 299 lines, no production code touched.
-
-**Minor deviation noted in PR body:** original proposal asserted `onSpeakerSignIn` called "with no args"; the button wires `onClick={onSignIn}` directly so the synthetic click event is passed. The AC itself only requires "invokes `onSpeakerSignIn` and makes zero fetch calls" — both satisfied via `toHaveBeenCalledTimes(1)`.
-
-**No follow-up issues filed** — gate fully satisfied.
-
-**No conflict with PR #444** (in flight, different surface — post-OAuth-return PATCH vs. kiosk page-level smoke test). Branched from current `main` (post-#438-merge); no rebase needed.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 14:54 UTC - Merge worker (PR #445)
-
-✅ Squash-merged PR [#445](https://github.com/jpshackelford/voice-relay/pull/445) (`test(client): kiosk integration smoke test for first-run claim flow`) → merge commit `18829e7`. Closes [#440](https://github.com/jpshackelford/voice-relay/issues/440) via `Fixes #440` (auto-closed at 14:54:52 UTC).
-
-**Pre-merge state:** `MERGEABLE / CLEAN / 0 unresolved threads`. Required CI all SUCCESS: Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review (🟢 Good taste). Test-only diff (+299 lines, single file `client/src/components/KioskMode.claim-flow.test.tsx`) — no schema, no migrations, no production behavior change. Production deploy to `vr.chorecraft.net` will be a no-op at runtime.
-
-**AC Gate: PASS.** Walked Issue #440's 7 non-exempt acceptance criteria item-by-item against the final diff:
-
-| AC | Coverage |
-| --- | --- |
-| New file exists, imports `KioskMode` | L20 ✅ |
-| Reuses `KioskMode.test.tsx` mocks (`useSpeechRecognition`, `QRCode`, `Oscilloscope`); no new deps | L32–51 ✅ |
-| Test 1 — workspace-member: `onSpeakerSignIn` called once, 0 fetch | L140–162 ✅ (synthetic-event arg deviation explicitly documented in PR body & test comment; AC text holds) |
-| Test 2 — name-only: POST to `/api/devices/dev-1/sessions/test-session/active-speaker` + `Bearer tok-abc` + body, card hides | L164–206 ✅ |
-| Test 3 — skip: `~now+7d` ISO under `voice_relay_first_run_skip_ws-1_dev-1`, card hides | L208–231 ✅ (uses real `skipKey` helper) |
-| Test 4a (re-render) + 4b (re-mount) — card stays null | L233–282 ✅ |
-| Test 5 — `×` close: card hides, TTL **not** written | L284–298 ✅ |
-
-No `## Deferred to follow-ups` block needed; no override `## INSTRUCTION:` block consulted (gate passed cleanly). Verdict line carried into the squash commit body.
-
-**Verification:** `gh pr view 445 → state: MERGED, mergedAt: 14:54:51 UTC`; `gh issue view 440 → state: CLOSED, closedAt: 14:54:52 UTC`. Main fast-forwarded `f139588..18829e7`.
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 15:26 UTC - Merge worker (PR #444)
-
-✅ **Merged PR #444** — `feat(client,server): wire post-OAuth-return device PATCH + speaker preferred_name seeding (#433 follow-up)`
-
-- Merge commit: `eeb09e9ffd18702ebc1215dfda67fe408f2f9a3e`
-- Strategy: squash, single conventional-commit subject + verdict-bearing body
-- PR: https://github.com/jpshackelford/voice-relay/pull/444
-- Linked issue auto-closed: #439 (`Fixes #439` trailer → `state: CLOSED` at 15:26:26 UTC)
-
-**Closing-Trailer AC Gate (issue #439): ✅ PASS** — all 8 non-exempt ACs covered by the final diff (no override needed).
-
-| AC | Verdict |
-|----|---------|
-| 1. Pending-claim flag set before OAuth redirect | ✅ `ClaimSpeakerCard.handleSignIn` writes `sessionStorage['voice_relay_pending_claim_<ws>_<dev>'] = '1'` before `onSignIn()` |
-| 2. Exactly one post-OAuth PATCH, flag cleared pre-await | ✅ `useFirstRunClaim` consumes flag synchronously, `firedRef` blocks StrictMode double-fire |
-| 3a. `devices.primary_user_id` set to OAuth user.id | ✅ pre-existing #383 PATCH handler |
-| 3b. Speakers row seeded with `displayName ?? username` | ✅ `speakerRepository.upsertForUser` in `server/src/devices/router.ts` PATCH handler |
-| 3c. Existing `preferred_name` not overwritten | ✅ `upsertForUser` semantics + server test |
-| 4. Next agent turn carries `[speaker …]` header w/o reload | ✅ registry refresh (#383) + seed (#439) |
-| 5. Claim card hides immediately on PATCH success | ✅ `markDeviceClaimedLocally` flips local `speakerState.deviceClaimed` via `onClaimed` |
-| 6. Refresh does not re-fire PATCH | ✅ flag-consumed pre-await + hook test |
-| 7. Non-2xx logged, no throw, flag stays consumed | ✅ `console.warn` path in hook + tests |
-| 8. Test coverage (client + server) | ✅ +19 tests (client 1187 / server 1682 passed locally) |
-
-**Migration safety:** no new schema migration. Reuses the existing `speakers` table (017_speakers); only adds a server-side `upsertForUser` call inside the existing PATCH handler. Production SQLite unaffected at deploy time.
-
-**Verification:** `gh pr view 444 → state: MERGED, mergedAt: 15:26:25 UTC`; `gh issue view 439 → state: CLOSED, stateReason: COMPLETED, closedAt: 15:26:26 UTC`. Main fast-forwarded `f821a15..eeb09e9`.
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 15:33 UTC - Implementation worker (#442 e2e for first-run claim)
-
-🚀 Opened PR #447 for issue #442 — kiosk-level Playwright smoke test for the third-bullet AC of #433 (first-run claim card → next-utterance speaker resolution).
-
-- PR: https://github.com/jpshackelford/voice-relay/pull/447
-- Branch: `feat/442-e2e-first-run-claim` rebased onto `f821a15` (post-#445 main)
-- Single file added: `tests/first-run-claim.spec.ts` (177 lines, self-contained)
-- Local stability: 5/5 PASS via `npx playwright test tests/first-run-claim.spec.ts --workers=1 --repeat-each=5` (~4.3 s/rep, 26.6 s total — well under the 30 s AC budget)
-- CI: all 6 non-skipped checks green (Build Client, Client Tests, Server Tests, E2E Tests in 1m31s, lint-pr-title, enable-orchestrator)
-
-**Closing-Trailer AC Gate (issue #442): ⚠️ ACCEPTABLE WITH DEFERRAL** — 10/12 non-exempt ACs satisfied by the final diff; 2 deferred to follow-up #446.
-
-| AC | Verdict |
-|----|---------|
-| 1. New `tests/first-run-claim.spec.ts` exists | ✅ |
-| 2. Spec skips when `TEST_AUTH_SECRET` unset | ✅ `test.skip(!TEST_AUTH_SECRET, ...)` at describe scope |
-| 3. Uses `setupTwoDeviceSession` (no helper changes) | ✅ |
-| 4. Asserts `ClaimSpeakerCard` visible at start | ✅ `getByTestId('claim-speaker-card')` + `toBeVisible({ timeout: 10_000 })` |
-| 5. Drives name-only flow through real DOM (no fetch mocks) | ✅ button → name input → save click |
-| 6. Card disappears within 2 s of save | ✅ `toBeHidden({ timeout: 2_000 })` |
-| 7. Mobile peer's rendered `.sender` matches just-saved name | ⚠️ **Deferred (#446)** — server doesn't substitute `senderName` |
-| 8. Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ **Deferred (#446)** — same root cause |
-| 9. Runs under default `chromium` project | ✅ verified via `playwright test --list` |
-| 10. < 30 s wall-clock | ✅ ~4.3 s observed |
-| 11. No flake on 5 back-to-back local runs | ✅ 5/5 PASS |
-| 12. No regressions | ✅ CI E2E Tests green |
-
-**Trailer:** `Refs #442` + `Refs #433` + `Follow-up: #446` (NOT `Fixes` — two ACs deferred).
-
-**Discovery: server-side senderName-substitution gap (#446 filed).** While instrumenting the wire I traced that PR #438 wired `resolveSpeakerForSession` and stamps the resolved `speakerId` onto `RelayedTextMessage`, but left `senderName` hardcoded to `device.displayName` in `server/src/index.ts`. So #433's third-bullet contract is half-shipped — `speakerId` matches, `senderName` doesn't. The spec asserts the strongest contract that IS currently shipped (wire `speakerId === <speaker row from POST response>`, captured via CDP `Network.webSocketFrameReceived`), and tags the two name-equality assertions as `TODO(#446)`. When #446 lands (~1-line server fix + test), the TODOs flip to active assertions and #433 third bullet closes end to end.
-
-**Migration safety:** test-only diff. No schema migration, no client/server source changes.
-
-PR is now in `ready for review` state; review handling delegated to a separate conversation.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 15:41 UTC - Implementation worker (#443)
-
-✅ **Implementation worker — #443 (Layer A + Layer B): PR #448 opened, CI green, marked ready for review.**
-
-**Issue:** [#443](https://github.com/jpshackelford/voice-relay/issues/443) — `feat(server): workspace-level quota for anonymous speakers (#433 follow-up)` (priority:low, enhancement, server).
-
-**PR:** [#448](https://github.com/jpshackelford/voice-relay/pull/448) — `feat/443-anonymous-speaker-quota`.
-
-**What shipped:**
-
-- `SpeakerRepository.findOrCreateAnonymous({ workspaceId, preferredName, pronouns, maxAnonymousPerWorkspace })` — case-insensitive name + exact-pronouns dedup (`COLLATE NOCASE` + `IS`), workspace-scoped, returns earliest-created match. Wrapped in `db.transaction(...)` so concurrent identical submissions collapse to one row and the count→insert window is race-free.
-- `SpeakerRepository.countAnonymousInWorkspace(workspaceId)` — supporting count used by the cap check, exported for future admin tooling.
-- `AnonymousSpeakerQuotaExceeded` typed error in `server/src/speakers/types.ts` (carries `workspaceId` + `cap`).
-- `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker` now calls `findOrCreateAnonymous` instead of `create`; catches the typed error and returns **429** with body `{ error: 'Workspace anonymous speaker quota exceeded', retryAfter: 60 }` and a `Retry-After: 60` header.
-- `DeviceRouterOptions.maxAnonymousSpeakersPerWorkspace?: number` (default **100** via `DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` in router).
-- `server/src/index.ts` bootstrap parses `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` once at startup; invalid values logged and ignored.
-
-**No schema change** — pure application logic against the existing `speakers` table.
-
-**Tests:** +11 in `speaker-repository.test.ts` (now 33 total) covering dedup hit/miss/case-insensitivity, NULL-pronouns `IS` semantics, workspace isolation, authenticated-row non-matching, cap enforcement, dedup bypass at cap, typed-error fields, legacy-duplicate tie-break, empty-name guard, `countAnonymousInWorkspace`. +3 in `devices/router.test.ts` (now 38 total) covering dedup hit returns same `speakerId`, 429 + `Retry-After` at cap, dedup bypasses cap. Full server suite: **1694 passed, 0 failed**. Coverage on `speaker-repository.ts`: 100 % lines / 90.47 % branches / 100 % functions.
-
-**CI:** all green — Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title.
-
-**AC gate verdict (re-run against final diff):**
-
-| AC item | Verdict |
-|---|---|
-| 1. `findOrCreateAnonymous` dedups, else inserts | ✅ SAT |
-| 2. Runs inside `db.transaction(...)` | ✅ SAT |
-| 3. Throws `AnonymousSpeakerQuotaExceeded` at cap, no match | ✅ SAT |
-| 4. Handler returns 429 with body + `Retry-After` | ✅ SAT |
-| 5. Cap default 100 + `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` override + threaded through `DeviceRouterOptions` | ✅ SAT |
-| 6. `speaker-repository.test.ts` covers dedup, case insensitivity, quota enforcement, dedup-bypasses-quota | ✅ SAT |
-| 7. `devices/router.test.ts` covers 429, dedup-hit same `speakerId`, no regressions | ✅ SAT |
-
-**All 7 non-exempt AC items satisfied. Trailer:** `Fixes #443`. No follow-up issues filed.
-
-PR is now in `ready for review` state; review handling delegated to a separate conversation.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
 ### 2026-06-07 15:45 UTC - Expansion Worker (issue #446)
 
 ✅ **Expanded Issue #446** — server: substitute `RelayedTextMessage.senderName` with active-speaker `preferredName` when per-session override resolves
@@ -1371,7 +1013,6 @@ Co-authored-by: openhands <openhands@all-hands.dev>
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 20:51 UTC - Orchestrator
 
 🔒 **Auto-disabled due to inactivity**
@@ -1413,7 +1054,6 @@ Re-enable once new issues land, the S3 freeze section is removed from AGENTS.md,
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 21:57 UTC - Orchestrator
 
 **Active Workers:**
@@ -1455,7 +1095,6 @@ _This worklog entry was created by an AI agent (OpenHands orchestrator) on behal
 _This entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 21:59 UTC - Expansion Worker (issue #457)
 
 ✅ **Expanded Issue #457** — `iOS 18 Safari: STT aborts immediately on permission grant on iPhone 17e (regression after PR #456)`
@@ -1490,7 +1129,6 @@ Combined with VR's existing `(default → real) sessionId` WS-registration flap 
 _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:05 UTC - Orchestrator
 
 **Active Workers:**
@@ -1531,8 +1169,8 @@ _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on b
 **Quiet-tick counter:** reset `0 → 0` (productive — 1 worker reaped + 2 workers dispatched).
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
----
 
+---
 ### 2026-06-07 22:09 UTC - Expansion Worker (`735d3c9`)
 
 ✅ **Expanded Issue #458** — Kiosk AI-status indicator stuck on 🔗 after auto-connect
@@ -1546,8 +1184,8 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 - Complexity: Low. Mechanical mirror of an existing pattern.
 
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
----
 
+---
 ### 2026-06-07 22:12 UTC - Implementation worker (#457 iOS 18 STT regression)
 
 ✅ Implemented fix for #457 (iOS 18 Safari STT `aborted` regression from PR #456) and opened PR [#460](https://github.com/jpshackelford/voice-relay/pull/460).
@@ -1572,4 +1210,54 @@ _This entry was created by an AI agent (OpenHands expansion worker) on behalf of
 Followed the expansion worker plan exactly (mirror the ref pattern already used in `useHostedSpeechRecognition` in the same PR #456). Did not touch `useHostedSpeechRecognition` (already correct) or `reportClientError` (verified still fully fire-and-forget with try/catch + AbortController + keepalive).
 
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+### 2026-06-07 22:22 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4b5f7fe` | review | PR #460 — iOS 18 Safari STT abort regression fix | **NEW** |
+| `97e5f90` | implementation | Issue #458 — Kiosk AI-status indicator stuck on 🔗 | **NEW** |
+| `7944eef` | expansion | Issue #459 — Desktop kiosk display name reverts after reconnect | **NEW** |
+
+**Reaped:**
+- `735d3c9` (expansion, #458) → finished `success`. Issue #458 expanded with verified root cause + fix plan (`OpenHandsAgentDriver.openSession` returns while OH WS still `WS_CONNECTING`; need to fan-out from `ws.on('open')` mirroring the existing `onThinkingChange` pattern). `ready` label applied.
+- `c541b21` (implementation, #457) → finished `success`. Opened [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) (`Fixes #457`) — ref-pattern fix in `useSpeechRecognition.ts` + deps revert in `MobileMode.tsx` + 3 regression tests in `useSpeechRecognition.test.ts`. All CI green; AC-gate verdict was `Fixes` (all 5 ACs satisfied).
+
+**Spawned: 3 Workers (parallel)**
+
+1. **Review Worker** — [PR #460 — fix(client): ignore iOS Safari spurious 'aborted' STT errors](https://github.com/jpshackelford/voice-relay/pull/460)
+   - Conversation: [`4b5f7fe`](https://app.all-hands.dev/conversations/4b5f7fe744c24abd87c4e3fe6cdfb792)
+   - Two unresolved review threads from pr-review bot — both stylistic 🟡 Suggestion-level: tighten the 9-line narrative comments in `useSpeechRecognition.ts` and `MobileMode.tsx`. No behavioural change → AC gate re-verdict expected `Fixes #457` (unchanged).
+   - CI is green; only stylistic comment edits needed.
+
+2. **Implementation Worker** — [#458 Kiosk AI-status indicator stuck on 🔗 after auto-connect](https://github.com/jpshackelford/voice-relay/issues/458) (`priority:medium`, `bug`, `scope:full-stack`)
+   - Conversation: [`97e5f90`](https://app.all-hands.dev/conversations/97e5f900cca9446e988052281dd904ed)
+   - Pre-flight context embedded: expansion plan verified by `735d3c9` (root cause in `server/src/openhands.ts:2960` — `ws.on('open')` only logs, no fan-out; mirror the existing `onThinkingChange` plumbing through `agent-driver/openhands.ts` + `agent-driver/index.ts` + `server/src/index.ts`). Estimated 30–50 LOC + 2 vitest regression tests. Server-only; no client changes; no schema migration.
+
+3. **Expansion Worker** — [#459 Desktop kiosk display name reverts after reconnect (server-side regression of #85, peer-tab path)](https://github.com/jpshackelford/voice-relay/issues/459) (`priority:high`, `bug`, `scope:full-stack`, `server`)
+   - Conversation: [`7944eef`](https://app.all-hands.dev/conversations/7944eefeec8d472a9397a245ecc6486c)
+   - Issue body is already in the standard bug template with a thorough RCA hypothesis (server-side: WS `register` handler unconditionally overwrites persisted device name). Worker is asked to **validate against actual code**, cite `file:line` references, propose concrete fix + test strategy, and label `ready`. Not asked to rewrite body — already well-formed.
+
+**All three conversations verified `READY` → `execution_status: running, sandbox_status: RUNNING`** at 22:22 UTC.
+
+**Current State:**
+- Open PRs: 1 — [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) `oR green ready 💬2` (under review by `4b5f7fe`).
+- Issues needing expansion (after this dispatch): 0 actionable. #459 now being expanded; #210, #239, #299, #300, #301, #302, #446 remain `on-hold`; #372 remains `needs-human`.
+- Ready issues: #386 (`priority:low`, `on-hold` — policy-tracked, skip), #457 (already in PR #460), #458 (now being implemented by `97e5f90`).
+- Slot usage after dispatch: expansion 1/4, implementation 1/1, review 1/2.
+
+**Unblock pass:** ran; 0 issues lifted.
+- Mechanically eligible: #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
+- **Override applied (AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"):** freeze remains in force pending production `VR_WORKSPACE_BUCKET`, AWS creds, and the S3 provisioning runbook smoke test (none verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the freeze lift). Skipped per the established override pattern from prior cycles. Only a human (or a new `## INSTRUCTION:` block) can lift these.
+- Policy-tracked (no machine `Blocked by #N`): #210, #239, #386, #446 — untouched.
+- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
+
+**Housekeeping:** Truncated `WORKLOG.md` from 1575 → 1212 lines. Archived 10 entries (those older than the 6-hour productive window) into `WORKLOG_ARCHIVE_2026-06-07.md`.
+
+**Anti-stall note:** decision table walked exhaustively. No `## INSTRUCTION:` override block in WORKLOG.md. PR #460 has no `on-hold`/`needs-human`/`blocked`/`needs-info` label; CI is green; the 2 review threads are first-round stylistic suggestions, not a halt condition. #458 and #459 have no AGENTS.md policy gating either. Dispatched cleanly on their merits.
+
+**Quiet-tick counter:** reset `0 → 0` (productive — 2 workers reaped + 3 workers dispatched + worklog truncation).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 ---

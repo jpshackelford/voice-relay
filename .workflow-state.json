@@ -3,28 +3,35 @@
   "slots": {
     "expansion": [
       {
-        "conv_id": "735d3c9",
-        "actual_conv_id": "735d3c97d89645a483897f46b81fcb2d",
-        "issue": 458,
-        "started": "2026-06-07T22:05:38.513927Z"
+        "conv_id": "7944eef",
+        "actual_conv_id": "7944eefeec8d472a9397a245ecc6486c",
+        "issue": 459,
+        "started": "2026-06-07T22:22:00.544052+00:00"
       }
     ],
     "implementation": [
       {
-        "conv_id": "c541b21",
-        "actual_conv_id": "c541b21be7384b5982c44e024be9e9ad",
-        "issue": 457,
-        "started": "2026-06-07T22:05:38.513927Z"
+        "conv_id": "97e5f90",
+        "actual_conv_id": "97e5f900cca9446e988052281dd904ed",
+        "issue": 458,
+        "started": "2026-06-07T22:22:00.544052+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "4b5f7fe",
+        "actual_conv_id": "4b5f7fe744c24abd87c4e3fe6cdfb792",
+        "pr": 460,
+        "started": "2026-06-07T22:22:00.544052+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T22:05:38.513927Z",
+  "last_updated": "2026-06-07T22:22:00.544052+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -326,6 +333,24 @@
       "finished": "2026-06-07T22:05:38.513927Z",
       "status": "success",
       "outcome": "Expanded #457 \u2014 applied ready + priority:high labels. Issue describes iOS 18 Safari STT regression caused by PR #456's reportClientError wiring treating spurious 'aborted' events as fatal during permission grant."
+    },
+    {
+      "conv_id": "735d3c9",
+      "type": "expansion",
+      "started": "2026-06-07T22:05:38.513927Z",
+      "finished": "2026-06-07T22:19:46.538176+00:00",
+      "status": "success",
+      "outcome": "Expanded #458 \u2014 kiosk AI-status indicator stuck on \ud83d\udd17; root cause + fix plan; ready label applied",
+      "issue": 458
+    },
+    {
+      "conv_id": "c541b21",
+      "type": "implementation",
+      "started": "2026-06-07T22:05:38.513927Z",
+      "finished": "2026-06-07T22:19:46.538176+00:00",
+      "status": "success",
+      "outcome": "Implemented #457 fix; opened PR #460 (Fixes #457); all CI green; AC gate Fixes verdict",
+      "issue": 457
     }
   ],
   "quiet_ticks": 0
