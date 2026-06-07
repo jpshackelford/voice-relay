@@ -3,22 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "9e0d0dd",
-        "type": "merge",
-        "pr": 430,
-        "issue": 351,
-        "started": "2026-06-07T03:25:33Z"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T03:25:33Z",
+  "last_updated": "2026-06-07T10:23:18.983642Z",
   "completed": [
     {
       "conv_id": "cb181e6",
@@ -207,7 +199,17 @@
       "finished": "2026-06-07T03:23:42Z",
       "status": "success",
       "outcome": "PR #427 merged (merge worker, Fixes #363)"
+    },
+    {
+      "conv_id": "9e0d0dd",
+      "type": "merge",
+      "issue": 351,
+      "pr": 430,
+      "started": "2026-06-07T03:25:33Z",
+      "finished": "2026-06-07T10:20:24.327617Z",
+      "status": "success",
+      "outcome": "Merged PR #430 (issue #351 register-time degraded broadcast)"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
