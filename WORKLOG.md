@@ -1042,3 +1042,34 @@ No `## Deferred to follow-ups` block needed; no override `## INSTRUCTION:` block
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 15:26 UTC - Merge worker (PR #444)
+
+✅ **Merged PR #444** — `feat(client,server): wire post-OAuth-return device PATCH + speaker preferred_name seeding (#433 follow-up)`
+
+- Merge commit: `eeb09e9ffd18702ebc1215dfda67fe408f2f9a3e`
+- Strategy: squash, single conventional-commit subject + verdict-bearing body
+- PR: https://github.com/jpshackelford/voice-relay/pull/444
+- Linked issue auto-closed: #439 (`Fixes #439` trailer → `state: CLOSED` at 15:26:26 UTC)
+
+**Closing-Trailer AC Gate (issue #439): ✅ PASS** — all 8 non-exempt ACs covered by the final diff (no override needed).
+
+| AC | Verdict |
+|----|---------|
+| 1. Pending-claim flag set before OAuth redirect | ✅ `ClaimSpeakerCard.handleSignIn` writes `sessionStorage['voice_relay_pending_claim_<ws>_<dev>'] = '1'` before `onSignIn()` |
+| 2. Exactly one post-OAuth PATCH, flag cleared pre-await | ✅ `useFirstRunClaim` consumes flag synchronously, `firedRef` blocks StrictMode double-fire |
+| 3a. `devices.primary_user_id` set to OAuth user.id | ✅ pre-existing #383 PATCH handler |
+| 3b. Speakers row seeded with `displayName ?? username` | ✅ `speakerRepository.upsertForUser` in `server/src/devices/router.ts` PATCH handler |
+| 3c. Existing `preferred_name` not overwritten | ✅ `upsertForUser` semantics + server test |
+| 4. Next agent turn carries `[speaker …]` header w/o reload | ✅ registry refresh (#383) + seed (#439) |
+| 5. Claim card hides immediately on PATCH success | ✅ `markDeviceClaimedLocally` flips local `speakerState.deviceClaimed` via `onClaimed` |
+| 6. Refresh does not re-fire PATCH | ✅ flag-consumed pre-await + hook test |
+| 7. Non-2xx logged, no throw, flag stays consumed | ✅ `console.warn` path in hook + tests |
+| 8. Test coverage (client + server) | ✅ +19 tests (client 1187 / server 1682 passed locally) |
+
+**Migration safety:** no new schema migration. Reuses the existing `speakers` table (017_speakers); only adds a server-side `upsertForUser` call inside the existing PATCH handler. Production SQLite unaffected at deploy time.
+
+**Verification:** `gh pr view 444 → state: MERGED, mergedAt: 15:26:25 UTC`; `gh issue view 439 → state: CLOSED, stateReason: COMPLETED, closedAt: 15:26:26 UTC`. Main fast-forwarded `f821a15..eeb09e9`.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
