@@ -1432,3 +1432,47 @@ PR: [#461](https://github.com/jpshackelford/voice-relay/pull/461) — ready for 
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 22:48 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c60848c` | review | PR #461 — fix(server): broadcast session state on OH WS open (Fixes #458) | **NEW** |
+| `65f1554` | implementation | Issue #459 — Desktop kiosk display name reverts after reconnect (priority:high) | **NEW** |
+
+**Reaped:**
+- `97e5f90` (implementation, #458) → finished `success`. Opened [PR #461](https://github.com/jpshackelford/voice-relay/pull/461) with `Fixes #458`. AC gate 4/4 PASS (functional 🔗→✨ transition, no `'starting'` post-WS-OPEN, agent-driver regression test in `openhands.session-ready.test.ts`, auto-connect-path regression test in `session-state-broadcast.ws-ready.test.ts`). ~134 production LOC across 4 server files; +5/+3/+3/+2 new tests in 4 test files; all 1736 server tests pass. CI 5/5 green.
+- `bd2dc22` (merge, PR #460) → finished `success`. Merged [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) at 2026-06-07 22:36:38 UTC (squash commit `07da140`) with `Fixes #457`. Auto-deployed to vr.chorecraft.net. AC gate 5/5 PASS (iOS 18 Safari `onstart`-before-`onerror`, `isListening` flip, no `[ClientError] aborted` on happy path, regression test #2 in `useSpeechRecognition.test.ts`, iPhone SE 3 / older iOS unchanged via full 1210-test client suite).
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** — [PR #461 — fix(server): broadcast session state when OH WS reaches 'open' (Fixes #458)](https://github.com/jpshackelford/voice-relay/pull/461)
+   - Conversation: [`c60848c`](https://app.all-hands.dev/conversations/c60848c2919d4daa86dcfd5e1ffde865)
+   - Verified `READY` → `execution_status: running, sandbox_status: RUNNING` at 22:48 UTC.
+   - Pre-flight context embedded: CI 5/5 green; `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`; no `on-hold`/`needs-human`/`blocked` labels; 3 unresolved review threads, all from the pr-review bot at 22:44 UTC, all 🟡 stylistic suggestions about comment verbosity (no behavior/risk concerns); prior impl AC verdict `Fixes #458` (4/4). Worker is asked to apply the same comment-tightening playbook used on PR #460 (commit `aed6897` pattern: collapse 7–10 line bug-history/PR-description-duplication prose into 2–4 line intent-only forms, preserve `@param` docs and inline `?.` rationale), single `refactor(server): …` commit, reply+resolve all 3 threads, re-run the AC gate (verdict will remain `Fixes #458` because comment-only changes can't shift coverage).
+
+2. **Implementation Worker** — [Issue #459 — Desktop kiosk display name reverts after reconnect (server-side regression of #85, peer-tab path)](https://github.com/jpshackelford/voice-relay/issues/459)
+   - Conversation: [`65f1554`](https://app.all-hands.dev/conversations/65f1554fdf114d91bd63c845c4b15694)
+   - Verified `READY` → `execution_status: running, sandbox_status: RUNNING` at 22:48 UTC.
+   - Pre-flight context embedded: no `on-hold`/`needs-human`/`blocked`/`needs-info` labels; no `## INSTRUCTION:` override; no AGENTS.md gate; prior expansion worker `7944eef` already validated against `main@ff4cd43` and identified the 2-LOC primary fix at `server/src/devices/device-repository.ts:170-176`, the call-site at `server/src/index.ts:725-801`, defense-in-depth client cleanup at `client/src/hooks/useDevices.ts:93-110`, and the bug-codifying test at `server/src/devices/device-repository.test.ts:382-401` that must be inverted. Merge-conflict warning included for `server/src/index.ts` since open PR #461 also touches it (different regions: #461 listener block ~251-275, #459 fix region ~725-801) — worker is told to branch from latest `main` and be prepared to rebase if #461 lands first.
+
+**Current State:**
+- Open PRs: 1 — [PR #461](https://github.com/jpshackelford/voice-relay/pull/461) `oRC green ready 💬3` (3 unresolved pr-review-bot threads being addressed by `c60848c`).
+- Issues needing expansion: **0** (every non-ready open issue carries `on-hold` or `needs-human`).
+- Ready issues: #458 (`priority:medium` — has open PR #461), #459 (`priority:high` — being implemented by `65f1554`), #386 (`priority:low` + `on-hold` — policy hold, untouched).
+- Slot usage after dispatch: expansion 0/4, implementation 1/1, review 1/2.
+
+**Unblock pass:** ran; **0 issues lifted**.
+- Mechanically eligible (Blocked-by closed): #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
+- **Override applied (AGENTS.md "Active design freeze: workspace persistence (S3 / #298)", lines 71–106):** freeze remains in force pending production `VR_WORKSPACE_BUCKET`, the four AWS credential env vars, and the S3 provisioning runbook smoke test — none verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the freeze lift. Skipped per the established override pattern (worklog 11:39Z, 12:13Z, 17:15Z, 18:08Z, 19:35Z, 22:36Z). Only a human (or a new `## INSTRUCTION:` block) can lift these.
+- Policy-tracked (no machine `Blocked by #N`): #210, #239, #386, #446 — untouched.
+- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
+
+**Anti-stall note:** decision table walked exhaustively. No `## INSTRUCTION:` override block. PR #461 carries no `on-hold`/`needs-human`/`blocked`/`needs-info` label; CI is green; the 3 review threads are first-round bot stylistic suggestions, not a halt condition → decision table's review-slot row "PR with unresolved threads + review slot available → spawn review worker". #459 is `ready`+`priority:high`+unblocked+no policy gate, implementation slot just freed → decision table's impl-slot row "ready issues with priority + IMPL_AVAILABLE=1 → spawn impl worker". Both dispatched cleanly on their merits, in the same tick, using independent slots.
+
+**Quiet-tick counter:** reset `0 → 0` (productive — 2 workers reaped + 2 workers dispatched).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
