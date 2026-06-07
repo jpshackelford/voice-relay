@@ -1455,3 +1455,38 @@ _This worklog entry was created by an AI agent (OpenHands orchestrator) on behal
 _This entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 21:59 UTC - Expansion Worker (issue #457)
+
+✅ **Expanded Issue #457** — `iOS 18 Safari: STT aborts immediately on permission grant on iPhone 17e (regression after PR #456)`
+
+- Issue: [#457](https://github.com/jpshackelford/voice-relay/issues/457)
+- Type: Bug (regression from PR #456 / commit `abab057`)
+- Status: **Ready for implementation** (`ready` label applied)
+- Severity: `priority:high` — mobile STT broken on a current-gen iPhone
+
+**Root cause (verified against the actual diff):**
+
+PR #456 wired `reportClientError` into both Web Speech and hosted-STT hooks, but applied the **ref pattern asymmetrically**:
+
+- `useHostedSpeechRecognition.ts` — correctly stashes `sessionId/workspaceId/deviceId` in refs so `surfaceError`'s `useCallback` identity is stable.
+- `useSpeechRecognition.ts` (L157) — **added those IDs directly to `startListening`'s `useCallback` deps array**, so `startListening` rebuilds whenever any ID flips.
+- `MobileMode.tsx` (L308) — same regression on `handleMicToggle`'s deps array.
+
+Combined with VR's existing `(default → real) sessionId` WS-registration flap that lands the real session UUID 1–2 s after the device first connects (i.e. precisely while the iOS permission dialog is up), the deps churn causes a React commit between `recognition.start()` and `onstart`. iOS 18 / Safari 26.4 (newly stricter than 17-) treats that as an external `stop()` and synthesizes `onerror({ error: 'aborted' })` before `onstart` ever fires. `isListening` never flips true → `sendListeningState(true, …)` never sent → kiosk mic icon never updates.
+
+**Proposed fix (≈10 LOC, mirrors the hosted-hook pattern already in PR #456):**
+
+1. `client/src/hooks/useSpeechRecognition.ts` — add `sessionIdRef/workspaceIdRef/deviceIdRef`, read from `*Ref.current` in `recognition.onerror`, revert deps at L157 to `[isSupported, onInterimResult, onFinalResult, onError]`.
+2. `client/src/components/MobileMode.tsx` — revert `handleMicToggle` deps at L308 to the pre-#456 value (drop the three ID props).
+3. `useHostedSpeechRecognition.ts` — no change; already correct.
+
+**Test strategy:** vitest hook test that mounts `useSpeechRecognition`, calls `startListening()`, rerenders with a new `sessionId` **before** dispatching `onstart`, then dispatches `onstart` and asserts `isListening === true` plus `recognition.stop`/`abort` were not called as a side-effect of the rerender. Companion test asserts `startListening`'s reference equality across ID-only rerenders. Both belong in the existing `client/src/hooks/useSpeechRecognition.test.ts` (created in PR #456).
+
+**Out of scope:** the pre-existing `default → real` WS registration flap, and any `/api/client-errors` server-side changes (endpoint is working correctly and is how this was caught).
+
+**Notes for orchestrator:** the original issue body was already in the standard bug template (problem / repro / expected / actual / environment / AC) and the reporter posted a thorough RCA comment. I did **not** rewrite the body; instead added a verification comment ([#issuecomment-4644225997](https://github.com/jpshackelford/voice-relay/issues/457#issuecomment-4644225997)) with concrete `file:line` citations against `main@5e95b29`, the symmetric fix recipe, and the test strategy. The implementation worker can act directly from that comment.
+
+_This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
+
+---
