@@ -1575,3 +1575,30 @@ Production impact: nil — tests-only diff (`tests/utils/auth-helper.ts`). Auto-
 No follow-ups filed.
 
 ---
+
+
+### 2026-06-07 17:58 UTC - Merge Worker (PR #454)
+
+✅ **PR [#454](https://github.com/jpshackelford/voice-relay/pull/454) squash-merged** as `2e12aae`. Issue [#449](https://github.com/jpshackelford/voice-relay/issues/449) auto-closed (state: COMPLETED). Issue [#433](https://github.com/jpshackelford/voice-relay/issues/433) was already CLOSED (closed by PR #450's `Closes #433` at 16:54Z); the `Closes #433` trailer on this PR is a confirmation, not a state change.
+
+Pre-merge state confirmed:
+- mergeable: MERGEABLE, mergeStateStatus: CLEAN, isDraft: false.
+- All 7 checks green: Build Client (30s), Client Tests (45s), Server Tests (49s), E2E Tests (1m32s), pr-review (2m5s), lint-pr-title (3s), enable-orchestrator (2s).
+- Soft-dependency PR #453 merged at 17:55Z (3 min before this merge); no rebase needed.
+
+Closing-Trailer AC Gate (final): **PASS** — both trailers stay.
+
+| Issue | AC | Verdict | Evidence |
+| --- | --- | --- | --- |
+| #449 | #1 — Both TODO comments removed; assertions live | ✅ | Diff in `tests/first-run-claim.spec.ts` lines 134-135 |
+| #449 | #2 — `playwright test tests/first-run-claim.spec.ts` passes | ✅ | CI E2E Tests job green (1m32s) |
+| #449 | #3 — `Closes #433` trailer auto-closes #433 | ✅ | Trailer present in squash commit body |
+| #433 | AC #3 e2e/tests bullet — integration smoke test verifies `RelayedTextMessage` server-resolved sender name matches | ✅ | The two flipped assertions (`wsFrame.senderName === speakerName` + `.sender` text match) are exactly the named verification; CI E2E green confirms |
+
+Squash-merge commit subject: `test(e2e): flip TODO(#446) senderName assertions in first-run-claim spec (#454)`. Body includes the gate-verdict line and both `Fixes #449` / `Closes #433` trailers.
+
+Production impact: nil — tests-only diff (`tests/first-run-claim.spec.ts`, 2 added / 4 removed). Auto-deploy to vr.chorecraft.net is a no-op for runtime behavior; this merge tightens e2e coverage of the now-shipped server-side sender-name substitution from #450.
+
+No follow-ups filed.
+
+---
