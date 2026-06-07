@@ -1,5 +1,6 @@
 export { SpeakerRepository } from './speaker-repository.js';
 export { createSpeakerRouter, type SpeakerRouterOptions } from './router.js';
+export { resolveRelayedSenderName } from './resolve-relayed-sender-name.js';
 export type {
   Speaker,
   SpeakerCreateInput,

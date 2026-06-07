@@ -37,7 +37,11 @@ import {
   createSessionSettingsService,
   type SessionSettingsService,
 } from './sessions/index.js';
-import { SpeakerRepository, createSpeakerRouter } from './speakers/index.js';
+import {
+  SpeakerRepository,
+  createSpeakerRouter,
+  resolveRelayedSenderName,
+} from './speakers/index.js';
 import {
   createTranscriptionRouter,
   SessionEngineSpeakersRepository,
@@ -1087,7 +1091,14 @@ wss.on('connection', (ws: WebSocket) => {
             workspaceId: device.workspaceId,
             sessionId: device.sessionId,
             senderId: deviceId,
-            senderName: device.displayName,
+            // Issue #446: substitute the device alias with the resolved
+            // active-speaker preferredName when the per-session override
+            // (or primary-user fallback) named a real human. See
+            // `resolveRelayedSenderName` for the full fallback table.
+            senderName: resolveRelayedSenderName(
+              utteranceSpeaker,
+              device.displayName
+            ),
             text: message.text,
             partial: message.partial,
             clientTimestamp,
