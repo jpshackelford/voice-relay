@@ -1769,6 +1769,20 @@ export type ThinkingChangeCallback = (sessionId: string, isThinking: boolean) =>
 export type ActionCallback = (sessionId: string, action: AgentAction) => void;
 
 /**
+ * Callback type for upstream WebSocket reaching the `OPEN` state (#458).
+ *
+ * Fires synchronously inside `ws.on('open')` for every successful (re)open
+ * of the per-session upstream WS. Lets platform code re-broadcast the
+ * unified `session-state` so kiosk indicators flip from `'starting'` to
+ * `'ready'` without waiting for the first user message to drive the
+ * existing `onThinkingChange` fan-out.
+ *
+ * Skipped when `AISession.sessionId` is not set (chat-mode bindings keyed
+ * only by `conversationId` have no VR session to broadcast to).
+ */
+export type SessionReadyCallback = (sessionId: string) => void;
+
+/**
  * Callback type for raw agent events arriving on the upstream WebSocket.
  * Fired at the *top* of the WS message handler, before any kind-specific
  * branch, so persistence captures everything that could be broadcast.
@@ -1795,6 +1809,15 @@ export class AISessionManager {
   private onAction?: ActionCallback;
   /** Callback invoked for every raw event on the upstream WS */
   private onEvent?: EventCallback;
+  /**
+   * Callback invoked when the upstream WebSocket reaches `OPEN` for a
+   * VR-keyed session (#458). Fires from `ws.on('open')` in
+   * {@link connectWebSocket} so the platform can re-broadcast
+   * `session-state` once the binding is actually usable instead of
+   * leaving kiosks stuck on the `'starting'` snapshot that `openSession`
+   * returned.
+   */
+  private onSessionReady?: SessionReadyCallback;
   /**
    * Running count of detected `session_api_key` rotations across all sessions,
    * incremented each time {@link refreshSessionCredentials} observes a
@@ -2434,6 +2457,18 @@ export class AISessionManager {
   }
 
   /**
+   * Set callback for upstream WebSocket reaching `OPEN` (#458).
+   *
+   * The {@link OpenHandsAgentDriver} adapter installs the sole subscriber
+   * here and fan-outs to platform listeners; platform code subscribes
+   * via `onAgentSessionReady` rather than calling this directly. Setter
+   * pattern mirrors {@link setThinkingChangeCallback}.
+   */
+  setSessionReadyCallback(callback: SessionReadyCallback | undefined): void {
+    this.onSessionReady = callback;
+  }
+
+  /**
    * Set callback fired for *every* raw event arriving on the upstream WS,
    * before any kind-specific dispatch. Callers are expected to handle their
    * own errors — see {@link EventCallback}.
@@ -2960,6 +2995,21 @@ export class AISessionManager {
     ws.on('open', () => {
       console.log('[AI] V1 WebSocket connected (auth via query params)');
       session.reconnectAttempts = 0;
+      // #458: notify platform listeners that this VR-keyed session's
+      // upstream WS is now usable so they can re-broadcast
+      // `session-state` (which flips kiosks from 'starting' → 'ready').
+      // Chat-mode bindings keyed only by `conversationId` (no VR
+      // sessionId) are skipped — there is no VR session to broadcast
+      // to. Fires on every successful (re)open; reconnects re-emit the
+      // same `'ready'` snapshot which the client reducer treats as a
+      // no-op for unchanged status.
+      if (this.onSessionReady && session.sessionId) {
+        try {
+          this.onSessionReady(session.sessionId);
+        } catch (err) {
+          console.error('[AI] onSessionReady callback threw:', err);
+        }
+      }
     });
 
     ws.on('message', (data: WebSocket.Data) => {

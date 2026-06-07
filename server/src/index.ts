@@ -17,6 +17,7 @@ import {
   onAgentRawEvent,
   onAgentThinkingChange,
   onAgentAction,
+  onAgentSessionReady,
   setAgentSystemPromptResolver,
   setAgentAIStateRepository,
   shutdownAgentDriver,
@@ -284,6 +285,31 @@ onAgentAction((sessionId: string, action: AgentAction) => {
     action,
   };
   registry.broadcastMessageToSession(sessionId, message);
+});
+
+// #458: re-broadcast the unified `session-state` whenever the upstream
+// OpenHands WebSocket reaches `OPEN` for a VR-keyed session. Without
+// this, `autoConnectAI` resolves while the WS is still `WS_CONNECTING`
+// and the `auto-connect:connected` broadcast carries a `state:
+// 'starting'` snapshot that matches the previous `auto-connect:connecting`
+// shape — so the kiosk indicator never flips to ✨ until the first
+// user message triggers the existing `onThinkingChange` fan-out.
+// Mirrors the thinking-change handler verbatim: read the driver's
+// authoritative snapshot, short-circuit on torn-down sessions, and
+// emit with `'ws-ready'` as the context for log triage.
+onAgentSessionReady((sessionId: string) => {
+  void (async () => {
+    try {
+      const status = await agentDriver.getSessionStatus(sessionId);
+      if (status.state === 'absent') return;
+      broadcastSessionState(registry, sessionId, status, 'ws-ready');
+    } catch (err) {
+      console.error(
+        `[SessionState] ws-ready getSessionStatus failed for ${sessionId}:`,
+        err,
+      );
+    }
+  })();
 });
 
 // Repositories for database access (set up later if SQLite is used)
