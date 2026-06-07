@@ -1,14 +1,7 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
-      {
-        "conv_id": "7944eef",
-        "actual_conv_id": "7944eefeec8d472a9397a245ecc6486c",
-        "issue": 459,
-        "started": "2026-06-07T22:22:00.544052+00:00"
-      }
-    ],
+    "expansion": [],
     "implementation": [
       {
         "conv_id": "97e5f90",
@@ -19,10 +12,11 @@
     ],
     "review": [
       {
-        "conv_id": "4b5f7fe",
-        "actual_conv_id": "4b5f7fe744c24abd87c4e3fe6cdfb792",
+        "conv_id": "bd2dc22",
+        "actual_conv_id": "bd2dc222fcae4a2aa9603a64bda6d082",
         "pr": 460,
-        "started": "2026-06-07T22:22:00.544052+00:00"
+        "type": "merge",
+        "started": "2026-06-07T22:35:17.377192+00:00"
       }
     ]
   },
@@ -31,7 +25,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T22:22:00.544052+00:00",
+  "last_updated": "2026-06-07T22:35:17.377192+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -351,6 +345,24 @@
       "status": "success",
       "outcome": "Implemented #457 fix; opened PR #460 (Fixes #457); all CI green; AC gate Fixes verdict",
       "issue": 457
+    },
+    {
+      "conv_id": "7944eef",
+      "type": "expansion",
+      "issue": 459,
+      "started": "2026-06-07T22:22:00.544052+00:00",
+      "finished": "2026-06-07T22:35:17.377192+00:00",
+      "status": "success",
+      "outcome": "Issue #459 expanded with verified root cause + fix plan; `ready` + `priority:high` labels applied"
+    },
+    {
+      "conv_id": "4b5f7fe",
+      "type": "review",
+      "pr": 460,
+      "started": "2026-06-07T22:22:00.544052+00:00",
+      "finished": "2026-06-07T22:35:17.377192+00:00",
+      "status": "success",
+      "outcome": "Addressed pr-review bot stylistic suggestions on PR #460; AC-gate re-verdict `Fixes #457` (unchanged); CI green, 0 unresolved threads"
     }
   ],
   "quiet_ticks": 0

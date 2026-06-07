@@ -1311,3 +1311,40 @@ _This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 22:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `97e5f90` | implementation | Issue #458 — Kiosk AI-status indicator stuck on 🔗 | running |
+| `bd2dc22` | merge | PR #460 — iOS 18 Safari STT abort fix (Fixes #457) | **NEW** |
+
+**Reaped:**
+- `7944eef` (expansion, #459) → finished `success`. Issue #459 was already in standard bug-report template with a strong server-side RCA hypothesis; expansion worker validated against `main@ff4cd43`, cited concrete `file:line` references, identified the 2-LOC primary fix in `server/src/devices/device-repository.ts:170-176` and the `server/src/index.ts:725-801` call site, plus a defense-in-depth client cleanup in `client/src/hooks/useDevices.ts:93-110`. `ready` label applied (already had `priority:high`). Bonus finding: the test at `server/src/devices/device-repository.test.ts:382-401` codifies the bug and must be inverted as part of the fix — captured in the [technical-approach comment](https://github.com/jpshackelford/voice-relay/issues/459#issuecomment-4644282837).
+- `4b5f7fe` (review, PR #460) → finished `success`. Addressed both pr-review bot stylistic-only suggestions (`PRRT_kwDOSTUWGM6HsT_F`, `PRRT_kwDOSTUWGM6HsT_G`) by tightening the verbose 9-line comments in `useSpeechRecognition.ts` and `MobileMode.tsx` to 3-line intent-only forms (commit `aed6897`). CI all 5 checks green; threads replied + resolved; PR back to ready. AC gate re-run vs #457 → all 5 ACs satisfied; verdict `Fixes #457` **unchanged** (comments-only change can't shift AC coverage). Post-fix bot review at 22:28Z came back "🟢 Good taste — Elegant solution".
+
+**Spawned: Merge Worker**
+
+- **Merge Worker** — [PR #460 — fix(client): ignore iOS Safari spurious 'aborted' STT errors during permission grant (Fixes #457)](https://github.com/jpshackelford/voice-relay/pull/460)
+  - Conversation: [`bd2dc22`](https://app.all-hands.dev/conversations/bd2dc222fcae4a2aa9603a64bda6d082)
+  - Verified `READY` → `execution_status: running, sandbox_status: RUNNING` at 22:36 UTC.
+  - Pre-flight context embedded: client-only diff (no migration check needed), prior review-round AC-gate verdict was `Fixes #457`, no `## INSTRUCTION:` override exists, no `on-hold`/`needs-human` labels on PR or linked issue, `mergeStateStatus: CLEAN`, `mergeable: MERGEABLE`. Worker is asked to re-walk the AC gate against the now-current diff, squash with a `fix(client): …` conventional commit including the AC-gate verdict, and verify GitHub auto-closes #457.
+
+**Current State:**
+- Open PRs: 1 — [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) `oRFC green ready 💬0` (mergeable, CI 5/5 green, 0 unresolved threads, latest pr-review bot verdict 🟢, no formal Approval but no Changes Requested either — typical for this repo's solo-maintainer flow).
+- Issues needing expansion: **0**.
+- Ready issues: #458 (`priority:medium` — being implemented by `97e5f90`), #459 (`priority:high` — queued for next impl slot when #458 lands).
+- Slot usage after dispatch: expansion 0/4, implementation 1/1, review 1/2 (merge worker holds one review slot).
+
+**Unblock pass:** ran; **0 issues lifted**.
+- Mechanically eligible (Blocked-by closed): #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
+- **Override applied (AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"):** freeze remains in force pending production `VR_WORKSPACE_BUCKET`, the four AWS credential env vars, and the S3 provisioning runbook smoke test — none verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the freeze lift. Skipped per the established override pattern. Only a human (or a new `## INSTRUCTION:` block) can lift these.
+- Policy-tracked (no machine `Blocked by #N`): #210, #239, #386, #446 — untouched.
+- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
+
+**Anti-stall note:** decision table walked exhaustively. PR #460 has no `on-hold`/`needs-human`/`blocked`/`needs-info` label; CI is green; 0 unresolved review threads; mergeable+CLEAN. Per the decision table's review-slot row "PR ready to merge → spawn merge worker," dispatched without hesitation. Implementation slot remains held by `97e5f90` working on #458; #459 (`priority:high`) will pick up cleanly on the next tick after #458's worker finishes.
+
+**Quiet-tick counter:** reset `0 → 0` (productive — 2 workers reaped + 1 merge worker dispatched).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+---
