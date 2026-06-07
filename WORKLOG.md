@@ -1780,3 +1780,24 @@ _This worklog entry was created by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 19:28 UTC - Expansion Worker (issue #455)
+
+✅ **Expanded Issue #455** — `feat(server,client): /api/client-errors endpoint for server-side capture of client errors`
+
+- Issue: [#455](https://github.com/jpshackelford/voice-relay/issues/455)
+- Type: Enhancement (full-stack)
+- Status: Ready for implementation
+- Verification notes:
+  - Confirmed all four client call-sites exist (`useSpeechRecognition.ts:101`, `useHostedSpeechRecognition.ts:371` (`surfaceError` funnel), `MobileMode.tsx:253` and `:262`).
+  - `authenticateDisplayRequest` lives in `server/src/display-api/index.ts` (lines 35–115); **but** the display secret is server-side only — `grep -rn 'displaySecret' client/src/` returns 0 hits. **Recommended device-token bearer auth** instead (precedent: `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker` from #433). Flagged as a decision-point in the technical-approach comment.
+  - Rate-limit primitive: reuse existing `RateLimiter` class in `server/src/devices/router.ts:66–117`; recommend lifting it to `server/src/utils/rate-limiter.ts` and keying off `sessionId` rather than IP.
+  - Structured log pattern confirmed: `console.log('[Prefix] …')` style used by `[AI]`/`[WS]`/`[Registry]` — `[ClientError]` is consistent.
+  - No DB migration required.
+  - Test matrix documented: 11 server scenarios + 6 client helper scenarios + 3 hook/component integration updates.
+  - Doc target: `docs/architecture.md` (short subsection under API surface).
+- Labels: `ready` added.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
