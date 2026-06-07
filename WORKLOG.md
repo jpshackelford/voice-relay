@@ -1111,3 +1111,45 @@ PR is now in `ready for review` state; review handling delegated to a separate c
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 15:41 UTC - Implementation worker (#443)
+
+✅ **Implementation worker — #443 (Layer A + Layer B): PR #448 opened, CI green, marked ready for review.**
+
+**Issue:** [#443](https://github.com/jpshackelford/voice-relay/issues/443) — `feat(server): workspace-level quota for anonymous speakers (#433 follow-up)` (priority:low, enhancement, server).
+
+**PR:** [#448](https://github.com/jpshackelford/voice-relay/pull/448) — `feat/443-anonymous-speaker-quota`.
+
+**What shipped:**
+
+- `SpeakerRepository.findOrCreateAnonymous({ workspaceId, preferredName, pronouns, maxAnonymousPerWorkspace })` — case-insensitive name + exact-pronouns dedup (`COLLATE NOCASE` + `IS`), workspace-scoped, returns earliest-created match. Wrapped in `db.transaction(...)` so concurrent identical submissions collapse to one row and the count→insert window is race-free.
+- `SpeakerRepository.countAnonymousInWorkspace(workspaceId)` — supporting count used by the cap check, exported for future admin tooling.
+- `AnonymousSpeakerQuotaExceeded` typed error in `server/src/speakers/types.ts` (carries `workspaceId` + `cap`).
+- `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker` now calls `findOrCreateAnonymous` instead of `create`; catches the typed error and returns **429** with body `{ error: 'Workspace anonymous speaker quota exceeded', retryAfter: 60 }` and a `Retry-After: 60` header.
+- `DeviceRouterOptions.maxAnonymousSpeakersPerWorkspace?: number` (default **100** via `DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` in router).
+- `server/src/index.ts` bootstrap parses `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` once at startup; invalid values logged and ignored.
+
+**No schema change** — pure application logic against the existing `speakers` table.
+
+**Tests:** +11 in `speaker-repository.test.ts` (now 33 total) covering dedup hit/miss/case-insensitivity, NULL-pronouns `IS` semantics, workspace isolation, authenticated-row non-matching, cap enforcement, dedup bypass at cap, typed-error fields, legacy-duplicate tie-break, empty-name guard, `countAnonymousInWorkspace`. +3 in `devices/router.test.ts` (now 38 total) covering dedup hit returns same `speakerId`, 429 + `Retry-After` at cap, dedup bypasses cap. Full server suite: **1694 passed, 0 failed**. Coverage on `speaker-repository.ts`: 100 % lines / 90.47 % branches / 100 % functions.
+
+**CI:** all green — Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title.
+
+**AC gate verdict (re-run against final diff):**
+
+| AC item | Verdict |
+|---|---|
+| 1. `findOrCreateAnonymous` dedups, else inserts | ✅ SAT |
+| 2. Runs inside `db.transaction(...)` | ✅ SAT |
+| 3. Throws `AnonymousSpeakerQuotaExceeded` at cap, no match | ✅ SAT |
+| 4. Handler returns 429 with body + `Retry-After` | ✅ SAT |
+| 5. Cap default 100 + `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` override + threaded through `DeviceRouterOptions` | ✅ SAT |
+| 6. `speaker-repository.test.ts` covers dedup, case insensitivity, quota enforcement, dedup-bypasses-quota | ✅ SAT |
+| 7. `devices/router.test.ts` covers 429, dedup-hit same `speakerId`, no regressions | ✅ SAT |
+
+**All 7 non-exempt AC items satisfied. Trailer:** `Fixes #443`. No follow-up issues filed.
+
+PR is now in `ready for review` state; review handling delegated to a separate conversation.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
