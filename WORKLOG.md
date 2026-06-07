@@ -991,3 +991,29 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 
 ---
 
+
+### 2026-06-07 14:47 UTC - Review-addressing worker (PR #444 round 1)
+
+✅ Addressed all 9 review threads on PR [#444](https://github.com/jpshackelford/voice-relay/pull/444) (feat(client): post-OAuth-return device PATCH + speaker preferred_name seeding, fixes #439).
+
+All 9 threads were from `github-actions` flagging over-verbose comments that paraphrased the PR description / restated self-evident code. Accepted all 9 and trimmed in a single thematic commit `f3778c4` ("refactor(client,server): trim verbose comments per review feedback"):
+
+| File | Trim |
+| --- | --- |
+| `client/src/hooks/useFirstRunClaim.ts` | 18-line file header → 4 lines; remove inline narration around `firedRef` / `consumePendingClaim` / fetch call; condense catch + eslint-disable explanations |
+| `client/src/components/ClaimSpeakerCard.tsx` | `PENDING_CLAIM_KEY_PREFIX` doc + `handleSignIn` comment condensed |
+| `server/src/devices/router.ts` | 10-line speaker-upsert block → 3 lines |
+
+Net: 60 lines removed, 13 added. No behavior change.
+
+**CI:** ✅ Build Client / Client Tests (1188 pass) / Server Tests (1682 pass) / E2E / lint-pr-title — all green on `f3778c4`.
+
+**AC gate re-run: unchanged.** Re-walked Issue #439's 8 acceptance criteria against the current diff. Trims were textual only; runtime behavior, idempotency guarantees, and test coverage are identical to pre-trim. Verdict remains `Fixes #439` — no `## Deferred to follow-ups` change, no new follow-up issues filed.
+
+**Cross-issue learning** logged as a comment on #439 for future implementation workers in this codepath (default to terser comments; keep file headers to 1–2 sentences; explain the empty-body PATCH semantic once, not at every call site).
+
+**Workflow:** PR briefly dropped to draft (`gh pr ready 444 --undo`) at start of round; moved back to ready (`gh pr ready 444`) after CI green and threads resolved. PR is now `ready / MERGEABLE / CI green / 0 unresolved threads`.
+
+_This entry was created by an AI agent (OpenHands review-addressing worker) on behalf of @jpshackelford._
+
+---
