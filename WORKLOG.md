@@ -558,3 +558,32 @@ No `## INSTRUCTION:` override block was present for PR #429 + #426; gate passed 
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 02:55 UTC - Review worker (PR #428 round 2)
+
+✅ Addressed pr-review feedback on PR #428 — feat(client): show person name (device name) on workspace page (Fixes #384).
+
+| Item | Value |
+| --- | --- |
+| PR | [#428](https://github.com/jpshackelford/voice-relay/pull/428) |
+| Branch | `feat/384-workspace-device-person-name` |
+| Commit | `761f372` — _refactor: trim verbose comments per PR #428 review_ |
+| Threads resolved | 6 / 6 (all 🟡 Suggestion from `github-actions`) |
+| AC Gate verdict | **PASS** (unchanged — comment-only diff, all 5 ACs still backed by tests, `Fixes #384` trailer intact) |
+
+Decisions per thread (consistent stance — pragmatic project style favors self-documenting code; kept short notes only where information was not derivable from the code):
+
+| Location | Action |
+| --- | --- |
+| `client/src/pages/WorkspaceHome.tsx:128` | Dropped 8-line preamble; var name + `?.` + JSX self-document. |
+| `client/src/hooks/useDevices.ts:13` | Collapsed 9-line JSDoc → single-line summary. |
+| `client/src/hooks/useDevices.ts:29` | Collapsed 5-line JSDoc → 1-line inline note (kept pre-#384 backwards-compat hint). |
+| `server/src/workspaces/router.ts:1221` | Collapsed 11-line block → 3 lines (cache rationale + speakerRepository fallback). |
+| `server/src/workspaces/router.ts:1246` | Trimmed 8-line block → 3 lines preserving the "no speaker row" vs "speaker without preferred name" distinction (the one suggestion with real ambiguity worth keeping). |
+| `client/src/App.css:3271` | Collapsed 6-line block → 1 line. |
+
+Net diff: +9 / −49 across 4 files. PR moved back to ready; CI re-running (mergeStateStatus=UNSTABLE pending checks). No code/test/behaviour change.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
