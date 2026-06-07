@@ -1,9 +1,10 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
-import type {
-  Speaker,
-  SpeakerCreateInput,
-  SpeakerUpdateInput,
+import {
+  AnonymousSpeakerQuotaExceeded,
+  type Speaker,
+  type SpeakerCreateInput,
+  type SpeakerUpdateInput,
 } from './types.js';
 
 interface SpeakerRow {
@@ -227,5 +228,97 @@ export class SpeakerRepository {
       userId,
       preferredName: seed?.preferredName ?? null,
     });
+  }
+
+  /**
+   * Count of anonymous (user_id IS NULL) speaker rows in a workspace
+   * (#443). Used by the quota check in `findOrCreateAnonymous`; also
+   * exposed for tests and any future admin tooling that wants to
+   * surface "how close is this workspace to its anonymous cap?".
+   */
+  countAnonymousInWorkspace(workspaceId: string): number {
+    const row = this.db
+      .prepare<[string], { c: number }>(
+        `SELECT COUNT(*) AS c FROM speakers
+         WHERE workspace_id = ? AND user_id IS NULL`
+      )
+      .get(workspaceId);
+    return row?.c ?? 0;
+  }
+
+  /**
+   * Dedup-aware insert for anonymous speakers (#443).
+   *
+   * For a given `(workspaceId, preferredName, pronouns)` triple,
+   * returns an existing anonymous (`user_id IS NULL`) row whose
+   * trimmed `preferred_name` matches case-insensitively (SQLite
+   * `COLLATE NOCASE`, ASCII-only) and whose `pronouns` matches exactly
+   * (`IS` handles `NULL` on both sides). Otherwise inserts a new row
+   * and returns it.
+   *
+   * Two layers of growth-protection:
+   *   - Dedup: stops the common-case "same human re-claims the kiosk
+   *     a week later" from creating duplicate anonymous rows. The
+   *     agent's learning stays consolidated on one row.
+   *   - Workspace cap: once a workspace already has
+   *     `maxAnonymousPerWorkspace` anonymous speakers and the request
+   *     does NOT dedup against any of them, throws
+   *     `AnonymousSpeakerQuotaExceeded`. The cap check happens AFTER
+   *     the dedup query, so steady-state traffic from the same humans
+   *     never hits the wall.
+   *
+   * Wrapped in `db.transaction(...)` so the select-then-(count-then-)
+   * insert sequence is atomic against concurrent submissions with the
+   * same arguments, and the count→insert window is closed against the
+   * cap (better-sqlite3 transactions are synchronous — there is no
+   * `await` inside the body, so the JS event loop cannot interleave).
+   *
+   * Callers MUST trim `preferredName` and normalize an empty
+   * `pronouns` to `null` before calling — the active-speaker handler
+   * already does this. We assert non-empty `preferredName` defensively.
+   */
+  findOrCreateAnonymous(input: {
+    workspaceId: string;
+    preferredName: string;
+    pronouns: string | null;
+    maxAnonymousPerWorkspace: number;
+  }): Speaker {
+    if (input.preferredName.length === 0) {
+      throw new Error('preferredName must be non-empty');
+    }
+    const tx = this.db.transaction((): Speaker => {
+      const existing = this.db
+        .prepare<[string, string, string | null], SpeakerRow>(
+          `SELECT ${SELECT_COLUMNS}
+           FROM speakers
+           WHERE workspace_id = ?
+             AND user_id IS NULL
+             AND preferred_name = ? COLLATE NOCASE
+             AND pronouns IS ?
+           ORDER BY created_at ASC
+           LIMIT 1`
+        )
+        .get(input.workspaceId, input.preferredName, input.pronouns);
+      if (existing) return rowToSpeaker(existing);
+
+      const count = this.countAnonymousInWorkspace(input.workspaceId);
+      if (count >= input.maxAnonymousPerWorkspace) {
+        throw new AnonymousSpeakerQuotaExceeded(
+          input.workspaceId,
+          input.maxAnonymousPerWorkspace
+        );
+      }
+
+      // Reuse create() to keep one INSERT codepath. Safe inside the
+      // transaction — better-sqlite3's `db.transaction()` re-enters
+      // the same connection rather than opening a nested one.
+      return this.create({
+        workspaceId: input.workspaceId,
+        userId: null,
+        preferredName: input.preferredName,
+        pronouns: input.pronouns,
+      });
+    });
+    return tx();
   }
 }

@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { SpeakerRepository } from './speaker-repository.js';
+import { AnonymousSpeakerQuotaExceeded } from './types.js';
 import { Migrator } from '../storage/migrator.js';
 import { migrations } from '../storage/migrations/index.js';
 
@@ -268,6 +269,282 @@ describe('SpeakerRepository', () => {
         .prepare(`DELETE FROM workspaces WHERE id = ?`)
         .run(env.workspaceId);
       expect(env.repo.findById(env.workspaceId, created.id)).toBeNull();
+    });
+  });
+
+  // Issue #443: dedup-aware insert for anonymous speakers + per-workspace cap.
+  describe('findOrCreateAnonymous (#443)', () => {
+    it('dedups: same name + same pronouns returns the existing row', () => {
+      const first = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: 'they/them',
+        maxAnonymousPerWorkspace: 100,
+      });
+      const second = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: 'they/them',
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      expect(second.id).toBe(first.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(1);
+    });
+
+    it('case-insensitive dedup: "Alex" and "alex" collapse to one row', () => {
+      const first = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+      const lowered = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+      const upper = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'ALEX',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      expect(lowered.id).toBe(first.id);
+      expect(upper.id).toBe(first.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(1);
+    });
+
+    it('different pronouns are intentionally distinct rows', () => {
+      const a = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: 'they/them',
+        maxAnonymousPerWorkspace: 100,
+      });
+      const b = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: 'she/her',
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      expect(b.id).not.toBe(a.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(2);
+    });
+
+    it('null pronouns dedup against each other but not against a non-null value', () => {
+      const nullPronouns = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Sam',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+      const sameNull = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Sam',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+      const withPronouns = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Sam',
+        pronouns: 'he/him',
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      expect(sameNull.id).toBe(nullPronouns.id);
+      expect(withPronouns.id).not.toBe(nullPronouns.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(2);
+    });
+
+    it('does not dedup against an authenticated (user_id set) speaker', () => {
+      // A workspace member named "Alex" already has a user-linked row.
+      env.repo.create({
+        workspaceId: env.workspaceId,
+        userId: env.userId,
+        preferredName: 'Alex',
+        pronouns: 'they/them',
+      });
+
+      const anon = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: 'they/them',
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      // Brand-new anonymous row — the user-linked row was correctly
+      // excluded by the user_id IS NULL filter.
+      expect(anon.userId).toBeNull();
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(1);
+    });
+
+    it('does not dedup across workspaces', () => {
+      // Second workspace owned by the same user.
+      const otherWorkspaceId = 'ws-other';
+      env.db
+        .prepare(
+          `INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`
+        )
+        .run(otherWorkspaceId, env.userId, 'Other', 'other', 'OTHR123');
+
+      const a = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+      const b = env.repo.findOrCreateAnonymous({
+        workspaceId: otherWorkspaceId,
+        preferredName: 'Alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      expect(b.id).not.toBe(a.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(1);
+      expect(env.repo.countAnonymousInWorkspace(otherWorkspaceId)).toBe(1);
+    });
+
+    it('throws AnonymousSpeakerQuotaExceeded when at cap and no dedup hit', () => {
+      const cap = 3;
+      // Fill the cap with distinct names.
+      for (let i = 0; i < cap; i++) {
+        env.repo.findOrCreateAnonymous({
+          workspaceId: env.workspaceId,
+          preferredName: `Person ${i}`,
+          pronouns: null,
+          maxAnonymousPerWorkspace: cap,
+        });
+      }
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(cap);
+
+      expect(() =>
+        env.repo.findOrCreateAnonymous({
+          workspaceId: env.workspaceId,
+          preferredName: 'Newcomer',
+          pronouns: null,
+          maxAnonymousPerWorkspace: cap,
+        })
+      ).toThrow(AnonymousSpeakerQuotaExceeded);
+
+      // Cap-exceeded throw did not roll an extra row through.
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(cap);
+    });
+
+    it('dedup bypasses the quota: existing row returned even at cap', () => {
+      const cap = 2;
+      const first = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: cap,
+      });
+      env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Bree',
+        pronouns: null,
+        maxAnonymousPerWorkspace: cap,
+      });
+      // We are AT cap now — but a dedup hit should still succeed.
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(cap);
+
+      const reAlex = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'alex', // case-insensitive dedup
+        pronouns: null,
+        maxAnonymousPerWorkspace: cap,
+      });
+
+      expect(reAlex.id).toBe(first.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(cap);
+    });
+
+    it('throws on empty preferredName (defensive guard)', () => {
+      expect(() =>
+        env.repo.findOrCreateAnonymous({
+          workspaceId: env.workspaceId,
+          preferredName: '',
+          pronouns: null,
+          maxAnonymousPerWorkspace: 100,
+        })
+      ).toThrow(/preferredName must be non-empty/);
+    });
+
+    it('AnonymousSpeakerQuotaExceeded carries workspaceId and cap', () => {
+      try {
+        env.repo.findOrCreateAnonymous({
+          workspaceId: env.workspaceId,
+          preferredName: 'Alex',
+          pronouns: null,
+          maxAnonymousPerWorkspace: 0,
+        });
+        throw new Error('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(AnonymousSpeakerQuotaExceeded);
+        const quotaErr = err as AnonymousSpeakerQuotaExceeded;
+        expect(quotaErr.workspaceId).toBe(env.workspaceId);
+        expect(quotaErr.cap).toBe(0);
+        expect(quotaErr.name).toBe('AnonymousSpeakerQuotaExceeded');
+      }
+    });
+
+    it('returns the earliest-created row when multiple legacy duplicates already exist', () => {
+      // Simulate the pre-#443 world: two duplicate anonymous rows
+      // already exist (e.g. created before this fix shipped).
+      const first = env.repo.create({
+        workspaceId: env.workspaceId,
+        userId: null,
+        preferredName: 'Alex',
+        pronouns: null,
+      });
+      // Force the second row's created_at to be strictly later.
+      env.db
+        .prepare(`UPDATE speakers SET created_at = ? WHERE id = ?`)
+        .run('9999-12-31T23:59:59.000Z', first.id);
+      const second = env.repo.create({
+        workspaceId: env.workspaceId,
+        userId: null,
+        preferredName: 'Alex',
+        pronouns: null,
+      });
+      env.db
+        .prepare(`UPDATE speakers SET created_at = ? WHERE id = ?`)
+        .run('1900-01-01T00:00:00.000Z', second.id);
+
+      const resolved = env.repo.findOrCreateAnonymous({
+        workspaceId: env.workspaceId,
+        preferredName: 'Alex',
+        pronouns: null,
+        maxAnonymousPerWorkspace: 100,
+      });
+
+      // Deterministic tie-break on created_at ASC: pick `second` (the
+      // one we forced to be the older timestamp).
+      expect(resolved.id).toBe(second.id);
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(2);
+    });
+  });
+
+  describe('countAnonymousInWorkspace (#443)', () => {
+    it('counts only anonymous (user_id IS NULL) rows in the workspace', () => {
+      env.repo.create({
+        workspaceId: env.workspaceId,
+        userId: env.userId, // authenticated speaker
+        preferredName: 'Owner',
+      });
+      env.repo.create({ workspaceId: env.workspaceId, preferredName: 'A' });
+      env.repo.create({ workspaceId: env.workspaceId, preferredName: 'B' });
+
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(2);
+    });
+
+    it('returns 0 when no anonymous speakers exist', () => {
+      expect(env.repo.countAnonymousInWorkspace(env.workspaceId)).toBe(0);
     });
   });
 });

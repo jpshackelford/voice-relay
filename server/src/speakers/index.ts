@@ -5,3 +5,4 @@ export type {
   SpeakerCreateInput,
   SpeakerUpdateInput,
 } from './types.js';
+export { AnonymousSpeakerQuotaExceeded } from './types.js';

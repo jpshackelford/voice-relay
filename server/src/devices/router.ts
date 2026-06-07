@@ -4,6 +4,7 @@ import type { WorkspaceRepository } from '../workspaces/workspace-repository.js'
 import type { DeviceRegistry } from '../registry.js';
 import type { SessionRepository } from '../sessions/session-repository.js';
 import type { SpeakerRepository } from '../speakers/speaker-repository.js';
+import { AnonymousSpeakerQuotaExceeded } from '../speakers/types.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
 /** Max device name length (prevents UI overflow and DB bloat) */
@@ -18,6 +19,16 @@ const MAX_DEVICE_NAME_LENGTH = 100;
  */
 const MAX_SPEAKER_NAME_LENGTH = 80;
 const MAX_SPEAKER_PRONOUNS_LENGTH = 32;
+
+/**
+ * Default workspace-level cap on anonymous (user_id IS NULL) speakers
+ * (#443). Sized to comfortably cover the common-case workspace
+ * (households, small classrooms, conference booths) while still
+ * bounding `speakers`-table growth from a stolen / leaked device
+ * token. Override at server startup via the
+ * `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` env var.
+ */
+const DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE = 100;
 
 export interface DeviceRouterOptions {
   deviceRepository: DeviceRepository;
@@ -37,6 +48,15 @@ export interface DeviceRouterOptions {
    */
   sessionRepository?: SessionRepository;
   speakerRepository?: SpeakerRepository;
+  /**
+   * Per-workspace cap on anonymous (user_id IS NULL) speakers (#443).
+   * Defaults to `DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` (100).
+   * `index.ts` reads `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` from the
+   * environment and threads it through here. Once reached, new
+   * anonymous-speaker submissions via the device-token active-speaker
+   * endpoint get a 429; dedup hits against existing rows still pass.
+   */
+  maxAnonymousSpeakersPerWorkspace?: number;
 }
 
 /**
@@ -147,7 +167,11 @@ export function createDeviceRouter({
   deviceRegistry,
   sessionRepository,
   speakerRepository,
+  maxAnonymousSpeakersPerWorkspace,
 }: DeviceRouterOptions): Router {
+  const anonymousSpeakerCap =
+    maxAnonymousSpeakersPerWorkspace
+    ?? DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE;
   const router = Router();
   const auth = requireAuth(authConfig);
 
@@ -400,16 +424,19 @@ export function createDeviceRouter({
           pronouns = trimmedPronouns.length > 0 ? trimmedPronouns : null;
         }
 
-        // 4. Create anonymous speaker + write override. Wrapped in
-        //    try/catch so a unique-index race (very unlikely for an
-        //    anonymous speaker — the partial index is only on
-        //    user_id IS NOT NULL — but guard anyway) doesn't 500.
+        // 4. Resolve the anonymous speaker. `findOrCreateAnonymous`
+        //    (#443) dedupes against an existing case-insensitive
+        //    name+pronouns match in the same workspace (so the same
+        //    human re-claiming a kiosk doesn't accumulate duplicate
+        //    rows) and enforces a per-workspace cap on brand-new
+        //    anonymous rows so a leaked device token can't pump the
+        //    `speakers` table without bound. Dedup hits bypass the cap.
         try {
-          const speaker = speakerRepository.create({
+          const speaker = speakerRepository.findOrCreateAnonymous({
             workspaceId: tokenDevice.workspaceId,
-            userId: null,
             preferredName,
             pronouns,
+            maxAnonymousPerWorkspace: anonymousSpeakerCap,
           });
 
           // Ensure a session_devices row exists. The WS register flow
@@ -420,6 +447,18 @@ export function createDeviceRouter({
 
           res.status(201).json({ speakerId: speaker.id });
         } catch (err) {
+          if (err instanceof AnonymousSpeakerQuotaExceeded) {
+            // The workspace is at its anonymous-speaker cap and this
+            // request would create a brand-new row. Return 429 with a
+            // Retry-After hint; the per-IP rate limiter already gives
+            // the same hint for spammy callers, so the value matches.
+            res.setHeader('Retry-After', '60');
+            res.status(429).json({
+              error: 'Workspace anonymous speaker quota exceeded',
+              retryAfter: 60,
+            });
+            return;
+          }
           console.error('[Devices] active-speaker write failed:', err);
           res.status(500).json({ error: 'Failed to record speaker' });
         }
