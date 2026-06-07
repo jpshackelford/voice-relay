@@ -879,7 +879,16 @@ wss.on('connection', (ws: WebSocket) => {
           // Live transitions are only broadcast as they happen, so without
           // this resync a device that refreshes mid-conversation would not
           // see the ✨/🤔 indicator until the next user utterance. (#290)
-          await resyncAgentSessionStatus(ws, sessionId, agentDriver);
+          // Pass the durable AI-state repo (#363) so a session whose boot
+          // rehydration failed gets a synthesized `degraded` snapshot at
+          // register time instead of waiting for the next utterance to
+          // trip the dropped-text handler. (#351)
+          await resyncAgentSessionStatus(
+            ws,
+            sessionId,
+            agentDriver,
+            sessionAIStateRepository ?? undefined,
+          );
 
           // Auto-connect AI when first device joins session
           if (sessionRepository && shouldAutoConnect(sessionId, sessionRepository, agentDriver)) {

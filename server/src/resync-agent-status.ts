@@ -16,10 +16,11 @@
  * from `AgentDriver.getSessionStatus`.
  */
 
-import type { AgentDriver } from './agent-driver/types.js';
+import type { AgentDriver, AgentSessionStatus } from './agent-driver/types.js';
 import { ANONYMOUS_SESSION_ID } from './constants.js';
 import type { AIThinkingMessage, SessionAIStatusMessage } from './types.js';
 import { buildSessionStateMessage } from './session-state-broadcast.js';
+import type { SessionAIStateRepository } from './sessions/index.js';
 
 /**
  * Minimal WebSocket-like shape used by this helper.
@@ -36,9 +37,18 @@ export interface ResyncTarget {
  * Send the current AI session status to the registering WebSocket.
  *
  * - No-op for the anonymous session (no AI binding by definition).
- * - No-op when the driver reports `state === 'absent'` — sending a
- *   `connected: false` status on every register would over-broadcast and
- *   defeat the point of the catch-up.
+ * - No-op when the driver reports `state === 'absent'` *and* there is no
+ *   sticky `degraded` lifecycle row in the durable AI-state store —
+ *   sending a `connected: false` status on every register would
+ *   over-broadcast and defeat the point of the catch-up.
+ * - When the driver reports `state === 'absent'` but the durable store
+ *   (issue #363) carries a `degraded` row for this session, synthesize
+ *   a `degraded` snapshot and send it (issue #351). This closes the
+ *   "boot rehydration failed → no peers were connected to hear the
+ *   broadcast → kiosks reconnect and learn only when the user types"
+ *   gap: rehydration failures set `degraded` in the durable store; the
+ *   first device to register after that point gets the snapshot it
+ *   would have received if it had been connected at boot.
  * - Targets only the passed-in `ws`. Other devices in the session already
  *   observed the live transitions; rebroadcasting would emit duplicates.
  * - Wrapped in try/catch: a failure to read the status MUST NOT abort the
@@ -55,6 +65,7 @@ export async function resyncAgentSessionStatus(
   ws: ResyncTarget,
   sessionId: string,
   agentDriver: Pick<AgentDriver, 'getSessionStatus'>,
+  aiStateRepository?: Pick<SessionAIStateRepository, 'findBySessionId'>,
 ): Promise<void> {
   if (sessionId === ANONYMOUS_SESSION_ID) {
     return;
@@ -69,7 +80,18 @@ export async function resyncAgentSessionStatus(
   }
 
   if (status.state === 'absent') {
-    return;
+    // Belt-and-suspenders for issue #351: rehydration failures at boot
+    // broadcast `degraded` to an empty room, then persist the lifecycle
+    // state as `degraded` in `session_ai_state`. The first kiosk to
+    // register after the restart finds the driver reporting `absent`
+    // (no live binding) but the durable store carrying the give-up
+    // decision — synthesize the same `degraded` snapshot here so the
+    // client learns immediately, not on the next utterance.
+    const synthesized = synthesizeDegradedFromDurableState(sessionId, aiStateRepository);
+    if (!synthesized) {
+      return;
+    }
+    status = synthesized;
   }
 
   const connected = status.state === 'ready' || status.state === 'thinking';
@@ -99,4 +121,42 @@ export async function resyncAgentSessionStatus(
   // a rejoining client that speaks the new shape gets a single authoritative
   // snapshot of the agent session.
   ws.send(JSON.stringify(buildSessionStateMessage(sessionId, status)));
+}
+
+/**
+ * Look up the durable lifecycle row for `sessionId` and, if it carries a
+ * sticky `degraded` state, return a synthesized {@link AgentSessionStatus}
+ * the caller can transport on the wire. Returns `null` for every other
+ * row state (`running`, `rebinding`, `ended`) and when the repo or row
+ * is absent — those cases should preserve the legacy "absent → silent"
+ * behavior.
+ *
+ * Best-effort: a thrown lookup MUST NOT abort the register flow. We log
+ * and treat it as "no degraded row".
+ */
+function synthesizeDegradedFromDurableState(
+  sessionId: string,
+  aiStateRepository: Pick<SessionAIStateRepository, 'findBySessionId'> | undefined,
+): AgentSessionStatus | null {
+  if (!aiStateRepository) return null;
+  let row;
+  try {
+    row = aiStateRepository.findBySessionId(sessionId);
+  } catch (err) {
+    console.error(
+      `[Resync] aiStateRepository.findBySessionId failed for session ${sessionId}:`,
+      err,
+    );
+    return null;
+  }
+  if (!row || row.state !== 'degraded') return null;
+
+  return {
+    sessionId,
+    state: 'degraded',
+    conversationId: row.conversationId ?? null,
+    error: row.stateReason ?? 'Upstream conversation no longer available — restart session',
+    thinkingSince: null,
+    startingSince: null,
+  };
 }
