@@ -1548,3 +1548,30 @@ Closing-Trailer AC Gate re-run vs current diff (`Fixes #452`):
 **AC gate re-run: unchanged (Fixes #452).** All 5 ACs now met (#2–#4 flipped from pending to ✅ on the green E2E job). No trailer change, no follow-ups filed.
 
 ---
+
+
+### 2026-06-07 17:55 UTC - Merge Worker (PR #453)
+
+✅ **PR [#453](https://github.com/jpshackelford/voice-relay/pull/453) squash-merged** as `bbc9d36`. Issue [#452](https://github.com/jpshackelford/voice-relay/issues/452) auto-closed (state: COMPLETED).
+
+Pre-merge state confirmed:
+- mergeable: CLEAN, isDraft: false, reviewDecision: clean (no requested changes).
+- All 7 checks green on `d9043a1`: Build Client (31s), Client Tests (32s), Server Tests (51s), E2E Tests (1m34s), pr-review (3m45s), lint-pr-title (3s), enable-orchestrator (3s).
+
+Closing-Trailer AC Gate (final, vs `d9043a1` diff): **PASS** — trailer remains `Fixes #452`.
+
+| AC | Verdict | Evidence |
+| --- | --- | --- |
+| #1 — Both helpers use a deterministic single-element locator | ✅ | `page.locator('button.view-session-btn').first()` in both helpers (diff lines 396, 472) |
+| #2 — Full chromium e2e passes with ≥2-session worker DB | ✅ | `CI/E2E Tests` green on `d9043a1` |
+| #3 — No new strict-mode warnings | ✅ | E2E green confirms |
+| #4 — `first-run-claim` / `ws-keepalive` / `multi-device-relay` / `qr-join-flow` stay green | ✅ | covered by the green E2E job |
+| #5 — No production code changes | ✅ | diff confined to `tests/utils/auth-helper.ts` (2 hunks) |
+
+Squash-merge commit subject: `test(e2e): scope kiosk session view locator to .view-session-btn`. Body includes the `AC-gate: Fixes #452 — all 5 ACs of #452 covered by the d9043a1 diff.` line.
+
+Production impact: nil — tests-only diff (`tests/utils/auth-helper.ts`). Auto-deploy to vr.chorecraft.net is a no-op for runtime behavior; only unblocks the E2E job for downstream PRs that were red-blocked by the strict-mode violation since #447 merged.
+
+No follow-ups filed.
+
+---
