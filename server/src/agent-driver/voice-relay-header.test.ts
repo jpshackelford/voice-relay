@@ -51,29 +51,34 @@ describe('buildVoiceRelayHeader', () => {
   const T0 = '2026-06-01T17:23:45Z';
   const T0_MS = Date.UTC(2026, 5, 1, 17, 23, 45);
 
-  test("first turn from a device → announcement + fully-qualified anchor (no alias, single device)", () => {
+  test("first turn from a device → announcement + unknown-speaker line + fully-qualified anchor (no alias, single device)", () => {
     const state = makeVoiceRelayHeaderState();
     const header = buildVoiceRelayHeader(
       state,
       sender({ deviceId: 'd1', senderName: 'Kitchen iPad', saidAtUtc: T0 }),
       T0_MS,
     );
+    // Per #431, every joining device emits exactly one `[speaker …]` line
+    // on its first turn — `id=unknown device=<deviceId>` when speaker is
+    // unresolved.
     expect(header).toBe(
-      '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]',
+      '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[speaker id=unknown device=d1]\n[t=2026-06-01T17:23Z]',
     );
     expect(state.deviceAliases.get('d1')).toBe('A');
     expect(state.lastUserAlias).toBe('A');
     expect(state.lastUserAtMs).toBe(T0_MS);
   });
 
-  test('first turn without timezone → announcement without `tz=`', () => {
+  test('first turn without timezone → announcement without `tz=`, still includes unknown-speaker line', () => {
     const state = makeVoiceRelayHeaderState();
     const header = buildVoiceRelayHeader(
       state,
       { deviceId: 'd1', senderName: 'Plain Phone', saidAtUtc: T0 },
       T0_MS,
     );
-    expect(header).toBe('[vr A=Plain Phone]\n[t=2026-06-01T17:23Z]');
+    expect(header).toBe(
+      '[vr A=Plain Phone]\n[speaker id=unknown device=d1]\n[t=2026-06-01T17:23Z]',
+    );
   });
 
   test('same device, < quiet period → no header', () => {
@@ -155,8 +160,11 @@ describe('buildVoiceRelayHeader', () => {
       sender({ deviceId: 'd2', senderName: 'Living Room TV', saidAtUtc: '2026-06-01T17:24:15Z' }),
       t1,
     );
+    // d2 is also an unresolved device on its first turn → its own
+    // `id=unknown device=d2` line, distinct from d1's earlier
+    // `id=unknown device=d1` (multi-unclaimed disambiguation, #431).
     expect(header).toBe(
-      '[vr B=Living Room TV tz=America/Los_Angeles]\n[B t=2026-06-01T17:24Z]',
+      '[vr B=Living Room TV tz=America/Los_Angeles]\n[speaker id=unknown device=d2]\n[B t=2026-06-01T17:24Z]',
     );
     expect(state.deviceAliases.get('d2')).toBe('B');
   });
@@ -230,7 +238,8 @@ describe('buildVoiceRelayHeader', () => {
       T0_MS,
     );
     expect(header).toMatch(/^\[vr A=Bad name with stuff tz=America\/Los_Angeles\]/);
-    expect(header.split('\n')).toHaveLength(2);
+    // 3 lines: announcement, unknown-speaker (#431), anchor.
+    expect(header.split('\n')).toHaveLength(3);
   });
 
   test('substitutes (unnamed) when the device name is empty after sanitization', () => {
@@ -274,7 +283,7 @@ describe('buildVoiceRelayHeader', () => {
       T0_MS + 5_000,
     );
     expect(header).toBe(
-      '[vr B=B tz=America/Los_Angeles]\n[B t=2026-06-01T17:23Z]',
+      '[vr B=B tz=America/Los_Angeles]\n[speaker id=unknown device=d2]\n[B t=2026-06-01T17:23Z]',
     );
   });
 
@@ -288,7 +297,9 @@ describe('buildVoiceRelayHeader', () => {
       sender({ deviceId: 'only', senderName: 'Solo', saidAtUtc: T0 }),
       T0_MS,
     );
-    expect(header).toBe('[vr A=Solo tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]');
+    expect(header).toBe(
+      '[vr A=Solo tz=America/Los_Angeles]\n[speaker id=unknown device=only]\n[t=2026-06-01T17:23Z]',
+    );
   });
 
   test('state advances `lastUserAtMs` even when no header is emitted', () => {
@@ -330,9 +341,14 @@ describe('buildVoiceRelayHeader', () => {
         T0_MS,
       );
       expect(header).toContain('[speaker engine=S1]');
-      // Sanity: the announcement + anchor still surround it.
+      // Sanity: the announcement + unknown-speaker (#431) + engine line +
+      // anchor. The `id=unknown device=…` line and the `engine=…` line
+      // communicate orthogonal things — identity vs. diarization bucket —
+      // and can coexist on a first turn from an unclaimed device that the
+      // hosted STT has tagged.
       expect(header.split('\n')).toEqual([
         '[vr A=Kitchen iPad tz=America/Los_Angeles]',
+        '[speaker id=unknown device=d1]',
         '[speaker engine=S1]',
         '[t=2026-06-01T17:23Z]',
       ]);
@@ -495,20 +511,149 @@ describe('buildVoiceRelayHeader', () => {
       expect(header).toContain('[speaker engine=S 1 !]');
     });
 
-    test('no `engineSpeakerLabel` → no `[speaker ...]` line (Web Speech path unchanged)', () => {
+    test('no `engineSpeakerLabel` and no resolved speaker → only the unknown-speaker line (#431), no engine line', () => {
       const state = makeVoiceRelayHeaderState();
       const header = buildVoiceRelayHeader(
         state,
         sender({ deviceId: 'd1', senderName: 'Kitchen iPad', saidAtUtc: T0 }),
         T0_MS,
       );
-      // Regression guard: utterances without an engine label or
-      // resolved speaker must produce only the announcement +
-      // time anchor.
+      // Regression guard: with #431 the first turn always emits a
+      // `[speaker …]` line, but it must NOT include `engine=` when no
+      // engine label is present.
       expect(header).toBe(
-        '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]',
+        '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[speaker id=unknown device=d1]\n[t=2026-06-01T17:23Z]',
       );
-      expect(header).not.toContain('[speaker');
+      expect(header).not.toContain('engine=');
+    });
+  });
+
+  // ========================================================================
+  // Unknown-on-first-turn-from-unresolved-device (#431)
+  //
+  // When a device joins whose primary_user_id is NULL (or the speakers
+  // row simply isn't bound yet), the platform leaves `sender.speaker`
+  // undefined. The builder must still emit exactly one `[speaker …]`
+  // line on the device's first turn — `id=unknown device=<deviceId>` —
+  // so the agent has a signal that the human is unidentified and can
+  // politely ask the name, while disambiguating multiple unclaimed
+  // devices in the same session.
+  // ========================================================================
+  describe('unknown-on-first-turn (#431)', () => {
+    test('first turn from a single unresolved device → exactly one `[speaker id=unknown device=…]` line', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_abc', senderName: 'JPS iPhone', saidAtUtc: T0 }),
+        T0_MS,
+      );
+      const speakerLines = header.split('\n').filter(line => line.startsWith('[speaker '));
+      expect(speakerLines).toEqual(['[speaker id=unknown device=dev_abc]']);
+      // The device map must NOT have been written — that would mask a
+      // later real-speaker resolution from firing the `id=<realId>` line.
+      expect(state.deviceSpeakerId.get('dev_abc')).toBeUndefined();
+    });
+
+    test('two unclaimed devices each emit their own `device=` line, distinguishable from each other', () => {
+      const state = makeVoiceRelayHeaderState();
+      const headerA = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_a', senderName: 'iPad', saidAtUtc: T0 }),
+        T0_MS,
+      );
+      const headerB = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_b', senderName: 'Kitchen kiosk', saidAtUtc: '2026-06-01T17:24:00Z' }),
+        T0_MS + 15_000,
+      );
+      expect(headerA).toContain('[speaker id=unknown device=dev_a]');
+      expect(headerB).toContain('[speaker id=unknown device=dev_b]');
+      // The two device= values must be distinct so the agent can address
+      // them separately in conversation.
+      expect(headerA).not.toContain('device=dev_b');
+      expect(headerB).not.toContain('device=dev_a');
+    });
+
+    test('the unknown line is not repeated on subsequent turns from the same still-unresolved device', () => {
+      const state = makeVoiceRelayHeaderState();
+      // First turn → unknown line emitted.
+      const first = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_a', senderName: 'iPad', saidAtUtc: T0 }),
+        T0_MS,
+      );
+      expect(first).toContain('[speaker id=unknown device=dev_a]');
+      // Second turn from the same device, still unresolved, ≥ quiet
+      // period later (so a time anchor will be emitted but no new vr
+      // announcement). Must NOT include another `[speaker …]` line.
+      const second = buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_a', senderName: 'iPad', saidAtUtc: '2026-06-01T17:30:00Z' }),
+        T0_MS + USER_HEADER_QUIET_MS,
+      );
+      expect(second).not.toContain('[speaker');
+    });
+
+    test('a later real-speaker resolution still fires the `[speaker id=<realId> …]` line cleanly', () => {
+      const state = makeVoiceRelayHeaderState();
+      // First turn unresolved → unknown line.
+      buildVoiceRelayHeader(
+        state,
+        sender({ deviceId: 'dev_a', senderName: 'iPad', saidAtUtc: T0 }),
+        T0_MS,
+      );
+      expect(state.deviceSpeakerId.get('dev_a')).toBeUndefined();
+      // Second turn, speaker now resolved → must emit the real-speaker
+      // line and populate the device map. Critical regression guard:
+      // the unknown branch must NOT have stamped a sentinel like
+      // `"unknown"` into `deviceSpeakerId` that would suppress this.
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'dev_a',
+          senderName: 'iPad',
+          saidAtUtc: '2026-06-01T17:23:55Z',
+          speaker: { id: 'sp-1', preferredName: 'JP', pronouns: 'he/him' },
+        }),
+        T0_MS + 10_000,
+      );
+      expect(header).toBe('[speaker id=sp-1 name=JP pronouns=he/him]');
+      expect(state.deviceSpeakerId.get('dev_a')).toBe('sp-1');
+    });
+
+    test('first turn from a resolved-with-name device → name= header, no `id=unknown` line', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'dev_a',
+          senderName: 'iPad',
+          saidAtUtc: T0,
+          speaker: { id: 'sp-1', preferredName: 'JP', pronouns: 'he/him' },
+        }),
+        T0_MS,
+      );
+      expect(header).toContain('[speaker id=sp-1 name=JP pronouns=he/him]');
+      expect(header).not.toContain('id=unknown');
+    });
+
+    test('first turn from a resolved-without-name device → bare `id=<sp-…>` header, no `id=unknown` line', () => {
+      const state = makeVoiceRelayHeaderState();
+      const header = buildVoiceRelayHeader(
+        state,
+        sender({
+          deviceId: 'dev_a',
+          senderName: 'iPad',
+          saidAtUtc: T0,
+          speaker: { id: 'sp-1', preferredName: null, pronouns: null },
+        }),
+        T0_MS,
+      );
+      // `id=<speakerId>` with no `name=` or `pronouns=`: the agent's
+      // signal to politely ask the name.
+      expect(header).toContain('[speaker id=sp-1]');
+      expect(header).not.toContain('name=');
+      expect(header).not.toContain('id=unknown');
     });
   });
 });

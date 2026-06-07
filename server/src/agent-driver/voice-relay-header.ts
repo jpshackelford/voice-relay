@@ -199,6 +199,29 @@ export function buildVoiceRelayHeader(
     lines.push(`[speaker id=unknown]`);
     state.deviceSpeakerId.delete(sender.deviceId);
     state.deviceEngineSpeakerLabel.delete(sender.deviceId);
+  } else if (
+    !sender.speaker &&
+    lastSpeakerForDevice === undefined &&
+    isFirstFromDevice
+  ) {
+    // First turn from a device whose speaker is unresolved (#431).
+    //
+    // Without this branch, no `[speaker …]` line at all would be
+    // emitted on first contact from an unclaimed device, so the agent
+    // would have no signal that the human is unidentified and would
+    // never know to politely ask the name. The `device=<deviceId>`
+    // attribute lets the agent disambiguate multiple unclaimed devices
+    // in the same multi-device session (e.g. "the iPad" vs "the
+    // kitchen kiosk") without inventing names.
+    //
+    // We do *not* set `state.deviceSpeakerId` here — that map tracks
+    // *resolved* speakers, and writing a sentinel like `"unknown"`
+    // would mask a later real-speaker resolution from firing the
+    // `[speaker id=<realId> …]` line. The `isFirstFromDevice` gate
+    // ensures we emit the unknown line exactly once per joining
+    // device while it remains unresolved (subsequent turns from the
+    // same still-unresolved device fall through silently).
+    lines.push(`[speaker id=unknown device=${sender.deviceId}]`);
   }
 
   // Sanitize engine label (user-controlled input, like display names).
