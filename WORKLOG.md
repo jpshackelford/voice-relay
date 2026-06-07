@@ -1493,3 +1493,32 @@ Dependency chain to close #446: #452 (PR #453) → #449 → close #433 → close
 AC-gate verdict: **server-only ACs already satisfied by PR #450**; remaining ACs out of scope for this dispatch.
 
 ---
+
+### 2026-06-07 17:48 UTC - Implementation Worker (#449)
+
+✅ **PR [#454](https://github.com/jpshackelford/voice-relay/pull/454) ready for review** — flipped both `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` from comments to active checks.
+
+Diff (tests-only, 2 added / 4 removed):
+- Replaced the `TODO(#446)` comment block at `tests/first-run-claim.spec.ts:135-137` with:
+  ```ts
+  expect(wsFrame.senderName).toBe(speakerName);
+  await expect(peerMessage.locator('.sender')).toHaveText(new RegExp(speakerName));
+  ```
+- Dropped the stale `senderName assertion deferred to #446` note from the spec's header docblock.
+
+CI on PR #454 (commit `ca97c01`): all green, including `E2E Tests` (1m32s). The pre-existing strict-mode flake from #452 did not trip this run — CI worker DB was clean enough. PR #453 / #452 remain pending merge but were not a hard blocker here.
+
+Closing-Trailer AC Gate verdict:
+
+| AC | Verdict | Evidence |
+| --- | --- | --- |
+| #1 — TODO comments removed; assertions live | ✅ | Diff |
+| #2 — `playwright test tests/first-run-claim.spec.ts` passes | ✅ | CI `E2E Tests` job (1m32s) |
+| #3 — Close #433 once this lands | ✅ at merge | Squash trailer includes `Closes #433` |
+
+Trailers on the squash commit: `Fixes #449` + `Closes #433`. Both #449 and #433 will auto-close on merge.
+
+Follow-ups: none filed. #452 / PR #453 tracked independently.
+
+---
+
