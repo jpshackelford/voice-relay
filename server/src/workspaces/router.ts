@@ -1208,17 +1208,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
 
       const devices = deviceRepository.findByWorkspace(workspace.id);
 
-      // Issue #384: resolve a `primaryUser` block per device so the
-      // workspace page can render `<preferredName> (<deviceName>)`.
-      // The resolution rule mirrors the #382 kiosk-ticker label:
-      //   1. device.primaryUserId → workspace speaker row → preferredName
-      //   2. else → null (client falls back to bare device name)
-      //
-      // We cache speaker lookups by userId within the request so a
-      // workspace with N devices owned by the same person only does
-      // one DB hit. If the speaker repository isn't wired in (older
-      // deployments), `primaryUser` is always `null` and the client
-      // transparently falls back.
+      // Resolve primary speaker per device (cached per request).
+      // Returns null when speakerRepository is unavailable; client
+      // falls back to the bare device name.
       const speakerCache = new Map<
         string,
         { userId: string; preferredName: string | null } | null
@@ -1236,14 +1228,9 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
             workspace.id,
             primaryUserId
           );
-          // Always surface `primaryUser` when the device has a
-          // `primaryUserId`, even if no speaker row exists yet or
-          // `preferred_name` is null. The client's fallback rule
-          // (bare device name) is keyed on `preferredName === null`,
-          // so reporting `{ userId, preferredName: null }` keeps the
-          // server-side resolution explicit rather than collapsing
-          // two distinct states ("no speaker row" vs "speaker row
-          // without preferred name") into one.
+          // Preserve userId even when the speaker row is missing or
+          // preferredName is null — keeps "no speaker row" distinct
+          // from "speaker without preferred name" for callers.
           resolved = {
             userId: primaryUserId,
             preferredName: speaker?.preferredName ?? null,

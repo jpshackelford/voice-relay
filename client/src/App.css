@@ -3263,12 +3263,7 @@ header {
   gap: 0.5rem;
 }
 
-/*
- * Issue #384: device row label = `<personName> (<deviceName>)` when a
- * primary speaker is resolved, otherwise the bare device name. The
- * person name carries primary text weight; the device name is muted
- * and slightly smaller so the human-readable identity dominates.
- */
+/* Person name primary, device name secondary when both are present. */
 .device-row-label {
   display: flex;
   align-items: center;
@@ -3280,8 +3275,6 @@ header {
   color: #fff;
 }
 
-/* Muted treatment only when the device name is the secondary
- * parenthesized form (i.e. a person name precedes it). */
 .device-name-text.is-secondary {
   color: #aaa;
   font-size: 0.9rem;

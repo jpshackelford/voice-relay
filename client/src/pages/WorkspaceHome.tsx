@@ -118,14 +118,6 @@ export function EditableDeviceName({ device, onRename }: EditableDeviceNameProps
     );
   }
 
-  // Issue #384: when the server resolves a primary speaker with a
-  // curated `preferredName`, render `<preferredName> (<deviceName>)`.
-  // Otherwise fall back to the bare device name. Click-to-edit stays
-  // scoped to the device-name portion only — the person name is
-  // read-only here (owners edit it via the workspace speakers admin
-  // built in #383). Both display branches are wrapped in a single
-  // `.device-row-label` span so adjacent components (rename button,
-  // error pill) keep their previous layout.
   const personName = device.primaryUser?.preferredName ?? null;
 
   return (
