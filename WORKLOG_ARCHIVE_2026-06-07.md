@@ -1158,3 +1158,90 @@ _This worklog entry was created by an AI agent (OpenHands expansion worker) on b
 - Issue body rewritten with Problem Statement / Proposed Solution / AC / Out-of-Scope / Related.
 
 _This worklog entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-07 13:35 UTC - Review-Address Worker (PR #438)
+
+✅ **Addressed pr-review-bot 🟠 threads on PR #438** — `feat(client): first-run claim-card prompt for unknown speakers` (Refs #433)
+
+- PR: [#438](https://github.com/jpshackelford/voice-relay/pull/438)
+- Commit: [`7fc485e`](https://github.com/jpshackelford/voice-relay/commit/7fc485e) — `fix(server): align MAX_SPEAKER_PRONOUNS_LENGTH to 32 to match client`
+- Threads resolved: 2/2
+  - `client/src/components/ClaimSpeakerCard.tsx:35` — 🟠 PRONOUNS_MAX_LEN mismatch (client 32 vs server 40) → resolved
+  - `server/src/devices/router.ts:14` — 🟠 same mismatch from server-side → resolved
+- Fix: aligned server constant from 40 → 32 (the value users actually see via the form `maxLength`; realistic pronoun strings like `she/her`, `they/them` stay well under 32). Added cross-reference docblocks on both sides noting the limits must stay in sync.
+- CI: all checks green on `7fc485e` (Build Client, Client Tests, Server Tests, lint-pr-title, E2E).
+- Workflow: `gh pr ready 438 --undo` → push → resolve threads → `gh pr ready 438` (back to ready for review).
+
+**AC gate re-run:** unchanged — still `Refs #433` + follow-ups #439 and #440. The fix only retunes a server-side input-validation constant + adds sync comments; it does not touch the OAuth-return PATCH wiring (deferred to #439) or the kiosk integration smoke test (deferred to #440). PR body's `## Deferred to follow-ups` section is still accurate.
+
+**Production impact:** auto-deploys to `vr.chorecraft.net` on merge. Tightening pronouns from 40 → 32 is a server-side validator change; the column is `TEXT` with no length constraint, and no existing data exists yet (active-speaker endpoint is new in this PR). Pre-merge there is no production data at risk.
+
+_This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-07 13:50 UTC - Implementation Worker (Issue #433, duplicate)
+
+🛑 **Duplicate implementation closed — referred back to canonical PR #438**
+
+- Issue: [#433](https://github.com/jpshackelford/voice-relay/issues/433) — feat(client): first-run "claim this device" prompt for unknown speakers
+- My PR (closed): [#441](https://github.com/jpshackelford/voice-relay/pull/441) — `feat-client-first-run-claim-card-433`
+- Canonical PR (open, green, ready): [#438](https://github.com/jpshackelford/voice-relay/pull/438) — `feat/433-first-run-claim-card`
+
+I was dispatched to implement #433 but did not detect PR #438 was already open and passing CI for the same issue. By the time I noticed, I had a full duplicate impl on `feat-client-first-run-claim-card-433` (server + client, 27 new tests); an open draft PR #441 with one failing E2E (mobile-voice setup helper timeout — `.mobile-mode, .mobile-walkie` not visible) where #438 passes E2E cleanly with the same scope; and a duplicate follow-up issue #442 that overlaps with #440.
+
+**Action taken:**
+
+- Closed PR #441 with explanatory comment pointing to #438.
+- Deleted branch `feat-client-first-run-claim-card-433`.
+- Closed issue #442 as duplicate of #440 (reason: "not planned").
+
+**No code carried over** — #438 covers the same surface (server PATCH-claim path, `POST /active-speaker` endpoint, client `speakerState` plumbing, claim card UX, kiosk + mobile placement). Existing follow-ups #439 and #440 already cover the deferred items.
+
+**Coordination learning:** future implementation workers picking up an issue should run `gh pr list --search "is:open <issue#> in:body"` before starting work to avoid this kind of overlap.
+
+_This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-07 14:00 UTC - Expansion Worker (Issue #442)
+
+✅ **Re-scoped & expanded Issue #442** — kiosk-level Playwright e2e for #433's name-only claim → next-utterance name resolution
+
+- Issue: [#442](https://github.com/jpshackelford/voice-relay/issues/442) — `test(e2e): kiosk-level smoke test for #433 first-run claim → next-utterance name resolution`
+- Prior state: closed-as-duplicate of #440 (per prior impl worker note above)
+- Action: **reopened** — #442 is the Playwright/browser e2e layer; #440 is the vitest+RTL component-integration layer. #440's own "Out of Scope" explicitly defers the wire round-trip to the e2e suite (i.e. to this issue).
+- Rewrote body with: Problem Statement (test gap rationale, three things vitest can't reach: full WS round-trip, session-override winning over device-default, real-browser render of the resolved `senderName`); Proposed Solution (`tests/first-run-claim.spec.ts`, two-context kiosk+mobile via existing `setupTwoDeviceSession`, name-only path); Acceptance Criteria (10 bullets, repeat-each=5 anti-flake guard); Out of Scope (`shouldShowClaimCard` → #440, OAuth path → blocked on #439); Related (#433, #438, #440, #439, closed #441).
+- Added technical-approach comment with a concrete Playwright spec outline (TypeScript), server-state shape table mapping each assertion to its PR-#438 source, dependency posture matrix, two-context vs single-context rationale, name-only vs OAuth rationale, and runtime budget.
+- **Dependency call:** **Hard** dep on PR #438 merging (provides claim card UI, `speakerState`, `POST .../active-speaker`, `resolveSpeakerForUtterance`). **No** hard dep on #439 as-scoped (name-only path does not traverse OAuth); a separate follow-up e2e would be needed once #439 ships if the OAuth-handoff path needs e2e coverage.
+- Labels: added `ready`; existing `client`, `priority:low`, `scope:client-only` retained.
+- Conversation: `unknown`
+
+---
+### 2026-06-07 14:00 UTC - Review-Address Worker (PR #438, round 2)
+
+✅ **Addressed pr-review round-2 feedback on PR #438 — back to ready, gate unchanged**
+
+- PR: [#438](https://github.com/jpshackelford/voice-relay/pull/438) — `feat(client): first-run claim-card prompt for unknown speakers`
+- Issue: [#433](https://github.com/jpshackelford/voice-relay/issues/433) — same
+- New commit: `eae39f8 docs(client): trim duplicative block comments per pr-review`
+- CI on `eae39f8`: ✅ Build Client, ✅ Client Tests, ✅ Server Tests, ✅ E2E Tests, ✅ lint-pr-title
+
+**Three new pr-review threads disposed:**
+
+| Thread | Action |
+|---|---|
+| Client `ClaimSpeakerCard.tsx:31` — 30-line preamble | ✅ Trimmed to a 2-line summary referencing #433 and the corner-card / non-blocking aspects. The detail it carried was duplicating the props interface, inline action comments, and the PR description. |
+| Server `router.ts:348` — 13-line endpoint preamble | ✅ Trimmed to 3 lines (issue ref + one-line why). Handler body's numbered inline comments are the per-step narration. |
+| Server `router.ts:436` — workspace-level limit on anonymous speakers | 📌 Filed [#443](https://github.com/jpshackelford/voice-relay/issues/443) (dedup-at-create + workspace quota). Reviewer explicitly called it "non-blocking for initial rollout"; per-IP rate limit caps short-term blast radius and a valid device token is itself a non-trivial barrier. |
+
+All three threads replied + resolved via GraphQL.
+
+**AC gate re-verdict (issue #433):** unchanged — **`Refs #433`**. The commit was docs-only and does not close gaps in #439 (post-OAuth-return PATCH + speaker `preferred_name` seeding) or #440 (kiosk integration smoke test). Both follow-ups remain OPEN and in scope. New follow-up #443 is post-launch hardening and does not affect #433's AC coverage. No verdict transition possible.
+
+**Workflow:** `gh pr ready 438 --undo` → push `eae39f8` → CI green → reply+resolve 3 threads → post closing-comment with gate re-verdict → `gh pr ready 438`.
+
+**Note on PR #441 (duplicate):** confirmed already closed by prior impl-worker note above. No coordination needed; #438 is the canonical PR.
+
+**Production impact:** docs-only trim. No server, schema, or client behavior change. Safe to deploy on merge.
+
+_This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
