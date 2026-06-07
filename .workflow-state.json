@@ -1,7 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "766b17c",
+        "actual_conv_id": "766b17c89eac4cefa3b071f0831a8709",
+        "issue": 455,
+        "started": "2026-06-07T19:24:29.536550Z"
+      }
+    ],
     "implementation": [],
     "review": []
   },
@@ -10,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T18:34:36Z",
+  "last_updated": "2026-06-07T19:24:29.536550Z",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -21,7 +28,7 @@
       "started": "2026-06-07T01:34:47.727707Z",
       "finished": "2026-06-07T02:08:36Z",
       "status": "success",
-      "outcome": "Opened PR #427 — feat(server): persist operational AISession state in SQLite (Fixes #363). Required CI 8/8 green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, isDraft=false. pr-review bot left ✅ COMMENTED \"Worth merging\" (🟢 Good taste, 🟡 MEDIUM risk). 0 unresolved threads at reap."
+      "outcome": "Opened PR #427 \u2014 feat(server): persist operational AISession state in SQLite (Fixes #363). Required CI 8/8 green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, isDraft=false. pr-review bot left \u2705 COMMENTED \"Worth merging\" (\ud83d\udfe2 Good taste, \ud83d\udfe1 MEDIUM risk). 0 unresolved threads at reap."
     },
     {
       "conv_id": "2bded59",
@@ -60,7 +67,7 @@
       "started": "2026-06-07T10:35:08Z",
       "finished": "2026-06-07T10:53:24.414200Z",
       "status": "success",
-      "outcome": "Expanded #431 — rewrote body with Problem/Proposed Solution/AC; technical-approach comment; ready label applied. Plan: extend buildVoiceRelayHeader unknown branch + rewrite system-prompt FIRST ACTION."
+      "outcome": "Expanded #431 \u2014 rewrote body with Problem/Proposed Solution/AC; technical-approach comment; ready label applied. Plan: extend buildVoiceRelayHeader unknown branch + rewrite system-prompt FIRST ACTION."
     },
     {
       "conv_id": "6517d88",
@@ -70,7 +77,7 @@
       "started": "2026-06-07T10:35:08Z",
       "finished": "2026-06-07T10:53:24.414200Z",
       "status": "success",
-      "outcome": "Expanded #432 — rewrote body for backfill migration 021; corrected blockers (qr_tokens has no created_by_user_id, primary_user_id set via PATCH only). Test matrix (A-E) documented; ready label applied."
+      "outcome": "Expanded #432 \u2014 rewrote body for backfill migration 021; corrected blockers (qr_tokens has no created_by_user_id, primary_user_id set via PATCH only). Test matrix (A-E) documented; ready label applied."
     },
     {
       "conv_id": "dd9d214",
@@ -80,7 +87,7 @@
       "started": "2026-06-07T10:35:08Z",
       "finished": "2026-06-07T10:53:24.414200Z",
       "status": "success",
-      "outcome": "Set on-hold (Blocked by #431) — first-run claim card needs deterministic speakerState WS signal from #431. Rewrote body with full client-leaning approach (anonymous-name endpoint, FirstRunClaimCard, suppress logic). Will auto-lift via unblock pass when #431 closes."
+      "outcome": "Set on-hold (Blocked by #431) \u2014 first-run claim card needs deterministic speakerState WS signal from #431. Rewrote body with full client-leaning approach (anonymous-name endpoint, FirstRunClaimCard, suppress logic). Will auto-lift via unblock pass when #431 closes."
     },
     {
       "conv_id": "5df1586",
@@ -90,7 +97,7 @@
       "started": "2026-06-07T10:35:08Z",
       "finished": "2026-06-07T10:53:24.414200Z",
       "status": "success",
-      "outcome": "Expanded #434 — diagnosed CSS regression from #394 (lost position:absolute override on .kiosk-display .connection-indicator). One-line fix; test added; ready label applied."
+      "outcome": "Expanded #434 \u2014 diagnosed CSS regression from #394 (lost position:absolute override on .kiosk-display .connection-indicator). One-line fix; test added; ready label applied."
     },
     {
       "conv_id": "ae84ef1",
@@ -101,7 +108,7 @@
       "started": "2026-06-07T10:53:24.414200Z",
       "finished": "2026-06-07T11:39:55.677965+00:00",
       "status": "success",
-      "outcome": "Opened PR #435 — feat(server): emit speaker header on every session start + dynamic agent opening (Fixes #431). PR squash-merged at 2026-06-07T11:22:56Z; issue #431 auto-closed."
+      "outcome": "Opened PR #435 \u2014 feat(server): emit speaker header on every session start + dynamic agent opening (Fixes #431). PR squash-merged at 2026-06-07T11:22:56Z; issue #431 auto-closed."
     },
     {
       "conv_id": "f096f7d",
@@ -112,7 +119,7 @@
       "started": "2026-06-07T11:21:39.928015Z",
       "finished": "2026-06-07T11:39:55.677965+00:00",
       "status": "success",
-      "outcome": "Opened PR #436 — chore(server): backfill devices.primary_user_id for pre-017 devices (Fixes #432). CI 7/7 green; pr-review bot left 🟡 Acceptable with 1 unresolved DRY-suggestion thread on migration test."
+      "outcome": "Opened PR #436 \u2014 chore(server): backfill devices.primary_user_id for pre-017 devices (Fixes #432). CI 7/7 green; pr-review bot left \ud83d\udfe1 Acceptable with 1 unresolved DRY-suggestion thread on migration test."
     },
     {
       "conv_id": "7196fb6",
@@ -133,7 +140,7 @@
       "started": "2026-06-07T11:39:55.677965+00:00",
       "finished": "2026-06-07T12:20:19.145321+00:00",
       "status": "stuck",
-      "outcome": "Sandbox went MISSING at 11:43Z; no branch/PR created for #434. Worker orphaned — re-dispatching this tick."
+      "outcome": "Sandbox went MISSING at 11:43Z; no branch/PR created for #434. Worker orphaned \u2014 re-dispatching this tick."
     },
     {
       "conv_id": "4495bb5",
@@ -154,7 +161,7 @@
       "started": "2026-06-07T12:22:14.495021+00:00",
       "finished": "2026-06-07T13:06:51.875323+00:00",
       "status": "success",
-      "outcome": "Opened PR #437 — fix(client): reset position:fixed on kiosk connection dot so grid-area applies (Fixes #434). CI green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, ready (not draft). pr-review bot left 2 🟡 stylistic suggestions (verbose comments in App.css and test file)."
+      "outcome": "Opened PR #437 \u2014 fix(client): reset position:fixed on kiosk connection dot so grid-area applies (Fixes #434). CI green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, ready (not draft). pr-review bot left 2 \ud83d\udfe1 stylistic suggestions (verbose comments in App.css and test file)."
     },
     {
       "conv_id": "997b954",
@@ -165,7 +172,7 @@
       "started": "2026-06-07T13:06:51.875323+00:00",
       "finished": "2026-06-07T13:24:14.557952+00:00",
       "status": "success",
-      "outcome": "Addressed pr-review feedback on PR #437 (commit f702fe4 — shortened verbose comments per 2 stylistic threads). AC gate re-run unchanged (Fixes #434). PR back to ready; CI green; 0 unresolved threads at reap."
+      "outcome": "Addressed pr-review feedback on PR #437 (commit f702fe4 \u2014 shortened verbose comments per 2 stylistic threads). AC gate re-run unchanged (Fixes #434). PR back to ready; CI green; 0 unresolved threads at reap."
     },
     {
       "conv_id": "1de8693",
@@ -222,7 +229,7 @@
       "started": "2026-06-07T14:23:16.653819+00:00",
       "finished": "2026-06-07T14:26:57Z",
       "status": "success",
-      "outcome": "Squash-merged PR #438 at 14:25:54Z (commit 768a278) — feat(client): first-run claim-card prompt (Refs #433). Issue #433 stays open per Refs trailer; follow-ups #439/#440/#443 filed."
+      "outcome": "Squash-merged PR #438 at 14:25:54Z (commit 768a278) \u2014 feat(client): first-run claim-card prompt (Refs #433). Issue #433 stays open per Refs trailer; follow-ups #439/#440/#443 filed."
     },
     {
       "conv_id": "a8cce80",
@@ -261,8 +268,8 @@
       "started": "2026-06-07T18:08:13.477211Z",
       "finished": "2026-06-07T18:20:52.932726Z",
       "status": "success",
-      "outcome": "Audit-closed #442 — file `tests/first-run-claim.spec.ts` already satisfies all 12 ACs on main (HEAD 9a0207e/d6ffa3f); landed via PR #447 (initial spec, Refs #442) + PR #454 (TODO assertions flipped live). 5/5 local Playwright reps green. Closed via `gh issue close 442 --reason completed`; no PR opened."
+      "outcome": "Audit-closed #442 \u2014 file `tests/first-run-claim.spec.ts` already satisfies all 12 ACs on main (HEAD 9a0207e/d6ffa3f); landed via PR #447 (initial spec, Refs #442) + PR #454 (TODO assertions flipped live). 5/5 local Playwright reps green. Closed via `gh issue close 442 --reason completed`; no PR opened."
     }
   ],
-  "quiet_ticks": 2
+  "quiet_ticks": 0
 }
