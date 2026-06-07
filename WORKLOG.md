@@ -782,3 +782,22 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 10:38 UTC - Expansion Worker (issue #432)
+
+✅ **Expanded Issue #432** — `chore(server): backfill devices.primary_user_id for devices paired before migration 017`
+
+- Issue: [#432](https://github.com/jpshackelford/voice-relay/issues/432)
+- Type: Enhancement (one-shot data backfill)
+- Status: **Ready for implementation** (`ready` label applied)
+- Approach: new migration `021_backfill_devices_primary_user.ts` that runs a single idempotent `UPDATE` setting `devices.primary_user_id = workspace_members.user_id WHERE role='owner'` for devices whose workspace has exactly one owner. Non-destructive; `down` is a no-op.
+- Key findings during investigation:
+  - `qr_tokens` does **not** record `created_by_user_id` (verified in `008_qr_tokens.ts` + `qr-token-repository.ts`), so the originally proposed "QR-token minter" heuristic was dropped from the plan.
+  - `primary_user_id` is set today only by `PATCH /api/devices/:id` via `deviceRepository.setPrimaryUser` (`server/src/devices/router.ts:198`), not during initial QR pairing — corrected in the rewritten issue body.
+  - Next available migration version is **021** (020 is the latest in `migrations/index.ts`).
+- Test matrix (A: single owner, B: multi-owner, C: already-claimed, D: no-owner, E: idempotency re-run) documented in the rewritten body; mirrors the `017_speakers.test.ts` seeding pattern.
+- Files affected (3): the new migration, its `.test.ts`, and `storage/migrations/index.ts`. No code-path changes outside migrations.
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
