@@ -1494,3 +1494,24 @@ Pattern matches PR #460's first-round verbose-comment feedback — same playbook
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 23:08 UTC - Implementation worker (issue #459)
+
+🚀 Implemented **issue #459** (`Desktop kiosk display name reverts after reconnect`) — server-side regression of the #85 fix on the peer-tab path. Opened **PR #463**.
+
+| Field | Value |
+|---|---|
+| PR | [#463](https://github.com/jpshackelford/voice-relay/pull/463) — `fix(server): preserve user-renamed device name on WS register (Refs #459)` |
+| Branch | `fix/459-display-name-revert-peer-tab` |
+| Server change | `server/src/devices/device-repository.ts:registerOrUpdate` — drop `name` from `update()` on the existing-device branch (1 LOC of behavior). |
+| Client change | `client/src/hooks/useDevices.ts:renameDevice` — defense-in-depth flush of `sessionStorage.displayName` + stored device token when the renamed device is the current device on this tab. |
+| Tests | Inverted existing codifying test in `device-repository.test.ts:382`; added stale-payload regression test mirroring the issue repro; added 3 `useDevices.test.ts` cases (current-device flush, peer-device no-op, no-stored-token no-op). All 1724 server + 1213 client tests pass locally. |
+| CI | 5 / 5 green at draft → ready transition. |
+| AC gate verdict | **`Refs #459` + 1 follow-up** (`#462`). AC #1a, #2, #3 satisfied. AC #1b (live-flip via `device-list` broadcast) and AC #4 (peer-tab `useDeviceRestoration` regression test) deferred to follow-up — both depend on the same `useDeviceRestoration` broadcast-listener change that the expansion worker explicitly scoped out. |
+| Follow-up | [#462](https://github.com/jpshackelford/voice-relay/issues/462) — `useDeviceRestoration: live-update displayName from device-list broadcast (peer-tab follow-up to #459)`. Carries forward the technical-approach slice, labeled `bug`, `priority:high`, `scope:client-only`. |
+| Reflect re-run | Unchanged — no new commits between draft and ready, diff identical to first-pass walk. |
+| Risk | Low — 1 LOC server behavior change, client flush gated on `stored.deviceId === deviceId`, no schema/protocol/API change. PR #461 also touches `server/src/index.ts` but the file regions don't overlap (my changes are in `device-repository.ts`). |
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
