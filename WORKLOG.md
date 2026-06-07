@@ -1153,3 +1153,19 @@ PR is now in `ready for review` state; review handling delegated to a separate c
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 15:45 UTC - Expansion Worker (issue #446)
+
+✅ **Expanded Issue #446** — server: substitute `RelayedTextMessage.senderName` with active-speaker `preferredName` when per-session override resolves
+
+- Issue: [server: substitute RelayedTextMessage.senderName…](https://github.com/jpshackelford/voice-relay/issues/446)
+- Type: Bug (server-side, broken AC contract — #433 third bullet)
+- Status: **Ready for implementation** (`ready` + `priority:high`)
+- Root cause: `server/src/index.ts` ~line 1090 hard-codes `senderName: device.displayName` in the `RelayedTextMessage` literal even when `resolveSpeakerForSession` (introduced by PR #438 for #433) has resolved an `utteranceSpeaker = { id, preferredName, pronouns }`. The `id` rides the wire as `speakerId`, but `preferredName` is dropped, so peer broadcasts and the persisted `messages.sender_name` row keep the device alias.
+- Proposed fix: single-line change at the literal site —
+  `senderName: utteranceSpeaker?.preferredName ?? device.displayName,`
+  Persistence falls out for free (same object → `store.append`). Engine-label-only and unclaimed-device paths preserved by the `??` fallback. Agent-driver `sender.senderName` left as device alias (header builder already uses `sender.speaker.preferredName` for the `[speaker name=…]` line).
+- Test plan: ~5 server-side cases (substituted-broadcast happy path + persisted-row + 3 negative/edge); after server lands, flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` (#442 / PR #447) to active checks.
+- Priority rationale: gates #442's full e2e wire+DOM assertions (#447 ships with the two name-equality assertions taped over) AND blocks closure of #433's third-bullet AC. Low complexity + clear scope → quick win that unblocks downstream issue closure → `priority:high`.
+
+---
