@@ -1017,3 +1017,28 @@ Net: 60 lines removed, 13 added. No behavior change.
 _This entry was created by an AI agent (OpenHands review-addressing worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 14:54 UTC - Merge worker (PR #445)
+
+✅ Squash-merged PR [#445](https://github.com/jpshackelford/voice-relay/pull/445) (`test(client): kiosk integration smoke test for first-run claim flow`) → merge commit `18829e7`. Closes [#440](https://github.com/jpshackelford/voice-relay/issues/440) via `Fixes #440` (auto-closed at 14:54:52 UTC).
+
+**Pre-merge state:** `MERGEABLE / CLEAN / 0 unresolved threads`. Required CI all SUCCESS: Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review (🟢 Good taste). Test-only diff (+299 lines, single file `client/src/components/KioskMode.claim-flow.test.tsx`) — no schema, no migrations, no production behavior change. Production deploy to `vr.chorecraft.net` will be a no-op at runtime.
+
+**AC Gate: PASS.** Walked Issue #440's 7 non-exempt acceptance criteria item-by-item against the final diff:
+
+| AC | Coverage |
+| --- | --- |
+| New file exists, imports `KioskMode` | L20 ✅ |
+| Reuses `KioskMode.test.tsx` mocks (`useSpeechRecognition`, `QRCode`, `Oscilloscope`); no new deps | L32–51 ✅ |
+| Test 1 — workspace-member: `onSpeakerSignIn` called once, 0 fetch | L140–162 ✅ (synthetic-event arg deviation explicitly documented in PR body & test comment; AC text holds) |
+| Test 2 — name-only: POST to `/api/devices/dev-1/sessions/test-session/active-speaker` + `Bearer tok-abc` + body, card hides | L164–206 ✅ |
+| Test 3 — skip: `~now+7d` ISO under `voice_relay_first_run_skip_ws-1_dev-1`, card hides | L208–231 ✅ (uses real `skipKey` helper) |
+| Test 4a (re-render) + 4b (re-mount) — card stays null | L233–282 ✅ |
+| Test 5 — `×` close: card hides, TTL **not** written | L284–298 ✅ |
+
+No `## Deferred to follow-ups` block needed; no override `## INSTRUCTION:` block consulted (gate passed cleanly). Verdict line carried into the squash commit body.
+
+**Verification:** `gh pr view 445 → state: MERGED, mergedAt: 14:54:51 UTC`; `gh issue view 440 → state: CLOSED, closedAt: 14:54:52 UTC`. Main fast-forwarded `f139588..18829e7`.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
