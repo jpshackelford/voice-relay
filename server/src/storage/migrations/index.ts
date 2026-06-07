@@ -18,6 +18,7 @@ import { migration as migration017 } from './017_speakers.js';
 import { migration as migration018 } from './018_session_target_kiosk.js';
 import { migration as migration019 } from './019_hosted_stt.js';
 import { migration as migration020 } from './020_session_ai_state.js';
+import { migration as migration021 } from './021_backfill_devices_primary_user.js';
 import type { Migration } from '../migrator.js';
 
 export const migrations: Migration[] = [
@@ -41,6 +42,7 @@ export const migrations: Migration[] = [
   migration018,
   migration019,
   migration020,
+  migration021,
 ];
 
 export function getMigrations(): Migration[] {
