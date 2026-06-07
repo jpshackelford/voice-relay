@@ -392,7 +392,9 @@ export async function navigateKioskToFirstSession(
   await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
 
-  const viewButton = page.getByRole('button', { name: /view/i });
+  // Scope to `.view-session-btn` to avoid strict-mode violations with multiple
+  // sessions; `.first()` picks the newest (sessions render newest-first). See #452.
+  const viewButton = page.locator('button.view-session-btn').first();
   await expect(viewButton).toBeVisible({ timeout: 5000 });
   await viewButton.click();
 
@@ -468,7 +470,9 @@ export async function navigateKioskToSession(
   await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
 
-  const viewButton = page.getByRole('button', { name: /view/i });
+  // Scope to `.view-session-btn` to avoid strict-mode violations with multiple
+  // sessions; `.first()` picks the newest (sessions render newest-first). See #452.
+  const viewButton = page.locator('button.view-session-btn').first();
   await expect(viewButton).toBeVisible({ timeout: 5000 });
   await viewButton.click();
 
