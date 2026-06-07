@@ -52,6 +52,12 @@ export interface UseSttEngineOptions {
   deviceId: string;
   /** Optional. Forwarded to the hosted hook for usage reporting. */
   workspaceId?: string;
+  /**
+   * Optional session ID. Forwarded to both child hooks so they can
+   * post to `/api/client-errors` on `recognition.onerror` /
+   * `surfaceError` (issue #455).
+   */
+  sessionId?: string;
   onInterimResult?: (text: string) => void;
   onFinalResult?: (text: string) => void;
   onError?: (message: string) => void;
@@ -82,6 +88,7 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     resolvedEngine,
     deviceId,
     workspaceId,
+    sessionId,
     onInterimResult,
     onFinalResult,
     onError,
@@ -130,6 +137,11 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     onInterimResult: effectiveEngine === 'web-speech' ? onInterimResult : undefined,
     onFinalResult: effectiveEngine === 'web-speech' ? onFinalResult : undefined,
     onError: effectiveEngine === 'web-speech' ? onError : undefined,
+    // Issue #455: plumb IDs through so the hook can fire-and-forget
+    // a `/api/client-errors` POST on `recognition.onerror`.
+    sessionId,
+    workspaceId,
+    deviceId,
   });
 
   // Latest copies for the hosted-error handler — avoids stale-closure
@@ -187,6 +199,9 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
   const hosted = useHostedSpeechRecognition({
     deviceId,
     workspaceId,
+    // Issue #455: forward sessionId so the hook can
+    // fire-and-forget a `/api/client-errors` POST on surfaceError.
+    sessionId,
     onInterimResult: effectiveEngine === 'deepgram' ? onInterimResult : undefined,
     onFinalResult: effectiveEngine === 'deepgram' ? onFinalResult : undefined,
     onError: handleHostedError,

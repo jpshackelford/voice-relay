@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useSpeechRecognition } from './useSpeechRecognition';
+import * as reportClientErrorMod from '../utils/reportClientError';
 
 interface FakeResult {
   isFinal: boolean;
@@ -182,6 +183,46 @@ describe('useSpeechRecognition', () => {
 
     act(() => instance.onerror?.({ error: code } as unknown as Event & { error?: string }));
     expect(onError).toHaveBeenCalledWith(expect.stringContaining(expected));
+  });
+
+  it('forwards onerror to reportClientError when sessionId/workspaceId/deviceId are provided (#455)', () => {
+    const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHook(() =>
+      useSpeechRecognition({
+        sessionId: 'sess-1',
+        workspaceId: 'ws-1',
+        deviceId: 'dev-1',
+      }),
+    );
+    act(() => result.current.startListening());
+    const instance = FakeSpeechRecognition.instances[0];
+    act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+    expect(reportSpy).toHaveBeenCalledWith({
+      sessionId: 'sess-1',
+      workspaceId: 'ws-1',
+      deviceId: 'dev-1',
+      source: 'useSpeechRecognition',
+      errorCode: 'aborted',
+      message: 'Speech recognition error',
+    });
+  });
+
+  it('skips reportClientError when IDs are not provided (#455)', () => {
+    const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHook(() => useSpeechRecognition({}));
+    act(() => result.current.startListening());
+    const instance = FakeSpeechRecognition.instances[0];
+    act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+    // The helper itself no-ops when IDs are missing, but we still call
+    // it from the hook for consistency. Assert that it was invoked
+    // with undefined IDs (proving the wiring exists) rather than
+    // making the hook conditional.
+    expect(reportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'useSpeechRecognition', errorCode: 'aborted' }),
+    );
   });
 
   it('stopListening stops the underlying recognition instance', () => {

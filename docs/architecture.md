@@ -714,6 +714,45 @@ side-effect-free broker (testable with an injected `fetch`),
 [`router.ts`](../server/src/transcription/router.ts) is the Express
 surface, and the two repositories live alongside.
 
+## Client diagnostic events (`/api/client-errors`)
+
+Issue #455. The browser can fire-and-forget a small diagnostic event
+at the server so failures that today only land in the JS console
+(`recognition.onerror` codes outside our friendly-message mapping,
+hosted-STT token mint 5xx, mic-permission denial, etc.) also appear in
+`journalctl -u voice-relay.service` next to the existing `[AI] /
+[WS] / [Registry]` chatter.
+
+The endpoint is intentionally minimal — logs-only, no DB write, no
+broadcast.
+
+| Aspect       | Value                                                                 |
+|--------------|-----------------------------------------------------------------------|
+| Route        | `POST /api/client-errors`                                             |
+| Auth         | `Authorization: Bearer <deviceToken>` — same scheme as `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker` (#433). |
+| Body cap     | 4 KB (router-scoped `express.json({ limit })`). Larger → 413.         |
+| Rate limit   | 10 requests / 60s **per sessionId** (a stuck tab is the abuse profile; per-IP would be too coarse on shared NATs). |
+| Log format   | One line: `[ClientError] session=<sid> workspace=<wid> device=<did> source="…" code="…" msg="…" ua="…"` (+ optional `context=…`). `JSON.stringify`'d so quotes / control chars survive line splitting. |
+| Success      | `204 No Content`.                                                      |
+| Failure      | `401` (missing / invalid bearer, body deviceId mismatch), `403` (workspace or session mismatch), `400` (validation), `413` (body cap), `429` (rate limit). |
+
+We deliberately do NOT reuse `authenticateDisplayRequest` here — the
+display secret is server-side only (issued to AI agents / automations
+via `/api/sessions/:id/display-secret`) and exposing it to the browser
+would be a security regression.
+
+Client side: [`client/src/utils/reportClientError.ts`](../client/src/utils/reportClientError.ts)
+is the helper. It is wired into
+[`useSpeechRecognition`](../client/src/hooks/useSpeechRecognition.ts),
+[`useHostedSpeechRecognition`](../client/src/hooks/useHostedSpeechRecognition.ts),
+and the two STT catch blocks in
+[`MobileMode.tsx`](../client/src/components/MobileMode.tsx). The
+helper is strictly fire-and-forget (2 s timeout, `keepalive: true`,
+silent on any failure) — error reporting must never make the page
+that's already failing worse.
+
+Server side: [`server/src/client-errors/router.ts`](../server/src/client-errors/router.ts).
+
 ## Out of scope
 
 - Anonymous sessions (`ANONYMOUS_SESSION_ID`). Short-circuit unchanged; no driver applies.
