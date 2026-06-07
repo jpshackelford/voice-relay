@@ -4,27 +4,20 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "c93e8e6",
-        "actual_conv_id": "c93e8e60cfb94339b6f46ec13f0eb2fd",
+        "conv_id": "7d133bd",
+        "actual_conv_id": "7d133bd6784d414693ea13b22ec18542",
         "issue": 434,
-        "started": "2026-06-07T11:39:55.677965+00:00"
+        "started": "2026-06-07T12:22:14.495021+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "4495bb5",
-        "actual_conv_id": "4495bb566a404ef0ae6592a1db00c708",
-        "pr": 436,
-        "started": "2026-06-07T11:39:55.677965+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T11:39:55.677965+00:00",
+  "last_updated": "2026-06-07T12:22:14.495021+00:00",
   "completed": [
     {
       "conv_id": "cb181e6",
@@ -296,6 +289,26 @@
       "finished": "2026-06-07T11:39:55.677965+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #435 at 2026-06-07T11:22:56Z (Fixes #431). Issue #431 auto-closed."
+    },
+    {
+      "conv_id": "c93e8e6",
+      "actual_conv_id": "c93e8e60cfb94339b6f46ec13f0eb2fd",
+      "type": "implementation",
+      "issue": 434,
+      "started": "2026-06-07T11:39:55.677965+00:00",
+      "finished": "2026-06-07T12:20:19.145321+00:00",
+      "status": "stuck",
+      "outcome": "Sandbox went MISSING at 11:43Z; no branch/PR created for #434. Worker orphaned \u2014 re-dispatching this tick."
+    },
+    {
+      "conv_id": "4495bb5",
+      "actual_conv_id": "4495bb566a404ef0ae6592a1db00c708",
+      "type": "review",
+      "pr": 436,
+      "started": "2026-06-07T11:39:55.677965+00:00",
+      "finished": "2026-06-07T12:20:19.145321+00:00",
+      "status": "success",
+      "outcome": "PR #436 review feedback addressed (commit 4274723); subsequently squash-merged at 12:12:57Z; Issue #432 auto-closed."
     }
   ],
   "quiet_ticks": 0
