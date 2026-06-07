@@ -2,13 +2,20 @@
  * First-run "claim this device" card (#433).
  *
  * Rendered by `SessionView` when `useFirstRunClaim().shouldShow` is
- * true. Offers three paths:
+ * true. Offers three primary paths plus a corner dismiss:
  *
- *  - "Claim for me" — promotes the device into the authenticated
- *     user's primary device (hidden when not signed in).
- *  - "Just remember a name" — inline name + pronouns form that POSTs to
- *     the device-token-authenticated active-speaker endpoint.
- *  - "Not now" — dismisses locally; reappears on next `registered`.
+ *  - **Claim for me / Sign in & claim** — promotes the device into the
+ *     authenticated user's primary device. When the user isn't signed
+ *     in yet the same button initiates the GitHub OAuth flow via the
+ *     parent's `onSignIn` callback (the parent owns the redirect so
+ *     the card stays test-free of `window.location`).
+ *  - **Just remember a name** — inline name + pronouns form that POSTs
+ *     to the device-token-authenticated active-speaker endpoint.
+ *  - **Skip / this is shared** — sets a 7-day localStorage flag so the
+ *     card stays hidden on this device.
+ *
+ * The corner × close button is a session-only dismissal (no
+ * persistence), matching the AC's "dismiss × in the corner" spec.
  *
  * The component is purely presentational over the surface returned by
  * `useFirstRunClaim` so it's easy to unit-test in jsdom (the hook is
@@ -24,11 +31,19 @@ export interface FirstRunClaimCardProps {
   busy: boolean;
   /** Most recent error from a failed claim, or null. */
   error: string | null;
-  /** Promote device into the current user. */
+  /** Promote device into the current user (only callable when signed in). */
   onClaimForUser: () => Promise<void> | void;
   /** Save just a name (and optional pronouns) for the session. */
   onClaimForName: (preferredName: string, pronouns?: string) => Promise<void> | void;
-  /** Dismiss locally (the card hides until the next `registered`). */
+  /**
+   * Initiate the GitHub OAuth flow (called when the "Sign in & claim"
+   * button is pressed and `user` is null). The parent should redirect
+   * with a `returnTo` that brings the user back to the same session.
+   */
+  onSignIn: () => void;
+  /** Persistent 7-day skip — "this device is shared / skip for now". */
+  onSkip: () => void;
+  /** Session-only dismiss — corner × close button. */
   onDismiss: () => void;
 }
 
@@ -38,6 +53,8 @@ export function FirstRunClaimCard({
   error,
   onClaimForUser,
   onClaimForName,
+  onSignIn,
+  onSkip,
   onDismiss,
 }: FirstRunClaimCardProps) {
   const [showNameForm, setShowNameForm] = useState(false);
@@ -66,6 +83,12 @@ export function FirstRunClaimCard({
   };
 
   const handleClaim = async () => {
+    // Unauthenticated callers fork into the OAuth flow; the parent
+    // owns the redirect and the auto-claim-on-return.
+    if (!user) {
+      onSignIn();
+      return;
+    }
     try {
       await onClaimForUser();
     } catch {
@@ -80,6 +103,16 @@ export function FirstRunClaimCard({
       aria-labelledby="first-run-claim-title"
       data-testid="first-run-claim-card"
     >
+      <button
+        type="button"
+        className="first-run-claim-close"
+        onClick={onDismiss}
+        aria-label="Close"
+        disabled={busy}
+        data-testid="first-run-claim-close-btn"
+      >
+        ×
+      </button>
       <div className="first-run-claim-content">
         <h3 id="first-run-claim-title" className="first-run-claim-title">
           Who's using this device?
@@ -103,17 +136,19 @@ export function FirstRunClaimCard({
 
         {!showNameForm && (
           <div className="first-run-claim-actions">
-            {user && (
-              <button
-                type="button"
-                className="first-run-claim-primary"
-                onClick={handleClaim}
-                disabled={busy}
-                data-testid="first-run-claim-claim-btn"
-              >
-                {busy ? 'Claiming…' : 'Claim for me'}
-              </button>
-            )}
+            <button
+              type="button"
+              className="first-run-claim-primary"
+              onClick={handleClaim}
+              disabled={busy}
+              data-testid="first-run-claim-claim-btn"
+            >
+              {busy
+                ? 'Claiming…'
+                : user
+                  ? 'Claim for me'
+                  : 'Sign in & claim'}
+            </button>
             <button
               type="button"
               className="first-run-claim-secondary"
@@ -126,11 +161,11 @@ export function FirstRunClaimCard({
             <button
               type="button"
               className="first-run-claim-dismiss"
-              onClick={onDismiss}
+              onClick={onSkip}
               disabled={busy}
-              data-testid="first-run-claim-dismiss-btn"
+              data-testid="first-run-claim-skip-btn"
             >
-              Not now
+              Skip — this is shared
             </button>
           </div>
         )}

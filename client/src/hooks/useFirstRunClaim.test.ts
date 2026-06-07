@@ -12,6 +12,8 @@ import { renderHook, act } from '@testing-library/react';
 import {
   useFirstRunClaim,
   _internals,
+  firstRunSkipKey,
+  FIRST_RUN_SKIP_MS,
   type FirstRunClaimInputs,
 } from './useFirstRunClaim';
 import type { SpeakerState } from '../types';
@@ -324,5 +326,47 @@ describe('useFirstRunClaim hook behavior', () => {
     });
     expect(result.current.error).toMatch(/Save failed.*400/);
     expect(result.current.shouldShow).toBe(true);
+  });
+
+  it('skip() writes a 7-day timestamp to localStorage and hides the card', () => {
+    const before = Date.now();
+    const { result } = renderHook(() => useFirstRunClaim(makeInputs()));
+    expect(result.current.shouldShow).toBe(true);
+
+    act(() => result.current.skip());
+
+    expect(result.current.shouldShow).toBe(false);
+    const raw = localStorage.getItem(firstRunSkipKey('ws-1', 'dev-1'));
+    expect(raw).not.toBeNull();
+    const until = Date.parse(raw!);
+    // Allow a small fudge for test execution time but verify it's
+    // ~7 days out (and exactly FIRST_RUN_SKIP_MS away in spec terms).
+    expect(until - before).toBeGreaterThanOrEqual(FIRST_RUN_SKIP_MS - 1000);
+    expect(until - before).toBeLessThanOrEqual(FIRST_RUN_SKIP_MS + 5000);
+  });
+
+  it('shouldShow is false when a future skip timestamp exists on mount', () => {
+    const future = new Date(Date.now() + FIRST_RUN_SKIP_MS).toISOString();
+    localStorage.setItem(firstRunSkipKey('ws-1', 'dev-1'), future);
+    const { result } = renderHook(() => useFirstRunClaim(makeInputs()));
+    expect(result.current.shouldShow).toBe(false);
+  });
+
+  it('shouldShow stays true when an EXPIRED skip timestamp exists', () => {
+    const past = new Date(Date.now() - 60_000).toISOString();
+    localStorage.setItem(firstRunSkipKey('ws-1', 'dev-1'), past);
+    const { result } = renderHook(() => useFirstRunClaim(makeInputs()));
+    expect(result.current.shouldShow).toBe(true);
+  });
+
+  it('skip() with no workspace/device falls back to session-only dismiss', () => {
+    const { result } = renderHook(() =>
+      useFirstRunClaim(makeInputs({ workspaceId: null }))
+    );
+    // Card is hidden anyway because workspaceId is null (no token), but
+    // make sure skip() doesn't throw and still flips the in-memory flag.
+    act(() => result.current.skip());
+    expect(result.current.shouldShow).toBe(false);
+    expect(localStorage.getItem(firstRunSkipKey('ws-1', 'dev-1'))).toBeNull();
   });
 });

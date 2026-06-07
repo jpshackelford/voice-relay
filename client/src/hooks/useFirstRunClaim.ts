@@ -55,7 +55,7 @@ export interface FirstRunClaimApi {
    * `true` iff the card should render right now. Becomes `false` after
    * a successful claim (server resends `registered` on next connect,
    * but in-memory state also flips immediately) or after explicit
-   * dismissal via `dismiss`.
+   * dismissal via `dismiss` / `skip`.
    */
   shouldShow: boolean;
   /** In-flight network state for either claim path. */
@@ -73,8 +73,48 @@ export interface FirstRunClaimApi {
    * success; sets `error` and throws on failure.
    */
   claimForName: (preferredName: string, pronouns?: string) => Promise<void>;
-  /** Local dismissal — flips `shouldShow` to false until next register. */
+  /**
+   * Local in-session dismissal — flips `shouldShow` to false until the
+   * next register. Does NOT persist; the next session will see the
+   * card again. Use this for "the user pressed the mic button" or
+   * close-via-corner-X paths.
+   */
   dismiss: () => void;
+  /**
+   * Persistent 7-day skip — writes a timestamp to localStorage so the
+   * card stays hidden on this device for ≥ 7 days even across
+   * sessions / reloads. Use this for the explicit "Skip / shared
+   * device" button.
+   */
+  skip: () => void;
+}
+
+/**
+ * `localStorage` key for the 7-day skip flag. Scoped by
+ * `(workspaceId, deviceId)` so a user dismissing the card on one
+ * device doesn't suppress it on another. Mirrors the layout of
+ * `voice_relay_device_token_*` in `utils/deviceToken.ts`.
+ */
+export function firstRunSkipKey(workspaceId: string, deviceId: string): string {
+  return `voice_relay_first_run_skip_${workspaceId}_${deviceId}`;
+}
+
+/** Skip window in milliseconds. Exported so tests can match it exactly. */
+export const FIRST_RUN_SKIP_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isSkipped(workspaceId: string | null, deviceId: string | null): boolean {
+  if (!workspaceId || !deviceId) return false;
+  try {
+    const raw = window.localStorage.getItem(firstRunSkipKey(workspaceId, deviceId));
+    if (!raw) return false;
+    const until = Date.parse(raw);
+    if (Number.isNaN(until)) return false;
+    return Date.now() < until;
+  } catch {
+    // Storage disabled / quota / private mode — treat as not skipped so
+    // the card still works, just without the persistence guarantee.
+    return false;
+  }
 }
 
 /**
@@ -122,6 +162,7 @@ export function useFirstRunClaim(inputs: FirstRunClaimInputs): FirstRunClaimApi 
   const shouldShow =
     !dismissed &&
     !resolvedLocally &&
+    !isSkipped(workspaceId, deviceId) &&
     computeShouldShow({ speakerState, deviceId, sessionId });
 
   const claimForUser = useCallback(async () => {
@@ -209,6 +250,23 @@ export function useFirstRunClaim(inputs: FirstRunClaimInputs): FirstRunClaimApi 
     setDismissed(true);
   }, []);
 
+  const skip = useCallback(() => {
+    if (workspaceId && deviceId) {
+      try {
+        const until = new Date(Date.now() + FIRST_RUN_SKIP_MS).toISOString();
+        window.localStorage.setItem(
+          firstRunSkipKey(workspaceId, deviceId),
+          until
+        );
+      } catch (err) {
+        // Storage disabled — fall back to session-only dismissal so the
+        // button still feels responsive.
+        console.warn('[FirstRun] Failed to write skip timestamp:', err);
+      }
+    }
+    setDismissed(true);
+  }, [workspaceId, deviceId]);
+
   return {
     shouldShow,
     busy,
@@ -216,6 +274,7 @@ export function useFirstRunClaim(inputs: FirstRunClaimInputs): FirstRunClaimApi 
     claimForUser,
     claimForName,
     dismiss,
+    skip,
   };
 }
 

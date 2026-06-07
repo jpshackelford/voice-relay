@@ -6166,3 +6166,31 @@ header {
     width: auto;
   }
 }
+
+/* #433: corner × close button on the first-run claim card. */
+.first-run-claim-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.55rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0.25rem 0.45rem;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.first-run-claim-close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+.first-run-claim-close:focus-visible {
+  outline: 2px solid #3282b8;
+  outline-offset: 2px;
+}
+.first-run-claim-close:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

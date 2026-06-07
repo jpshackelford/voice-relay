@@ -65,7 +65,7 @@ function useAutoDetectMode(): DeviceMode {
 export function SessionView() {
   const { workspaceId, sessionId } = useParams<{ workspaceId: string; sessionId: string }>();
   const navigate = useNavigate();
-  const { user, isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, ensureValidToken, login } = useAuth();
 
   // Device restoration hook handles token validation
   const {
@@ -531,6 +531,12 @@ export function SessionView() {
       error={firstRunClaim.error}
       onClaimForUser={firstRunClaim.claimForUser}
       onClaimForName={firstRunClaim.claimForName}
+      // Auth context's `login()` redirects to /auth/github with the
+      // current pathname as `returnTo`, so the user lands back on this
+      // session view after OAuth and can hit "Claim for me" once
+      // they're authenticated.
+      onSignIn={login}
+      onSkip={firstRunClaim.skip}
       onDismiss={firstRunClaim.dismiss}
     />
   ) : null;

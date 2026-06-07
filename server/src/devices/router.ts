@@ -246,6 +246,27 @@ export function createDeviceRouter({
         // resolves to the correct speaker without a DB lookup. No-op when
         // the device isn't currently connected.
         deviceRegistry?.updateDevice(updated.id, { primaryUserId: req.user!.id });
+        // Speaker auto-seed (#433): when a user claims a device for
+        // themselves via the first-run card, the agent should be able
+        // to greet them by name on the *next* turn. Workspace-join
+        // paths already upsert a speaker row on first join, but a user
+        // who arrived via a non-join path (e.g. a kiosk paired by
+        // someone else, then claimed in the browser) may not have a
+        // row yet. Upsert lazily here so resolution succeeds; preserve
+        // any name the agent already learned by passing the GitHub
+        // display name only as a seed for new rows.
+        if (speakerRepository) {
+          try {
+            speakerRepository.upsertForUser(updated.workspaceId, req.user!.id, {
+              preferredName: req.user!.displayName ?? req.user!.username,
+            });
+          } catch (err) {
+            console.warn(
+              '[Devices] Speaker upsert on PATCH failed (non-fatal):',
+              err
+            );
+          }
+        }
       } catch (err) {
         console.warn(
           '[Devices] Failed to set primary_user_id (non-fatal):',

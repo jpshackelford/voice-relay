@@ -886,4 +886,75 @@ describe('POST /:deviceId/sessions/:sessionId/active-speaker (#433)', () => {
       .send({ preferredName: 'Jane' })
       .expect(503);
   });
+
+  // #433: when a workspace member claims the device via the first-run
+  // card, PATCH /api/devices/:deviceId must ALSO upsert a speaker row
+  // for the claiming user so the next agent turn can resolve their
+  // name. Without this, users who arrived via paths that don't seed
+  // speakers (kiosk pre-paired by someone else, manual SQL inserts)
+  // would stay nameless even after claiming.
+  it('PATCH /:deviceId upserts a speaker row for the claiming user (#433)', async () => {
+    const claimer = userRepository.create({
+      githubId: 8888,
+      username: 'claimer',
+      displayName: 'Claimer McUser',
+    });
+    workspaceRepository.addMember(testWorkspaceId, claimer.id, 'member');
+
+    // Sanity: no speaker for this user yet.
+    expect(
+      speakerRepository.findByWorkspaceUser(testWorkspaceId, claimer.id)
+    ).toBeNull();
+
+    const claimerToken = jwtService.sign(claimer);
+
+    await request(app)
+      .patch(`/api/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${claimerToken}`)
+      .send({})
+      .expect(200);
+
+    expect(deviceRepository.findById(testDeviceId)?.primaryUserId).toBe(
+      claimer.id
+    );
+    const speaker = speakerRepository.findByWorkspaceUser(
+      testWorkspaceId,
+      claimer.id
+    );
+    expect(speaker).not.toBeNull();
+    expect(speaker?.preferredName).toBe('Claimer McUser');
+  });
+
+  it('PATCH /:deviceId preserves an existing speaker preferred_name (#433)', async () => {
+    const claimer = userRepository.create({
+      githubId: 9999,
+      username: 'claimer2',
+      displayName: 'Fallback Name',
+    });
+    workspaceRepository.addMember(testWorkspaceId, claimer.id, 'member');
+
+    // Pre-seed a speaker row with a name the agent learned over time.
+    speakerRepository.create({
+      workspaceId: testWorkspaceId,
+      userId: claimer.id,
+      preferredName: 'Existing Nickname',
+      pronouns: 'they/them',
+    });
+
+    const claimerToken = jwtService.sign(claimer);
+
+    await request(app)
+      .patch(`/api/devices/${testDeviceId}`)
+      .set('Authorization', `Bearer ${claimerToken}`)
+      .send({})
+      .expect(200);
+
+    // The upsert path MUST NOT clobber the agent's learned name.
+    const speaker = speakerRepository.findByWorkspaceUser(
+      testWorkspaceId,
+      claimer.id
+    );
+    expect(speaker?.preferredName).toBe('Existing Nickname');
+    expect(speaker?.pronouns).toBe('they/them');
+  });
 });
