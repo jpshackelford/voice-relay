@@ -172,6 +172,27 @@ export interface SessionInfo {
   name: string | null;
 }
 
+/**
+ * Speaker-identity state for the device that just registered (#433).
+ *
+ * Sibling surface to the agent-frame `[speaker …]` header (#431) but
+ * shaped for the WS client: instead of a serialized string, this exposes
+ * the three booleans the first-run claim card needs to decide whether to
+ * render itself.
+ */
+export interface SpeakerState {
+  /** `true` when `devices.primary_user_id IS NOT NULL`. */
+  deviceClaimed: boolean;
+  /** Server-side `Device.primaryUserId` (id of the workspace member that
+   *  has claimed this device). `null` for anonymous / unclaimed devices. */
+  primaryUserId: string | null;
+  /** Per-session override (`session_devices.active_speaker_id`) for the
+   *  device's current session. When set the card stays hidden — the
+   *  human in front of the device has already self-identified for this
+   *  session. */
+  activeSpeakerId: string | null;
+}
+
 export interface RegisteredMessage {
   type: 'registered';
   deviceId: string;
@@ -180,6 +201,12 @@ export interface RegisteredMessage {
   deviceToken?: string;
   /** Token expiration timestamp (only sent on first registration) */
   tokenExpiresAt?: string;
+  /**
+   * Issue #433: speaker-identity surface for the first-run claim card.
+   * Undefined on legacy / anonymous-mode deployments — the client treats
+   * an undefined value as "do not render the card".
+   */
+  speakerState?: SpeakerState;
 }
 
 export interface DeviceListMessage {

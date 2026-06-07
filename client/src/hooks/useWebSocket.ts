@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage, SpeakerState } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 // Reconnect tuning. Matches the values agreed in issue #285.
@@ -85,6 +85,10 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
+  // Issue #433: speaker-identity surface for the first-run claim card.
+  // Lifted directly off the `registered` payload — undefined on legacy
+  // servers, which the kiosk treats as "do not render the card".
+  const [speakerState, setSpeakerState] = useState<SpeakerState | null>(null);
   const [wasRemoved, setWasRemoved] = useState(false);
   // Session-level TTS settings (synced across all devices)
   const [sessionTtsSettings, setSessionTtsSettings] = useState<SessionTtsSettings | null>(null);
@@ -253,6 +257,11 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             case 'registered':
               console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
               setCurrentSession(message.session);
+              // Issue #433: capture the speaker-identity surface so the
+              // first-run claim card can decide whether to render. Servers
+              // that don't emit it (legacy / anonymous mode) leave the
+              // state at `null`, which the kiosk reads as "do not render".
+              setSpeakerState(message.speakerState ?? null);
               // Backoff resets only when registration completes, not on raw
               // socket open. open-without-register is not a usable connection.
               reconnectAttemptsRef.current = 0;
@@ -537,6 +546,10 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     currentSession, 
     wasRemoved, 
     sessionTtsSettings,
+    // Issue #433: speaker-identity surface from the server's `registered`
+    // payload. `null` when the server hasn't emitted one yet (initial
+    // state before register) or when it explicitly omits the field.
+    speakerState,
     sendText, 
     updateDevice, 
     sendListeningState,

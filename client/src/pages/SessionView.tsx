@@ -63,7 +63,7 @@ function useAutoDetectMode(): DeviceMode {
 export function SessionView() {
   const { workspaceId, sessionId } = useParams<{ workspaceId: string; sessionId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
+  const { isAuthenticated, loading: authLoading, ensureValidToken, login } = useAuth();
 
   // Device restoration hook handles token validation
   const {
@@ -304,6 +304,8 @@ export function SessionView() {
     connected, 
     devices, 
     sessionTtsSettings,
+    // Issue #433: surfaced through to KioskMode for the first-run claim card.
+    speakerState,
     sendText, 
     updateDevice, 
     sendListeningState,
@@ -556,6 +558,11 @@ export function SessionView() {
           sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
           attention={kioskAttention}
           onAttentionDismiss={() => setKioskAttention(null)}
+          // Issue #433: first-run claim card. KioskMode decides whether
+          // to render based on speakerState.deviceClaimed /
+          // activeSpeakerId; passing `null` keeps the card hidden.
+          speakerState={speakerState}
+          onSpeakerSignIn={login}
         />
       </>
     );

@@ -69,6 +69,7 @@ describe('SessionRepository', () => {
         session_id TEXT NOT NULL,
         device_id TEXT NOT NULL,
         joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        active_speaker_id TEXT,
         PRIMARY KEY (session_id, device_id),
         FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
@@ -679,6 +680,54 @@ describe('SessionRepository', () => {
       const devices2 = repo.getDevices(session2.id);
       expect(devices1).toHaveLength(0);
       expect(devices2).toHaveLength(0);
+    });
+
+    // Issue #433: addDevice must NOT wipe active_speaker_id on re-register,
+    // otherwise the first-run claim card's "remember a name" action would
+    // get silently undone whenever the WS reconnects.
+    it('preserves active_speaker_id when addDevice is called again (#433)', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+      repo.setActiveSpeaker(session.id, testDeviceId, 'sp-anon-1');
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBe('sp-anon-1');
+
+      // Simulate a WS reconnect — addDevice gets called again.
+      repo.addDevice(session.id, testDeviceId);
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBe('sp-anon-1');
+    });
+  });
+
+  // Issue #433: per-session active-speaker override.
+  describe('setActiveSpeaker / getActiveSpeaker (#433)', () => {
+    it('writes and reads the active_speaker_id override', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
+      const wrote = repo.setActiveSpeaker(session.id, testDeviceId, 'sp-anon-1');
+      expect(wrote).toBe(true);
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBe('sp-anon-1');
+    });
+
+    it('returns null for a (session, device) pair with no row', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      // No addDevice — no row exists.
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
+    });
+
+    it('setActiveSpeaker returns false when no row exists', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      // No addDevice — UPDATE matches nothing.
+      const wrote = repo.setActiveSpeaker(session.id, testDeviceId, 'sp-anon-1');
+      expect(wrote).toBe(false);
+    });
+
+    it('clears the override when passed null', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+      repo.setActiveSpeaker(session.id, testDeviceId, 'sp-anon-1');
+      repo.setActiveSpeaker(session.id, testDeviceId, null);
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
     });
   });
 

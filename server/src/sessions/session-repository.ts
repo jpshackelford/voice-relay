@@ -381,16 +381,67 @@ export class SessionRepository {
 
   /**
    * Add a device to a session.
+   *
+   * Uses `INSERT … ON CONFLICT … DO UPDATE` (rather than the older
+   * `INSERT OR REPLACE`) so any `active_speaker_id` override written by
+   * the first-run claim flow (#433) survives a device re-register. We
+   * still bump `joined_at` to "now" so the device-picker enrichment
+   * (#393) keeps reporting an accurate "last used" timestamp.
    */
   addDevice(sessionId: string, deviceId: string): SessionDevice {
     const now = new Date().toISOString();
     const stmt = this.db.prepare(`
-      INSERT OR REPLACE INTO session_devices (session_id, device_id, joined_at)
+      INSERT INTO session_devices (session_id, device_id, joined_at)
       VALUES (?, ?, ?)
+      ON CONFLICT(session_id, device_id) DO UPDATE SET joined_at = excluded.joined_at
     `);
     stmt.run(sessionId, deviceId, now);
 
     return { sessionId, deviceId, joinedAt: now };
+  }
+
+  /**
+   * Set (or clear) the per-session active-speaker override for a
+   * `(session_id, device_id)` pair (#433).
+   *
+   * The override is read by speaker resolution on the next inbound
+   * utterance; when set, it takes precedence over `devices.primary_user_id`
+   * so a shared kiosk can attribute a turn to a specific human without
+   * the device being globally claimed for that user.
+   *
+   * Returns `true` when the row existed and was updated, `false` when no
+   * matching `session_devices` row exists. Callers MUST ensure
+   * `addDevice` has been called first (typically at WS register time);
+   * the FK on `active_speaker_id → speakers(id) ON DELETE SET NULL`
+   * keeps the column consistent if the speaker is later deleted.
+   */
+  setActiveSpeaker(
+    sessionId: string,
+    deviceId: string,
+    speakerId: string | null
+  ): boolean {
+    const stmt = this.db.prepare(`
+      UPDATE session_devices
+      SET active_speaker_id = ?
+      WHERE session_id = ? AND device_id = ?
+    `);
+    const result = stmt.run(speakerId, sessionId, deviceId);
+    return result.changes > 0;
+  }
+
+  /**
+   * Return the per-session active-speaker override for `(sessionId,
+   * deviceId)`, or `null` when no override is set (or the row is
+   * missing). #433.
+   */
+  getActiveSpeaker(sessionId: string, deviceId: string): string | null {
+    const stmt = this.db.prepare<[string, string], { active_speaker_id: string | null }>(`
+      SELECT active_speaker_id
+      FROM session_devices
+      WHERE session_id = ? AND device_id = ?
+    `);
+    const row = stmt.get(sessionId, deviceId);
+    return row?.active_speaker_id ?? null;
   }
 
   /**
