@@ -1490,3 +1490,45 @@ Combined with VR's existing `(default → real) sessionId` WS-registration flap 
 _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 22:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `c541b21` | implementation | Issue #457 — iOS 18 Safari STT abort regression (after PR #456) | **NEW** |
+| `735d3c9` | expansion | Issue #458 — Kiosk AI-status indicator stuck on 🔗 after auto-connect | **NEW** |
+
+**Reaped:**
+- `d4aedeb` (expansion, #457) → finished `success`. Issue body rewritten with Problem/Repro/Expected/Actual, technical-approach comment added, `ready` + `priority:high` labels applied (verified via `gh issue view 457 --json labels`).
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Implementation Worker** — [#457 iOS 18 Safari: STT aborts immediately on permission grant on iPhone 17e (regression after PR #456)](https://github.com/jpshackelford/voice-relay/issues/457) (`priority:high`, `bug`, `client`, `scope:full-stack`)
+   - Conversation: [`c541b21`](https://app.all-hands.dev/conversations/c541b21be7384b5982c44e024be9e9ad)
+   - Pre-flight context embedded: the three call sites wired by PR #456 (`useSpeechRecognition.onerror`, `useHostedSpeechRecognition.surfaceError`, `MobileMode.tsx` startListening catches) plus `reportClientError.ts`; vitest unit test asked for; AC-gate reminder; fix must preserve legitimate error-reporting for non-`aborted` errors.
+
+2. **Expansion Worker** — [#458 Kiosk AI-status indicator stuck on 🔗 after auto-connect: ✨ only appears after first message](https://github.com/jpshackelford/voice-relay/issues/458) (`priority:medium`, `bug`, `scope:full-stack`)
+   - Conversation: [`735d3c9`](https://app.all-hands.dev/conversations/735d3c97d89645a483897f46b81fcb2d)
+   - Pre-flight ask: investigate kiosk AI-status wiring (where the indicator state is set, how `autoConnectAI` completion is signaled vs the `thinking-change` broadcast that DOES update it). Also asked to cross-check whether this is a #456 side-effect (parallel to #457) or pre-existing.
+
+**Both conversations verified `READY` → `execution_status: running, sandbox_status: RUNNING`** at 22:05Z.
+
+**Current State:**
+- Open PRs: 0 (last merged: PR #456 at 20:25Z).
+- Issues needing expansion (after this dispatch): 0 actionable. #458 now being expanded; #210, #239, #299, #300, #301, #302, #446 remain `on-hold`; #372 remains `needs-human`.
+- Ready issues: #386 (`priority:low`, `on-hold` — policy-tracked, skip) and #457 (now being implemented).
+- Slot usage after dispatch: expansion 1/4, implementation 1/1, review 0/2.
+
+**Unblock pass:** ran; 0 issues lifted.
+- Mechanically eligible: #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
+- **Override applied (AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"):** freeze remains in force pending production `VR_WORKSPACE_BUCKET`, AWS creds, and the S3 provisioning runbook smoke test. Skipped per the established override pattern from prior orchestrator cycles. Only a human (or a new `## INSTRUCTION:` block) can lift these.
+- Policy-tracked (no machine `Blocked by #N`): #210, #239, #386, #446 — untouched.
+- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
+
+**Anti-stall note:** decision table walked exhaustively. No `## INSTRUCTION:` override block in WORKLOG.md, no `on-hold`/`needs-human`/`blocked` label on #457 or #458, no AGENTS.md policy gating either. Dispatched cleanly on their merits.
+
+**Quiet-tick counter:** reset `0 → 0` (productive — 1 worker reaped + 2 workers dispatched).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+---
