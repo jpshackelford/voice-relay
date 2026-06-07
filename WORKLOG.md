@@ -1536,3 +1536,27 @@ _This entry was created by an AI agent (OpenHands review worker) on behalf of @j
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 16:55 UTC - Expansion Worker (issue #452)
+
+✅ **Expanded Issue #452** (`tests(e2e): navigateKioskToFirstSession strict-mode violation…`)
+
+- Type: **Bug** (label `bug`, also already `tests`)
+- Status: **Ready for implementation** — `ready` + `priority:high` labels applied
+- Root cause confirmed at `tests/utils/auth-helper.ts:395` — un-scoped `getByRole('button', { name: /view/i })` matches every `<button class="view-session-btn">` in the dashboard's session list. Strict-mode throws once the worker DB has ≥ 2 sessions (which #447 causes during setup of `first-run-claim.spec.ts`).
+- **Scope expanded:** found the **same bug** at line 471 in the sibling helper `navigateKioskToSession`, used by 7 cases in `tests/qr-join-flow.spec.ts`. Fix covers both helpers in one PR. Noted in the technical-detail comment so impl worker isn't surprised.
+- Proposed fix: replace both with `page.locator('button.view-session-btn').first()` — class-scoped, glyph-resilient, explicit determinism.
+- Acceptance criteria (5 bullets) cover: both helpers scoped, full chromium suite green against a multi-session worker DB, no new strict-mode warnings, four downstream specs (`first-run-claim`, `ws-keepalive`, `multi-device-relay`, `qr-join-flow`) all green, no production code touched.
+
+`priority:high` assigned because the bug is currently red-blocking PR-merge CI on **every PR** (including #450) — should be picked up before #449 on the next implementation tick.
+
+| Action                                              | Result                                                                        |
+| --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Issue body rewritten to standard bug template       | ✅ (Problem / Repro / Expected / Actual / Files / AC)                          |
+| Technical-detail comment posted                     | ✅ ([#452 comment](https://github.com/jpshackelford/voice-relay/issues/452#issuecomment-4643324211)) |
+| Labels: `ready` + `priority:high`                   | ✅                                                                             |
+| Sibling helper bug surfaced + folded into AC        | ✅ (`navigateKioskToSession` @ line 471)                                       |
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
