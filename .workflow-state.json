@@ -4,20 +4,28 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "7d133bd",
-        "actual_conv_id": "7d133bd6784d414693ea13b22ec18542",
-        "issue": 434,
-        "started": "2026-06-07T12:22:14.495021+00:00"
+        "conv_id": "14b76de",
+        "actual_conv_id": "14b76de952014dae90958646593a44af",
+        "issue": 433,
+        "started": "2026-06-07T13:06:51.875323+00:00"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "997b954",
+        "actual_conv_id": "997b954003c94a7d838f5a2f7898a602",
+        "pr": 437,
+        "issue": 434,
+        "started": "2026-06-07T13:06:51.875323+00:00"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T12:22:14.495021+00:00",
+  "last_updated": "2026-06-07T13:06:51.875323+00:00",
   "completed": [
     {
       "conv_id": "cb181e6",
@@ -309,6 +317,17 @@
       "finished": "2026-06-07T12:20:19.145321+00:00",
       "status": "success",
       "outcome": "PR #436 review feedback addressed (commit 4274723); subsequently squash-merged at 12:12:57Z; Issue #432 auto-closed."
+    },
+    {
+      "conv_id": "7d133bd",
+      "actual_conv_id": "7d133bd6784d414693ea13b22ec18542",
+      "type": "implementation",
+      "issue": 434,
+      "pr": 437,
+      "started": "2026-06-07T12:22:14.495021+00:00",
+      "finished": "2026-06-07T13:06:51.875323+00:00",
+      "status": "success",
+      "outcome": "Opened PR #437 \u2014 fix(client): reset position:fixed on kiosk connection dot so grid-area applies (Fixes #434). CI green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, ready (not draft). pr-review bot left 2 \ud83d\udfe1 stylistic suggestions (verbose comments in App.css and test file)."
     }
   ],
   "quiet_ticks": 0
