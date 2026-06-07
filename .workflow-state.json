@@ -2,7 +2,14 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [],
+    "implementation": [
+      {
+        "conv_id": "204eef3",
+        "actual_conv_id": "204eef38a6104eaeabaa4df7b3736c28",
+        "issue": 363,
+        "started": "2026-06-07T01:34:47.727707Z"
+      }
+    ],
     "review": []
   },
   "limits": {
@@ -10,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-06T23:42:01Z",
+  "last_updated": "2026-06-07T01:34:47.727707Z",
   "completed": [
     {
       "conv_id": "5e8b184",
@@ -20,7 +27,7 @@
       "started": "2026-06-05T22:18:49Z",
       "finished": "2026-06-05T22:34:41.182605Z",
       "status": "success",
-      "outcome": "Created PR #406 — fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Created PR #406 \u2014 fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "ca35fb8",
@@ -31,7 +38,7 @@
       "started": "2026-06-05T22:35:42.534334Z",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Opened PR #407 — feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
+      "outcome": "Opened PR #407 \u2014 feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
     },
     {
       "conv_id": "e531d1f",
@@ -41,7 +48,7 @@
       "started": "2026-06-05T22:50:12.575172+00:00",
       "finished": "2026-06-05T23:06:56.335837+00:00",
       "status": "success",
-      "outcome": "Addressed all 11 pr-review bot 🟡 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
+      "outcome": "Addressed all 11 pr-review bot \ud83d\udfe1 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
     },
     {
       "conv_id": "0211d27",
@@ -62,7 +69,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Opened PR #408 — refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
+      "outcome": "Opened PR #408 \u2014 refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
     },
     {
       "conv_id": "4e00461",
@@ -72,7 +79,7 @@
       "started": "2026-06-05T23:19:42.068741+00:00",
       "finished": "2026-06-05T23:50:12Z",
       "status": "success",
-      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review 🟡 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
+      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review \ud83d\udfe1 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
     },
     {
       "conv_id": "7264a05",
@@ -131,7 +138,7 @@
       "started": "2026-06-06T14:51:37.083742+00:00",
       "finished": "2026-06-06T14:54:14.015980+00:00",
       "status": "success",
-      "outcome": "Expanded #413 — rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
+      "outcome": "Expanded #413 \u2014 rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
     },
     {
       "conv_id": "a682dfa",
@@ -141,7 +148,7 @@
       "started": "2026-06-06T14:51:37.083742+00:00",
       "finished": "2026-06-06T15:09:00Z",
       "status": "success",
-      "outcome": "Opened PR #419 — feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
+      "outcome": "Opened PR #419 \u2014 feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
     },
     {
       "conv_id": "39df1fc",
@@ -224,7 +231,7 @@
       "started": "2026-06-06T16:22:34.291629+00:00",
       "finished": "2026-06-06T16:36:37.718796+00:00",
       "status": "success",
-      "outcome": "Opened PR #424 — fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). CI green; pr-review bot left ✅ COMMENTED 'Worth merging' review; 0 unresolved threads; mergeStateStatus=CLEAN."
+      "outcome": "Opened PR #424 \u2014 fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). CI green; pr-review bot left \u2705 COMMENTED 'Worth merging' review; 0 unresolved threads; mergeStateStatus=CLEAN."
     },
     {
       "conv_id": "4571b04",
@@ -235,7 +242,7 @@
       "started": "2026-06-06T16:38:31.680500+00:00",
       "finished": "2026-06-06T17:05:27.287679+00:00",
       "status": "success",
-      "outcome": "Opened PR #425 — docs: add hosted STT (Deepgram) section to README (Fixes #413). AC gate PASS (10/10). PR #425 squash-merged at 16:56Z; issue #413 auto-closed."
+      "outcome": "Opened PR #425 \u2014 docs: add hosted STT (Deepgram) section to README (Fixes #413). AC gate PASS (10/10). PR #425 squash-merged at 16:56Z; issue #413 auto-closed."
     },
     {
       "conv_id": "0544110",
@@ -257,7 +264,7 @@
       "started": "2026-06-06T16:38:31.680500+00:00",
       "finished": "2026-06-06T17:05:27.287679+00:00",
       "status": "success",
-      "outcome": "Squash-merged PR #424 (fcf8895) — fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). Issue #421 auto-closed at 16:30:05Z (closed pre-merge; trailer confirmed linkage). Tests-only diff, no migration."
+      "outcome": "Squash-merged PR #424 (fcf8895) \u2014 fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). Issue #421 auto-closed at 16:30:05Z (closed pre-merge; trailer confirmed linkage). Tests-only diff, no migration."
     },
     {
       "conv_id": "7becb0b",
@@ -268,7 +275,7 @@
       "started": "2026-06-06T17:05:27.287679+00:00",
       "finished": "2026-06-06T17:20:16.938492+00:00",
       "status": "success",
-      "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
+      "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) \u2014 feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
     }
   ],
   "quiet_ticks": 0
