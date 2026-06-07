@@ -491,6 +491,80 @@ describe('RebindWindowTracker', () => {
     expect(tracker.countInWindow('conv1')).toBe(3);
     expect(() => tracker.checkBudget('conv1')).toThrow(RebindBudgetExhausted);
   });
+
+  // -----------------------------------------------------------------
+  // getHistory + seedFromHistory — durability hooks for issue #363.
+  // -----------------------------------------------------------------
+
+  test('getHistory returns the same pruned set as countInWindow', () => {
+    let now = 1_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    tracker.recordSuccess('conv1');
+    const t1 = now;
+    now += 60_000; // 1 min later
+    tracker.recordSuccess('conv1');
+    const t2 = now;
+    expect(tracker.getHistory('conv1')).toEqual([t1, t2]);
+    expect(tracker.countInWindow('conv1')).toBe(2);
+  });
+
+  test('getHistory returns an empty array for unknown conversations', () => {
+    const tracker = new RebindWindowTracker(() => 1_000_000);
+    expect(tracker.getHistory('never-seen')).toEqual([]);
+  });
+
+  test('getHistory returns a fresh array (caller mutations do not leak)', () => {
+    let now = 1_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    tracker.recordSuccess('conv1');
+    const copy = tracker.getHistory('conv1');
+    copy.push(999_999);
+    // Internal state still has exactly one entry.
+    expect(tracker.countInWindow('conv1')).toBe(1);
+  });
+
+  test('seedFromHistory restores the budget after a process restart', () => {
+    // Simulate a restart: two successes happened on the prior process
+    // and were persisted. After seeding, the new tracker reports them
+    // as in-window and a 3rd succeeds while a 4th throws.
+    let now = 10_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    const t1 = now - 60_000; // 1 min ago
+    const t2 = now - 30_000; // 30 s ago
+    tracker.seedFromHistory('conv1', [t1, t2]);
+    expect(tracker.countInWindow('conv1')).toBe(2);
+    tracker.recordSuccess('conv1');
+    expect(tracker.countInWindow('conv1')).toBe(3);
+    expect(() => tracker.checkBudget('conv1')).toThrow(RebindBudgetExhausted);
+  });
+
+  test('seedFromHistory drops entries that have already aged out of the window', () => {
+    let now = 10_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    const stale = now - 10 * 60_000; // 10 min ago — well outside window
+    const fresh = now - 60_000;
+    tracker.seedFromHistory('conv1', [stale, fresh]);
+    expect(tracker.getHistory('conv1')).toEqual([fresh]);
+    expect(tracker.countInWindow('conv1')).toBe(1);
+  });
+
+  test('seedFromHistory with an empty array clears history for the conversation', () => {
+    let now = 10_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    tracker.recordSuccess('conv1');
+    tracker.seedFromHistory('conv1', []);
+    expect(tracker.countInWindow('conv1')).toBe(0);
+  });
+
+  test('seedFromHistory overwrites, not appends', () => {
+    let now = 10_000_000;
+    const tracker = new RebindWindowTracker(() => now);
+    tracker.recordSuccess('conv1');
+    tracker.recordSuccess('conv1');
+    // Seed with one timestamp — the prior two are gone.
+    tracker.seedFromHistory('conv1', [now - 5_000]);
+    expect(tracker.countInWindow('conv1')).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------

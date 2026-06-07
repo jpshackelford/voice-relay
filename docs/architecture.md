@@ -440,6 +440,88 @@ built today.** Documented for the contract.
 | Auditability | VR's own request log captures `{user_id, workspace_id, operation, bytes, timestamp}` for every restore/snapshot. AWS CloudTrail sees only the VR principal — useful for AWS-side ops, less useful than VR's log for product-level audit. |
 | Single point of failure | VR backend availability is a precondition for sandbox restore. Already true: if VR is down, the user can't use the product. |
 
+### Durable AI-session state (`session_ai_state`) — issue #363
+
+Separate from the S3 workspace-tarball persistence above, Voice Relay
+also persists the **operational lifecycle state** of every AI session in
+SQLite so a process restart doesn't lose recovery decisions.
+
+Before #363, `AISessionManager.sessionAI: Map<sessionId, AISession>` held
+`degraded` / `degradedReason` / `rebinding` purely in RAM, and the
+per-conversation `RebindWindowTracker` budget was an in-memory
+`Map<conversationId, number[]>`. Both evaporated on every process
+restart. The auto-deploy hook restarts voice-relay multiple times a day,
+so a session we decided to give up on at 02:00 was cheerfully
+re-auto-connected at 02:15 (lifecycle-decisions discarded), and the
+3-rebinds-in-5-min cap reset on every deploy (a sandbox-flap loop that
+should have stopped after 3 attempts kept going indefinitely).
+
+**Schema** (migration `020_session_ai_state.ts`):
+
+```
+session_ai_state
+  session_id           TEXT PK  → sessions(id) ON DELETE CASCADE
+  conversation_id      TEXT NOT NULL          -- upstream OH conversation
+  state                TEXT NOT NULL          -- 'running' | 'degraded' | 'rebinding' | 'ended'
+  state_reason         TEXT                   -- populated for 'degraded'
+  state_changed_at     TEXT NOT NULL
+  rebind_attempts_json TEXT                   -- JSON array of epoch-ms timestamps
+  updated_at           TEXT NOT NULL
+
+  INDEX idx_session_ai_state_by_state ON (state)
+```
+
+The `state` CHECK constraint intentionally excludes `paused` — issue
+#360 extends it when PAUSED-state durability lands.
+
+**Write path.** Every state transition flows through a single
+chokepoint, `AISessionManager.transitionTo(session, state, reason)`,
+which (a) updates the in-memory cache so live callers see the new state
+immediately, and (b) writes through to `session_ai_state` via
+`SessionAIStateRepository.transitionTo()`. The DB write is best-effort:
+a transient SQLite failure logs an error but does not break the caller's
+control flow. Initial state creation goes through `persistInitialState()`
+(an UPSERT) and per-session deletion is keyed off `endSessionAI`, which
+is the only code path that should ever destroy the durable row.
+`AISessionManager.shutdown()` (process shutdown) deliberately does NOT
+call `endSessionAI` — it closes WebSockets and clears the in-memory
+cache while leaving the durable rows intact, since the whole point of
+the table is to survive a restart.
+
+**Rebind budget.** `RebindWindowTracker` itself stays
+storage-agnostic — it grew two new methods (`getHistory`,
+`seedFromHistory`) so the manager can persist the pruned window after
+every success (`persistRebindAttempts`) and re-seed the tracker from
+disk on construction (`setAIStateRepository`).
+
+**Read path.** On startup, `rehydrateAgentSessions` branches on the
+durable state instead of unconditionally re-attaching everything:
+
+| state | Behavior |
+|---|---|
+| missing row | Legacy fallback — treat as `running` (re-attach). |
+| `running`   | Re-attach (existing behavior). |
+| `degraded`  | Broadcast `degraded` session-state to the kiosk; do **not** re-attach. The prior process's give-up decision is preserved. |
+| `rebinding` | Wait `REBINDING_RETRY_BACKOFF_MS` (2 s) then attempt the attach exactly once. On failure upsert the row to `degraded`. |
+| `ended`     | Skip silently (no broadcast). |
+
+When the re-attach throws against a `running` row (typical 404 / event
+log eviction), the rehydrator persists `degraded` so the next restart
+honours the decision instead of looping.
+
+**Why a new table, not `sessions.metadata`?** The metadata JSON blob
+already serves three unrelated purposes (display content, TTS settings,
+AI conversation pointer) and is updated through a read-modify-write
+`updateMetadata` path. A state machine that flips on every
+rebind/reconnect would race with display/TTS edits on that path. A
+dedicated table also gives a cheap `idx_session_ai_state_by_state`
+index for the "list all degraded sessions" queries #351 will want.
+
+**Rollback path.** The new table augments the existing
+`sessions.metadata.aiConversationId` column; the old field is left
+untouched. To revert, drop the new table — every other code path
+falls back to in-memory only, which is exactly the pre-#363 behavior.
+
 ## Wire protocol
 
 ### Existing messages (kept)

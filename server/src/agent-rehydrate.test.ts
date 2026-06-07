@@ -15,7 +15,12 @@
 
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { rehydrateAgentSessions } from './agent-rehydrate.js';
-import type { SessionRepository } from './sessions/index.js';
+import type {
+  SessionRepository,
+  SessionAIStateRepository,
+  SessionAIStateName,
+  SessionAIStateRow,
+} from './sessions/index.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
 import type { Session } from './sessions/types.js';
@@ -402,5 +407,315 @@ describe('rehydrateAgentSessions (#341)', () => {
     expect(degraded).toBeDefined();
     expect(degraded!.ai.error).toContain('restart');
     expect(degraded!.ai.error).not.toContain('HTTP 404');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// State-aware rehydration: branch on the durable session_ai_state row
+// (issue #363).
+// ---------------------------------------------------------------------------
+
+/**
+ * Hand-rolled in-memory implementation of {@link SessionAIStateRepository}
+ * sufficient to drive the rehydrate branching. Tests are free to seed
+ * `rows` directly and then assert post-call state.
+ */
+function createFakeAIStateRepo(
+  seed: Partial<SessionAIStateRow>[] = [],
+): SessionAIStateRepository & {
+  rows: Map<string, SessionAIStateRow>;
+} {
+  const rows = new Map<string, SessionAIStateRow>();
+  for (const r of seed) {
+    if (!r.sessionId) continue;
+    rows.set(r.sessionId, {
+      sessionId: r.sessionId,
+      conversationId: r.conversationId ?? 'conv-default',
+      state: r.state ?? ('running' as SessionAIStateName),
+      stateReason: r.stateReason ?? null,
+      stateChangedAt: r.stateChangedAt ?? new Date().toISOString(),
+      rebindAttempts: r.rebindAttempts ?? [],
+      updatedAt: r.updatedAt ?? new Date().toISOString(),
+    });
+  }
+  return {
+    rows,
+    findBySessionId: vi.fn((sessionId: string) => rows.get(sessionId) ?? null),
+    listByState: vi.fn((state: SessionAIStateName) =>
+      Array.from(rows.values()).filter((r) => r.state === state),
+    ),
+    listAll: vi.fn(() => Array.from(rows.values())),
+    upsert: vi.fn((input) => {
+      rows.set(input.sessionId, {
+        sessionId: input.sessionId,
+        conversationId: input.conversationId,
+        state: input.state,
+        stateReason: input.stateReason ?? null,
+        stateChangedAt: input.stateChangedAt ?? new Date().toISOString(),
+        rebindAttempts: input.rebindAttempts ?? [],
+        updatedAt: new Date().toISOString(),
+      });
+    }),
+    transitionTo: vi.fn((sessionId, state, reason) => {
+      const existing = rows.get(sessionId);
+      if (!existing) return;
+      rows.set(sessionId, {
+        ...existing,
+        state,
+        stateReason: reason,
+        stateChangedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }),
+    setRebindAttempts: vi.fn(),
+    deleteBySessionId: vi.fn((sessionId) => rows.delete(sessionId)),
+  } as unknown as SessionAIStateRepository & { rows: Map<string, SessionAIStateRow> };
+}
+
+describe('rehydrateAgentSessions state-aware branching (#363)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('degraded row → openSession NOT called, degraded session-state broadcast', async () => {
+    const sessions = [activeSession('session-deg', 'ws-1', 'conv-deg')];
+    const driver = createMockAgentDriver();
+    const registry = createRegistry();
+    const aiStateRepository = createFakeAIStateRepo([
+      {
+        sessionId: 'session-deg',
+        conversationId: 'conv-deg',
+        state: 'degraded',
+        stateReason: 'we gave up at 02:00',
+      },
+    ]);
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+      aiStateRepository,
+    });
+
+    // Crucial: the prior process's give-up decision survives.
+    expect(driver.openSession).not.toHaveBeenCalled();
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]).toMatchObject({
+      sessionId: 'session-deg',
+      status: 'skipped',
+    });
+    expect(outcomes[0].error).toContain('state=degraded');
+    // The kiosk-facing broadcast carries the durable reason.
+    const stateBroadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>)
+      .mock.calls
+      .filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    const degraded = stateBroadcasts.find(
+      (c) => (c[1] as { sessionId: string }).sessionId === 'session-deg',
+    );
+    expect(degraded).toBeDefined();
+    const payload = degraded![1] as { ai: AgentSessionStatus };
+    expect(payload.ai.state).toBe('degraded');
+    expect(payload.ai.error).toBe('we gave up at 02:00');
+  });
+
+  test('ended row → skipped silently with no broadcast', async () => {
+    const sessions = [activeSession('session-end', 'ws-1', 'conv-end')];
+    const driver = createMockAgentDriver();
+    const registry = createRegistry();
+    const aiStateRepository = createFakeAIStateRepo([
+      { sessionId: 'session-end', conversationId: 'conv-end', state: 'ended' },
+    ]);
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+      aiStateRepository,
+    });
+
+    expect(driver.openSession).not.toHaveBeenCalled();
+    expect(outcomes[0].status).toBe('skipped');
+    expect(outcomes[0].error).toBe('state=ended');
+    const stateBroadcasts = (registry.broadcastMessageToSession as ReturnType<typeof vi.fn>)
+      .mock.calls.filter((c) => (c[1] as { type?: string }).type === 'session-state');
+    expect(stateBroadcasts.length).toBe(0);
+  });
+
+  test('running row → existing re-attach path (openSession called)', async () => {
+    const sessions = [activeSession('session-run', 'ws-1', 'conv-run')];
+    const driver = createMockAgentDriver({
+      responses: { 'session-run': readyStatus('session-run', 'conv-run') },
+    });
+    const registry = createRegistry();
+    const aiStateRepository = createFakeAIStateRepo([
+      { sessionId: 'session-run', conversationId: 'conv-run', state: 'running' },
+    ]);
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+      aiStateRepository,
+    });
+
+    expect(driver.openSession).toHaveBeenCalledTimes(1);
+    expect(driver.openSession).toHaveBeenCalledWith(
+      'session-run',
+      expect.objectContaining({ existingConversationId: 'conv-run' }),
+    );
+    expect(outcomes[0].status).toBe('rehydrated');
+  });
+
+  test('missing row (legacy fallback) → existing re-attach path', async () => {
+    // No row exists for the session — defensively treated as `running`.
+    const sessions = [activeSession('session-legacy', 'ws-1', 'conv-legacy')];
+    const driver = createMockAgentDriver({
+      responses: { 'session-legacy': readyStatus('session-legacy', 'conv-legacy') },
+    });
+    const registry = createRegistry();
+    const aiStateRepository = createFakeAIStateRepo([]); // empty
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+      aiStateRepository,
+    });
+
+    expect(driver.openSession).toHaveBeenCalledTimes(1);
+    expect(outcomes[0].status).toBe('rehydrated');
+  });
+
+  test('rebinding row that succeeds → ends as rehydrated (one retry after backoff)', async () => {
+    vi.useFakeTimers();
+    try {
+      const sessions = [activeSession('session-rb', 'ws-1', 'conv-rb')];
+      const driver = createMockAgentDriver({
+        responses: { 'session-rb': readyStatus('session-rb', 'conv-rb') },
+      });
+      const registry = createRegistry();
+      const aiStateRepository = createFakeAIStateRepo([
+        { sessionId: 'session-rb', conversationId: 'conv-rb', state: 'rebinding' },
+      ]);
+
+      const promise = rehydrateAgentSessions({
+        sessionRepository: createMockSessionRepository(sessions),
+        workspaceRepository: createMockWorkspaceRepository(),
+        agentDriver: driver,
+        registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+        getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+        aiStateRepository,
+      });
+      // Advance the backoff timer plus a safety margin.
+      await vi.advanceTimersByTimeAsync(3_000);
+      const outcomes = await promise;
+      expect(driver.openSession).toHaveBeenCalledTimes(1);
+      expect(outcomes[0].status).toBe('rehydrated');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('rebinding row whose retry fails → persisted as degraded', async () => {
+    vi.useFakeTimers();
+    try {
+      const sessions = [activeSession('session-rb-fail', 'ws-1', 'conv-rb-fail')];
+      const err = new UpstreamConversationEndedError(
+        'conv-rb-fail',
+        'gone',
+      );
+      const driver = createMockAgentDriver({
+        responses: { 'session-rb-fail': { throw: err } },
+      });
+      const registry = createRegistry();
+      const aiStateRepository = createFakeAIStateRepo([
+        {
+          sessionId: 'session-rb-fail',
+          conversationId: 'conv-rb-fail',
+          state: 'rebinding',
+        },
+      ]);
+
+      const promise = rehydrateAgentSessions({
+        sessionRepository: createMockSessionRepository(sessions),
+        workspaceRepository: createMockWorkspaceRepository(),
+        agentDriver: driver,
+        registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+        getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+        aiStateRepository,
+      });
+      await vi.advanceTimersByTimeAsync(3_000);
+      const outcomes = await promise;
+      expect(outcomes[0].status).toBe('failed');
+      // The row was upserted to degraded so the next restart honors it.
+      const persistedRow = aiStateRepository.rows.get('session-rb-fail');
+      expect(persistedRow).toBeDefined();
+      expect(persistedRow!.state).toBe('degraded');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  test('failed re-attach against a running row persists degraded for the next restart', async () => {
+    // Catches the second half of AC item 5: when the re-attach throws,
+    // the row should be flipped to degraded so we don't loop.
+    const sessions = [activeSession('session-run-fail', 'ws-1', 'conv-run-fail')];
+    const err = new UpstreamConversationEndedError(
+      'conv-run-fail',
+      'conversation no longer reachable',
+    );
+    const driver = createMockAgentDriver({
+      responses: { 'session-run-fail': { throw: err } },
+    });
+    const registry = createRegistry();
+    const aiStateRepository = createFakeAIStateRepo([
+      {
+        sessionId: 'session-run-fail',
+        conversationId: 'conv-run-fail',
+        state: 'running',
+      },
+    ]);
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+      aiStateRepository,
+    });
+
+    expect(outcomes[0].status).toBe('failed');
+    const row = aiStateRepository.rows.get('session-run-fail');
+    expect(row!.state).toBe('degraded');
+  });
+
+  test('no repo passed → falls back to pre-#363 behaviour (every session re-attached)', async () => {
+    // Don't even pass aiStateRepository — the rehydrator must behave
+    // exactly as it did before.
+    const sessions = [activeSession('session-classic', 'ws-1', 'conv-classic')];
+    const driver = createMockAgentDriver({
+      responses: { 'session-classic': readyStatus('session-classic', 'conv-classic') },
+    });
+    const registry = createRegistry();
+
+    const outcomes = await rehydrateAgentSessions({
+      sessionRepository: createMockSessionRepository(sessions),
+      workspaceRepository: createMockWorkspaceRepository(),
+      agentDriver: driver,
+      registry: registry as unknown as Parameters<typeof rehydrateAgentSessions>[0]['registry'],
+      getWorkspaceApiKey: vi.fn().mockResolvedValue('api-key'),
+    });
+
+    expect(driver.openSession).toHaveBeenCalledTimes(1);
+    expect(outcomes[0].status).toBe('rehydrated');
   });
 });

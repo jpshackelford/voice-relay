@@ -408,6 +408,44 @@ export class RebindWindowTracker {
   countInWindow(conversationId: string): number {
     return this.prune(conversationId).length;
   }
+
+  /**
+   * Read the current (pruned-to-window) history for a conversation.
+   * Exposed so callers can serialize the tracker's per-conversation
+   * budget into a durable store (issue #363 — `session_ai_state.
+   * rebind_attempts_json`) without having to know how `prune` strips
+   * out entries that have aged out of the window.
+   *
+   * Returns a fresh array; callers may mutate it without affecting
+   * the tracker's internal state.
+   */
+  getHistory(conversationId: string): number[] {
+    return this.prune(conversationId).slice();
+  }
+
+  /**
+   * Replace the tracker's history for a conversation with a known set
+   * of timestamps. Used on startup to restore the rebind budget after
+   * a process restart (issue #363) — the manager calls this once per
+   * `session_ai_state` row when {@link SessionAIStateRepository} is
+   * wired up.
+   *
+   * Entries that have already aged out of the window are dropped at
+   * seed time so a stale row from a long-ago restart doesn't leak
+   * into the live budget.
+   *
+   * Passing an empty array clears history for the conversation
+   * entirely.
+   */
+  seedFromHistory(conversationId: string, attempts: number[]): void {
+    const cutoff = this.clock() - this.windowMs;
+    const survivors = attempts.filter((ts) => ts > cutoff);
+    if (survivors.length === 0) {
+      this.history.delete(conversationId);
+      return;
+    }
+    this.history.set(conversationId, survivors.slice());
+  }
 }
 
 // ---------------------------------------------------------------------------

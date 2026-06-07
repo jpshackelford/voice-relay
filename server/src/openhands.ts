@@ -26,6 +26,12 @@ import {
 } from './agent-driver/replay.js';
 import { logUpstreamFailure } from './agent-driver/log.js';
 import type { AgentSenderMeta } from './agent-driver/types.js';
+// Type-only import to avoid a runtime circular dep with sessions/index.ts
+// (which imports `resolveSessionSystemPrompt` from this file).
+import type {
+  SessionAIStateRepository,
+  SessionAIStateName,
+} from './sessions/session-ai-state-repository.js';
 import {
   buildVoiceRelayHeader,
   makeVoiceRelayHeaderState,
@@ -1819,8 +1825,23 @@ export class AISessionManager {
    * Prevents thrash when the platform repeatedly hands us short-lived
    * sandboxes — after `MAX_REBINDS_PER_WINDOW` rebinds in a 5-minute
    * window, the next attempt is short-circuited to `degraded` instead.
+   *
+   * The tracker itself is storage-agnostic. When an
+   * {@link aiStateRepository} is wired up (#363) the manager persists
+   * the history through {@link recordRebindSuccess} so the budget
+   * survives a process restart — without it, the auto-deploy hook
+   * resets the 5-min/3-rebind cap on every push.
    */
   private rebindTracker = new RebindWindowTracker();
+
+  /**
+   * Durable home for the operational state of every AI session (#363).
+   * Optional so test code (and a defensive prod fallback) can omit it
+   * — when undefined, the manager silently degrades to in-memory-only,
+   * which is the legacy behaviour. Production wires this in
+   * `server/src/index.ts` after the SQLite-backed repos are ready.
+   */
+  private aiStateRepository?: SessionAIStateRepository;
 
   /**
    * Running total of successful rebinds across all sessions, incremented
@@ -1911,6 +1932,122 @@ export class AISessionManager {
    */
   setSystemPromptResolver(resolver: SystemPromptResolver): void {
     this.systemPromptResolver = resolver;
+  }
+
+  /**
+   * Inject the durable AI-state repository (issue #363). Once installed,
+   * every {@link transitionTo} call writes through to
+   * `session_ai_state`, and the manager seeds the in-memory
+   * {@link rebindTracker} from any rows that already exist so the
+   * per-conversation rebind window survives a restart.
+   *
+   * Re-callable — last writer wins. The seed pass is idempotent (rows
+   * with empty histories are silently dropped from the tracker). Safe
+   * to call before any session is opened.
+   */
+  setAIStateRepository(repo: SessionAIStateRepository | undefined): void {
+    this.aiStateRepository = repo;
+    if (!repo) return;
+    // Seed the rebind tracker from every persisted row. The tracker
+    // itself prunes timestamps older than the window, so a row with
+    // only-stale entries is a no-op.
+    try {
+      for (const row of repo.listAll()) {
+        if (row.rebindAttempts.length > 0) {
+          this.rebindTracker.seedFromHistory(row.conversationId, row.rebindAttempts);
+        }
+      }
+    } catch (err) {
+      console.error('[AI] Failed to seed rebind tracker from durable store:', err);
+    }
+  }
+
+  /**
+   * Single chokepoint for AISession state transitions (issue #363).
+   *
+   * Replaces the dozen-plus scattered `session.degraded = true` /
+   * `session.rebinding = true` writes that used to live alongside the
+   * reconnect, refresh, and rebind paths in this file. Centralising
+   * them means:
+   *
+   *   1. The in-memory cache and the durable store can never disagree
+   *      about a session's lifecycle state.
+   *   2. Production logs grep cleanly to a single emitter.
+   *   3. The state machine has a single boundary to instrument.
+   *
+   * Persistence is best-effort: if the repo write throws (DB locked,
+   * column drift, etc.) the in-memory cache is still updated and a
+   * single error line is logged. The caller's control flow proceeds
+   * unchanged — falling over to a permanent "degraded" state because
+   * SQLite hiccupped would be worse than re-rehydrating after restart.
+   */
+  private transitionTo(
+    session: AISession,
+    state: SessionAIStateName,
+    reason: string | null,
+  ): void {
+    // 1. Update the in-memory cache so live callers (driver, broadcast
+    // chain) see the new state immediately.
+    session.degraded = state === 'degraded';
+    session.degradedReason = state === 'degraded' ? reason : null;
+    session.rebinding = state === 'rebinding';
+
+    // 2. Write through to the durable store. Missing repo (test mode
+    // or pre-#363 production fallback) → silently in-memory only.
+    if (!this.aiStateRepository || !session.sessionId) return;
+    try {
+      this.aiStateRepository.transitionTo(session.sessionId, state, reason);
+    } catch (err) {
+      console.error(
+        `[AI] state persistence failed for ${session.sessionId} → ${state}:`,
+        err,
+      );
+    }
+  }
+
+  /**
+   * Initial-row write for a freshly-created (or re-attached)
+   * `AISession`. Distinct from {@link transitionTo} because the row
+   * may not yet exist — `transitionTo` is an UPDATE; this is the
+   * INSERT-or-replace chokepoint.
+   */
+  private persistInitialState(session: AISession): void {
+    if (!this.aiStateRepository || !session.sessionId) return;
+    try {
+      this.aiStateRepository.upsert({
+        sessionId: session.sessionId,
+        conversationId: session.conversationId,
+        state: 'running',
+        stateReason: null,
+      });
+    } catch (err) {
+      console.error(
+        `[AI] initial state persistence failed for ${session.sessionId}:`,
+        err,
+      );
+    }
+  }
+
+  /**
+   * Persist the {@link rebindTracker}'s pruned history for a
+   * conversation. Called after every {@link rebindTracker.recordSuccess}
+   * so the rolling-window budget survives a restart (issue #363).
+   *
+   * Best-effort: a DB write failure logs and continues. The in-memory
+   * tracker already counts the success, so the budget is at worst
+   * reset on the next restart.
+   */
+  private persistRebindAttempts(session: AISession): void {
+    if (!this.aiStateRepository || !session.sessionId) return;
+    try {
+      const attempts = this.rebindTracker.getHistory(session.conversationId);
+      this.aiStateRepository.setRebindAttempts(session.sessionId, attempts);
+    } catch (err) {
+      console.error(
+        `[AI] rebind-attempts persistence failed for ${session.sessionId}:`,
+        err,
+      );
+    }
   }
 
   /**
@@ -2465,6 +2602,9 @@ export class AISessionManager {
     };
 
     this.sessionAI.set(sessionId, session);
+    // Initial durable row at lifecycle state `running` (#363). After
+    // this point every state change flows through {@link transitionTo}.
+    this.persistInitialState(session);
 
     // Connect WebSocket
     this.connectWebSocket(session);
@@ -2672,6 +2812,11 @@ export class AISessionManager {
     };
 
     this.sessionAI.set(sessionId, session);
+    // Initial durable row at lifecycle state `running` (#363). The
+    // attach path may overwrite an existing row carrying a stale
+    // `degraded` reason — that's intentional: a fresh attach has
+    // succeeded, so the new running row reflects current reality.
+    this.persistInitialState(session);
 
     // Open the WS against the existing conversation. The existing reconnect
     // loop will handle transient handshake failures; an unrecoverable
@@ -2748,6 +2893,17 @@ export class AISessionManager {
     }
 
     this.sessionAI.delete(sessionId);
+    // Drop the durable row too (#363). A subsequent rehydrate pass
+    // must not pick this session back up — endSessionAI is invoked
+    // both on user-initiated restart and process shutdown, and in
+    // either case the session has no live binding to recover.
+    if (this.aiStateRepository) {
+      try {
+        this.aiStateRepository.deleteBySessionId(sessionId);
+      } catch (err) {
+        console.error(`[AI] state row delete failed for ${sessionId}:`, err);
+      }
+    }
   }
 
   /**
@@ -2972,8 +3128,7 @@ export class AISessionManager {
           `[AI] Sandbox resume failed for conversation ${session.conversationId} ` +
             `(${err.name}) — degrading session ${session.sessionId}`,
         );
-        session.degraded = true;
-        session.degradedReason = `Sandbox resume failed: ${err.name}`;
+        this.transitionTo(session, 'degraded', `Sandbox resume failed: ${err.name}`);
         return;
       }
       if (err instanceof SandboxMissingError || err instanceof UpstreamCredentialsLostError) {
@@ -2990,8 +3145,7 @@ export class AISessionManager {
       }
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[AI] Reconnect refresh failed for session ${session.sessionId}: ${message}`);
-      session.degraded = true;
-      session.degradedReason = `Reconnect failed: ${message}`;
+      this.transitionTo(session, 'degraded', `Reconnect failed: ${message}`);
       return;
     }
     // Session may have been ended while we were awaiting the refresh.
@@ -3076,8 +3230,7 @@ export class AISessionManager {
   private async doRebindSession(session: AISession): Promise<void> {
     const client = this.clientForSession(session); // #403: honor workspace key
     if (!client) {
-      session.degraded = true;
-      session.degradedReason = 'OpenHands client not configured — cannot rebind';
+      this.transitionTo(session, 'degraded', 'OpenHands client not configured — cannot rebind');
       return;
     }
 
@@ -3091,14 +3244,17 @@ export class AISessionManager {
           `[AI] Rebind window exhausted for ${session.conversationId} ` +
             `(${err.attempts} rebinds in the last 5min) — degrading`,
         );
-        session.degraded = true;
-        session.degradedReason = 'Could not recover the agent runtime. Try restarting.';
+        this.transitionTo(
+          session,
+          'degraded',
+          'Could not recover the agent runtime. Try restarting.',
+        );
         return;
       }
       throw err;
     }
 
-    session.rebinding = true;
+    this.transitionTo(session, 'rebinding', null);
     // Tear down any lingering ws reference so the driver doesn't synthesize
     // a stale ready state while we're mid-rebind.
     if (session.ws) {
@@ -3133,18 +3289,18 @@ export class AISessionManager {
       };
       result = await rebindHttp(client, session.conversationId, httpOptions);
     } catch (err) {
-      session.rebinding = false;
-      session.degraded = true;
+      let reason: string;
       if (err instanceof RebindConversationGone) {
-        session.degradedReason = 'Conversation no longer exists — restart needed';
+        reason = 'Conversation no longer exists — restart needed';
       } else if (err instanceof RebindForbidden) {
-        session.degradedReason = 'Not authorized to recover the agent runtime — restart needed';
+        reason = 'Not authorized to recover the agent runtime — restart needed';
       } else if (err instanceof RebindBudgetExhausted) {
-        session.degradedReason = 'Could not recover the agent runtime. Try restarting.';
+        reason = 'Could not recover the agent runtime. Try restarting.';
       } else {
         const message = err instanceof Error ? err.message : String(err);
-        session.degradedReason = `Rebind failed: ${message}`;
+        reason = `Rebind failed: ${message}`;
       }
+      this.transitionTo(session, 'degraded', reason);
       // Issue #364: emit a structured upstream-failure line in addition
       // to (not instead of) the user-facing `degradedReason` log below.
       // The structured line carries the raw HTTP status + body excerpt
@@ -3157,8 +3313,7 @@ export class AISessionManager {
         endpoint: 'POST /api/v1/app-conversations',
       });
       console.error(
-        `[AI] Rebind failed for conversation ${session.conversationId}: ` +
-          `${session.degradedReason}`,
+        `[AI] Rebind failed for conversation ${session.conversationId}: ${reason}`,
       );
       return;
     }
@@ -3167,10 +3322,11 @@ export class AISessionManager {
     session.agentServerUrl = result.agentServerUrl;
     session.sessionApiKey = result.sessionApiKey;
     session.reconnectAttempts = 0;
-    session.degraded = false;
-    session.degradedReason = null;
-    session.rebinding = false;
+    this.transitionTo(session, 'running', null);
     this.rebindTracker.recordSuccess(session.conversationId);
+    // Persist the now-larger window history so the budget survives a
+    // restart (#363). Best-effort — see {@link persistRebindAttempts}.
+    this.persistRebindAttempts(session);
     this.rebindCount++;
     console.log(
       `[AI] Rebind succeeded for conversation ${session.conversationId} ` +
@@ -3183,12 +3339,31 @@ export class AISessionManager {
   }
 
   /**
-   * End all AI sessions
+   * End all AI sessions on process shutdown.
+   *
+   * Closes every live `WebSocket` and clears the in-memory cache so the
+   * Node event loop can drain. Importantly does **not** call
+   * {@link endSessionAI} on each row — that path deletes the durable
+   * `session_ai_state` row, which would defeat the whole point of
+   * issue #363. The state rows must survive a restart so the next boot
+   * can rehydrate them.
+   *
+   * User-initiated session ends (driver `restartSession` /
+   * `closeSession`) still go through {@link endSessionAI} and delete
+   * the durable row, which is the desired semantics for those paths.
    */
   async shutdown(): Promise<void> {
-    for (const sessionId of this.sessionAI.keys()) {
-      await this.endSessionAI(sessionId);
+    for (const session of this.sessionAI.values()) {
+      if (session.ws) {
+        try {
+          session.ws.close();
+        } catch {
+          // best-effort cleanup on shutdown
+        }
+        session.ws = undefined;
+      }
     }
+    this.sessionAI.clear();
   }
 }
 

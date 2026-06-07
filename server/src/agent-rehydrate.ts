@@ -25,7 +25,7 @@
  * for the next user utterance.
  */
 
-import type { SessionRepository } from './sessions/index.js';
+import type { SessionRepository, SessionAIStateRepository } from './sessions/index.js';
 import type { Session } from './sessions/types.js';
 import type { WorkspaceRepository } from './workspaces/index.js';
 import type { AgentDriver, AgentSessionStatus } from './agent-driver/index.js';
@@ -53,7 +53,34 @@ export interface RehydrateAgentSessionsDependencies {
    * Same shape as `autoConnectAI`'s dependency so the call sites converge.
    */
   getWorkspaceApiKey: (workspaceId: string) => Promise<string | null>;
+  /**
+   * Optional durable AI-state repository (issue #363). When provided,
+   * the rehydrator branches on the per-session lifecycle state instead
+   * of unconditionally re-attaching every active session:
+   *
+   * - missing row or `running` → re-attach (existing behavior).
+   * - `degraded` → broadcast a `degraded` `session-state` so the
+   *   kiosk shows the right UI, but do NOT re-attach. The give-up
+   *   decision from the prior process is preserved across restart.
+   * - `rebinding` → the previous process was mid-flight at shutdown.
+   *   Try once with a short backoff; on failure transition the row
+   *   to `degraded` and broadcast.
+   * - `ended` → skip silently.
+   *
+   * When the repo is absent (legacy boot, tests), every active session
+   * is treated as `running` — matching pre-#363 behavior.
+   */
+  aiStateRepository?: SessionAIStateRepository;
 }
+
+/**
+ * How long to wait before retrying the attach on a `rebinding` row.
+ * Short on purpose — `rebinding` rows are common after a deploy that
+ * landed mid-rebind, and the kiosk is already showing a reconnecting
+ * indicator. Bigger budgets would defeat the "fail fast and degrade"
+ * contract the issue asks for.
+ */
+const REBINDING_RETRY_BACKOFF_MS = 2_000;
 
 /**
  * Result of attempting to rehydrate a single session. Exposed for tests
@@ -81,7 +108,7 @@ async function rehydrateSingleSession(
   session: Session,
   deps: RehydrateAgentSessionsDependencies,
 ): Promise<RehydrationOutcome | null> {
-  const { sessionRepository, workspaceRepository, agentDriver, registry, getWorkspaceApiKey } = deps;
+  const { sessionRepository, workspaceRepository, agentDriver, registry, getWorkspaceApiKey, aiStateRepository } = deps;
 
   const conversationId = session.metadata?.aiConversationId;
   if (!conversationId) {
@@ -92,6 +119,69 @@ async function rehydrateSingleSession(
 
   const sessionId = session.id;
   const workspaceId = session.workspaceId;
+
+  // Branch on the durable lifecycle state (#363). A missing row is
+  // legacy / pre-migration data — fall through to the existing
+  // `running` re-attach path. Once the migration backfill commits this
+  // is only seen on dev DBs older than the migration was run against.
+  const aiState = aiStateRepository?.findBySessionId(sessionId);
+  const lifecycleState = aiState?.state ?? 'running';
+
+  if (lifecycleState === 'ended') {
+    console.log(
+      `[AI] Rehydration: session ${sessionId} marked ended; skipping`,
+    );
+    return {
+      sessionId,
+      workspaceId,
+      conversationId,
+      status: 'skipped',
+      error: 'state=ended',
+    };
+  }
+
+  if (lifecycleState === 'degraded') {
+    // Honor the prior process's give-up decision. Broadcast the
+    // degraded state so any kiosk that reconnects sees the right UI
+    // without having to wait for the next utterance.
+    const degradedError =
+      aiState?.stateReason ??
+      'Upstream conversation no longer available — restart session';
+    const degradedStatus: AgentSessionStatus = {
+      sessionId,
+      state: 'degraded',
+      conversationId,
+      error: degradedError,
+      thinkingSince: null,
+      startingSince: null,
+    };
+    broadcastSessionState(registry, sessionId, degradedStatus, 'rehydrate:skipped-degraded');
+    console.log(
+      `[AI] Rehydration: session ${sessionId} skipped (state=degraded: ${degradedError})`,
+    );
+    return {
+      sessionId,
+      workspaceId,
+      conversationId,
+      status: 'skipped',
+      error: `state=degraded: ${degradedError}`,
+    };
+  }
+
+  if (lifecycleState === 'rebinding') {
+    // The previous process was mid-rebind when it died. Wait a moment
+    // for any in-flight upstream effect to settle, try the attach
+    // exactly once; on failure mark the row degraded so we don't loop
+    // on the next deploy.
+    console.log(
+      `[AI] Rehydration: session ${sessionId} was rebinding; retrying once with ${REBINDING_RETRY_BACKOFF_MS}ms backoff`,
+    );
+    await new Promise<void>((resolve) =>
+      setTimeout(resolve, REBINDING_RETRY_BACKOFF_MS).unref?.(),
+    );
+    // Fall through to the standard attach path below; if it fails the
+    // catch block will transition the row to degraded.
+  }
 
   try {
     // Resolve workspace API key. After #404 the env-keyed driver
@@ -166,6 +256,28 @@ async function rehydrateSingleSession(
       startingSince: null,
     };
     broadcastSessionState(registry, sessionId, degradedStatus, 'rehydrate:failed');
+
+    // Persist the degraded transition so the next restart doesn't
+    // helplessly retry (#363). Best-effort — a write failure here only
+    // affects the next rehydrate pass.
+    if (aiStateRepository) {
+      try {
+        // Upsert (instead of transitionTo) so we cover both the "row
+        // already exists" path and the legacy "row hasn't been
+        // backfilled yet" path in one call.
+        aiStateRepository.upsert({
+          sessionId,
+          conversationId,
+          state: 'degraded',
+          stateReason: degradedError,
+        });
+      } catch (persistErr) {
+        console.error(
+          `[AI] Rehydration: failed to persist degraded state for ${sessionId}:`,
+          persistErr,
+        );
+      }
+    }
 
     return {
       sessionId,
