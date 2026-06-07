@@ -475,3 +475,53 @@ PR: https://github.com/jpshackelford/voice-relay/pull/428
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 02:30 UTC - Implementation worker (#426 → PR #429)
+
+✅ **#426 — Styling Inconsistencies on the Workspace Home Page** — draft → ready.
+
+PR #422 added new wrapper class names in `WorkspaceHome.tsx`
+(`.stt-engine-setting`, `.stt-engine-row`, `.stt-engine-option`,
+`.inline-hint`, `.stt-cap-input`, `.stt-usage-row`,
+`.stt-usage-counter`) but never added matching CSS rules to
+`client/src/App.css`. The "Speech recognition engine" radio group
+fell back to browser-default inline layout and collapsed onto a
+single line with the second radio's `●` glyph mashed against the
+preceding label text. Italic helper hint
+"(set an API key below first)" also wrapped awkwardly.
+
+**Fix (CSS-only, +69 / -0 in `client/src/App.css`):** Added rules
+under the existing `/* API Key Settings */` block:
+
+- `.stt-engine-setting` — top divider matching `.api-key-setting`
+  to introduce the STT group cleanly under the kiosk-ticker toggle.
+- `.stt-engine-row` — flex column, 0.4rem gap → vertical stacking.
+- `.stt-engine-option` — flex row, `align-items: center`, 0.5rem
+  gap → native-form-control look for each radio + label pair.
+- `.stt-engine-option input[type='radio']:disabled ~ span` —
+  dims the disabled hosted-engine option (`opacity: 0.55`,
+  `cursor: not-allowed`) until a Deepgram key is configured.
+- `.inline-hint` — `#666` italic helper that stays inline with its
+  sibling text (`margin-top: 0` cancels `.setting-hint`'s push).
+- `.stt-cap-input` — caps width at 12rem with an 8rem min.
+- `.stt-usage-row`, `.stt-usage-counter[ strong]` — align the
+  usage line at the same font rhythm as the API-key rows.
+
+No JSX, server, DB, or migration changes. All 1150 client tests
+green; `npm run build -w client` (tsc + Vite) clean.
+
+**CI:** all green — Build Client (31s), Client Tests (41s),
+Server Tests (50s), E2E Tests (1m48s), lint-pr-title.
+
+**AC Gate verdict:** PASS — items 1–7 satisfied by the diff.
+Item 8 ("manual smoke test in workspace home settings tab
+confirms the screenshot in #426 no longer reproduces") is the
+standard post-deploy visual smoke step on `vr.chorecraft.net`
+once #429 auto-deploys; called out in the PR's Test Plan. No
+deferred follow-ups. Trailer: `Fixes #426`.
+
+PR: https://github.com/jpshackelford/voice-relay/pull/429
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
