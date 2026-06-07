@@ -392,9 +392,8 @@ export async function navigateKioskToFirstSession(
   await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
 
-  // Scope to the session-row button class to avoid Playwright strict-mode
-  // violations when the worker DB has >1 session. Sessions render newest-first,
-  // so `.first()` deterministically picks the most recently created one. See #452.
+  // Scope to `.view-session-btn` to avoid strict-mode violations with multiple
+  // sessions; `.first()` picks the newest (sessions render newest-first). See #452.
   const viewButton = page.locator('button.view-session-btn').first();
   await expect(viewButton).toBeVisible({ timeout: 5000 });
   await viewButton.click();
@@ -471,9 +470,8 @@ export async function navigateKioskToSession(
   await expect(page.getByRole('heading', { name: /devices/i })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('heading', { name: /sessions/i })).toBeVisible({ timeout: 5000 });
 
-  // Scope to the session-row button class to avoid Playwright strict-mode
-  // violations when the worker DB has >1 session. Sessions render newest-first,
-  // so `.first()` deterministically picks the most recently created one. See #452.
+  // Scope to `.view-session-btn` to avoid strict-mode violations with multiple
+  // sessions; `.first()` picks the newest (sessions render newest-first). See #452.
   const viewButton = page.locator('button.view-session-btn').first();
   await expect(viewButton).toBeVisible({ timeout: 5000 });
   await viewButton.click();
