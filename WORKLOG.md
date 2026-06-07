@@ -1073,3 +1073,41 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 15:33 UTC - Implementation worker (#442 e2e for first-run claim)
+
+🚀 Opened PR #447 for issue #442 — kiosk-level Playwright smoke test for the third-bullet AC of #433 (first-run claim card → next-utterance speaker resolution).
+
+- PR: https://github.com/jpshackelford/voice-relay/pull/447
+- Branch: `feat/442-e2e-first-run-claim` rebased onto `f821a15` (post-#445 main)
+- Single file added: `tests/first-run-claim.spec.ts` (177 lines, self-contained)
+- Local stability: 5/5 PASS via `npx playwright test tests/first-run-claim.spec.ts --workers=1 --repeat-each=5` (~4.3 s/rep, 26.6 s total — well under the 30 s AC budget)
+- CI: all 6 non-skipped checks green (Build Client, Client Tests, Server Tests, E2E Tests in 1m31s, lint-pr-title, enable-orchestrator)
+
+**Closing-Trailer AC Gate (issue #442): ⚠️ ACCEPTABLE WITH DEFERRAL** — 10/12 non-exempt ACs satisfied by the final diff; 2 deferred to follow-up #446.
+
+| AC | Verdict |
+|----|---------|
+| 1. New `tests/first-run-claim.spec.ts` exists | ✅ |
+| 2. Spec skips when `TEST_AUTH_SECRET` unset | ✅ `test.skip(!TEST_AUTH_SECRET, ...)` at describe scope |
+| 3. Uses `setupTwoDeviceSession` (no helper changes) | ✅ |
+| 4. Asserts `ClaimSpeakerCard` visible at start | ✅ `getByTestId('claim-speaker-card')` + `toBeVisible({ timeout: 10_000 })` |
+| 5. Drives name-only flow through real DOM (no fetch mocks) | ✅ button → name input → save click |
+| 6. Card disappears within 2 s of save | ✅ `toBeHidden({ timeout: 2_000 })` |
+| 7. Mobile peer's rendered `.sender` matches just-saved name | ⚠️ **Deferred (#446)** — server doesn't substitute `senderName` |
+| 8. Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ **Deferred (#446)** — same root cause |
+| 9. Runs under default `chromium` project | ✅ verified via `playwright test --list` |
+| 10. < 30 s wall-clock | ✅ ~4.3 s observed |
+| 11. No flake on 5 back-to-back local runs | ✅ 5/5 PASS |
+| 12. No regressions | ✅ CI E2E Tests green |
+
+**Trailer:** `Refs #442` + `Refs #433` + `Follow-up: #446` (NOT `Fixes` — two ACs deferred).
+
+**Discovery: server-side senderName-substitution gap (#446 filed).** While instrumenting the wire I traced that PR #438 wired `resolveSpeakerForSession` and stamps the resolved `speakerId` onto `RelayedTextMessage`, but left `senderName` hardcoded to `device.displayName` in `server/src/index.ts`. So #433's third-bullet contract is half-shipped — `speakerId` matches, `senderName` doesn't. The spec asserts the strongest contract that IS currently shipped (wire `speakerId === <speaker row from POST response>`, captured via CDP `Network.webSocketFrameReceived`), and tags the two name-equality assertions as `TODO(#446)`. When #446 lands (~1-line server fix + test), the TODOs flip to active assertions and #433 third bullet closes end to end.
+
+**Migration safety:** test-only diff. No schema migration, no client/server source changes.
+
+PR is now in `ready for review` state; review handling delegated to a separate conversation.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
