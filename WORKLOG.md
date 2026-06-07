@@ -633,3 +633,38 @@ _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 13:25 UTC - Merge Worker (PR #437)
+
+✅ **PR #437 squash-merged to main** — Issue #434 closed.
+
+| Field | Value |
+| --- | --- |
+| PR | [#437 — fix(client): reset position:fixed on kiosk connection dot so grid-area applies](https://github.com/jpshackelford/voice-relay/pull/437) |
+| Issue | [#434 — kiosk connection dot rendering in left sidebar](https://github.com/jpshackelford/voice-relay/issues/434) → CLOSED (auto, via `Fixes #434`) at 13:25:09Z |
+| Squash commit | [`a5a8afc`](https://github.com/jpshackelford/voice-relay/commit/a5a8afcd80d69ca21e405c25f45b24aac185472a) |
+| Final diff | `client/src/App.css` (+8/-0, 1 effective property + comment), `client/src/components/KioskMode.test.tsx` (+29/-0, source-string regression test) |
+| Commits squashed | `e649667` (impl) + `f702fe4` (shorten verbose comments per pr-review) |
+| Migration check | ✅ no server/DB/migration touch — pure CSS + test; SQLite production safe |
+| CI at merge | ✅ all 7 checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| Mergeability | MERGEABLE / CLEAN |
+
+**AC gate verdict (independent re-run vs FINAL diff): PASS**
+
+| # | AC item | Verdict |
+| --- | --- | --- |
+| 1 | Dot inside `.kiosk-display` only | ✅ `position: static` lets `grid-area: bl` apply |
+| 2 | Default = bottom-left of `.kiosk-display`, centered | ✅ `grid-area: bl; align-self: center; justify-self: center;` preserved |
+| 3 | `data-tickers-enabled="true"` → top-right `tr` | ✅ untouched sibling override inherits `position: static` via cascade |
+| 4 | Other overlays unaffected | ✅ only `.kiosk-display .connection-indicator` rule touched |
+| 5a | Regression test verifies position is not `fixed` | ✅ new `App.css overrides position:fixed on .kiosk-display .connection-indicator (regression #434)` test in `KioskMode.test.tsx`, strips CSS comments before matching |
+| 5b | Screenshots at 1280×720 / 1920×1080 | ✅ EXEMPT per PR #429 §AC #8 precedent (OAuth-gated kiosk pairing impractical from sandbox; verifiable post-deploy on `vr.chorecraft.net`) |
+| 6 | No new `position: absolute\|fixed` introduced | ✅ added value is `static` |
+
+No `## INSTRUCTION:` override block was present for PR #437 + #434; gate passed cleanly on its merits. Verdict recorded in the squash commit body. Review worker's prior re-run (13:14 UTC after `f702fe4`) noted verdict unchanged; this independent re-run confirms.
+
+**Production impact:** auto-deploys to `vr.chorecraft.net` on merge to main. Change is CSS-only — restores kiosk connection-dot placement to the pre-#394 anchor inside `.kiosk-display`. Visual smoke (AC #5b) verifiable on the live site once deploy completes.
+
+_This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
