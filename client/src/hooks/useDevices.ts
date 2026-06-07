@@ -2,12 +2,20 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredDeviceToken } from '../utils/deviceToken';
 
+/** Resolved primary speaker identity for a device. */
+export interface DevicePrimaryUser {
+  userId: string;
+  preferredName: string | null;
+}
+
 export interface DeviceInfo {
   id: string;
   name: string;
   mode: 'mobile' | 'kiosk';
   lastSeenAt: string | null;
   createdAt: string;
+  // Optional/null when unresolved; pre-#384 servers omit it entirely.
+  primaryUser?: DevicePrimaryUser | null;
   isCurrentDevice: boolean;
 }
 

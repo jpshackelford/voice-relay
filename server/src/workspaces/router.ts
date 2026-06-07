@@ -1207,6 +1207,47 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       }
 
       const devices = deviceRepository.findByWorkspace(workspace.id);
+
+      // Resolve primary speaker per device (cached per request).
+      // Returns null when speakerRepository is unavailable; client
+      // falls back to the bare device name.
+      const speakerCache = new Map<
+        string,
+        { userId: string; preferredName: string | null } | null
+      >();
+      const resolvePrimaryUser = (
+        primaryUserId: string | null | undefined
+      ): { userId: string; preferredName: string | null } | null => {
+        if (!primaryUserId || !speakerRepository) return null;
+        if (speakerCache.has(primaryUserId)) {
+          return speakerCache.get(primaryUserId) ?? null;
+        }
+        let resolved: { userId: string; preferredName: string | null } | null = null;
+        try {
+          const speaker = speakerRepository.findByWorkspaceUser(
+            workspace.id,
+            primaryUserId
+          );
+          // Preserve userId even when the speaker row is missing or
+          // preferredName is null — keeps "no speaker row" distinct
+          // from "speaker without preferred name" for callers.
+          resolved = {
+            userId: primaryUserId,
+            preferredName: speaker?.preferredName ?? null,
+          };
+        } catch (err) {
+          // Defense-in-depth: a speaker-lookup failure must not break
+          // the device list. Log and degrade to "no preferred name".
+          console.warn(
+            '[Workspaces] Speaker lookup failed for device list (non-fatal):',
+            err
+          );
+          resolved = { userId: primaryUserId, preferredName: null };
+        }
+        speakerCache.set(primaryUserId, resolved);
+        return resolved;
+      };
+
       res.json({
         devices: devices.map(d => ({
           id: d.id,
@@ -1214,6 +1255,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           mode: d.mode,
           lastSeenAt: d.lastSeenAt,
           createdAt: d.createdAt,
+          primaryUser: resolvePrimaryUser(d.primaryUserId),
         })),
       });
     } catch (err) {

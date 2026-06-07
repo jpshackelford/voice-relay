@@ -47,7 +47,8 @@ interface EditableDeviceNameProps {
   onRename: (id: string, name: string) => Promise<void>;
 }
 
-function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
+// Exported for testing (see EditableDeviceName.test.tsx, #384).
+export function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(device.name);
   const [saving, setSaving] = useState(false);
@@ -117,10 +118,21 @@ function EditableDeviceName({ device, onRename }: EditableDeviceNameProps) {
     );
   }
 
+  const personName = device.primaryUser?.preferredName ?? null;
+
   return (
-    <span className="device-name-text" onClick={() => setIsEditing(true)}>
-      {device.name}
-      <button className="rename-btn" title="Rename device">✏️</button>
+    <span className="device-row-label">
+      {personName && <span className="person-name">{personName} </span>}
+      <span
+        className={
+          personName ? 'device-name-text is-secondary' : 'device-name-text'
+        }
+        onClick={() => setIsEditing(true)}
+        data-testid="device-name-text"
+      >
+        {personName ? `(${device.name})` : device.name}
+        <button className="rename-btn" title="Rename device">✏️</button>
+      </span>
       {error && <span className="rename-error">{error}</span>}
     </span>
   );
