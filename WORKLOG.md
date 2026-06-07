@@ -668,3 +668,19 @@ No `## INSTRUCTION:` override block was present for PR #437 + #434; gate passed 
 _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 13:27 UTC - Expansion Worker (issue #440)
+
+✅ **Expanded Issue #440** — `test(client): kiosk integration smoke test for first-run claim flow`
+
+- Issue: [#440](https://github.com/jpshackelford/voice-relay/issues/440)
+- Type: Enhancement (test gap follow-up to #438 / #433)
+- Status: **Ready for implementation** (`ready` label added)
+- Approach: KioskMode-level vitest integration test (new file `client/src/components/KioskMode.claim-flow.test.tsx`) — chosen over a SessionView mount because the gap lives in `KioskMode.shouldShowClaimCard`; `SessionView` just threads props.
+- Scope: 5 specs — workspace-member OAuth handoff, name-only POST contract assertion, 7-day skip TTL write + suppress, optimistic re-render after claim, unmount/remount after skip, `×` close does-not-write-TTL.
+- Not blocked by #439 (the other deferred follow-up): Test 1 stops at `onSpeakerSignIn` invocation; OAuth-return PATCH is #439's contract.
+- Issue body rewritten with Problem / Proposed Solution / AC / Out-of-Scope.
+- Technical-approach comment added with file paths, mock shape, device-token seeding pattern, `fetch` assertion shape, and skip-TTL constants to import from `ClaimSpeakerCard` (`SKIP_KEY_PREFIX`, `SKIP_TTL_MS`).
+
+_This worklog entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
