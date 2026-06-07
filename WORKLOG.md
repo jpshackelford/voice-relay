@@ -282,3 +282,36 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
+
+---
+
+### 2026-06-07 02:00 UTC - Implementation Worker (#363) — duplicate-spawn no-op
+
+🛑 **Spawn collision.** This worker (OpenHands conversation, branch
+`feat/363-persist-ai-session-state`) was dispatched against #363 at
+01:34 UTC, the same window in which another implementation worker
+opened PR [#427][pr-427] (01:49 UTC). Both workers produced functionally
+equivalent diffs against the same branch name — same migration filename
+(`020_session_ai_state.ts`), same `SessionAIStateRepository`, same
+`transitionTo` chokepoint, same state-aware `rehydrateAgentSessions`.
+
+[pr-427]: https://github.com/jpshackelford/voice-relay/pull/427
+
+Discovery happened at `git push -u origin feat/363-persist-ai-session-state`
+which was rejected (non-FF) because the remote branch already held
+`4b89789` from the parallel worker. PR #427 is already `Ready for review`,
+CI is fully green (Server / Client / E2E / Build / lint-pr-title), and
+the `pr-review` bot is engaged.
+
+**Action taken:** abandoned the local commit (`a3abbc0`, never pushed),
+deleted the local feature branch, and logged this entry so the
+orchestrator knows two workers were spawned. No code, PR, or issue
+mutation by this worker.
+
+**Note for orchestrator:** PR #427 is the canonical implementation
+for #363. If the dispatcher considers re-spawning, gate on
+`gh pr list --search "feat/363" --state all` first.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
