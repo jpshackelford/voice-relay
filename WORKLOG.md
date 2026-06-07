@@ -1641,3 +1641,47 @@ No follow-ups filed.
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 18:14 UTC - Implementation Worker (#442)
+
+✅ **Audit-closed Issue #442** — no PR opened; all 12 ACs already satisfied by current `main` (HEAD `9a0207e`/`d6ffa3f`).
+
+The orchestrator's 18:08Z dispatch brief framed #442 as "distinct from `tests/first-run-claim.spec.ts`", but reading the issue body shows the file `tests/first-run-claim.spec.ts` IS the deliverable #442 prescribes (Playwright spec, top-level `tests/`, two-context kiosk + mobile peer via `setupTwoDeviceSession`). That file landed via PR #447 (initial spec with `senderName`-equality TODOs deferred to #446) and was completed by PR #454 (TODOs flipped to live assertions after PR #450 shipped server-side `senderName` substitution). The trailer chain `Refs #442` (PR #447) + no-mention (PR #454) is why #442 stayed open after the work shipped.
+
+**AC walk vs `tests/first-run-claim.spec.ts` on `main`:**
+
+| #   | AC                                                                                              | Verdict |
+| --- | ----------------------------------------------------------------------------------------------- | ------- |
+| 1   | File exists; imports `test, expect` from `./fixtures`                                           | ✅ |
+| 2   | Skips when `TEST_AUTH_SECRET` unset                                                             | ✅ |
+| 3   | Uses `setupTwoDeviceSession()`; no new helpers                                                  | ✅ |
+| 4   | Asserts claim card visible on the kiosk                                                         | ✅ |
+| 5   | Drives name-only flow through the real DOM                                                      | ✅ |
+| 6   | Card disappears within 2 s of submit                                                            | ✅ |
+| 7   | Mobile peer renders just-saved name within 2 s                                                  | ✅ (live since PR #454) |
+| 8   | Inbound text WS frame carries `senderName === '<just-saved name>'`                              | ✅ (live since PR #454) |
+| 9   | Default `chromium` project                                                                      | ✅ |
+| 10  | Suite delta < 10 s on warm runner                                                               | ✅ (~5.5 s/rep local) |
+| 11  | No flake in 5 back-to-back local runs                                                           | ✅ **5/5 passed (27.7s) on HEAD `9a0207e`** |
+| 12  | No regressions in `voice-relay`, `multi-device-relay`, `onboarding-flow`, `ws-keepalive` specs  | ✅ (covered by PR #454 CI green) |
+
+**Closing-Trailer Gate verdict:** `Fixes #442` would have been correct had this been a single PR. Treated as a `Fixes #442` audit-close: 12/12 ACs satisfied → issue closed via `gh issue close 442 --reason completed` with the AC table in [issuecomment-4643543956](https://github.com/jpshackelford/voice-relay/issues/442#issuecomment-4643543956).
+
+**Local verification command + result:**
+
+```
+TEST_AUTH_SECRET=test-secret-local PLAYWRIGHT_WORKERS=1 \
+  npx playwright test tests/first-run-claim.spec.ts --workers=1 --repeat-each=5
+[…]
+  5 passed (27.7s)
+```
+
+**Why no new PR:** The work is the file. The file already exists with the AC-required assertions live. Opening a no-op PR (or a contrived doc-only edit) would not advance the AC gate and would add review/merge noise. Documented the verdict on the issue and here.
+
+**No follow-up issues filed.** No production runtime impact (tests-only).
+
+**Cross-reference for future ticks:** when a worker is dispatched on a `Refs`-trailered issue that's been transitively completed by sibling PRs, the right action is an audit-close + worklog entry, not a vacuous PR. The dispatcher prompt's "distinct from `tests/first-run-claim.spec.ts`" framing was a stale carry-over from before PR #454 landed.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
