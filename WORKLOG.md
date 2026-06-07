@@ -1261,3 +1261,23 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 ---
+
+### 2026-06-07 22:25 UTC - Expansion Worker (#459)
+
+✅ **Expanded Issue #459** — Desktop kiosk display name reverts after reconnect (server-side regression of #85, peer-tab path)
+
+- Issue: [#459](https://github.com/jpshackelford/voice-relay/issues/459)
+- Type: Bug (server-side data corruption)
+- Status: Ready for implementation — `ready` label applied.
+- Root cause **verified** against `main@ff4cd43`:
+  - WS `register` handler at `server/src/index.ts:725-801` calls `deviceRepository.registerOrUpdate(deviceId, workspaceId, message.displayName, message.mode)` with the client-supplied (possibly stale) display name on every reconnect.
+  - `server/src/devices/device-repository.ts:170-176` then unconditionally invokes `this.update(deviceId, { name, mode })`. The `COALESCE(?, name)` SQL is defensive-only — `input.name` is always a non-null string, so the persisted user-authoritative name is overwritten on every reconnect.
+  - Client side: `client/src/hooks/useDevices.ts:93-110` `renameDevice` PATCHes the API but never updates `sessionStorage.displayName` or `storeDeviceToken`, so a subsequent `SessionView` mount (lines 75, 319) re-reads the stale name and ships it in `register`. This is the load-bearing single-tab repro path from the reporter's 2nd comment.
+  - Bonus finding: the existing test `server/src/devices/device-repository.test.ts:382-401` actually **codifies** the bug (asserts the name changes on re-register). It must be inverted as part of the fix.
+- Proposed fix (primary, ~2 LOC server change): `registerOrUpdate` existing-device branch should pass only `{ mode }` to `update()`, not `{ name, mode }`. Defense-in-depth on `useDevices.renameDevice` (flush `sessionStorage` + stored token) recommended in the same PR.
+- Files to modify, regression test, and acceptance criteria all spelled out in the [technical-approach comment](https://github.com/jpshackelford/voice-relay/issues/459#issuecomment-4644282837).
+- Complexity: Low. No schema / protocol / API surface change.
+
+_This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
+
+---
