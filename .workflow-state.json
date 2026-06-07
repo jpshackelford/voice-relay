@@ -4,10 +4,10 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "8ccd347",
-        "actual_conv_id": "8ccd3476ebde4b0c9ba4920ab8653ee5",
-        "issue": 446,
-        "started": "2026-06-07T17:20:40.572429Z"
+        "conv_id": "99652c5",
+        "actual_conv_id": "99652c559f5548cb80a6ef5a343f1d3e",
+        "issue": 442,
+        "started": "2026-06-07T18:08:13.477211Z"
       }
     ],
     "review": []
@@ -17,7 +17,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T17:20:40.572429Z",
+  "last_updated": "2026-06-07T18:08:34.465200Z",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -249,6 +249,16 @@
       "finished": "2026-06-07T17:20:40.572429Z",
       "status": "success",
       "outcome": "Opened PR #453 (test(e2e): scope kiosk session view locator)"
+    },
+    {
+      "conv_id": "8ccd347",
+      "actual_conv_id": "8ccd3476ebde4b0c9ba4920ab8653ee5",
+      "type": "implementation",
+      "issue": 446,
+      "started": "2026-06-07T17:20:40.572429Z",
+      "finished": "2026-06-07T18:08:34.465200Z",
+      "status": "success",
+      "outcome": "No-op dispatch: server-side ACs of #446 already shipped via merged PR #450. Set #446 on-hold + removed ready (policy hold, prose rationale); explainer comment at #issuecomment-4643388416. No PR opened."
     }
   ],
   "quiet_ticks": 0
