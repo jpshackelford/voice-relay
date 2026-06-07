@@ -714,3 +714,56 @@ Coverage on `resync-agent-status.ts`: **100% stmts / 100% funcs / 100% lines / 9
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 10:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `3e55df8` | expansion | Issue #431 — speaker header on every session start | **NEW** |
+| `6517d88` | expansion | Issue #432 — backfill devices.primary_user_id | **NEW** |
+| `dd9d214` | expansion | Issue #433 — first-run "claim this device" prompt | **NEW** |
+| `5df1586` | expansion | Issue #434 — connection status dot regression | **NEW** |
+
+🚀 **Spawned: 4 Expansion Workers (parallel)**
+
+1. **Expansion Worker** — [Issue #431](https://github.com/jpshackelford/voice-relay/issues/431) (`feat(server)`, priority:medium, scope:full-stack)
+   - Conversation: [`3e55df8`](https://app.all-hands.dev/conversations/3e55df8fd8024d07accd6f01cf02e13a)
+2. **Expansion Worker** — [Issue #432](https://github.com/jpshackelford/voice-relay/issues/432) (`chore(server)`, priority:medium, scope:server-only)
+   - Conversation: [`6517d88`](https://app.all-hands.dev/conversations/6517d88d3c184c6b837ca1d49172d6f8)
+3. **Expansion Worker** — [Issue #433](https://github.com/jpshackelford/voice-relay/issues/433) (`feat(client)`, priority:medium, scope:client-only)
+   - Conversation: [`dd9d214`](https://app.all-hands.dev/conversations/dd9d214451704221b31e4cd316b8a770)
+4. **Expansion Worker** — [Issue #434](https://github.com/jpshackelford/voice-relay/issues/434) (`bug(client)`, priority:medium, scope:client-only — regression of #394)
+   - Conversation: [`5df1586`](https://app.all-hands.dev/conversations/5df1586b43b540f8ae4ffcdd117cea33)
+
+**Gather state at tick start:**
+- Open PRs: **none** (PR #430 merged at 03:25Z previous tick; no new PRs in the queue).
+- Open issues: 12 total.
+  - Needing expansion (no `ready`, no `on-hold`, no `needs-human`): **#431, #432, #433, #434** — all four dispatched this tick.
+  - Ready (without policy/needs-human gate): **none** — #386 has `ready` but also `on-hold` (policy-tracked, no machine refs), so it remains held.
+  - Policy / freeze on-hold: #210, #239, #299, #300, #301, #302, #386 (S3 freeze covers #298–#302 per AGENTS.md; #210, #239, #386 are policy-tracked too).
+  - Needs human: #372.
+
+**Unblock pass (mechanical):**
+
+| Issue | Machine blockers | Result |
+| --- | --- | --- |
+| #299 | #298 (CLOSED) | mechanically unblockable — but **S3 design freeze in AGENTS.md** explicitly covers #298–#302; policy hold dominates. Not lifted. |
+| #300 | #298 (CLOSED), #299 (OPEN) | still mechanically blocked. |
+| #301 | #295 (CLOSED) | mechanically unblockable — same S3 freeze override applies. Not lifted. |
+| #302 | #300 (OPEN) | still mechanically blocked. |
+| #386, #239, #210 | none (prose-only) | policy-tracked on-hold — only a human or new INSTRUCTION can lift. Untouched. |
+
+Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 but the codified AGENTS.md S3 design-freeze policy overrides them — see "Active design freeze: workspace persistence (S3 / #298)" in AGENTS.md; the freeze lifts only when `VR_WORKSPACE_BUCKET` + AWS creds are provisioned on prod). Same behaviour as the 03:25Z tick.
+
+**Anti-stall note:** the decision table is exhaustive. No `## INSTRUCTION:` override block exists in WORKLOG.md, and the four candidate issues (#431–#434) carry no codified gate. They are dispatchable on their merits — the expansion-slot cap of 4 happens to match the queue size exactly.
+
+**Decision:** spawn expansion for all four (4/4 expansion slots used). Implementation slot stays idle because no `ready` issue is gate-free. Review slots stay idle because no open PRs exist.
+
+**Slot accounting at end of tick:** expansion 4/4, implementation 0/1, review 0/2. Total active conversations: 4/7.
+
+**Quiet-tick counter:** reset `1 → 0` (productive — 4 expansion workers dispatched, queue drained of expandable issues).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
