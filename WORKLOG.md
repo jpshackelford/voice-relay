@@ -349,3 +349,43 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 11:35 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4495bb5` | review | PR #436 — backfill devices.primary_user_id | **NEW** |
+| `c93e8e6` | implementation | Issue #434 — connection status dot rendering bug | **NEW** |
+
+**Unblock pass:**
+- ✅ #433 — `Blocked by #431` (closed) → lifted `on-hold`, added `ready` (priority:medium)
+- ⚠️ #299, #301 — machine pass lifted them (blockers #298, #295 closed), but the S3 workspace-persistence design freeze in `AGENTS.md` is still in effect. Re-applied `on-hold` and removed `ready`; left explanatory comments on both. Policy freeze remains until production S3 bucket + credentials are provisioned and the runbook smoke test passes (per AGENTS.md "Active design freeze").
+- Policy-tracked (skipped): #210, #239, #386
+- Still legitimately blocked: #300 (Blocked by #299), #302 (Blocked by #300)
+
+**Worker reaping:**
+- `ae84ef1` impl → completed: PR #435 merged at 11:22:56Z (Fixes #431).
+- `7196fb6` merge → completed: squash-merged PR #435.
+- `f096f7d` impl → completed: opened PR #436 (Fixes #432), CI 7/7 green, 1 unresolved review thread (DRY suggestion on migration test).
+
+**Spawned: 2 Workers (parallel)**
+
+1. **Review Worker** — PR #436
+   - PR: [#436 — chore(server): backfill devices.primary_user_id for pre-017 devices](https://github.com/jpshackelford/voice-relay/pull/436)
+   - Trigger: 1 unresolved pr-review thread suggesting `db.exec(migration.up)` re-use in test case E instead of inlining 28 lines of migration SQL (DRY).
+   - Conversation: [`4495bb5`](https://app.all-hands.dev/conversations/4495bb566a404ef0ae6592a1db00c708)
+
+2. **Implementation Worker** — Issue #434
+   - Issue: [#434 — bug(client): connection status dot rendering in left sidebar instances broken](https://github.com/jpshackelford/voice-relay/issues/434) (priority:medium, bug, scope:client-only)
+   - Conversation: [`c93e8e6`](https://app.all-hands.dev/conversations/c93e8e60cfb94339b6f46ec13f0eb2fd)
+
+**Current State:**
+- Open PRs: [#436](https://github.com/jpshackelford/voice-relay/pull/436) (under review with worker `4495bb5`)
+- Ready, prioritized issues: #433 (priority:medium, just unblocked — implementation slot will pick it up next cycle), #434 (now in flight)
+- Slots: expansion 0/4, implementation 1/1, review 1/2
+
+**Action Taken:**
+🚀 Spawned 2 workers (1 review + 1 implementation). Productive tick → `quiet_ticks = 0`.
+
+---
