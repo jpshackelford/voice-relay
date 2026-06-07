@@ -310,3 +310,42 @@ Out-of-scope items from issue body (pre-017 backfill, kiosk first-run claim UX, 
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 11:29 UTC - Implementation worker (issue #432)
+
+🚧 → ✅ Opened PR #436 — `chore(server): backfill devices.primary_user_id for pre-017 devices`.
+
+**Issue:** [#432](https://github.com/jpshackelford/voice-relay/issues/432) — chore(server): backfill devices.primary_user_id for devices paired before migration 017.
+
+**PR:** [#436](https://github.com/jpshackelford/voice-relay/pull/436) — ready for review. CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator all pass; pr-review will run now that draft is lifted).
+
+**Changes:**
+- New migration `server/src/storage/migrations/021_backfill_devices_primary_user.ts` — one-shot data UPDATE setting `devices.primary_user_id` to the workspace owner's `user_id` when there is exactly one `workspace_members` row with `role='owner'`. `destructive: false`. `down` is `SELECT 1` with explanatory comment (no safe inverse).
+- New test `021_backfill_devices_primary_user.test.ts` — covers AC matrix A–E plus a mixed-workload pass and the down no-op. 8 cases, all pass. New file is at 100% line/branch/function/statement coverage.
+- `server/src/storage/migrations/index.ts` — import + append migration021.
+
+**Local verification:**
+- `npm test -- 021_backfill` → 8 passed.
+- `npm test -- migrations` → 42 passed across the full chain.
+- `npm test` (server) → 1656 passed.
+- `npm run build` → clean tsc.
+
+**Acceptance-criteria gate verdict:** ✅ **All 7 non-exempt AC items satisfied.** Trailer = `Fixes #432`. No follow-up issues filed.
+
+| AC item | Status |
+|---|---|
+| Migration registered in `index.ts` | ✅ |
+| Up sets `primary_user_id` for single-owner workspaces | ✅ (cases A + mixed) |
+| Existing non-NULL never overwritten | ✅ (case C) |
+| Re-run is a no-op proven by test | ✅ (case E asserts `changes === 0`) |
+| Down is a no-op for the data side with comment | ✅ (down test + SQL comment) |
+| `destructive: false` | ✅ (registry test) |
+| Test file covers the matrix | ✅ |
+
+**Coordination:** PR #435 (#431) untouched; disjoint code paths (header builder vs. migration), so no rebase needed at this point.
+
+**Production deploy:** auto-runs on merge via the existing migrator boot path; no manual step. Idempotent on retry.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
