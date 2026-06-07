@@ -587,3 +587,26 @@ Net diff: +9 / −49 across 4 files. PR moved back to ready; CI re-running (merg
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 03:05 UTC - Implementation worker (#351)
+
+✅ Opened PR #430 for issue #351 — bug(server): startup rehydration failures are silent until the user types — kiosks should learn at register time.
+
+| Item | Value |
+| --- | --- |
+| Issue | [#351](https://github.com/jpshackelford/voice-relay/issues/351) (priority:low, scope:server-only) |
+| PR | [#430](https://github.com/jpshackelford/voice-relay/pull/430) |
+| Branch | `fix/351-register-time-degraded-broadcast` |
+| Commit | `75ea5e9` — _fix(server): broadcast degraded snapshot at register time after failed rehydration_ |
+| CI | ✅ Server Tests, ✅ Client Tests, ✅ Build Client, ✅ E2E Tests, ✅ lint-pr-title |
+| AC Gate verdict | **PASS** — all 4 non-exempt ACs satisfied → trailer `Fixes #351` |
+| Follow-ups filed | None |
+| Status | Draft → Ready |
+
+**Implementation note:** the original expansion comment (pre-#363) proposed a new `rehydrationFailure` field on `session.metadata` plus writes/clears at four call-sites. Since then, the `session_ai_state` table (issue #363) shipped with the same semantics: the rehydration failure path already persists `state='degraded'` there, and both `AISessionManager.openSession` paths overwrite it with `running` via `persistInitialState`. The only missing piece was the register-time read. PR #430 threads `sessionAIStateRepository` into `resyncAgentSessionStatus` and synthesizes a `degraded` `AgentSessionStatus` (legacy `session-ai-status` + unified `session-state`) when the driver reports `absent` but the durable row carries `degraded`.
+
+**Tests:** 8 new unit tests in `resync-agent-status.test.ts` (T-3.1.11 block) + 2-case integration test in new `register-time-degraded.integration.test.ts` (real in-memory SQLite + `SessionAIStateRepository` exercising the full failed-boot → register flow). Coverage on `resync-agent-status.ts`: 100% stmts/funcs/lines, 96% branches. Full server suite: 1644/1644 passing.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
