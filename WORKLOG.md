@@ -801,3 +801,18 @@ _This entry was created by an AI agent (OpenHands expansion worker) on behalf of
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 10:42 UTC - Expansion Worker (issue #431)
+
+✅ **Expanded Issue #431**
+
+- Issue: [feat(server): emit speaker header on every session start (resolved / no-name / unknown) and make agent opening message dynamic](https://github.com/jpshackelford/voice-relay/issues/431)
+- Type: Enhancement (server-only, builds on #383 / #391 / #428)
+- Status: Ready for implementation (`ready` label applied)
+- Approach: Two-part fix — (A) extend `buildVoiceRelayHeader` in `server/src/agent-driver/voice-relay-header.ts` with a new branch that emits `[speaker id=unknown device=<deviceId>]` on the first turn from a device whose `primary_user_id` is `NULL` (today the unknown branch only fires when a previously-resolved speaker becomes unresolved, leaving pre-#383 / never-claimed devices with no `[speaker …]` line at all); (B) rewrite `server/prompts/system-prompt.md` so the "FIRST ACTION: Send a Greeting" instruction branches on the first user turn's speaker header (resolved + `name=` → greet by name; resolved no `name=` → ask name; `id=unknown` → ask name, using `device=` to disambiguate when multiple unknowns are talking) instead of firing the static `"Ready to help!"` payload before any user turn. Recommended over the richer alternative (B2 — inject `{{INITIAL_SPEAKERS}}` substitution into the system prompt at bind time via `applyPromptSubstitutions` + `autoConnectAI`) because B1 satisfies all four acceptance criteria with ~10 lines of TS + a prompt rewrite, no new resolver-interface plumbing, and no new substitution surface — B2 stays available as a follow-up.
+- Files: `server/src/agent-driver/voice-relay-header.ts` (+ branch), `server/src/agent-driver/voice-relay-header.test.ts` (new cases: unknown-first-turn, multi-device unknown disambiguation, real-speaker resolution clears unknown state, no-repeat on consecutive turns), `server/prompts/system-prompt.md` (document the new form + rewrite FIRST ACTION), `server/src/resolve-session-system-prompt.test.ts` or a small new file (smoke-test the prompt contains the three branch markers and no longer the static `"Ready to help!"` payload).
+- Scope: `scope:server-only` is sufficient (existing `scope:full-stack` can stay or be downgraded by the author). No DB migration, no API changes, no client changes.
+- Risk: low. The only behaviour-changing surface is the built-in prompt's FIRST ACTION block; workspace/session prompt overrides (#378) are out of our control by design.
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
