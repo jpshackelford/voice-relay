@@ -816,3 +816,18 @@ _This entry was created by an AI agent (OpenHands expansion worker) on behalf of
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 10:48 UTC - Expansion Worker (issue #433)
+
+🛑 **Expanded Issue #433** — `on-hold` (blocked by #431)
+
+- Issue: [feat(client): first-run "claim this device" prompt for unknown speakers](https://github.com/jpshackelford/voice-relay/issues/433)
+- Type: Enhancement (client-leaning, small server addition for the anonymous-name path)
+- Status: `on-hold` — strict hard-block on #431 because the client first-run card needs a deterministic "device is unclaimed" WS signal, which is cheapest to emit from the same `registered`/speaker-resolution code path that #431 is already touching. A `Blocked by #431` line is in the on-hold comment so the orchestrator unblock pass will lift it automatically when #431 closes.
+- Approach: extend `RegisteredMessage` with `speakerState { deviceClaimed, primaryUserId, activeSpeakerId }` (recommended bundled into #431); render a non-blocking `<FirstRunClaimCard>` in the existing `.kiosk-display` grid (#379/#394) and as a bottom sheet on mobile; three actions: (1) GitHub-auth → reuse `PATCH /api/workspaces/:id/devices/:id` which already triggers `setPrimaryUser` + `upsertForUser`; (2) anonymous name → **new** device-token-authenticated `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker` writes an anonymous `speakers` row + `session_devices.active_speaker_id`; (3) skip → 7-day suppress in `localStorage` keyed by `workspaceId+deviceId`.
+- Files: `client/src/types.ts` (extend `RegisteredMessage`), `client/src/hooks/useWebSocket.ts` (expose `speakerState`), new `client/src/hooks/useFirstRunClaim.ts` + tests, new `client/src/components/FirstRunClaimCard.tsx` + tests, `client/src/components/{KioskMode,MobileMode}.tsx` (render card), `client/src/pages/SessionView.tsx` (thread state), `client/src/App.css` (new `.first-run-claim-card` block + kiosk-grid area), `server/src/devices/router.ts` (new route), `server/src/session-devices-repository.ts` (new `setActiveSpeaker`), `server/src/index.ts` (overlap with #431: include `speakerState` on `registered`), router tests.
+- Scope flag: issue is labeled `scope:client-only` but the anonymous-name path needs one new server endpoint. Noted in the technical comment — if #431 ships the `speakerState` surface, this stays mostly client-only; if not, the label should bump to `scope:full-stack`.
+- Risk: low/medium. Existing schema already has all columns (migration 017). Watch-out: the new endpoint must clear `voiceRelayHeaderState.deviceSpeakerId` for the affected device or the very next utterance will still emit the cached stale speaker.
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
