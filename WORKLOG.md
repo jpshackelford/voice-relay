@@ -1281,3 +1281,33 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 22:25 UTC - Implementation Worker (PR #460 review-feedback)
+
+✅ Addressed pr-review bot suggestions on [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) (fix iOS 18 Safari spurious STT 'aborted', Fixes #457).
+
+**Changes:**
+- Tightened the verbose 9-line bug-history comment in `client/src/hooks/useSpeechRecognition.ts` to 3 lines stating only the closure/ref intent.
+- Same tightening for the deps comment in `client/src/components/MobileMode.tsx` (3 lines stating dep-omission rationale; narrative removed).
+- Commit `aed6897` (`refactor(client): tighten verbose deps comments per review feedback`).
+
+**Procedure followed:**
+1. Dropped PR to draft → applied edits → pushed → CI all 5 checks ✅ green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title).
+2. Replied + resolved both review threads (`PRRT_kwDOSTUWGM6HsT_F`, `PRRT_kwDOSTUWGM6HsT_G`) referencing `aed6897`.
+3. Moved PR back to ready-for-review.
+
+**Closing-Trailer AC Gate (re-run vs issue #457):**
+
+| AC | Status |
+|---|---|
+| 1. onstart fires before any onerror on iPhone 17e / iOS 18.7 | ✅ refs-pattern in `useSpeechRecognition.ts` intact |
+| 2. `isListening` flips true, `sendListeningState(true,…)` observable on WS | ✅ logic unchanged |
+| 3. No `[ClientError] … source="useSpeechRecognition" code="aborted"` on happy path | ✅ early-abort filter intact |
+| 4. Regression test simulating WS-upgrade during permission prompt | ✅ `useSpeechRecognition.test.ts` (+112 lines) intact |
+| 5. iPhone SE 3 / older iOS unchanged | ✅ no behavior changes |
+
+**Verdict: `Fixes #457` (unchanged).** This was a comments-only change and could not affect AC coverage. PR is back in ready state with CI green and 0 unresolved threads.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
