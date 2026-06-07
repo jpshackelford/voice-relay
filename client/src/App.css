@@ -4338,6 +4338,75 @@ header {
   text-decoration: underline;
 }
 
+/* Hosted STT (Deepgram) settings — match the API-key panel rhythm.
+   Issue #426: PR #422 introduced these wrapper classes without
+   matching CSS, so the radio group collapsed onto one line. */
+.stt-engine-setting {
+  padding-top: 1rem;
+  border-top: 1px solid #333;
+  margin-top: 0.5rem;
+}
+
+.stt-engine-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.stt-engine-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #ddd;
+  cursor: pointer;
+}
+
+.stt-engine-option input[type='radio'] {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.stt-engine-option input[type='radio']:disabled {
+  cursor: not-allowed;
+}
+
+.stt-engine-option input[type='radio']:disabled ~ span {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.inline-hint {
+  font-size: 0.75rem;
+  color: #666;
+  font-style: italic;
+  margin-left: 0.25rem;
+  margin-top: 0;
+}
+
+.stt-cap-input {
+  flex: 0 1 12rem;
+  max-width: 12rem;
+  min-width: 8rem;
+}
+
+.stt-usage-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin: 0.25rem 0;
+}
+
+.stt-usage-counter {
+  color: #ddd;
+}
+
+.stt-usage-counter strong {
+  color: #fff;
+}
+
 /* ElevenLabs Settings */
 .elevenlabs-setting {
   margin-top: 1rem;
