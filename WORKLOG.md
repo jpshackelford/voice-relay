@@ -389,3 +389,27 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 🚀 Spawned 2 workers (1 review + 1 implementation). Productive tick → `quiet_ticks = 0`.
 
 ---
+
+### 2026-06-07 11:43 UTC - Review Worker (PR #436 — backfill devices.primary_user_id)
+
+✅ Addressed pr-review-bot 🟡 Acceptable feedback on PR #436 (Fixes #432).
+
+**Review thread (1 unresolved):**
+- Path: `server/src/storage/migrations/021_backfill_devices_primary_user.test.ts:169`
+- Suggestion: case E duplicated 28 lines of migration UPDATE SQL just to assert `changes === 0`. Reviewer asked to call `db.exec(migration021.up)` and assert post-condition instead (matches migration 017's idempotency-test pattern).
+
+**Fix:** Commit [`4274723`](https://github.com/jpshackelford/voice-relay/commit/4274723) — replaced the inlined UPDATE with `db.exec(migration021.up)` and asserted `getDevicePrimaryUser('dev-e') === 'user-e'` + `result === db`. -24/+4 lines in the test.
+
+**Verification:**
+- `npm test -- 021_backfill` → 8/8 pass locally.
+- CI on PR #436 → all 7 checks green (Server Tests, Client Tests, E2E Tests, Build Client, lint-pr-title, etc.).
+- Review thread `PRRT_kwDOSTUWGM6Hpn4b` replied to with commit SHA and resolved via GraphQL.
+
+**AC gate re-run (#432):** Unchanged — **PASS**. The fix touched only test-case E's assertion style; migration logic, idempotency guarantees, and the test matrix coverage (A/B/C/D/E + mixed + down) are intact. AC verdict table posted as a PR comment.
+
+**PR state now:**
+- Draft → fix pushed → CI green → marked ready for review again (`gh pr ready 436`).
+- 1 review thread resolved, 0 unresolved.
+- Fixes #432.
+
+---
