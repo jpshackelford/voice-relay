@@ -11,7 +11,6 @@ import { setupTwoDeviceSession, ensureKioskInputVisible } from './utils/auth-hel
  * server-emitted `RelayedTextMessage` on the wire.
  *
  * Scope: name-only path only. OAuth-handoff path deferred (needs test IdP + #439).
- * senderName assertion deferred to #446 (server still uses device.displayName).
  */
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
@@ -132,9 +131,8 @@ test.describe('First-run claim card → next-utterance speaker resolution (#442)
       expect(wsFrame.text).toBe(utterance);
       expect(wsFrame.partial).toBe(false);
       expect(wsFrame.speakerId).toBe(speakerId);
-
-      // TODO(#446): assert `wsFrame.senderName === speakerName` and rendered
-      // peer sender once server substitutes RelayedTextMessage.senderName.
+      expect(wsFrame.senderName).toBe(speakerName);
+      await expect(peerMessage.locator('.sender')).toHaveText(new RegExp(speakerName));
     } finally {
       await cleanup();
     }
