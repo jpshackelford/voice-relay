@@ -3898,6 +3898,8 @@ header {
    .kiosk-oscilloscope-indicator; the three are mutually exclusive in
    current render paths. */
 .kiosk-display .connection-indicator {
+  /* Reset the base `position: fixed` so grid-area placement applies. */
+  position: static;
   grid-area: bl;
   align-self: center;
   justify-self: center;

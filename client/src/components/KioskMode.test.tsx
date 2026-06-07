@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { KioskMode, parseMarkdown } from './KioskMode';
 import type { AgentAction, DeviceInfo, Utterance, DisplayContent, SessionTtsSettings } from '../types';
 
@@ -2205,6 +2207,30 @@ describe('KioskMode', () => {
       const kioskDisplay = container.querySelector('.kiosk-display');
       const dot = kioskDisplay?.querySelector('.connection-indicator');
       expect(dot).not.toBeNull();
+    });
+
+    it('App.css overrides position:fixed on .kiosk-display .connection-indicator (regression #434)', () => {
+      // Verify the kiosk override resets `position: fixed` so grid-area
+      // placement applies. Reading CSS source directly because happy-dom
+      // doesn't reliably resolve computed styles across stylesheets;
+      // Playwright would catch this too but is far heavier for a CSS-only fix.
+      const cssPath = join(__dirname, '..', 'App.css');
+      // Strip CSS comments before matching so stray `{` / `}` inside a
+      // comment can't truncate the rule body. (`/\*[\s\S]*?\*/` is the
+      // standard CSS-block-comment pattern; CSS has no line comments.)
+      const css = readFileSync(cssPath, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+      const ruleMatch = css.match(
+        /\.kiosk-display\s+\.connection-indicator\s*\{[^}]*\}/
+      );
+      expect(ruleMatch).not.toBeNull();
+      const rule = ruleMatch![0];
+      // The override must explicitly neutralize the inherited position.
+      // Either `static` (current fix) or `absolute`/`relative` would
+      // re-anchor the element into the grid; the only forbidden value
+      // is `fixed`, which pins the dot to the viewport.
+      expect(rule).toMatch(/position\s*:\s*(?!fixed)(static|absolute|relative)\b/);
+      // Sanity: grid-area placement is still wired up.
+      expect(rule).toMatch(/grid-area\s*:\s*bl\b/);
     });
 
     it('sets data-tickers-enabled="true" on .kiosk-display when tickers are on', () => {
