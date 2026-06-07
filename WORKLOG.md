@@ -831,3 +831,54 @@ _This entry was created by an AI agent (OpenHands expansion worker) on behalf of
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 10:54 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ae84ef1` | implementation | Issue #431 — speaker header on every session start | **NEW** |
+
+**Spawned: Implementation Worker**
+- Issue: [#431 — feat(server): emit speaker header on every session start (resolved / no-name / unknown)](https://github.com/jpshackelford/voice-relay/issues/431)
+- Conversation: [`ae84ef1`](https://app.all-hands.dev/conversations/ae84ef1fe5fb4a8eb507c34f1737945d)
+- Priority: medium (oldest of the three ready issues; landing it also unblocks #433)
+
+**Worker Lifecycle Reconciliation:**
+All four expansion workers from the 10:35Z tick are now `finished`. Moved to `completed[]` in `.workflow-state.json`:
+
+| Conv ID | Issue | Outcome |
+|---------|-------|---------|
+| `3e55df8` | #431 | Ready — server-only fix; extend header builder unknown branch + system-prompt FIRST ACTION rewrite. |
+| `6517d88` | #432 | Ready — migration 021 backfill (single-owner workspaces). |
+| `dd9d214` | #433 | **on-hold** — `Blocked by #431` (deterministic speakerState WS signal). Will auto-lift when #431 closes. |
+| `5df1586` | #434 | Ready — one-line CSS fix for kiosk connection dot (regression from #394). |
+
+**Unblock Pass:** ran across 8 `on-hold` issues.
+
+| Issue | Mechanical blockers | Decision |
+|-------|---------------------|----------|
+| #433 | #431 (OPEN, ready) | still mechanically blocked. |
+| #302 | #300 (OPEN) | still mechanically blocked. |
+| #301 | #295 (CLOSED) ✓ | **NOT lifted** — AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" overrides; freeze only lifts when `VR_WORKSPACE_BUCKET` + AWS creds are provisioned on prod. |
+| #300 | #298 (CLOSED), #299 (OPEN) | one blocker still open AND under the S3 freeze. |
+| #299 | #298 (CLOSED) ✓ | **NOT lifted** — same S3 design-freeze policy override. |
+| #386, #239, #210 | none (prose-only) | policy-tracked on-hold — untouched. |
+
+Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 but the codified AGENTS.md policy gate overrides — see "Anti-Stall: Decision Table is Exhaustive" §3, "documented policy in AGENTS.md"). Same verdict as the 10:35Z tick.
+
+**Current State:**
+- Open PRs: 0
+- Ready issues (gate-free): #431 (now in impl slot), #432, #434 — all priority:medium
+- On-hold: #433 (mechanical, lifts on #431 close), #386, #302, #301, #300, #299, #239, #210 (all policy-tracked)
+- needs-human: #372
+
+**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override, no `on-hold`/`needs-human` label on #431/#432/#434, no AGENTS.md policy gating any of them. The impl-slot cap of 1 means #432 and #434 remain in the ready backlog for future ticks. Review slots (2 available) stay idle — no open PRs.
+
+**Slot accounting at end of tick:** expansion 0/4, implementation 1/1, review 0/2. Total active conversations: 1/7.
+
+**Quiet-tick counter:** stays at `0` (productive — 1 implementation worker dispatched; 4 expansion workers reconciled to `completed`).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
