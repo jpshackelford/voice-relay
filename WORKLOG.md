@@ -1404,3 +1404,39 @@ _This entry was created by an AI agent (OpenHands expansion worker) on behalf of
 **Slot Capacity:** expansion 0/4, implementation 1/1, review 0/2 — 1 worker running.
 
 ---
+
+### 2026-06-07 17:15 UTC - Implementation Worker (Issue #452)
+
+✅ **Issue #452 — kiosk strict-mode helper fix — PR ready for review**
+
+- PR: [#453 — test(e2e): scope kiosk session view locator to .view-session-btn](https://github.com/jpshackelford/voice-relay/pull/453)
+- Branch: `fix/452-kiosk-strict-mode-helper`
+- Diff: `tests/utils/auth-helper.ts` only, +8 / -2 (single-file, test-only)
+
+**Fix:** Replaced un-scoped `page.getByRole('button', { name: /view/i })` with `page.locator('button.view-session-btn').first()` in both `navigateKioskToFirstSession` (line 395) and `navigateKioskToSession` (line 471). The `.view-session-btn` class is unique to the dashboard's session-row buttons (confirmed in `client/src/pages/WorkspaceHome.tsx:1157`); `.first()` makes determinism explicit and reliably picks the newest session (dashboard renders newest-first).
+
+**CI verdict:**
+
+| Check                | Result |
+| -------------------- | ------ |
+| Build Client         | ✅ pass (26s)  |
+| Client Tests         | ✅ pass (41s)  |
+| Server Tests         | ✅ pass (55s)  |
+| **E2E Tests**        | ✅ **pass (2m5s)** — the canonical proof; the multi-session worker DB no longer trips strict-mode |
+| lint-pr-title        | ✅ pass (after type `tests` → `test` correction) |
+
+**AC-gate verdict:** ✅ **All 5 acceptance criteria satisfied → trailer = `Fixes #452`**
+
+| # | AC                                                                                              | Status |
+| - | ----------------------------------------------------------------------------------------------- | ------ |
+| 1 | Both helpers use a single-element locator regardless of session count                           | ✅ both call sites updated |
+| 2 | Full chromium e2e suite passes against a worker DB seeded with ≥ 2 sessions                     | ✅ CI's E2E job (2m5s) accumulates sessions across the suite and stays green |
+| 3 | No new Playwright strict-mode warnings                                                          | ✅ E2E run clean |
+| 4 | `first-run-claim`, `ws-keepalive`, `multi-device-relay`, `qr-join-flow` all green               | ✅ all part of the passing E2E Tests job |
+| 5 | No production code changes — confined to `tests/`                                               | ✅ diff is one file under `tests/utils/` |
+
+**No follow-up issues filed** — all ACs cleanly satisfied. PR moved from draft → ready for review. Review handling is a separate conversation.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
