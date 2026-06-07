@@ -390,9 +390,6 @@ export function useHostedSpeechRecognition(
   const surfaceError = useCallback((next: HostedSpeechRecognitionError) => {
     setError(next);
     setIsListening(false);
-    // Issue #455: fire-and-forget diagnostic report so the server log
-    // captures hosted-STT failures (token-mint 5xx, mic-permission,
-    // WS close) alongside Web Speech ones.
     reportClientError({
       sessionId: sessionIdRef.current,
       workspaceId: workspaceIdRef.current,

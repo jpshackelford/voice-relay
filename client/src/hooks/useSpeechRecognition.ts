@@ -135,9 +135,6 @@ export function useSpeechRecognition({
           break;
       }
 
-      // Issue #455: fire-and-forget diagnostic report so server logs
-      // capture the raw `event.error` code (incl. unmapped values
-      // like `aborted` that today only land in the browser console).
       reportClientError({
         sessionId,
         workspaceId,

@@ -255,9 +255,8 @@ export function MobileMode({
         startListening();
       } catch (err) {
         console.error('[MobileMode] Speech recognition error:', err);
-        // Issue #455: surface synchronous startListening() throws (rare —
-        // most STT failures fire async via onerror, but a non-conformant
-        // browser could still raise here) into the server log.
+        // Surface synchronous startListening() throws — most STT failures
+        // fire async via onerror, but a non-conformant browser could raise here.
         reportClientError({
           sessionId,
           workspaceId,
@@ -274,8 +273,8 @@ export function MobileMode({
         startListening();
       } catch (err) {
         console.error('[MobileMode] Speech recognition error:', err);
-        // Issue #455: see same-named call site in 'voice' branch above —
-        // distinct `source` so log greps disambiguate which catch fired.
+        // Distinct `source` so log greps disambiguate this catch from the
+        // 'voice' branch above.
         reportClientError({
           sessionId,
           workspaceId,
