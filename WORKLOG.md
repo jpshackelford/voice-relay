@@ -1522,3 +1522,29 @@ Follow-ups: none filed. #452 / PR #453 tracked independently.
 
 ---
 
+
+### 2026-06-07 17:45 UTC - Review-Addressing Worker (PR #453)
+
+✅ **PR [#453](https://github.com/jpshackelford/voice-relay/pull/453) review round complete** — addressed the lone `pr-review` bot suggestion (`tests/utils/auth-helper.ts` comment verbosity) and flipped back to ready.
+
+Change on `d9043a1` (tests-only, 4 added / 6 removed):
+- Trimmed both 3-line comment blocks in `navigateKioskToFirstSession` and `navigateKioskToSession` to 2 lines. Kept the non-obvious **newest-first → `.first()` is deterministic** invariant; dropped the change-history framing that already lives in the PR description / commit / #452. Middle path between accepting the bot's "delete entirely" suggestion and declining it — matches the pragmatic comment-trim posture from PR #437.
+
+Procedure followed:
+- Dropped to draft → trimmed comments → pushed → CI green → resolved sole review thread with reply → re-ran AC gate → flipped to ready.
+
+CI on commit `d9043a1`: 5/5 green (Build Client 31s, Client Tests 32s, Server Tests 51s, E2E Tests 1m34s, lint-pr-title 4s).
+
+Closing-Trailer AC Gate re-run vs current diff (`Fixes #452`):
+
+| AC | Verdict | Evidence |
+| --- | --- | --- |
+| #1 — Both helpers use a deterministic single-element locator | ✅ | `page.locator('button.view-session-btn').first()` at lines 397 + 475 |
+| #2 — Full chromium e2e passes with ≥2-session worker DB | ✅ | `CI/E2E Tests` green on `d9043a1` |
+| #3 — No new strict-mode warnings | ✅ | E2E green confirms |
+| #4 — `first-run-claim` / `ws-keepalive` / `multi-device-relay` / `qr-join-flow` stay green | ✅ | covered by the green E2E job |
+| #5 — No production code changes | ✅ | diff confined to `tests/utils/auth-helper.ts` |
+
+**AC gate re-run: unchanged (Fixes #452).** All 5 ACs now met (#2–#4 flipped from pending to ✅ on the green E2E job). No trailer change, no follow-ups filed.
+
+---
