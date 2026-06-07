@@ -1547,3 +1547,29 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 ---
+
+### 2026-06-07 22:12 UTC - Implementation worker (#457 iOS 18 STT regression)
+
+✅ Implemented fix for #457 (iOS 18 Safari STT `aborted` regression from PR #456) and opened PR [#460](https://github.com/jpshackelford/voice-relay/pull/460).
+
+| Item | Value |
+|---|---|
+| PR | [#460](https://github.com/jpshackelford/voice-relay/pull/460) (ready for review) |
+| Closing trailer | `Fixes #457` |
+| Files touched | `client/src/hooks/useSpeechRecognition.ts` (ref pattern + deps revert), `client/src/components/MobileMode.tsx` (deps revert), `client/src/hooks/useSpeechRecognition.test.ts` (3 regression tests) |
+| LoC | +145 / -6 (incl. tests) |
+| Tests | `vitest run` → 1210/1210 pass; `tsc -b` clean |
+| CI | Build / Client / Server / E2E / lint-pr-title — all green |
+
+**AC gate verdict:** All 5 acceptance criteria satisfied against the final diff — no follow-up issues required.
+
+1. ✅ `onstart` fires before any `onerror` (mid-`start()` `startListening` rebuild eliminated; covered by regression test #2)
+2. ✅ `isListening` flips to `true` after `onstart` (asserted)
+3. ✅ No `[ClientError] code="aborted"` on the happy path (`reportClientError` NOT called when sessionId rerenders between start() and onstart — asserted)
+4. ✅ Regression test simulating "WS registration completes while permission prompt is up" — `describe('#457 — startListening identity is stable across reporting-ID changes')` with 3 tests
+5. ✅ iPhone SE 3 / older iOS path unchanged — all 15 pre-existing useSpeechRecognition tests + full 1210-test client suite still pass
+
+Followed the expansion worker plan exactly (mirror the ref pattern already used in `useHostedSpeechRecognition` in the same PR #456). Did not touch `useHostedSpeechRecognition` (already correct) or `reportClientError` (verified still fully fire-and-forget with try/catch + AbortController + keepalive).
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+---
