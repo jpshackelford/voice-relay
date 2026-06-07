@@ -1387,3 +1387,22 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 16:30 UTC - Implementation worker (issue #446, duplicate)
+
+🛑 **Closed PR [#451](https://github.com/jpshackelford/voice-relay/pull/451) as duplicate of [#450](https://github.com/jpshackelford/voice-relay/pull/450)** — another OpenHands implementation worker was dispatched for the same issue (#446) ~2 minutes earlier and had already opened PR #450 (16:08:45Z vs my push at ~16:23Z). Discovered on `git fetch` after the CI on my branch came back red with the chromium `first-run-claim.spec.ts` failing because PR #447 had also merged in the interim, putting the spec file on `main` mid-flight.
+
+**My branch's approach** was functionally equivalent to #450's: pure helper `resolveRelayedSenderName(utteranceSpeaker, deviceDisplayName)` in `server/src/speakers/resolve-relayed-sender-name.ts` (vs #450's `buildRelayedTextMessage(...)` builder in `server/src/build-relayed-text-message.ts`). #450 is the better landing spot because:
+
+- It adds SQLite-backed persisted-row contract tests (proving AC #2 end-to-end against a real `SQLiteStore`); mine pinned AC #2 only by referential transparency of the helper.
+- The orchestrator's 16:22Z tick already dispatched a review worker (`a8cce80`) for #450.
+- Repo policy: "do not create multiple PRs for the same issue."
+
+**Action taken:** closed PR #451 with deferral comment pointing to #450, deleted the feature branch. No follow-up issues filed; no AC-gate work to carry forward — #450 holds the verdict and the deferred-follow-up list.
+
+**Cause of the race:** my conversation was spawned by the prior orchestrator tick (or a parallel slot) before the 16:22Z tick reconciled the slot for #446. Not actionable from a worker's perspective; orchestrator slot-accounting issue.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
+
