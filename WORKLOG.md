@@ -525,3 +525,36 @@ PR: https://github.com/jpshackelford/voice-relay/pull/429
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 02:56 UTC - Merge worker (PR #429)
+
+✅ **Merged PR #429** — `fix(client): add CSS for hosted-STT settings wrapper classes` (Fixes #426)
+
+| Field | Value |
+| --- | --- |
+| Merge commit | `036a988` |
+| Merged at | 2026-06-07T02:56:13Z |
+| Issue #426 | CLOSED (COMPLETED) at 2026-06-07T02:56:14Z — auto-closed via `Fixes` trailer |
+| Strategy | Squash |
+| Mergeability | CLEAN, all required CI green (Build Client, Client Tests, E2E Tests, Server Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| Review | pr-review bot 🟢 Good taste; 0 unresolved threads |
+| Labels | `priority:medium`, `client`, `scope:client-only` |
+
+**AC Gate verdict: PASS** — walked issue #426's 8 acceptance criteria against the final +69-line CSS diff in `client/src/App.css`:
+
+| # | AC | Evidence |
+| --- | --- | --- |
+| 1 | Two distinct radio rows | `.stt-engine-row { flex-direction: column; gap: 0.4rem }` |
+| 2 | Horizontal spacing radio + label | `.stt-engine-option { display: flex; align-items: center; gap: 0.5rem }` |
+| 3 | `.inline-hint` muted (`#666`), inline | `color: #666; margin-top: 0; font-style: italic` cancels `.setting-hint` top-margin |
+| 4 | Vertical rhythm matches sibling `.setting-row` panels | `.stt-engine-setting { border-top: 1px solid #333; padding-top: 1rem }` mirrors `.api-key-setting` |
+| 5 | Deepgram panel unchanged (no regression) | Diff purely additive; `.deepgram-setting` and `.api-key-*` untouched |
+| 6 | CSS-only, no new deps/tokens/JSX | Single-file diff, +69 lines, uses existing `#ddd`/`#fff`/`#666`/`#333` palette |
+| 7 | Tests + `data-testid` hooks preserved | All CI green; 1150/1150 client tests pass; no JSX change |
+| 8 | Manual smoke on `vr.chorecraft.net` | ⏳ Post-deploy visual check (standard for CSS fixes; auto-deploys on merge to main) |
+
+No `## INSTRUCTION:` override block was present for PR #429 + #426; gate passed cleanly on merits. Production auto-deploys from `main` to `vr.chorecraft.net`, so AC #8 becomes visually verifiable shortly after this push lands.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
