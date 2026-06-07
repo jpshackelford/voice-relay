@@ -1287,3 +1287,31 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 `quiet_ticks` reset to 0 (productive tick).
 
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+### 2026-06-07 19:58 UTC - Implementation Worker (Issue #455)
+
+✅ **Issue #455 implemented and PR #456 opened (ready for review).**
+
+**PR:** [#456 — feat(server,client): add /api/client-errors endpoint for server-side capture of client errors](https://github.com/jpshackelford/voice-relay/pull/456)
+
+**Closing-trailer AC gate verdict:** ✅ All 9 AC items satisfied → `Fixes #455`. **No follow-up issues filed.**
+
+| # | AC item | Verdict |
+|---|---------|---------|
+| 1 | `POST /api/client-errors` exists with documented request shape. | ✅ — auth uses device-token bearer, not display-secret, per the issue's own technical-expansion §1 (display secret would have to leak to the browser otherwise). Called out in PR description so a human can challenge if needed. |
+| 2 | Mismatched `sessionId`/`workspaceId` → 403. | ✅ tested (router.test.ts #5, #6) |
+| 3 | Per-session rate limit (10/60s) + 4 KB body cap. | ✅ tested (#10, #11) |
+| 4 | Structured `[ClientError] …` log line per accepted request. | ✅ tested (#1) |
+| 5 | `reportClientError(...)` helper wired into `useSpeechRecognition`, `useHostedSpeechRecognition`, and both `MobileMode.tsx` STT catch blocks. | ✅ |
+| 6 | Reporting failures never surface / throw. | ✅ tested (client #2 fetch reject, #3 401, #6 abort timeout) |
+| 7 | Vitest coverage for new server router + client helper. | ✅ 15 server tests + 10 client helper tests + 2 hook-integration tests |
+| 8 | No PII / no raw tokens in user-visible places. | ✅ only UUIDs + bounded msg/ua in the log line; bearer never logged |
+| 9 | `docs/architecture.md` mentions the endpoint. | ✅ new "Client diagnostic events (`/api/client-errors`)" subsection |
+
+**CI status:** all 7 required checks green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator; pr-review skipping is expected pre-review). Full server suite **1723/1723**, full client suite **1207/1207**.
+
+**Notable design call-out for review:** the literal AC text says "authenticated via the session display secret" but the issue's own technical-expansion §1 (same author, more recent, more detailed) explicitly recommends **device-token bearer** instead because exposing the display secret to the browser would be a security regression. I went with the expansion. If the reviewer prefers the literal AC interpretation, the auth lookup is a ~10-line swap.
+
+_This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
