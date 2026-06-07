@@ -395,10 +395,7 @@ export class OpenHandsAgentDriver implements AgentDriver {
         }
       }
     });
-    // #458 — wire the session-ready fan-out. The setter is optional on
-    // `AISessionManagerSurface` so older fakes that predate this hook
-    // still satisfy the interface; the production manager always
-    // exposes it.
+    // #458 — wire session-ready fan-out (optional for test fakes).
     this.mgr.setSessionReadyCallback?.((sessionId) => {
       for (const listener of this.sessionReadyListeners) {
         try {

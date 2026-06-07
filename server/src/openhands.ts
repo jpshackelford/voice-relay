@@ -2995,14 +2995,8 @@ export class AISessionManager {
     ws.on('open', () => {
       console.log('[AI] V1 WebSocket connected (auth via query params)');
       session.reconnectAttempts = 0;
-      // #458: notify platform listeners that this VR-keyed session's
-      // upstream WS is now usable so they can re-broadcast
-      // `session-state` (which flips kiosks from 'starting' → 'ready').
-      // Chat-mode bindings keyed only by `conversationId` (no VR
-      // sessionId) are skipped — there is no VR session to broadcast
-      // to. Fires on every successful (re)open; reconnects re-emit the
-      // same `'ready'` snapshot which the client reducer treats as a
-      // no-op for unchanged status.
+      // #458: Notify platform listeners when the upstream WS becomes usable.
+      // Skipped for chat-mode bindings (no VR sessionId to broadcast to).
       if (this.onSessionReady && session.sessionId) {
         try {
           this.onSessionReady(session.sessionId);
