@@ -3,22 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "63121f1",
-        "actual_conv_id": "63121f1e116f442e8da641bc56e396f4",
-        "pr": 456,
-        "started": "2026-06-07T20:23:31.599763Z",
-        "worker_type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T20:23:31.599763Z",
+  "last_updated": "2026-06-07T20:34:29.403404Z",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -300,7 +292,17 @@
       "finished": "2026-06-07T20:23:31.599763Z",
       "status": "success",
       "outcome": "Addressed PR #456 review feedback; all 4 review threads resolved"
+    },
+    {
+      "conv_id": "63121f1",
+      "actual_conv_id": "63121f1e116f442e8da641bc56e396f4",
+      "type": "merge",
+      "pr": 456,
+      "started": "2026-06-07T20:23:31.599763Z",
+      "finished": "2026-06-07T20:34:29.403404Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #456 at 20:25:25Z (Fixes #455) \u2014 feat(server,client): /api/client-errors endpoint. Issue #455 auto-closed."
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1
 }
