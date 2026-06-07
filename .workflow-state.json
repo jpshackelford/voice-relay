@@ -1,7 +1,20 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "1de8693",
+        "actual_conv_id": "1de869359b104a81b2ef6f4226ac252c",
+        "issue": 439,
+        "started": "2026-06-07T13:24:14.557952+00:00"
+      },
+      {
+        "conv_id": "109c61d",
+        "actual_conv_id": "109c61d08a194200aa5a34e12a85c7e0",
+        "issue": 440,
+        "started": "2026-06-07T13:24:14.557952+00:00"
+      }
+    ],
     "implementation": [
       {
         "conv_id": "14b76de",
@@ -12,11 +25,20 @@
     ],
     "review": [
       {
-        "conv_id": "997b954",
-        "actual_conv_id": "997b954003c94a7d838f5a2f7898a602",
+        "conv_id": "9686f3e",
+        "actual_conv_id": "9686f3e6d05949238f71899abf9b8541",
         "pr": 437,
         "issue": 434,
-        "started": "2026-06-07T13:06:51.875323+00:00"
+        "type_hint": "merge",
+        "started": "2026-06-07T13:24:14.557952+00:00"
+      },
+      {
+        "conv_id": "bcd3eed",
+        "actual_conv_id": "bcd3eed2abbf438caa588facf0655d9f",
+        "pr": 438,
+        "issue": 433,
+        "type_hint": "review",
+        "started": "2026-06-07T13:24:14.557952+00:00"
       }
     ]
   },
@@ -25,7 +47,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T13:06:51.875323+00:00",
+  "last_updated": "2026-06-07T13:24:14.557952+00:00",
   "completed": [
     {
       "conv_id": "cb181e6",
@@ -328,6 +350,17 @@
       "finished": "2026-06-07T13:06:51.875323+00:00",
       "status": "success",
       "outcome": "Opened PR #437 \u2014 fix(client): reset position:fixed on kiosk connection dot so grid-area applies (Fixes #434). CI green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, ready (not draft). pr-review bot left 2 \ud83d\udfe1 stylistic suggestions (verbose comments in App.css and test file)."
+    },
+    {
+      "conv_id": "997b954",
+      "actual_conv_id": "997b954003c94a7d838f5a2f7898a602",
+      "type": "review",
+      "pr": 437,
+      "issue": 434,
+      "started": "2026-06-07T13:06:51.875323+00:00",
+      "finished": "2026-06-07T13:24:14.557952+00:00",
+      "status": "success",
+      "outcome": "Addressed pr-review feedback on PR #437 (commit f702fe4 \u2014 shortened verbose comments per 2 stylistic threads). AC gate re-run unchanged (Fixes #434). PR back to ready; CI green; 0 unresolved threads at reap."
     }
   ],
   "quiet_ticks": 0

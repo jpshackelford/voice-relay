@@ -588,3 +588,48 @@ _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 - **Coordination:** no overlap with PR #437 (issue #434 CSS fix) — separate files, separate branch.
 
 ---
+
+### 2026-06-07 13:24 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `14b76de` | implementation | Issue #433 — first-run claim card (PR #438 opened) | running (wrap-up) |
+| `9686f3e` | review (merge) | PR #437 — kiosk connection dot CSS fix (Fixes #434) | **NEW** |
+| `bcd3eed` | review | PR #438 — first-run claim card (Refs #433, 2 🟠 threads) | **NEW** |
+| `1de8693` | expansion | Issue #439 — post-OAuth-return device PATCH + speaker name wiring | **NEW** |
+| `109c61d` | expansion | Issue #440 — kiosk integration smoke test for first-run claim flow | **NEW** |
+
+**Reconciled (prior tick):**
+- Review worker `997b954` for PR #437 → moved to `completed`. Output: 2 🟡 stylistic threads addressed in commit `f702fe4` (verbose comments shortened in `App.css` and `KioskMode.test.tsx`); AC gate re-run unchanged (`Fixes #434`); PR back to ready, CI green, 0 unresolved threads at reap.
+
+**Current State:**
+- **Open PRs:**
+  - [PR #437](https://github.com/jpshackelford/voice-relay/pull/437) — `oRFC green ready 💬--` — **MERGE-READY** (CLEAN/MERGEABLE, all 7 required checks SUCCESS incl. pr-review, no draft, no unresolved threads). Dispatching merge worker.
+  - [PR #438](https://github.com/jpshackelford/voice-relay/pull/438) — `ocR green ready 💬2` — needs review (CLEAN/MERGEABLE but 2 🟠 Important threads from pr-review bot about a `PRONOUNS_MAX_LEN` mismatch: client `ClaimSpeakerCard.tsx:35` = 32 vs server `devices/router.ts:14` = 40). Dispatching review worker.
+- **Ready issues (gate-free):** #433 already in flight (PR #438), no other ready issues left after follow-ups land.
+- **New follow-ups (no `ready` label, need expansion):** #439, #440 (both filed by the #433 impl worker per its AC-gate `Refs #433` verdict). Dispatching 2 expansion workers in parallel.
+- **on-hold (skipped per codified gate):**
+  - `#210`, `#239`, `#386` — policy-tracked (no machine-parseable `Blocked by #N`).
+  - `#299`, `#300`, `#301`, `#302` — AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" still in effect (S3 bucket + AWS creds + runbook smoke test pending).
+- **needs-human (skipped):** #372.
+
+**Unblock pass:** machine pass identified #299 (blocker #298 closed) and #301 (blocker #295 closed) as candidates, but the AGENTS.md S3 design freeze takes precedence — both stay `on-hold`. #300 still blocked by open #299; #302 still blocked by open #300. 0 labels lifted this tick.
+
+**Action Taken:**
+🚀 **Spawned 4 workers in parallel**
+
+1. **Merge Worker** — [PR #437](https://github.com/jpshackelford/voice-relay/pull/437) — Conv [`9686f3e`](https://app.all-hands.dev/conversations/9686f3e6d05949238f71899abf9b8541)
+2. **Review Worker** — [PR #438](https://github.com/jpshackelford/voice-relay/pull/438) — Conv [`bcd3eed`](https://app.all-hands.dev/conversations/bcd3eed2abbf438caa588facf0655d9f)
+3. **Expansion Worker** — [Issue #439](https://github.com/jpshackelford/voice-relay/issues/439) — Conv [`1de8693`](https://app.all-hands.dev/conversations/1de869359b104a81b2ef6f4226ac252c)
+4. **Expansion Worker** — [Issue #440](https://github.com/jpshackelford/voice-relay/issues/440) — Conv [`109c61d08a194200aa5a34e12a85c7e0`](https://app.all-hands.dev/conversations/109c61d08a194200aa5a34e12a85c7e0)
+
+**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override; PRs #437/#438 carry no `on-hold`/`needs-human`/`blocked` label; follow-ups #439/#440 are gate-free. Implementation slot remains held by the still-running #433 impl conv (`14b76de`) which has already opened PR #438 + filed both follow-ups + committed its worklog entry at 13:15 UTC — it's in wrap-up and will be reaped next tick. The review/merge worker for PR #438 operates on a distinct branch from the impl conv, so no overlap risk.
+
+**Slot accounting at end of tick:** expansion 2/4, implementation 1/1, review 2/2. Total active conversations: 5/7.
+
+**Quiet-tick counter:** reset to `0` (productive — 4 workers dispatched + 1 worker reconciled to `completed`).
+
+_This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
