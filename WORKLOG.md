@@ -230,3 +230,44 @@ Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 bu
 **Quiet-tick counter:** stays at `0` (productive — 1 implementation worker dispatched; 4 expansion workers reconciled to `completed`).
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-07 11:08 UTC - Implementation Worker (#431)
+
+✅ Implemented and shipped PR for #431 — server emits speaker header on every session start (resolved / no-name / unknown) and agent opening message is dynamic.
+
+| Item | Value |
+|------|-------|
+| Issue | [#431](https://github.com/jpshackelford/voice-relay/issues/431) |
+| PR | [#435](https://github.com/jpshackelford/voice-relay/pull/435) (ready for review) |
+| Branch | `feat/431-speaker-header-always` |
+| CI | ✅ all required checks green (Server Tests 52s, Build Client 26s, Client Tests 40s, E2E 1m33s, lint-pr-title, enable-orchestrator) |
+| Scope | server-only (per expansion comment — header builder + system prompt; no schema, no client) |
+| Coverage | `voice-relay-header.ts` 96.96% stmts / 91.52% branches / 100% funcs |
+
+**Diff (5 files, +293/-27):**
+
+- `server/src/agent-driver/voice-relay-header.ts` — new branch emitting `[speaker id=unknown device=<deviceId>]` on first turn from a device with no resolved speaker history. Does not write `state.deviceSpeakerId` so a later real-speaker resolution still fires the `[speaker id=<realId> …]` line.
+- `server/prompts/system-prompt.md` — "FIRST ACTION" rewritten from static `"Ready to help!"` to a three-branch dynamic greeting gated on the first user turn's `[speaker …]` header. Message format section documents the new `[speaker id=unknown device=<deviceId>]` form alongside the existing `[speaker id=unknown]` (post-unclaim) form.
+- `server/src/agent-driver/voice-relay-header.test.ts` — new `unknown-on-first-turn (#431)` describe block (6 cases); 6 existing first-turn snapshots updated to include the new line; engine-fallback coexistence test pinned.
+- `server/src/resolve-session-system-prompt.test.ts` — new `built-in prompt dynamic greeting (#431)` describe block (4 cases) guarding against regression to the static greeting.
+- `server/src/openhands.test.ts` — #375 wire-text snapshot updated to include `[speaker id=unknown device=d-h]`.
+
+**Acceptance-Criteria Gate (re-run against final diff, no CI fixes shifted coverage):**
+
+| # | Criterion | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | Exactly one `[speaker …]` line per joining device on first agent frame — never zero | ✅ | New unknown-on-first-turn branch + existing resolved branches |
+| 2 | Header form matches three branches (resolved+name, resolved no name, `id=unknown device=`) | ✅ | All three covered in test block |
+| 3 | Multi-device: one header per device with distinct `device=<deviceId>` | ✅ | Test "two unclaimed devices each emit their own `device=` line" |
+| 4 | Default prompt branches opening message on header | ✅ | `system-prompt.md` rewrite of FIRST ACTION |
+| 5 | Tests cover all three branches at frame-builder level + prompt smoke test | ✅ | 6 new header cases + 4 prompt cases |
+
+**Verdict:** all non-exempt ACs satisfied — trailer is `Fixes #431`. No follow-ups required.
+
+**Unblocks:** #433 (was on-hold pending this PR's merge).
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
