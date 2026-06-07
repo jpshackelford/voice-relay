@@ -540,6 +540,23 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     }
   }, []);
 
+  /**
+   * Issue #439: local-only nudge that flips `deviceClaimed` after the
+   * post-OAuth PATCH succeeds. Without this, the kiosk would have to wait
+   * for the next WS `registered` payload (i.e. a reconnect) before the
+   * claim card hides. The server-side PATCH has already updated the
+   * device registry, so the next utterance carries the right speaker
+   * header — this setter is purely a UI-state nudge.
+   *
+   * If `speakerState` is `null` (legacy server / not yet registered),
+   * the call is a no-op: there's no card to hide.
+   */
+  const markDeviceClaimedLocally = useCallback(() => {
+    setSpeakerState((prev) =>
+      prev ? { ...prev, deviceClaimed: true } : prev
+    );
+  }, []);
+
   return { 
     connected, 
     devices, 
@@ -550,6 +567,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     // payload. `null` when the server hasn't emitted one yet (initial
     // state before register) or when it explicitly omits the field.
     speakerState,
+    // Issue #439: local override for the claim-card hide path after the
+    // post-OAuth PATCH succeeds. See doc-comment on `markDeviceClaimedLocally`.
+    markDeviceClaimedLocally,
     sendText, 
     updateDevice, 
     sendListeningState,

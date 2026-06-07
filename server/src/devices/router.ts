@@ -260,6 +260,22 @@ export function createDeviceRouter({
       }
     }
 
+    // Issue #439: seed speaker row for the authenticated user. Runs on every
+    // authenticated PATCH (not gated by primaryUserId change) to self-heal
+    // devices with primary_user_id but no speaker row (e.g. #432 backfills).
+    if (speakerRepository) {
+      try {
+        speakerRepository.upsertForUser(updated.workspaceId, req.user!.id, {
+          preferredName: req.user!.displayName ?? req.user!.username,
+        });
+      } catch (err) {
+        console.warn(
+          '[Devices] Speaker upsert on device claim failed (non-fatal):',
+          err
+        );
+      }
+    }
+
     res.json({
       id: updated.id,
       workspaceId: updated.workspaceId,

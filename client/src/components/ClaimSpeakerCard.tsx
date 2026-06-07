@@ -17,6 +17,12 @@ const PRONOUNS_MAX_LEN = 32;
 export const SKIP_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 /** localStorage key prefix used by `getSkipUntil` / `setSkipUntil`. */
 export const SKIP_KEY_PREFIX = 'voice_relay_first_run_skip_';
+/**
+ * Issue #439: sessionStorage key prefix for post-OAuth device claim.
+ * Scoped to (workspaceId, deviceId). sessionStorage (not localStorage)
+ * clears on tab close so abandoned OAuth flows don't replay.
+ */
+export const PENDING_CLAIM_KEY_PREFIX = 'voice_relay_pending_claim_';
 
 /**
  * Build the workspace+device-scoped localStorage key for the 7-day skip.
@@ -60,6 +66,70 @@ export function setSkipUntil(workspaceId: string, deviceId: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Issue #439: sessionStorage key for the post-OAuth pending-claim flag.
+ * Scoped to `(workspaceId, deviceId)` so the post-return effect can
+ * verify it was the same kiosk that initiated the OAuth roundtrip.
+ */
+export function pendingClaimKey(
+  workspaceId: string,
+  deviceId: string
+): string {
+  return `${PENDING_CLAIM_KEY_PREFIX}${workspaceId}_${deviceId}`;
+}
+
+/**
+ * Write the pending-claim flag before redirecting to GitHub OAuth.
+ * Returns `true` on success, `false` if sessionStorage rejected the write
+ * (private browsing / quota). A `false` result means the post-return
+ * claim chain won't fire — the user can still claim by clicking again.
+ */
+export function setPendingClaim(
+  workspaceId: string,
+  deviceId: string
+): boolean {
+  try {
+    window.sessionStorage.setItem(pendingClaimKey(workspaceId, deviceId), '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Issue #439: Returns `true` when a pending-claim flag exists for the
+ * (workspace, device) pair. Pure read; does not consume the flag.
+ */
+export function hasPendingClaim(
+  workspaceId: string,
+  deviceId: string
+): boolean {
+  try {
+    return (
+      window.sessionStorage.getItem(pendingClaimKey(workspaceId, deviceId)) ===
+      '1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Issue #439: Clear the pending-claim flag. Caller MUST do this BEFORE
+ * firing the PATCH so a render race / StrictMode double-invoke does not
+ * fire the network request twice.
+ */
+export function consumePendingClaim(
+  workspaceId: string,
+  deviceId: string
+): void {
+  try {
+    window.sessionStorage.removeItem(pendingClaimKey(workspaceId, deviceId));
+  } catch {
+    // Storage unavailable; nothing to do.
   }
 }
 
@@ -173,6 +243,12 @@ export function ClaimSpeakerCard({
     onSkip();
   }
 
+  // Write pending-claim flag before OAuth redirect (must complete before window.location changes).
+  function handleSignIn() {
+    setPendingClaim(workspaceId, deviceId);
+    onSignIn();
+  }
+
   const submitting = state.kind === 'submitting';
 
   return (
@@ -206,7 +282,7 @@ export function ClaimSpeakerCard({
             <button
               type="button"
               className="claim-speaker-primary"
-              onClick={onSignIn}
+              onClick={handleSignIn}
             >
               I&apos;m a workspace member
             </button>
