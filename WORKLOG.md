@@ -759,3 +759,34 @@ _This worklog entry was created by an AI agent (OpenHands implementation worker)
 - Conversation: `unknown`
 
 ---
+
+### 2026-06-07 14:00 UTC - Review-Address Worker (PR #438, round 2)
+
+✅ **Addressed pr-review round-2 feedback on PR #438 — back to ready, gate unchanged**
+
+- PR: [#438](https://github.com/jpshackelford/voice-relay/pull/438) — `feat(client): first-run claim-card prompt for unknown speakers`
+- Issue: [#433](https://github.com/jpshackelford/voice-relay/issues/433) — same
+- New commit: `eae39f8 docs(client): trim duplicative block comments per pr-review`
+- CI on `eae39f8`: ✅ Build Client, ✅ Client Tests, ✅ Server Tests, ✅ E2E Tests, ✅ lint-pr-title
+
+**Three new pr-review threads disposed:**
+
+| Thread | Action |
+|---|---|
+| Client `ClaimSpeakerCard.tsx:31` — 30-line preamble | ✅ Trimmed to a 2-line summary referencing #433 and the corner-card / non-blocking aspects. The detail it carried was duplicating the props interface, inline action comments, and the PR description. |
+| Server `router.ts:348` — 13-line endpoint preamble | ✅ Trimmed to 3 lines (issue ref + one-line why). Handler body's numbered inline comments are the per-step narration. |
+| Server `router.ts:436` — workspace-level limit on anonymous speakers | 📌 Filed [#443](https://github.com/jpshackelford/voice-relay/issues/443) (dedup-at-create + workspace quota). Reviewer explicitly called it "non-blocking for initial rollout"; per-IP rate limit caps short-term blast radius and a valid device token is itself a non-trivial barrier. |
+
+All three threads replied + resolved via GraphQL.
+
+**AC gate re-verdict (issue #433):** unchanged — **`Refs #433`**. The commit was docs-only and does not close gaps in #439 (post-OAuth-return PATCH + speaker `preferred_name` seeding) or #440 (kiosk integration smoke test). Both follow-ups remain OPEN and in scope. New follow-up #443 is post-launch hardening and does not affect #433's AC coverage. No verdict transition possible.
+
+**Workflow:** `gh pr ready 438 --undo` → push `eae39f8` → CI green → reply+resolve 3 threads → post closing-comment with gate re-verdict → `gh pr ready 438`.
+
+**Note on PR #441 (duplicate):** confirmed already closed by prior impl-worker note above. No coordination needed; #438 is the canonical PR.
+
+**Production impact:** docs-only trim. No server, schema, or client behavior change. Safe to deploy on merge.
+
+_This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
+
+---
