@@ -431,3 +431,47 @@ No exemptions claimed in the issue body (no `(deferred)` / `(out of scope)` mark
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 02:18 UTC - Implementation worker (#384)
+
+✅ **PR #428 opened (ready for review)** — workspace page now shows
+`<preferredName> (<deviceName>)` for connected devices.
+
+**Scope:** full-stack, additive.
+
+- **Server:** `GET /api/workspaces/:id/devices` returns a nullable
+  `primaryUser: { userId, preferredName }` per device, joining
+  `devices.primary_user_id` against the #383 `speakers` table.
+  Lookups are cached by `userId` within the request so an N-device
+  workspace with one owner only hits the speakers table once. A
+  failed speaker lookup degrades to `preferredName: null` rather
+  than breaking the device list.
+- **Client:** `DeviceInfo` gains `primaryUser?`; `EditableDeviceName`
+  renders the person name in primary weight followed by a muted,
+  parenthesized device name when resolved. Click-to-edit on the
+  device-name portion is unchanged. Older servers that omit the
+  field are handled the same as `null`.
+- **No migrations.** Schema work landed in #383.
+
+**Tests:** 4 new server tests + 6 new client component tests cover
+the three AC states (resolved name, null preferred_name, no
+`primary_user_id`), the "no speaker row" fallback, the
+older-server omitted-field case, and click-to-edit in both display
+branches. Full suites green: server 1592/1592, client 1156/1156.
+
+**CI:** all green (Build Client, Client Tests, Server Tests, E2E,
+lint-pr-title).
+
+**AC Gate verdict:** PASS — all 5 acceptance-criteria items
+satisfied. Trailer: `Fixes #384`. No follow-ups filed.
+
+**Cross-link note:** PR #402's suggestion to also surface the
+per-device STT engine (`devices.config.stt_engine`) on the same
+row is **not** included here — it's a separate concern and can be
+its own issue if/when an operator wants it.
+
+PR: https://github.com/jpshackelford/voice-relay/pull/428
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
