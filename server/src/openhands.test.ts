@@ -492,10 +492,13 @@ describe('AISessionManager', () => {
           content: Array<{ text: string }>;
         };
         const wireText = payload.content[0].text;
-        // First turn from this device: announcement + anchor lines, then
-        // the raw user text on a separate line.
+        // First turn from this device: announcement + unknown-speaker
+        // line (#431) + anchor, then the raw user text on a separate
+        // line. The `[speaker id=unknown device=d-h]` line is emitted
+        // because no `speaker` was supplied, signalling to the agent
+        // that the human is unidentified.
         expect(wireText).toBe(
-          '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[t=2026-06-01T17:23Z]\nhello',
+          '[vr A=Kitchen iPad tz=America/Los_Angeles]\n[speaker id=unknown device=d-h]\n[t=2026-06-01T17:23Z]\nhello',
         );
 
         // Second turn from the same device, within the quiet period, must

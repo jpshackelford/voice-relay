@@ -127,4 +127,52 @@ describe('resolveSessionSystemPrompt', () => {
     expect(out.source).toBe('builtin');
     expect(out.effective.length).toBeGreaterThan(0);
   });
+
+  // ========================================================================
+  // Built-in prompt branches on the first-turn `[speaker …]` line (#431)
+  //
+  // The built-in `system-prompt.md` was rewritten in #431 to choose a
+  // dynamic opening greeting based on the speaker header (resolved + name
+  // → greet by name; resolved no name → ask the name; `id=unknown` →
+  // ask the name and disambiguate by `device=`). The regression risk is
+  // that someone re-introduces the old static "Ready to help!" greeting
+  // and the agent stops branching. This block guards against that.
+  // ========================================================================
+  describe('built-in prompt dynamic greeting (#431)', () => {
+    const builtin = () =>
+      resolveSessionSystemPrompt({
+        sessionMetadata: null,
+        workspaceSettings: null,
+        sessionId: 'sess-1',
+        workspaceId: 'ws-1',
+      }).effective;
+
+    it('mentions all three branch keywords (`name=`, `id=unknown`, `device=`)', () => {
+      const prompt = builtin();
+      expect(prompt).toContain('name=');
+      expect(prompt).toContain('id=unknown');
+      expect(prompt).toContain('device=');
+    });
+
+    it('documents the new `[speaker id=unknown device=<deviceId>]` form', () => {
+      const prompt = builtin();
+      expect(prompt).toContain('[speaker id=unknown device=<deviceId>]');
+    });
+
+    it('no longer contains the static "Ready to help!" greeting payload', () => {
+      // The pre-#431 prompt always fired this static curl payload as
+      // the first action. The rewrite gates the greeting on the first
+      // user turn's speaker header instead; the literal string MUST
+      // be gone so a regression to the old static behavior is caught.
+      const prompt = builtin();
+      expect(prompt).not.toContain('Ready to help!');
+    });
+
+    it('still invokes the display API for the chosen greeting', () => {
+      // The greeting must still be pushed to the kiosk so users with a
+      // visible display see the right opener.
+      const prompt = builtin();
+      expect(prompt).toContain('/api/display');
+    });
+  });
 });
