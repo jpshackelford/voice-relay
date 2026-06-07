@@ -676,3 +676,41 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 03:26 UTC - Merge worker (PR #430)
+
+✅ **Merged** — `fix(server): broadcast degraded snapshot at register time after failed rehydration`
+
+| | |
+|---|---|
+| PR | [#430](https://github.com/jpshackelford/voice-relay/pull/430) |
+| Issue | [#351](https://github.com/jpshackelford/voice-relay/issues/351) — closed via `Fixes #351` trailer |
+| Merge commit | `49b4d329c7fc51596795326b6fecb02b79a4ebd0` |
+| Strategy | Squash |
+| CI at merge | ✅ Server Tests, ✅ Client Tests, ✅ Build Client, ✅ E2E Tests, ✅ lint-pr-title, ✅ pr-review |
+| Review threads | 0 / 0 (pr-review bot found nothing to flag) |
+| Migrations | None — server-only behaviour fix, no schema changes |
+| Production impact | Auto-deploys to vr.chorecraft.net. Risk: low — new branch is gated on driver `state === 'absent'` (previously a silent no-op) and only fires when `session_ai_state` carries `degraded`. Pre-#363 sessions are unaffected. |
+
+**Closing-trailer AC gate — verdict: PASS**
+
+Walked all 4 non-exempt AC items in #351 against the merged diff (`49b4d329…`):
+
+| # | AC | Evidence in merged commit |
+|---|----|---|
+| 1 | First kiosk to register in session X receives `session-state` with `state: 'degraded'` (with rehydration error string) within one WS round-trip — no typing required | `server/src/resync-agent-status.ts` — on `state === 'absent'`, calls `synthesizeDegradedFromDurableState`, which reads `session_ai_state.findBySessionId` and returns a synthesized `degraded` AgentSessionStatus when the row is degraded. Both legacy `session-ai-status` and unified `session-state` are sent on the registering `ws` only. Verified by `resync-agent-status.test.ts` T-3.1.11 first test + integration test stage 1 (real SQLite + repo). |
+| 2 | Subsequent successful attach clears persisted flag; normal `ready` snapshot broadcast | Already in production via `AISessionManager.persistInitialState` upserting `running` (no change needed in this PR). `register-time-degraded.integration.test.ts` second case asserts this exact contract: upsert `running` → next resync emits `ready` snapshot, no synthesized degraded. |
+| 3 | Unit: failure path writes the durable degraded state; success path clears (idempotent on absent) | The original AC wording said "metadata field"; the implementation reasonably uses the `session_ai_state` table from #363 with the same semantics — explicitly addressed in the PR body. Failure-side durable write covered by existing `agent-rehydrate.test.ts` + integration test stage 1 assertion `aiStateRepository.findBySessionId(sessionId).state === 'degraded'`. Success-side clear via `persistInitialState` covered by stage-2 upsert behaviour. |
+| 4 | Integration: kiosk registering after failed boot rehydration sees exactly one `degraded` broadcast on register — without the dropped-text handler firing | `register-time-degraded.integration.test.ts` exercises this end-to-end: real in-memory SQLite, real `SessionAIStateRepository`, real `rehydrateAgentSessions` failure, then `resyncAgentSessionStatus`. Asserts `expect(wsSends).toHaveLength(2)` (one logical broadcast — legacy + unified). Dropped-text handler is not in the code path. |
+
+No `## INSTRUCTION:` override block was present for PR #430 + #351; gate passed cleanly on merits. Trailer `Fixes #351` retained → GitHub auto-closed #351 (verified: closed at 03:25:56 UTC).
+
+Coverage on `resync-agent-status.ts`: **100% stmts / 100% funcs / 100% lines / 96% branches**. Full server suite: **1644/1644 passing**.
+
+**Follow-up issues:** None filed. The PR body explicitly notes the original "expand-metadata-field at four call sites" plan from the issue was superseded by #363's `session_ai_state` table, which already covers the same lifecycle semantics. No remaining scope.
+
+**Slot accounting after merge:** review slot freed (merge worker exits).
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
