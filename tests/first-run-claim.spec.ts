@@ -4,38 +4,14 @@ import { setupTwoDeviceSession, ensureKioskInputVisible } from './utils/auth-hel
 /**
  * E2E test: first-run claim card → next-utterance speaker resolution (#442).
  *
- * Closes the third-bullet AC from #433 that the vitest layers (PR #438
- * component, #440 kiosk-component integration) explicitly defer to e2e:
+ * Verifies that the session-scoped speaker override
+ * (`session_devices.active_speaker_id`) written by the name-only claim flow
+ * wins over the device-level default on the very next outbound utterance,
+ * with no reconnect. Two contexts (kiosk + mobile peer) so we can read the
+ * server-emitted `RelayedTextMessage` on the wire.
  *
- *   "One integration smoke test (kiosk page) that sees
- *    speakerState.deviceClaimed=false, completes the name-only flow, and
- *    verifies the next outbound text produces a RelayedTextMessage whose
- *    server-resolved sender name matches."
- *
- * The bug class this defends against is silent regression in
- * `resolveSpeakerForSession` — the session-scoped override
- * (`session_devices.active_speaker_id`, written by the name-only POST)
- * must win over the device-level default on the very next utterance,
- * with no reconnect, no reload. The only way to catch that is to read
- * the server-emitted `RelayedTextMessage` on a peer, which is why this
- * spec uses two contexts.
- *
- * Scope: name-only path only. The OAuth-handoff path is impossible to
- * exercise headlessly without a fake GitHub IdP, and the post-return
- * PATCH wiring is owned by #439. A follow-up e2e for that path can be
- * filed once #439 is shipped and a test-mode OAuth shortcut exists.
- *
- * Implementation note (server gap discovered during e2e bring-up): the
- * relay path in server/src/index.ts currently stamps the resolved
- * speaker's id onto `RelayedTextMessage.speakerId` but still uses
- * `device.displayName` for `senderName`. So this spec asserts the wire
- * carries the `speakerId` matching the speaker row just created by the
- * claim flow — which proves the session override is winning end-to-end
- * — but does NOT yet assert `senderName === '<just-saved name>'`. The
- * latter is tracked as #446 (server-side senderName substitution). Once
- * #446 lands the TODO-tagged assertions at the bottom of this spec can
- * flip from a comment into active checks, closing #433's third-bullet
- * AC end to end.
+ * Scope: name-only path only. OAuth-handoff path deferred (needs test IdP + #439).
+ * senderName assertion deferred to #446 (server still uses device.displayName).
  */
 
 const TEST_AUTH_SECRET = process.env.TEST_AUTH_SECRET;
@@ -86,8 +62,6 @@ test.describe('First-run claim card → next-utterance speaker resolution (#442)
       );
 
       // ── 3. Drive the name-only flow through the real DOM. ──
-      // Click the secondary action ("Just remember a name for this
-      // device"), fill the name input, submit.
       await kioskPage.getByRole('button', { name: /remember a name/i }).click();
       const speakerName = `e2e-speaker-${Date.now()}`;
       await kioskPage.getByLabel(/your name/i).fill(speakerName);
@@ -152,24 +126,15 @@ test.describe('First-run claim card → next-utterance speaker resolution (#442)
       const peerMessage = mobilePage.locator(`.message.final:has-text("${utterance}")`);
       await expect(peerMessage).toBeVisible({ timeout: 2_000 });
 
-      // ── 8. Wire assertion — the actual WS frame carries the
-      //       server-resolved speakerId. This pins the contract that
-      //       the session-scoped override (just written via the POST)
-      //       wins over the device-level default on the very next
-      //       outbound utterance. ──
+      // ── 8. Wire assertion — session override wins on next utterance. ──
       const wsFrame = await wsFramePromise;
       expect(wsFrame.type).toBe('text');
       expect(wsFrame.text).toBe(utterance);
       expect(wsFrame.partial).toBe(false);
       expect(wsFrame.speakerId).toBe(speakerId);
 
-      // TODO(#446): Once the server substitutes
-      // `RelayedTextMessage.senderName` with the resolved speaker's
-      // `preferredName`, strengthen the wire assertion with
-      //   `expect(wsFrame.senderName).toBe(speakerName);`
-      // and add the rendered-DOM assertion:
-      //   `await expect(peerMessage.locator('.sender')).toHaveText(new RegExp(speakerName));`
-      // That closes #433's third-bullet AC end to end.
+      // TODO(#446): assert `wsFrame.senderName === speakerName` and rendered
+      // peer sender once server substitutes RelayedTextMessage.senderName.
     } finally {
       await cleanup();
     }
