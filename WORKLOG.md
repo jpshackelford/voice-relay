@@ -1413,3 +1413,45 @@ Re-enable once new issues land, the S3 freeze section is removed from AGENTS.md,
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 21:57 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `d4aedeb` | expansion | Issue #457 — iOS 18 Safari STT aborts on iPhone 17e (regression after PR #456) | **NEW** |
+
+**Worklog re-engaged after auto-disable.** The previous orchestrator tick (20:51 UTC) auto-disabled the automation after two consecutive quiet ticks (no work to dispatch). Between then and now, a **new `priority:high` regression bug landed**: [#457](https://github.com/jpshackelford/voice-relay/issues/457), filed by @jpshackelford at 21:51 UTC. This is exactly the "Re-enable once new issues land" condition documented in the auto-disable entry.
+
+**Spawned: Expansion Worker**
+- Issue: [#457 — iOS 18 Safari: STT aborts immediately on permission grant on iPhone 17e (regression after PR #456)](https://github.com/jpshackelford/voice-relay/issues/457)
+- Labels: `bug`, `priority:high`, `client`, `scope:full-stack`
+- Conversation: [`d4aedeb`](https://app.all-hands.dev/conversations/d4aededa9b5c4397b224f6600ad66c5a)
+- Pre-flight notes embedded in the prompt:
+  - **Suspected cause:** PR #456 (`feat(server,client): /api/client-errors endpoint`, squash-merged 20:25Z) wired `reportClientError(...)` into three client call sites (`useSpeechRecognition.onerror`, `useHostedSpeechRecognition.surfaceError`, `MobileMode.tsx` startListening catches). The new error-reporting path may now be treating iOS 18 Safari's spurious `recognition.onerror({error:"aborted"})` event (which Webkit 26.4 emits on the permission-grant gesture transition) as fatal, tearing down STT before it can start.
+  - **Investigation guidance:** diff `client/src/hooks/useSpeechRecognition.ts`, `useHostedSpeechRecognition.ts`, `MobileMode.tsx`, and `client/src/lib/reportClientError.ts` against the pre-#456 versions. Look for: (a) `aborted` being escalated to a fatal teardown that previously was ignored/auto-retried, and (b) any sync setState side-effect in `reportClientError` that could race the permission grant.
+  - **Reproduction:** the reporter (@jpshackelford) has provided a detailed repro on iPhone 17e (iOS 18.7 / Safari 26.4) and noted that iPhone SE 3 on older iOS does NOT reproduce — strongly suggesting an iOS-18-specific behavior change interacting with new code in PR #456.
+  - **Test strategy ask:** a vitest unit test that simulates `onerror({error:"aborted"})` and asserts STT does not get torn down before `onstart` fires.
+
+**Re-enabled** the automation via `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316 → {"enabled": true}` (confirmed by API: `Voice Relay Workflow Orchestrator v2`, `enabled: true`).
+
+**Current State:**
+- Open PRs: 0 (last merged: PR #456 at 20:25Z).
+- Issues needing expansion: #457 (now being expanded).
+- Ready issues: only #386 (`priority:low`, also carries `on-hold` — policy-tracked).
+- On-hold issues (8): #210, #239, #299, #300, #301, #302, #386, #446.
+- `needs-human`: #372.
+
+**Unblock pass:** ran; 0 issues lifted.
+- Mechanically eligible: #299 (blocker #298 CLOSED) and #301 (blocker #295 CLOSED).
+- **Override applied (AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"):** freeze still in force pending production `VR_WORKSPACE_BUCKET`, AWS creds, and the S3 provisioning runbook smoke test. Skipped per the established override pattern.
+- Policy-tracked (no machine `Blocked by #N`): #210, #239, #386, #446 — untouched.
+- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
+
+**Slot usage after spawn:** expansion 1/4, implementation 0/1, review 0/2 (six slots still free). `quiet_ticks` reset 2 → 0.
+
+**Why this is a productive tick:** new ready-able work landed since the last tick (`priority:high` bug #457), and an expansion worker is now actively diagnosing it. Anti-stall rule honored: unblock pass ran before any dispatch decision. The next orchestrator tick will pick up #457 for implementation once the expansion worker labels it `ready`.
+
+_This entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
