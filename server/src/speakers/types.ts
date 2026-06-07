@@ -44,3 +44,25 @@ export interface SpeakerUpdateInput {
    */
   userId?: string | null;
 }
+
+/**
+ * Thrown by `SpeakerRepository.findOrCreateAnonymous` when the
+ * workspace has reached its cap of anonymous (user_id IS NULL)
+ * speakers and the caller is asking to insert a brand-new row that
+ * does not dedup against any existing anonymous speaker (#443).
+ *
+ * Caught by `POST /api/devices/:deviceId/sessions/:sessionId/active-speaker`
+ * and translated to a 429 response. Dedup hits never raise this — the
+ * existing matching row is returned even when the workspace is at cap.
+ */
+export class AnonymousSpeakerQuotaExceeded extends Error {
+  constructor(
+    public readonly workspaceId: string,
+    public readonly cap: number
+  ) {
+    super(
+      `Workspace ${workspaceId} has reached anonymous speaker cap of ${cap}`
+    );
+    this.name = 'AnonymousSpeakerQuotaExceeded';
+  }
+}

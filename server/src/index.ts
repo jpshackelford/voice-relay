@@ -1818,6 +1818,23 @@ async function start() {
       app.use('/api/workspaces', workspaceRouter);
       console.log('[Workspaces] API enabled (with join request flow)');
 
+      // Issue #443: per-workspace anonymous-speaker cap. Parsed once
+      // at startup; invalid values fall back to the router's built-in
+      // default (100). Negative / zero / non-numeric values are
+      // treated as a config error and logged, not enforced.
+      const maxAnonymousSpeakersPerWorkspace = (() => {
+        const raw = process.env.VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE;
+        if (!raw) return undefined;
+        const n = Number.parseInt(raw, 10);
+        if (!Number.isFinite(n) || n <= 0) {
+          console.warn(
+            `[Bootstrap] Ignoring invalid VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE=${raw}`
+          );
+          return undefined;
+        }
+        return n;
+      })();
+
       // Set up device routes
       const deviceRouter = createDeviceRouter({
         deviceRepository,
@@ -1831,6 +1848,8 @@ async function start() {
         // mounted (`POST /:deviceId/sessions/:sessionId/active-speaker`).
         sessionRepository: sessionRepository ?? undefined,
         speakerRepository: speakerRepository ?? undefined,
+        // Issue #443: workspace-level cap on anonymous speakers.
+        maxAnonymousSpeakersPerWorkspace,
         authConfig: {
           jwtService,
           userRepository,

@@ -974,4 +974,163 @@ describe('Device Router', () => {
         .expect(404);
     });
   });
+
+  // Issue #443: workspace-level cap + dedup on anonymous speakers.
+  describe('POST /:deviceId/sessions/:sessionId/active-speaker — #443 quota + dedup', () => {
+    let sessionRepository: SessionRepository;
+    let speakerRepository: SpeakerRepository;
+    let cappedApp: Express;
+    let sessionId: string;
+    const CAP = 2;
+
+    beforeEach(() => {
+      // Same schema as the #433 block above.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id TEXT PRIMARY KEY,
+          workspace_id TEXT NOT NULL,
+          name TEXT,
+          status TEXT NOT NULL DEFAULT 'active',
+          started_at TEXT NOT NULL DEFAULT (datetime('now')),
+          ended_at TEXT,
+          metadata TEXT,
+          display_api_secret_encrypted TEXT,
+          display_api_secret_iv TEXT,
+          display_api_secret_tag TEXT,
+          target_kiosk_device_id TEXT,
+          FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS session_devices (
+          session_id TEXT NOT NULL,
+          device_id TEXT NOT NULL,
+          joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+          active_speaker_id TEXT,
+          PRIMARY KEY (session_id, device_id),
+          FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+          FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS speakers (
+          id TEXT PRIMARY KEY,
+          workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+          user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+          preferred_name TEXT,
+          pronouns TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_speakers_workspace_user
+          ON speakers(workspace_id, user_id)
+          WHERE user_id IS NOT NULL;
+      `);
+
+      sessionRepository = new SessionRepository(db);
+      speakerRepository = new SpeakerRepository(db);
+
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+      sessionId = session.id;
+
+      // Tiny cap so the test doesn't have to spam 100 names.
+      cappedApp = express();
+      cappedApp.use(express.json());
+      cappedApp.use(
+        '/api/devices',
+        createDeviceRouter({
+          deviceRepository,
+          workspaceRepository,
+          sessionRepository,
+          speakerRepository,
+          maxAnonymousSpeakersPerWorkspace: CAP,
+          authConfig: { jwtService, userRepository },
+        })
+      );
+    });
+
+    it('dedup hit: re-submitting the same name returns the same speakerId (201)', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      const first = await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'Alex', pronouns: 'they/them' })
+        .expect(201);
+
+      const second = await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'alex', pronouns: 'they/them' }) // case-insensitive
+        .expect(201);
+
+      expect(second.body.speakerId).toBe(first.body.speakerId);
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(1);
+    });
+
+    it('returns 429 with Retry-After when workspace hits the anonymous cap', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      // Fill the cap with distinct names.
+      for (let i = 0; i < CAP; i++) {
+        await request(cappedApp)
+          .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ preferredName: `Person${i}` })
+          .expect(201);
+      }
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(CAP);
+
+      const blocked = await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'Newcomer' })
+        .expect(429);
+
+      expect(blocked.body.error).toBe('Workspace anonymous speaker quota exceeded');
+      expect(blocked.body.retryAfter).toBe(60);
+      expect(blocked.headers['retry-after']).toBe('60');
+
+      // No row leaked through.
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(CAP);
+    });
+
+    it('dedup against an existing row succeeds even when workspace is at cap', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      const firstAlex = await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'Alex' })
+        .expect(201);
+      await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'Bree' })
+        .expect(201);
+      // At cap now.
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(CAP);
+
+      // Re-claim as Alex — dedup hit, MUST NOT 429.
+      const reAlex = await request(cappedApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'ALEX' })
+        .expect(201);
+
+      expect(reAlex.body.speakerId).toBe(firstAlex.body.speakerId);
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(CAP);
+    });
+  });
 });
