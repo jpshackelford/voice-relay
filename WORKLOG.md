@@ -413,3 +413,44 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 - Fixes #432.
 
 ---
+
+### 2026-06-07 12:13 UTC - Merge Worker (PR #436 → #432)
+
+✅ **Merged PR #436** (`chore(server): backfill devices.primary_user_id for pre-017 devices`) — squash merge `f51d193` at 12:12:57 UTC. GitHub auto-closed issue #432 via `Fixes #432` trailer at 12:12:59 UTC.
+
+**Pre-merge signal verification:**
+
+| Check | Status |
+| --- | --- |
+| Required CI (7/7) | ✅ all green (Server / Client / E2E / Build Client / lint-pr-title / enable-orchestrator / pr-review) |
+| pr-review-bot verdict (11:46 UTC) | 🟢 Good taste — "Elegant, conservative data migration with comprehensive test coverage." |
+| Unresolved review threads | 0 (the only DRY-suggestion thread was resolved by review worker in commit `4274723` at 11:43Z) |
+| mergeable / isDraft | MERGEABLE / false |
+| Trailer | `Fixes #432` confirmed in PR body |
+
+**Migration safety check (production auto-deploys to vr.chorecraft.net):**
+- ✅ Data-only (`UPDATE` against existing column; no DDL).
+- ✅ `destructive: false` in the migration registry; verified by the registry assertion test.
+- ✅ Idempotent via `WHERE primary_user_id IS NULL` — second pass matches zero rows.
+- ✅ Never overwrites existing non-NULL claims (covered by test case C).
+- ✅ `down` is a `SELECT 1;` no-op with an explanatory comment — rolling 017 back is what removes the column.
+
+**AC gate verdict (issue #432 → PR #436):** **PASS** — all 7 acceptance-criteria items satisfied by the final diff:
+
+1. ✅ Migration registered in `index.ts`.
+2. ✅ Up backfills `devices.primary_user_id` for single-owner workspaces (semantically `workspaces.owner_id` per the issue's own analysis — owner row is inserted in the same `createWorkspace` transaction).
+3. ✅ Never overwrites non-NULL values.
+4. ✅ Idempotent re-apply (test case E now uses `db.exec(migration021.up)` directly per the DRY suggestion that was resolved before merge).
+5. ✅ `down` is a data-side no-op with comment.
+6. ✅ `destructive: false`.
+7. ✅ Test file covers matrix A–E plus mixed-workload pass and down-side check.
+
+No `## INSTRUCTION:` override block was present for PR #436 + #432; gate passed cleanly on merits. Gate verdict recorded in the squash commit body.
+
+**Follow-up issues:** None filed. Multi-owner / orphaned-owner workspaces remain `NULL` by design — handled by the unknown-speaker flow already tracked in #431.
+
+**Slot accounting after merge:** review slot freed (merge worker exits).
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
