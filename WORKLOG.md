@@ -1385,3 +1385,50 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+
+### 2026-06-07 22:40 UTC - Implementation Worker (issue #458)
+
+🚧 → ✅ Opened PR #461: `fix(server): broadcast session state when OH WS reaches 'open' (Fixes #458)`
+
+**Issue:** [#458](https://github.com/jpshackelford/voice-relay/issues/458) — kiosk AI-status indicator stuck on 🔗 after auto-connect; only flips to ✨ after first user message.
+
+**Root cause (confirmed):** `OpenHandsAgentDriver.openSession` resolves while the upstream OH WebSocket is still `WS_CONNECTING`. `synthesizeStatus` maps that to `state: 'starting'`, so the `auto-connect:connected` broadcast carries the same starting state the reducer already had from `auto-connect:connecting`. `connectWebSocket`'s `ws.on('open')` only logged + reset `reconnectAttempts` — no fan-out to platform code. The kiosk only caught up when the first user message triggered the existing `onThinkingChange` re-broadcast. Predates #456; gap traces to #295 (`a2850f1`, May 2026).
+
+**Fix (mirror `onThinkingChange` pattern):**
+- `server/src/openhands.ts` — new `SessionReadyCallback` + `setSessionReadyCallback` + invocation from `ws.on('open')`; guards on `session.sessionId`.
+- `server/src/agent-driver/openhands.ts` — `SessionReadyListener` + `sessionReadyListeners` Set + `onSessionReady` subscription + constructor fan-out. Setter is `optional` on `AISessionManagerSurface` for fake compat.
+- `server/src/agent-driver/index.ts` — re-exports `onAgentSessionReady`.
+- `server/src/index.ts` — production listener: `getSessionStatus` + `broadcastSessionState(... 'ws-ready')`, with `absent`-session short-circuit.
+
+**Production diff:** ~134 LOC across 4 source files (within the 30-50 LOC + comments estimate from the expansion).
+
+**Test coverage (1736/1736 server tests pass):**
+
+| File | Tests | Purpose |
+|---|---|---|
+| `openhands.session-ready.test.ts` (NEW) | 5 | Mocks `ws` module via `vi.hoisted`; verifies `ws.on('open')` invocation, sessionId guard, callback-exception isolation, reconnect re-fires. |
+| `session-state-broadcast.ws-ready.test.ts` (NEW) | 3 | AC #4 regression: real driver + fake mgr; `openSession` returns `starting`; `simulateWsOpen` fires `ws-ready` broadcast with `state: 'ready'`. Covers `absent` short-circuit + `getSessionStatus` failure. |
+| `agent-driver/openhands.test.ts` (extended) | +3 | `onSessionReady` fan-out: unsubscribe, multi-listener, exception isolation. |
+| `openhands.test.ts` (extended) | +2 | `setSessionReadyCallback` accepts callback + `undefined`. |
+
+**CI status (PR #461, commit `940dce6`):** 6/6 ✅ — Build Client, Client Tests, Server Tests (1736 pass), E2E Tests, lint-pr-title, enable-orchestrator.
+
+**Closing-Trailer AC Gate (vs #458):**
+
+| AC | Status | Evidence |
+|---|---|---|
+| 1. Kiosk transitions 🔗 → ✨ within ~1 s of `auto-connect:connected` w/o user input | ✅ | New `ws-ready` `session-state` broadcast carries `state: 'ready'` via authoritative `getSessionStatus` snapshot. |
+| 2. No `session-state` w/ `state: 'starting'` emitted after upstream WS is `OPEN` | ✅ by construction | `synthesizeStatus` only returns `'starting'` when `wsState` is `WS_CONNECTING` or undefined; once `OPEN`, paths resolve to `'ready'`/`'thinking'`/`'reconnecting'`. |
+| 3. Driver regression test for `WS_CONNECTING → OPEN` (option B: follow-up `state: 'ready'` broadcast) | ✅ | `session-state-broadcast.ws-ready.test.ts` asserts the listener observes `state: 'ready'` after `simulateWsOpen`. |
+| 4. `auto-connect.ts` regression: `starting` then `ready` `session-state` broadcasts observed | ✅ | Same test: `openSession` returns `'starting'` snapshot; registry receives `'ws-ready'` broadcast with `state: 'ready'` after the WS open signal. |
+
+**Verdict:** All 4 non-exempt ACs satisfied → `Fixes #458` trailer in PR title (closing trailer in effect; will auto-close issue on squash-merge).
+
+**Production:** vr.chorecraft.net auto-deploy on merge-to-main; no schema changes, no migrations.
+
+PR: [#461](https://github.com/jpshackelford/voice-relay/pull/461) — ready for review.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
