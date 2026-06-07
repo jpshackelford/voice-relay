@@ -1082,13 +1082,6 @@ wss.on('connection', (ws: WebSocket) => {
           const finalSpeakerId =
             resolvedFromEngineMapping ?? utteranceSpeaker?.id;
 
-          // Issue #446: `buildRelayedTextMessage` substitutes the device
-          // alias with `utteranceSpeaker.preferredName` when the per-
-          // session active-speaker (or primary-user fallback) resolved a
-          // speaker with a non-null name. The same returned object is
-          // consumed by `store.append` and the broadcast below, so the
-          // persisted `messages.sender_name` row and the wire frame to
-          // peers stay in lockstep.
           const relayMessage: RelayedTextMessage = buildRelayedTextMessage({
             message: {
               utteranceId: message.utteranceId,

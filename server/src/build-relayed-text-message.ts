@@ -104,12 +104,8 @@ export function buildRelayedTextMessage(
     workspaceId: device.workspaceId,
     sessionId: device.sessionId,
     senderId: device.id,
-    // Issue #446: substitute the device alias with the per-session
-    // active-speaker `preferredName` when one resolved. Falls back to
-    // `device.displayName` for unclaimed devices, for engine-label-only
-    // paths (where the engine label won `finalSpeakerId` but no speaker
-    // row was resolved here — engine labels like `S1` are not human
-    // names), and for speaker rows whose `preferredName` is null.
+    // Substitute speaker's preferred name when available; see module
+    // docstring above for the full fallback semantics.
     senderName: utteranceSpeaker?.preferredName ?? device.displayName,
     text: message.text,
     partial: message.partial,
