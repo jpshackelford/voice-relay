@@ -10,7 +10,11 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import {
   ClaimSpeakerCard,
+  consumePendingClaim,
   getSkipUntil,
+  hasPendingClaim,
+  pendingClaimKey,
+  setPendingClaim,
   setSkipUntil,
   skipKey,
   SKIP_TTL_MS,
@@ -48,12 +52,14 @@ describe('ClaimSpeakerCard (#433)', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn());
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
   });
 
   it('renders title, hint, and the three action buttons by default', () => {
@@ -85,6 +91,23 @@ describe('ClaimSpeakerCard (#433)', () => {
     fireEvent.click(screen.getByRole('button', { name: /workspace member/i }));
     expect(onSignIn).toHaveBeenCalledTimes(1);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // Issue #439 AC: pending-claim flag must be written BEFORE onSignIn fires
+  // so the post-OAuth-return chain can find it after the redirect.
+  it('"workspace member" button sets the pending-claim flag before onSignIn', () => {
+    let flagAtSignIn: string | null = null;
+    const onSignIn = vi.fn(() => {
+      // Capture sessionStorage state at the moment onSignIn fires.
+      flagAtSignIn = window.sessionStorage.getItem(
+        pendingClaimKey(WORKSPACE_ID, DEVICE_ID)
+      );
+    });
+    renderCard({ onSignIn });
+    fireEvent.click(screen.getByRole('button', { name: /workspace member/i }));
+    expect(onSignIn).toHaveBeenCalledTimes(1);
+    expect(flagAtSignIn).toBe('1');
+    expect(hasPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(true);
   });
 
   // AC: Skip action — 7-day localStorage TTL keyed by workspace+device.
@@ -282,5 +305,48 @@ describe('getSkipUntil / setSkipUntil (#433)', () => {
     expect(getSkipUntil(WORKSPACE_ID, DEVICE_ID)).not.toBeNull();
     expect(getSkipUntil('other-ws', DEVICE_ID)).toBeNull();
     expect(getSkipUntil(WORKSPACE_ID, 'other-dev')).toBeNull();
+  });
+});
+
+// Issue #439: pending-claim helpers — sessionStorage-backed, scoped to
+// (workspaceId, deviceId), survive the OAuth roundtrip in the same tab,
+// die on tab close.
+describe('pending-claim helpers (#439)', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+  afterEach(() => {
+    window.sessionStorage.clear();
+  });
+
+  it('round-trips through sessionStorage', () => {
+    expect(hasPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(false);
+    expect(setPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(true);
+    expect(hasPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(true);
+    consumePendingClaim(WORKSPACE_ID, DEVICE_ID);
+    expect(hasPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(false);
+  });
+
+  it('scopes the key by workspaceId AND deviceId', () => {
+    setPendingClaim(WORKSPACE_ID, DEVICE_ID);
+    expect(hasPendingClaim(WORKSPACE_ID, DEVICE_ID)).toBe(true);
+    expect(hasPendingClaim('other-ws', DEVICE_ID)).toBe(false);
+    expect(hasPendingClaim(WORKSPACE_ID, 'other-dev')).toBe(false);
+  });
+
+  it('uses sessionStorage (not localStorage) so it dies on tab close', () => {
+    setPendingClaim(WORKSPACE_ID, DEVICE_ID);
+    expect(
+      window.sessionStorage.getItem(pendingClaimKey(WORKSPACE_ID, DEVICE_ID))
+    ).toBe('1');
+    expect(
+      window.localStorage.getItem(pendingClaimKey(WORKSPACE_ID, DEVICE_ID))
+    ).toBeNull();
+  });
+
+  it('consume is idempotent (safe to call when no flag set)', () => {
+    expect(() =>
+      consumePendingClaim(WORKSPACE_ID, DEVICE_ID)
+    ).not.toThrow();
   });
 });

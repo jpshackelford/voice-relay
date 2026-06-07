@@ -11,6 +11,7 @@ import { useAudioPlayback } from '../hooks/useAudioPlayback';
 import { useAgentActions } from '../hooks/useAgentActions';
 import { useAgentEventHistory } from '../hooks/useAgentEventHistory';
 import { useDeviceRestoration } from '../hooks/useDeviceRestoration';
+import { useFirstRunClaim } from '../hooks/useFirstRunClaim';
 import { useResourceFetch } from '../hooks/useResourceFetch';
 import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { useKioskConfig } from '../hooks/useKioskConfig';
@@ -306,6 +307,9 @@ export function SessionView() {
     sessionTtsSettings,
     // Issue #433: surfaced through to KioskMode for the first-run claim card.
     speakerState,
+    // Issue #439: local-only setter that hides the claim card immediately
+    // after the post-OAuth PATCH succeeds; see useFirstRunClaim below.
+    markDeviceClaimedLocally,
     sendText, 
     updateDevice, 
     sendListeningState,
@@ -341,6 +345,20 @@ export function SessionView() {
         ttlMs: msg.ttlMs,
         at: Date.now(),
       }),
+  });
+
+  // Issue #439: post-OAuth-return device-claim chain. When the user came
+  // back from GitHub via the ClaimSpeakerCard "I'm a workspace member"
+  // button (which sets a sessionStorage flag before the redirect), this
+  // hook fires the empty-body `PATCH /api/devices/:deviceId` that binds
+  // the device to the now-authenticated user and seeds their speaker row.
+  // No-op when the flag is absent.
+  useFirstRunClaim({
+    isAuthenticated,
+    deviceId,
+    workspaceId: workspace?.id,
+    ensureValidToken,
+    onClaimed: markDeviceClaimedLocally,
   });
 
   // Helper to clear timeout for a request

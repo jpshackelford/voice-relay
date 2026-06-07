@@ -599,6 +599,173 @@ describe('Device Router', () => {
       expect(deviceRepository.findById(device.id)?.primaryUserId).toBe(testUserId);
       expect(registry.getDevice(device.id)?.primaryUserId).toBe(testUserId);
     });
+
+    // Issue #439: server-side speaker seeding on the device-claim PATCH.
+    // The post-OAuth-return chain on the client fires an empty PATCH; the
+    // server must also create a speakers row for the authenticated user so
+    // the next agent turn carries `[speaker id=… name=…]` without needing
+    // the user to be a workspace owner (which the speakers PUT endpoint
+    // requires).
+    describe('speaker upsert on claim (#439)', () => {
+      let claimApp: Express;
+      let speakerRepository: SpeakerRepository;
+
+      beforeEach(() => {
+        // Speakers table — the top-level beforeEach doesn't create it
+        // because most PATCH tests don't need it. #439 brings it into the
+        // claim path, so this nested describe owns the schema setup.
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS speakers (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+            preferred_name TEXT,
+            pronouns TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_speakers_workspace_user
+            ON speakers(workspace_id, user_id)
+            WHERE user_id IS NOT NULL;
+        `);
+
+        speakerRepository = new SpeakerRepository(db);
+
+        claimApp = express();
+        claimApp.use(express.json());
+        claimApp.use(
+          '/api/devices',
+          createDeviceRouter({
+            deviceRepository,
+            workspaceRepository,
+            speakerRepository,
+            authConfig: { jwtService, userRepository },
+          })
+        );
+      });
+
+      it('seeds a speakers row with displayName when none exists', async () => {
+        // Bump the test user's displayName so we can assert the fallback
+        // prefers it over username.
+        db.prepare(
+          `UPDATE users SET display_name = ? WHERE id = ?`
+        ).run('Test User Display', testUserId);
+
+        const { device } = deviceRepository.create({
+          workspaceId: testWorkspaceId,
+          name: 'Kiosk',
+          mode: 'kiosk',
+        });
+
+        // No speaker row exists yet.
+        expect(
+          speakerRepository.findByWorkspaceUser(testWorkspaceId, testUserId)
+        ).toBeNull();
+
+        await request(claimApp)
+          .patch(`/api/devices/${device.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({})
+          .expect(200);
+
+        const speaker = speakerRepository.findByWorkspaceUser(
+          testWorkspaceId,
+          testUserId
+        );
+        expect(speaker).not.toBeNull();
+        expect(speaker?.userId).toBe(testUserId);
+        expect(speaker?.preferredName).toBe('Test User Display');
+      });
+
+      it('falls back to username when displayName is null', async () => {
+        // The top-level beforeEach inserts the user with no display_name
+        // (column allows NULL). Confirm that case seeds from `username`.
+        db.prepare(
+          `UPDATE users SET display_name = NULL WHERE id = ?`
+        ).run(testUserId);
+
+        const { device } = deviceRepository.create({
+          workspaceId: testWorkspaceId,
+          name: 'Kiosk',
+          mode: 'kiosk',
+        });
+
+        await request(claimApp)
+          .patch(`/api/devices/${device.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({})
+          .expect(200);
+
+        const speaker = speakerRepository.findByWorkspaceUser(
+          testWorkspaceId,
+          testUserId
+        );
+        expect(speaker?.preferredName).toBe('testuser');
+      });
+
+      it('does not overwrite existing preferred_name on re-claim', async () => {
+        // Seed an existing speaker row with an agent-learned name —
+        // mirroring the state the workspace `/join` handler leaves behind.
+        speakerRepository.create({
+          workspaceId: testWorkspaceId,
+          userId: testUserId,
+          preferredName: 'JP (agent learned)',
+        });
+
+        const { device } = deviceRepository.create({
+          workspaceId: testWorkspaceId,
+          name: 'Kiosk',
+          mode: 'kiosk',
+        });
+
+        // Bump the user's displayName so a naive seed would overwrite.
+        db.prepare(
+          `UPDATE users SET display_name = ? WHERE id = ?`
+        ).run('Should Not Win', testUserId);
+
+        await request(claimApp)
+          .patch(`/api/devices/${device.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({})
+          .expect(200);
+
+        const speaker = speakerRepository.findByWorkspaceUser(
+          testWorkspaceId,
+          testUserId
+        );
+        expect(speaker?.preferredName).toBe('JP (agent learned)');
+      });
+
+      it('still upserts when device is already claimed by the same user (self-heal)', async () => {
+        const { device } = deviceRepository.create({
+          workspaceId: testWorkspaceId,
+          name: 'Kiosk',
+          mode: 'kiosk',
+        });
+        // Simulate a #432-style backfill: primary_user_id is set but no
+        // speakers row exists yet.
+        deviceRepository.setPrimaryUser(device.id, testUserId);
+        expect(
+          speakerRepository.findByWorkspaceUser(testWorkspaceId, testUserId)
+        ).toBeNull();
+
+        await request(claimApp)
+          .patch(`/api/devices/${device.id}`)
+          .set('Authorization', `Bearer ${authToken}`)
+          .send({})
+          .expect(200);
+
+        // Speaker row materialized even though primary_user_id didn't
+        // change.
+        const speaker = speakerRepository.findByWorkspaceUser(
+          testWorkspaceId,
+          testUserId
+        );
+        expect(speaker).not.toBeNull();
+        expect(speaker?.preferredName).toBe('testuser');
+      });
+    });
   });
 
   // Issue #433: device-token-authenticated active-speaker endpoint.
