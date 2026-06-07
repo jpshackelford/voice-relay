@@ -1169,3 +1169,36 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 - Priority rationale: gates #442's full e2e wire+DOM assertions (#447 ships with the two name-equality assertions taped over) AND blocks closure of #433's third-bullet AC. Low complexity + clear scope → quick win that unblocks downstream issue closure → `priority:high`.
 
 ---
+
+### 2026-06-07 15:57 UTC - Merge Worker (PR #448 → main)
+
+✅ **Merged PR #448** — `feat(server): workspace-level quota for anonymous speakers (#443)`
+
+| Item | Status |
+|---|---|
+| Squash-merge commit | [`e028148`](https://github.com/jpshackelford/voice-relay/commit/e028148805c5d48d7aa3128240f8cd66162d662e) |
+| CI at merge | 7/7 ✓ (CI/Build Client, Client Tests, Server Tests, E2E, lint-pr-title, pr-review, orchestrator-enable) |
+| Merge state | `CLEAN`, 0 unresolved review threads |
+| pr-review verdict | "Worth merging" — 🟢 LOW risk |
+| Migration check | ✅ pass-through (no files under `server/src/db/` or `migrations/` touched) |
+| Closing-Trailer AC Gate | ✅ **PASS** (re-verified against final diff, not just trusting impl-worker verdict) |
+| `Fixes #443` trailer | present |
+| Issue #443 auto-close | ✅ CLOSED as COMPLETED at 15:57:12Z |
+
+**AC gate re-verification** (walked #443's `## Acceptance Criteria` against the actual diff):
+
+1. ✅ `findOrCreateAnonymous` query in `speaker-repository.ts` matches spec exactly: `WHERE workspace_id = ? AND user_id IS NULL AND preferred_name = ? COLLATE NOCASE AND pronouns IS ?` (+`ORDER BY created_at ASC LIMIT 1` for deterministic tie-break on legacy duplicates).
+2. ✅ Wrapped in `db.transaction(...)` — `const tx = this.db.transaction((): Speaker => { ... }); return tx();`. better-sqlite3 transactions are synchronous so the count→insert window is closed.
+3. ✅ Throws `AnonymousSpeakerQuotaExceeded(workspaceId, cap)` when count ≥ cap **after** dedup miss.
+4. ✅ Router translates to `429` with `{ error: 'Workspace anonymous speaker quota exceeded', retryAfter: 60 }` + `Retry-After: 60` header. (Implementation adds `retryAfter` field beyond the spec — additive/non-breaking.)
+5. ✅ `DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE = 100`; `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` parsed in `index.ts` bootstrap IIFE with invalid-value guard; threaded via `DeviceRouterOptions.maxAnonymousSpeakersPerWorkspace`.
+6. ✅ `speaker-repository.test.ts` +11 tests (33 total): dedup hits, case-insensitive dedup, different pronouns distinct, null-pronouns IS-handling, no-dedup-across-user-link, no-dedup-across-workspaces, cap throw, dedup-bypasses-cap, empty-name guard, typed-error fields, legacy-duplicate tie-break.
+7. ✅ `devices/router.test.ts` +3 tests (38 total): dedup-hit same `speakerId`, 429 + `Retry-After`, dedup bypasses cap. No deletions (159+0-) → existing happy-path tests intact.
+
+**Production impact:** safe to auto-deploy — no schema change, opt-in cap defaults to a generous 100, dedup is purely additive (legacy duplicates resolved deterministically by created_at ASC). The 429 path is reachable only via the device-token-authenticated endpoint, which is already behind 30/min per-IP rate limiting.
+
+Closes orchestrator slot for #443; next pickup is the orchestrator's call.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
