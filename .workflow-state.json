@@ -4,10 +4,10 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "d35b1d5",
-        "actual_conv_id": "d35b1d5a1b6b42f583d2c441855886f2",
-        "issue": 452,
-        "started": "2026-06-07T17:10:01.641272Z"
+        "conv_id": "8ccd347",
+        "actual_conv_id": "8ccd3476ebde4b0c9ba4920ab8653ee5",
+        "issue": 446,
+        "started": "2026-06-07T17:20:40.572429Z"
       }
     ],
     "review": []
@@ -17,74 +17,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T17:10:01.641272Z",
+  "last_updated": "2026-06-07T17:20:40.572429Z",
   "completed": [
-    {
-      "conv_id": "49ca8be",
-      "actual_conv_id": "49ca8beb789b4144b8bf480deecb2861",
-      "type": "review",
-      "pr": 422,
-      "issue": 412,
-      "started": "2026-06-06T16:22:34.291629+00:00",
-      "finished": "2026-06-06T16:36:37.718796+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #422; PR squash-merged (Fixes #412)."
-    },
-    {
-      "conv_id": "a9fd499",
-      "actual_conv_id": "a9fd499abf2642a3bf3d7f55b60b2f8a",
-      "type": "implementation",
-      "issue": 421,
-      "pr": 424,
-      "started": "2026-06-06T16:22:34.291629+00:00",
-      "finished": "2026-06-06T16:36:37.718796+00:00",
-      "status": "success",
-      "outcome": "Opened PR #424 \u2014 fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). CI green; pr-review bot left \u2705 COMMENTED 'Worth merging' review; 0 unresolved threads; mergeStateStatus=CLEAN."
-    },
-    {
-      "conv_id": "4571b04",
-      "actual_conv_id": "4571b04ce2a74e2d849c0b1aeac5bec5",
-      "type": "implementation",
-      "issue": 413,
-      "pr": 425,
-      "started": "2026-06-06T16:38:31.680500+00:00",
-      "finished": "2026-06-06T17:05:27.287679+00:00",
-      "status": "success",
-      "outcome": "Opened PR #425 \u2014 docs: add hosted STT (Deepgram) section to README (Fixes #413). AC gate PASS (10/10). PR #425 squash-merged at 16:56Z; issue #413 auto-closed."
-    },
-    {
-      "conv_id": "0544110",
-      "actual_conv_id": "054411040e2f43ed96ae993254556d26",
-      "type": "review",
-      "pr": 423,
-      "issue": 410,
-      "started": "2026-06-06T16:22:34.291629+00:00",
-      "finished": "2026-06-06T17:05:27.287679+00:00",
-      "status": "success",
-      "outcome": "Addressed pr-review feedback on PR #423 (engine selection Deepgram vs Web Speech). At reap: required CI 7/7 green, 0 unresolved threads, mergeStateStatus=CLEAN, mergeable=MERGEABLE, ready (not draft). AC gate verdict in body: Closes #410."
-    },
-    {
-      "conv_id": "300a426",
-      "actual_conv_id": "300a426b43614263a570cfdeb338f57a",
-      "type": "merge",
-      "pr": 424,
-      "issue": 421,
-      "started": "2026-06-06T16:38:31.680500+00:00",
-      "finished": "2026-06-06T17:05:27.287679+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #424 (fcf8895) \u2014 fix(tests): re-gate AI-unavailable smoke test on per-workspace settings (Fixes #421). Issue #421 auto-closed at 16:30:05Z (closed pre-merge; trailer confirmed linkage). Tests-only diff, no migration."
-    },
-    {
-      "conv_id": "7becb0b",
-      "actual_conv_id": "7becb0b4bbf94815b8ea7c103d08bc81",
-      "type": "merge",
-      "issue": 410,
-      "pr": 423,
-      "started": "2026-06-06T17:05:27.287679+00:00",
-      "finished": "2026-06-06T17:20:16.938492+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) \u2014 feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
-    },
     {
       "conv_id": "204eef3",
       "actual_conv_id": "204eef38a6104eaeabaa4df7b3736c28",
@@ -306,6 +240,15 @@
       "finished": "2026-06-07T17:08:21.566648Z",
       "status": "success",
       "outcome": "PR #450 round-1 review addressed (substitution-rule comment + test-comment trim); filed follow-up #452 for kiosk strict-mode flake; merge worker subsequently squashed PR #450 -> 7d41ba2 (Refs #446)"
+    },
+    {
+      "conv_id": "d35b1d5",
+      "type": "implementation",
+      "issue": 452,
+      "started": "2026-06-07T17:10:01.641272Z",
+      "finished": "2026-06-07T17:20:40.572429Z",
+      "status": "success",
+      "outcome": "Opened PR #453 (test(e2e): scope kiosk session view locator)"
     }
   ],
   "quiet_ticks": 0
