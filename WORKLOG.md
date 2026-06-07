@@ -767,3 +767,18 @@ Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 bu
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 10:38 UTC - Expansion Worker (issue #434)
+
+✅ **Expanded Issue #434**
+
+- Issue: [bug(client): connection status dot rendering in left sidebar instead of kiosk display area](https://github.com/jpshackelford/voice-relay/issues/434)
+- Type: Bug (CSS regression)
+- Status: Ready for implementation (`ready` label applied)
+- Root cause: PR #394's grid refactor dropped the `.kiosk-display .connection-indicator` `position: absolute` override but left the base rule's `position: fixed` in place, so `grid-area: bl` is ignored and the dot stays at viewport `bottom: 1rem; left: 1rem;` — which is inside the open `.kiosk-sidebar`.
+- Proposed fix: one-line CSS addition — `position: static;` on `.kiosk-display .connection-indicator` so the grid-area placement actually applies. No JSX changes. Test: extend the existing `KioskMode.test.tsx` "renders the connection indicator inside the kiosk display" case to also assert computed `position !== 'fixed'`, plus optional Playwright bounding-box containment check.
+- Files: `client/src/App.css` (~line 3900), `client/src/components/KioskMode.test.tsx` (~line 2194), optionally `tests/e2e/kiosk.spec.ts`.
+- Scope: `client-only`, priority:medium (carried from filing). Low risk — base `.connection-indicator` rule still applies for the workspace session view (correct) and the mobile kiosk path (correct).
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
