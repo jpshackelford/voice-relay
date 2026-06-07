@@ -956,3 +956,38 @@ branching by running `gh pr view 438 --json state` per dispatch brief.
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 14:50 UTC - Implementation worker (issue #440)
+
+🚀 **Opened PR #445** — `test(client): kiosk integration smoke test for first-run claim flow`
+
+- Branch: `test/440-kiosk-claim-flow-smoke` → `main`
+- PR: https://github.com/jpshackelford/voice-relay/pull/445
+- Status: **ready for review**, CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title — all pass)
+- Mergeable: clean
+
+**AC gate verdict (issue #440):** ✅ ALL 9 ACs satisfied → trailer `Fixes #440`.
+
+| AC | Status |
+|----|--------|
+| 1. New file `client/src/components/KioskMode.claim-flow.test.tsx` exists, imports `KioskMode` | ✅ |
+| 2. Reuses existing `useSpeechRecognition` / `QRCode` / `Oscilloscope` mock pattern, no new deps | ✅ |
+| 3. Test 1: workspace-member action invokes `onSpeakerSignIn`, zero `fetch` calls | ✅ |
+| 4. Test 2: POST once to `/api/devices/dev-1/sessions/test-session/active-speaker` w/ `Bearer tok-abc` + body, card disappears | ✅ |
+| 5. Test 3: skip writes `~now+7d` ISO to `voice_relay_first_run_skip_ws-1_dev-1`, card hides | ✅ |
+| 6. Test 4a (re-render after claim) + 4b (re-mount after skip) both keep card hidden | ✅ |
+| 7. Test 5: `×` close hides card without writing 7-day TTL | ✅ |
+| 8. Specs run in <2 s under `npm run test -- KioskMode.claim-flow` (actual: 178 ms) | ✅ |
+| 9. Full client suite still green (1179 / 1179 passing) | ✅ |
+
+**Tests added:** single new file, 6 `it()` blocks (Test 4 split into 4a/4b per issue body). 299 lines, no production code touched.
+
+**Minor deviation noted in PR body:** original proposal asserted `onSpeakerSignIn` called "with no args"; the button wires `onClick={onSignIn}` directly so the synthetic click event is passed. The AC itself only requires "invokes `onSpeakerSignIn` and makes zero fetch calls" — both satisfied via `toHaveBeenCalledTimes(1)`.
+
+**No follow-up issues filed** — gate fully satisfied.
+
+**No conflict with PR #444** (in flight, different surface — post-OAuth-return PATCH vs. kiosk page-level smoke test). Branched from current `main` (post-#438-merge); no rebase needed.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
+
