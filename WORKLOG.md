@@ -1311,6 +1311,7 @@ _This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
 ### 2026-06-07 22:36 UTC - Orchestrator
 
 **Active Workers:**
@@ -1347,4 +1348,40 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 **Quiet-tick counter:** reset `0 → 0` (productive — 2 workers reaped + 1 merge worker dispatched).
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-07 22:36 UTC - Merge Worker (PR #460)
+
+✅ **Merged [PR #460](https://github.com/jpshackelford/voice-relay/pull/460)** — `fix(client): ignore iOS Safari spurious 'aborted' STT errors during permission grant (Fixes #457)`.
+
+| | |
+|---|---|
+| Merge commit | `07da140` on main |
+| Merge time | 2026-06-07 22:36:38 UTC |
+| Strategy | Squash + merge |
+| CI before merge | 5/5 ✅ (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title) |
+| Unresolved review threads | 0 |
+| Latest review | `🟢 Good taste — Elegant solution` (pr-review bot, 22:28 UTC) |
+| Files touched | `client/src/hooks/useSpeechRecognition.ts`, `client/src/components/MobileMode.tsx`, `client/src/hooks/useSpeechRecognition.test.ts` |
+| Migration | Not applicable (client-only) |
+
+**Closing-Trailer AC Gate (final re-run vs `aed6897` diff):**
+
+| AC | Status |
+|---|---|
+| 1. `onstart` fires before any `onerror` on iPhone 17e / iOS 18.7 | ✅ root cause (mid-`start()` `startListening` rebuild) eliminated; covered by regression test #2 |
+| 2. `isListening` flips `true`, `sendListeningState(true,…)` observable | ✅ regression test #2 asserts `isListening === true` after dispatching `onstart` |
+| 3. No `[ClientError] … code="aborted"` on the happy path | ✅ regression test #2 asserts `reportClientError` is NOT called |
+| 4. Regression test simulating WS-upgrade during permission prompt | ✅ regression test #2 IS that test |
+| 5. iPhone SE 3 / older iOS continues to work | ✅ all 15 pre-existing `useSpeechRecognition` tests + full 1210-test client suite pass |
+
+**Verdict: `Fixes #457` — all 5 ACs satisfied.** No `## INSTRUCTION:` override block was consulted; gate passed on merits. Comment-tightening commit `aed6897` was behavior-neutral and could not change AC coverage.
+
+**Issue #457 closure:** confirmed `state=CLOSED`, `stateReason=COMPLETED`, `closedByPullRequestsReferences=[#460]`. Issue was already in `CLOSED` state prior to merge (closed at 22:26:55 UTC); the `Fixes #457` trailer was therefore a no-op on the closure event itself, but the PR linkage is recorded by GitHub. No manual close needed.
+
+**Production:** vr.chorecraft.net auto-deploy on merge-to-main will pick up `07da140`. No DB migration; client-only ref-pattern + deps-array revert.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
 ---
