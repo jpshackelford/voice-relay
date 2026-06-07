@@ -5,6 +5,8 @@ import request from 'supertest';
 import { createDeviceRouter } from './router.js';
 import { DeviceRepository } from './device-repository.js';
 import { WorkspaceRepository } from '../workspaces/workspace-repository.js';
+import { SessionRepository } from '../sessions/session-repository.js';
+import { SpeakerRepository } from '../speakers/speaker-repository.js';
 import { JWTService } from '../auth/jwt.js';
 import { UserRepository } from '../auth/user-repository.js';
 import { migration as usersMigration } from '../storage/migrations/002_users.js';
@@ -596,6 +598,213 @@ describe('Device Router', () => {
 
       expect(deviceRepository.findById(device.id)?.primaryUserId).toBe(testUserId);
       expect(registry.getDevice(device.id)?.primaryUserId).toBe(testUserId);
+    });
+  });
+
+  // Issue #433: device-token-authenticated active-speaker endpoint.
+  // Lets the first-run claim card on an unclaimed device say "this turn
+  // is from <name>" without requiring the human to be a workspace member.
+  describe('POST /:deviceId/sessions/:sessionId/active-speaker (#433)', () => {
+    let sessionRepository: SessionRepository;
+    let speakerRepository: SpeakerRepository;
+    let claimApp: Express;
+    let sessionId: string;
+
+    beforeEach(() => {
+      // Add the tables this endpoint needs. The router-test setup
+      // already created `devices` inline (see top-level beforeEach), so
+      // we just add the speaker-identity stack here.
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sessions (
+          id TEXT PRIMARY KEY,
+          workspace_id TEXT NOT NULL,
+          name TEXT,
+          status TEXT NOT NULL DEFAULT 'active',
+          started_at TEXT NOT NULL DEFAULT (datetime('now')),
+          ended_at TEXT,
+          metadata TEXT,
+          display_api_secret_encrypted TEXT,
+          display_api_secret_iv TEXT,
+          display_api_secret_tag TEXT,
+          target_kiosk_device_id TEXT,
+          FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS session_devices (
+          session_id TEXT NOT NULL,
+          device_id TEXT NOT NULL,
+          joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+          active_speaker_id TEXT,
+          PRIMARY KEY (session_id, device_id),
+          FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
+          FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS speakers (
+          id TEXT PRIMARY KEY,
+          workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+          user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+          preferred_name TEXT,
+          pronouns TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_speakers_workspace_user
+          ON speakers(workspace_id, user_id)
+          WHERE user_id IS NOT NULL;
+      `);
+
+      sessionRepository = new SessionRepository(db);
+      speakerRepository = new SpeakerRepository(db);
+
+      const session = sessionRepository.create({ workspaceId: testWorkspaceId });
+      sessionId = session.id;
+
+      claimApp = express();
+      claimApp.use(express.json());
+      claimApp.use(
+        '/api/devices',
+        createDeviceRouter({
+          deviceRepository,
+          workspaceRepository,
+          sessionRepository,
+          speakerRepository,
+          authConfig: { jwtService, userRepository },
+        })
+      );
+    });
+
+    it('creates anonymous speaker and writes session_devices.active_speaker_id', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      const response = await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'JP', pronouns: 'he/him' })
+        .expect(201);
+
+      expect(response.body.speakerId).toBeDefined();
+
+      const speaker = speakerRepository.findById(testWorkspaceId, response.body.speakerId);
+      expect(speaker).not.toBeNull();
+      expect(speaker?.userId).toBeNull(); // anonymous
+      expect(speaker?.preferredName).toBe('JP');
+      expect(speaker?.pronouns).toBe('he/him');
+
+      expect(sessionRepository.getActiveSpeaker(sessionId, device.id)).toBe(speaker!.id);
+    });
+
+    it('accepts call without pronouns', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      const response = await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'Anna' })
+        .expect(201);
+
+      const speaker = speakerRepository.findById(testWorkspaceId, response.body.speakerId);
+      expect(speaker?.pronouns).toBeNull();
+    });
+
+    it('rejects mismatched device token (401)', async () => {
+      const { device: deviceA } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk A',
+        mode: 'kiosk',
+      });
+      const { token: tokenB } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk B',
+        mode: 'kiosk',
+      });
+
+      // tokenB belongs to a different device — endpoint must reject.
+      const response = await request(claimApp)
+        .post(`/api/devices/${deviceA.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${tokenB}`)
+        .send({ preferredName: 'Mallory' })
+        .expect(401);
+
+      expect(response.body.error).toBe('Invalid device token');
+
+      // Side-effect check: no speaker was created and no override was written.
+      expect(speakerRepository.listForWorkspace(testWorkspaceId)).toHaveLength(0);
+      expect(sessionRepository.getActiveSpeaker(sessionId, deviceA.id)).toBeNull();
+    });
+
+    it('rejects missing Authorization header (401)', async () => {
+      const { device } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .send({ preferredName: 'JP' })
+        .expect(401);
+    });
+
+    it('rejects empty preferredName (400)', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      const response = await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: '   ' })
+        .expect(400);
+
+      expect(response.body.error).toBe('preferredName cannot be empty');
+    });
+
+    it('rejects preferredName over 80 chars (400)', async () => {
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${sessionId}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'x'.repeat(81) })
+        .expect(400);
+    });
+
+    it('rejects session that lives in a different workspace (404)', async () => {
+      // Second workspace + session.
+      const otherWorkspaceId = 'workspace-other';
+      db.prepare(`
+        INSERT INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(otherWorkspaceId, testUserId, 'Other', 'other', 'WXYZ-9999');
+      const otherSession = sessionRepository.create({ workspaceId: otherWorkspaceId });
+
+      const { device, token } = deviceRepository.create({
+        workspaceId: testWorkspaceId,
+        name: 'Kiosk',
+        mode: 'kiosk',
+      });
+
+      await request(claimApp)
+        .post(`/api/devices/${device.id}/sessions/${otherSession.id}/active-speaker`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ preferredName: 'JP' })
+        .expect(404);
     });
   });
 });

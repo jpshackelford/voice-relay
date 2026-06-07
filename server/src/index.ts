@@ -335,6 +335,50 @@ function resolveSpeakerForUser(
   }
 }
 
+/**
+ * Resolve the per-session active-speaker override for a `(sessionId,
+ * deviceId)` pair (#433).
+ *
+ * Set by the first-run claim card's "Just remember a name for this
+ * device" action via `POST /api/devices/:deviceId/sessions/:sessionId/
+ * active-speaker`. When present, this override takes precedence over
+ * the workspace-default `devices.primary_user_id` lookup so a shared
+ * kiosk can attribute the current turn to a specific human without the
+ * device being globally claimed for that user.
+ *
+ * Returns `null` (so the caller falls back to the primary-user path)
+ * when no override is set OR when the referenced speaker row has gone
+ * away (FK is `ON DELETE SET NULL`).
+ */
+function resolveSpeakerForSession(
+  workspaceId: string,
+  sessionId: string | null | undefined,
+  deviceId: string
+): { id: string; preferredName: string | null; pronouns: string | null } | null {
+  if (
+    !speakerRepository ||
+    !sessionRepository ||
+    !sessionId ||
+    sessionId === ANONYMOUS_SESSION_ID
+  ) {
+    return null;
+  }
+  try {
+    const activeSpeakerId = sessionRepository.getActiveSpeaker(sessionId, deviceId);
+    if (!activeSpeakerId) return null;
+    const speaker = speakerRepository.findById(workspaceId, activeSpeakerId);
+    if (!speaker) return null;
+    return {
+      id: speaker.id,
+      preferredName: speaker.preferredName,
+      pronouns: speaker.pronouns,
+    };
+  } catch (err) {
+    console.warn('[Speakers] active-speaker resolve failed (non-fatal):', err);
+    return null;
+  }
+}
+
 // TTS service for AI response speech synthesis (set up after workspace repository)
 let ttsService: TtsService | null = null;
 
@@ -832,12 +876,32 @@ wss.on('connection', (ws: WebSocket) => {
             primaryUserId,
           );
           
+          // Issue #433: client-facing speaker-identity surface for the
+          // first-run claim card. Mirrors what #431 emits to the agent
+          // prompt but reshaped for the WS client (booleans, not a
+          // formatted string). Only populated when the speaker stack is
+          // wired up — the kiosk client treats an undefined value as
+          // "do not render the card".
+          let speakerState: import('./types.js').SpeakerState | undefined;
+          if (speakerRepository && sessionRepository) {
+            const activeSpeakerId =
+              sessionId && sessionId !== ANONYMOUS_SESSION_ID
+                ? sessionRepository.getActiveSpeaker(sessionId, message.deviceId)
+                : null;
+            speakerState = {
+              deviceClaimed: primaryUserId !== null,
+              primaryUserId: primaryUserId ?? null,
+              activeSpeakerId,
+            };
+          }
+
           const response: RegisteredMessage = {
             type: 'registered',
             deviceId: message.deviceId,
             session: session,
             deviceToken: deviceToken ?? undefined,
             tokenExpiresAt: tokenExpiresAt ?? undefined,
+            speakerState,
           };
           ws.send(JSON.stringify(response));
           
@@ -970,10 +1034,24 @@ wss.on('connection', (ws: WebSocket) => {
           // to the agent driver below. `device.primaryUserId` is cached
           // on the in-memory registry entry at registration time, so this
           // path runs without a per-utterance `devices` table lookup.
-          const utteranceSpeaker = resolveSpeakerForUser(
-            device.workspaceId,
-            device.primaryUserId
-          );
+          //
+          // Issue #433: the per-session `session_devices.active_speaker_id`
+          // override (set by the first-run claim card's "remember a name"
+          // action) takes precedence over the workspace-default
+          // `primary_user_id` lookup. The override is small, indexed by
+          // PK, and only triggers a DB roundtrip when the column is
+          // actually set — anonymous-speaker writes via the claim card
+          // are the only writer in production.
+          const utteranceSpeaker =
+            resolveSpeakerForSession(
+              device.workspaceId,
+              device.sessionId,
+              device.id
+            ) ??
+            resolveSpeakerForUser(
+              device.workspaceId,
+              device.primaryUserId
+            );
           // Issue #386: hosted STT (Deepgram) emits a per-session,
           // per-device opaque speaker label (e.g. 'S1'). If the inbound
           // message carries one AND the workspace has a resolved mapping
@@ -1748,6 +1826,11 @@ async function start() {
         // also update the in-memory device cache (avoids a stale lookup on
         // the next utterance from the same device session).
         deviceRegistry: registry,
+        // Issue #433: pass the session + speaker repos so the
+        // device-token-authenticated active-speaker endpoint can be
+        // mounted (`POST /:deviceId/sessions/:sessionId/active-speaker`).
+        sessionRepository: sessionRepository ?? undefined,
+        speakerRepository: speakerRepository ?? undefined,
         authConfig: {
           jwtService,
           userRepository,

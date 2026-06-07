@@ -15,8 +15,10 @@ import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
 import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
 import { getActionIcon } from '../hooks/useAgentActions';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry, SpeakerState } from '../types';
 import type { AIState } from '../hooks/useAI';
+import { ClaimSpeakerCard, getSkipUntil } from './ClaimSpeakerCard';
+import { getStoredDeviceToken } from '../utils/deviceToken';
 
 /** Issue #340: clear the transcription ticker after this many ms of no new partials. */
 const TRANSCRIPTION_TICKER_IDLE_MS = 5000;
@@ -106,6 +108,23 @@ interface KioskModeProps {
   attention?: { mobileDeviceId: string; mobileDisplayName: string; ttlMs: number; at: number } | null;
   /** Called by the kiosk after the banner has auto-dismissed. */
   onAttentionDismiss?: () => void;
+  /**
+   * Issue #433: speaker-identity surface from the WS `registered`
+   * payload. When this is non-null AND the device is not yet claimed
+   * AND no active speaker has been set for this session, the kiosk
+   * renders a one-time claim-card prompt asking the human in front of
+   * it for a preferred name. `null` (the default for legacy servers)
+   * keeps the card hidden.
+   */
+  speakerState?: SpeakerState | null;
+  /**
+   * Issue #433: invoked when the user clicks "I'm a workspace member"
+   * on the first-run claim card. Wired in the page container to
+   * `useAuth().login()` (which carries the kiosk URL as `returnTo`).
+   * Optional so tests and Storybook fixtures can omit it; when undefined
+   * the kiosk simply does not render the claim card at all.
+   */
+  onSpeakerSignIn?: () => void;
 }
 
 // Hook to detect mobile devices
@@ -155,6 +174,8 @@ export function KioskMode({
   sttEngine = 'web-speech',
   attention = null,
   onAttentionDismiss,
+  speakerState = null,
+  onSpeakerSignIn,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -166,6 +187,37 @@ export function KioskMode({
   const [qrDismissed, setQrDismissed] = useState(false);  // Allow dismissing QR screen without mobile scan
   // Queue display content when QR has priority (fixes #246)
   const [queuedDisplayContent, setQueuedDisplayContent] = useState<DisplayContent | null>(null);
+
+  // Issue #433: claim-card lifecycle.
+  //
+  // Two kinds of dismissal:
+  //   - **× / "Back"**: hides the card for this session only (in-memory
+  //     flag below). The next session re-prompts.
+  //   - **"Shared device"**: writes a 7-day TTL to localStorage keyed by
+  //     `workspaceId+deviceId`; we read it on mount and respect it
+  //     until it expires.
+  // Render condition is summarised in `shouldShowClaimCard` below.
+  const [claimDismissedThisSession, setClaimDismissedThisSession] = useState(false);
+  const [longSkipped, setLongSkipped] = useState(false);
+  // Re-check the 7-day skip whenever workspace or device changes.
+  useEffect(() => {
+    if (!workspaceId || !deviceId) {
+      setLongSkipped(false);
+      return;
+    }
+    const until = getSkipUntil(workspaceId, deviceId);
+    setLongSkipped(until !== null);
+  }, [workspaceId, deviceId]);
+  // Reset the per-session dismissal when the session itself rotates.
+  useEffect(() => {
+    setClaimDismissedThisSession(false);
+  }, [sessionId]);
+  // Local optimistic flag set after a successful POST — avoids a flicker
+  // while we wait for the next `registered` payload from the server.
+  const [claimedLocally, setClaimedLocally] = useState(false);
+  useEffect(() => {
+    setClaimedLocally(false);
+  }, [sessionId]);
 
   // Derive TTS enabled state from session settings (default to false if not set)
   const ttsEnabled = sessionTtsSettings?.enabled ?? false;
@@ -692,11 +744,60 @@ export function KioskMode({
     </div>
   ) : null;
 
+  // Issue #433: derive whether the claim card should render. We require
+  // a workspaceId + sessionId to make the POST URL, a stored device
+  // token (the only credential we can prove ownership with), and an
+  // `onSpeakerSignIn` callback wired through the page container. When
+  // any of those are missing we silently skip rendering rather than
+  // break the page — the card is purely additive.
+  const storedDeviceToken =
+    typeof window !== 'undefined' && workspaceId
+      ? getStoredDeviceToken(workspaceId)?.deviceToken ?? null
+      : null;
+  const shouldShowClaimCard =
+    !!speakerState &&
+    !speakerState.deviceClaimed &&
+    speakerState.activeSpeakerId === null &&
+    !claimedLocally &&
+    !claimDismissedThisSession &&
+    !longSkipped &&
+    !!sessionId &&
+    !!workspaceId &&
+    !!storedDeviceToken &&
+    !!onSpeakerSignIn;
+  // Wrapper positions the card in the upper-right corner of the kiosk
+  // overlay grid without taking a backdrop — so voice and chat input
+  // behind the card stay usable (AC #3).
+  const claimCard = shouldShowClaimCard ? (
+    <div
+      className="claim-speaker-corner"
+      data-testid="claim-speaker-overlay"
+    >
+      <ClaimSpeakerCard
+        workspaceId={workspaceId!}
+        deviceId={deviceId}
+        sessionId={sessionId!}
+        deviceToken={storedDeviceToken!}
+        onClaimed={() => {
+          setClaimedLocally(true);
+        }}
+        onDismiss={() => {
+          setClaimDismissedThisSession(true);
+        }}
+        onSkip={() => {
+          setLongSkipped(true);
+        }}
+        onSignIn={onSpeakerSignIn!}
+      />
+    </div>
+  ) : null;
+
   // On mobile, render a simplified conversation-only view
   if (isMobile) {
     return (
       <div className="kiosk-mode mobile">
         {attentionBanner}
+        {claimCard}
         <header className="kiosk-header">
           <div className="device-info">
             <span className="device-name">🖥️ {displayName}</span>
@@ -797,6 +898,7 @@ export function KioskMode({
   return (
     <div className="kiosk-mode">
       {attentionBanner}
+      {claimCard}
       {/* Left sidebar - Chat (now a drawer) */}
       <aside className={`kiosk-sidebar ${drawerOpen ? 'open' : 'closed'}`}>
         <header className="kiosk-header">
