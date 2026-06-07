@@ -379,7 +379,11 @@ describe('DeviceRepository', () => {
       expect(result.device.name).toBe('New Device');
     });
 
-    it('updates existing device without generating new token', () => {
+    it('updates existing device mode but preserves persisted name (issue #459)', () => {
+      // The `name` argument to registerOrUpdate is a seed-on-create value only.
+      // For existing devices the persisted (user-authoritative) name must win —
+      // renames go through PATCH /api/devices/:id and must not be clobbered by
+      // a stale `register` payload from a long-lived kiosk/session tab.
       const { device } = repo.create({
         workspaceId: testWorkspaceId,
         name: 'Old Name',
@@ -396,8 +400,42 @@ describe('DeviceRepository', () => {
       expect(result.isNew).toBe(false);
       expect(result.token).toBeNull(); // No new token for existing device
       expect(result.expiresAt).toBeNull(); // No new expiry for existing device
-      expect(result.device.name).toBe('Updated Name');
+      // Persisted name is preserved; only mode flips through this code path.
+      expect(result.device.name).toBe('Old Name');
       expect(result.device.mode).toBe('kiosk');
+    });
+
+    it('preserves user-renamed name across a stale-payload re-register (issue #459)', () => {
+      // Regression test for #459: kiosk reconnects with a stale sessionStorage
+      // value and ships the old default name in its `register` payload. The
+      // server must not overwrite the user-renamed value.
+
+      // 1. Create the device with the auto-generated default name.
+      const { device } = repo.create({
+        workspaceId: testWorkspaceId,
+        name: 'Mac-bd20407',
+        mode: 'mobile',
+      });
+
+      // 2. User renames via PATCH /api/devices/:id → repo.update.
+      repo.update(device.id, { name: 'Living Room Kiosk' });
+      expect(repo.findById(device.id)!.name).toBe('Living Room Kiosk');
+
+      // 3. Kiosk reconnects with stale sessionStorage and re-sends the OLD name.
+      const result = repo.registerOrUpdate(
+        device.id,
+        testWorkspaceId,
+        'Mac-bd20407', // stale payload
+        'kiosk'
+      );
+
+      // 4. DB still holds the user-authoritative name; only mode flipped.
+      expect(result.device.name).toBe('Living Room Kiosk');
+      expect(result.device.mode).toBe('kiosk');
+      // And a direct read confirms it (defends against any in-memory caching).
+      const persisted = repo.findById(device.id)!;
+      expect(persisted.name).toBe('Living Room Kiosk');
+      expect(persisted.mode).toBe('kiosk');
     });
   });
 });

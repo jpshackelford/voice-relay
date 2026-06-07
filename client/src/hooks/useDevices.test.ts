@@ -2,8 +2,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useDevices, type DeviceInfo } from './useDevices';
 
+interface MockStoredDevice {
+  deviceId: string;
+  deviceToken: string;
+  workspaceId: string;
+  name: string;
+  mode: 'mobile' | 'kiosk';
+}
+
 let mockAuthState = { isAuthenticated: false };
-let mockStoredDevice: { deviceId: string } | null = null;
+let mockStoredDevice: MockStoredDevice | null = null;
+const storeDeviceTokenMock = vi.fn<(info: MockStoredDevice) => boolean>(() => true);
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockAuthState,
@@ -11,6 +20,7 @@ vi.mock('../contexts/AuthContext', () => ({
 
 vi.mock('../utils/deviceToken', () => ({
   getStoredDeviceToken: () => mockStoredDevice,
+  storeDeviceToken: (info: MockStoredDevice) => storeDeviceTokenMock(info),
 }));
 
 function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500): Response {
@@ -52,10 +62,14 @@ describe('useDevices hook', () => {
     vi.restoreAllMocks();
     mockAuthState = { isAuthenticated: true };
     mockStoredDevice = null;
+    storeDeviceTokenMock.mockClear();
+    storeDeviceTokenMock.mockReturnValue(true);
+    sessionStorage.clear();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    sessionStorage.clear();
   });
 
   it('does not fetch when workspaceId is undefined', async () => {
@@ -82,7 +96,13 @@ describe('useDevices hook', () => {
   });
 
   it('fetches devices and sorts current device first', async () => {
-    mockStoredDevice = { deviceId: 'dev-b' };
+    mockStoredDevice = {
+      deviceId: 'dev-b',
+      deviceToken: 'tok',
+      workspaceId: 'ws-1',
+      name: 'B',
+      mode: 'mobile',
+    };
     const fetchMock = vi
       .fn()
       .mockResolvedValue(jsonResponse({ devices: [deviceA, deviceB, deviceC] }));
@@ -222,6 +242,99 @@ describe('useDevices hook', () => {
           await result.current.renameDevice('dev-a', 'X');
         }),
       ).rejects.toThrow('Failed to rename device');
+    });
+
+    it('flushes sessionStorage.displayName and stored token when renaming the current device (issue #459)', async () => {
+      // Simulate a tab that already cached the old default name and holds the
+      // stored token for the device being renamed.
+      sessionStorage.setItem('displayName', 'Mac-bd20407');
+      mockStoredDevice = {
+        deviceId: 'dev-a',
+        deviceToken: 'tok-abc',
+        workspaceId: 'ws-1',
+        name: 'Mac-bd20407',
+        mode: 'kiosk',
+      };
+
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ devices: [deviceA] }))
+        .mockResolvedValueOnce(jsonResponse({}, true));
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useDevices('ws-1'));
+      await waitFor(() => expect(result.current.devices).toHaveLength(1));
+
+      await act(async () => {
+        await result.current.renameDevice('dev-a', 'Living Room Kiosk');
+      });
+
+      // sessionStorage now carries the new name so a subsequent SessionView
+      // mount will not re-send the stale default in `register`.
+      expect(sessionStorage.getItem('displayName')).toBe('Living Room Kiosk');
+      // The stored device token is refreshed with the new name.
+      expect(storeDeviceTokenMock).toHaveBeenCalledWith({
+        deviceId: 'dev-a',
+        deviceToken: 'tok-abc',
+        workspaceId: 'ws-1',
+        name: 'Living Room Kiosk',
+        mode: 'kiosk',
+      });
+    });
+
+    it('does not touch sessionStorage or stored token when renaming a different device', async () => {
+      // Current tab holds the token for dev-b, but the user renames dev-a (a
+      // peer device shown in the workspace list). Same-tab state must not be
+      // disturbed in that case.
+      sessionStorage.setItem('displayName', 'My Phone');
+      mockStoredDevice = {
+        deviceId: 'dev-b',
+        deviceToken: 'tok-other',
+        workspaceId: 'ws-1',
+        name: 'My Phone',
+        mode: 'mobile',
+      };
+
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ devices: [deviceA, deviceB] }))
+        .mockResolvedValueOnce(jsonResponse({}, true));
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useDevices('ws-1'));
+      await waitFor(() => expect(result.current.devices).toHaveLength(2));
+
+      await act(async () => {
+        await result.current.renameDevice('dev-a', 'Renamed Peer');
+      });
+
+      // Same-tab device identity is untouched.
+      expect(sessionStorage.getItem('displayName')).toBe('My Phone');
+      expect(storeDeviceTokenMock).not.toHaveBeenCalled();
+    });
+
+    it('does not flush when no stored device token exists for the workspace', async () => {
+      sessionStorage.setItem('displayName', 'Mac-bd20407');
+      mockStoredDevice = null;
+
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ devices: [deviceA] }))
+        .mockResolvedValueOnce(jsonResponse({}, true));
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { result } = renderHook(() => useDevices('ws-1'));
+      await waitFor(() => expect(result.current.devices).toHaveLength(1));
+
+      await act(async () => {
+        await result.current.renameDevice('dev-a', 'Living Room');
+      });
+
+      // Without a stored token we can't confidently say which device this tab
+      // identifies as, so leave sessionStorage alone — the server fix is what
+      // makes that safe.
+      expect(sessionStorage.getItem('displayName')).toBe('Mac-bd20407');
+      expect(storeDeviceTokenMock).not.toHaveBeenCalled();
     });
   });
 

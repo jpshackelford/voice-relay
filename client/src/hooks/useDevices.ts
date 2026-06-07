@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getStoredDeviceToken } from '../utils/deviceToken';
+import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 
 /** Resolved primary speaker identity for a device. */
 export interface DevicePrimaryUser {
@@ -104,10 +104,28 @@ export function useDevices(workspaceId: string | undefined): UseDevicesReturn {
     }
 
     // Update device in local state
-    setDevices(prev => prev.map(d => 
+    setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, name: newName } : d
     ));
-  }, []);
+
+    // Defense-in-depth for #459: if the user just renamed the *current* device
+    // on this tab, flush the cached display name in sessionStorage and the
+    // stored device token. Without this, navigating into a session view would
+    // mount useWebSocket with the stale name and send it in the next
+    // `register` message. The server-side fix (#459) makes this safe even on
+    // legacy clients, but belt-and-suspenders avoids a transient UI flash on
+    // the same tab and protects against any future server regressions.
+    const stored = getStoredDeviceToken(workspaceId);
+    if (stored && stored.deviceId === deviceId) {
+      try {
+        sessionStorage.setItem('displayName', newName);
+      } catch {
+        // sessionStorage may be unavailable (Safari private, quota, etc.).
+        // The server fix is authoritative; this flush is best-effort.
+      }
+      storeDeviceToken({ ...stored, name: newName });
+    }
+  }, [workspaceId]);
 
   const removeDevice = useCallback(async (deviceId: string): Promise<void> => {
     if (!workspaceId) {
