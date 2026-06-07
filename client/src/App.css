@@ -6026,3 +6026,143 @@ header {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+
+/* ---------------------------------------------------------------------
+   First-run "claim this device" card (#433).
+
+   Surfaced when the server tells the client (in the `registered`
+   payload) that this device has no primary user AND no per-session
+   active-speaker override. Same visual family as JoinRequestStack
+   (top-right card on dark background) but full-width on mobile.
+   --------------------------------------------------------------------- */
+
+.first-run-claim-card {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1100; /* above JoinRequestStack, below modal dialogs */
+  background: #1a1a2e;
+  border: 1px solid #2a2a4e;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: #f5f5f7;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.first-run-claim-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.first-run-claim-hint {
+  margin: 0 0 0.85rem 0;
+  font-size: 0.9rem;
+  color: #b8b8c5;
+  line-height: 1.4;
+}
+
+.first-run-claim-error {
+  background: #5a1f1f;
+  color: #ffd1d1;
+  border: 1px solid #8a3333;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.first-run-claim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.first-run-claim-primary,
+.first-run-claim-secondary,
+.first-run-claim-dismiss {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: filter 0.15s ease-in-out;
+}
+
+.first-run-claim-primary {
+  background: #3282b8;
+  color: #fff;
+  border-color: #3282b8;
+}
+.first-run-claim-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.first-run-claim-secondary {
+  background: transparent;
+  color: #f5f5f7;
+  border-color: #4a4a6e;
+}
+.first-run-claim-secondary:hover:not(:disabled) {
+  background: #25254a;
+}
+
+.first-run-claim-dismiss {
+  background: transparent;
+  color: #b8b8c5;
+  border-color: transparent;
+}
+.first-run-claim-dismiss:hover:not(:disabled) {
+  color: #f5f5f7;
+}
+
+.first-run-claim-primary:disabled,
+.first-run-claim-secondary:disabled,
+.first-run-claim-dismiss:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.first-run-claim-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.first-run-claim-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #b8b8c5;
+}
+
+.first-run-claim-label input {
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #2a2a4e;
+  background: #11112a;
+  color: #f5f5f7;
+}
+.first-run-claim-label input:focus {
+  outline: none;
+  border-color: #3282b8;
+}
+
+/* On narrow viewports (kiosk mobile), pin to full width at top. */
+@media (max-width: 480px) {
+  .first-run-claim-card {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    max-width: none;
+    width: auto;
+  }
+}

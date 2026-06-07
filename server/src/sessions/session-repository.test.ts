@@ -69,6 +69,10 @@ describe('SessionRepository', () => {
         session_id TEXT NOT NULL,
         device_id TEXT NOT NULL,
         joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        -- #433: per-session speaker override column (migration 017 adds
+        -- this in production). Including it inline keeps this test
+        -- self-contained without dragging in the full migration chain.
+        active_speaker_id TEXT,
         PRIMARY KEY (session_id, device_id),
         FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE,
         FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
@@ -679,6 +683,42 @@ describe('SessionRepository', () => {
       const devices2 = repo.getDevices(session2.id);
       expect(devices1).toHaveLength(0);
       expect(devices2).toHaveLength(0);
+    });
+  });
+
+  describe('active speaker override (#433)', () => {
+    it('returns null when no row exists', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
+    });
+
+    it('returns null when row exists but override is unset', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
+    });
+
+    it('sets and reads the active speaker id', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+      repo.setActiveSpeaker(session.id, testDeviceId, 'speaker-abc');
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBe('speaker-abc');
+    });
+
+    it('clears the override when speakerId is null', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      repo.addDevice(session.id, testDeviceId);
+      repo.setActiveSpeaker(session.id, testDeviceId, 'speaker-abc');
+      repo.setActiveSpeaker(session.id, testDeviceId, null);
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
+    });
+
+    it('no-ops silently when the session_devices row does not exist', () => {
+      const session = repo.create({ workspaceId: testWorkspaceId });
+      expect(() =>
+        repo.setActiveSpeaker(session.id, testDeviceId, 'speaker-abc')
+      ).not.toThrow();
+      expect(repo.getActiveSpeaker(session.id, testDeviceId)).toBeNull();
     });
   });
 

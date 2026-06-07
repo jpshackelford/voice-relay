@@ -394,6 +394,50 @@ export class SessionRepository {
   }
 
   /**
+   * Set the active speaker override for a (session, device) row (#433).
+   *
+   * Writes `session_devices.active_speaker_id`. The agent driver reads
+   * this on each utterance to override the device-level speaker resolved
+   * from `devices.primary_user_id`, so a borrowed kiosk can announce a
+   * different human ("It's me, Jane, on the family iPad") without
+   * permanently re-claiming the device.
+   *
+   * No-ops silently when the (session, device) row doesn't exist —
+   * callers that need to guarantee a row first should call `addDevice`.
+   * Passing `null` clears the override (next utterance falls back to the
+   * `primary_user_id`-based resolution).
+   */
+  setActiveSpeaker(
+    sessionId: string,
+    deviceId: string,
+    speakerId: string | null
+  ): void {
+    const stmt = this.db.prepare(`
+      UPDATE session_devices
+      SET active_speaker_id = ?
+      WHERE session_id = ? AND device_id = ?
+    `);
+    stmt.run(speakerId, sessionId, deviceId);
+  }
+
+  /**
+   * Read the active speaker override for a (session, device) row (#433).
+   *
+   * Returns `null` when no row exists OR the override is unset.
+   */
+  getActiveSpeaker(sessionId: string, deviceId: string): string | null {
+    const stmt = this.db.prepare<
+      [string, string],
+      { active_speaker_id: string | null }
+    >(`
+      SELECT active_speaker_id FROM session_devices
+      WHERE session_id = ? AND device_id = ?
+    `);
+    const row = stmt.get(sessionId, deviceId);
+    return row?.active_speaker_id ?? null;
+  }
+
+  /**
    * Remove a device from a session.
    */
   removeDevice(sessionId: string, deviceId: string): void {

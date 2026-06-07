@@ -172,6 +172,27 @@ export interface SessionInfo {
   name: string | null;
 }
 
+/**
+ * Speaker-resolution state for the local device at register-time (#433).
+ *
+ * Mirrors the agent-side signal added in #431 onto the WS surface so the
+ * client can decide whether to surface a first-run "claim this device"
+ * card without an extra REST round-trip.
+ *
+ * - `deviceClaimed`: `true` iff `devices.primary_user_id` is non-null.
+ * - `primaryUserId`: the user the device is bound to (or `null`).
+ * - `activeSpeakerId`: per-session override from
+ *   `session_devices.active_speaker_id` (or `null`).
+ *
+ * Optional on the message for back-compat: older servers won't emit it,
+ * older clients can ignore it.
+ */
+export interface SpeakerState {
+  deviceClaimed: boolean;
+  primaryUserId: string | null;
+  activeSpeakerId: string | null;
+}
+
 export interface RegisteredMessage {
   type: 'registered';
   deviceId: string;
@@ -180,6 +201,8 @@ export interface RegisteredMessage {
   deviceToken?: string;
   /** Token expiration timestamp (only sent on first registration) */
   tokenExpiresAt?: string;
+  /** Speaker resolution state for the local device (#433). */
+  speakerState?: SpeakerState;
 }
 
 export interface DeviceListMessage {

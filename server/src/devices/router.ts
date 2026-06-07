@@ -2,10 +2,16 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import type { DeviceRepository } from './device-repository.js';
 import type { WorkspaceRepository } from '../workspaces/workspace-repository.js';
 import type { DeviceRegistry } from '../registry.js';
+import type { SessionRepository } from '../sessions/session-repository.js';
+import type { SpeakerRepository } from '../speakers/speaker-repository.js';
 import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 
 /** Max device name length (prevents UI overflow and DB bloat) */
 const MAX_DEVICE_NAME_LENGTH = 100;
+/** Max preferred-name length for anonymous active-speaker claims (#433). */
+const MAX_PREFERRED_NAME_LENGTH = 200;
+/** Max pronouns length for anonymous active-speaker claims (#433). */
+const MAX_PRONOUNS_LENGTH = 64;
 
 export interface DeviceRouterOptions {
   deviceRepository: DeviceRepository;
@@ -17,6 +23,17 @@ export interface DeviceRouterOptions {
    * Optional so tests that don't exercise the registry can omit it.
    */
   deviceRegistry?: DeviceRegistry;
+  /**
+   * Session repository — required for the #433 active-speaker endpoint,
+   * which writes `session_devices.active_speaker_id`. Optional so older
+   * tests that don't exercise that endpoint can omit it.
+   */
+  sessionRepository?: SessionRepository;
+  /**
+   * Speaker repository — required for the #433 active-speaker endpoint
+   * (creates an anonymous workspace-scoped speaker row).
+   */
+  speakerRepository?: SpeakerRepository;
 }
 
 /**
@@ -99,9 +116,34 @@ function rateLimitValidate(req: Request, res: Response, next: NextFunction): voi
  * Create the device API router.
  * Provides endpoints for device token management.
  */
-export function createDeviceRouter({ deviceRepository, workspaceRepository, authConfig, deviceRegistry }: DeviceRouterOptions): Router {
+export function createDeviceRouter({
+  deviceRepository,
+  workspaceRepository,
+  authConfig,
+  deviceRegistry,
+  sessionRepository,
+  speakerRepository,
+}: DeviceRouterOptions): Router {
   const router = Router();
   const auth = requireAuth(authConfig);
+  // #433: rate-limit the device-token active-speaker endpoint to
+  // discourage device-id probing. A fresh per-router limiter (vs.
+  // sharing the global `validateRateLimiter`) means tests and
+  // independent router instances don't burn each other's budgets,
+  // and avoids accidental coupling of unrelated routes.
+  const activeSpeakerRateLimiter = new RateLimiter(10, 60_000);
+  const rateLimitActiveSpeaker = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): void => {
+    const ip = req.ip || 'unknown';
+    if (activeSpeakerRateLimiter.isLimited(ip)) {
+      res.status(429).json({ error: 'Too many requests' });
+      return;
+    }
+    next();
+  };
 
   // Validate device token (public endpoint for reconnection)
   // Rate limited to prevent token enumeration attacks
@@ -283,6 +325,140 @@ export function createDeviceRouter({ deviceRepository, workspaceRepository, auth
     deviceRepository.delete(deviceId);
     res.json({ success: true, message: 'Device deleted' });
   });
+
+  /**
+   * #433: Set a per-session anonymous active speaker via device-token
+   * auth.
+   *
+   * The first-run "claim this device" card's "Just remember a name"
+   * path posts here when the human at the kiosk isn't a workspace
+   * member and OAuth would be too heavy. The route:
+   *
+   *   1. Authenticates with the device token (NOT the user cookie) so
+   *      anyone holding the kiosk can claim a name for the session.
+   *   2. Validates `:sessionId` belongs to the device's workspace.
+   *   3. Creates an anonymous `speakers` row (`user_id = NULL`) with the
+   *      supplied preferred name + optional pronouns.
+   *   4. Writes `session_devices.active_speaker_id` for the (sessionId,
+   *      deviceId) row. The next utterance will pick this up via
+   *      `resolveSpeakerForUtterance` in index.ts and emit a
+   *      `[speaker id=<new> name=<…>]` line on the agent turn.
+   *
+   * Rate-limited via the existing per-IP budget shared with /validate
+   * to discourage device-id probing.
+   */
+  router.post(
+    '/:deviceId/sessions/:sessionId/active-speaker',
+    rateLimitActiveSpeaker,
+    (req: Request, res: Response) => {
+      if (!sessionRepository || !speakerRepository) {
+        res.status(503).json({ error: 'Speaker repository not available' });
+        return;
+      }
+
+      const { deviceId, sessionId } = req.params;
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'Device token required' });
+        return;
+      }
+      const deviceToken = authHeader.slice('Bearer '.length).trim();
+      if (!deviceToken) {
+        res.status(401).json({ error: 'Device token required' });
+        return;
+      }
+
+      const tokenDevice = deviceRepository.validateToken(deviceToken);
+      if (!tokenDevice || tokenDevice.id !== deviceId) {
+        // Always respond 401 for either case so an attacker can't
+        // distinguish "wrong token" from "right token, wrong device".
+        res.status(401).json({ error: 'Invalid device token' });
+        return;
+      }
+
+      const session = sessionRepository.findById(sessionId);
+      if (!session) {
+        res.status(404).json({ error: 'Session not found' });
+        return;
+      }
+      if (session.workspaceId !== tokenDevice.workspaceId) {
+        // Cross-workspace claim attempt — refuse without leaking which
+        // workspace the session belongs to.
+        res.status(403).json({ error: 'Session not in device workspace' });
+        return;
+      }
+
+      // Validate body. `preferredName` is required; `pronouns` optional.
+      const body = (req.body ?? {}) as {
+        preferredName?: unknown;
+        pronouns?: unknown;
+      };
+
+      if (typeof body.preferredName !== 'string') {
+        res.status(400).json({ error: 'preferredName (string) required' });
+        return;
+      }
+      const preferredName = body.preferredName.trim();
+      if (preferredName.length === 0) {
+        res.status(400).json({ error: 'preferredName must not be blank' });
+        return;
+      }
+      if (preferredName.length > MAX_PREFERRED_NAME_LENGTH) {
+        res
+          .status(400)
+          .json({ error: `preferredName too long (max ${MAX_PREFERRED_NAME_LENGTH} chars)` });
+        return;
+      }
+
+      let pronouns: string | null = null;
+      if (body.pronouns !== undefined && body.pronouns !== null) {
+        if (typeof body.pronouns !== 'string') {
+          res.status(400).json({ error: 'pronouns must be a string when set' });
+          return;
+        }
+        const trimmed = body.pronouns.trim();
+        if (trimmed.length > MAX_PRONOUNS_LENGTH) {
+          res
+            .status(400)
+            .json({ error: `pronouns too long (max ${MAX_PRONOUNS_LENGTH} chars)` });
+          return;
+        }
+        pronouns = trimmed.length === 0 ? null : trimmed;
+      }
+
+      // Create the anonymous speaker row, then write the per-session
+      // override. We ensure a session_devices row exists first so the
+      // UPDATE in `setActiveSpeaker` actually matches (UPSERT semantics
+      // via addDevice's `INSERT OR REPLACE` are safe — it preserves
+      // the row on conflict and refreshes `joined_at`).
+      let speakerId: string;
+      try {
+        const created = speakerRepository.create({
+          workspaceId: tokenDevice.workspaceId,
+          userId: null,
+          preferredName,
+          pronouns,
+          notes: null,
+        });
+        speakerId = created.id;
+      } catch (err) {
+        console.error('[Devices] Active speaker create failed:', err);
+        res.status(500).json({ error: 'Failed to create speaker' });
+        return;
+      }
+
+      try {
+        sessionRepository.addDevice(sessionId, deviceId);
+        sessionRepository.setActiveSpeaker(sessionId, deviceId, speakerId);
+      } catch (err) {
+        console.error('[Devices] Active speaker assignment failed:', err);
+        res.status(500).json({ error: 'Failed to set active speaker' });
+        return;
+      }
+
+      res.status(201).json({ speakerId });
+    },
+  );
 
   return router;
 }

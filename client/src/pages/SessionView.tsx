@@ -5,6 +5,8 @@ import { MobileMode } from '../components/MobileMode';
 import { KioskMode } from '../components/KioskMode';
 import { WaitingForApproval } from '../components/WaitingForApproval';
 import { JoinRequestStack } from '../components/JoinRequestNotification';
+import { FirstRunClaimCard } from '../components/FirstRunClaimCard';
+import { useFirstRunClaim } from '../hooks/useFirstRunClaim';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useAI } from '../hooks/useAI';
 import { useAudioPlayback } from '../hooks/useAudioPlayback';
@@ -63,7 +65,7 @@ function useAutoDetectMode(): DeviceMode {
 export function SessionView() {
   const { workspaceId, sessionId } = useParams<{ workspaceId: string; sessionId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
   // Device restoration hook handles token validation
   const {
@@ -302,7 +304,9 @@ export function SessionView() {
   // Wire audio handlers for server-side TTS (ElevenLabs)
   const { 
     connected, 
-    devices, 
+    devices,
+    /** #433: speaker-resolution state driving the first-run claim card. */
+    speakerState,
     sessionTtsSettings,
     sendText, 
     updateDevice, 
@@ -510,12 +514,35 @@ export function SessionView() {
     createdAt: r.createdAt,
   }));
 
+  // #433: first-run claim card decision/transport. The hook computes
+  // `shouldShow` and exposes the two POSTs; the card just renders.
+  const firstRunClaim = useFirstRunClaim({
+    speakerState,
+    workspaceId: workspaceId ?? null,
+    user,
+    sessionId: sessionId ?? null,
+    deviceId: deviceId ?? null,
+  });
+
+  const firstRunClaimNode = firstRunClaim.shouldShow ? (
+    <FirstRunClaimCard
+      user={user}
+      busy={firstRunClaim.busy}
+      error={firstRunClaim.error}
+      onClaimForUser={firstRunClaim.claimForUser}
+      onClaimForName={firstRunClaim.claimForName}
+      onDismiss={firstRunClaim.dismiss}
+    />
+  ) : null;
+
   // Render kiosk or mobile mode based on auto-detected/current mode
   if (mode === 'kiosk') {
     return (
       <>
         {reconnectBanner}
         {joinedBanner}
+        {/* #433: first-run claim card (no-op when device already claimed) */}
+        {firstRunClaimNode}
         {/* Show join request notifications for workspace owner */}
         {workspace?.isOwner && (
           <JoinRequestStack
@@ -566,6 +593,8 @@ export function SessionView() {
     <>
       {reconnectBanner}
       {joinedBanner}
+      {/* #433: first-run claim card (no-op when device already claimed) */}
+      {firstRunClaimNode}
       <MobileMode
         deviceId={deviceId}
         displayName={displayName}

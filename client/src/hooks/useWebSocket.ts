@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SpeakerState, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 // Reconnect tuning. Matches the values agreed in issue #285.
@@ -85,6 +85,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionInfo | null>(null);
+  // #433: speaker-resolution state for the local device, lifted from the
+  // `registered` payload so the first-run "claim this device" card can
+  // gate on it without an extra REST round-trip. `null` until the first
+  // `registered` arrives; older servers omit the field entirely, in
+  // which case it stays `null` and the card never renders.
+  const [speakerState, setSpeakerState] = useState<SpeakerState | null>(null);
   const [wasRemoved, setWasRemoved] = useState(false);
   // Session-level TTS settings (synced across all devices)
   const [sessionTtsSettings, setSessionTtsSettings] = useState<SessionTtsSettings | null>(null);
@@ -253,6 +259,11 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
             case 'registered':
               console.log('[WS] Registered as', message.deviceId, 'in session', message.session);
               setCurrentSession(message.session);
+              // #433: surface the speaker-resolution state to consumers.
+              // We use `??` (not a `?.`) so a server that omits the field
+              // resets to `null` rather than leaving stale state from a
+              // previous register (e.g. after a workspace switch).
+              setSpeakerState(message.speakerState ?? null);
               // Backoff resets only when registration completes, not on raw
               // socket open. open-without-register is not a usable connection.
               reconnectAttemptsRef.current = 0;
@@ -534,7 +545,9 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   return { 
     connected, 
     devices, 
-    currentSession, 
+    currentSession,
+    /** #433: speaker-resolution state from the most recent `registered`. */
+    speakerState,
     wasRemoved, 
     sessionTtsSettings,
     sendText, 
