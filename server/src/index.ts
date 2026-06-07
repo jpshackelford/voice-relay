@@ -52,6 +52,7 @@ import { relayAgentResponse } from './agent-message-relay.js';
 import { resyncAgentSessionStatus } from './resync-agent-status.js';
 import { replayDisplayContent } from './replay-display-content.js';
 import { broadcastSessionState } from './session-state-broadcast.js';
+import { buildRelayedTextMessage } from './build-relayed-text-message.js';
 import { TtsService } from './tts/index.js';
 import { AudioBufferManager } from './transcription/index.js';
 import { 
@@ -1081,20 +1082,24 @@ wss.on('connection', (ws: WebSocket) => {
           const finalSpeakerId =
             resolvedFromEngineMapping ?? utteranceSpeaker?.id;
 
-          const relayMessage: RelayedTextMessage = {
-            type: 'text',
-            utteranceId: message.utteranceId,
-            workspaceId: device.workspaceId,
-            sessionId: device.sessionId,
-            senderId: deviceId,
-            senderName: device.displayName,
-            text: message.text,
-            partial: message.partial,
+          const relayMessage: RelayedTextMessage = buildRelayedTextMessage({
+            message: {
+              utteranceId: message.utteranceId,
+              text: message.text,
+              partial: message.partial,
+            },
+            device: {
+              id: deviceId,
+              displayName: device.displayName,
+              workspaceId: device.workspaceId,
+              sessionId: device.sessionId,
+              timezone: device.timezone,
+            },
+            utteranceSpeaker,
+            finalSpeakerId,
+            engineSpeakerLabel,
             clientTimestamp,
-            ...(device.timezone ? { senderTimezone: device.timezone } : {}),
-            ...(finalSpeakerId ? { speakerId: finalSpeakerId } : {}),
-            ...(engineSpeakerLabel ? { engineSpeakerLabel } : {}),
-          };
+          });
 
           // Store final messages only (with session_id)
           if (!message.partial) {
