@@ -700,3 +700,24 @@ _This worklog entry was created by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 13:35 UTC - Review-Address Worker (PR #438)
+
+✅ **Addressed pr-review-bot 🟠 threads on PR #438** — `feat(client): first-run claim-card prompt for unknown speakers` (Refs #433)
+
+- PR: [#438](https://github.com/jpshackelford/voice-relay/pull/438)
+- Commit: [`7fc485e`](https://github.com/jpshackelford/voice-relay/commit/7fc485e) — `fix(server): align MAX_SPEAKER_PRONOUNS_LENGTH to 32 to match client`
+- Threads resolved: 2/2
+  - `client/src/components/ClaimSpeakerCard.tsx:35` — 🟠 PRONOUNS_MAX_LEN mismatch (client 32 vs server 40) → resolved
+  - `server/src/devices/router.ts:14` — 🟠 same mismatch from server-side → resolved
+- Fix: aligned server constant from 40 → 32 (the value users actually see via the form `maxLength`; realistic pronoun strings like `she/her`, `they/them` stay well under 32). Added cross-reference docblocks on both sides noting the limits must stay in sync.
+- CI: all checks green on `7fc485e` (Build Client, Client Tests, Server Tests, lint-pr-title, E2E).
+- Workflow: `gh pr ready 438 --undo` → push → resolve threads → `gh pr ready 438` (back to ready for review).
+
+**AC gate re-run:** unchanged — still `Refs #433` + follow-ups #439 and #440. The fix only retunes a server-side input-validation constant + adds sync comments; it does not touch the OAuth-return PATCH wiring (deferred to #439) or the kiosk integration smoke test (deferred to #440). PR body's `## Deferred to follow-ups` section is still accurate.
+
+**Production impact:** auto-deploys to `vr.chorecraft.net` on merge. Tightening pronouns from 40 → 32 is a server-side validator change; the column is `TEXT` with no length constraint, and no existing data exists yet (active-speaker endpoint is new in this PR). Pre-merge there is no production data at risk.
+
+_This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
+
+---
+
