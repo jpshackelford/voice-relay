@@ -305,7 +305,10 @@ export function MobileMode({
         cleanupAudioStream();
       }
     }
-  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer, sessionId, workspaceId, deviceId]);
+    // Issue #457: sessionId/workspaceId/deviceId intentionally omitted from
+    // deps to prevent rebuilds during WS session-id upgrade. Catch blocks
+    // capture IDs synchronously (no async boundary), so dep omission is safe.
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { reportClientError } from '../utils/reportClientError';
 
 // Web Speech API types
@@ -75,6 +75,18 @@ export function useSpeechRecognition({
     return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
   });
 
+  // Issue #457: IDs stored in refs to prevent startListening rebuilds
+  // when sessionId/workspaceId/deviceId change (iOS 18+ Safari treats
+  // mid-start() rebuilds as external stop()). Mirrors useHostedSpeechRecognition.
+  const sessionIdRef = useRef(sessionId);
+  const workspaceIdRef = useRef(workspaceId);
+  const deviceIdRef = useRef(deviceId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    workspaceIdRef.current = workspaceId;
+    deviceIdRef.current = deviceId;
+  }, [sessionId, workspaceId, deviceId]);
+
   const startListening = useCallback(() => {
     if (!isSupported) {
       onError?.('Speech recognition is not supported in this browser');
@@ -136,9 +148,9 @@ export function useSpeechRecognition({
       }
 
       reportClientError({
-        sessionId,
-        workspaceId,
-        deviceId,
+        sessionId: sessionIdRef.current,
+        workspaceId: workspaceIdRef.current,
+        deviceId: deviceIdRef.current,
         source: 'useSpeechRecognition',
         errorCode: errorType,
         message: errorMessage,
@@ -154,7 +166,7 @@ export function useSpeechRecognition({
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isSupported, onInterimResult, onFinalResult, onError, sessionId, workspaceId, deviceId]);
+  }, [isSupported, onInterimResult, onFinalResult, onError]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();

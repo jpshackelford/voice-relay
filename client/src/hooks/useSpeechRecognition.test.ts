@@ -242,4 +242,116 @@ describe('useSpeechRecognition', () => {
     expect(() => act(() => result.current.stopListening())).not.toThrow();
     expect(result.current.isListening).toBe(false);
   });
+
+  // Issue #457: regression — on iOS 18 Safari, a sessionId/workspaceId/deviceId
+  // change between recognition.start() and onstart caused startListening to
+  // be rebuilt, which Safari interpreted as an external stop() on the in-flight
+  // recognition instance and synthesized onerror({error:"aborted"}) BEFORE any
+  // onstart. The fix reads those IDs through refs so startListening's identity
+  // stays stable across ID changes.
+  describe('#457 — startListening identity is stable across reporting-ID changes', () => {
+    it('keeps startListening reference stable when sessionId changes', () => {
+      const onInterimResult = vi.fn();
+      const onFinalResult = vi.fn();
+      const onError = vi.fn();
+      const { result, rerender } = renderHook(
+        (props: { sessionId?: string; workspaceId?: string; deviceId?: string }) =>
+          useSpeechRecognition({
+            onInterimResult,
+            onFinalResult,
+            onError,
+            sessionId: props.sessionId,
+            workspaceId: props.workspaceId,
+            deviceId: props.deviceId,
+          }),
+        { initialProps: { sessionId: 'default', workspaceId: 'default', deviceId: 'dev-1' } },
+      );
+
+      const startBefore = result.current.startListening;
+      rerender({ sessionId: 'real-session-uuid', workspaceId: 'real-ws-uuid', deviceId: 'dev-1' });
+      const startAfter = result.current.startListening;
+
+      expect(startAfter).toBe(startBefore);
+    });
+
+    it('does NOT tear down recognition when sessionId rerenders between start() and onstart', () => {
+      const onError = vi.fn();
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+
+      const { result, rerender } = renderHook(
+        (props: { sessionId?: string }) =>
+          useSpeechRecognition({
+            onError,
+            sessionId: props.sessionId,
+            workspaceId: 'ws-1',
+            deviceId: 'dev-1',
+          }),
+        { initialProps: { sessionId: 'default' } },
+      );
+
+      // 1. Start listening — Safari is now waiting for the user to grant mic perm.
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      expect(instance.start).toHaveBeenCalledTimes(1);
+      expect(instance.stop).not.toHaveBeenCalled();
+      expect(instance.abort).not.toHaveBeenCalled();
+
+      // 2. Mid permission-dialog: the WS registration upgrades from the
+      // default-workspace placeholder session id to the real one. This is
+      // the exact transition that broke iOS 18 Safari pre-fix.
+      rerender({ sessionId: 'real-session-uuid' });
+
+      // 3. The recognition instance must NOT have been stopped or aborted by
+      // a re-commit; no error should have been reported.
+      expect(instance.stop).not.toHaveBeenCalled();
+      expect(instance.abort).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+      expect(reportSpy).not.toHaveBeenCalled();
+
+      // 4. Now Safari fires onstart — STT proceeds normally.
+      act(() => instance.onstart?.());
+      expect(result.current.isListening).toBe(true);
+    });
+
+    it('reports the LATEST reporting IDs when onerror fires after a rerender', () => {
+      // The point of the ref pattern is keeping the deps stable, NOT
+      // capturing stale values. When onerror fires after a rerender,
+      // reportClientError must see the most-recent sessionId.
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const { result, rerender } = renderHook(
+        (props: { sessionId?: string }) =>
+          useSpeechRecognition({
+            sessionId: props.sessionId,
+            workspaceId: 'ws-1',
+            deviceId: 'dev-1',
+          }),
+        { initialProps: { sessionId: 'default' } },
+      );
+
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+
+      rerender({ sessionId: 'real-session-uuid' });
+
+      act(() =>
+        instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }),
+      );
+
+      expect(reportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'real-session-uuid',
+          workspaceId: 'ws-1',
+          deviceId: 'dev-1',
+          source: 'useSpeechRecognition',
+          errorCode: 'no-speech',
+        }),
+      );
+    });
+  });
 });
