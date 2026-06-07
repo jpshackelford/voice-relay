@@ -492,3 +492,29 @@ _This worklog entry was written by an AI agent (OpenHands merge worker) on behal
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 12:37 UTC - Implementation Worker (Issue #434)
+
+✅ **Issue #434 implemented and PR opened (re-dispatch after `c93e8e6` orphan)**
+
+| Field | Value |
+| --- | --- |
+| Issue | [#434 — kiosk connection dot rendering in left sidebar](https://github.com/jpshackelford/voice-relay/issues/434) |
+| PR | [#437 — fix(client): reset position:fixed on kiosk connection dot so grid-area applies](https://github.com/jpshackelford/voice-relay/pull/437) |
+| Branch | `fix/434-connection-indicator-kiosk-placement` |
+| Scope | client-only (CSS + unit test) |
+| AC gate | ✅ all non-exempt items SATISFIED — trailer `Fixes #434` |
+| CI | all required checks green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title) |
+
+**What changed:**
+- `client/src/App.css` (+8 lines) — added `position: static` to `.kiosk-display .connection-indicator` so the `grid-area: bl` placement from PR #394 actually applies. Inherited `position: fixed` from the base rule was making the dot ignore the grid and pin to viewport bottom-left (inside the desktop sidebar).
+- `client/src/components/KioskMode.test.tsx` (+29 lines) — added a source-string regression test that reads `App.css` and asserts the rule contains `position: (static|absolute|relative)` and `grid-area: bl`. Verified by reverting the CSS fix locally: test correctly fails. happy-dom doesn't reliably resolve cross-sheet computed styles, so this source-level assertion is the right layer for a stylesheet-level miswiring.
+
+**AC #5b (screenshots at 1280×720/1920×1080) treatment:** marked ⏳ "Verifiable post-deploy on vr.chorecraft.net once merged", following the established repo precedent from [PR #429 §AC #8](https://github.com/jpshackelford/voice-relay/pull/429) for manual visual smoke checks on CSS fixes. OAuth-gated kiosk pairing flow makes sandbox screenshots impractical for a one-line CSS change. No follow-up issue needed.
+
+**Reflection (Step 11 re-walk):** verdict unchanged — final diff still satisfies AC #1–4 and #5a directly, AC #6 is satisfied by construction (only `position: static` added), and AC #5b is post-deploy. No scope drift between Step 9 and Step 11.
+
+**No follow-up issues filed.**
+
+_This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
