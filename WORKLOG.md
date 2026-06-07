@@ -684,3 +684,19 @@ _This worklog entry was created by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 13:30 UTC - Expansion Worker (issue #439)
+
+✅ **Expanded Issue #439** — `feat(client): wire post-OAuth-return device PATCH + speaker preferred_name seeding (#433 follow-up)`
+
+- Issue: [#439](https://github.com/jpshackelford/voice-relay/issues/439)
+- Type: Enhancement (deferred-AC follow-up to #438 / #433)
+- Status: **Ready for implementation** (`ready` label added)
+- Approach: Set a workspace+device-scoped `sessionStorage` pending-claim flag in `ClaimSpeakerCard`'s "workspace member" handler *before* `useAuth().login()`; on OAuth return, a new `SessionView` effect (deps: `[isAuthenticated, deviceId, workspaceId, user?.id]`) consumes the flag, calls `PATCH /api/devices/:deviceId` (no body), and relies on the WS `registered`-derived `speakerState` to hide the card.
+- Server-side amendment surfaced: PATCH handler at `server/src/devices/router.ts:203` must also call `speakerRepository.upsertForUser(workspaceId, userId, { preferredName: displayName ?? username })`. `upsertForUser` (`server/src/speakers/speaker-repository.ts:212`) is already idempotent and preserves agent-learned names.
+- Corrected two mistakes in the original draft body: PATCH path is `/api/devices/:deviceId` (not `/api/workspaces/.../devices/...`), and `PUT /speakers/:id` requires `requireWorkspaceOwner` — so seeding `preferred_name` client-side would 403 for non-owner members. Solution: do the seed server-side inside the same PATCH.
+- Technical-approach comment includes 8 edge cases: device already claimed by same/different user, missing `displayName`, existing `preferred_name` preservation, mismatched OAuth identity, abandoned OAuth, PATCH 401/403, WS `registered` race.
+- Issue body rewritten with Problem Statement / Proposed Solution / AC / Out-of-Scope / Related.
+
+_This worklog entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+
+---
