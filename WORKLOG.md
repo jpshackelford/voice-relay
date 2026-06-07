@@ -1367,3 +1367,24 @@ All four are comment-only nits (no behavior change). Worker prompt directs accep
 _This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 20:15 UTC - Review-address worker (PR #456 round-2 trim)
+
+✅ **PR #456** — addressed all 4 unresolved pr-review threads in commit `0eb5254`:
+
+| File:line | Action |
+|---|---|
+| `useSpeechRecognition.ts:140` | Dropped issue-ref preamble entirely; code is self-documenting. |
+| `MobileMode.tsx:260` | Kept the WHY (synchronous-throw catch is non-obvious); dropped issue-ref preamble. |
+| `MobileMode.tsx:278` | Kept the distinct-`source` rationale; dropped issue-ref preamble. |
+| `useHostedSpeechRecognition.ts:395` | Dropped entirely — pure code paraphrase. |
+
+CI green: Server 1723/1723, Client 1207/1207, Build Client, E2E, lint-pr-title. All 4 review threads replied + resolved. PR moved back to ready.
+
+**AC gate re-run: UNCHANGED — still `Fixes #455`.** The four edits are comment-only and move no AC coverage (endpoint, auth, rate-limit, body cap, structured log, helper wiring, silent-failure test, vitest coverage, docs note — all unaffected). No follow-up issues needed.
+
+Precedent: PR #438 round-2 followed the same trim pattern (worklog 14:00Z today).
+
+_This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
+
+---
