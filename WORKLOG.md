@@ -1292,3 +1292,51 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 
 ---
 
+### 2026-06-07 16:13 UTC - Merge worker (PR #447, /prepare-and-merge)
+
+✅ **Merged PR #447** — `test(e2e): kiosk-level smoke test for first-run claim → next-utterance speaker resolution (#442)` — squash commit [`f7ceaab`](https://github.com/jpshackelford/voice-relay/commit/f7ceaab).
+
+| Pre-merge gate | Result |
+|---|---|
+| Migration check (`server/src/db/`, `migrations/`) | ✅ Untouched — diff is test-only (`tests/first-run-claim.spec.ts` only) |
+| CI | ✅ 7/7 green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| mergeStateStatus / mergeable | `CLEAN` / `MERGEABLE` |
+| Unresolved review threads | 0 |
+| pr-review verdict | 🟡 Acceptable, 🟢 LOW risk |
+| `## INSTRUCTION:` override block | None — gate passed on merits |
+
+**Closing-Trailer AC Gate RE-RUN at merge time** (vs `## Acceptance Criteria` of #442, against post-review-fix diff):
+
+| # | AC item | Verdict |
+|---|---|---|
+| 1 | New `tests/first-run-claim.spec.ts` exists, imports from `./fixtures` | ✅ |
+| 2 | Spec skips when `TEST_AUTH_SECRET` unset | ✅ |
+| 3 | Uses `setupTwoDeviceSession`, no fixture changes | ✅ |
+| 4 | Spec asserts `ClaimSpeakerCard` visible at start | ✅ |
+| 5 | Drives name-only flow through real DOM | ✅ |
+| 6 | Card disappears within 2 s of save | ✅ |
+| 7 | Mobile peer sees just-saved name as **rendered** sender within 2 s | ⚠️ Deferred → **#446** (`TODO(#446)` in spec) |
+| 8 | Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ Deferred → **#446** (`TODO(#446)` in spec) |
+| 9 | Runs under default `chromium` project | ✅ |
+| 10 | Completes in < 30 s wall-clock | ✅ (~4.3 s) |
+| 11 | Stable on 5 back-to-back local runs | ✅ |
+| 12 | No regressions to existing specs | ✅ |
+
+- **Verdict unchanged from impl + review workers:** PASS with trailer `Refs #442` (NOT `Fixes`). Gate verdict recorded in the squash commit body.
+- No `## INSTRUCTION:` override block existed for PR #447 + #442; gate passed cleanly on merits.
+
+**Linked-issue handling:**
+
+| Issue | Expected post-merge | Actual | Action |
+|---|---|---|---|
+| #442 (e2e parent) | OPEN (trailer is `Refs`, two ACs deferred) | ✅ OPEN | none |
+| #446 (server senderName follow-up, blocks AC 7 + 8 flip) | OPEN | ✅ OPEN | none — PR #450 already open against it |
+| #433 (claim-card parent, third-bullet AC half-shipped) | OPEN | ⚠️ Auto-closed by GitHub on merge despite trailer being `Refs #433` (not `Closes`) | **Reopened** with explanatory comment — closure was contrary to gate intent: the spec's `TODO(#446)` assertions still gate #433's third-bullet closure (per the PR body: _"When that lands, the two TODOs in this spec flip to active assertions and we can close #433"_). Will re-close after #446 ships and the TODOs become active assertions. |
+
+**Follow-up state at merge:** #446 has open PR #450 (`fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName`) already in review — once it merges, a tiny follow-up to flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` from comments to active expectations will close both #442 (full AC coverage) and #433 (third bullet fully shipped end-to-end).
+
+**Process learning to surface:** the `Refs #N` trailer is **not** a reliable hedge against GitHub auto-closing the issue on squash-merge when other portions of the PR body or commit message mention the issue heavily — GitHub's heuristics appear to pick up "closes #433's third bullet end to end" inside a prose paragraph as a close intent even though the conventional trailer says `Refs`. Future merge workers should either (a) avoid the phrase "close #N" anywhere in the squash body when intent is `Refs`, or (b) accept that they'll need a one-shot reopen-with-comment after merge for that issue. Noting here rather than amending AGENTS.md because the pattern hasn't recurred — will promote to AGENTS.md if it happens a second time.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
