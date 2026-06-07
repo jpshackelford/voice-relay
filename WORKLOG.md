@@ -610,3 +610,40 @@ _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshack
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 03:12 UTC - Merge worker (PR #428)
+
+✅ **Merged: `feat(client): show person name (device name) on workspace page`**
+
+| Item | Value |
+| --- | --- |
+| PR | [#428](https://github.com/jpshackelford/voice-relay/pull/428) |
+| Issue | [#384](https://github.com/jpshackelford/voice-relay/issues/384) — closed via `Fixes #384` trailer |
+| Merge commit | `fc99791b13f56815bc9e33f3f2a35bd57345d005` |
+| Strategy | Squash |
+| CI at merge | ✅ Server Tests, ✅ Client Tests, ✅ Build Client, ✅ E2E Tests, ✅ lint-pr-title, ✅ pr-review |
+| Review threads | 6 / 6 resolved (all `🟡 Suggestion` items from `pr-review` bot, addressed in prior tick) |
+| Migrations | None — additive endpoint field + client rendering only |
+| Production impact | Auto-deploys to vr.chorecraft.net. Endpoint change is backwards-compatible in both directions (older clients ignore new `primaryUser`; older servers omit it and new client treats as `null`). |
+
+**Closing-trailer AC gate — verdict: PASS**
+
+Walked all 5 non-exempt AC items in #384 against the merged diff (`fc99791b…`):
+
+| # | AC | Evidence in merged commit |
+|---|----|---|
+| 1 | `<preferredName> (<deviceName>)` when primary speaker resolved | `client/src/pages/WorkspaceHome.tsx` — `EditableDeviceName` renders `{personName} ({device.name})` when `device.primaryUser?.preferredName` is non-null. `server/src/workspaces/router.ts` — `resolvePrimaryUser` returns `{userId, preferredName}` from the `speakers` row. Server + client tests assert this. |
+| 2 | Falls back to bare `<deviceName>` (3 sub-states: no `primary_user_id`, no speaker row, no `preferred_name`) | All three states verified — server returns `null` for the first, `{userId, preferredName: null}` for the latter two; client treats both as "no personName" → bare device name. Server: 3 fallback tests; client: 3 (incl. older-server omitted-field case). |
+| 3 | Edit-on-click still works | `onClick={() => setIsEditing(true)}` preserved on the device-name span in both rendering branches. Client tests verify entry-to-edit-mode in resolved + bare cases. |
+| 4 | Visual treatment | `client/src/App.css` — `.person-name { font-weight: 600; color: #fff; }` + `.device-name-text.is-secondary { color: #aaa; font-size: 0.9rem; }`. JSX parenthesizes device name. Test asserts `is-secondary` className. |
+| 5 | Tests cover the three states | Server: `router.test.ts` 4 cases. Client: `EditableDeviceName.test.tsx` 6 cases. |
+
+No `## INSTRUCTION:` override block was present for PR #428 + #384; gate passed cleanly on merits. Trailer `Fixes #384` retained → GitHub auto-closed #384 (verified: closed at 03:12:30 UTC).
+
+**Follow-up issues:** None filed. The "STT engine alongside device name" cross-link from PR #402 is mentioned as a possible follow-up in the PR body but is a separate concern outside #384's ACs — not auto-filed; @jpshackelford can request if desired.
+
+**Slot accounting after merge:** review slot freed (merge worker exits).
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
