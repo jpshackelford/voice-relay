@@ -4,121 +4,30 @@
     "expansion": [],
     "implementation": [
       {
-        "conv_id": "204eef3",
-        "actual_conv_id": "204eef38a6104eaeabaa4df7b3736c28",
-        "issue": 363,
-        "started": "2026-06-07T01:34:47.727707Z"
+        "conv_id": "2bded59",
+        "actual_conv_id": "2bded598b8884e2bbeeb0d63b6f004c3",
+        "issue": 384,
+        "started": "2026-06-07T02:08:36Z"
       }
     ],
-    "review": []
+    "review": [
+      {
+        "conv_id": "366d104",
+        "actual_conv_id": "366d10404b414fdeaa9cb013bb06659f",
+        "pr": 427,
+        "issue": 363,
+        "type": "merge",
+        "started": "2026-06-07T02:08:36Z"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T01:49:24Z",
+  "last_updated": "2026-06-07T02:08:36Z",
   "completed": [
-    {
-      "conv_id": "5e8b184",
-      "type": "implementation",
-      "issue": 403,
-      "pr": 406,
-      "started": "2026-06-05T22:18:49Z",
-      "finished": "2026-06-05T22:34:41.182605Z",
-      "status": "success",
-      "outcome": "Created PR #406 — fix(server): refresh & rebind honor per-workspace OpenHands API key (Fixes #403). All required CI green; pr-review IN_PROGRESS; mergeable=MERGEABLE/UNSTABLE."
-    },
-    {
-      "conv_id": "ca35fb8",
-      "actual_conv_id": "ca35fb869e5d4f45bdcc567cfe01ed71",
-      "type": "implementation",
-      "issue": 405,
-      "pr": 407,
-      "started": "2026-06-05T22:35:42.534334Z",
-      "finished": "2026-06-05T23:06:56.335837+00:00",
-      "status": "success",
-      "outcome": "Opened PR #407 — feat(server): typed reason for missing-WS-handshake failure (Fixes #405). Required CI green; pr-review IN_PROGRESS at reaping; mergeable=MERGEABLE/UNSTABLE."
-    },
-    {
-      "conv_id": "e531d1f",
-      "actual_conv_id": "e531d1f3cb7f4f319c84bf12309f8a3e",
-      "type": "review",
-      "pr": 406,
-      "started": "2026-06-05T22:50:12.575172+00:00",
-      "finished": "2026-06-05T23:06:56.335837+00:00",
-      "status": "success",
-      "outcome": "Addressed all 11 pr-review bot 🟡 suggestion threads on PR #406 in commit 819fd88 (style(server): tighten comments per pr-review on #403 fix). CI 5/5 required green; mergeable=CLEAN; 0 unresolved threads."
-    },
-    {
-      "conv_id": "0211d27",
-      "actual_conv_id": "0211d27a2d094956b46253cd45e7807d",
-      "type": "merge",
-      "pr": 406,
-      "started": "2026-06-05T23:06:56.335837+00:00",
-      "finished": "2026-06-05T23:19:42.068741+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #406 as 6641c71 (fix(server): refresh & rebind honor per-workspace OpenHands API key). Issue #403 auto-closed at 23:07:52Z. Server-only logic change, no migration."
-    },
-    {
-      "conv_id": "1e12cd0",
-      "actual_conv_id": "1e12cd0ee1264706bb41b2fa71f061c9",
-      "type": "implementation",
-      "issue": 404,
-      "pr": 408,
-      "started": "2026-06-05T23:19:42.068741+00:00",
-      "finished": "2026-06-05T23:50:12Z",
-      "status": "success",
-      "outcome": "Opened PR #408 — refactor(server): remove vestigial OPENHANDS_CLOUD_API_KEY env fallback (Fixes #404). All required CI green; pr-review IN_PROGRESS at reap; mergeStateStatus=CLEAN, mergeable=MERGEABLE."
-    },
-    {
-      "conv_id": "4e00461",
-      "actual_conv_id": "4e00461c7ec1445ea5bbeae1437d5241",
-      "type": "review",
-      "pr": 407,
-      "started": "2026-06-05T23:19:42.068741+00:00",
-      "finished": "2026-06-05T23:50:12Z",
-      "status": "success",
-      "outcome": "Rebased onto post-#406 main (combined #403 workspace-client param with #405 onTransientError), then condensed 5 pr-review 🟡 suggestion threads in style commit 3247e10. Required CI green; mergeStateStatus=CLEAN; 1 new lingering bot suggestion at reap (PRRT_kwDOSTUWGM6HgMp2)."
-    },
-    {
-      "conv_id": "7264a05",
-      "type": "review",
-      "pr": 407,
-      "started": "2026-06-05T23:50:12Z",
-      "finished": "2026-06-06T00:05:00.742835Z",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #407 (CI green, 0 unresolved threads, MERGEABLE/CLEAN)"
-    },
-    {
-      "conv_id": "910dfdc",
-      "type": "review",
-      "pr": 408,
-      "started": "2026-06-05T23:50:12Z",
-      "finished": "2026-06-06T00:05:00.742835Z",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #408 (CI green, 0 unresolved threads, MERGEABLE/CLEAN)"
-    },
-    {
-      "conv_id": "4515f17",
-      "actual_conv_id": "4515f17f520146688eca73f4175384d2",
-      "type": "merge",
-      "pr": 407,
-      "started": "2026-06-06T00:08:23.972181Z",
-      "finished": "2026-06-06T00:20:02.850700+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #407 at 00:10:34Z (d37f6ce). Issue #405 auto-closed."
-    },
-    {
-      "conv_id": "60663f9",
-      "actual_conv_id": "60663f95e3334f0db7969a5f73c317ab",
-      "type": "merge",
-      "pr": 408,
-      "started": "2026-06-06T00:08:23.972181Z",
-      "finished": "2026-06-06T00:20:02.850700+00:00",
-      "status": "success",
-      "outcome": "Squash-merged PR #408 at 00:13:22Z (e68580d). Issue #404 auto-closed."
-    },
     {
       "conv_id": "cb181e6",
       "actual_conv_id": "cb181e6c08b041b8be9da0b8ccb45c79",
@@ -276,7 +185,18 @@
       "finished": "2026-06-06T17:20:16.938492+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #423 at 17:08:00Z (b2f7453) — feat(client): engine selection (Deepgram vs Web Speech) in Kiosk/MobileMode. AC gate PASS (Closes #410 retained); issue #410 already closed pre-merge (16:11:38Z), auto-close no-op."
+    },
+    {
+      "conv_id": "204eef3",
+      "actual_conv_id": "204eef38a6104eaeabaa4df7b3736c28",
+      "type": "implementation",
+      "issue": 363,
+      "pr": 427,
+      "started": "2026-06-07T01:34:47.727707Z",
+      "finished": "2026-06-07T02:08:36Z",
+      "status": "success",
+      "outcome": "Opened PR #427 — feat(server): persist operational AISession state in SQLite (Fixes #363). Required CI 8/8 green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, isDraft=false. pr-review bot left ✅ COMMENTED \"Worth merging\" (🟢 Good taste, 🟡 MEDIUM risk). 0 unresolved threads at reap."
     }
   ],
-  "quiet_ticks": 1
+  "quiet_ticks": 0
 }
