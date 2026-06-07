@@ -372,3 +372,62 @@ Per the "Anti-Stall: Decision Table is Exhaustive" section of the orchestrate sk
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 02:10 UTC - Merge Worker (PR #427 → main)
+
+✅ **Merged: `feat(server): persist operational AISession state in SQLite (#363)`**
+
+- PR: [#427](https://github.com/jpshackelford/voice-relay/pull/427)
+- Linked issue: [#363](https://github.com/jpshackelford/voice-relay/issues/363) — **CLOSED** automatically by the `Fixes #363` trailer (02:09:48Z).
+- Squash SHA on `main`: [`e90181a`](https://github.com/jpshackelford/voice-relay/commit/e90181ab89d6693b86fee1b11a884796232ddcaf)
+- Merged at: 2026-06-07 02:09:46Z
+
+**Pre-merge gates**
+
+| Gate | Result | Detail |
+|---|---|---|
+| Required CI (`Build Client` / `Client Tests` / `Server Tests` / `E2E Tests` / `lint-pr-title` / `enable-orchestrator` ×2 / `pr-review`) | 8 SUCCESS + 1 SKIPPED | green |
+| `mergeable` / `mergeStateStatus` / draft | MERGEABLE / CLEAN / false | clean |
+| pr-review bot verdict | 🟢 Good taste, 🟡 MEDIUM overall risk | Worth merging |
+| Review threads | 0 open / 0 unresolved | — |
+| AGENTS.md orchestrator-file guard | n/a | branch did not modify `WORKLOG.md` / `.workflow-state.json` |
+| `## INSTRUCTION:` override in `WORKLOG.md` | none | grep returned no match for #427 |
+
+**Closing-trailer AC gate — verdict: PASS**
+
+Trailer was `Fixes #363`. Walked every non-exempt AC item in issue #363 against the final diff (the `mergeSha` above). The PR description carries the full item-by-item evidence table; spot-checked here:
+
+| AC | Evidence in merged commit |
+|---|---|
+| Migration creates `session_ai_state` with additive, idempotent backfill from `sessions.metadata.aiConversationId` for `active` sessions | `server/src/storage/migrations/020_session_ai_state.ts` — `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS` + `INSERT OR IGNORE … WHERE status=active AND json_extract(metadata,$.aiConversationId) IS NOT NULL`. Filename is `020_*` because slot 016 was already taken; the ACs new-migration intent is satisfied. |
+| `SessionAIStateRepository` exposes `findBySessionId` / `listByState` / `upsert` / `transitionTo` / `setRebindAttempts` / `deleteBySessionId` | `server/src/sessions/session-ai-state-repository.ts` — all six present (plus `listAll` for the tracker-seed path). |
+| Single `transitionTo` chokepoint replaces scattered `degraded`/`rebinding` writes | `server/src/openhands.ts` — `transitionTo(session, state, reason)` introduced; previous direct field writes removed. |
+| `RebindWindowTracker` budget survives restart; tracker stays storage-agnostic | `server/src/agent-driver/rebind.ts` — adds `getHistory` + `seedFromHistory`; manager re-seeds on `setAIStateRepository` and persists via `persistRebindAttempts`. Restart-simulation test in `openhands.test.ts`. |
+| `rehydrateAgentSessions` branches on lifecycle state (running re-attach / degraded skip+broadcast / rebinding one-shot retry / ended skip) | `server/src/agent-rehydrate.ts` — all four branches present; seven new state-aware tests in `agent-rehydrate.test.ts`. |
+| `docs/architecture.md` documents the table and rehydration policy | New subsection "Durable AI-session state (`session_ai_state`) — issue #363" in the Persistence layer. |
+| Existing tests pass; new restart-simulation + rebind-budget-survival tests | Server suite 1633/1633 passing on the green CI run. |
+| No regressions to user-visible reconnect UX | In-memory cache updated first inside `transitionTo` so device-state broadcasts fire at the same moment as pre-#363. All reconnect/rebind/refresh tests still pass. |
+
+No exemptions claimed in the issue body (no `(deferred)` / `(out of scope)` markers inside `## Acceptance Criteria`; the four Non-goals items are separately listed under `## Out of Scope` and are *not* AC). Gate clears without an override.
+
+**Squash commit body** recorded the verdict line `AC gate: PASS — all 8 non-exempt acceptance criteria on #363 verified` plus the `Fixes #363` trailer.
+
+**Production-deploy notes** (auto-deploy will pick this up on next vr.chorecraft.net cycle):
+
+- Migration is purely additive (`CREATE TABLE` / `CREATE INDEX` / `INSERT OR IGNORE`) — safe against the live SQLite DB.
+- Rollback path: `DROP INDEX idx_session_ai_state_by_state; DROP TABLE session_ai_state;` — every code path falls back to pre-#363 in-memory behaviour. `sessions.metadata.aiConversationId` is untouched.
+- No required post-deploy steps. Best-effort persistence: transient SQLite failures on a `transitionTo` write log but never alter control flow.
+
+**Follow-ups**
+
+- None filed. The CHECK constraint deliberately excludes `paused`; #360 (already merged) extends it in its own migration if/when the PAUSED-state work expands the lifecycle set further. No work hidden behind a `Refs/Part-of` trailer.
+
+**Slot accounting**
+
+- Merge slot: 1 → 0 (PR #427 closed-merged).
+- Implementation slot: 0/1 (impl worker for #363 reaped on its own ~01:55Z).
+- Backlog after this merge: `ready + actionable + not on-hold` set still includes #351 (server, low), #384 (full-stack, medium), plus any newcomers since 01:55Z. Next orchestrator tick can dispatch normally.
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
