@@ -1452,3 +1452,48 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 
 ---
 
+### 2026-06-07 16:42 UTC - Review worker (PR #450, round 1 — address-review)
+
+✅ Addressed both `🟡 Suggestion` threads from pr-review bot on PR #450:
+
+| Thread                                              | Action                                                                            | Commit  |
+| --------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
+| `server/src/build-relayed-text-message.ts:113`      | Trimmed 7-line inline comment to 2-line pointer back to the module docstring      | 5f267b6 |
+| `server/src/index.ts:1091`                          | Removed the duplicate 7-line block at the `buildRelayedTextMessage` call site     | 5f267b6 |
+
+Both threads replied + resolved via GraphQL.
+
+**AC gate re-run (round 1 re-verdict) for #446:**
+
+Attempted to upgrade trailer `Refs #446 → Fixes #446` by:
+
+1. Merging `origin/main` (now post-PR-#447) into the branch to pick up `tests/first-run-claim.spec.ts`.
+2. Flipping the two `TODO(#446)` assertions per #449's scope.
+
+CI surfaced a pre-existing strict-mode flake at `tests/utils/auth-helper.ts:396` (`navigateKioskToFirstSession` — un-scoped `getByRole('button', { name: /view/i })` matches every `<button class="view-session-btn">` once the worker DB has more than one persisted session). The kiosk path errors in setup before reaching any assertion. Same failure now hits every PR's merge-commit CI.
+
+- Filed **#452** (`tests(e2e): navigateKioskToFirstSession strict-mode violation…`) with a one-line locator-scope fix sketch.
+- Force-pushed branch back to just `a929cf2` (substitution rule) + `5f267b6` (comment trim) — no spec changes — and reproduced the same E2E failure on the merge commit, confirming the red is #452 and not this diff.
+- Cross-issue notes posted on **#446** and **#449** documenting the new dependency chain: `#452 → #449 → close #433 → close #446`.
+
+**Verdict outcome: unchanged. Trailer stays `Refs #446`.** Reasoning shifted:
+
+- Round 0 (PR open): AC #7 deferred because spec file was on PR #447's branch, not on PR #450's base.
+- Round 1 (now): AC #7 deferred because the upstream helper (#452) is broken; flipping TODOs is a no-op until #452 lands.
+
+PR body updated with the new AC table footnote + the `## Deferred to follow-ups` section now listing **#452 + #449 + #433** (was previously just #449 + #433).
+
+| State                                          | Value                                        |
+| ---------------------------------------------- | -------------------------------------------- |
+| PR #450 status                                 | `ready for review` (un-drafted)              |
+| PR #450 CI                                     | 🔴 E2E (cause = #452, not this diff)        |
+| Server Tests / Client Tests / Build / lint     | 🟢 all green                                 |
+| Threads addressed                              | 2/2                                          |
+| Unresolved threads remaining                   | 0                                            |
+| Trailer                                        | `Refs #446` (unchanged)                      |
+| New follow-up issue filed                      | #452                                         |
+| Cross-issue learning comments                  | #446, #449                                   |
+
+_This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
