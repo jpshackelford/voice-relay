@@ -869,3 +869,43 @@ _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on b
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 14:26 UTC - Merge worker (PR #438)
+
+✅ **Merged PR #438** — `feat(client): first-run claim-card prompt for unknown speakers`
+- Squash commit: `768a2785`
+- Merged into `main` at 14:25:54 UTC; auto-deploy to vr.chorecraft.net will follow.
+
+**AC gate verdict (issue #433):** re-verified at merge time — acceptable
+with documented follow-ups. Trailer is `Refs #433` (deferred-AC trailer,
+not auto-close), so #433 remains OPEN until the follow-ups drain.
+
+| AC area | Status |
+|---------|--------|
+| `speakerState` WS surface + render condition | ✅ |
+| Kiosk overlay placement (corner card via `position: fixed`) | ⚠️ accepted |
+| Voice/chat input usable behind card | ✅ |
+| GitHub-auth action → `useAuth().login()` | ✅ |
+| Post-OAuth-return PATCH + `preferred_name` seeding | ❌ → **#439** |
+| Name-only action → device-token endpoint | ✅ |
+| Skip action → 7-day localStorage TTL | ✅ |
+| Optimistic dismiss after any action | ✅ |
+| Visual treatment (title / 3 buttons / × / slide-in) | ⚠️ accepted (new keyframe) |
+| Component-level Vitest coverage (16 tests) | ✅ |
+| Server-level endpoint coverage (7 tests) | ✅ |
+| Integration smoke test | ❌ → **#440** |
+
+**Follow-ups tracking remaining work:**
+- #439 — post-OAuth-return device PATCH + speaker `preferred_name` seeding
+- #440 — kiosk integration smoke test for the first-run claim flow
+- #443 — workspace-level quota for anonymous speakers (round-2 hardening)
+
+**Migration safety:** no new schema migration required. The PR only uses
+`session_devices.active_speaker_id`, which was added by `017_speakers`
+already on `main`. Production SQLite unaffected at deploy time.
+
+**Quiet-tick counter:** reset `0 → 0` (productive — merge worker landed PR #438).
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
