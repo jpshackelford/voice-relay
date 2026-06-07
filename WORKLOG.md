@@ -1420,3 +1420,44 @@ _This worklog entry was created by an AI agent (OpenHands review-address worker)
 _This entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 20:25 UTC - Merge Worker (PR #456)
+
+✅ **Merged PR [#456](https://github.com/jpshackelford/voice-relay/pull/456) — `feat(server,client): /api/client-errors endpoint`** → squash commit `abab057`. Issue [#455](https://github.com/jpshackelford/voice-relay/issues/455) auto-closed by the `Fixes #455` trailer at 20:25:26Z (`stateReason: COMPLETED`).
+
+**Pre-merge checks:**
+
+| Check | Result |
+|-------|--------|
+| CI (7 required) | ✅ all green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
+| Mergeable / state | ✅ MERGEABLE / CLEAN |
+| Review threads | ✅ 4/4 resolved |
+| Draft status | ✅ ready (not draft) |
+| Blocking labels | ✅ none (`enhancement`, `scope:full-stack` only) |
+| DB migration check | ✅ no new migration files; the `CREATE TABLE` statements in the diff are inside `router.test.ts` in-memory test setup (importing existing migrations 002/003/007/014 to scaffold the test schema). Production schema untouched. Additive endpoint, safe to auto-deploy to vr.chorecraft.net. |
+
+**AC-gate verdict: PASS on merits (9/9 satisfied).** Walked issue #455 § Acceptance Criteria against the final diff:
+
+| # | AC item | Verification |
+|---|---------|--------------|
+| 1 | `POST /api/client-errors` exists with the documented request shape | `server/src/client-errors/router.ts` (mounted in `server/src/index.ts` inside the `if (sessionRepository)` guard); body validation covers all required fields. |
+| 2 | Rejects mismatched `sessionId`/`workspaceId` with 403 | Steps 4–5 in the router handler; `router.test.ts` tests #5–#6. |
+| 3 | Rate-limit per session + body cap | `SessionRateLimiter` (10 req / 60 s per `sessionId` → 429 + `Retry-After`); router-scoped `express.json({ limit: '4kb' })` → 413; tests #10, #11. |
+| 4 | Successful POST emits a structured `[ClientError] …` line | `console.log` call at line ~270 of `router.ts` with `JSON.stringify`'d user-controlled fields; test #1. |
+| 5 | `reportClientError(...)` wired into the three call sites | `useSpeechRecognition` (`recognition.onerror`), `useHostedSpeechRecognition` (`surfaceError`), `MobileMode.tsx` (both `startListening` catch blocks via `useSttEngine`). |
+| 6 | Reporting failures never surface or throw | Pure `void` return, outer `try/catch`, `.catch()`-swallowed fetch, 2 s `AbortController` timeout, `keepalive: true`; client tests #2, #3. |
+| 7 | Vitest coverage on server router + client helper | Server 15 tests (1723/1723 suite green), client 10 tests + 2 hook-integration tests (1207/1207 suite green); `reportClientError.ts` 100 % lines/functions. |
+| 8 | No PII / no raw tokens in logs | Only UUIDs (sessionId, workspaceId, deviceId) and user-supplied diagnostic fields are logged; bearer token never reaches the log line. |
+| 9 | `docs/architecture.md` mentions the endpoint | New `## Client diagnostic events (/api/client-errors)` subsection (route, auth, body cap, rate limit, log format, response codes, rationale for not reusing `authenticateDisplayRequest`). |
+
+**Auth deviation noted and accepted:** the literal AC text said "session display secret"; the PR uses device-token bearer instead. This deviation is pre-approved by the issue's own **technical-expansion comment §1**, which explicitly recommends device-token auth because wiring the display secret to the browser would be a security regression (it grants browser-side access to `POST /api/display`, `GET/PATCH /api/sessions/:id/settings`, etc.). The deviation is documented in the PR body, in `router.ts` header comments, and in `docs/architecture.md`. No `## INSTRUCTION:` override block was consulted — gate passed on merits.
+
+**Trailer fix applied:** PR body's `Fixes #455` was inside backticks (so `closingIssuesReferences` was empty). Appended a real `Fixes #455` trailer line outside backticks to the bottom of the PR body before merging; `closingIssuesReferences` then included #455 and the squash-merge auto-closed it. Belt-and-suspenders: `Fixes #455` also appears on its own line at the bottom of the squash commit body, alongside the `Co-authored-by: openhands <openhands@all-hands.dev>` line and the gate-verdict block.
+
+**Post-merge:** PR #456 state = `MERGED` at 20:25:25Z; issue #455 state = `CLOSED` at 20:25:26Z. Production at vr.chorecraft.net will pick this up via the auto-deploy pipeline. No follow-up issues opened — out-of-scope items (kiosk render-exception reporting, WS reconnect-storm telemetry, server-side aggregation/DB persistence) were explicitly fenced out by the issue body §8 and remain for future work.
+
+Co-authored-by: openhands <openhands@all-hands.dev>
+
+_This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
