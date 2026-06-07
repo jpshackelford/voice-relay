@@ -1062,3 +1062,29 @@ Both `OH_API_KEY` and `OPENHANDS_API_KEY` exposed in this sandbox return `HTTP 4
 _This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 01:29 UTC - Expansion Worker (manual /expand-issue, issue #426)
+
+✅ **Expanded Issue #426 — Styling Inconsistencies on the Workspace Home Page**
+
+- Issue: [#426 Styling Inconsistencies on the Workspace Home Page](https://github.com/jpshackelford/voice-relay/issues/426)
+- Type: Enhancement (UI / design-system consistency)
+- Status: **Ready for implementation** (`ready` label applied)
+- Root cause confirmed by inspection of merged diffs:
+  - PR #422 (`feat(client): workspace settings UI for hosted STT engine, cap, key, and usage`, merged 2026-06-06 16:24 UTC) — **not** PR #402 as the issue body suggests; #402 was the server-side broker — added new wrapper class names in `client/src/pages/WorkspaceHome.tsx` (`stt-engine-setting`, `stt-engine-row`, `stt-engine-option`, `inline-hint`, `stt-cap-setting`, `stt-cap-input`, `stt-usage-setting`, `stt-usage-row`, `stt-usage-counter`) but **did not add matching CSS rules to `client/src/App.css`**.
+  - Without rules, the two `<label class="stt-engine-option">` radio options for "Speech recognition engine" inline-collapse into one line, producing the "●" between sentences visible in the issue screenshot.
+  - The Deepgram API Key sub-panel reuses the existing `.api-key-setting` / `.api-key-input-row` / `.api-key-status` / `.api-key-btn` classes and renders correctly — the inconsistency is concentrated in the radio group and the cap/usage rows.
+- Proposed fix: CSS-only addition (~25–35 lines) in the "API Key Settings" block of `client/src/App.css` (after line ~4339). No JSX changes, no DB, no migration, no server impact.
+- Complexity: **Low.** UI-only fix, auto-deploys to vr.chorecraft.net on merge.
+- Acceptance criteria: 8 bullet points covering radio stacking, hint placement, vertical rhythm match with sibling panels, preservation of Deepgram panel mirror of ElevenLabs, no new tokens/JSX/deps, test pass-through, and visual smoke against the issue screenshot.
+
+**Actions taken:**
+
+| Action | Result |
+| --- | --- |
+| Rewrote issue body with Problem Statement / Proposed Solution / Acceptance Criteria / Out of Scope / Environment | ✅ [issue #426](https://github.com/jpshackelford/voice-relay/issues/426) |
+| Posted technical comment with Root Cause table, Implementation Plan, CSS sketch, files affected | ✅ [comment 4641022191](https://github.com/jpshackelford/voice-relay/issues/426#issuecomment-4641022191) |
+| Added `ready` label | ✅ |
+
+_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
