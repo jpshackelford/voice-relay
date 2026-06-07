@@ -744,3 +744,18 @@ I was dispatched to implement #433 but did not detect PR #438 was already open a
 _This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 14:00 UTC - Expansion Worker (Issue #442)
+
+✅ **Re-scoped & expanded Issue #442** — kiosk-level Playwright e2e for #433's name-only claim → next-utterance name resolution
+
+- Issue: [#442](https://github.com/jpshackelford/voice-relay/issues/442) — `test(e2e): kiosk-level smoke test for #433 first-run claim → next-utterance name resolution`
+- Prior state: closed-as-duplicate of #440 (per prior impl worker note above)
+- Action: **reopened** — #442 is the Playwright/browser e2e layer; #440 is the vitest+RTL component-integration layer. #440's own "Out of Scope" explicitly defers the wire round-trip to the e2e suite (i.e. to this issue).
+- Rewrote body with: Problem Statement (test gap rationale, three things vitest can't reach: full WS round-trip, session-override winning over device-default, real-browser render of the resolved `senderName`); Proposed Solution (`tests/first-run-claim.spec.ts`, two-context kiosk+mobile via existing `setupTwoDeviceSession`, name-only path); Acceptance Criteria (10 bullets, repeat-each=5 anti-flake guard); Out of Scope (`shouldShowClaimCard` → #440, OAuth path → blocked on #439); Related (#433, #438, #440, #439, closed #441).
+- Added technical-approach comment with a concrete Playwright spec outline (TypeScript), server-state shape table mapping each assertion to its PR-#438 source, dependency posture matrix, two-context vs single-context rationale, name-only vs OAuth rationale, and runtime budget.
+- **Dependency call:** **Hard** dep on PR #438 merging (provides claim card UI, `speakerState`, `POST .../active-speaker`, `resolveSpeakerForUtterance`). **No** hard dep on #439 as-scoped (name-only path does not traverse OAuth); a separate follow-up e2e would be needed once #439 ships if the OAuth-handoff path needs e2e coverage.
+- Labels: added `ready`; existing `client`, `priority:low`, `scope:client-only` retained.
+- Conversation: `unknown`
+
+---
