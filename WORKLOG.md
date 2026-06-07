@@ -2,156 +2,6 @@
 
 ## Log
 
-### 2026-06-07 03:25 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `9e0d0dd` | merge | PR #430 (Fixes #351) | **NEW** |
-
-🚀 **Spawned: Merge Worker** for [PR #430](https://github.com/jpshackelford/voice-relay/pull/430) — *fix(server): broadcast degraded snapshot at register time after failed rehydration*
-- Conversation: [`9e0d0dd`](https://app.all-hands.dev/conversations/9e0d0dd588e746e3aab1c9ef3d4e1ca0)
-- All CI green (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, pr-review); mergeStateStatus=CLEAN; no review threads.
-- Worker will run the Closing-Trailer AC gate against issue #351 before merging.
-
-**State reconciliation:**
-- Cleared finished workers from slots: `2bded59` (impl #384 → PR #428 merged) and `366d104` (merge PR #427 / #363). Both moved to `completed[]` audit trail.
-
-**Unblock pass:** 2 issues flagged by mechanical detector (#299 via closed #298; #301 via closed #295), but both fall under the **AGENTS.md S3 design freeze** for issues #298–#302 — policy hold overrides mechanical signal. Freeze lifts only when production `VR_WORKSPACE_BUCKET` + AWS creds are provisioned. Not lifted this tick.
-
-**Current State:**
-- Open PRs: [#430](https://github.com/jpshackelford/voice-relay/pull/430) — merge worker dispatched ✅
-- Ready issues: none (only #351 was ready, and it's now in PR #430)
-- On-hold (policy): #210, #239, #299, #300, #301, #302, #386 (S3 freeze + others)
-- Needs-human: #372
-
-**Slots after tick:** expansion 0/4, implementation 0/1, review 1/2.
-
-_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 03:26 UTC - Merge worker (PR #430)
-
-✅ **Merged** — `fix(server): broadcast degraded snapshot at register time after failed rehydration`
-
-| | |
-|---|---|
-| PR | [#430](https://github.com/jpshackelford/voice-relay/pull/430) |
-| Issue | [#351](https://github.com/jpshackelford/voice-relay/issues/351) — closed via `Fixes #351` trailer |
-| Merge commit | `49b4d329c7fc51596795326b6fecb02b79a4ebd0` |
-| Strategy | Squash |
-| CI at merge | ✅ Server Tests, ✅ Client Tests, ✅ Build Client, ✅ E2E Tests, ✅ lint-pr-title, ✅ pr-review |
-| Review threads | 0 / 0 (pr-review bot found nothing to flag) |
-| Migrations | None — server-only behaviour fix, no schema changes |
-| Production impact | Auto-deploys to vr.chorecraft.net. Risk: low — new branch is gated on driver `state === 'absent'` (previously a silent no-op) and only fires when `session_ai_state` carries `degraded`. Pre-#363 sessions are unaffected. |
-
-**Closing-trailer AC gate — verdict: PASS**
-
-Walked all 4 non-exempt AC items in #351 against the merged diff (`49b4d329…`):
-
-| # | AC | Evidence in merged commit |
-|---|----|---|
-| 1 | First kiosk to register in session X receives `session-state` with `state: 'degraded'` (with rehydration error string) within one WS round-trip — no typing required | `server/src/resync-agent-status.ts` — on `state === 'absent'`, calls `synthesizeDegradedFromDurableState`, which reads `session_ai_state.findBySessionId` and returns a synthesized `degraded` AgentSessionStatus when the row is degraded. Both legacy `session-ai-status` and unified `session-state` are sent on the registering `ws` only. Verified by `resync-agent-status.test.ts` T-3.1.11 first test + integration test stage 1 (real SQLite + repo). |
-| 2 | Subsequent successful attach clears persisted flag; normal `ready` snapshot broadcast | Already in production via `AISessionManager.persistInitialState` upserting `running` (no change needed in this PR). `register-time-degraded.integration.test.ts` second case asserts this exact contract: upsert `running` → next resync emits `ready` snapshot, no synthesized degraded. |
-| 3 | Unit: failure path writes the durable degraded state; success path clears (idempotent on absent) | The original AC wording said "metadata field"; the implementation reasonably uses the `session_ai_state` table from #363 with the same semantics — explicitly addressed in the PR body. Failure-side durable write covered by existing `agent-rehydrate.test.ts` + integration test stage 1 assertion `aiStateRepository.findBySessionId(sessionId).state === 'degraded'`. Success-side clear via `persistInitialState` covered by stage-2 upsert behaviour. |
-| 4 | Integration: kiosk registering after failed boot rehydration sees exactly one `degraded` broadcast on register — without the dropped-text handler firing | `register-time-degraded.integration.test.ts` exercises this end-to-end: real in-memory SQLite, real `SessionAIStateRepository`, real `rehydrateAgentSessions` failure, then `resyncAgentSessionStatus`. Asserts `expect(wsSends).toHaveLength(2)` (one logical broadcast — legacy + unified). Dropped-text handler is not in the code path. |
-
-No `## INSTRUCTION:` override block was present for PR #430 + #351; gate passed cleanly on merits. Trailer `Fixes #351` retained → GitHub auto-closed #351 (verified: closed at 03:25:56 UTC).
-
-Coverage on `resync-agent-status.ts`: **100% stmts / 100% funcs / 100% lines / 96% branches**. Full server suite: **1644/1644 passing**.
-
-**Follow-up issues:** None filed. The PR body explicitly notes the original "expand-metadata-field at four call sites" plan from the issue was superseded by #363's `session_ai_state` table, which already covers the same lifecycle semantics. No remaining scope.
-
-**Slot accounting after merge:** review slot freed (merge worker exits).
-
-_This worklog entry was written by an AI agent (OpenHands) on behalf of @jpshackelford._
-
----
-### 2026-06-07 10:35 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `3e55df8` | expansion | Issue #431 — speaker header on every session start | **NEW** |
-| `6517d88` | expansion | Issue #432 — backfill devices.primary_user_id | **NEW** |
-| `dd9d214` | expansion | Issue #433 — first-run "claim this device" prompt | **NEW** |
-| `5df1586` | expansion | Issue #434 — connection status dot regression | **NEW** |
-
-🚀 **Spawned: 4 Expansion Workers (parallel)**
-
-1. **Expansion Worker** — [Issue #431](https://github.com/jpshackelford/voice-relay/issues/431) (`feat(server)`, priority:medium, scope:full-stack)
-   - Conversation: [`3e55df8`](https://app.all-hands.dev/conversations/3e55df8fd8024d07accd6f01cf02e13a)
-2. **Expansion Worker** — [Issue #432](https://github.com/jpshackelford/voice-relay/issues/432) (`chore(server)`, priority:medium, scope:server-only)
-   - Conversation: [`6517d88`](https://app.all-hands.dev/conversations/6517d88d3c184c6b837ca1d49172d6f8)
-3. **Expansion Worker** — [Issue #433](https://github.com/jpshackelford/voice-relay/issues/433) (`feat(client)`, priority:medium, scope:client-only)
-   - Conversation: [`dd9d214`](https://app.all-hands.dev/conversations/dd9d214451704221b31e4cd316b8a770)
-4. **Expansion Worker** — [Issue #434](https://github.com/jpshackelford/voice-relay/issues/434) (`bug(client)`, priority:medium, scope:client-only — regression of #394)
-   - Conversation: [`5df1586`](https://app.all-hands.dev/conversations/5df1586b43b540f8ae4ffcdd117cea33)
-
-**Gather state at tick start:**
-- Open PRs: **none** (PR #430 merged at 03:25Z previous tick; no new PRs in the queue).
-- Open issues: 12 total.
-  - Needing expansion (no `ready`, no `on-hold`, no `needs-human`): **#431, #432, #433, #434** — all four dispatched this tick.
-  - Ready (without policy/needs-human gate): **none** — #386 has `ready` but also `on-hold` (policy-tracked, no machine refs), so it remains held.
-  - Policy / freeze on-hold: #210, #239, #299, #300, #301, #302, #386 (S3 freeze covers #298–#302 per AGENTS.md; #210, #239, #386 are policy-tracked too).
-  - Needs human: #372.
-
-**Unblock pass (mechanical):**
-
-| Issue | Machine blockers | Result |
-| --- | --- | --- |
-| #299 | #298 (CLOSED) | mechanically unblockable — but **S3 design freeze in AGENTS.md** explicitly covers #298–#302; policy hold dominates. Not lifted. |
-| #300 | #298 (CLOSED), #299 (OPEN) | still mechanically blocked. |
-| #301 | #295 (CLOSED) | mechanically unblockable — same S3 freeze override applies. Not lifted. |
-| #302 | #300 (OPEN) | still mechanically blocked. |
-| #386, #239, #210 | none (prose-only) | policy-tracked on-hold — only a human or new INSTRUCTION can lift. Untouched. |
-
-Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 but the codified AGENTS.md S3 design-freeze policy overrides them — see "Active design freeze: workspace persistence (S3 / #298)" in AGENTS.md; the freeze lifts only when `VR_WORKSPACE_BUCKET` + AWS creds are provisioned on prod). Same behaviour as the 03:25Z tick.
-
-**Anti-stall note:** the decision table is exhaustive. No `## INSTRUCTION:` override block exists in WORKLOG.md, and the four candidate issues (#431–#434) carry no codified gate. They are dispatchable on their merits — the expansion-slot cap of 4 happens to match the queue size exactly.
-
-**Decision:** spawn expansion for all four (4/4 expansion slots used). Implementation slot stays idle because no `ready` issue is gate-free. Review slots stay idle because no open PRs exist.
-
-**Slot accounting at end of tick:** expansion 4/4, implementation 0/1, review 0/2. Total active conversations: 4/7.
-
-**Quiet-tick counter:** reset `1 → 0` (productive — 4 expansion workers dispatched, queue drained of expandable issues).
-
-_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 10:38 UTC - Expansion Worker (issue #434)
-
-✅ **Expanded Issue #434**
-
-- Issue: [bug(client): connection status dot rendering in left sidebar instead of kiosk display area](https://github.com/jpshackelford/voice-relay/issues/434)
-- Type: Bug (CSS regression)
-- Status: Ready for implementation (`ready` label applied)
-- Root cause: PR #394's grid refactor dropped the `.kiosk-display .connection-indicator` `position: absolute` override but left the base rule's `position: fixed` in place, so `grid-area: bl` is ignored and the dot stays at viewport `bottom: 1rem; left: 1rem;` — which is inside the open `.kiosk-sidebar`.
-- Proposed fix: one-line CSS addition — `position: static;` on `.kiosk-display .connection-indicator` so the grid-area placement actually applies. No JSX changes. Test: extend the existing `KioskMode.test.tsx` "renders the connection indicator inside the kiosk display" case to also assert computed `position !== 'fixed'`, plus optional Playwright bounding-box containment check.
-- Files: `client/src/App.css` (~line 3900), `client/src/components/KioskMode.test.tsx` (~line 2194), optionally `tests/e2e/kiosk.spec.ts`.
-- Scope: `client-only`, priority:medium (carried from filing). Low risk — base `.connection-indicator` rule still applies for the workspace session view (correct) and the mobile kiosk path (correct).
-
-_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 10:38 UTC - Expansion Worker (issue #432)
-
-✅ **Expanded Issue #432** — `chore(server): backfill devices.primary_user_id for devices paired before migration 017`
-
-- Issue: [#432](https://github.com/jpshackelford/voice-relay/issues/432)
-- Type: Enhancement (one-shot data backfill)
-- Status: **Ready for implementation** (`ready` label applied)
-- Approach: new migration `021_backfill_devices_primary_user.ts` that runs a single idempotent `UPDATE` setting `devices.primary_user_id = workspace_members.user_id WHERE role='owner'` for devices whose workspace has exactly one owner. Non-destructive; `down` is a no-op.
-- Key findings during investigation:
-  - `qr_tokens` does **not** record `created_by_user_id` (verified in `008_qr_tokens.ts` + `qr-token-repository.ts`), so the originally proposed "QR-token minter" heuristic was dropped from the plan.
-  - `primary_user_id` is set today only by `PATCH /api/devices/:id` via `deviceRepository.setPrimaryUser` (`server/src/devices/router.ts:198`), not during initial QR pairing — corrected in the rewritten issue body.
-  - Next available migration version is **021** (020 is the latest in `migrations/index.ts`).
-- Test matrix (A: single owner, B: multi-owner, C: already-claimed, D: no-owner, E: idempotency re-run) documented in the rewritten body; mirrors the `017_speakers.test.ts` seeding pattern.
-- Files affected (3): the new migration, its `.test.ts`, and `storage/migrations/index.ts`. No code-path changes outside migrations.
-
-_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
-
----
 ### 2026-06-07 10:42 UTC - Expansion Worker (issue #431)
 
 ✅ **Expanded Issue #431**
@@ -232,7 +82,6 @@ Unblock pass: **0 issues lifted** (mechanical signals exist for #299 and #301 bu
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 11:08 UTC - Implementation Worker (#431)
 
 ✅ Implemented and shipped PR for #431 — server emits speaker header on every session start (resolved / no-name / unknown) and agent opening message is dynamic.
@@ -271,7 +120,6 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 11:23 UTC - Merge Worker (#435 → #431)
 
 ✅ Merged PR #435 — server emits speaker header on every session start, agent opening is dynamic.
@@ -310,7 +158,6 @@ Out-of-scope items from issue body (pre-017 backfill, kiosk first-run claim UX, 
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 11:29 UTC - Implementation worker (issue #432)
 
 🚧 → ✅ Opened PR #436 — `chore(server): backfill devices.primary_user_id for pre-017 devices`.
@@ -349,7 +196,6 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 11:35 UTC - Orchestrator
 
 **Active Workers:**
@@ -389,7 +235,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 🚀 Spawned 2 workers (1 review + 1 implementation). Productive tick → `quiet_ticks = 0`.
 
 ---
-
 ### 2026-06-07 11:43 UTC - Review Worker (PR #436 — backfill devices.primary_user_id)
 
 ✅ Addressed pr-review-bot 🟡 Acceptable feedback on PR #436 (Fixes #432).
@@ -413,7 +258,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 - Fixes #432.
 
 ---
-
 ### 2026-06-07 12:13 UTC - Merge Worker (PR #436 → #432)
 
 ✅ **Merged PR #436** (`chore(server): backfill devices.primary_user_id for pre-017 devices`) — squash merge `f51d193` at 12:12:57 UTC. GitHub auto-closed issue #432 via `Fixes #432` trailer at 12:12:59 UTC.
@@ -454,7 +298,6 @@ No `## INSTRUCTION:` override block was present for PR #436 + #432; gate passed 
 _This worklog entry was written by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 12:18 UTC - Orchestrator
 
 **Active Workers:**
@@ -518,8 +361,6 @@ _This worklog entry was written by an AI agent (OpenHands orchestrator) on behal
 _This worklog entry was written by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
-
 ### 2026-06-07 13:07 UTC - Orchestrator
 
 **Active Workers:**
@@ -555,7 +396,6 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 **Quiet-tick counter:** stays at `0` (productive — 2 workers dispatched; 1 worker reconciled to `completed`).
 
 ---
-
 ### 2026-06-07 13:14 UTC - Review Worker (PR #437 — address pr-review feedback)
 
 🚧 **Status:** ✅ Done — review feedback addressed; PR back to ready.
@@ -573,7 +413,6 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 13:15 UTC - Implementation Worker (#433 first-run claim card)
 
 ✅ **Issue #433 implemented and PR opened.**
@@ -588,7 +427,6 @@ _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 - **Coordination:** no overlap with PR #437 (issue #434 CSS fix) — separate files, separate branch.
 
 ---
-
 ### 2026-06-07 13:24 UTC - Orchestrator
 
 **Active Workers:**
@@ -633,7 +471,6 @@ _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This worklog entry was written by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 13:25 UTC - Merge Worker (PR #437)
 
 ✅ **PR #437 squash-merged to main** — Issue #434 closed.
@@ -720,7 +557,6 @@ _This worklog entry was created by an AI agent (OpenHands expansion worker) on b
 _This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 13:50 UTC - Implementation Worker (Issue #433, duplicate)
 
 🛑 **Duplicate implementation closed — referred back to canonical PR #438**
@@ -744,7 +580,6 @@ I was dispatched to implement #433 but did not detect PR #438 was already open a
 _This worklog entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 14:00 UTC - Expansion Worker (Issue #442)
 
 ✅ **Re-scoped & expanded Issue #442** — kiosk-level Playwright e2e for #433's name-only claim → next-utterance name resolution
@@ -759,7 +594,6 @@ _This worklog entry was created by an AI agent (OpenHands implementation worker)
 - Conversation: `unknown`
 
 ---
-
 ### 2026-06-07 14:00 UTC - Review-Address Worker (PR #438, round 2)
 
 ✅ **Addressed pr-review round-2 feedback on PR #438 — back to ready, gate unchanged**
@@ -790,7 +624,6 @@ All three threads replied + resolved via GraphQL.
 _This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 14:11 UTC - Expansion Worker (issue #443)
 
 ✅ **Expanded Issue #443** — `feat(server): workspace-level quota for anonymous speakers (#433 follow-up)`
@@ -819,7 +652,6 @@ _This worklog entry was created by an AI agent (OpenHands review-address worker)
 _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 14:23 UTC - Orchestrator
 
 **Active Workers:**
@@ -869,7 +701,6 @@ _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on b
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 14:26 UTC - Merge worker (PR #438)
 
 ✅ **Merged PR #438** — `feat(client): first-run claim-card prompt for unknown speakers`
@@ -956,6 +787,31 @@ branching by running `gh pr view 438 --json state` per dispatch brief.
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-07 14:47 UTC - Review-addressing worker (PR #444 round 1)
+
+✅ Addressed all 9 review threads on PR [#444](https://github.com/jpshackelford/voice-relay/pull/444) (feat(client): post-OAuth-return device PATCH + speaker preferred_name seeding, fixes #439).
+
+All 9 threads were from `github-actions` flagging over-verbose comments that paraphrased the PR description / restated self-evident code. Accepted all 9 and trimmed in a single thematic commit `f3778c4` ("refactor(client,server): trim verbose comments per review feedback"):
+
+| File | Trim |
+| --- | --- |
+| `client/src/hooks/useFirstRunClaim.ts` | 18-line file header → 4 lines; remove inline narration around `firedRef` / `consumePendingClaim` / fetch call; condense catch + eslint-disable explanations |
+| `client/src/components/ClaimSpeakerCard.tsx` | `PENDING_CLAIM_KEY_PREFIX` doc + `handleSignIn` comment condensed |
+| `server/src/devices/router.ts` | 10-line speaker-upsert block → 3 lines |
+
+Net: 60 lines removed, 13 added. No behavior change.
+
+**CI:** ✅ Build Client / Client Tests (1188 pass) / Server Tests (1682 pass) / E2E / lint-pr-title — all green on `f3778c4`.
+
+**AC gate re-run: unchanged.** Re-walked Issue #439's 8 acceptance criteria against the current diff. Trims were textual only; runtime behavior, idempotency guarantees, and test coverage are identical to pre-trim. Verdict remains `Fixes #439` — no `## Deferred to follow-ups` change, no new follow-up issues filed.
+
+**Cross-issue learning** logged as a comment on #439 for future implementation workers in this codepath (default to terser comments; keep file headers to 1–2 sentences; explain the empty-body PATCH semantic once, not at every call site).
+
+**Workflow:** PR briefly dropped to draft (`gh pr ready 444 --undo`) at start of round; moved back to ready (`gh pr ready 444`) after CI green and threads resolved. PR is now `ready / MERGEABLE / CI green / 0 unresolved threads`.
+
+_This entry was created by an AI agent (OpenHands review-addressing worker) on behalf of @jpshackelford._
+
+---
 ### 2026-06-07 14:50 UTC - Implementation worker (issue #440)
 
 🚀 **Opened PR #445** — `test(client): kiosk integration smoke test for first-run claim flow`
@@ -988,33 +844,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 **No conflict with PR #444** (in flight, different surface — post-OAuth-return PATCH vs. kiosk page-level smoke test). Branched from current `main` (post-#438-merge); no rebase needed.
 
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-
-
-### 2026-06-07 14:47 UTC - Review-addressing worker (PR #444 round 1)
-
-✅ Addressed all 9 review threads on PR [#444](https://github.com/jpshackelford/voice-relay/pull/444) (feat(client): post-OAuth-return device PATCH + speaker preferred_name seeding, fixes #439).
-
-All 9 threads were from `github-actions` flagging over-verbose comments that paraphrased the PR description / restated self-evident code. Accepted all 9 and trimmed in a single thematic commit `f3778c4` ("refactor(client,server): trim verbose comments per review feedback"):
-
-| File | Trim |
-| --- | --- |
-| `client/src/hooks/useFirstRunClaim.ts` | 18-line file header → 4 lines; remove inline narration around `firedRef` / `consumePendingClaim` / fetch call; condense catch + eslint-disable explanations |
-| `client/src/components/ClaimSpeakerCard.tsx` | `PENDING_CLAIM_KEY_PREFIX` doc + `handleSignIn` comment condensed |
-| `server/src/devices/router.ts` | 10-line speaker-upsert block → 3 lines |
-
-Net: 60 lines removed, 13 added. No behavior change.
-
-**CI:** ✅ Build Client / Client Tests (1188 pass) / Server Tests (1682 pass) / E2E / lint-pr-title — all green on `f3778c4`.
-
-**AC gate re-run: unchanged.** Re-walked Issue #439's 8 acceptance criteria against the current diff. Trims were textual only; runtime behavior, idempotency guarantees, and test coverage are identical to pre-trim. Verdict remains `Fixes #439` — no `## Deferred to follow-ups` change, no new follow-up issues filed.
-
-**Cross-issue learning** logged as a comment on #439 for future implementation workers in this codepath (default to terser comments; keep file headers to 1–2 sentences; explain the empty-body PATCH semantic once, not at every call site).
-
-**Workflow:** PR briefly dropped to draft (`gh pr ready 444 --undo`) at start of round; moved back to ready (`gh pr ready 444`) after CI green and threads resolved. PR is now `ready / MERGEABLE / CI green / 0 unresolved threads`.
-
-_This entry was created by an AI agent (OpenHands review-addressing worker) on behalf of @jpshackelford._
 
 ---
 ### 2026-06-07 14:54 UTC - Merge worker (PR #445)
@@ -1153,7 +982,6 @@ PR is now in `ready for review` state; review handling delegated to a separate c
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 15:45 UTC - Expansion Worker (issue #446)
 
 ✅ **Expanded Issue #446** — server: substitute `RelayedTextMessage.senderName` with active-speaker `preferredName` when per-session override resolves
@@ -1169,7 +997,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 - Priority rationale: gates #442's full e2e wire+DOM assertions (#447 ships with the two name-equality assertions taped over) AND blocks closure of #433's third-bullet AC. Low complexity + clear scope → quick win that unblocks downstream issue closure → `priority:high`.
 
 ---
-
 ### 2026-06-07 15:57 UTC - Merge Worker (PR #448 → main)
 
 ✅ **Merged PR #448** — `feat(server): workspace-level quota for anonymous speakers (#443)`
@@ -1251,7 +1078,6 @@ Next review round dispatched as a separate conversation.
 _This entry was created by an AI agent (OpenHands review-feedback worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:11 UTC - Implementation worker (issue #446)
 
 ✅ **PR [#450](https://github.com/jpshackelford/voice-relay/pull/450) opened (ready for review)** — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName`
@@ -1291,7 +1117,6 @@ Next: review handling is a separate conversation.
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:13 UTC - Merge worker (PR #447, /prepare-and-merge)
 
 ✅ **Merged PR #447** — `test(e2e): kiosk-level smoke test for first-run claim → next-utterance speaker resolution (#442)` — squash commit [`f7ceaab`](https://github.com/jpshackelford/voice-relay/commit/f7ceaab).
@@ -1340,7 +1165,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:22 UTC - Orchestrator
 
 **Active Workers (after this tick):**
@@ -1387,7 +1211,6 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:30 UTC - Implementation worker (issue #446, duplicate)
 
 🛑 **Closed PR [#451](https://github.com/jpshackelford/voice-relay/pull/451) as duplicate of [#450](https://github.com/jpshackelford/voice-relay/pull/450)** — another OpenHands implementation worker was dispatched for the same issue (#446) ~2 minutes earlier and had already opened PR #450 (16:08:45Z vs my push at ~16:23Z). Discovered on `git fetch` after the CI on my branch came back red with the chromium `first-run-claim.spec.ts` failing because PR #447 had also merged in the interim, putting the spec file on `main` mid-flight.
@@ -1405,7 +1228,6 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:39 UTC - Orchestrator
 
 **Active Workers:**
@@ -1451,7 +1273,6 @@ Issues #210, #239, #386 had no machine-parseable `Blocked by #N` — policy-trac
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:42 UTC - Review worker (PR #450, round 1 — address-review)
 
 ✅ Addressed both `🟡 Suggestion` threads from pr-review bot on PR #450:
@@ -1497,7 +1318,6 @@ PR body updated with the new AC table footnote + the `## Deferred to follow-ups`
 _This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:54 UTC - Merge worker (PR #450)
 
 ✅ Merged PR #450 — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName` — squash SHA `7d41ba2`.
@@ -1536,7 +1356,6 @@ _This entry was created by an AI agent (OpenHands review worker) on behalf of @j
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 16:55 UTC - Expansion Worker (issue #452)
 
 ✅ **Expanded Issue #452** (`tests(e2e): navigateKioskToFirstSession strict-mode violation…`)
@@ -1558,5 +1377,3 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 | Sibling helper bug surfaced + folded into AC        | ✅ (`navigateKioskToSession` @ line 471)                                       |
 
 _This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
-
----
