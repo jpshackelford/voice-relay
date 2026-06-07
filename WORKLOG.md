@@ -573,3 +573,18 @@ _This worklog entry was written by an AI agent (OpenHands implementation worker)
 _Worklog written by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 13:15 UTC - Implementation Worker (#433 first-run claim card)
+
+✅ **Issue #433 implemented and PR opened.**
+
+- **PR:** [#438](https://github.com/jpshackelford/voice-relay/pull/438) — `feat(client): first-run claim-card prompt for unknown speakers`
+- **CI:** all green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator). pr-review skipped while draft; PR now moved to ready.
+- **AC-gate verdict:** `Refs #433` (not `Fixes`). Eleven of thirteen AC rows met; two gaps deferred to follow-up issues:
+  - [#439](https://github.com/jpshackelford/voice-relay/issues/439) — post-OAuth-return device PATCH + speaker `preferred_name` seeding (the "workspace member" action only calls `useAuth().login()` today; the post-return chain isn't wired).
+  - [#440](https://github.com/jpshackelford/voice-relay/issues/440) — kiosk-page integration smoke test (component-level + server-level coverage was added; the page-level end-to-end was not).
+- Two minor cosmetic deviations (placement via fixed positioning rather than a new grid-template-area; new slide-in keyframe rather than reusing `.join-request-notification`'s) were accepted without follow-up — the observable behaviour matches AC and the review worker can flag if a stricter implementation is wanted.
+- **Test totals:** server 79 files / 1678 tests pass; client 56 files / 1172 tests pass (16 new `ClaimSpeakerCard` tests, 14 new server tests for the endpoint + session repository).
+- **Coordination:** no overlap with PR #437 (issue #434 CSS fix) — separate files, separate branch.
+
+---
