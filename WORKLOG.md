@@ -1252,3 +1252,43 @@ _This entry was created by an AI agent (OpenHands review-feedback worker) on beh
 
 ---
 
+### 2026-06-07 16:11 UTC - Implementation worker (issue #446)
+
+✅ **PR [#450](https://github.com/jpshackelford/voice-relay/pull/450) opened (ready for review)** — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName`
+
+**What landed**
+
+- `server/src/build-relayed-text-message.ts` (new, 121 lines) — pure builder owning the substitution rule `senderName: utteranceSpeaker?.preferredName ?? device.displayName`.
+- `server/src/build-relayed-text-message.test.ts` (new, 367 lines) — 8 unit tests covering the full truth-table + 2 SQLite-backed persisted-row contract tests (real `SQLiteStore`, full migration chain, FK seeding).
+- `server/src/index.ts` — swap the `RelayedTextMessage` literal at the inbound-text WS handler for a call to the new helper. Agent-driver `sender.senderName` at line ~1154 deliberately untouched (verified in diff).
+
+Extraction over single-line edit because `index.ts` is a side-effect-bootstrap module — extracting a small pure helper (pattern: `relayAgentResponse`, `resyncAgentSessionStatus`, `broadcastSessionState`) makes the substitution truth-table unit-testable without booting the server.
+
+**CI:** all 6 checks green (Build Client, Client Tests, Server Tests, E2E Tests, enable-orchestrator, lint-pr-title). Existing 1692-test server suite passes.
+
+**Closing-Trailer AC Gate (re-run against final diff @ a929cf2):**
+
+| # | AC                                                                  | Status | Evidence |
+| - | ------------------------------------------------------------------- | ------ | -------- |
+| 1 | `senderName` substitutes `utteranceSpeaker.preferredName`           | ✅     | Helper + test `substitutes senderName...` |
+| 2 | Persisted `messages.sender_name` carries substituted name           | ✅     | Test `persists messages.sender_name as the substituted speaker preferredName` (real SQLite) |
+| 3 | Engine-label-only path keeps device alias                           | ✅     | Test `keeps senderName as device alias on the engine-label-only path` |
+| 4 | Unclaimed-device path keeps device alias                            | ✅     | Tests for both wire-frame and persisted row |
+| 5 | Agent-driver `sender.senderName` keeps device alias                 | ✅     | Diff inspection: `senderName: device.displayName` at line 1154 untouched |
+| 6 | New server-side test pins substituted-broadcast contract            | ✅     | 10 new tests |
+| 7 | #442 e2e flips `TODO(#446)` assertions and spec passes              | ⏭️ defer | Spec file is on PR #447's branch, not on `main` (this PR's base). Prompt explicitly out-of-scope. Tracked in **#449**. |
+| 8 | #433's third-bullet AC fully satisfied; close #433                  | ⏭️ defer | Server side now satisfies it. Full closure waits on #447 + #449 to land. |
+
+**Trailer verdict:** `Refs #446` + `## Deferred to follow-ups` section in PR body. Two non-exempt AC items (#7, #8) are structurally gated on a different branch (#447) explicitly out of scope per the implementation instructions — both tracked in the follow-up issue **#449** (`e2e,priority:medium,ready`).
+
+**Follow-ups filed**
+
+- **#449** — Flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` to active checks. Requires PR #447 to land first (the spec file only exists on that branch).
+- **#433 closure** — Will happen once #449 lands on top of merged #447 + #450.
+
+Next: review handling is a separate conversation.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
+
