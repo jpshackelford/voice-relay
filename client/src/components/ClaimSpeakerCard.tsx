@@ -31,6 +31,13 @@
  */
 import { useState, type FormEvent } from 'react';
 
+/**
+ * Max preferred-name / pronouns length for the active-speaker form (#433).
+ *
+ * IMPORTANT: These must stay in sync with the server-side limits in
+ * `server/src/devices/router.ts` (`MAX_SPEAKER_NAME_LENGTH`,
+ * `MAX_SPEAKER_PRONOUNS_LENGTH`). If you change one, change the other.
+ */
 const PREFERRED_NAME_MAX_LEN = 80;
 const PRONOUNS_MAX_LEN = 32;
 /** Issue #433 AC: 7-day skip TTL when the user picks "Shared device". */

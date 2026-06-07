@@ -9,9 +9,15 @@ import { requireAuth, type AuthMiddlewareConfig } from '../auth/middleware.js';
 /** Max device name length (prevents UI overflow and DB bloat) */
 const MAX_DEVICE_NAME_LENGTH = 100;
 
-/** Max preferred-name / pronouns length on the active-speaker endpoint (#433). */
+/**
+ * Max preferred-name / pronouns length on the active-speaker endpoint (#433).
+ *
+ * IMPORTANT: These must stay in sync with the client-side limits in
+ * `client/src/components/ClaimSpeakerCard.tsx` (`PREFERRED_NAME_MAX_LEN`,
+ * `PRONOUNS_MAX_LEN`). If you change one, change the other.
+ */
 const MAX_SPEAKER_NAME_LENGTH = 80;
-const MAX_SPEAKER_PRONOUNS_LENGTH = 40;
+const MAX_SPEAKER_PRONOUNS_LENGTH = 32;
 
 export interface DeviceRouterOptions {
   deviceRepository: DeviceRepository;
