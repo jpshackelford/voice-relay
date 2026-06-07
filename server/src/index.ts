@@ -28,6 +28,7 @@ import {
 import { createAuthRouter, UserRepository, JWTService, DeviceAuthManager, createDeviceAuthRouter, type AuthConfig } from './auth/index.js';
 import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decryptApiKey } from './workspaces/index.js';
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
+import { createClientErrorsRouter } from './client-errors/index.js';
 import {
   SessionRepository,
   SessionAIStateRepository,
@@ -1862,6 +1863,21 @@ async function start() {
       });
       app.use('/api/devices', deviceRouter);
       console.log('[Devices] API enabled');
+
+      // Issue #455: server-side capture of client-side error events.
+      // Mounts `POST /api/client-errors` — a device-token-authenticated
+      // fire-and-forget endpoint that emits a single structured
+      // `[ClientError] …` log line per report. Used by the React app
+      // to surface mobile-only failures (e.g. STT recognition.onerror
+      // codes outside our friendly-message mapping) into journalctl.
+      if (sessionRepository) {
+        const clientErrorsRouter = createClientErrorsRouter({
+          deviceRepository,
+          sessionRepository,
+        });
+        app.use('/api/client-errors', clientErrorsRouter);
+        console.log('[ClientErrors] API enabled');
+      }
 
       // Set up session routes (nested under workspaces)
       const sessionRouter = createSessionRouter({

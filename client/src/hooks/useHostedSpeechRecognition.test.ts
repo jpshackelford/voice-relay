@@ -18,6 +18,7 @@ import {
   useHostedSpeechRecognition,
   type HostedSpeechRecognitionError,
 } from './useHostedSpeechRecognition';
+import * as reportClientErrorMod from '../utils/reportClientError';
 
 // ---------- Fake WebSocket ----------
 
@@ -562,6 +563,39 @@ describe('useHostedSpeechRecognition', () => {
       const err = onError.mock.calls[0][0] as HostedSpeechRecognitionError;
       expect(err.cause).toBe('mic-permission');
       expect(err.fallbackEligible).toBe(false);
+    });
+
+    it('forwards surfaceError to reportClientError when reporting IDs are present (#455)', async () => {
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      mockFetchToken();
+      installEnvironment({
+        getUserMediaImpl: async () => {
+          throw new Error('NotAllowedError');
+        },
+      });
+      mockFetchToken();
+
+      const { result } = renderHook(() =>
+        useHostedSpeechRecognition({
+          deviceId: 'dev-1',
+          workspaceId: 'ws-1',
+          sessionId: 'sess-1',
+        }),
+      );
+      await act(async () => {
+        await result.current.startListening();
+      });
+      expect(reportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 'sess-1',
+          workspaceId: 'ws-1',
+          deviceId: 'dev-1',
+          source: 'useHostedSpeechRecognition',
+          errorCode: 'mic-permission',
+        }),
+      );
     });
   });
 

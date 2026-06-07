@@ -16,6 +16,7 @@ export default defineConfig({
         'src/workspaces/**/*.ts',
         'src/agent-driver/**/*.ts',
         'src/speakers/**/*.ts',
+        'src/client-errors/**/*.ts',
       ],
       exclude: [
         'src/**/*.test.ts',
@@ -37,6 +38,11 @@ export default defineConfig({
         'src/agent-driver/index.ts',  // Re-exports only
         'src/speakers/types.ts',      // Pure types, no runtime code
         'src/speakers/index.ts',      // Re-exports only
+        'src/client-errors/index.ts', // Re-exports only
+        // client-errors/router.ts is tested via supertest in router.test.ts
+        // but, matching the convention used for devices/router.ts and
+        // sessions/router.ts, we exclude it from the threshold.
+        'src/client-errors/router.ts',
       ],
       reporter: ['text', 'html'],
       thresholds: {

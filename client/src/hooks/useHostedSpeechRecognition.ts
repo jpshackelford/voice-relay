@@ -28,6 +28,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { reportClientError } from '../utils/reportClientError';
 
 /** Default Deepgram realtime endpoint. Override via options for tests. */
 const DEFAULT_DEEPGRAM_WS_URL =
@@ -94,6 +95,12 @@ export interface UseHostedSpeechRecognitionOptions {
   onInterimResult?: (text: string, speakerLabel?: string) => void;
   onFinalResult?: (text: string, speakerLabel?: string) => void;
   onError?: (error: HostedSpeechRecognitionError) => void;
+  /**
+   * Issue #455: optional session ID. When present (along with
+   * `deviceId` + `workspaceId`), errors raised by `surfaceError` are
+   * forwarded to `POST /api/client-errors` for server-side logging.
+   */
+  sessionId?: string;
   /** Override the Deepgram WS URL (tests, staging). */
   deepgramWsUrl?: string;
   /** Override fetch (tests). */
@@ -257,6 +264,7 @@ export function useHostedSpeechRecognition(
   const {
     deviceId,
     workspaceId,
+    sessionId,
     onInterimResult,
     onFinalResult,
     onError,
@@ -368,9 +376,35 @@ export function useHostedSpeechRecognition(
     [workspaceId, deviceId, fetchImpl],
   );
 
+  // We need refs into the reporting-ID props so surfaceError doesn't
+  // capture stale values when consumers re-render with new IDs.
+  const sessionIdRef = useRef(sessionId);
+  const workspaceIdRef = useRef(workspaceId);
+  const deviceIdRef = useRef(deviceId);
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+    workspaceIdRef.current = workspaceId;
+    deviceIdRef.current = deviceId;
+  }, [sessionId, workspaceId, deviceId]);
+
   const surfaceError = useCallback((next: HostedSpeechRecognitionError) => {
     setError(next);
     setIsListening(false);
+    // Issue #455: fire-and-forget diagnostic report so the server log
+    // captures hosted-STT failures (token-mint 5xx, mic-permission,
+    // WS close) alongside Web Speech ones.
+    reportClientError({
+      sessionId: sessionIdRef.current,
+      workspaceId: workspaceIdRef.current,
+      deviceId: deviceIdRef.current,
+      source: 'useHostedSpeechRecognition',
+      errorCode: next.cause,
+      message: next.message,
+      context: {
+        fallbackEligible: next.fallbackEligible,
+        bannerEligible: next.bannerEligible,
+      },
+    });
     try {
       onErrorRef.current?.(next);
     } catch (cbErr) {

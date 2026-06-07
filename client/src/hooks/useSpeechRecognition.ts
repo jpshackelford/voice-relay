@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { reportClientError } from '../utils/reportClientError';
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -48,12 +49,25 @@ interface UseSpeechRecognitionOptions {
   onInterimResult?: (text: string) => void;
   onFinalResult?: (text: string) => void;
   onError?: (error: string) => void;
+  /**
+   * Issue #455: optional session / workspace / device IDs. When all
+   * three are present, `recognition.onerror` events are forwarded to
+   * `POST /api/client-errors` via {@link reportClientError}. Absent
+   * any of them, error reporting is silently skipped — the hook still
+   * works exactly as it did before.
+   */
+  sessionId?: string;
+  workspaceId?: string;
+  deviceId?: string;
 }
 
 export function useSpeechRecognition({
   onInterimResult,
   onFinalResult,
   onError,
+  sessionId,
+  workspaceId,
+  deviceId,
 }: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -120,7 +134,19 @@ export function useSpeechRecognition({
           errorMessage = 'Speech recognition not allowed. This may require HTTPS or localhost.';
           break;
       }
-      
+
+      // Issue #455: fire-and-forget diagnostic report so server logs
+      // capture the raw `event.error` code (incl. unmapped values
+      // like `aborted` that today only land in the browser console).
+      reportClientError({
+        sessionId,
+        workspaceId,
+        deviceId,
+        source: 'useSpeechRecognition',
+        errorCode: errorType,
+        message: errorMessage,
+      });
+
       onError?.(errorMessage);
       setIsListening(false);
     };
@@ -131,7 +157,7 @@ export function useSpeechRecognition({
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [isSupported, onInterimResult, onFinalResult, onError]);
+  }, [isSupported, onInterimResult, onFinalResult, onError, sessionId, workspaceId, deviceId]);
 
   const stopListening = useCallback(() => {
     recognitionRef.current?.stop();

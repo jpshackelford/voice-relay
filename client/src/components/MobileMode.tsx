@@ -5,6 +5,7 @@ import type { SttEngine } from '../hooks/useKioskConfig';
 import { useAudioAnalyser } from '../hooks/useAudioAnalyser';
 import { useAI } from '../hooks/useAI';
 import { generateUUID } from '../utils/uuid';
+import { reportClientError } from '../utils/reportClientError';
 import { Oscilloscope } from './Oscilloscope';
 import { MobileSettings, type InputMode } from './MobileSettings';
 import { ConversationPane } from './ConversationPane';
@@ -160,6 +161,9 @@ export function MobileMode({
     resolvedEngine: sttEngine,
     deviceId,
     workspaceId,
+    // Issue #455: plumb sessionId through so the child STT hooks can
+    // POST `/api/client-errors` on recognition errors.
+    sessionId,
     onInterimResult: handleInterimResult,
     onFinalResult: handleFinalResult,
     onError: handleSttError,
@@ -251,6 +255,16 @@ export function MobileMode({
         startListening();
       } catch (err) {
         console.error('[MobileMode] Speech recognition error:', err);
+        // Issue #455: surface synchronous startListening() throws (rare —
+        // most STT failures fire async via onerror, but a non-conformant
+        // browser could still raise here) into the server log.
+        reportClientError({
+          sessionId,
+          workspaceId,
+          deviceId,
+          source: 'MobileMode.startListening.voice',
+          message: err instanceof Error ? err.message : 'Speech recognition failed',
+        });
         setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
       }
     } else if (inputMode === 'unified') {
@@ -260,6 +274,15 @@ export function MobileMode({
         startListening();
       } catch (err) {
         console.error('[MobileMode] Speech recognition error:', err);
+        // Issue #455: see same-named call site in 'voice' branch above —
+        // distinct `source` so log greps disambiguate which catch fired.
+        reportClientError({
+          sessionId,
+          workspaceId,
+          deviceId,
+          source: 'MobileMode.startListening.unified',
+          message: err instanceof Error ? err.message : 'Speech recognition failed',
+        });
         setSttError(err instanceof Error ? err.message : 'Speech recognition failed');
         return;
       }
@@ -283,7 +306,7 @@ export function MobileMode({
         cleanupAudioStream();
       }
     }
-  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer]);
+  }, [isListening, audioAnalyser, inputMode, startListening, stopListening, cleanupAudioStream, startAudioVisualizer, sessionId, workspaceId, deviceId]);
 
   // Note: Browser-based TTS has been deprecated in favor of server-side ElevenLabs TTS.
   // The session-level ttsEnabled setting controls server-side TTS generation.
