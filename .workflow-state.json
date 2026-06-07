@@ -5,11 +5,11 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "a7f12c5",
-        "actual_conv_id": "a7f12c5d286b406fac16fb06c357ae5c",
-        "pr": 438,
-        "type": "merge",
-        "started": "2026-06-07T14:23:16.653819+00:00"
+        "conv_id": "a8cce80",
+        "actual_conv_id": "a8cce80f036d472683cdc65e12e33d4e",
+        "pr": 450,
+        "type": "review",
+        "started": "2026-06-07T16:21:42.516156+00:00"
       }
     ]
   },
@@ -18,100 +18,8 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T14:23:16Z",
+  "last_updated": "2026-06-07T16:21:42Z",
   "completed": [
-    {
-      "conv_id": "cb181e6",
-      "actual_conv_id": "cb181e6c08b041b8be9da0b8ccb45c79",
-      "type": "expansion",
-      "issue": 386,
-      "pr": 402,
-      "started": "2026-06-06T14:22:57.920009Z",
-      "finished": "2026-06-06T14:51:37.083742+00:00",
-      "status": "success",
-      "outcome": "Retroactive Closing-Trailer AC Gate run for PR #402 / Issue #386: filed follow-ups #409-#413, updated PR #402 body with Deferred to follow-ups section, re-opened #386 as umbrella tracker."
-    },
-    {
-      "conv_id": "43824af",
-      "actual_conv_id": "43824afdafa44801a6f315f7506652b5",
-      "type": "expansion",
-      "issue": 413,
-      "started": "2026-06-06T14:51:37.083742+00:00",
-      "finished": "2026-06-06T14:54:14.015980+00:00",
-      "status": "success",
-      "outcome": "Expanded #413 \u2014 rewrote body with Problem Statement/Proposed Solution/Acceptance Criteria (9 verifiable bullets); added technical-approach comment with README insertion-point line numbers; labeled ready."
-    },
-    {
-      "conv_id": "a682dfa",
-      "actual_conv_id": "a682dfaeb6fe4243a79f4146e68e713e",
-      "type": "implementation",
-      "issue": 409,
-      "started": "2026-06-06T14:51:37.083742+00:00",
-      "finished": "2026-06-06T15:09:00Z",
-      "status": "success",
-      "outcome": "Opened PR #419 \u2014 feat(client): useHostedSpeechRecognition hook for hosted STT (Fixes #409). Required CI green (8/9 checks COMPLETED), pr-review IN_PROGRESS at reap, no review comments yet, mergeStateStatus=UNKNOWN."
-    },
-    {
-      "conv_id": "39df1fc",
-      "actual_conv_id": "39df1fcb743f4c23a5732c5d78bff7b8",
-      "type": "implementation",
-      "issue": 411,
-      "pr": 420,
-      "started": "2026-06-06T15:09:00Z",
-      "finished": "2026-06-06T15:56:00.827995Z",
-      "status": "success",
-      "outcome": "Opened PR #420 (Fixes #411). PR squash-merged at 2026-06-06T15:54:37Z (commit 90c7fa2); Issue #411 auto-closed."
-    },
-    {
-      "conv_id": "97d4ead",
-      "actual_conv_id": "97d4ead55ea74e4990d2915eeb4dff01",
-      "type": "review",
-      "pr": 419,
-      "started": "2026-06-06T15:21:33Z",
-      "finished": "2026-06-06T15:56:00.827995Z",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #419; PR squash-merged at 2026-06-06T15:39:56Z (Fixes #409). Issue #409 auto-closed."
-    },
-    {
-      "conv_id": "a5a42ea",
-      "actual_conv_id": "a5a42ea82bb9420597e52e51739c6558",
-      "type": "merge",
-      "pr": 420,
-      "issue": 411,
-      "started": "2026-06-06T15:56:00.827995Z",
-      "finished": "2026-06-06T15:56:00.827995Z",
-      "status": "success",
-      "outcome": "Squash-merged PR #420 at 2026-06-06T15:54:37Z (commit 90c7fa2); Issue #411 auto-closed. AC gate verdict logged in worker WORKLOG entry."
-    },
-    {
-      "conv_id": "0874f34",
-      "actual_conv_id": "0874f34553774f3b93d6669c3851d926",
-      "type": "expansion",
-      "issue": 421,
-      "started": "2026-06-06T15:56:00.827995Z",
-      "finished": "2026-06-06T16:00:25Z",
-      "status": "success",
-      "outcome": "Expanded #421 (smoke test failure after deployment) and labeled ready (priority:high). Root cause + recommended remediation posted in technical-approach comment."
-    },
-    {
-      "conv_id": "fbf942c",
-      "type": "implementation",
-      "issue": 410,
-      "started": "2026-06-06T15:56:00.827995Z",
-      "finished": "2026-06-06T16:18:36.533715+00:00",
-      "status": "success",
-      "outcome": "Implemented issue #410 (check PR)"
-    },
-    {
-      "conv_id": "64a10a2",
-      "type": "review",
-      "issue": 412,
-      "pr": 422,
-      "started": "2026-06-06T16:07:19Z",
-      "finished": "2026-06-06T16:18:36.533715+00:00",
-      "status": "success",
-      "outcome": "Addressed review feedback on PR #422"
-    },
     {
       "conv_id": "49ca8be",
       "actual_conv_id": "49ca8beb789b4144b8bf480deecb2861",
@@ -379,6 +287,16 @@
       "finished": "2026-06-07T14:23:16.653819+00:00",
       "status": "success",
       "outcome": "Closed duplicate PR #441, referred to canonical PR #438; sandbox PAUSED"
+    },
+    {
+      "conv_id": "a7f12c5",
+      "actual_conv_id": "a7f12c5d286b406fac16fb06c357ae5c",
+      "type": "merge",
+      "pr": 438,
+      "started": "2026-06-07T14:23:16.653819+00:00",
+      "finished": "2026-06-07T14:26:57Z",
+      "status": "success",
+      "outcome": "Squash-merged PR #438 at 14:25:54Z (commit 768a278) \u2014 feat(client): first-run claim-card prompt (Refs #433). Issue #433 stays open per Refs trailer; follow-ups #439/#440/#443 filed."
     }
   ],
   "quiet_ticks": 0
