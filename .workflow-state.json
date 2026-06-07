@@ -5,10 +5,11 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "a8bb69c",
-        "actual_conv_id": "a8bb69c2d42244b79d0d277627b2c4f9",
+        "conv_id": "63121f1",
+        "actual_conv_id": "63121f1e116f442e8da641bc56e396f4",
         "pr": 456,
-        "started": "2026-06-07T20:07:45.512245Z"
+        "started": "2026-06-07T20:23:31.599763Z",
+        "worker_type": "merge"
       }
     ]
   },
@@ -17,7 +18,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T20:07:45.512245Z",
+  "last_updated": "2026-06-07T20:23:31.599763Z",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -289,6 +290,16 @@
       "finished": "2026-06-07T20:07:45.512245Z",
       "status": "success",
       "outcome": "Opened PR #456 (Fixes #455); AC gate Fixes verdict (9/9 satisfied); CI all green"
+    },
+    {
+      "conv_id": "a8bb69c",
+      "actual_conv_id": "a8bb69c2d42244b79d0d277627b2c4f9",
+      "type": "review",
+      "pr": 456,
+      "started": "2026-06-07T20:07:45.512245Z",
+      "finished": "2026-06-07T20:23:31.599763Z",
+      "status": "success",
+      "outcome": "Addressed PR #456 review feedback; all 4 review threads resolved"
     }
   ],
   "quiet_ticks": 0
