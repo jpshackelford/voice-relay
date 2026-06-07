@@ -2,12 +2,32 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { getStoredDeviceToken } from '../utils/deviceToken';
 
+/**
+ * Resolved primary speaker for a device (#384).
+ *
+ * Returned by `GET /api/workspaces/:id/devices` when the device row has
+ * a `primary_user_id` set. `preferredName` is `null` when the workspace
+ * speaker row exists but the agent has not curated a display name yet
+ * (or when no speaker row exists at all). The client falls back to the
+ * bare device name in both cases.
+ */
+export interface DevicePrimaryUser {
+  userId: string;
+  preferredName: string | null;
+}
+
 export interface DeviceInfo {
   id: string;
   name: string;
   mode: 'mobile' | 'kiosk';
   lastSeenAt: string | null;
   createdAt: string;
+  /**
+   * #384: resolved speaker identity for this device. `null` when the
+   * device has no `primary_user_id`. Older servers (pre-#384) omit the
+   * field entirely; both shapes mean "fall back to the device name".
+   */
+  primaryUser?: DevicePrimaryUser | null;
   isCurrentDevice: boolean;
 }
 

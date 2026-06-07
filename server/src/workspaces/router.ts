@@ -1207,6 +1207,60 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
       }
 
       const devices = deviceRepository.findByWorkspace(workspace.id);
+
+      // Issue #384: resolve a `primaryUser` block per device so the
+      // workspace page can render `<preferredName> (<deviceName>)`.
+      // The resolution rule mirrors the #382 kiosk-ticker label:
+      //   1. device.primaryUserId → workspace speaker row → preferredName
+      //   2. else → null (client falls back to bare device name)
+      //
+      // We cache speaker lookups by userId within the request so a
+      // workspace with N devices owned by the same person only does
+      // one DB hit. If the speaker repository isn't wired in (older
+      // deployments), `primaryUser` is always `null` and the client
+      // transparently falls back.
+      const speakerCache = new Map<
+        string,
+        { userId: string; preferredName: string | null } | null
+      >();
+      const resolvePrimaryUser = (
+        primaryUserId: string | null | undefined
+      ): { userId: string; preferredName: string | null } | null => {
+        if (!primaryUserId || !speakerRepository) return null;
+        if (speakerCache.has(primaryUserId)) {
+          return speakerCache.get(primaryUserId) ?? null;
+        }
+        let resolved: { userId: string; preferredName: string | null } | null = null;
+        try {
+          const speaker = speakerRepository.findByWorkspaceUser(
+            workspace.id,
+            primaryUserId
+          );
+          // Always surface `primaryUser` when the device has a
+          // `primaryUserId`, even if no speaker row exists yet or
+          // `preferred_name` is null. The client's fallback rule
+          // (bare device name) is keyed on `preferredName === null`,
+          // so reporting `{ userId, preferredName: null }` keeps the
+          // server-side resolution explicit rather than collapsing
+          // two distinct states ("no speaker row" vs "speaker row
+          // without preferred name") into one.
+          resolved = {
+            userId: primaryUserId,
+            preferredName: speaker?.preferredName ?? null,
+          };
+        } catch (err) {
+          // Defense-in-depth: a speaker-lookup failure must not break
+          // the device list. Log and degrade to "no preferred name".
+          console.warn(
+            '[Workspaces] Speaker lookup failed for device list (non-fatal):',
+            err
+          );
+          resolved = { userId: primaryUserId, preferredName: null };
+        }
+        speakerCache.set(primaryUserId, resolved);
+        return resolved;
+      };
+
       res.json({
         devices: devices.map(d => ({
           id: d.id,
@@ -1214,6 +1268,7 @@ export function createWorkspaceRouter(config: WorkspaceRouterConfig): Router {
           mode: d.mode,
           lastSeenAt: d.lastSeenAt,
           createdAt: d.createdAt,
+          primaryUser: resolvePrimaryUser(d.primaryUserId),
         })),
       });
     } catch (err) {

@@ -17,6 +17,7 @@ import { migration as elevenlabsMigration } from '../storage/migrations/011_elev
 import { migration as kioskTickersMigration } from '../storage/migrations/015_kiosk_footer_tickers.js';
 import { migration as defaultAgentPromptMigration } from '../storage/migrations/016_default_agent_prompt.js';
 import { migration as hostedSttMigration } from '../storage/migrations/019_hosted_stt.js';
+import { SpeakerRepository } from '../speakers/speaker-repository.js';
 
 // Helper to set up test database and app
 function setupTestEnv() {
@@ -518,6 +519,7 @@ describe('Workspace Router - GET /:id/devices', () => {
   let db: Database.Database;
   let workspaceRepository: WorkspaceRepository;
   let deviceRepository: DeviceRepository;
+  let speakerRepository: SpeakerRepository;
   let userRepository: UserRepository;
   let jwtService: JWTService;
   let testWorkspaceId: string;
@@ -547,6 +549,24 @@ describe('Workspace Router - GET /:id/devices', () => {
         FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
       );
     `);
+    // Issue #384: speakers table is needed so the devices endpoint can
+    // resolve a `primaryUser.preferredName` for each device. Mirrors the
+    // shape declared in migration 017.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS speakers (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        preferred_name TEXT,
+        pronouns TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_speakers_workspace_user
+        ON speakers(workspace_id, user_id)
+        WHERE user_id IS NOT NULL;
+    `);
     // Create sessions table for QR tokens FK constraint
     db.exec(`
       CREATE TABLE IF NOT EXISTS sessions (
@@ -569,6 +589,7 @@ describe('Workspace Router - GET /:id/devices', () => {
 
     workspaceRepository = new WorkspaceRepository(db);
     deviceRepository = new DeviceRepository(db);
+    speakerRepository = new SpeakerRepository(db);
     userRepository = new UserRepository(db);
     jwtService = new JWTService({ secret: 'test-secret', expiresIn: '1h' });
 
@@ -603,6 +624,7 @@ describe('Workspace Router - GET /:id/devices', () => {
     const router = createWorkspaceRouter({
       workspaceRepository,
       deviceRepository,
+      speakerRepository,
       authConfig: { jwtService, userRepository },
     });
     app.use('/api/workspaces', router);
@@ -734,6 +756,142 @@ describe('Workspace Router - GET /:id/devices', () => {
     expect(device.name).toBe('Secure Device');
     expect(device.mode).toBe('mobile');
     expect(device.createdAt).toBeDefined();
+  });
+
+  // ----- Issue #384: primaryUser resolution on the devices list -----
+  //
+  // The workspace page wants `<preferredName> (<deviceName>)`. The
+  // server side of that rule is this endpoint resolving each
+  // device.primary_user_id → workspace speaker row → preferred_name.
+  // Three states matter to the client:
+  //   1. primary_user_id set AND speaker row has preferred_name → returned.
+  //   2. primary_user_id set BUT speaker row exists with NULL preferred_name → null.
+  //   3. primary_user_id NULL → primaryUser is null.
+  // (A fourth equivalent-to-(2) state — primary_user_id set with no
+  //  speaker row at all — is covered by `falls back gracefully when no
+  //  speaker row exists`.)
+
+  it('returns primaryUser.preferredName when device has a primary user and speaker with preferredName (#384)', async () => {
+    // Create a second user who will be the "primary user" of the device.
+    const personId = 'person-jp';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(personId, 54321, 'jp');
+
+    // Create a speaker row with a curated preferred name.
+    speakerRepository.create({
+      workspaceId: testWorkspaceId,
+      userId: personId,
+      preferredName: 'JP',
+    });
+
+    // Create a device owned by that user. The create() helper doesn't
+    // accept primary_user_id directly so we set it via repo update.
+    const { device } = deviceRepository.create({
+      workspaceId: testWorkspaceId,
+      name: 'Mac-7acf1d6',
+      mode: 'mobile',
+    });
+    db.prepare(`UPDATE devices SET primary_user_id = ? WHERE id = ?`)
+      .run(personId, device.id);
+
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/devices`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body.devices).toHaveLength(1);
+    const row = response.body.devices[0];
+    expect(row.name).toBe('Mac-7acf1d6');
+    expect(row.primaryUser).toEqual({
+      userId: personId,
+      preferredName: 'JP',
+    });
+  });
+
+  it('returns primaryUser with null preferredName when speaker row exists but has no name (#384)', async () => {
+    const personId = 'person-no-name';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(personId, 22222, 'noname');
+
+    // Speaker row exists but preferred_name is null.
+    speakerRepository.create({
+      workspaceId: testWorkspaceId,
+      userId: personId,
+      preferredName: null,
+    });
+
+    const { device } = deviceRepository.create({
+      workspaceId: testWorkspaceId,
+      name: 'JPS iPhone',
+      mode: 'mobile',
+    });
+    db.prepare(`UPDATE devices SET primary_user_id = ? WHERE id = ?`)
+      .run(personId, device.id);
+
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/devices`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    const row = response.body.devices[0];
+    expect(row.primaryUser).toEqual({
+      userId: personId,
+      preferredName: null,
+    });
+  });
+
+  it('returns primaryUser=null when device has no primary_user_id (#384)', async () => {
+    deviceRepository.create({
+      workspaceId: testWorkspaceId,
+      name: 'Mac-7acf1d6',
+      mode: 'mobile',
+    });
+
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/devices`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    const row = response.body.devices[0];
+    expect(row.primaryUser).toBeNull();
+  });
+
+  it('falls back gracefully when primary_user_id is set but no speaker row exists (#384)', async () => {
+    // Person exists in users but no speaker row was ever created — for
+    // example, an admin manually linked a device to a user before that
+    // user ever joined the workspace.
+    const personId = 'person-no-speaker';
+    db.prepare(`
+      INSERT INTO users (id, github_id, username, created_at, last_login_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `).run(personId, 33333, 'orphan');
+
+    const { device } = deviceRepository.create({
+      workspaceId: testWorkspaceId,
+      name: 'Mac-orphan',
+      mode: 'mobile',
+    });
+    db.prepare(`UPDATE devices SET primary_user_id = ? WHERE id = ?`)
+      .run(personId, device.id);
+
+    const response = await request(app)
+      .get(`/api/workspaces/${testWorkspaceId}/devices`)
+      .set('Authorization', `Bearer ${authToken}`)
+      .expect(200);
+
+    const row = response.body.devices[0];
+    // primaryUser is still surfaced (the client can later distinguish
+    // "linked-but-anonymous" from "unlinked" if it wants) but
+    // preferredName is null so the client falls back to bare device
+    // name.
+    expect(row.primaryUser).toEqual({
+      userId: personId,
+      preferredName: null,
+    });
   });
 });
 
