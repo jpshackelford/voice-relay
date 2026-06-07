@@ -136,3 +136,21 @@ export async function shutdownAgentDriver(): Promise<void> {
 export function setAgentSystemPromptResolver(resolver: SystemPromptResolver): void {
   aiSessionManager.setSystemPromptResolver(resolver);
 }
+
+/**
+ * Install the durable AI-state repository on the production
+ * AISessionManager (issue #363). Platform code calls this from
+ * `index.ts` once the SQLite-backed repositories are constructed so
+ * that subsequent state transitions write through to
+ * `session_ai_state` and the per-conversation rebind budget is
+ * restored from disk.
+ *
+ * Re-callable — last writer wins. Safe to call before any session is
+ * opened (rehydration uses the repo directly via the rehydrate deps,
+ * not through this hook).
+ */
+export function setAgentAIStateRepository(
+  repo: import('../sessions/session-ai-state-repository.js').SessionAIStateRepository | undefined,
+): void {
+  aiSessionManager.setAIStateRepository(repo);
+}

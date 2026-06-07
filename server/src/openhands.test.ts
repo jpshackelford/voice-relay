@@ -4869,4 +4869,293 @@ describe('AISessionManager workspace-key resolution (#403)', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Restart-simulation: durable AISession state survives a process bounce
+// (issue #363).
+// ---------------------------------------------------------------------------
+
+describe('AISessionManager + SessionAIStateRepository (#363)', () => {
+  // Lazy import to keep the dynamic table available for the entire suite
+  // without imposing the dependency on other describe blocks.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let SqliteCtor: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let Repo: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let migrationList: any;
+
+  beforeEach(async () => {
+    SqliteCtor = (await import('better-sqlite3')).default;
+    Repo = (await import('./sessions/session-ai-state-repository.js')).SessionAIStateRepository;
+    migrationList = (await import('./storage/migrations/index.js')).migrations;
+  });
+
+  function makeDb(): { db: ReturnType<typeof SqliteCtor>; repo: InstanceType<typeof Repo> } {
+    const db = new SqliteCtor(':memory:');
+    db.pragma('foreign_keys = ON');
+    const sorted = [...migrationList].sort(
+      (a: { version: number }, b: { version: number }) => a.version - b.version,
+    );
+    for (const m of sorted) db.exec(m.up);
+    const repo = new Repo(db);
+    return { db, repo };
+  }
+
+  function insertSession(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    db: any,
+    sessionId: string,
+    workspaceId: string,
+  ): void {
+    db.prepare(
+      `INSERT OR IGNORE INTO users (id, github_id, username, created_at, last_login_at)
+       VALUES (?, ?, ?, datetime('now'), datetime('now'))`,
+    ).run('user-363', 363, 'tester363');
+    db.prepare(
+      `INSERT OR IGNORE INTO workspaces (id, owner_id, name, slug, join_code, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    ).run(workspaceId, 'user-363', 'Workspace', `ws-${workspaceId}`, 'CODE-3636');
+    db.prepare(
+      `INSERT INTO sessions (id, workspace_id, name, status, started_at)
+       VALUES (?, ?, 'restart-test', 'active', datetime('now'))`,
+    ).run(sessionId, workspaceId);
+  }
+
+  // Build a session object that satisfies the AISession contract for
+  // the transitionTo / persistInitialState paths. Real production
+  // sessions carry many more fields, but transitionTo only reads
+  // `conversationId` and `sessionId`.
+  function makeMinimalSession(
+    sessionId: string,
+    conversationId: string,
+  ): AISession {
+    return {
+      conversationId,
+      taskId: 'task-restart',
+      sessionId,
+      mode: 'kiosk',
+      reconnectAttempts: 0,
+      maxReconnectAttempts: 5,
+      isThinking: false,
+    };
+  }
+
+  test('a degraded transition is observable to a brand-new manager against the same DB', () => {
+    // 1. First "process": manager A transitions session-1 to degraded.
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    const managerA = new AISessionManager();
+    managerA.setAIStateRepository(repo);
+    const session = makeMinimalSession('session-1', 'conv-rb-restart');
+    // Simulate the create path: write the initial row.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (managerA as any).persistInitialState(session);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (managerA as any).transitionTo(session, 'degraded', 'sandbox missing');
+
+    // 2. Discard manager A; build manager B against the same DB.
+    const managerB = new AISessionManager();
+    managerB.setAIStateRepository(repo);
+
+    // 3. The durable row reflects the degraded state — the new manager
+    //    has no in-memory cache, so the only way to know is to read
+    //    the repo.
+    const row = repo.findBySessionId('session-1');
+    expect(row).not.toBeNull();
+    expect(row!.state).toBe('degraded');
+    expect(row!.stateReason).toBe('sandbox missing');
+  });
+
+  test('rebind window history survives a manager restart', async () => {
+    // Drive two "successful rebinds" through the persistRebindAttempts
+    // helper, recreate the manager, and assert the new tracker
+    // recognises 2 entries — so a 3rd succeeds and a 4th throws.
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    const { RebindBudgetExhausted } = await import('./agent-driver/rebind.js');
+
+    const managerA = new AISessionManager();
+    managerA.setAIStateRepository(repo);
+    const session = makeMinimalSession('session-1', 'conv-rb-restart');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (managerA as any).persistInitialState(session);
+    // Record two successes through the public tracker — this is what
+    // doRebindSession does in production.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const trackerA = (managerA as any).rebindTracker as RebindWindowTracker;
+    trackerA.recordSuccess(session.conversationId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (managerA as any).persistRebindAttempts(session);
+    trackerA.recordSuccess(session.conversationId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (managerA as any).persistRebindAttempts(session);
+    expect(trackerA.countInWindow(session.conversationId)).toBe(2);
+
+    // Sanity-check the row carries both timestamps.
+    expect(repo.findBySessionId('session-1')!.rebindAttempts.length).toBe(2);
+
+    // Restart.
+    const managerB = new AISessionManager();
+    managerB.setAIStateRepository(repo);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const trackerB = (managerB as any).rebindTracker as RebindWindowTracker;
+    expect(trackerB.countInWindow(session.conversationId)).toBe(2);
+    // Third success still within budget.
+    trackerB.recordSuccess(session.conversationId);
+    expect(trackerB.countInWindow(session.conversationId)).toBe(3);
+    // Fourth attempt exceeds the cap.
+    expect(() => trackerB.checkBudget(session.conversationId)).toThrow(
+      RebindBudgetExhausted,
+    );
+  });
+
+  test('endSessionAI removes the durable row', async () => {
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    const manager = new AISessionManager();
+    manager.setAIStateRepository(repo);
+    const session = makeMinimalSession('session-1', 'conv-end');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).sessionAI.set('session-1', session);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).persistInitialState(session);
+    expect(repo.findBySessionId('session-1')).not.toBeNull();
+    await manager.endSessionAI('session-1');
+    expect(repo.findBySessionId('session-1')).toBeNull();
+  });
+
+  test('shutdown closes WS but preserves durable state rows', async () => {
+    // The whole point of #363: process shutdown must NOT delete state
+    // rows. Only user-initiated endSessionAI (driver close/restart)
+    // does.
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    insertSession(db, 'session-2', 'workspace-1');
+    const manager = new AISessionManager();
+    manager.setAIStateRepository(repo);
+    const s1 = makeMinimalSession('session-1', 'conv-1');
+    const s2 = makeMinimalSession('session-2', 'conv-2');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).sessionAI.set('session-1', s1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).sessionAI.set('session-2', s2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).persistInitialState(s1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).persistInitialState(s2);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).transitionTo(s2, 'degraded', 'we gave up at 02:00');
+
+    await manager.shutdown();
+
+    // The auto-deploy hook will restart the process; rows must survive.
+    expect(repo.findBySessionId('session-1')).not.toBeNull();
+    expect(repo.findBySessionId('session-1')!.state).toBe('running');
+    const r2 = repo.findBySessionId('session-2');
+    expect(r2).not.toBeNull();
+    expect(r2!.state).toBe('degraded');
+    expect(r2!.stateReason).toBe('we gave up at 02:00');
+  });
+
+  test('transitionTo updates the in-memory AISession cache too', () => {
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    const manager = new AISessionManager();
+    manager.setAIStateRepository(repo);
+    const session = makeMinimalSession('session-1', 'conv-1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).persistInitialState(session);
+
+    // running → degraded
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).transitionTo(session, 'degraded', 'lost upstream');
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toBe('lost upstream');
+    expect(session.rebinding).toBe(false);
+
+    // degraded → rebinding
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).transitionTo(session, 'rebinding', null);
+    expect(session.degraded).toBe(false);
+    expect(session.degradedReason).toBeNull();
+    expect(session.rebinding).toBe(true);
+
+    // rebinding → running
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).transitionTo(session, 'running', null);
+    expect(session.degraded).toBe(false);
+    expect(session.rebinding).toBe(false);
+  });
+
+  test('transitionTo without a repo is a silent in-memory write (legacy fallback)', () => {
+    // Pre-#363 behavior: no repo wired. The in-memory cache still flips
+    // so device callbacks see the right state, but no DB write occurs.
+    const manager = new AISessionManager();
+    // Explicitly no setAIStateRepository call.
+    const session = makeMinimalSession('session-1', 'conv-1');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (manager as any).transitionTo(session, 'degraded', 'no repo');
+    expect(session.degraded).toBe(true);
+    expect(session.degradedReason).toBe('no repo');
+  });
+
+  test('seeding the tracker via setAIStateRepository ignores rows with empty histories', async () => {
+    // Defensive: a row whose attempts column is NULL must not pollute
+    // the tracker.
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    insertSession(db, 'session-2', 'workspace-1');
+    repo.upsert({
+      sessionId: 'session-1',
+      conversationId: 'conv-1',
+      state: 'running',
+      rebindAttempts: [Date.now() - 60_000, Date.now() - 30_000],
+    });
+    repo.upsert({
+      sessionId: 'session-2',
+      conversationId: 'conv-2',
+      state: 'running',
+      // No attempts — must seed nothing for conv-2.
+    });
+
+    const manager = new AISessionManager();
+    manager.setAIStateRepository(repo);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tracker = (manager as any).rebindTracker as RebindWindowTracker;
+    expect(tracker.countInWindow('conv-1')).toBe(2);
+    expect(tracker.countInWindow('conv-2')).toBe(0);
+  });
+
+  test('a transitionTo error from the repo does not crash the caller (best-effort persistence)', () => {
+    // White-box: install a repo that throws on transitionTo. The
+    // in-memory cache must still be updated and no exception should
+    // surface.
+    const { db, repo } = makeDb();
+    insertSession(db, 'session-1', 'workspace-1');
+    repo.upsert({ sessionId: 'session-1', conversationId: 'conv-1', state: 'running' });
+    const manager = new AISessionManager();
+    manager.setAIStateRepository(repo);
+    const session = makeMinimalSession('session-1', 'conv-1');
+
+    // Patch the repo to blow up.
+    const originalTransitionTo = repo.transitionTo.bind(repo);
+    repo.transitionTo = () => {
+      throw new Error('simulated DB failure');
+    };
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      // Must not throw.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (manager as any).transitionTo(session, 'degraded', 'live failure');
+      // In-memory cache reflects the new state.
+      expect(session.degraded).toBe(true);
+      // DB row was not updated (the throw aborted it).
+      expect(repo.findBySessionId('session-1')!.state).toBe('running');
+    } finally {
+      errorSpy.mockRestore();
+      repo.transitionTo = originalTransitionTo;
+    }
+  });
+});
+
 

@@ -1,4 +1,10 @@
 export { SessionRepository } from './session-repository.js';
+export {
+  SessionAIStateRepository,
+  type SessionAIStateName,
+  type SessionAIStateRow,
+  type SessionAIStateUpsertInput,
+} from './session-ai-state-repository.js';
 export { createSessionRouter, type SessionRouterOptions } from './router.js';
 export { createSessionAIRouter, type SessionAIRouterOptions } from './ai-router.js';
 export {

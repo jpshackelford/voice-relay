@@ -18,6 +18,7 @@ import {
   onAgentThinkingChange,
   onAgentAction,
   setAgentSystemPromptResolver,
+  setAgentAIStateRepository,
   shutdownAgentDriver,
 } from './agent-driver/index.js';
 import {
@@ -29,6 +30,7 @@ import { createWorkspaceRouter, WorkspaceRepository, JoinRequestRepository, decr
 import { DeviceRepository, createDeviceRouter } from './devices/index.js';
 import {
   SessionRepository,
+  SessionAIStateRepository,
   createSessionRouter,
   createSessionAIRouter,
   createSessionSettingsRouter,
@@ -287,6 +289,7 @@ let workspaceRepository: WorkspaceRepository | null = null;
 let joinRequestRepository: JoinRequestRepository | null = null;
 let deviceRepository: DeviceRepository | null = null;
 let sessionRepository: SessionRepository | null = null;
+let sessionAIStateRepository: SessionAIStateRepository | null = null;
 let sessionSettingsService: SessionSettingsService | null = null;
 let qrTokenRepository: QrTokenRepository | null = null;
 let agentEventRepository: AgentEventRepository | null = null;
@@ -1354,12 +1357,23 @@ async function start() {
       joinRequestRepository = new JoinRequestRepository(db);
       deviceRepository = new DeviceRepository(db);
       sessionRepository = new SessionRepository(db);
+      // Durable home for AI-session operational state (#363).
+      // Wired into the production AISessionManager via
+      // `setAgentAIStateRepository` below so state transitions persist
+      // and the rebind budget survives a process restart.
+      sessionAIStateRepository = new SessionAIStateRepository(db);
       qrTokenRepository = new QrTokenRepository(db);
       agentEventRepository = new AgentEventRepository(db);
       speakerRepository = new SpeakerRepository(db);
       engineSpeakersRepository = new SessionEngineSpeakersRepository(db);
       sttUsageRepository = new StttUsageRepository(db);
-      console.log('[Repositories] Workspace, JoinRequest, Device, Session, QrToken, AgentEvent, Speaker, STT repositories initialized');
+      console.log('[Repositories] Workspace, JoinRequest, Device, Session, SessionAIState, QrToken, AgentEvent, Speaker, STT repositories initialized');
+
+      // Install the durable AI-state repo on the production
+      // AISessionManager so every state transition writes through
+      // (#363). Also seeds the rebind window tracker from any
+      // persisted history.
+      setAgentAIStateRepository(sessionAIStateRepository);
 
       // Issue #393: install the per-kiosk picker enrichment hook so
       // every `broadcastDeviceList` includes `activeSessionId` and
@@ -1502,6 +1516,13 @@ async function start() {
                 decryptApiKey,
               )
             : null,
+        // #363: branch on durable lifecycle state instead of
+        // unconditionally re-attaching everything. `degraded` rows are
+        // honored across restart; `rebinding` rows get exactly one
+        // retry then degrade.
+        ...(sessionAIStateRepository
+          ? { aiStateRepository: sessionAIStateRepository }
+          : {}),
       });
       const rehydrated = outcomes.filter((o) => o.status === 'rehydrated').length;
       const failed = outcomes.filter((o) => o.status === 'failed').length;
