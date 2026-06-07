@@ -790,3 +790,32 @@ All three threads replied + resolved via GraphQL.
 _This worklog entry was created by an AI agent (OpenHands review-address worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-07 14:11 UTC - Expansion Worker (issue #443)
+
+✅ **Expanded Issue #443** — `feat(server): workspace-level quota for anonymous speakers (#433 follow-up)`
+
+- Issue: [#443](https://github.com/jpshackelford/voice-relay/issues/443)
+- Type: Enhancement (server)
+- Status: Ready for implementation (`ready` label applied)
+- Approach: ship Layer A (`findOrCreateAnonymous` — case-insensitive name + exact pronouns match, no schema change) plus Layer B (workspace cap default 100, override via `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE`). Both reads + insert wrapped in `db.transaction(...)` so two concurrent claim-card submissions resolve to a single row and the count-then-insert window is race-free against the cap.
+
+**Decisions baked in:**
+
+| Decision | Rationale |
+|---|---|
+| Case-insensitive name match (`COLLATE NOCASE`) | "Alex" / "alex" / "  Alex  " is almost always the same human re-claiming a kiosk; over-collapsing on case is the friendlier failure mode. |
+| Pronouns part of identity (exact match, `IS` handles `NULL`) | A name+pronouns mismatch likely means a different human or a deliberate update — better to over-create than collapse two real people. |
+| Dedup hit bypasses cap | Otherwise a workspace at the cap can never re-recognise an existing anonymous speaker, locking out steady-state kiosk reuse. |
+| No periodic prune | Out of scope. Cap + dedup bound the population; cron / FK-aware cleanup is a separate, larger problem. |
+| No schema change | Partial unique index on `(workspace_id, user_id) WHERE user_id IS NOT NULL` stays as the guard for authenticated speakers; anonymous dedup is query + in-transaction logic. |
+
+**Files identified for the implementer:** `server/src/speakers/speaker-repository.ts` (+ `types.ts`), `server/src/devices/router.ts`, `server/src/index.ts` (env-var read), and the two corresponding `.test.ts` files. Concrete method signatures, the transaction body, and the env-var parsing skeleton are in the issue's Technical Approach comment.
+
+**Estimated size:** ~70 lines repo code, ~15 lines router glue, ~10 lines bootstrap, ~80 lines tests. Low complexity, no new deps, no background work.
+
+**Not blocked:** PR #438 has the live endpoint on its branch but is already CI-green and ready for review; implementation can start immediately once #438 merges. No `on-hold` needed.
+
+_This worklog entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
+
+---
