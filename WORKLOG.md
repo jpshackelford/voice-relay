@@ -1406,3 +1406,49 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 
 ---
 
+### 2026-06-07 16:39 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `a8cce80` | review | PR #450 — fix(server): substitute RelayedTextMessage.senderName | running |
+
+**Current State:**
+- **Open PRs:** [PR #450](https://github.com/jpshackelford/voice-relay/pull/450) — `isDraft=true`, `mergeStateStatus=UNSTABLE`. CI: Server/Client/Build/lint-pr-title all green; **E2E Tests FAILURE** (likely fallout from PR #447 merging to main mid-flight; `tests/first-run-claim.spec.ts` now exists on the branch base — same race surfaced by the 16:30Z #451-duplicate entry). Review worker `a8cce80` is actively handling the 2 unresolved pr-review-bot threads AND will need to chase the E2E failure before re-flipping to ready.
+- **Ready, prioritized issues (gate-free):** none implementable this tick — #446 in flight (PR #450); #449/#442/#433 all downstream of PR #450 landing.
+- **Ready, on-hold:** #386 (policy-tracked, no machine blockers).
+- **On-hold:** #210, #239, #299, #300, #301, #302, #386 (post-correction; see below).
+- **Needs-human:** #372.
+- **Issues needing expansion:** none 🎉.
+
+**Unblock Pass + AGENTS.md Override (productive corrective action this tick):**
+
+Walked the 7 open `on-hold` issues. Machine pass identified two unblockable candidates:
+
+| Issue | Machine blocker(s) | Status |
+|-------|--------------------|--------|
+| #299  | #298 (closed)      | Would have lifted |
+| #301  | #295 (closed)      | Would have lifted |
+
+Both were lifted by the script, **then reverted within the same tick** because the **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** is still in force — the three freeze-lift conditions (`VR_WORKSPACE_BUCKET` set on prod, four AWS creds in place, S3 runbook smoke test green) are not verifiable from the orchestrator sandbox and have not been signaled by a human / `## INSTRUCTION:` block. Re-applied `on-hold`, removed the spurious `ready` label, and posted a `## ↩️ Correction — re-applying on-hold` comment on each issue explaining the AGENTS.md override and pointing to the prior orchestrator's documented pattern (worklog 11:39Z, 12:13Z).
+
+This matches the override pattern established earlier today and prevents a future tick from mis-dispatching impl on issues that are under design freeze.
+
+Issues #210, #239, #386 had no machine-parseable `Blocked by #N` — policy-tracked, left alone.
+
+**Decision (per decision table — anti-stall):**
+
+1. **Expansion (0/4):** 0 issues need expansion → idle, no action.
+2. **Implementation (0/1):** no ready issue is gate-free — all ready+prioritized candidates (#446, #449, #442, #433) are downstream of in-flight PR #450. Dispatching impl now would produce a PR that can't satisfy AC until PR #450 merges. Idle slot, no action.
+3. **Review (1/2):** PR #450 already has review worker `a8cce80` running (14m old, still active per OH API). No other open PRs. 1 slot remains free.
+
+**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override exists. The "wait for PR #450 to land before dispatching #449/#442/#433" decision is a productive-tick optimization (matching the documented `wait-for-#438-to-land` precedent from earlier today), not a deferral. The AGENTS.md S3 freeze is a codified policy gate per the skill's exhaustive-table rule.
+
+**Slot accounting at end of tick:** expansion 0/4, implementation 0/1, review 1/2. Total active: 1/7.
+
+**Quiet-tick counter:** reset to `0` (productive — S3-freeze override correctly enforced on #299 + #301, preventing a future mis-dispatch).
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
