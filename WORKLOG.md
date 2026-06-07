@@ -1532,3 +1532,18 @@ _This worklog entry was created by an AI agent (OpenHands Expansion Worker) on b
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 ---
+
+### 2026-06-07 22:09 UTC - Expansion Worker (`735d3c9`)
+
+✅ **Expanded Issue #458** — Kiosk AI-status indicator stuck on 🔗 after auto-connect
+
+- Issue: [#458 Kiosk AI-status indicator stuck on 🔗 after auto-connect: ✨ only appears after first message](https://github.com/jpshackelford/voice-relay/issues/458)
+- Type: Bug
+- Status: **Ready for implementation** (label `ready` applied)
+- Root cause: `OpenHandsAgentDriver.openSession` returns immediately after `mgr.getOrCreateForSession` resolves, but the upstream OH WebSocket is still in `WS_CONNECTING` at that point. `synthesizeStatus` maps `WS_CONNECTING → state: 'starting'`, so the `auto-connect:connected` `session-state` broadcast carries `state: 'starting'` — the same state the reducer already had. There is **no emitter** that re-broadcasts session state when `connectWebSocket`'s `ws.on('open')` fires (`server/src/openhands.ts:2960` only logs and resets `reconnectAttempts`). The kiosk only re-renders much later when the first user message triggers `onThinkingChange`, which is the lone path that proactively re-reads `getSessionStatus` and re-broadcasts via `server/src/index.ts:251-275`.
+- **Cross-ref with #457 / PR #456:** Confirmed independent. PR #456 (`/api/client-errors`) does not touch `auto-connect.ts`, agent-driver, `openhands.ts`, `session-state-broadcast.ts`, or `useAI.ts`. The gap dates back to #295 (`a2850f1`, session-state unification, May 2026).
+- Approach (filed in the comment): mirror the existing `onThinkingChange` fan-out — add `onSessionReady` listener plumbing in `server/src/openhands.ts` (fired from `ws.on('open')`), expose it through `agent-driver/openhands.ts` + `agent-driver/index.ts`, and register a `server/src/index.ts` listener that does the same `getSessionStatus` + `broadcastSessionState(... 'ws-ready')` dance. Estimated ~30-50 LOC + two regression tests.
+- Complexity: Low. Mechanical mirror of an existing pattern.
+
+_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
+---
