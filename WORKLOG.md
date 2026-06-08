@@ -1250,3 +1250,38 @@ PR moved back from draft to ready for review. Merge handling is a separate conve
 _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-08 02:54 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `f254f5e` | merge | PR #464 (Issue #462, peer-tab displayName follow-up) | **NEW** |
+
+🚀 **Spawned: Merge Worker** for [PR #464](https://github.com/jpshackelford/voice-relay/pull/464)
+
+- Conversation: [`f254f5e`](https://app.all-hands.dev/conversations/f254f5ef07784b75866e3e7d98bd6be2)
+- PR snapshot: CI 7/7 green; mergeable=CLEAN; isDraft=false; 0 unresolved threads; closing trailer `Fixes #462`.
+- ⚠️ Caveat surfaced to merge worker: `reviewDecision=CHANGES_REQUESTED` is still active from the stale 2026-06-08T01:45:53Z `github-actions` review (round-2 trigger). The follow-up `github-actions` review at 02:36:08Z is `state=COMMENTED` with verdict "Worth merging" (🟢 Good taste, 🟡 MEDIUM risk) and does NOT auto-dismiss the prior CHANGES_REQUESTED. Merge worker instructed to dismiss the stale review via `PUT /reviews/<id>/dismissals` before `gh pr merge --squash`.
+- Post-merge instruction: walk #459's ACs against the combined PR #463 + #464 diff and close #459 if all satisfied (lifting `on-hold` as part of that close).
+
+**Worker Completed:** `29793e9` (review, round 2)
+- PR #464 round-2 feedback addressed: race-condition + stylistic threads → 0 unresolved.
+- Bot follow-up verdict "Worth merging"; prior CHANGES_REQUESTED still sticky (handled by merge worker).
+
+**Unblock pass:** 1 lift suppressed by **policy override** this tick:
+- #459 — `Blocked by #462` and #462 was prematurely closed by the impl worker (`gh issue close 462` at 2026-06-08T01:36:52Z, before PR #464 merged). The actual fix is still in flight in PR #464. Lifting `on-hold` + adding `ready` now would dispatch a wasted implementation worker against #459 while its fix is sitting in the pending merge. Defer to the merge worker for PR #464, which will walk #459's ACs post-merge and close it.
+- #299/#301 — AGENTS.md S3 design freeze (unchanged from prior ticks).
+- #386/#239/#210 — prose-only `on-hold` (policy-tracked), no machine refs.
+- #300/#302 — open dependent blockers (#299/#300) still open.
+- Mechanical zero-policy lifts: 0.
+
+**Current State:**
+- **PR #464** — `oRFcRFC` green ready 💬-- → being merged
+- **PR #465** — draft, red CI, human-authored (jpshackelford, tvOS docs companion) — orchestrator does not touch
+- Open issues: 1 `needs-human` (#372), 8 `on-hold` (#459, #386, #302, #301, #300, #299, #239, #210), 0 `ready`, 0 `needs-expansion`
+- Backlog effectively drained — only the merge of PR #464 + post-merge #459 close are pending. Next tick may be quiet.
+
+**State change:** `quiet_ticks` 1 → 0 (productive tick).
+
+---
