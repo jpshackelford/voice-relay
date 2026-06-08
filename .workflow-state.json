@@ -2,21 +2,23 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "2c72909",
+        "conv_id": "c66f765",
+        "actual_conv_id": "c66f7651c65e4e0a9f095c4763087912",
+        "pr": 464,
         "issue": 462,
-        "started": "2026-06-08T01:08:14.010262+00:00"
+        "started": "2026-06-08T01:35:43.884915+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-08T01:22:30.523573+00:00",
+  "last_updated": "2026-06-08T01:35:43.884915+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -431,6 +433,15 @@
       "finished": "2026-06-08T01:22:30.523548+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #463 at 2026-06-08T01:09:02Z (commit 8307ffa) \u2014 fix(server): preserve user-renamed device name on WS register (Refs #459). 2 ACs deferred to #462."
+    },
+    {
+      "conv_id": "2c72909",
+      "type": "implementation",
+      "issue": 462,
+      "started": "2026-06-08T01:08:14.010262+00:00",
+      "finished": "2026-06-08T01:33:55.803231+00:00",
+      "status": "success",
+      "outcome": "Opened PR #464 (Fixes #462) \u2014 CI all green, ready not draft"
     }
   ],
   "quiet_ticks": 0
