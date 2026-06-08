@@ -1608,3 +1608,45 @@ No override `## INSTRUCTION:` block used. Gate verdict recorded in the squash co
 **Dependencies:** Soft-coupled to PR #463 (server fix) for end-to-end correctness; client work can land independently. Not marked `on-hold`.
 
 ---
+
+### 2026-06-08 00:58 UTC - Address-Review Worker (PR #463)
+
+✅ **Addressed review round on PR #463** — `fix(server): preserve user-renamed device name on WS register`
+
+- PR: [#463](https://github.com/jpshackelford/voice-relay/pull/463)
+- Round-closing commit: `80fbaaf`
+- Pre-flight: CI 🟢, MERGEABLE/CLEAN, 5 unresolved threads, pr-review bot verdict 🟡 "Acceptable — Core fix is sound, but excessive commentary obscures simple logic"
+
+**Theme:** All 5 threads were the same critique from `github-actions[bot]` — excessive prose comments narrating change history and implementation strategy. All five suggestions were proportional and accepted:
+
+| File | Was | Now |
+|---|---|---|
+| `server/src/devices/device-repository.ts:170-174` | 4-line history block | 1-line intent comment |
+| `client/src/hooks/useDevices.ts:110-116` | 7-line implementation narrative | 1-line intent comment |
+| `server/src/devices/device-repository.test.ts:383-386` | 4-line preamble restating test name | dropped |
+| `server/src/devices/device-repository.test.ts:407-435` | "1./2./3./4." step markers + restating inline notes | step markers dropped; one inline note kept on stale-payload literal |
+| `client/src/hooks/useDevices.test.ts:249-250` | preamble restating setup | dropped |
+
+Net: +6 / -32 LOC across 4 files. No behavioral change.
+
+**CI:** All checks green (Server Tests 47s, Client Tests 48s, E2E 1m32s, Build Client 28s, lint-pr-title 4s).
+
+**Threads:** All 5 replied (referencing 80fbaaf) and resolved via GraphQL.
+
+### AC gate re-run vs issue #459: **unchanged — `Refs #459` + 1 follow-up**
+
+The comment edits don't move any acceptance criterion:
+
+- AC #1a (persistence across reconnects/restarts/refreshes) — ✅ still satisfied by the server one-line fix.
+- AC #1b (kiosk display flips within ~1 frame of `device-list`) — ❌ still deferred to #462.
+- AC #2 (no regression of same-tab rename) — ✅ still satisfied.
+- AC #3 (server stale-payload regression test) — ✅ still present (shorter comments, same coverage).
+- AC #4 (client peer-tab `useDeviceRestoration` broadcast regression test) — ❌ still deferred to #462.
+
+`## Deferred to follow-ups` section in the PR body remains accurate; no edit needed. Re-verdict explicitly noted in PR comment at https://github.com/jpshackelford/voice-relay/pull/463#issuecomment-4644669240.
+
+**PR status:** Re-marked ready for review. Next round (if any) is a separate conversation.
+
+**Cross-issue learning:** None — this round was purely cosmetic. The lesson generalizes to "the pr-review bot's verbosity-budget heuristic is fairly tight; prefer single-line intent comments + commit-message context over inline change-history prose." Worth keeping in mind on future fixes that explicitly call out a referenced issue number, but not significant enough to encode in `AGENTS.md` yet.
+
+---
