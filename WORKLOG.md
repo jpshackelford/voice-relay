@@ -1591,3 +1591,20 @@ No override `## INSTRUCTION:` block used. Gate verdict recorded in the squash co
 **Production deploy:** auto-deploys to vr.chorecraft.net on merge to main. No schema / migration / runbook follow-ups.
 
 ---
+
+### 2026-06-08 00:55 UTC - Expansion Worker (#462)
+
+✅ **Expanded Issue #462** — `useDeviceRestoration: live-update displayName from device-list broadcast`
+
+- Issue: [#462](https://github.com/jpshackelford/voice-relay/issues/462)
+- Type: Enhancement (peer-tab follow-up to #459 / PR #463)
+- Status: **Ready for implementation** (`ready` label added)
+- Priority: `priority:high` (already set), `scope:client-only` (already set)
+
+**Approach:** Extend `useDeviceRestoration(workspaceId)` to accept an optional second `devices?: DeviceInfo[]` arg. Add an effect that, when the broadcast contains the local `deviceId` with a different `displayName`, syncs React state + `sessionStorage.displayName` + workspace-scoped localStorage token entry (mirroring the existing post-validation branch at `useDeviceRestoration.ts:212-221`). Equality-guard prevents flicker / re-render loops. Wire the two call sites (`Workspace.tsx:44`, `SessionView.tsx:75`) to feed `useWebSocket.devices` back into the hook. No server / DB / WS-protocol changes.
+
+**Files affected:** `client/src/hooks/useDeviceRestoration.ts`, `client/src/hooks/useDeviceRestoration.test.ts`, `client/src/pages/Workspace.tsx`, `client/src/pages/SessionView.tsx`.
+
+**Dependencies:** Soft-coupled to PR #463 (server fix) for end-to-end correctness; client work can land independently. Not marked `on-hold`.
+
+---
