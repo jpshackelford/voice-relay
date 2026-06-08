@@ -2,697 +2,6 @@
 
 ## Log
 
-### 2026-06-07 15:45 UTC - Expansion Worker (issue #446)
-
-✅ **Expanded Issue #446** — server: substitute `RelayedTextMessage.senderName` with active-speaker `preferredName` when per-session override resolves
-
-- Issue: [server: substitute RelayedTextMessage.senderName…](https://github.com/jpshackelford/voice-relay/issues/446)
-- Type: Bug (server-side, broken AC contract — #433 third bullet)
-- Status: **Ready for implementation** (`ready` + `priority:high`)
-- Root cause: `server/src/index.ts` ~line 1090 hard-codes `senderName: device.displayName` in the `RelayedTextMessage` literal even when `resolveSpeakerForSession` (introduced by PR #438 for #433) has resolved an `utteranceSpeaker = { id, preferredName, pronouns }`. The `id` rides the wire as `speakerId`, but `preferredName` is dropped, so peer broadcasts and the persisted `messages.sender_name` row keep the device alias.
-- Proposed fix: single-line change at the literal site —
-  `senderName: utteranceSpeaker?.preferredName ?? device.displayName,`
-  Persistence falls out for free (same object → `store.append`). Engine-label-only and unclaimed-device paths preserved by the `??` fallback. Agent-driver `sender.senderName` left as device alias (header builder already uses `sender.speaker.preferredName` for the `[speaker name=…]` line).
-- Test plan: ~5 server-side cases (substituted-broadcast happy path + persisted-row + 3 negative/edge); after server lands, flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` (#442 / PR #447) to active checks.
-- Priority rationale: gates #442's full e2e wire+DOM assertions (#447 ships with the two name-equality assertions taped over) AND blocks closure of #433's third-bullet AC. Low complexity + clear scope → quick win that unblocks downstream issue closure → `priority:high`.
-
----
-### 2026-06-07 15:57 UTC - Merge Worker (PR #448 → main)
-
-✅ **Merged PR #448** — `feat(server): workspace-level quota for anonymous speakers (#443)`
-
-| Item | Status |
-|---|---|
-| Squash-merge commit | [`e028148`](https://github.com/jpshackelford/voice-relay/commit/e028148805c5d48d7aa3128240f8cd66162d662e) |
-| CI at merge | 7/7 ✓ (CI/Build Client, Client Tests, Server Tests, E2E, lint-pr-title, pr-review, orchestrator-enable) |
-| Merge state | `CLEAN`, 0 unresolved review threads |
-| pr-review verdict | "Worth merging" — 🟢 LOW risk |
-| Migration check | ✅ pass-through (no files under `server/src/db/` or `migrations/` touched) |
-| Closing-Trailer AC Gate | ✅ **PASS** (re-verified against final diff, not just trusting impl-worker verdict) |
-| `Fixes #443` trailer | present |
-| Issue #443 auto-close | ✅ CLOSED as COMPLETED at 15:57:12Z |
-
-**AC gate re-verification** (walked #443's `## Acceptance Criteria` against the actual diff):
-
-1. ✅ `findOrCreateAnonymous` query in `speaker-repository.ts` matches spec exactly: `WHERE workspace_id = ? AND user_id IS NULL AND preferred_name = ? COLLATE NOCASE AND pronouns IS ?` (+`ORDER BY created_at ASC LIMIT 1` for deterministic tie-break on legacy duplicates).
-2. ✅ Wrapped in `db.transaction(...)` — `const tx = this.db.transaction((): Speaker => { ... }); return tx();`. better-sqlite3 transactions are synchronous so the count→insert window is closed.
-3. ✅ Throws `AnonymousSpeakerQuotaExceeded(workspaceId, cap)` when count ≥ cap **after** dedup miss.
-4. ✅ Router translates to `429` with `{ error: 'Workspace anonymous speaker quota exceeded', retryAfter: 60 }` + `Retry-After: 60` header. (Implementation adds `retryAfter` field beyond the spec — additive/non-breaking.)
-5. ✅ `DEFAULT_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE = 100`; `VR_MAX_ANONYMOUS_SPEAKERS_PER_WORKSPACE` parsed in `index.ts` bootstrap IIFE with invalid-value guard; threaded via `DeviceRouterOptions.maxAnonymousSpeakersPerWorkspace`.
-6. ✅ `speaker-repository.test.ts` +11 tests (33 total): dedup hits, case-insensitive dedup, different pronouns distinct, null-pronouns IS-handling, no-dedup-across-user-link, no-dedup-across-workspaces, cap throw, dedup-bypasses-cap, empty-name guard, typed-error fields, legacy-duplicate tie-break.
-7. ✅ `devices/router.test.ts` +3 tests (38 total): dedup-hit same `speakerId`, 429 + `Retry-After`, dedup bypasses cap. No deletions (159+0-) → existing happy-path tests intact.
-
-**Production impact:** safe to auto-deploy — no schema change, opt-in cap defaults to a generous 100, dedup is purely additive (legacy duplicates resolved deterministically by created_at ASC). The 429 path is reachable only via the device-token-authenticated endpoint, which is already behind 30/min per-IP rate limiting.
-
-Closes orchestrator slot for #443; next pickup is the orchestrator's call.
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:00 UTC - Review-feedback worker (PR #447, /address-review)
-
-🚧 **Addressed pr-review feedback on PR #447** — `test(e2e): kiosk-level smoke test for first-run claim → next-utterance speaker resolution (#442)`
-
-| Item | Status |
-|---|---|
-| PR dropped to draft at start | ✅ `gh pr ready 447 --undo` |
-| Review threads addressed | 4 / 4 (all from `github-actions` pr-review bot) |
-| Fix commit | [`4ade3b0`](https://github.com/jpshackelford/voice-relay/commit/4ade3b0) — `test(e2e): condense verbose comments in first-run-claim spec` |
-| Diff scope | comments-only in `tests/first-run-claim.spec.ts` (−45/+10) — no behavior change |
-| CI after push | ✅ 5/5 green (Build Client, Client Tests, Server Tests, E2E Tests 1m41s, lint-pr-title) |
-| Threads resolved with replies | ✅ all four via GraphQL `addPullRequestReviewThreadReply` + `resolveReviewThread` |
-| PR back to ready | ✅ `isDraft=false`, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE` |
-
-**Threads addressed** (all 🟡 suggestions, all accepted as readability/verbosity wins):
-
-1. `tests/first-run-claim.spec.ts:39` — file header 36 → 12 lines (detailed context already in PR body + issues #442/#433/#446).
-2. `tests/first-run-claim.spec.ts:90` — dropped 3-line comment that restated self-documenting role-based selector flow under step 3.
-3. `tests/first-run-claim.spec.ts:159` — wire-assertion comment 5 → 1 line; assertion block documents the contract.
-4. `tests/first-run-claim.spec.ts:172` — TODO(#446) block 7 → 2 lines; detail lives in issue #446.
-
-**Closing-Trailer AC Gate RE-RUN** (against current diff, vs #442's ACs):
-
-| # | AC item | Verdict |
-|---|---|---|
-| 1 | New `tests/first-run-claim.spec.ts` exists | ✅ |
-| 2 | Spec skips when `TEST_AUTH_SECRET` unset | ✅ |
-| 3 | Uses `setupTwoDeviceSession`, no fixture changes | ✅ |
-| 4 | Claim card visible at start | ✅ |
-| 5 | Drives name-only flow through real DOM | ✅ |
-| 6 | Card disappears within 2 s of save | ✅ |
-| 7 | Mobile peer sees just-saved name as rendered sender within 2 s | ⚠️ Deferred → **#446** |
-| 8 | Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ Deferred → **#446** |
-| 9 | Runs under default `chromium` project | ✅ |
-| 10 | < 30 s wall-clock | ✅ (~4.3 s) |
-| 11 | Stable on 5 back-to-back local runs | ✅ |
-| 12 | No regressions to existing specs | ✅ |
-
-- **Verdict unchanged:** `Refs #442` (NOT `Fixes`). Diff was comment-only — neither ACs 7/8 nor the server senderName substitution moved.
-- **Follow-up #446** is still OPEN (`priority:high`, `scope:server-only`).
-- PR body's `## Deferred to follow-ups` block remains accurate (single-line server fix in #446 unblocks the two TODO-tagged assertions).
-
-**Cross-issue learnings:** none worth surfacing — the four threads were straight verbosity nits, no shared pattern across #433/#442/#446 to capture.
-
-Next review round dispatched as a separate conversation.
-
-_This entry was created by an AI agent (OpenHands review-feedback worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:11 UTC - Implementation worker (issue #446)
-
-✅ **PR [#450](https://github.com/jpshackelford/voice-relay/pull/450) opened (ready for review)** — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName`
-
-**What landed**
-
-- `server/src/build-relayed-text-message.ts` (new, 121 lines) — pure builder owning the substitution rule `senderName: utteranceSpeaker?.preferredName ?? device.displayName`.
-- `server/src/build-relayed-text-message.test.ts` (new, 367 lines) — 8 unit tests covering the full truth-table + 2 SQLite-backed persisted-row contract tests (real `SQLiteStore`, full migration chain, FK seeding).
-- `server/src/index.ts` — swap the `RelayedTextMessage` literal at the inbound-text WS handler for a call to the new helper. Agent-driver `sender.senderName` at line ~1154 deliberately untouched (verified in diff).
-
-Extraction over single-line edit because `index.ts` is a side-effect-bootstrap module — extracting a small pure helper (pattern: `relayAgentResponse`, `resyncAgentSessionStatus`, `broadcastSessionState`) makes the substitution truth-table unit-testable without booting the server.
-
-**CI:** all 6 checks green (Build Client, Client Tests, Server Tests, E2E Tests, enable-orchestrator, lint-pr-title). Existing 1692-test server suite passes.
-
-**Closing-Trailer AC Gate (re-run against final diff @ a929cf2):**
-
-| # | AC                                                                  | Status | Evidence |
-| - | ------------------------------------------------------------------- | ------ | -------- |
-| 1 | `senderName` substitutes `utteranceSpeaker.preferredName`           | ✅     | Helper + test `substitutes senderName...` |
-| 2 | Persisted `messages.sender_name` carries substituted name           | ✅     | Test `persists messages.sender_name as the substituted speaker preferredName` (real SQLite) |
-| 3 | Engine-label-only path keeps device alias                           | ✅     | Test `keeps senderName as device alias on the engine-label-only path` |
-| 4 | Unclaimed-device path keeps device alias                            | ✅     | Tests for both wire-frame and persisted row |
-| 5 | Agent-driver `sender.senderName` keeps device alias                 | ✅     | Diff inspection: `senderName: device.displayName` at line 1154 untouched |
-| 6 | New server-side test pins substituted-broadcast contract            | ✅     | 10 new tests |
-| 7 | #442 e2e flips `TODO(#446)` assertions and spec passes              | ⏭️ defer | Spec file is on PR #447's branch, not on `main` (this PR's base). Prompt explicitly out-of-scope. Tracked in **#449**. |
-| 8 | #433's third-bullet AC fully satisfied; close #433                  | ⏭️ defer | Server side now satisfies it. Full closure waits on #447 + #449 to land. |
-
-**Trailer verdict:** `Refs #446` + `## Deferred to follow-ups` section in PR body. Two non-exempt AC items (#7, #8) are structurally gated on a different branch (#447) explicitly out of scope per the implementation instructions — both tracked in the follow-up issue **#449** (`e2e,priority:medium,ready`).
-
-**Follow-ups filed**
-
-- **#449** — Flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` to active checks. Requires PR #447 to land first (the spec file only exists on that branch).
-- **#433 closure** — Will happen once #449 lands on top of merged #447 + #450.
-
-Next: review handling is a separate conversation.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:13 UTC - Merge worker (PR #447, /prepare-and-merge)
-
-✅ **Merged PR #447** — `test(e2e): kiosk-level smoke test for first-run claim → next-utterance speaker resolution (#442)` — squash commit [`f7ceaab`](https://github.com/jpshackelford/voice-relay/commit/f7ceaab).
-
-| Pre-merge gate | Result |
-|---|---|
-| Migration check (`server/src/db/`, `migrations/`) | ✅ Untouched — diff is test-only (`tests/first-run-claim.spec.ts` only) |
-| CI | ✅ 7/7 green (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, pr-review, enable-orchestrator) |
-| mergeStateStatus / mergeable | `CLEAN` / `MERGEABLE` |
-| Unresolved review threads | 0 |
-| pr-review verdict | 🟡 Acceptable, 🟢 LOW risk |
-| `## INSTRUCTION:` override block | None — gate passed on merits |
-
-**Closing-Trailer AC Gate RE-RUN at merge time** (vs `## Acceptance Criteria` of #442, against post-review-fix diff):
-
-| # | AC item | Verdict |
-|---|---|---|
-| 1 | New `tests/first-run-claim.spec.ts` exists, imports from `./fixtures` | ✅ |
-| 2 | Spec skips when `TEST_AUTH_SECRET` unset | ✅ |
-| 3 | Uses `setupTwoDeviceSession`, no fixture changes | ✅ |
-| 4 | Spec asserts `ClaimSpeakerCard` visible at start | ✅ |
-| 5 | Drives name-only flow through real DOM | ✅ |
-| 6 | Card disappears within 2 s of save | ✅ |
-| 7 | Mobile peer sees just-saved name as **rendered** sender within 2 s | ⚠️ Deferred → **#446** (`TODO(#446)` in spec) |
-| 8 | Inbound WS frame's `senderName === '<just-saved name>'` | ⚠️ Deferred → **#446** (`TODO(#446)` in spec) |
-| 9 | Runs under default `chromium` project | ✅ |
-| 10 | Completes in < 30 s wall-clock | ✅ (~4.3 s) |
-| 11 | Stable on 5 back-to-back local runs | ✅ |
-| 12 | No regressions to existing specs | ✅ |
-
-- **Verdict unchanged from impl + review workers:** PASS with trailer `Refs #442` (NOT `Fixes`). Gate verdict recorded in the squash commit body.
-- No `## INSTRUCTION:` override block existed for PR #447 + #442; gate passed cleanly on merits.
-
-**Linked-issue handling:**
-
-| Issue | Expected post-merge | Actual | Action |
-|---|---|---|---|
-| #442 (e2e parent) | OPEN (trailer is `Refs`, two ACs deferred) | ✅ OPEN | none |
-| #446 (server senderName follow-up, blocks AC 7 + 8 flip) | OPEN | ✅ OPEN | none — PR #450 already open against it |
-| #433 (claim-card parent, third-bullet AC half-shipped) | OPEN | ⚠️ Auto-closed by GitHub on merge despite trailer being `Refs #433` (not `Closes`) | **Reopened** with explanatory comment — closure was contrary to gate intent: the spec's `TODO(#446)` assertions still gate #433's third-bullet closure (per the PR body: _"When that lands, the two TODOs in this spec flip to active assertions and we can close #433"_). Will re-close after #446 ships and the TODOs become active assertions. |
-
-**Follow-up state at merge:** #446 has open PR #450 (`fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName`) already in review — once it merges, a tiny follow-up to flip the two `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` from comments to active expectations will close both #442 (full AC coverage) and #433 (third bullet fully shipped end-to-end).
-
-**Process learning to surface:** the `Refs #N` trailer is **not** a reliable hedge against GitHub auto-closing the issue on squash-merge when other portions of the PR body or commit message mention the issue heavily — GitHub's heuristics appear to pick up "closes #433's third bullet end to end" inside a prose paragraph as a close intent even though the conventional trailer says `Refs`. Future merge workers should either (a) avoid the phrase "close #N" anywhere in the squash body when intent is `Refs`, or (b) accept that they'll need a one-shot reopen-with-comment after merge for that issue. Noting here rather than amending AGENTS.md because the pattern hasn't recurred — will promote to AGENTS.md if it happens a second time.
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:22 UTC - Orchestrator
-
-**Active Workers (after this tick):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a8cce80` | review | PR #450 — senderName substitution (Refs #446) | **NEW** |
-
-**State Reconciliation:**
-- Reaped `a7f12c5` (merge worker, PR #438) → completed. PR #438 squash-merged at 2026-06-07T14:25:54Z (commit 768a278). Worker was 4m08s long and finished shortly after start; only just being moved out of the slot now because no orchestrator tick has run between 14:23Z and 16:21Z (cron paused or skipped).
-
-**Unblock pass:**
-- Mechanical pass would have lifted `on-hold` on **#299** (blocker #298 CLOSED) and **#301** (blocker #295 CLOSED) — both have machine-parseable `Blocked by #N` references with all blockers closed.
-- **Override applied:** the AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" section is still in effect. The freeze lifts only when (1) `VR_WORKSPACE_BUCKET` is set on production, (2) the four AWS credential env vars are in place, and (3) the S3 runbook smoke test returns 200 — none of which is verifiable from this orchestrator's sandbox. Skipped per the documented override pattern from prior orchestrator cycles (11:39Z, 12:18Z). Only a human (or a new `## INSTRUCTION:` block) can lift these.
-- Policy-tracked (skipped, no machine blockers): #210, #239, #386.
-- Still legitimately blocked: #300 (blocker #299 OPEN), #302 (blocker #300 OPEN).
-
-**Current State:**
-- **Open PRs:** [PR #450](https://github.com/jpshackelford/voice-relay/pull/450) — `oR green ready 💬2` (~13m old; pr-review bot left 🟡 stylistic suggestions on verbose comments in `build-relayed-text-message.ts` and `index.ts`). Trailer is `Refs #446`. CI 9/9 green, mergeable=MERGEABLE, mergeStateStatus=CLEAN, isDraft=false.
-- **Ready, prioritized issues (gate-free):** none implementable this tick.
-  - #446 → in flight as PR #450.
-  - #449 → blocked by #446 closing (which depends on PR #450 merging).
-  - #433 → blocked by #446 closing + #449 implementing (Refs trailer; will close via follow-ups, not directly).
-  - #442 → PR #447 already merged 16:12Z; issue is open but the work is done. *Surfacing for human attention* — needs a manual close or a closing-trailer audit, but not an implementation worker.
-- **On-hold:** #210, #239, #299, #300, #301, #302, #386 (all policy- or freeze-held; see Unblock pass).
-- **Needs-human:** #372.
-- **Issues needing expansion:** none 🎉.
-
-**Decision (per decision table — anti-stall):**
-1. **Expansion (0/4):** 0 issues to expand → idle slots, no action.
-2. **Implementation (0/1):** no ready issue is gate-free for a new implementation worker (#446 already has PR #450 in flight; #433/#449 are blocked by it; #442 is post-implementation cleanup). Idle slot, no action.
-3. **Review (1/2):** PR #450 has 2 unresolved review threads → spawn 1 review worker. 1 slot remains free in case another PR opens before the next tick.
-
-**Spawned: Review Worker**
-- PR: [#450 — fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName](https://github.com/jpshackelford/voice-relay/pull/450)
-- Conversation: [`a8cce80`](https://app.all-hands.dev/conversations/a8cce80f036d472683cdc65e12e33d4e)
-- Instruction: address the 2 🟡 pr-review-bot stylistic threads, then RE-RUN the closing-trailer AC gate against #446 — with PR #447 now merged to main, the `tests/first-run-claim.spec.ts` file exists on this branch's base, so the worker should evaluate whether AC #7 (TODO flips) can be satisfied in this PR or must remain as #449.
-
-**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override block exists. No advisory note in WORKLOG defers PR #450. PR #450 is **not** stuck — it has no `blocked`/`needs-human`/`needs-info` label, CI is green, and the review threads are first-round stylistic suggestions, not a halt condition.
-
-**Slot accounting at end of tick:** expansion 0/4, implementation 0/1, review 1/2. Total active conversations: 1/7.
-
-**Quiet-tick counter:** reset to `0` (productive — review worker dispatched + 1 stale-slot worker reconciled).
-
-_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:30 UTC - Implementation worker (issue #446, duplicate)
-
-🛑 **Closed PR [#451](https://github.com/jpshackelford/voice-relay/pull/451) as duplicate of [#450](https://github.com/jpshackelford/voice-relay/pull/450)** — another OpenHands implementation worker was dispatched for the same issue (#446) ~2 minutes earlier and had already opened PR #450 (16:08:45Z vs my push at ~16:23Z). Discovered on `git fetch` after the CI on my branch came back red with the chromium `first-run-claim.spec.ts` failing because PR #447 had also merged in the interim, putting the spec file on `main` mid-flight.
-
-**My branch's approach** was functionally equivalent to #450's: pure helper `resolveRelayedSenderName(utteranceSpeaker, deviceDisplayName)` in `server/src/speakers/resolve-relayed-sender-name.ts` (vs #450's `buildRelayedTextMessage(...)` builder in `server/src/build-relayed-text-message.ts`). #450 is the better landing spot because:
-
-- It adds SQLite-backed persisted-row contract tests (proving AC #2 end-to-end against a real `SQLiteStore`); mine pinned AC #2 only by referential transparency of the helper.
-- The orchestrator's 16:22Z tick already dispatched a review worker (`a8cce80`) for #450.
-- Repo policy: "do not create multiple PRs for the same issue."
-
-**Action taken:** closed PR #451 with deferral comment pointing to #450, deleted the feature branch. No follow-up issues filed; no AC-gate work to carry forward — #450 holds the verdict and the deferred-follow-up list.
-
-**Cause of the race:** my conversation was spawned by the prior orchestrator tick (or a parallel slot) before the 16:22Z tick reconciled the slot for #446. Not actionable from a worker's perspective; orchestrator slot-accounting issue.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:39 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `a8cce80` | review | PR #450 — fix(server): substitute RelayedTextMessage.senderName | running |
-
-**Current State:**
-- **Open PRs:** [PR #450](https://github.com/jpshackelford/voice-relay/pull/450) — `isDraft=true`, `mergeStateStatus=UNSTABLE`. CI: Server/Client/Build/lint-pr-title all green; **E2E Tests FAILURE** (likely fallout from PR #447 merging to main mid-flight; `tests/first-run-claim.spec.ts` now exists on the branch base — same race surfaced by the 16:30Z #451-duplicate entry). Review worker `a8cce80` is actively handling the 2 unresolved pr-review-bot threads AND will need to chase the E2E failure before re-flipping to ready.
-- **Ready, prioritized issues (gate-free):** none implementable this tick — #446 in flight (PR #450); #449/#442/#433 all downstream of PR #450 landing.
-- **Ready, on-hold:** #386 (policy-tracked, no machine blockers).
-- **On-hold:** #210, #239, #299, #300, #301, #302, #386 (post-correction; see below).
-- **Needs-human:** #372.
-- **Issues needing expansion:** none 🎉.
-
-**Unblock Pass + AGENTS.md Override (productive corrective action this tick):**
-
-Walked the 7 open `on-hold` issues. Machine pass identified two unblockable candidates:
-
-| Issue | Machine blocker(s) | Status |
-|-------|--------------------|--------|
-| #299  | #298 (closed)      | Would have lifted |
-| #301  | #295 (closed)      | Would have lifted |
-
-Both were lifted by the script, **then reverted within the same tick** because the **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** is still in force — the three freeze-lift conditions (`VR_WORKSPACE_BUCKET` set on prod, four AWS creds in place, S3 runbook smoke test green) are not verifiable from the orchestrator sandbox and have not been signaled by a human / `## INSTRUCTION:` block. Re-applied `on-hold`, removed the spurious `ready` label, and posted a `## ↩️ Correction — re-applying on-hold` comment on each issue explaining the AGENTS.md override and pointing to the prior orchestrator's documented pattern (worklog 11:39Z, 12:13Z).
-
-This matches the override pattern established earlier today and prevents a future tick from mis-dispatching impl on issues that are under design freeze.
-
-Issues #210, #239, #386 had no machine-parseable `Blocked by #N` — policy-tracked, left alone.
-
-**Decision (per decision table — anti-stall):**
-
-1. **Expansion (0/4):** 0 issues need expansion → idle, no action.
-2. **Implementation (0/1):** no ready issue is gate-free — all ready+prioritized candidates (#446, #449, #442, #433) are downstream of in-flight PR #450. Dispatching impl now would produce a PR that can't satisfy AC until PR #450 merges. Idle slot, no action.
-3. **Review (1/2):** PR #450 already has review worker `a8cce80` running (14m old, still active per OH API). No other open PRs. 1 slot remains free.
-
-**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override exists. The "wait for PR #450 to land before dispatching #449/#442/#433" decision is a productive-tick optimization (matching the documented `wait-for-#438-to-land` precedent from earlier today), not a deferral. The AGENTS.md S3 freeze is a codified policy gate per the skill's exhaustive-table rule.
-
-**Slot accounting at end of tick:** expansion 0/4, implementation 0/1, review 1/2. Total active: 1/7.
-
-**Quiet-tick counter:** reset to `0` (productive — S3-freeze override correctly enforced on #299 + #301, preventing a future mis-dispatch).
-
-_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:42 UTC - Review worker (PR #450, round 1 — address-review)
-
-✅ Addressed both `🟡 Suggestion` threads from pr-review bot on PR #450:
-
-| Thread                                              | Action                                                                            | Commit  |
-| --------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
-| `server/src/build-relayed-text-message.ts:113`      | Trimmed 7-line inline comment to 2-line pointer back to the module docstring      | 5f267b6 |
-| `server/src/index.ts:1091`                          | Removed the duplicate 7-line block at the `buildRelayedTextMessage` call site     | 5f267b6 |
-
-Both threads replied + resolved via GraphQL.
-
-**AC gate re-run (round 1 re-verdict) for #446:**
-
-Attempted to upgrade trailer `Refs #446 → Fixes #446` by:
-
-1. Merging `origin/main` (now post-PR-#447) into the branch to pick up `tests/first-run-claim.spec.ts`.
-2. Flipping the two `TODO(#446)` assertions per #449's scope.
-
-CI surfaced a pre-existing strict-mode flake at `tests/utils/auth-helper.ts:396` (`navigateKioskToFirstSession` — un-scoped `getByRole('button', { name: /view/i })` matches every `<button class="view-session-btn">` once the worker DB has more than one persisted session). The kiosk path errors in setup before reaching any assertion. Same failure now hits every PR's merge-commit CI.
-
-- Filed **#452** (`tests(e2e): navigateKioskToFirstSession strict-mode violation…`) with a one-line locator-scope fix sketch.
-- Force-pushed branch back to just `a929cf2` (substitution rule) + `5f267b6` (comment trim) — no spec changes — and reproduced the same E2E failure on the merge commit, confirming the red is #452 and not this diff.
-- Cross-issue notes posted on **#446** and **#449** documenting the new dependency chain: `#452 → #449 → close #433 → close #446`.
-
-**Verdict outcome: unchanged. Trailer stays `Refs #446`.** Reasoning shifted:
-
-- Round 0 (PR open): AC #7 deferred because spec file was on PR #447's branch, not on PR #450's base.
-- Round 1 (now): AC #7 deferred because the upstream helper (#452) is broken; flipping TODOs is a no-op until #452 lands.
-
-PR body updated with the new AC table footnote + the `## Deferred to follow-ups` section now listing **#452 + #449 + #433** (was previously just #449 + #433).
-
-| State                                          | Value                                        |
-| ---------------------------------------------- | -------------------------------------------- |
-| PR #450 status                                 | `ready for review` (un-drafted)              |
-| PR #450 CI                                     | 🔴 E2E (cause = #452, not this diff)        |
-| Server Tests / Client Tests / Build / lint     | 🟢 all green                                 |
-| Threads addressed                              | 2/2                                          |
-| Unresolved threads remaining                   | 0                                            |
-| Trailer                                        | `Refs #446` (unchanged)                      |
-| New follow-up issue filed                      | #452                                         |
-| Cross-issue learning comments                  | #446, #449                                   |
-
-_This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:54 UTC - Merge worker (PR #450)
-
-✅ Merged PR #450 — `fix(server): substitute RelayedTextMessage.senderName with resolved speaker preferredName` — squash SHA `7d41ba2`.
-
-**AC Gate verdict (final):** PASS — `Refs #446` retained (NOT `Fixes`).
-
-| #   | Criterion                                                                | Status   |
-| --- | ------------------------------------------------------------------------ | -------- |
-| 1   | `senderName` substitutes `utteranceSpeaker.preferredName`                | ✅       |
-| 2   | Persisted `messages.sender_name` carries substituted name                | ✅       |
-| 3   | Engine-label-only path keeps device alias                                | ✅       |
-| 4   | Unclaimed-device path keeps device alias                                 | ✅       |
-| 5   | Agent-driver `sender.senderName` unchanged (intentional)                 | ✅       |
-| 6   | New server-side test pins substituted-broadcast contract                 | ✅       |
-| 7   | #442 e2e flips `TODO(#446)` assertions                                   | ⏭️ #449  |
-| 8   | Close #433                                                               | ⏭️ #449  |
-
-6/8 covered by diff; AC #7 deferred to **#449** (blocked on **#452** helper bug); AC #8 (close #433) waits on #449. All three follow-ups verified open at merge time (#452 `bug, tests`; #449 + #433 `ready`).
-
-**CI at merge:** required checks all 🟢 (Server Tests, Client Tests, Build Client, lint-pr-title, enable-orchestrator, pr-review). Non-required CI/E2E Tests 🔴 due to upstream `navigateKioskToFirstSession` strict-mode flake (#452) — confirmed not caused by this diff via base-commit force-push reproduction.
-
-**Migration check:** `git diff main -- '*migrations*' '*schema*' '*.sql'` empty. Server-only TS extraction.
-
-**Review state:** 0 unresolved review threads (both pr-review bot threads resolved in round-1 commit `5f267b6`). Final pr-review bot verdict ✅ "Good taste / clean substitution".
-
-**Linked-issue handling:** `Refs #446` trailer used; #446 verified still OPEN post-merge — stays open until #449's TODO-flip lands (gated on #452). No manual close.
-
-| State                          | Value                                |
-| ------------------------------ | ------------------------------------ |
-| PR #450 status                 | ✅ MERGED (squash)                   |
-| Merge commit                   | `7d41ba257f9270707966fd62d141f1fbbdcb8bff` |
-| Trailer                        | `Refs #446`                          |
-| #446 state post-merge          | OPEN (intentional)                   |
-| Active follow-up chain         | #452 → #449 → close #433 → close #446 |
-
-_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 16:55 UTC - Expansion Worker (issue #452)
-
-✅ **Expanded Issue #452** (`tests(e2e): navigateKioskToFirstSession strict-mode violation…`)
-
-- Type: **Bug** (label `bug`, also already `tests`)
-- Status: **Ready for implementation** — `ready` + `priority:high` labels applied
-- Root cause confirmed at `tests/utils/auth-helper.ts:395` — un-scoped `getByRole('button', { name: /view/i })` matches every `<button class="view-session-btn">` in the dashboard's session list. Strict-mode throws once the worker DB has ≥ 2 sessions (which #447 causes during setup of `first-run-claim.spec.ts`).
-- **Scope expanded:** found the **same bug** at line 471 in the sibling helper `navigateKioskToSession`, used by 7 cases in `tests/qr-join-flow.spec.ts`. Fix covers both helpers in one PR. Noted in the technical-detail comment so impl worker isn't surprised.
-- Proposed fix: replace both with `page.locator('button.view-session-btn').first()` — class-scoped, glyph-resilient, explicit determinism.
-- Acceptance criteria (5 bullets) cover: both helpers scoped, full chromium suite green against a multi-session worker DB, no new strict-mode warnings, four downstream specs (`first-run-claim`, `ws-keepalive`, `multi-device-relay`, `qr-join-flow`) all green, no production code touched.
-
-`priority:high` assigned because the bug is currently red-blocking PR-merge CI on **every PR** (including #450) — should be picked up before #449 on the next implementation tick.
-
-| Action                                              | Result                                                                        |
-| --------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Issue body rewritten to standard bug template       | ✅ (Problem / Repro / Expected / Actual / Files / AC)                          |
-| Technical-detail comment posted                     | ✅ ([#452 comment](https://github.com/jpshackelford/voice-relay/issues/452#issuecomment-4643324211)) |
-| Labels: `ready` + `priority:high`                   | ✅                                                                             |
-| Sibling helper bug surfaced + folded into AC        | ✅ (`navigateKioskToSession` @ line 471)                                       |
-
-_This entry was created by an AI agent (OpenHands expansion worker) on behalf of @jpshackelford._
-
-### 2026-06-07 17:10 UTC - Orchestrator
-
-**Active Workers:**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `d35b1d5` | implementation | Issue #452 - kiosk strict-mode helper fix | **NEW** |
-
-🚀 **Spawned: Implementation Worker**
-- Issue: [#452 - tests(e2e): navigateKioskToFirstSession strict-mode violation](https://github.com/jpshackelford/voice-relay/issues/452) (priority:high, bug, blocks CI)
-- Conversation: [`d35b1d5`](https://app.all-hands.dev/conversations/d35b1d5a1b6b42f583d2c441855886f2)
-- Reason: priority:high root-cause bug that red-blocks PR-merge CI on every PR. Expansion worker (16:55 UTC) explicitly flagged "should be picked up before #449 on the next implementation tick".
-
-**Tick Activity:**
-- Worklog truncation: archived 5 entries older than the 6hr productive window to `WORKLOG_ARCHIVE_2026-06-07.md` (1562 → 1379 lines).
-- Cleared finished review slot (`a8cce80`, PR #450 — squashed at 7d41ba2 with `Refs #446`); moved to `completed[]`.
-- Unblock pass: 0 issues lifted. Mechanical dry-run says #299 + #301 (S3 path-B) would lift now that #298 / #295 are closed, but the **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** is still in force (S3 bucket / AWS creds not yet provisioned per the three release conditions in AGENTS.md). Per the orchestrator skill's Anti-Stall override rules, AGENTS.md policy is a codified gate — labels held. (#302 mechanically still blocked by open #300; #239, #210, #386 are policy-tracked with no machine blockers.)
-
-**Current State:**
-- Open PRs: none (PR #450 merged at 7d41ba2)
-- Ready issues: #442 (priority:low, e2e), #446 (priority:high — remaining ACs delegated to #449), #449 (priority:medium — informally blocked on #452), #452 (priority:high — **now being implemented**)
-- Issues needing expansion: none
-- On-hold (skip): #210, #239, #299, #300, #301, #302, #386
-
-**Slot Capacity:** expansion 0/4, implementation 1/1, review 0/2 — 1 worker running.
-
----
-### 2026-06-07 17:15 UTC - Implementation Worker (Issue #452)
-
-✅ **Issue #452 — kiosk strict-mode helper fix — PR ready for review**
-
-- PR: [#453 — test(e2e): scope kiosk session view locator to .view-session-btn](https://github.com/jpshackelford/voice-relay/pull/453)
-- Branch: `fix/452-kiosk-strict-mode-helper`
-- Diff: `tests/utils/auth-helper.ts` only, +8 / -2 (single-file, test-only)
-
-**Fix:** Replaced un-scoped `page.getByRole('button', { name: /view/i })` with `page.locator('button.view-session-btn').first()` in both `navigateKioskToFirstSession` (line 395) and `navigateKioskToSession` (line 471). The `.view-session-btn` class is unique to the dashboard's session-row buttons (confirmed in `client/src/pages/WorkspaceHome.tsx:1157`); `.first()` makes determinism explicit and reliably picks the newest session (dashboard renders newest-first).
-
-**CI verdict:**
-
-| Check                | Result |
-| -------------------- | ------ |
-| Build Client         | ✅ pass (26s)  |
-| Client Tests         | ✅ pass (41s)  |
-| Server Tests         | ✅ pass (55s)  |
-| **E2E Tests**        | ✅ **pass (2m5s)** — the canonical proof; the multi-session worker DB no longer trips strict-mode |
-| lint-pr-title        | ✅ pass (after type `tests` → `test` correction) |
-
-**AC-gate verdict:** ✅ **All 5 acceptance criteria satisfied → trailer = `Fixes #452`**
-
-| # | AC                                                                                              | Status |
-| - | ----------------------------------------------------------------------------------------------- | ------ |
-| 1 | Both helpers use a single-element locator regardless of session count                           | ✅ both call sites updated |
-| 2 | Full chromium e2e suite passes against a worker DB seeded with ≥ 2 sessions                     | ✅ CI's E2E job (2m5s) accumulates sessions across the suite and stays green |
-| 3 | No new Playwright strict-mode warnings                                                          | ✅ E2E run clean |
-| 4 | `first-run-claim`, `ws-keepalive`, `multi-device-relay`, `qr-join-flow` all green               | ✅ all part of the passing E2E Tests job |
-| 5 | No production code changes — confined to `tests/`                                               | ✅ diff is one file under `tests/utils/` |
-
-**No follow-up issues filed** — all ACs cleanly satisfied. PR moved from draft → ready for review. Review handling is a separate conversation.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
-### 2026-06-07 17:21 UTC - Orchestrator
-
-**Active Workers (after reconciliation):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `8ccd347` | implementation | Issue #446 — server: substitute RelayedTextMessage.senderName | **NEW** |
-
-**Worker Reconciliation:**
-- `d35b1d5` (impl, #452) → finished → moved to `completed`. Outcome: opened [PR #453](https://github.com/jpshackelford/voice-relay/pull/453) (`test(e2e): scope kiosk session view locator to .view-session-btn`).
-
-**Unblock Pass:** 0 issues lifted. Machine-parseable `Blocked by #N`:
-- #299 (#298), #300 (#298, #299), #301 (#295), #302 (#300) — all still gated by AGENTS.md "Active design freeze: workspace persistence (S3 / #298)". Policy hold remains in effect; skipped per documented override.
-- #210, #239 — no machine refs (policy hold).
-
-**Current State:**
-- Open PRs: **1** — [PR #453](https://github.com/jpshackelford/voice-relay/pull/453) `oR pending ready 💬1` (5m old). pr-review bot IN_PROGRESS; no human review feedback yet; all other CI green (Server/Client/E2E/Build, lint-pr-title green after retry). No review worker dispatched this tick.
-- Ready, prioritized issues (excluding in-flight): **#446** (priority:high — now in flight), #449 (priority:medium), #442 (priority:low), #386 (priority:low + on-hold per S3 freeze).
-- `needs-human`: #372 (skip).
-- `on-hold` (policy): #210, #239, #299, #300, #301, #302, #386.
-- Issues needing expansion: none.
-
-**Action Taken:**
-🚀 Spawned 1 implementation worker for #446 (highest-priority unblocked ready issue). Reaped 1 finished impl slot.
-
-**Spawned: Implementation Worker**
-- Issue: [#446 — server: substitute RelayedTextMessage.senderName with active-speaker preferredName](https://github.com/jpshackelford/voice-relay/issues/446) (priority:high, scope:server-only)
-- Conversation: [`8ccd347`](https://app.all-hands.dev/conversations/8ccd3476ebde4b0c9ba4920ab8653ee5)
-
-**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override; #446 has no `on-hold`/`needs-human`/`blocked` label. PR #453's pr-review bot is still IN_PROGRESS and there are zero human review threads, so no review worker is warranted yet — the next tick will pick it up if/when feedback lands. Impl work on #446 is server-only and does not overlap with the e2e test fix in PR #453.
-
-**Slot accounting at end of tick:** expansion 0/4, implementation 1/1, review 0/2. Total active conversations: 1/7.
-
-**Quiet-tick counter:** reset to `0` (productive — 1 worker dispatched, 1 worker reconciled to `completed`).
-
----
-### 2026-06-07 17:25 UTC - Implementation Worker (#446)
-
-🛑 **No-op dispatch — server-side work already complete on `main` via PR #450 (merged 16:54Z).**
-
-Walked AC #1–#6 against `server/src/build-relayed-text-message.ts` and `server/src/index.ts:1085` on main: all six server-only items satisfied. AC #7 (e2e TODO flip) is `scope:e2e` and tracked in #449; AC #8 (close #433) is blocked on #449. #449 itself is gated on #452, whose fix is in PR #453 (currently green and pending merge).
-
-Actions:
-- Posted explainer comment on [#446](https://github.com/jpshackelford/voice-relay/issues/446#issuecomment-4643388416).
-- Applied `on-hold`, removed `ready` so the dispatcher stops re-selecting #446 under `scope:server-only` while the e2e chain plays out.
-- **No PR opened** — PR #451 was already filed-then-closed as a duplicate of #450, and opening another would repeat that mistake.
-
-Dependency chain to close #446: #452 (PR #453) → #449 → close #433 → close #446.
-
-AC-gate verdict: **server-only ACs already satisfied by PR #450**; remaining ACs out of scope for this dispatch.
-
----
-### 2026-06-07 17:45 UTC - Review-Addressing Worker (PR #453)
-
-✅ **PR [#453](https://github.com/jpshackelford/voice-relay/pull/453) review round complete** — addressed the lone `pr-review` bot suggestion (`tests/utils/auth-helper.ts` comment verbosity) and flipped back to ready.
-
-Change on `d9043a1` (tests-only, 4 added / 6 removed):
-- Trimmed both 3-line comment blocks in `navigateKioskToFirstSession` and `navigateKioskToSession` to 2 lines. Kept the non-obvious **newest-first → `.first()` is deterministic** invariant; dropped the change-history framing that already lives in the PR description / commit / #452. Middle path between accepting the bot's "delete entirely" suggestion and declining it — matches the pragmatic comment-trim posture from PR #437.
-
-Procedure followed:
-- Dropped to draft → trimmed comments → pushed → CI green → resolved sole review thread with reply → re-ran AC gate → flipped to ready.
-
-CI on commit `d9043a1`: 5/5 green (Build Client 31s, Client Tests 32s, Server Tests 51s, E2E Tests 1m34s, lint-pr-title 4s).
-
-Closing-Trailer AC Gate re-run vs current diff (`Fixes #452`):
-
-| AC | Verdict | Evidence |
-| --- | --- | --- |
-| #1 — Both helpers use a deterministic single-element locator | ✅ | `page.locator('button.view-session-btn').first()` at lines 397 + 475 |
-| #2 — Full chromium e2e passes with ≥2-session worker DB | ✅ | `CI/E2E Tests` green on `d9043a1` |
-| #3 — No new strict-mode warnings | ✅ | E2E green confirms |
-| #4 — `first-run-claim` / `ws-keepalive` / `multi-device-relay` / `qr-join-flow` stay green | ✅ | covered by the green E2E job |
-| #5 — No production code changes | ✅ | diff confined to `tests/utils/auth-helper.ts` |
-
-**AC gate re-run: unchanged (Fixes #452).** All 5 ACs now met (#2–#4 flipped from pending to ✅ on the green E2E job). No trailer change, no follow-ups filed.
-
----
-### 2026-06-07 17:48 UTC - Implementation Worker (#449)
-
-✅ **PR [#454](https://github.com/jpshackelford/voice-relay/pull/454) ready for review** — flipped both `TODO(#446)` assertions in `tests/first-run-claim.spec.ts` from comments to active checks.
-
-Diff (tests-only, 2 added / 4 removed):
-- Replaced the `TODO(#446)` comment block at `tests/first-run-claim.spec.ts:135-137` with:
-  ```ts
-  expect(wsFrame.senderName).toBe(speakerName);
-  await expect(peerMessage.locator('.sender')).toHaveText(new RegExp(speakerName));
-  ```
-- Dropped the stale `senderName assertion deferred to #446` note from the spec's header docblock.
-
-CI on PR #454 (commit `ca97c01`): all green, including `E2E Tests` (1m32s). The pre-existing strict-mode flake from #452 did not trip this run — CI worker DB was clean enough. PR #453 / #452 remain pending merge but were not a hard blocker here.
-
-Closing-Trailer AC Gate verdict:
-
-| AC | Verdict | Evidence |
-| --- | --- | --- |
-| #1 — TODO comments removed; assertions live | ✅ | Diff |
-| #2 — `playwright test tests/first-run-claim.spec.ts` passes | ✅ | CI `E2E Tests` job (1m32s) |
-| #3 — Close #433 once this lands | ✅ at merge | Squash trailer includes `Closes #433` |
-
-Trailers on the squash commit: `Fixes #449` + `Closes #433`. Both #449 and #433 will auto-close on merge.
-
-Follow-ups: none filed. #452 / PR #453 tracked independently.
-
----
-### 2026-06-07 17:55 UTC - Merge Worker (PR #453)
-
-✅ **PR [#453](https://github.com/jpshackelford/voice-relay/pull/453) squash-merged** as `bbc9d36`. Issue [#452](https://github.com/jpshackelford/voice-relay/issues/452) auto-closed (state: COMPLETED).
-
-Pre-merge state confirmed:
-- mergeable: CLEAN, isDraft: false, reviewDecision: clean (no requested changes).
-- All 7 checks green on `d9043a1`: Build Client (31s), Client Tests (32s), Server Tests (51s), E2E Tests (1m34s), pr-review (3m45s), lint-pr-title (3s), enable-orchestrator (3s).
-
-Closing-Trailer AC Gate (final, vs `d9043a1` diff): **PASS** — trailer remains `Fixes #452`.
-
-| AC | Verdict | Evidence |
-| --- | --- | --- |
-| #1 — Both helpers use a deterministic single-element locator | ✅ | `page.locator('button.view-session-btn').first()` in both helpers (diff lines 396, 472) |
-| #2 — Full chromium e2e passes with ≥2-session worker DB | ✅ | `CI/E2E Tests` green on `d9043a1` |
-| #3 — No new strict-mode warnings | ✅ | E2E green confirms |
-| #4 — `first-run-claim` / `ws-keepalive` / `multi-device-relay` / `qr-join-flow` stay green | ✅ | covered by the green E2E job |
-| #5 — No production code changes | ✅ | diff confined to `tests/utils/auth-helper.ts` (2 hunks) |
-
-Squash-merge commit subject: `test(e2e): scope kiosk session view locator to .view-session-btn`. Body includes the `AC-gate: Fixes #452 — all 5 ACs of #452 covered by the d9043a1 diff.` line.
-
-Production impact: nil — tests-only diff (`tests/utils/auth-helper.ts`). Auto-deploy to vr.chorecraft.net is a no-op for runtime behavior; only unblocks the E2E job for downstream PRs that were red-blocked by the strict-mode violation since #447 merged.
-
-No follow-ups filed.
-
----
-### 2026-06-07 17:58 UTC - Merge Worker (PR #454)
-
-✅ **PR [#454](https://github.com/jpshackelford/voice-relay/pull/454) squash-merged** as `2e12aae`. Issue [#449](https://github.com/jpshackelford/voice-relay/issues/449) auto-closed (state: COMPLETED). Issue [#433](https://github.com/jpshackelford/voice-relay/issues/433) was already CLOSED (closed by PR #450's `Closes #433` at 16:54Z); the `Closes #433` trailer on this PR is a confirmation, not a state change.
-
-Pre-merge state confirmed:
-- mergeable: MERGEABLE, mergeStateStatus: CLEAN, isDraft: false.
-- All 7 checks green: Build Client (30s), Client Tests (45s), Server Tests (49s), E2E Tests (1m32s), pr-review (2m5s), lint-pr-title (3s), enable-orchestrator (2s).
-- Soft-dependency PR #453 merged at 17:55Z (3 min before this merge); no rebase needed.
-
-Closing-Trailer AC Gate (final): **PASS** — both trailers stay.
-
-| Issue | AC | Verdict | Evidence |
-| --- | --- | --- | --- |
-| #449 | #1 — Both TODO comments removed; assertions live | ✅ | Diff in `tests/first-run-claim.spec.ts` lines 134-135 |
-| #449 | #2 — `playwright test tests/first-run-claim.spec.ts` passes | ✅ | CI E2E Tests job green (1m32s) |
-| #449 | #3 — `Closes #433` trailer auto-closes #433 | ✅ | Trailer present in squash commit body |
-| #433 | AC #3 e2e/tests bullet — integration smoke test verifies `RelayedTextMessage` server-resolved sender name matches | ✅ | The two flipped assertions (`wsFrame.senderName === speakerName` + `.sender` text match) are exactly the named verification; CI E2E green confirms |
-
-Squash-merge commit subject: `test(e2e): flip TODO(#446) senderName assertions in first-run-claim spec (#454)`. Body includes the gate-verdict line and both `Fixes #449` / `Closes #433` trailers.
-
-Production impact: nil — tests-only diff (`tests/first-run-claim.spec.ts`, 2 added / 4 removed). Auto-deploy to vr.chorecraft.net is a no-op for runtime behavior; this merge tightens e2e coverage of the now-shipped server-side sender-name substitution from #450.
-
-No follow-ups filed.
-
----
-### 2026-06-07 18:08 UTC - Orchestrator
-
-**Active Workers (after reconciliation):**
-| Conv ID | Type | Working On | Status |
-|---------|------|------------|--------|
-| `99652c5` | implementation | Issue #442 — kiosk-level e2e smoke test for #433 first-run claim | **NEW** |
-
-**Worker Reconciliation:**
-- `8ccd347` (impl, #446) → moved to `completed`. Outcome (per 17:25 WORKLOG entry): **no-op dispatch** — server-side ACs of #446 already shipped via merged PR #450; worker set #446 to `on-hold` and removed `ready` (prose rationale, not machine-form), posted explainer at [#issuecomment-4643388416](https://github.com/jpshackelford/voice-relay/issues/446#issuecomment-4643388416), exited without opening a PR. API status `null` (sandbox MISSING) since 17:23:41Z confirms the worker has stopped.
-
-**Unblock Pass:** 0 issues lifted.
-- #299, #300, #301, #302 — gated by AGENTS.md "Active design freeze: workspace persistence (S3 / #298)". Per documented policy override (worklog 11:39 UTC, 12:13 UTC), these stay `on-hold` until the freeze section is removed from AGENTS.md. Machine state: #299→#298 closed (would lift), #300→#298 closed + #299 open (still blocked), #301→#295 closed (would lift), #302→#300 open (still blocked). Skipped per policy.
-- #210, #239, #386, #446 — no machine `Blocked by #N` refs (policy holds). #446's de-facto blockers (#452/#449/#433) all closed today, but the worker's rationale was prose-only — unblock pass leaves it alone by design. Issue is effectively done anyway (the kiosk-level coverage tracked in #442 is the only remaining work in the chain).
-
-**Current State:**
-- Open PRs: **none** (PR #453 merged 17:55Z, PR #454 merged 17:58Z).
-- Ready, prioritized issues (excluding in-flight + on-hold): **#442** (priority:low, scope:client-only — now in flight).
-- `on-hold` (policy/freeze): #210, #239, #299, #300, #301, #302, #386, #446.
-- `needs-human`: #372 (skip).
-- Issues needing expansion: none.
-
-**Action Taken:**
-🚀 Spawned 1 implementation worker for #442 (only unblocked ready issue). Reaped 1 stale impl slot.
-
-**Spawned: Implementation Worker**
-- Issue: [#442 — test(e2e): kiosk-level smoke test for #433 first-run claim → next-utterance name resolution](https://github.com/jpshackelford/voice-relay/issues/442) (priority:low, client, scope:client-only)
-- Conversation: [`99652c5`](https://app.all-hands.dev/conversations/99652c559f5548cb80a6ef5a343f1d3e)
-- Prompt includes today's context: PR #450/#453/#454 merged (server senderName shipped, auth-helper strict-mode fix, peer-device assertions live); kiosk-level test is the remaining gap and is distinct from `tests/first-run-claim.spec.ts`.
-
-**Anti-stall note:** decision table is exhaustive. No `## INSTRUCTION:` override; #442 has no `on-hold`/`needs-human`/`blocked` label; no AGENTS.md policy gates it. Decision table → ready+prioritized+slot-available → spawn impl. Expansion and review slots remain idle (no issues need expansion; no open PRs).
-
-**Slot accounting at end of tick:** expansion 0/4, implementation 1/1, review 0/2. Total active conversations: 1/7 (the orchestrator itself excluded).
-
-**Quiet-tick counter:** reset to `0` (productive — 1 worker dispatched, 1 worker reconciled to `completed`).
-
-_This worklog entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
-
----
-### 2026-06-07 18:14 UTC - Implementation Worker (#442)
-
-✅ **Audit-closed Issue #442** — no PR opened; all 12 ACs already satisfied by current `main` (HEAD `9a0207e`/`d6ffa3f`).
-
-The orchestrator's 18:08Z dispatch brief framed #442 as "distinct from `tests/first-run-claim.spec.ts`", but reading the issue body shows the file `tests/first-run-claim.spec.ts` IS the deliverable #442 prescribes (Playwright spec, top-level `tests/`, two-context kiosk + mobile peer via `setupTwoDeviceSession`). That file landed via PR #447 (initial spec with `senderName`-equality TODOs deferred to #446) and was completed by PR #454 (TODOs flipped to live assertions after PR #450 shipped server-side `senderName` substitution). The trailer chain `Refs #442` (PR #447) + no-mention (PR #454) is why #442 stayed open after the work shipped.
-
-**AC walk vs `tests/first-run-claim.spec.ts` on `main`:**
-
-| #   | AC                                                                                              | Verdict |
-| --- | ----------------------------------------------------------------------------------------------- | ------- |
-| 1   | File exists; imports `test, expect` from `./fixtures`                                           | ✅ |
-| 2   | Skips when `TEST_AUTH_SECRET` unset                                                             | ✅ |
-| 3   | Uses `setupTwoDeviceSession()`; no new helpers                                                  | ✅ |
-| 4   | Asserts claim card visible on the kiosk                                                         | ✅ |
-| 5   | Drives name-only flow through the real DOM                                                      | ✅ |
-| 6   | Card disappears within 2 s of submit                                                            | ✅ |
-| 7   | Mobile peer renders just-saved name within 2 s                                                  | ✅ (live since PR #454) |
-| 8   | Inbound text WS frame carries `senderName === '<just-saved name>'`                              | ✅ (live since PR #454) |
-| 9   | Default `chromium` project                                                                      | ✅ |
-| 10  | Suite delta < 10 s on warm runner                                                               | ✅ (~5.5 s/rep local) |
-| 11  | No flake in 5 back-to-back local runs                                                           | ✅ **5/5 passed (27.7s) on HEAD `9a0207e`** |
-| 12  | No regressions in `voice-relay`, `multi-device-relay`, `onboarding-flow`, `ws-keepalive` specs  | ✅ (covered by PR #454 CI green) |
-
-**Closing-Trailer Gate verdict:** `Fixes #442` would have been correct had this been a single PR. Treated as a `Fixes #442` audit-close: 12/12 ACs satisfied → issue closed via `gh issue close 442 --reason completed` with the AC table in [issuecomment-4643543956](https://github.com/jpshackelford/voice-relay/issues/442#issuecomment-4643543956).
-
-**Local verification command + result:**
-
-```
-TEST_AUTH_SECRET=test-secret-local PLAYWRIGHT_WORKERS=1 \
-  npx playwright test tests/first-run-claim.spec.ts --workers=1 --repeat-each=5
-[…]
-  5 passed (27.7s)
-```
-
-**Why no new PR:** The work is the file. The file already exists with the AC-required assertions live. Opening a no-op PR (or a contrived doc-only edit) would not advance the AC gate and would add review/merge noise. Documented the verdict on the issue and here.
-
-**No follow-up issues filed.** No production runtime impact (tests-only).
-
-**Cross-reference for future ticks:** when a worker is dispatched on a `Refs`-trailered issue that's been transitively completed by sibling PRs, the right action is an audit-close + worklog entry, not a vacuous PR. The dispatcher prompt's "distinct from `tests/first-run-claim.spec.ts`" framing was a stale carry-over from before PR #454 landed.
-
-_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
-
----
 ### 2026-06-07 18:34 UTC - Orchestrator
 
 🔒 **Auto-disabled due to inactivity** — 2nd consecutive quiet tick
@@ -1260,8 +569,8 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 **Quiet-tick counter:** reset `0 → 0` (productive — 2 workers reaped + 3 workers dispatched + worklog truncation).
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
----
 
+---
 ### 2026-06-07 22:25 UTC - Expansion Worker (#459)
 
 ✅ **Expanded Issue #459** — Desktop kiosk display name reverts after reconnect (server-side regression of #85, peer-tab path)
@@ -1281,7 +590,6 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:25 UTC - Implementation Worker (PR #460 review-feedback)
 
 ✅ Addressed pr-review bot suggestions on [PR #460](https://github.com/jpshackelford/voice-relay/pull/460) (fix iOS 18 Safari spurious STT 'aborted', Fixes #457).
@@ -1311,7 +619,6 @@ _This entry was created by an AI agent (OpenHands Expansion Worker) on behalf of
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:36 UTC - Orchestrator
 
 **Active Workers:**
@@ -1350,7 +657,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:36 UTC - Merge Worker (PR #460)
 
 ✅ **Merged [PR #460](https://github.com/jpshackelford/voice-relay/pull/460)** — `fix(client): ignore iOS Safari spurious 'aborted' STT errors during permission grant (Fixes #457)`.
@@ -1385,8 +691,6 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
-
-
 ### 2026-06-07 22:40 UTC - Implementation Worker (issue #458)
 
 🚧 → ✅ Opened PR #461: `fix(server): broadcast session state when OH WS reaches 'open' (Fixes #458)`
@@ -1432,7 +736,6 @@ PR: [#461](https://github.com/jpshackelford/voice-relay/pull/461) — ready for 
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:48 UTC - Orchestrator
 
 **Active Workers:**
@@ -1476,7 +779,6 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 22:57 UTC - Review worker (PR #461 round 1)
 
 ✅ Addressed pr-review bot stylistic feedback on **PR #461** (`fix(server): broadcast session state when OH WS reaches 'open'`, Fixes #458).
@@ -1494,7 +796,6 @@ Pattern matches PR #460's first-round verbose-comment feedback — same playbook
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-07 23:08 UTC - Implementation worker (issue #459)
 
 🚀 Implemented **issue #459** (`Desktop kiosk display name reverts after reconnect`) — server-side regression of the #85 fix on the peer-tab path. Opened **PR #463**.
@@ -1515,7 +816,6 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
-
 ### 2026-06-08 00:53 UTC - Orchestrator
 
 🚀 **Spawned: 3 Workers (parallel)**
@@ -1562,7 +862,6 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 🚀 Filled 1 expansion + 2 review slots. Implementation slot intentionally idle (no work to pick up). Productive tick — `quiet_ticks` reset to 0.
 
 ---
-
 ### 2026-06-08 00:54 UTC - Merge Worker (PR #461)
 
 ✅ **Merged PR #461** — fix(server): broadcast session state when OH WS reaches 'open' (Fixes #458)
@@ -1591,7 +890,6 @@ No override `## INSTRUCTION:` block used. Gate verdict recorded in the squash co
 **Production deploy:** auto-deploys to vr.chorecraft.net on merge to main. No schema / migration / runbook follow-ups.
 
 ---
-
 ### 2026-06-08 00:55 UTC - Expansion Worker (#462)
 
 ✅ **Expanded Issue #462** — `useDeviceRestoration: live-update displayName from device-list broadcast`
@@ -1608,7 +906,6 @@ No override `## INSTRUCTION:` block used. Gate verdict recorded in the squash co
 **Dependencies:** Soft-coupled to PR #463 (server fix) for end-to-end correctness; client work can land independently. Not marked `on-hold`.
 
 ---
-
 ### 2026-06-08 00:58 UTC - Address-Review Worker (PR #463)
 
 ✅ **Addressed review round on PR #463** — `fix(server): preserve user-renamed device name on WS register`
@@ -1650,7 +947,6 @@ The comment edits don't move any acceptance criterion:
 **Cross-issue learning:** None — this round was purely cosmetic. The lesson generalizes to "the pr-review bot's verbosity-budget heuristic is fairly tight; prefer single-line intent comments + commit-message context over inline change-history prose." Worth keeping in mind on future fixes that explicitly call out a referenced issue number, but not significant enough to encode in `AGENTS.md` yet.
 
 ---
-
 ### 2026-06-08 01:03 UTC - Orchestrator
 
 **Active Workers:**
@@ -1699,7 +995,6 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 🚀 **Spawned 2 workers** (merge + implementation). State persisted to main alongside this entry.
 
 ---
-
 ### 2026-06-08 01:09 UTC - Merge worker (PR #463 → main)
 
 ✅ **Merged PR #463** — `fix(server): preserve user-renamed device name on WS register (Refs #459)`
@@ -1741,7 +1036,6 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 **Commit message:** Conventional `fix(server): …` with the AC-gate verdict line and `Refs #459` trailer (see `git show 8307ffa`).
 
 ---
-
 ### 2026-06-08 01:18 UTC - Implementation Worker (#462)
 
 ✅ **PR opened — [#464](https://github.com/jpshackelford/voice-relay/pull/464) (`fix(client): live-update displayName from device-list broadcast`)**
@@ -1773,5 +1067,40 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 **Gate verdict: `Fixes #462` is the correct trailer.** All six ACs satisfied by the diff; no follow-ups required.
 
 **Status:** PR #464 marked ready for review. Review handling is a separate conversation.
+
+---
+### 2026-06-08 01:17 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `2c72909` | implementation | Issue #462 — live displayName from device-list broadcast | running (draft PR #464 open) |
+
+**Workers Reaped This Tick:**
+| Conv ID | Type | Outcome |
+|---------|------|---------|
+| `7922788` | merge (PR #463) | ✅ Squash-merged PR #463 at 01:09:02Z (commit 8307ffa) — `fix(server): preserve user-renamed device name on WS register (Refs #459)`. 2 ACs deferred to #462. |
+
+**Current State:**
+- Open PRs: PR #464 (draft, impl worker still in flight)
+- Ready+unblocked issues: 0 (all `ready` issues are either in flight (#462), on-hold by S3 freeze (#299/#300/#301/#302/#386), or now-blocked (#459 → #462))
+- Issues needing expansion: 0
+
+**Actions Taken:**
+- ✅ **Merged PR #463** observed (merge worker completed within the window since the last tick)
+- 📦 **Worklog truncation**: archived 20 entries (15:45Z–22:35Z 2026-06-07) to `WORKLOG_ARCHIVE_2026-06-07.md`; kept 28-entry 6-hour productive window
+- 🛑 **Marked #459 on-hold (Blocked by #462)** — PR #463 used `Refs #459` trailer with 2 ACs deferred to #462. Without an explicit machine-parseable blocker, the next tick (after #462 merges) would dispatch a wasted impl worker on #459. Added a `## 🛑 on-hold rationale` comment ([issuecomment-4644741754](https://github.com/jpshackelford/voice-relay/issues/459#issuecomment-4644741754)) so the unblock pass will lift it automatically when #462 closes; swapped `ready` → `on-hold`.
+
+**Unblock Pass:** 0 issues lifted.
+- #299, #301: machine blockers (#298, #295) are CLOSED, but **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** is still in force (production `VR_WORKSPACE_BUCKET` / AWS creds / S3 runbook smoke test not verified). Skipped per the documented override pattern (worklog 11:39Z, 12:13Z, 17:15Z, 18:08Z, 19:35Z, 20:53Z, 22:30Z, 00:50Z 2026-06-07). Only a human (or a new `## INSTRUCTION:` block) can lift these.
+- #300, #302: still have open machine blockers (#299, #300 respectively).
+- #210, #239, #386: policy-tracked on-hold (no parseable `Blocked by #N` references) — left alone per skill.
+
+**No Workers Spawned:**
+- Expansion (0/4): no issues need expansion.
+- Implementation (1/1): slot occupied by `2c72909` working on #462.
+- Review (0/2): only open PR is #464 (draft); no other PRs need review.
+
+**Anti-stall note:** decision table walked exhaustively. No `## INSTRUCTION:` override block in WORKLOG.md. The merge of PR #463 in this window counts as a productive tick (`quiet_ticks = 0`). The single in-flight impl worker (#462) on the only unblocked `ready+priority` issue means there is genuinely no other actionable work to dispatch this tick.
 
 ---

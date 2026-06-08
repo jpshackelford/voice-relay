@@ -9,21 +9,14 @@
         "started": "2026-06-08T01:08:14.010262+00:00"
       }
     ],
-    "review": [
-      {
-        "conv_id": "7922788",
-        "pr": 463,
-        "worker_subtype": "merge",
-        "started": "2026-06-08T01:08:14.010262+00:00"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-08T01:08:14.010262+00:00",
+  "last_updated": "2026-06-08T01:22:30.523573+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -429,6 +422,15 @@
       "status": "success",
       "pr": 463,
       "outcome": "Addressed review feedback on PR #463"
+    },
+    {
+      "conv_id": "7922788",
+      "type": "merge",
+      "pr": 463,
+      "started": "2026-06-08T01:08:14.010262+00:00",
+      "finished": "2026-06-08T01:22:30.523548+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #463 at 2026-06-08T01:09:02Z (commit 8307ffa) \u2014 fix(server): preserve user-renamed device name on WS register (Refs #459). 2 ACs deferred to #462."
     }
   ],
   "quiet_ticks": 0
