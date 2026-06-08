@@ -250,15 +250,8 @@ export function useDeviceRestoration(
     }
   }, [displayName]);
 
-  // Issue #462: Live-sync displayName from the workspace `device-list`
-  // broadcast. When a peer tab (or this tab, post-reconnect) receives a
-  // device-list entry for our own `deviceId` whose name has changed,
-  // mirror the post-validation branch above (React state +
-  // sessionStorage + workspace-scoped localStorage token entry).
-  //
-  // The `me.displayName === displayName` guard prevents a re-render loop
-  // and short-circuits no-op broadcasts (e.g. same-tab rename where local
-  // state already updated optimistically before the server echo arrived).
+  // Issue #462: Live-sync displayName from device-list broadcast.
+  // Equality guard prevents re-render loops and no-ops same-tab renames.
   useEffect(() => {
     if (!devices || !deviceId || !workspaceId) return;
     const me = devices.find((d) => d.id === deviceId);

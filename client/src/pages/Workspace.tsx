@@ -32,13 +32,8 @@ export function Workspace() {
   }
   const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
-  // Issue #462: bridge `useWebSocket.devices` back into
-  // `useDeviceRestoration` so a peer-tab `device-list` broadcast can
-  // refresh our local `displayName` after a server-side rename. The
-  // bridge is needed because `useDeviceRestoration` runs BEFORE
-  // `useWebSocket` in this component (the WS depends on `deviceId` /
-  // `displayName` produced by restoration), so we forward `devices`
-  // via state on the next render cycle.
+  // Issue #462: forward devices to useDeviceRestoration for live displayName sync.
+  // See useDeviceRestoration.ts for the sync implementation.
   const [liveDevices, setLiveDevices] = useState<DeviceInfo[]>([]);
 
   // Device restoration hook handles token validation and session restoration
@@ -215,12 +210,7 @@ export function Workspace() {
     onKioskAttentionMessage: handleKioskAttention,
   });
 
-  // Issue #462: forward `devices` back into the restoration hook's
-  // sync effect. Identity-only comparison would skip semantic changes
-  // because `useWebSocket` rebuilds the array on every broadcast;
-  // setting it unconditionally is safe because the restoration hook's
-  // own equality guard (`me.displayName === displayName`) avoids
-  // re-renders when nothing has changed.
+  // Issue #462: forward devices to trigger the restoration hook's sync effect.
   useEffect(() => {
     setLiveDevices(devices);
   }, [devices]);
