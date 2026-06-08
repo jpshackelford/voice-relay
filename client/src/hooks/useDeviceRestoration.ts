@@ -252,6 +252,15 @@ export function useDeviceRestoration(
 
   // Issue #462: Live-sync displayName from device-list broadcast.
   // Equality guard prevents re-render loops and no-ops same-tab renames.
+  //
+  // `displayName` is intentionally NOT in the deps array: this effect must
+  // only react to *broadcast* changes, not local state changes. If a future
+  // settings UI calls setDisplayName('New') locally before the server has
+  // echoed the rename, including `displayName` in deps would re-run this
+  // effect with a stale `devices` array (still containing 'Old') and revert
+  // the user's edit. The closure still reads the latest `displayName` for
+  // the equality check because React recreates the effect callback every
+  // render. See PR #464 review for the full scenario.
   useEffect(() => {
     if (!devices || !deviceId || !workspaceId) return;
     const me = devices.find((d) => d.id === deviceId);
@@ -265,7 +274,7 @@ export function useDeviceRestoration(
     if (stored) {
       storeDeviceToken({ ...stored, name: me.displayName });
     }
-  }, [devices, deviceId, workspaceId, displayName]);
+  }, [devices, deviceId, workspaceId]);
 
   return {
     deviceId,

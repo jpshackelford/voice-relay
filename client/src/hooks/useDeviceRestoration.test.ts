@@ -449,6 +449,44 @@ describe('useDeviceRestoration', () => {
       expect(result.current.displayName).toBe(initialName);
     });
 
+    it('does not revert a local setDisplayName change when no broadcast follows (regression: PR #464 review)', () => {
+      // Regression test for the race condition raised in PR #464 review:
+      // If `displayName` were in the sync effect's deps, a local
+      // setDisplayName('New') would re-trigger the effect with a stale
+      // `devices` array (still containing 'Old') and revert the user's edit.
+      // The fix removes `displayName` from deps so local state changes do not
+      // cause the broadcast sync effect to fire.
+      //
+      // Note: we keep the SAME `devices` array reference across the local
+      // state change (no rerender). That models the real-world case where the
+      // user clicks "Save" in a settings UI before the server has echoed the
+      // rename back over the websocket — i.e. devices is unchanged.
+      const staleDevices: DeviceListEntry[] = [
+        { id: deviceId, displayName: 'Old Name', mode: 'kiosk' },
+      ];
+
+      const { result } = renderHook(() =>
+        useDeviceRestoration(workspaceId, staleDevices),
+      );
+
+      // Initial sync (broadcast == state == 'Old Name') is a no-op.
+      expect(result.current.displayName).toBe('Old Name');
+
+      vi.mocked(deviceTokenModule.storeDeviceToken).mockClear();
+
+      // Simulate a future settings UI calling setDisplayName locally,
+      // BEFORE the server has echoed the rename. The `staleDevices` array
+      // reference is unchanged, so the sync effect's deps don't trigger.
+      act(() => {
+        result.current.setDisplayName('New Name');
+      });
+
+      // The sync effect must NOT fire on the local change: displayName stays
+      // 'New Name', and the localStorage merge isn't called.
+      expect(result.current.displayName).toBe('New Name');
+      expect(deviceTokenModule.storeDeviceToken).not.toHaveBeenCalled();
+    });
+
     it('writes only sessionStorage when no stored token exists for the workspace', async () => {
       // Override the beforeEach: no token in localStorage. The effect
       // should still update React state + sessionStorage but skip the
