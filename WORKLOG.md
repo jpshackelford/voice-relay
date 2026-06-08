@@ -1029,3 +1029,59 @@ Actions taken on #459: posted closing comment ([#issuecomment-4645068776](https:
 
 **Productive tick:** yes (PR #464 merged this cycle); `quiet_ticks` reset to 0.
 
+---
+### 2026-06-08 03:37 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet ticks detected — no actionable work to pick up. Automation has been disabled to prevent unnecessary runs.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none)  | -    | -          | -      |
+
+**This-tick assessment (decision table walked exhaustively):**
+
+- **Human instructions:** no open `## INSTRUCTION:` block in WORKLOG.md.
+- **Active workers:** 0 across all slots (4/4 expansion, 1/1 impl, 2/2 review free).
+- **Open PRs:** 1 — [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) `docs(tvos): per-file issue drafts for tvOS backend gaps`. Draft, human-authored by @jpshackelford, 0 reviews, 0 comments. Not orchestrator-actionable (no merge gate while draft; no review threads to address).
+- **Open issues:** 8 — every one is `on-hold` or `needs-human`.
+  - `needs-human`: #372.
+  - `on-hold`: #386, #302, #301, #300, #299, #239, #210.
+- **`ready`+unblocked+prioritized:** 0.
+- **Issues needing expansion:** 0.
+
+**Unblock pass (mechanical `Blocked by #N` only):**
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force: production `VR_WORKSPACE_BUCKET`, four AWS creds, and `docs/runbooks/s3-bucket-provisioning.md` smoke test not verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the lift. Skipped per the documented override pattern. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386 | (prose-only on-hold)   | n/a              | Policy hold — orchestrator does not touch. |
+|  #239 | (prose-only on-hold)   | n/a              | Policy hold — orchestrator does not touch. |
+|  #210 | (prose-only on-hold)   | n/a              | Policy hold — orchestrator does not touch. |
+
+Mechanical zero-policy lifts this tick: **0**.
+
+**Quiet-tick counter:** `quiet_ticks` 1 → 2. Threshold reached.
+
+**Disable call:** `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": false}` → HTTP 200, `enabled=false` confirmed in response. (First attempt got a transient 502 from the OpenHands gateway; retried after 10 s and succeeded.)
+
+**To re-enable:**
+
+- OpenHands UI: https://app.all-hands.dev/automations → "Voice Relay Workflow Orchestrator v2" → toggle on.
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+The backlog will refill naturally once: (a) S3 freeze conditions are met and a `## INSTRUCTION:` block lifts #299/#301; (b) #372 is resolved by a human; or (c) new issues are filed. Re-enable then.
+
+---
+
