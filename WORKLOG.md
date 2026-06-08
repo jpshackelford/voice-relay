@@ -1209,3 +1209,44 @@ PR moved back from draft to ready for review. Merge handling is a separate conve
 
 ---
 
+
+### 2026-06-08 02:38 UTC - Review worker (PR #464 round 2)
+
+✅ Addressed the single unresolved review thread on PR #464; ready + green.
+
+**Thread**: `PRRT_kwDOSTUWGM6HtLLB` on `client/src/hooks/useDeviceRestoration.ts` — 🔴 Critical race condition: including `displayName` in the sync effect's deps would cause a future `setDisplayName('New')` to re-trigger the effect with a stale `devices` array (still 'Old') and revert the user's edit.
+
+**Verdict on the bot's claim**: real and well-reasoned. The simplest safe fix is to accept the suggestion — no eslint config in the project (verified) so no exhaustive-deps lint to placate; the closure still reads the latest `displayName` for the equality check because React recreates effect callbacks every render.
+
+**Change** (commit `4eeab71`):
+- `useDeviceRestoration.ts:277` — deps array: `[devices, deviceId, workspaceId, displayName]` → `[devices, deviceId, workspaceId]`.
+- `useDeviceRestoration.ts:253-263` — added 11-line comment explaining why `displayName` is intentionally omitted.
+- `useDeviceRestoration.test.ts:452-488` — new regression test `does not revert a local setDisplayName change when no broadcast follows`. Verified the test fails when `displayName` is re-added to deps (sanity-checked locally) and passes after the fix. 19/19 hook tests pass.
+
+**Post-fix state**:
+- 7/7 checks green (Build Client / Client Tests / Server Tests / E2E / lint-pr-title / pr-review / enable-orchestrator).
+- mergeable=MERGEABLE, mergeStateStatus=CLEAN, isDraft=false.
+- Thread `PRRT_kwDOSTUWGM6HtLLB` resolved via GraphQL with commit SHA reference (comment `PRRC_kwDOSTUWGM7I5qlJ`).
+- Latest pr-review bot run (02:36:08Z) is `🟢 Good taste` but `state: COMMENTED`, so `reviewDecision` still reads `CHANGES_REQUESTED` from the 01:45:53Z run. Merge worker will need to dismiss the stale review or rely on an approving human review.
+
+**AC gate re-run vs issue #462 (6 ACs)**:
+
+| # | AC | Verdict | Line refs |
+|---|----|---------|-----------|
+| 1 | Hook consumes device-list broadcast via new caller-supplied input | PASS | `useDeviceRestoration.ts:138-141` (`devices?` param) |
+| 2 | On matching entry with differing name: setDisplayName + sessionStorage + storeDeviceToken | PASS | `useDeviceRestoration.ts:264-277` |
+| 3 | Next `register` after reconnect carries new name | PASS | unchanged from prior verdict — useWebSocket reads current `displayName` |
+| 4 | No flicker / no infinite loop; same-tab renames don't retrigger | PASS+ | `useDeviceRestoration.ts:268` equality guard; deps no longer include `displayName` — **strengthened** by this change: local-only state changes now provably can't trigger the sync effect |
+| 5 | Unit test for stale-session → broadcast → triple sync | PASS | `useDeviceRestoration.test.ts:326-354` |
+| 6 | Existing 15+ hook tests continue to pass | PASS | 19/19 passing locally and in CI |
+
+**AC gate verdict: unchanged — still `Fixes #462` (6/6).** AC #4 is materially improved by the dep-array tightening.
+
+**Next tick should**:
+- Confirm PR #464 mergeable / CLEAN / 7/7 green / 0 unresolved threads (it is, as of this tick).
+- Handle the stale `CHANGES_REQUESTED` reviewDecision (dismiss-stale review of `github-actions[bot]` from 01:45:53Z, or wait for human approval) before dispatching merge worker.
+- After PR #464 merges, the unblock pass will lift `on-hold` from #459; re-run AC gate against the combined PR #463 + PR #464 diff vs #459's ACs as previously noted.
+
+_This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
