@@ -10,7 +10,7 @@ import { useKioskConfig } from '../hooks/useKioskConfig';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { getUserFriendlyMessage } from '../utils/errors';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
-import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent, DeviceInfo } from '../types';
 
 interface WorkspaceInfo {
   id: string;
@@ -32,6 +32,15 @@ export function Workspace() {
   }
   const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
+  // Issue #462: bridge `useWebSocket.devices` back into
+  // `useDeviceRestoration` so a peer-tab `device-list` broadcast can
+  // refresh our local `displayName` after a server-side rename. The
+  // bridge is needed because `useDeviceRestoration` runs BEFORE
+  // `useWebSocket` in this component (the WS depends on `deviceId` /
+  // `displayName` produced by restoration), so we forward `devices`
+  // via state on the next render cycle.
+  const [liveDevices, setLiveDevices] = useState<DeviceInfo[]>([]);
+
   // Device restoration hook handles token validation and session restoration
   const {
     deviceId,
@@ -41,7 +50,7 @@ export function Workspace() {
     wasRestored,
     isValidating: deviceTokenValidating,
     setDisplayName,
-  } = useDeviceRestoration(workspaceId);
+  } = useDeviceRestoration(workspaceId, liveDevices);
 
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
@@ -205,6 +214,16 @@ export function Workspace() {
     onDisplayMessage: handleDisplayMessage,
     onKioskAttentionMessage: handleKioskAttention,
   });
+
+  // Issue #462: forward `devices` back into the restoration hook's
+  // sync effect. Identity-only comparison would skip semantic changes
+  // because `useWebSocket` rebuilds the array on every broadcast;
+  // setting it unconditionally is safe because the restoration hook's
+  // own equality guard (`me.displayName === displayName`) avoids
+  // re-renders when nothing has changed.
+  useEffect(() => {
+    setLiveDevices(devices);
+  }, [devices]);
 
   const handleSetup = async (name: string, selectedMode: DeviceMode) => {
     setDisplayName(name);

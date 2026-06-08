@@ -12,7 +12,7 @@ import {
 } from '../utils/deviceToken';
 import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
-import type { DeviceMode } from '../types';
+import type { DeviceMode, DeviceInfo } from '../types';
 
 interface DeviceRestorationResult {
   /** Unique device ID (from storage or newly generated) */
@@ -127,8 +127,18 @@ function getStoredMode(workspaceId?: string): DeviceMode | null {
  * but will not re-initialize state for the new workspace.
  * 
  * @param workspaceId - Current workspace ID for token validation
+ * @param devices - Optional live `device-list` broadcast payload from
+ *   `useWebSocket.devices`. When provided, the hook keeps its local
+ *   `displayName` (plus `sessionStorage.displayName` and the workspace-scoped
+ *   localStorage token entry) in sync with the server-authoritative name for
+ *   this device id. Lets a peer kiosk/session tab pick up a `PATCH
+ *   /api/devices/:id` rename within ~1 frame of the next broadcast, without
+ *   waiting for a full reload. See issue #462.
  */
-export function useDeviceRestoration(workspaceId: string | undefined): DeviceRestorationResult {
+export function useDeviceRestoration(
+  workspaceId: string | undefined,
+  devices?: DeviceInfo[],
+): DeviceRestorationResult {
   // Track the workspaceId we initialized with for detecting unsupported workspace changes
   const initialWorkspaceId = useRef(workspaceId);
   
@@ -239,6 +249,30 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
       sessionStorage.setItem('displayName', displayName);
     }
   }, [displayName]);
+
+  // Issue #462: Live-sync displayName from the workspace `device-list`
+  // broadcast. When a peer tab (or this tab, post-reconnect) receives a
+  // device-list entry for our own `deviceId` whose name has changed,
+  // mirror the post-validation branch above (React state +
+  // sessionStorage + workspace-scoped localStorage token entry).
+  //
+  // The `me.displayName === displayName` guard prevents a re-render loop
+  // and short-circuits no-op broadcasts (e.g. same-tab rename where local
+  // state already updated optimistically before the server echo arrived).
+  useEffect(() => {
+    if (!devices || !deviceId || !workspaceId) return;
+    const me = devices.find((d) => d.id === deviceId);
+    if (!me) return;
+    if (me.displayName === displayName) return;
+
+    setDisplayName(me.displayName);
+    sessionStorage.setItem('displayName', me.displayName);
+
+    const stored = getStoredDeviceToken(workspaceId);
+    if (stored) {
+      storeDeviceToken({ ...stored, name: me.displayName });
+    }
+  }, [devices, deviceId, workspaceId, displayName]);
 
   return {
     deviceId,

@@ -291,4 +291,189 @@ describe('useDeviceRestoration', () => {
       expect(result.current.restoredMode).toBe('kiosk');
     });
   });
+
+  // Issue #462: live-update displayName from device-list broadcast
+  // (peer-tab follow-up to #459). Covers AC #1b and #4 of #459 deferred
+  // from PR #463 (server-side fix).
+  describe('live displayName updates from device-list', () => {
+    const deviceId = 'device-123';
+    const workspaceId = 'workspace-456';
+    // Empty `deviceToken` so the validation effect bails out at the
+    // first guard (`!storedDevice?.deviceToken`). Keeps these tests
+    // synchronous and focused on the device-list sync path.
+    const storedDevice = {
+      deviceId,
+      deviceToken: '',
+      workspaceId,
+      name: 'Old Name',
+      mode: 'kiosk' as const,
+    };
+
+    type DeviceListEntry = {
+      id: string;
+      displayName: string;
+      mode: 'mobile' | 'kiosk';
+    };
+
+    beforeEach(() => {
+      // Pre-existing session: this tab already restored "Old Name"
+      // before any broadcast arrives.
+      vi.mocked(deviceTokenModule.getSessionDeviceId).mockReturnValue(deviceId);
+      vi.mocked(deviceTokenModule.getStoredDeviceToken).mockReturnValue(storedDevice);
+      sessionStorage.setItem('displayName', 'Old Name');
+    });
+
+    it('updates state, sessionStorage, and localStorage when broadcast carries a new name for this device', async () => {
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          useDeviceRestoration(workspaceId, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      expect(result.current.displayName).toBe('Old Name');
+
+      // A peer-tab rename arrives as a fresh device-list payload
+      // referencing this device's id.
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'New Name', mode: 'kiosk' }],
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.displayName).toBe('New Name');
+      });
+
+      expect(sessionStorage.getItem('displayName')).toBe('New Name');
+      expect(deviceTokenModule.storeDeviceToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deviceId,
+          name: 'New Name',
+        }),
+      );
+    });
+
+    it('does nothing when the broadcast omits this device id', () => {
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          useDeviceRestoration(workspaceId, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      vi.mocked(deviceTokenModule.storeDeviceToken).mockClear();
+
+      act(() => {
+        rerender({
+          devices: [
+            { id: 'some-other-device', displayName: 'Other Name', mode: 'mobile' },
+          ],
+        });
+      });
+
+      expect(result.current.displayName).toBe('Old Name');
+      expect(sessionStorage.getItem('displayName')).toBe('Old Name');
+      expect(deviceTokenModule.storeDeviceToken).not.toHaveBeenCalled();
+    });
+
+    it('no-ops when the broadcast carries the same name (equality guard)', () => {
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          useDeviceRestoration(workspaceId, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      vi.mocked(deviceTokenModule.storeDeviceToken).mockClear();
+
+      // Same name as currently in state -> guard should short-circuit.
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'Old Name', mode: 'kiosk' }],
+        });
+      });
+
+      expect(result.current.displayName).toBe('Old Name');
+      expect(deviceTokenModule.storeDeviceToken).not.toHaveBeenCalled();
+    });
+
+    it('applies successive renames in order', async () => {
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          useDeviceRestoration(workspaceId, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'Second Name', mode: 'kiosk' }],
+        });
+      });
+      await waitFor(() => {
+        expect(result.current.displayName).toBe('Second Name');
+      });
+
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'Third Name', mode: 'kiosk' }],
+        });
+      });
+      await waitFor(() => {
+        expect(result.current.displayName).toBe('Third Name');
+      });
+
+      expect(sessionStorage.getItem('displayName')).toBe('Third Name');
+      expect(deviceTokenModule.storeDeviceToken).toHaveBeenLastCalledWith(
+        expect.objectContaining({ name: 'Third Name' }),
+      );
+    });
+
+    it('skips the sync effect when no workspaceId is available', () => {
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          // workspaceId undefined -> sync effect must early-return
+          // (it gates on `workspaceId`).
+          useDeviceRestoration(undefined, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      vi.mocked(deviceTokenModule.storeDeviceToken).mockClear();
+      const initialName = result.current.displayName;
+
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'New Name', mode: 'kiosk' }],
+        });
+      });
+
+      // No workspace -> no localStorage write, name unchanged.
+      expect(deviceTokenModule.storeDeviceToken).not.toHaveBeenCalled();
+      expect(result.current.displayName).toBe(initialName);
+    });
+
+    it('writes only sessionStorage when no stored token exists for the workspace', async () => {
+      // Override the beforeEach: no token in localStorage. The effect
+      // should still update React state + sessionStorage but skip the
+      // storeDeviceToken call (since there is nothing to merge into).
+      vi.mocked(deviceTokenModule.getStoredDeviceToken).mockReturnValue(null);
+
+      const { result, rerender } = renderHook(
+        ({ devices }: { devices: DeviceListEntry[] }) =>
+          useDeviceRestoration(workspaceId, devices),
+        { initialProps: { devices: [] as DeviceListEntry[] } },
+      );
+
+      vi.mocked(deviceTokenModule.storeDeviceToken).mockClear();
+
+      act(() => {
+        rerender({
+          devices: [{ id: deviceId, displayName: 'Fresh Name', mode: 'kiosk' }],
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.displayName).toBe('Fresh Name');
+      });
+      expect(sessionStorage.getItem('displayName')).toBe('Fresh Name');
+      expect(deviceTokenModule.storeDeviceToken).not.toHaveBeenCalled();
+    });
+  });
 });
