@@ -1741,3 +1741,37 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 **Commit message:** Conventional `fix(server): …` with the AC-gate verdict line and `Refs #459` trailer (see `git show 8307ffa`).
 
 ---
+
+### 2026-06-08 01:18 UTC - Implementation Worker (#462)
+
+✅ **PR opened — [#464](https://github.com/jpshackelford/voice-relay/pull/464) (`fix(client): live-update displayName from device-list broadcast`)**
+
+- Issue: [#462](https://github.com/jpshackelford/voice-relay/issues/462) — peer-tab follow-up to #459 (covers AC #1b and #4 deferred from PR #463).
+- Branch: `462-live-displayname-sync`.
+- Scope: client-only (no server / DB / WS-protocol changes).
+- Files: `client/src/hooks/useDeviceRestoration.{ts,test.ts}`, `client/src/pages/{Workspace,SessionView}.tsx`. +256 / −6.
+
+**Change shape:**
+
+- `useDeviceRestoration` now takes an optional second `devices?: DeviceInfo[]` arg and runs a new sync effect: on a `device-list` entry matching the local `deviceId`, mirror the post-validation branch (React state + `sessionStorage.displayName` + workspace-scoped localStorage token entry). Equality guard `me.displayName === displayName` prevents flicker / render loops.
+- `Workspace.tsx` and `SessionView.tsx` bridge `useWebSocket.devices` back to the hook via a small `useState` forward (needed because restoration runs *before* WS in both pages).
+- Six new tests under `describe('live displayName updates from device-list', …)` cover the broadcast update path, the equality guard, the no-workspace short-circuit, the no-stored-token branch, and successive renames.
+
+**CI:** Server Tests / Client Tests / Build Client / E2E Tests / lint-pr-title — all green. 1216 client tests pass. `useDeviceRestoration.ts` line coverage 88.5 % (uncovered lines are pre-existing migration / workspace-change paths, not new code).
+
+**Closing-trailer AC gate (HARD GATE) — re-walked #462's ACs vs final diff:**
+
+| AC | Verdict | Evidence |
+|---|---|---|
+| 1. Hook consumes `device-list` via caller input, no own WS | ✅ | New `devices?: DeviceInfo[]` arg; both call sites pass `useWebSocket.devices`. No new WS opened. |
+| 2. On id-match + name-differ → setDisplayName + sessionStorage + storeDeviceToken | ✅ | `useDeviceRestoration.ts:262-275`; test 1 asserts all three writes. |
+| 3. Next `register` after reconnect carries new name | ✅ | `useWebSocket` lists `displayName` in connect-effect deps (`useWebSocket.ts:422`); React data flow guarantees re-connect uses updated value. |
+| 4. No flicker / loop; same-tab renames don't retrigger | ✅ | `me.displayName === displayName` guard; test 3. |
+| 5. Unit test mounts hook with stale sessionStorage, drives broadcast, asserts state + sessionStorage + localStorage | ✅ | Test 1 in new describe block. |
+| 6. Existing 15+ tests continue to pass | ✅ | 1216 client tests pass (all 18 in `useDeviceRestoration.test.ts`). |
+
+**Gate verdict: `Fixes #462` is the correct trailer.** All six ACs satisfied by the diff; no follow-ups required.
+
+**Status:** PR #464 marked ready for review. Review handling is a separate conversation.
+
+---
