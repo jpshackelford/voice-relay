@@ -17,6 +17,7 @@ import {
   onAgentRawEvent,
   onAgentThinkingChange,
   onAgentAction,
+  onAgentSessionReady,
   setAgentSystemPromptResolver,
   setAgentAIStateRepository,
   shutdownAgentDriver,
@@ -284,6 +285,23 @@ onAgentAction((sessionId: string, action: AgentAction) => {
     action,
   };
   registry.broadcastMessageToSession(sessionId, message);
+});
+
+// #458: Broadcast session-state when the upstream WS opens so kiosks
+// flip from 'starting' to 'ready' without waiting for the first message.
+onAgentSessionReady((sessionId: string) => {
+  void (async () => {
+    try {
+      const status = await agentDriver.getSessionStatus(sessionId);
+      if (status.state === 'absent') return;
+      broadcastSessionState(registry, sessionId, status, 'ws-ready');
+    } catch (err) {
+      console.error(
+        `[SessionState] ws-ready getSessionStatus failed for ${sessionId}:`,
+        err,
+      );
+    }
+  })();
 });
 
 // Repositories for database access (set up later if SQLite is used)

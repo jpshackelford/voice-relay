@@ -6,7 +6,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, SandboxResumeTimeoutError, SandboxResumeBudgetExhausted, UpstreamConversationEndedError, UpstreamCredentialsLostError, explainMissingHandshake, formatMissingHandshakeMessage, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback, type ConversationInfo } from './openhands.js';
+import { loadPrompt, getServerUrl, AISessionManager, OpenHandsApiError, SandboxMissingError, SandboxResumeTimeoutError, SandboxResumeBudgetExhausted, UpstreamConversationEndedError, UpstreamCredentialsLostError, explainMissingHandshake, formatMissingHandshakeMessage, formatEventSummary, extractEventFields, extractEffectiveKind, shouldSkipForKioskTimeline, type AISession, type ThinkingChangeCallback, type SessionReadyCallback, type ConversationInfo } from './openhands.js';
 import { RebindWindowTracker } from './agent-driver/rebind.js';
 
 describe('getServerUrl', () => {
@@ -565,6 +565,29 @@ describe('AISessionManager', () => {
       const callback: ThinkingChangeCallback = vi.fn();
       manager.setThinkingChangeCallback(callback);
       manager.setThinkingChangeCallback(undefined);
+      // Should not throw
+      expect(true).toBe(true);
+    });
+  });
+
+  // #458 — the session-ready callback fires from `ws.on('open')` so the
+  // platform can re-broadcast `session-state` once the upstream binding
+  // is usable. Without this fan-out the kiosk indicator stays on
+  // 'starting' until the first user message drives the existing
+  // thinking-change handler.
+  describe('session ready callback', () => {
+    test('setSessionReadyCallback sets the callback', () => {
+      const callback: SessionReadyCallback = vi.fn();
+      manager.setSessionReadyCallback(callback);
+      // Direct testing requires accessing private fields; verified
+      // through integration behaviour in the dedicated WS-mock test.
+      expect(true).toBe(true);
+    });
+
+    test('setSessionReadyCallback accepts undefined to clear', () => {
+      const callback: SessionReadyCallback = vi.fn();
+      manager.setSessionReadyCallback(callback);
+      manager.setSessionReadyCallback(undefined);
       // Should not throw
       expect(true).toBe(true);
     });

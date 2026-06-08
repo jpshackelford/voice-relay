@@ -57,6 +57,7 @@ import {
   type RawEventListener,
   type ThinkingListener,
   type ActionListener,
+  type SessionReadyListener,
 } from './openhands.js';
 import type { AgentDriver } from './types.js';
 
@@ -76,6 +77,7 @@ export {
   type RawEventListener,
   type ThinkingListener,
   type ActionListener,
+  type SessionReadyListener,
 } from './openhands.js';
 
 /**
@@ -115,6 +117,17 @@ export function onAgentThinkingChange(listener: ThinkingListener): () => void {
  */
 export function onAgentAction(listener: ActionListener): () => void {
   return openHandsDriver.onActionEvent(listener);
+}
+
+/**
+ * Subscribe to upstream WebSocket `OPEN` transitions from the production
+ * driver (#458). The platform broadcasts the unified `session-state`
+ * snapshot for each fire so kiosk indicators flip from `'starting'` to
+ * `'ready'` as soon as the binding is actually usable, instead of
+ * waiting for the first user message to drive the thinking fan-out.
+ */
+export function onAgentSessionReady(listener: SessionReadyListener): () => void {
+  return openHandsDriver.onSessionReady(listener);
 }
 
 /**

@@ -18,6 +18,7 @@ import type {
   AgentAction as OHAgentAction,
   EventCallback,
   RawOpenHandsEvent,
+  SessionReadyCallback,
   ThinkingChangeCallback,
 } from '../openhands.js';
 import type {
@@ -41,6 +42,12 @@ export interface AISessionManagerSurface {
   setThinkingChangeCallback(cb: ThinkingChangeCallback | undefined): void;
   setActionCallback(cb: ActionCallback | undefined): void;
   setEventCallback(cb: EventCallback | undefined): void;
+  /**
+   * Optional for backwards compatibility with older fakes; the production
+   * `AISessionManager` always implements this (#458). Adapter wires its
+   * fan-out only when present.
+   */
+  setSessionReadyCallback?(cb: SessionReadyCallback | undefined): void;
   getSessionAI(sessionId: string): AISession | undefined;
   getOrCreateForSession(
     sessionId: string,
@@ -76,6 +83,16 @@ export type RawEventListener = (
 
 /** Listener for session-level thinking-state changes. */
 export type ThinkingListener = (sessionId: string, thinking: boolean) => void;
+
+/**
+ * Listener for upstream WebSocket `OPEN` transitions for a VR-keyed
+ * session (#458). The OpenHands adapter is the single subscriber to
+ * `AISessionManager.setSessionReadyCallback`; platform code attaches
+ * listeners through {@link OpenHandsAgentDriver.onSessionReady} so it
+ * can re-broadcast `session-state` once the binding is actually
+ * usable.
+ */
+export type SessionReadyListener = (sessionId: string) => void;
 
 /** Listener for agent action events. */
 export type ActionListener = (sessionId: string, action: OHAgentAction) => void;
@@ -328,6 +345,8 @@ export class OpenHandsAgentDriver implements AgentDriver {
   private readonly rawEventListeners = new Set<RawEventListener>();
   private readonly thinkingListeners = new Set<ThinkingListener>();
   private readonly actionListeners = new Set<ActionListener>();
+  /** #458 — listeners notified when an upstream WS reaches `OPEN`. */
+  private readonly sessionReadyListeners = new Set<SessionReadyListener>();
   /**
    * In-flight upstream conversation-start promises keyed by `sessionId` so
    * concurrent `openSession` / `sendMessage` / `restartSession` callers
@@ -373,6 +392,16 @@ export class OpenHandsAgentDriver implements AgentDriver {
           listener(sessionId, conversationId, rawEvent);
         } catch (err) {
           console.error('[AgentDriver] raw event listener threw:', err);
+        }
+      }
+    });
+    // #458 — wire session-ready fan-out (optional for test fakes).
+    this.mgr.setSessionReadyCallback?.((sessionId) => {
+      for (const listener of this.sessionReadyListeners) {
+        try {
+          listener(sessionId);
+        } catch (err) {
+          console.error('[AgentDriver] session-ready listener threw:', err);
         }
       }
     });
@@ -497,6 +526,19 @@ export class OpenHandsAgentDriver implements AgentDriver {
     this.thinkingListeners.add(listener);
     return () => {
       this.thinkingListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Subscribe to upstream WebSocket `OPEN` transitions for VR-keyed
+   * sessions (#458). Returns an unsubscribe function. Mirrors
+   * {@link onThinkingChange} verbatim — the platform uses this to
+   * re-broadcast `session-state` once the binding becomes usable.
+   */
+  onSessionReady(listener: SessionReadyListener): () => void {
+    this.sessionReadyListeners.add(listener);
+    return () => {
+      this.sessionReadyListeners.delete(listener);
     };
   }
 

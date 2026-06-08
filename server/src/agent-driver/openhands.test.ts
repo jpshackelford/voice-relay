@@ -17,6 +17,7 @@ import {
   type AgentAction as OHAgentAction,
   type EventCallback,
   type RawOpenHandsEvent,
+  type SessionReadyCallback,
   type ThinkingChangeCallback,
 } from '../openhands.js';
 import type { AgentEvent } from './types.js';
@@ -39,6 +40,7 @@ class FakeAISessionManager implements AISessionManagerSurface {
   thinking?: ThinkingChangeCallback;
   action?: ActionCallback;
   event?: EventCallback;
+  sessionReady?: SessionReadyCallback;
   readonly bindings = new Map<string, FakeAIBinding>();
   readonly calls: Array<{ name: string; args: unknown[]; options?: unknown }> = [];
   /** Optional override of `getOrCreateForSession` behavior per test. */
@@ -62,6 +64,9 @@ class FakeAISessionManager implements AISessionManagerSurface {
   }
   setEventCallback(cb: EventCallback | undefined): void {
     this.event = cb;
+  }
+  setSessionReadyCallback(cb: SessionReadyCallback | undefined): void {
+    this.sessionReady = cb;
   }
 
   getSessionAI(sessionId: string): AISession | undefined {
@@ -126,6 +131,9 @@ class FakeAISessionManager implements AISessionManagerSurface {
   }
   fireEvent(sessionId: string, conversationId: string, raw: RawOpenHandsEvent): void {
     this.event?.(sessionId, conversationId, raw);
+  }
+  fireSessionReady(sessionId: string): void {
+    this.sessionReady?.(sessionId);
   }
 }
 
@@ -1067,6 +1075,58 @@ describe('OpenHandsAgentDriver', () => {
 
       expect(log).toEqual([{ session: 's1', kind: 'BrowserOpen' }]);
       unsub();
+    });
+
+    test('#458: onSessionReady fan-out fires for every WS open and unsubscribe stops it', () => {
+      const log: string[] = [];
+      const unsub = driver.onSessionReady((sessionId) => {
+        log.push(sessionId);
+      });
+
+      mgr.fireSessionReady('s1');
+      mgr.fireSessionReady('s2');
+      mgr.fireSessionReady('s1'); // reconnect — re-emits.
+
+      expect(log).toEqual(['s1', 's2', 's1']);
+
+      unsub();
+      mgr.fireSessionReady('s3');
+      expect(log).toEqual(['s1', 's2', 's1']);
+    });
+
+    test('#458: multiple onSessionReady listeners all receive the event', () => {
+      const a: string[] = [];
+      const b: string[] = [];
+      driver.onSessionReady((sid) => a.push(sid));
+      driver.onSessionReady((sid) => b.push(sid));
+
+      mgr.fireSessionReady('s1');
+
+      expect(a).toEqual(['s1']);
+      expect(b).toEqual(['s1']);
+    });
+
+    test('#458: a throwing onSessionReady listener does not break siblings', () => {
+      const calls: string[] = [];
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        driver.onSessionReady(() => {
+          calls.push('listener-1');
+          throw new Error('boom');
+        });
+        driver.onSessionReady(() => {
+          calls.push('listener-2');
+        });
+
+        expect(() => mgr.fireSessionReady('s1')).not.toThrow();
+        expect(calls).toEqual(['listener-1', 'listener-2']);
+        expect(errSpy).toHaveBeenCalledWith(
+          '[AgentDriver] session-ready listener threw:',
+          expect.any(Error),
+        );
+      } finally {
+        errSpy.mockRestore();
+      }
     });
 
     test('T-2.3.D.6: a throwing listener does not break sibling listeners', () => {
