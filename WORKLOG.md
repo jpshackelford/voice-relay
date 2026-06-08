@@ -1562,3 +1562,32 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 🚀 Filled 1 expansion + 2 review slots. Implementation slot intentionally idle (no work to pick up). Productive tick — `quiet_ticks` reset to 0.
 
 ---
+
+### 2026-06-08 00:54 UTC - Merge Worker (PR #461)
+
+✅ **Merged PR #461** — fix(server): broadcast session state when OH WS reaches 'open' (Fixes #458)
+
+- Squash commit: `61a9e3e3a680dd5933236fe6fb4f65f369fef5cb`
+- Issue #458 auto-closed by the `Fixes #458` trailer at 00:54:08 UTC.
+
+**Pre-flight verification:**
+- CI: 🟢 all 7 checks passing (Build Client, Client Tests, E2E Tests, Server Tests, enable-orchestrator, lint-pr-title, pr-review)
+- MERGEABLE / CLEAN, 3 review threads / 0 unresolved
+- pr-review last verdict: 🟢 "Good taste"
+- No schema changes — no migrations required
+- No `on-hold` / `needs-human` labels
+
+**Closing-Trailer AC Gate vs #458 — PASS (all 4 ACs covered):**
+| AC | Coverage |
+|----|----------|
+| #1 — kiosk transitions 🔗 → ✨ within ~1 s of `auto-connect:connected` (no user input) | `server/src/session-state-broadcast.ws-ready.test.ts` (integration test asserts a `'ws-ready'` `session-state` with `state: 'ready'` after simulated WS open) |
+| #2 — no `'starting'` broadcast after upstream WS is `OPEN` | Listener reads `getSessionStatus` after the WS state transition; `synthesizeStatus` resolves to `'ready'` |
+| #3 — agent-driver regression: `WS_CONNECTING` binding → follow-up `'ready'` on session-ready listener | Same file (option B from issue) |
+| #4 — `auto-connect.ts`-shaped path observes both `'starting'` and `'ready'` broadcasts | Same file |
+
+No override `## INSTRUCTION:` block used. Gate verdict recorded in the squash commit body.
+
+**Production net diff:** +44 LOC across 4 production files (+~460 LOC of tests).
+**Production deploy:** auto-deploys to vr.chorecraft.net on merge to main. No schema / migration / runbook follow-ups.
+
+---
