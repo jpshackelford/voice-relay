@@ -1285,3 +1285,33 @@ _This worklog entry was authored by an AI agent (OpenHands) on behalf of @jpshac
 **State change:** `quiet_ticks` 1 → 0 (productive tick).
 
 ---
+
+### 2026-06-08 02:56 UTC - Merge worker (PR #464)
+
+✅ **Merged PR #464** — `fix(client): live-update displayName from device-list broadcast`
+
+| Field | Value |
+|---|---|
+| Merge commit | `d151e25` |
+| Trailer | `Fixes #462` + `Refs #459` |
+| AC gate (#462) | **PASS** — all 6 ACs satisfied by the diff. No `## INSTRUCTION:` override consulted; gate passed on merits. Verification table mirrored in PR body. |
+| Sticky review handling | Dismissed stale `CHANGES_REQUESTED` review `4446221339` (github-actions[bot] @ 2026-06-08T01:45:53Z) via `PUT .../reviews/<id>/dismissals`. Follow-up bot review at 02:36:08Z (`COMMENTED`, verdict "Worth merging", Good taste, MEDIUM risk) superseded it; all 4 flagged review threads resolved by round-2 commit `29793e9`. Dismissal note included in squash commit body. |
+| Migration check | Skipped — PR is client-only (`useDeviceRestoration.ts` + `Workspace.tsx` + `SessionView.tsx` + tests). No schema/migration. |
+| Issue #462 | Was already CLOSED at 2026-06-08T01:36:52Z by the impl worker; no reopen-then-close cycle on merge — left closed. |
+
+**Post-merge: closed #459 as completed.**
+
+Walked #459's 4 ACs against the combined merged diff of PR #463 + PR #464:
+- AC 1 (rename persists across reconnects/restarts/refreshes + kiosk display flips ~1 frame after `device-list` broadcast) → ✅ server fix in `device-repository.ts` (PR #463) + client sync effect at `useDeviceRestoration.ts:262-275` (PR #464).
+- AC 2 (own-tab rename still works, no regression) → ✅ server change only suppresses the unconditional overwrite on existing-device updates; create + PATCH paths unchanged.
+- AC 3 (server regression test) → ✅ `server/src/devices/device-repository.test.ts:403` (`preserves user-renamed name across a stale-payload re-register`) landed in PR #463.
+- AC 4 (client regression test — peer-tab simulation with stale sessionStorage + device-list broadcast → state + sessionStorage + localStorage all updated; next `register` carries new name) → ✅ `client/src/hooks/useDeviceRestoration.test.ts` — `describe('live displayName updates from device-list', …)`, 7 cases incl. regression test for the round-2 race condition. Reconnect-carries-new-name guaranteed by `displayName` in `useWebSocket.ts:422` connect-effect deps.
+
+Actions taken on #459: posted closing comment ([#issuecomment-4645068776](https://github.com/jpshackelford/voice-relay/issues/459#issuecomment-4645068776)) with the AC-by-AC table, removed `on-hold`, closed as `completed`.
+
+**Current state:**
+- **PR #464** — merged.
+- Open issues: 1 `needs-human` (#372), 7 `on-hold` (#386, #302, #301, #300, #299, #239, #210 — #459 lifted), 0 `ready`, 0 `needs-expansion`.
+- Backlog drained; #459 was the last actionable chain. Next tick will likely be quiet.
+
+---
