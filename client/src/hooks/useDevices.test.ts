@@ -245,8 +245,6 @@ describe('useDevices hook', () => {
     });
 
     it('flushes sessionStorage.displayName and stored token when renaming the current device (issue #459)', async () => {
-      // Simulate a tab that already cached the old default name and holds the
-      // stored token for the device being renamed.
       sessionStorage.setItem('displayName', 'Mac-bd20407');
       mockStoredDevice = {
         deviceId: 'dev-a',

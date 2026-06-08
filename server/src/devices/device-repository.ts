@@ -168,10 +168,7 @@ export class DeviceRepository {
     const existing = this.findById(deviceId);
 
     if (existing) {
-      // Refresh `last_seen_at` and let `mode` flip (mobile↔kiosk via session
-      // entry/exit). The persisted `name` is user-authoritative — renames go
-      // through PATCH /api/devices/:id. A stale `register` payload from a
-      // long-lived kiosk/session tab must NOT overwrite it. See #459.
+      // Preserve user-renamed name; only mode flips on reconnect. See #459.
       this.update(deviceId, { mode });
       this.updateLastSeen(deviceId);
       const updated = this.findById(deviceId);
