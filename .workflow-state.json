@@ -1,29 +1,20 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "e655f43",
-        "actual_conv_id": "e655f436b1f74fe1b68473ed19628b53",
+        "conv_id": "2c72909",
         "issue": 462,
-        "started": "2026-06-08T00:52:47.593528+00:00"
+        "started": "2026-06-08T01:08:14.010262+00:00"
       }
     ],
-    "implementation": [],
     "review": [
       {
-        "conv_id": "d333a71",
-        "actual_conv_id": "d333a71df3394c68bc71d4c23d4726c8",
-        "pr": 461,
-        "worker_subtype": "merge",
-        "started": "2026-06-08T00:52:47.593528+00:00"
-      },
-      {
-        "conv_id": "be7a5aa",
-        "actual_conv_id": "be7a5aaff4684942aa7e7fc3b8750bb4",
+        "conv_id": "7922788",
         "pr": 463,
-        "worker_subtype": "review",
-        "started": "2026-06-08T00:52:47.593528+00:00"
+        "worker_subtype": "merge",
+        "started": "2026-06-08T01:08:14.010262+00:00"
       }
     ]
   },
@@ -32,7 +23,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-08T00:52:47.593528+00:00",
+  "last_updated": "2026-06-08T01:08:14.010262+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -411,6 +402,33 @@
       "finished": "2026-06-08T00:50:54.789277+00:00",
       "status": "success",
       "outcome": "Addressed review on PR #461 \u2014 all 3 review threads resolved, CI green, mergeable=CLEAN. Ready for merge worker."
+    },
+    {
+      "conv_id": "e655f43",
+      "type": "expansion",
+      "started": "2026-06-08T00:52:47.593528+00:00",
+      "finished": "2026-06-08T01:05:57.018445+00:00",
+      "status": "success",
+      "issue": 462,
+      "outcome": "Expanded issue #462, added ready label"
+    },
+    {
+      "conv_id": "d333a71",
+      "type": "review",
+      "started": "2026-06-08T00:52:47.593528+00:00",
+      "finished": "2026-06-08T01:05:57.018445+00:00",
+      "status": "success",
+      "pr": 461,
+      "outcome": "Merged PR #461"
+    },
+    {
+      "conv_id": "be7a5aa",
+      "type": "review",
+      "started": "2026-06-08T00:52:47.593528+00:00",
+      "finished": "2026-06-08T01:05:57.018445+00:00",
+      "status": "success",
+      "pr": 463,
+      "outcome": "Addressed review feedback on PR #463"
     }
   ],
   "quiet_ticks": 0

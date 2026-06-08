@@ -1650,3 +1650,51 @@ The comment edits don't move any acceptance criterion:
 **Cross-issue learning:** None — this round was purely cosmetic. The lesson generalizes to "the pr-review bot's verbosity-budget heuristic is fairly tight; prefer single-line intent comments + commit-message context over inline change-history prose." Worth keeping in mind on future fixes that explicitly call out a referenced issue number, but not significant enough to encode in `AGENTS.md` yet.
 
 ---
+### 2026-06-08 01:03 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `7922788` | review (merge) | PR #463 — fix(server): preserve user-renamed device name on WS register | **NEW** |
+| `2c72909` | implementation | Issue #462 — useDeviceRestoration live-update displayName | **NEW** |
+
+**Slots after dispatch:** expansion 0/4 · implementation 1/1 · review 1/2 · completed=41 · quiet_ticks=0
+
+**Cycle summary:**
+
+Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463, `e655f43` expansion for #462) are all `finished` and moved to `completed`. Gathered state and dispatched on the now-free slots.
+
+**Action 1 — Spawned merge worker for PR #463**
+- PR #463 — `fix(server): preserve user-renamed device name on WS register (Refs #459)`
+- Pre-flight verified by the orchestrator:
+  - 🟢 CI: all 7 checks SUCCESS (Build Client, Client Tests, E2E Tests, Server Tests, enable-orchestrator, lint-pr-title, pr-review)
+  - 🟢 MERGEABLE / CLEAN, 5 threads / 0 unresolved (review round addressed in `80fbaaf` at 00:57Z)
+  - 🟢 pr-review bot latest verdict (01:00:59Z): "Good taste — Minimal, surgical fix with comprehensive test coverage" · LOW risk
+  - No `on-hold` / `needs-human` / `blocked` / `needs-info` labels; no override `## INSTRUCTION:` block
+  - Trailer is `Refs #459` (deferred ACs #1b and #4 tracked in follow-up #462). Worker instructed to keep #459 OPEN post-merge.
+- Conversation: [`7922788`](https://app.all-hands.dev/conversations/7922788eca6f4be59af0347681adc209) — execution_status `running`
+
+**Action 2 — Spawned implementation worker for issue #462**
+- Issue #462 — `useDeviceRestoration: live-update displayName from device-list broadcast (peer-tab follow-up to #459)`
+- Labels: `bug`, `ready`, `priority:high`, `scope:client-only`
+- Just expanded by the prior tick's `e655f43`; covers AC #1b and #4 deferred from #459. No open PR yet.
+- Client-only diff — primary touch points: `client/src/hooks/useDeviceRestoration.ts`, the matching test, plus call-site wiring at `client/src/pages/Workspace.tsx` and `client/src/pages/SessionView.tsx`.
+- May land in parallel with #463 merging (server-only vs client-only — conflict surface ~nil).
+- Conversation: [`2c72909`](https://app.all-hands.dev/conversations/2c729092d30c4e5697ee149026b63764) — execution_status `running`
+
+**Unblock pass:** 0 issues lifted.
+- `on-hold` set: #299, #300, #301, #302, #210, #239, #386.
+- `#299` (Blocked by #298 — CLOSED) and `#301` (Blocked by #295 — CLOSED) are mechanically eligible BUT remain on-hold per the AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" policy gate — #298–#302 stay on-hold until the S3 bucket + AWS creds + smoke-test conditions are met. **Override note:** AGENTS.md is a codified policy source (per Anti-Stall §3), so the freeze takes precedence over the mechanical unblock.
+- `#300` (Blocked by #298, #299), `#302` (Blocked by #300) — at least one blocker still OPEN, no lift candidate.
+- `#210`, `#239`, `#386` — no machine-parseable `Blocked by #N`; policy-tracked, untouched.
+
+**Current State:**
+- Open PRs: [#463](https://github.com/jpshackelford/voice-relay/pull/463) (merge worker active)
+- Ready issues without PR: none (#462 just picked up by impl worker; #386 is `ready` + `on-hold` policy)
+- Issues needing expansion: 0
+- Backlog drained except policy holds; both workable slots now in use.
+
+**Action Taken:**
+🚀 **Spawned 2 workers** (merge + implementation). State persisted to main alongside this entry.
+
+---
