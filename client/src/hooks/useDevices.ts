@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getStoredDeviceToken } from '../utils/deviceToken';
+import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 
 /** Resolved primary speaker identity for a device. */
 export interface DevicePrimaryUser {
@@ -104,10 +104,21 @@ export function useDevices(workspaceId: string | undefined): UseDevicesReturn {
     }
 
     // Update device in local state
-    setDevices(prev => prev.map(d => 
+    setDevices(prev => prev.map(d =>
       d.id === deviceId ? { ...d, name: newName } : d
     ));
-  }, []);
+
+    // Defense-in-depth: flush cached name if renaming current device. See #459.
+    const stored = getStoredDeviceToken(workspaceId);
+    if (stored && stored.deviceId === deviceId) {
+      try {
+        sessionStorage.setItem('displayName', newName);
+      } catch {
+        // sessionStorage may be unavailable (Safari private, quota); best-effort.
+      }
+      storeDeviceToken({ ...stored, name: newName });
+    }
+  }, [workspaceId]);
 
   const removeDevice = useCallback(async (deviceId: string): Promise<void> => {
     if (!workspaceId) {

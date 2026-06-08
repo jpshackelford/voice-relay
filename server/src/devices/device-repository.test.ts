@@ -379,7 +379,7 @@ describe('DeviceRepository', () => {
       expect(result.device.name).toBe('New Device');
     });
 
-    it('updates existing device without generating new token', () => {
+    it('updates existing device mode but preserves persisted name (issue #459)', () => {
       const { device } = repo.create({
         workspaceId: testWorkspaceId,
         name: 'Old Name',
@@ -394,10 +394,34 @@ describe('DeviceRepository', () => {
       );
 
       expect(result.isNew).toBe(false);
-      expect(result.token).toBeNull(); // No new token for existing device
-      expect(result.expiresAt).toBeNull(); // No new expiry for existing device
-      expect(result.device.name).toBe('Updated Name');
+      expect(result.token).toBeNull();
+      expect(result.expiresAt).toBeNull();
+      expect(result.device.name).toBe('Old Name');
       expect(result.device.mode).toBe('kiosk');
+    });
+
+    it('preserves user-renamed name across a stale-payload re-register (issue #459)', () => {
+      const { device } = repo.create({
+        workspaceId: testWorkspaceId,
+        name: 'Mac-bd20407',
+        mode: 'mobile',
+      });
+
+      repo.update(device.id, { name: 'Living Room Kiosk' });
+      expect(repo.findById(device.id)!.name).toBe('Living Room Kiosk');
+
+      const result = repo.registerOrUpdate(
+        device.id,
+        testWorkspaceId,
+        'Mac-bd20407', // stale payload from long-lived kiosk tab
+        'kiosk'
+      );
+
+      expect(result.device.name).toBe('Living Room Kiosk');
+      expect(result.device.mode).toBe('kiosk');
+      const persisted = repo.findById(device.id)!;
+      expect(persisted.name).toBe('Living Room Kiosk');
+      expect(persisted.mode).toBe('kiosk');
     });
   });
 });

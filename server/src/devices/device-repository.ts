@@ -168,8 +168,8 @@ export class DeviceRepository {
     const existing = this.findById(deviceId);
 
     if (existing) {
-      // Update last seen and any changed fields
-      this.update(deviceId, { name, mode });
+      // Preserve user-renamed name; only mode flips on reconnect. See #459.
+      this.update(deviceId, { mode });
       this.updateLastSeen(deviceId);
       const updated = this.findById(deviceId);
       return { device: updated!, token: null, expiresAt: null, isNew: false };
