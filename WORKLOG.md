@@ -1650,6 +1650,7 @@ The comment edits don't move any acceptance criterion:
 **Cross-issue learning:** None — this round was purely cosmetic. The lesson generalizes to "the pr-review bot's verbosity-budget heuristic is fairly tight; prefer single-line intent comments + commit-message context over inline change-history prose." Worth keeping in mind on future fixes that explicitly call out a referenced issue number, but not significant enough to encode in `AGENTS.md` yet.
 
 ---
+
 ### 2026-06-08 01:03 UTC - Orchestrator
 
 **Active Workers:**
@@ -1696,5 +1697,47 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 
 **Action Taken:**
 🚀 **Spawned 2 workers** (merge + implementation). State persisted to main alongside this entry.
+
+---
+
+### 2026-06-08 01:09 UTC - Merge worker (PR #463 → main)
+
+✅ **Merged PR #463** — `fix(server): preserve user-renamed device name on WS register (Refs #459)`
+
+- PR: [#463](https://github.com/jpshackelford/voice-relay/pull/463)
+- Squash commit on `main`: `8307ffa`
+- Merged at: 2026-06-08T01:09:02Z
+- Production: auto-deploys to vr.chorecraft.net (SQLite). No schema change, no migration needed.
+
+**Pre-flight (re-verified at tick):**
+
+| Gate | Status |
+|---|---|
+| CI checks | 🟢 7/7 (Build Client, Client Tests, E2E, Server Tests, enable-orchestrator, lint-pr-title, pr-review) |
+| Mergeable / state | MERGEABLE / CLEAN, not draft |
+| Review threads | 5 total / 0 unresolved (round closed in `80fbaaf`) |
+| pr-review bot verdict | 🟢 "Good taste — minimal, surgical fix with comprehensive test coverage" (LOW risk, 01:00:59Z) |
+| Blocking labels | None (no `on-hold` / `needs-human` / `blocked` / `needs-info`) |
+| WORKLOG `## INSTRUCTION:` gate | None open against this PR |
+
+**Closing-trailer AC gate (HARD GATE) — re-walked #459's ACs vs final diff:**
+
+| AC | Verdict | Evidence |
+|---|---|---|
+| #1a — rename persists across kiosk reconnects, server restarts, full page refreshes | ✅ Satisfied | `device-repository.ts:170-171` drops `name` from `update()`; `device-repository.test.ts` "stale-payload re-register" regression case asserts persistence |
+| #1b — kiosk display flips to new name within ~1 frame of next `device-list` broadcast | ❌ **Deferred → #462** | Requires `useDeviceRestoration` peer-tab listener; not in diff |
+| #2 — rename from kiosk's own tab still works (no regression) | ✅ Satisfied | Same-tab flow preserved; strengthened by `useDevices.renameDevice` flush |
+| #3 — server stale-payload regression test | ✅ Satisfied | `device-repository.test.ts` "preserves user-renamed name across a stale-payload re-register (issue #459)" |
+| #4 — client peer-tab `useDeviceRestoration` mount-with-stale-sessionStorage regression test | ❌ **Deferred → #462** | Same root cause as #1b |
+
+**Gate verdict: `Refs #459` is the correct trailer.** Two of five ACs (#1b, #4) are not in the diff but are covered by follow-up [#462](https://github.com/jpshackelford/voice-relay/issues/462) (OPEN, `bug,ready,priority:high,scope:client-only`). PR body's `## Deferred to follow-ups` section accurately points at #462. AC-gate verdict line recorded in the squash commit body.
+
+**Post-merge state:**
+
+- Issue #459 — **OPEN** (correct; `Refs`, not `Fixes`; #1b and #4 still pending in #462). Do not close manually.
+- Issue #462 — **OPEN, ready** (next worker can pick this up; it carries the deferred ACs).
+- PR #463 — MERGED, `state=MERGED`, merge commit `8307ffa`.
+
+**Commit message:** Conventional `fix(server): …` with the AC-gate verdict line and `Refs #459` trailer (see `git show 8307ffa`).
 
 ---
