@@ -1,22 +1,29 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [
+    "expansion": [
       {
-        "conv_id": "65f1554",
-        "actual_conv_id": "65f1554fdf114d91bd63c845c4b15694",
-        "issue": 459,
-        "started": "2026-06-07T22:52:24.456100+00:00"
+        "conv_id": "e655f43",
+        "actual_conv_id": "e655f436b1f74fe1b68473ed19628b53",
+        "issue": 462,
+        "started": "2026-06-08T00:52:47.593528+00:00"
       }
     ],
+    "implementation": [],
     "review": [
       {
-        "conv_id": "c60848c",
-        "actual_conv_id": "c60848c2919d4daa86dcfd5e1ffde865",
+        "conv_id": "d333a71",
+        "actual_conv_id": "d333a71df3394c68bc71d4c23d4726c8",
         "pr": 461,
-        "type": "review",
-        "started": "2026-06-07T22:52:24.456100+00:00"
+        "worker_subtype": "merge",
+        "started": "2026-06-08T00:52:47.593528+00:00"
+      },
+      {
+        "conv_id": "be7a5aa",
+        "actual_conv_id": "be7a5aaff4684942aa7e7fc3b8750bb4",
+        "pr": 463,
+        "worker_subtype": "review",
+        "started": "2026-06-08T00:52:47.593528+00:00"
       }
     ]
   },
@@ -25,7 +32,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-07T22:52:24.456100+00:00",
+  "last_updated": "2026-06-08T00:52:47.593528+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -383,6 +390,27 @@
       "finished": "2026-06-07T22:52:24.456100+00:00",
       "status": "success",
       "outcome": "Merged PR #460 (commit 07da140) Fixes #457; AC gate 5/5 PASS"
+    },
+    {
+      "conv_id": "65f1554",
+      "actual_conv_id": "65f1554fdf114d91bd63c845c4b15694",
+      "type": "implementation",
+      "issue": 459,
+      "pr": 463,
+      "started": "2026-06-07T22:52:24.456100+00:00",
+      "finished": "2026-06-08T00:50:54.789277+00:00",
+      "status": "success",
+      "outcome": "Opened PR #463 \u2014 fix(server): preserve user-renamed device name on WS register (Refs #459). AC gate downgrade to Refs (per worker title). 5 review threads landed for next review round."
+    },
+    {
+      "conv_id": "c60848c",
+      "actual_conv_id": "c60848c2919d4daa86dcfd5e1ffde865",
+      "type": "review",
+      "pr": 461,
+      "started": "2026-06-07T22:52:24.456100+00:00",
+      "finished": "2026-06-08T00:50:54.789277+00:00",
+      "status": "success",
+      "outcome": "Addressed review on PR #461 \u2014 all 3 review threads resolved, CI green, mergeable=CLEAN. Ready for merge worker."
     }
   ],
   "quiet_ticks": 0
