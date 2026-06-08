@@ -5,11 +5,12 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "c66f765",
-        "actual_conv_id": "c66f7651c65e4e0a9f095c4763087912",
+        "conv_id": "29793e9",
+        "actual_conv_id": "29793e9253814c4c9efbc6f4e207eb0f",
         "pr": 464,
         "issue": 462,
-        "started": "2026-06-08T01:35:43.884915+00:00"
+        "started": "2026-06-08T02:22:47.133684+00:00",
+        "round": 2
       }
     ]
   },
@@ -18,7 +19,7 @@
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-08T01:35:43.884915+00:00",
+  "last_updated": "2026-06-08T02:22:47.133684+00:00",
   "completed": [
     {
       "conv_id": "204eef3",
@@ -442,6 +443,17 @@
       "finished": "2026-06-08T01:33:55.803231+00:00",
       "status": "success",
       "outcome": "Opened PR #464 (Fixes #462) \u2014 CI all green, ready not draft"
+    },
+    {
+      "conv_id": "c66f765",
+      "actual_conv_id": "c66f7651c65e4e0a9f095c4763087912",
+      "type": "review",
+      "pr": 464,
+      "issue": 462,
+      "started": "2026-06-08T01:35:43.884915+00:00",
+      "finished": "2026-06-08T02:19:48.164233+00:00",
+      "status": "success",
+      "outcome": "Round-1 review addressed (commit 2e593d0 \u2014 condensed 3 stylistic comments per bot suggestions). PR back to ready; CI green; 3 prior threads resolved. Subsequent pr-review bot run (01:45:53Z, COMPLETED 01:46:08Z) raised a NEW \ud83d\udd34 Critical race-condition thread on displayName deps array; reviewDecision flipped to CHANGES_REQUESTED. Needs round-2 review worker."
     }
   ],
   "quiet_ticks": 0

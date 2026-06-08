@@ -1162,3 +1162,50 @@ PR moved back from draft to ready for review. Merge handling is a separate conve
 **Reflection:** all three suggestions accepted because they were the same theme — consolidating documentation to a single canonical comment, with short pointers at call sites — and `SessionView.tsx` already followed this exact pattern from #463's review round, so this PR was inconsistent with itself. The reflection-worthy cross-issue learning (noted as a comment on #462): when a follow-up PR derives from a recent merged sibling, audit its comment style against the sibling's resolved review threads up front rather than re-litigating them.
 
 ---
+
+### 2026-06-08 02:22 UTC - Orchestrator
+
+🚀 **Spawned: Review Worker (round 2)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `29793e9` | review (round 2) | PR #464 — 🔴 race-condition thread on `displayName` deps | **NEW** |
+
+**Spawn:**
+- PR: [#464 — fix(client): live-update displayName from device-list broadcast](https://github.com/jpshackelford/voice-relay/pull/464) (Fixes #462)
+- Conversation: [`29793e9`](https://app.all-hands.dev/conversations/29793e9253814c4c9efbc6f4e207eb0f) (execution_status=running, started 02:22:05Z, polled READY at 02:22:18Z)
+- Scope: single unresolved thread `PRRT_kwDOSTUWGM6HtLLB` on `client/src/hooks/useDeviceRestoration.ts` — bot flagged a latent revert-on-local-rename race when a future settings UI lands. Worker is instructed to evaluate accept-vs-reject, fix or rebut, push, resolve thread, re-run AC gate, return PR to ready.
+
+**Reaped:** `c66f765` (review round 1, PR #464) → completed at 02:22Z. Outcome: 3 stylistic threads addressed in commit `2e593d0`; pr-review bot's subsequent run (01:45:53Z, COMPLETED 01:46:08Z) added a new 🔴 thread → round 2 needed.
+
+**Current State:**
+- Open PRs:
+  - [#464](https://github.com/jpshackelford/voice-relay/pull/464) — `oRFcR green ready 💬1`, mergeable=MERGEABLE, mergeStateStatus=CLEAN, reviewDecision=CHANGES_REQUESTED, 7/7 checks green. Round-2 review worker dispatched.
+  - [#465](https://github.com/jpshackelford/voice-relay/pull/465) — `docs(tvos): per-file issue drafts for tvOS backend gaps`, human-authored draft by @jpshackelford (opened 01:46Z), 6/7 checks green (`lint-pr-title` FAILURE on `tvos` scope — outside the allowed scope vocabulary). Draft → orchestrator does not touch.
+- Issues by category (9 open):
+  - on-hold (8): #210, #239, #299, #300, #301, #302, #386, #459
+  - needs-human (1): #372
+- No issues need expansion (every open issue is `on-hold` or `needs-human`).
+- No ready+unblocked+prioritized issues to dispatch on the impl slot.
+
+**Unblock pass (machine-readable `Blocked by #N` only):**
+- #210, #239, #386: prose-tracked — skip (untouched).
+- #302: blocked by #300 (OPEN) — still blocked, skip.
+- #300: blocked by #298 (CLOSED) + #299 (OPEN) — still blocked, skip.
+- #299, #301: blockers all CLOSED, **mechanically eligible** — but held under AGENTS.md S3 design-freeze (Path B, lines 71–106; freeze-lift conditions not verifiable from sandbox). Policy override applied → on-hold retained. Consistent with prior cycles.
+- #459: blocker #462 CLOSED (closed by @jpshackelford manually at 01:36:52Z, `stateReason: COMPLETED`), **mechanically eligible**. **Policy override applied this tick** → on-hold retained. Rationale: PR #464 (which carries the actual code to satisfy #459's deferred ACs #1b/#4) is still in review round 2; lifting #459 now would let the next tick dispatch a redundant impl worker before #464 lands. The on-hold rationale on #459 (01:20:32Z comment) explicitly says the gate re-run should happen "against the combined diff of PR #463 + #462's PR" — i.e., after #464 merges. Will re-evaluate next tick after PR #464 merges.
+- Unblock pass: **0 issues lifted** (3 mechanically eligible, held under policy/coordination override).
+
+**Slot state (post-spawn):** expansion 0/4, implementation 0/1, review 1/2.
+
+**Action Taken:**
+🚀 Spawned review round-2 worker for PR #464; reaped round-1 worker. Single review slot used, expansion/impl idle by design.
+
+**Next tick should:**
+- Verify `29793e9` finished and PR #464 returned to ready with CI green + thread resolved + AC gate re-verdict.
+- If PR #464 is then `oRFcR green ready 💬0` and reviewDecision is APPROVED/no-CR, dispatch merge worker.
+- After PR #464 merges, the next tick's unblock pass will lift #459 mechanically → run AC gate on the combined PR #463 + #464 diff vs #459's ACs.
+
+---
+
