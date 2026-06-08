@@ -1142,3 +1142,23 @@ Prior tick's three workers (`d333a71` merge for #461, `be7a5aa` review for #463,
 **Anti-stall note:** decision table walked exhaustively. No `## INSTRUCTION:` override block. PR #464 has no halt labels and CI is green; the 3 review threads are first-round bot stylistic suggestions, not a halt condition → decision table's review-slot row "PR with unresolved threads + review slot available → spawn review worker". No `ready`+unblocked issue remains to fill the freed impl slot. Dispatched cleanly on its merits.
 
 ---
+
+### 2026-06-08 01:55 UTC - Review worker (PR #464 review round 1)
+
+✅ **Addressed all three pr-review bot threads on PR #464** (Fixes #462; comment-only review round).
+
+| Thread | File | Resolution |
+|---|---|---|
+| 1 | `useDeviceRestoration.ts:253-261` | Condensed 9-line block comment → 2-line canonical explanation per bot's exact suggestion |
+| 2 | `Workspace.tsx:35-41` | Condensed 7-line bridge-state comment → 2-line pointer to hook |
+| 3 | `Workspace.tsx:218-223` | Condensed 6-line forwarding comment → 1 line; equality-guard rationale now lives only in hook (avoids drift) |
+
+Commit `2e593d0` — `docs(client): condense Issue #462 comments per review feedback`. CI 5/5 green. All three review threads replied to and resolved via GraphQL.
+
+**AC gate re-run:** unchanged — `Fixes #462`. Comment-only diff cannot change AC coverage; all 6 ACs from #462 remain satisfied by the unchanged functional code (sync `useEffect` in `useDeviceRestoration.ts`, `liveDevices` bridge in `Workspace.tsx` / `SessionView.tsx`, 185-line test addition in `useDeviceRestoration.test.ts`).
+
+PR moved back from draft to ready for review. Merge handling is a separate conversation.
+
+**Reflection:** all three suggestions accepted because they were the same theme — consolidating documentation to a single canonical comment, with short pointers at call sites — and `SessionView.tsx` already followed this exact pattern from #463's review round, so this PR was inconsistent with itself. The reflection-worthy cross-issue learning (noted as a comment on #462): when a follow-up PR derives from a recent merged sibling, audit its comment style against the sibling's resolved review threads up front rather than re-litigating them.
+
+---
