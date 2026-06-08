@@ -17,7 +17,7 @@ import { useWorkspaceAutoJoin } from '../hooks/useWorkspaceAutoJoin';
 import { useKioskConfig } from '../hooks/useKioskConfig';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
-import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage, AudioChunkMessage, AudioEndMessage } from '../types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent, JoinResolvedMessage, JoinRequestMessage, AudioChunkMessage, AudioEndMessage, DeviceInfo } from '../types';
 
 interface WorkspaceInfo {
   id: string;
@@ -66,13 +66,19 @@ export function SessionView() {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, ensureValidToken, login } = useAuth();
 
+  // Issue #462: bridge `useWebSocket.devices` back into
+  // `useDeviceRestoration` so a peer-tab `device-list` broadcast can
+  // refresh our local `displayName` after a server-side rename. See
+  // the matching block in `Workspace.tsx` for the rationale.
+  const [liveDevices, setLiveDevices] = useState<DeviceInfo[]>([]);
+
   // Device restoration hook handles token validation
   const {
     deviceId,
     displayName,
     wasRestored,
     isValidating: deviceTokenValidating,
-  } = useDeviceRestoration(workspaceId);
+  } = useDeviceRestoration(workspaceId, liveDevices);
 
   const [showReconnectBanner, setShowReconnectBanner] = useState(false);
   const [showJoinedBanner, setShowJoinedBanner] = useState(false);
@@ -346,6 +352,12 @@ export function SessionView() {
         at: Date.now(),
       }),
   });
+
+  // Issue #462: forward `devices` back into the restoration hook's
+  // sync effect (see matching block in `Workspace.tsx`).
+  useEffect(() => {
+    setLiveDevices(devices);
+  }, [devices]);
 
   // Issue #439: post-OAuth-return device-claim chain. When the user came
   // back from GitHub via the ClaimSpeakerCard "I'm a workspace member"

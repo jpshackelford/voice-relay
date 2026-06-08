@@ -12,7 +12,7 @@ import {
 } from '../utils/deviceToken';
 import { generateUUID } from '../utils/uuid';
 import { generateDefaultDeviceName } from '../utils/deviceName';
-import type { DeviceMode } from '../types';
+import type { DeviceMode, DeviceInfo } from '../types';
 
 interface DeviceRestorationResult {
   /** Unique device ID (from storage or newly generated) */
@@ -127,8 +127,18 @@ function getStoredMode(workspaceId?: string): DeviceMode | null {
  * but will not re-initialize state for the new workspace.
  * 
  * @param workspaceId - Current workspace ID for token validation
+ * @param devices - Optional live `device-list` broadcast payload from
+ *   `useWebSocket.devices`. When provided, the hook keeps its local
+ *   `displayName` (plus `sessionStorage.displayName` and the workspace-scoped
+ *   localStorage token entry) in sync with the server-authoritative name for
+ *   this device id. Lets a peer kiosk/session tab pick up a `PATCH
+ *   /api/devices/:id` rename within ~1 frame of the next broadcast, without
+ *   waiting for a full reload. See issue #462.
  */
-export function useDeviceRestoration(workspaceId: string | undefined): DeviceRestorationResult {
+export function useDeviceRestoration(
+  workspaceId: string | undefined,
+  devices?: DeviceInfo[],
+): DeviceRestorationResult {
   // Track the workspaceId we initialized with for detecting unsupported workspace changes
   const initialWorkspaceId = useRef(workspaceId);
   
@@ -239,6 +249,32 @@ export function useDeviceRestoration(workspaceId: string | undefined): DeviceRes
       sessionStorage.setItem('displayName', displayName);
     }
   }, [displayName]);
+
+  // Issue #462: Live-sync displayName from device-list broadcast.
+  // Equality guard prevents re-render loops and no-ops same-tab renames.
+  //
+  // `displayName` is intentionally NOT in the deps array: this effect must
+  // only react to *broadcast* changes, not local state changes. If a future
+  // settings UI calls setDisplayName('New') locally before the server has
+  // echoed the rename, including `displayName` in deps would re-run this
+  // effect with a stale `devices` array (still containing 'Old') and revert
+  // the user's edit. The closure still reads the latest `displayName` for
+  // the equality check because React recreates the effect callback every
+  // render. See PR #464 review for the full scenario.
+  useEffect(() => {
+    if (!devices || !deviceId || !workspaceId) return;
+    const me = devices.find((d) => d.id === deviceId);
+    if (!me) return;
+    if (me.displayName === displayName) return;
+
+    setDisplayName(me.displayName);
+    sessionStorage.setItem('displayName', me.displayName);
+
+    const stored = getStoredDeviceToken(workspaceId);
+    if (stored) {
+      storeDeviceToken({ ...stored, name: me.displayName });
+    }
+  }, [devices, deviceId, workspaceId]);
 
   return {
     deviceId,

@@ -10,7 +10,7 @@ import { useKioskConfig } from '../hooks/useKioskConfig';
 import { getStoredDeviceToken, storeDeviceToken } from '../utils/deviceToken';
 import { getUserFriendlyMessage } from '../utils/errors';
 import { parseOhTimestamp } from '../utils/parseOhTimestamp';
-import type { DeviceMode, Utterance, ServerMessage, DisplayContent } from '../types';
+import type { DeviceMode, Utterance, ServerMessage, DisplayContent, DeviceInfo } from '../types';
 
 interface WorkspaceInfo {
   id: string;
@@ -32,6 +32,10 @@ export function Workspace() {
   }
   const { isAuthenticated, loading: authLoading, ensureValidToken } = useAuth();
 
+  // Issue #462: forward devices to useDeviceRestoration for live displayName sync.
+  // See useDeviceRestoration.ts for the sync implementation.
+  const [liveDevices, setLiveDevices] = useState<DeviceInfo[]>([]);
+
   // Device restoration hook handles token validation and session restoration
   const {
     deviceId,
@@ -41,7 +45,7 @@ export function Workspace() {
     wasRestored,
     isValidating: deviceTokenValidating,
     setDisplayName,
-  } = useDeviceRestoration(workspaceId);
+  } = useDeviceRestoration(workspaceId, liveDevices);
 
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
@@ -205,6 +209,11 @@ export function Workspace() {
     onDisplayMessage: handleDisplayMessage,
     onKioskAttentionMessage: handleKioskAttention,
   });
+
+  // Issue #462: forward devices to trigger the restoration hook's sync effect.
+  useEffect(() => {
+    setLiveDevices(devices);
+  }, [devices]);
 
   const handleSetup = async (name: string, selectedMode: DeviceMode) => {
     setDisplayName(name);
