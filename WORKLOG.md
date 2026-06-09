@@ -1249,3 +1249,55 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-09 23:47 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Auto-disabled (re-disable) due to continued inactivity** — 3rd consecutive quiet tick.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none)  | -    | -          | -      |
+
+**Wake-up context:** manual `/orchestrate` invocation by @jpshackelford. The previous tick (22:33Z) had already auto-disabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` after 2 consecutive quiet ticks. Between then and this tick, @jpshackelford opened **draft PR #467** (`fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance`), which triggered the repo's `enable-orchestrator.yml` workflow and re-enabled the automation (verified via API: `enabled: true` at wake-up). However, PR #467 is `isDraft: true` and human-authored — **not orchestrator-actionable** (orchestrator review/merge workers only pick up non-draft PRs). No state changed materially from the 22:33Z snapshot.
+
+**Current State:**
+- Open PRs (both human-authored drafts — not actionable):
+  - [PR #467](https://github.com/jpshackelford/voice-relay/pull/467) — `fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance` — `isDraft: true`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`, no labels. Author @jpshackelford.
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — `docs(tvos): per-file issue drafts for tvOS backend gaps` — `isDraft: true`, `mergeable: MERGEABLE`, `mergeStateStatus: UNSTABLE`, no labels. Author @jpshackelford.
+- Issues needing expansion: **0**.
+- Ready+unblocked issues: **0**.
+- All 8 open issues are non-actionable: same partition as 22:33Z (prose-only `on-hold`: #210, #239, #386; S3-freeze `on-hold`: #299, #300, #301, #302; `needs-human`: #372).
+
+**Unblock pass:** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** holds — no `## INSTRUCTION:` block has signaled the lift. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #210, #239, #386 | (prose-only on-hold) | n/a | Policy holds — untouched. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. |
+
+**Action Taken:**
+🔒 Re-disabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` via `PATCH /api/automation/v1/{id}` — confirmed `enabled: false` in response. Quiet-tick counter advanced `2 → 3` (third consecutive quiet tick; auto-disable threshold remains satisfied).
+
+**Anti-stall note:** decision table walked exhaustively. PR #467 carries no `on-hold`/`needs-human`/`blocked` labels but is a human-authored draft — orchestrator review/merge workers do not pick up drafts. PR #465 same. All `on-hold` issues are codified gates (S3 freeze in AGENTS.md, prose-only policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. No `## INSTRUCTION:` override block in WORKLOG.md.
+
+**Quiet-tick counter:** `2 → 3` (quiet — auto-disable re-applied).
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+- Or mark a draft PR `ready_for_review` / open a new issue — `enable-orchestrator.yml` will PATCH the automation back to `enabled: true`. Note that the re-enable will be a no-op against the current backlog until either (a) PR #467 / PR #465 is marked ready, (b) the S3 freeze conditions in AGENTS.md are met and an `## INSTRUCTION:` lifts #299/#301, (c) #372 is unblocked by a human, or (d) new issues are filed.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
