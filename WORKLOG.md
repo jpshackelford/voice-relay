@@ -1129,3 +1129,34 @@ Mechanical zero-policy lifts this tick: **0**.
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-09 21:58 UTC - Review worker (PR #466 round 1)
+
+✅ Addressed pr-review bot's single 🟡 suggestion on PR #466 (`fix(client): suppress iOS Safari spurious 'aborted' STT errors + lifecycle diagnostics`, `Refs #457`).
+
+| Step | Outcome |
+| --- | --- |
+| Draft toggle | `gh pr ready 466 --undo` → draft while editing. |
+| Thread `PRRT_kwDOSTUWGM6ITGb2` | **Accepted** the bot's invariant-contract rewrite verbatim. The 19-line historical-narrative block in `client/src/hooks/useSpeechRecognition.ts:157-175` is now the proposed 5-line comment (WebKit Bug 225298, RESOLVED-LATER status, suppress-banner / preserve-isListening contract, one-diagnostic-per-cycle rationale). Historical detail (PR #460, production-journal sessions, iOS 18+ failure-mode taxonomy) stays in the PR description and the #457 thread, where it belongs. |
+| Commit | `style(client): tighten Bug 225298 inline comment per pr-review #466` → 2efe190. Pushed to `fix/ios18-stt-aborted-suppress-457`. |
+| Thread resolution | Replied with the commit SHA + rationale; `resolveReviewThread` returned `isResolved: true`. |
+| CI | 7/7 green on 2efe190b (Server, Client, Build Client, E2E, lint-pr-title, pr-review, enable-orchestrator). |
+| Ready toggle | `gh pr ready 466` → ready for review. |
+
+**AC gate re-run vs. #457:**
+
+| AC | Verdict | Source |
+| --- | --- | --- |
+| 1. `onstart` before any `onerror` on iPhone 17e / iOS 18.7 | Satisfied | #460 (callback-identity stabilisation) |
+| 2. `isListening` flips to `true`, `sendListeningState(true,…)` observable | Satisfied | #460 + #466 |
+| 3. No `[ClientError] code="aborted"` on happy path | Satisfied | #466 (renamed to `aborted-suppressed`) |
+| 4. Regression test | Satisfied | #466 (+174 lines in `useSpeechRecognition.test.ts`) |
+| 5. iPhone SE 3 / older iOS no regression | Satisfied | #460 + #466 (suppression only triggers on `aborted` errorType) |
+
+**Verdict: now Fixes #457 — all ACs covered by the combined #460+#466 diffs.** Trailer left as `Refs #457` (maintainer can close manually once production traffic confirms the residual aborts have stopped; AC #3 is observable in the production journal). Posted the gate matrix as a PR comment for the merge worker / maintainer.
+
+Hand-off: PR #466 is back to ready with 0 unresolved threads, 7/7 CI green, AC gate satisfied. Next merge-worker pass can merge cleanly.
+
+_This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
