@@ -75,9 +75,7 @@ export function useSpeechRecognition({
     return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
   });
 
-  // Issue #457: IDs stored in refs to prevent startListening rebuilds
-  // when sessionId/workspaceId/deviceId change (iOS 18+ Safari treats
-  // mid-start() rebuilds as external stop()). Mirrors useHostedSpeechRecognition.
+  // IDs in refs so changes don't rebuild startListening (#457 / PR #460).
   const sessionIdRef = useRef(sessionId);
   const workspaceIdRef = useRef(workspaceId);
   const deviceIdRef = useRef(deviceId);
@@ -87,49 +85,132 @@ export function useSpeechRecognition({
     deviceIdRef.current = deviceId;
   }, [sessionId, workspaceId, deviceId]);
 
+  // Latest callback refs — keeps the long-lived SpeechRecognition
+  // event handlers from capturing a stale `onError` etc. across the
+  // many `onend` -> `recognition.start()` restart cycles below.
+  const onInterimResultRef = useRef(onInterimResult);
+  const onFinalResultRef = useRef(onFinalResult);
+  const onErrorRef = useRef(onError);
+  useEffect(() => { onInterimResultRef.current = onInterimResult; }, [onInterimResult]);
+  useEffect(() => { onFinalResultRef.current = onFinalResult; }, [onFinalResult]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
+  // The user-intent flag — `true` from the moment `startListening` is
+  // called until `stopListening` (or a hard error) flips it. This is
+  // what gates the iOS Safari onend-restart loop. Critical: this is
+  // NOT the same as `isListening`. `isListening` mirrors the actual
+  // recognition state (briefly false between cycles); `userWantsListeningRef`
+  // mirrors what the user clicked. The kiosk indicator wants the
+  // latter, not the former.
+  const userWantsListeningRef = useRef(false);
+  // Backoff for retrying `recognition.start()` if it throws (e.g.
+  // InvalidStateError when called while the previous cycle hasn't
+  // fully ended). Tracked so unmount/stop can cancel cleanly.
+  const restartRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRestartRetryTimer = useCallback(() => {
+    if (restartRetryTimerRef.current !== null) {
+      clearTimeout(restartRetryTimerRef.current);
+      restartRetryTimerRef.current = null;
+    }
+  }, []);
+
+  // Per-INTENT (one user tap -> one stop/hard-error) diagnostic dedup.
+  // We don't want a wedged Safari to spam `/api/client-errors` once
+  // per restart loop iteration. Reset by `startListening` (new intent)
+  // and on a successful final result (proves Safari is healthy this
+  // intent — re-arm so a later wedge still surfaces).
+  const abortReportedThisIntentRef = useRef(false);
+  const noOnstartReportedThisIntentRef = useRef(false);
+  const intentStartedAtRef = useRef(0);
+  const cycleNumRef = useRef(0);
+  const onstartSeenThisIntentRef = useRef(false);
+
+  const msSinceIntent = () =>
+    Math.round(
+      (typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()) - intentStartedAtRef.current,
+    );
+
+  // Restart the SAME recognition instance — addpipe's pattern.
+  // Constructing a new SpeechRecognition object between cycles is what
+  // triggered the rapid post-onstart abort cascade we saw in the
+  // post-#466 production journal.
+  const tryRestart = useCallback(() => {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    try {
+      rec.start();
+    } catch (_e) {
+      // Common case: InvalidStateError because the previous cycle is
+      // still in teardown. addpipe's demo silently retries; we do the
+      // same with a tiny backoff so we don't busy-loop.
+      clearRestartRetryTimer();
+      restartRetryTimerRef.current = setTimeout(() => {
+        restartRetryTimerRef.current = null;
+        if (!userWantsListeningRef.current) return;
+        try {
+          recognitionRef.current?.start();
+        } catch (e2) {
+          // Give up — flip isListening false so the user knows.
+          // eslint-disable-next-line no-console
+          console.warn('[STT] restart retry failed', e2);
+          userWantsListeningRef.current = false;
+          setIsListening(false);
+          reportClientError({
+            sessionId: sessionIdRef.current,
+            workspaceId: workspaceIdRef.current,
+            deviceId: deviceIdRef.current,
+            source: 'useSpeechRecognition',
+            errorCode: 'restart-failed',
+            message: e2 instanceof Error ? e2.message : 'recognition.start() retry failed',
+            context: { msSinceIntent: msSinceIntent(), cycleNum: cycleNumRef.current },
+          });
+        }
+      }, 100);
+    }
+  }, [clearRestartRetryTimer]);
+
   const startListening = useCallback(() => {
     if (!isSupported) {
-      onError?.('Speech recognition is not supported in this browser');
+      onErrorRef.current?.('Speech recognition is not supported in this browser');
+      return;
+    }
+    // New intent — reset per-intent dedup, cycle counter, lifecycle markers.
+    userWantsListeningRef.current = true;
+    abortReportedThisIntentRef.current = false;
+    noOnstartReportedThisIntentRef.current = false;
+    onstartSeenThisIntentRef.current = false;
+    cycleNumRef.current = 0;
+    intentStartedAtRef.current =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+    clearRestartRetryTimer();
+
+    // Reuse the existing instance if we have one — addpipe pattern.
+    // Constructing a new object between cycles is what triggered the
+    // rapid abort cascade in the post-#466 journal.
+    if (recognitionRef.current) {
+      tryRestart();
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
-    // Per-cycle lifecycle markers, captured in the handler closures.
-    // These let us attach actionable context to every [ClientError]
-    // line: "did onstart ever fire?", "how long after start() did
-    // this happen?", "did onend already run?". Critical for
-    // diagnosing the iOS 18 Safari STT-abort pattern (#457): the
-    // spurious aborts arrive before onstart and look identical to
-    // a real abort in the journal without this context.
-    const cycleStartedAt =
-      typeof performance !== 'undefined' && typeof performance.now === 'function'
-        ? performance.now()
-        : Date.now();
-    let onstartSeen = false;
-    let onendSeen = false;
-    let abortReportedThisCycle = false;
-    const msSince = () =>
-      Math.round(
-        (typeof performance !== 'undefined' && typeof performance.now === 'function'
-          ? performance.now()
-          : Date.now()) - cycleStartedAt,
-      );
-
     recognition.onstart = () => {
-      onstartSeen = true;
+      onstartSeenThisIntentRef.current = true;
+      cycleNumRef.current += 1;
       setIsListening(true);
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
       let finalTranscript = '';
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
@@ -138,30 +219,37 @@ export function useSpeechRecognition({
           interimTranscript += result[0].transcript;
         }
       }
-
       if (finalTranscript) {
-        onFinalResult?.(finalTranscript);
+        // A real result means Safari is healthy this intent. Re-arm
+        // the diagnostic dedup flags so a later wedge can still surface.
+        abortReportedThisIntentRef.current = false;
+        onFinalResultRef.current?.(finalTranscript);
       } else if (interimTranscript) {
-        onInterimResult?.(interimTranscript);
+        onInterimResultRef.current?.(interimTranscript);
       }
     };
 
     recognition.onerror = (event: Event & { error?: string }) => {
       const errorType = event.error || 'unknown';
       const lifecycle = {
-        msSinceStart: msSince(),
-        onstartSeen,
-        onendSeen,
+        msSinceIntent: msSinceIntent(),
+        cycleNum: cycleNumRef.current,
+        onstartSeen: onstartSeenThisIntentRef.current,
       };
 
-      // WebKit Bug 225298: iOS Safari fires spurious `aborted` events
-      // without explicit abort() calls (marked RESOLVED LATER upstream).
-      // Suppress the user-facing banner and preserve isListening state
-      // to prevent wedging STT. Emit one diagnostic per cycle for
-      // production correlation.
+      // `no-speech` is a normal silence-timeout signal in continuous
+      // mode — addpipe's working demo ignores it. Let onend handle
+      // the restart (or not, depending on user intent).
+      if (errorType === 'no-speech') {
+        return;
+      }
+
+      // WebKit Bug 225298 spurious `aborted`: don't surface, dedupe
+      // diagnostic to one per intent. onend will run next and restart
+      // if the user still wants to listen.
       if (errorType === 'aborted') {
-        if (!abortReportedThisCycle) {
-          abortReportedThisCycle = true;
+        if (!abortReportedThisIntentRef.current) {
+          abortReportedThisIntentRef.current = true;
           // eslint-disable-next-line no-console
           console.warn('[STT] aborted (suppressed)', lifecycle);
           reportClientError({
@@ -177,15 +265,12 @@ export function useSpeechRecognition({
         return;
       }
 
+      // Hard error: surface, clear intent, no restart.
       console.error('[STT] Error:', event);
-
       let errorMessage = 'Speech recognition error';
       switch (errorType) {
         case 'not-allowed':
           errorMessage = 'Microphone access denied. Please allow microphone access in your browser settings.';
-          break;
-        case 'no-speech':
-          errorMessage = 'No speech detected. Please try again.';
           break;
         case 'audio-capture':
           errorMessage = 'No microphone found. Please connect a microphone.';
@@ -208,22 +293,23 @@ export function useSpeechRecognition({
         context: lifecycle,
       });
 
-      onError?.(errorMessage);
+      userWantsListeningRef.current = false;
+      clearRestartRetryTimer();
+      onErrorRef.current?.(errorMessage);
       setIsListening(false);
     };
 
     recognition.onend = () => {
-      const sawStart = onstartSeen;
-      onendSeen = true;
-      // #457 follow-up diagnostic: `onend` firing without `onstart`
-      // is the iOS Safari "STT silently failed" pattern. Distinct
-      // from `aborted` (which fires on `onerror`) — this is the
-      // browser ending the cycle quietly. Worth a single log line
-      // per cycle so the journal can distinguish "Safari ate it"
-      // from "user stopped intentionally".
-      if (!sawStart) {
+      // `onend` without `onstart` ever firing this intent is the
+      // documented iOS Safari "silently dropped" pattern
+      // (WebAudio/web-speech-api#96). Worth one diagnostic per intent.
+      if (
+        !onstartSeenThisIntentRef.current &&
+        !noOnstartReportedThisIntentRef.current
+      ) {
+        noOnstartReportedThisIntentRef.current = true;
         // eslint-disable-next-line no-console
-        console.warn('[STT] onend before onstart', { msSinceStart: msSince() });
+        console.warn('[STT] onend before onstart', { msSinceIntent: msSinceIntent() });
         reportClientError({
           sessionId: sessionIdRef.current,
           workspaceId: workspaceIdRef.current,
@@ -231,20 +317,58 @@ export function useSpeechRecognition({
           source: 'useSpeechRecognition',
           errorCode: 'no-onstart',
           message: 'Recognition ended before onstart fired',
-          context: { msSinceStart: msSince() },
+          context: { msSinceIntent: msSinceIntent(), cycleNum: cycleNumRef.current },
         });
+      }
+
+      // The addpipe pattern: if the user still wants to listen,
+      // restart the SAME instance. `setIsListening(true)` stays
+      // sticky across cycles (the kiosk indicator must reflect user
+      // intent, not the millisecond-scale recognition state churn).
+      if (userWantsListeningRef.current) {
+        tryRestart();
+        return;
       }
       setIsListening(false);
     };
 
     recognitionRef.current = recognition;
-    recognition.start();
-  }, [isSupported, onInterimResult, onFinalResult, onError]);
+    try {
+      recognition.start();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[STT] initial start() threw, retrying', e);
+      tryRestart();
+    }
+  }, [isSupported, tryRestart, clearRestartRetryTimer]);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    userWantsListeningRef.current = false;
+    clearRestartRetryTimer();
+    const rec = recognitionRef.current;
+    if (rec) {
+      try {
+        rec.stop();
+      } catch (_e) {
+        // ignore — stop() can throw if already stopped
+      }
+    }
     setIsListening(false);
-  }, []);
+  }, [clearRestartRetryTimer]);
+
+  // Cleanup on unmount — kill the long-lived recognition so it
+  // doesn't keep the mic alive after the React tree is gone.
+  useEffect(() => {
+    return () => {
+      userWantsListeningRef.current = false;
+      clearRestartRetryTimer();
+      const rec = recognitionRef.current;
+      if (rec) {
+        try { rec.abort(); } catch (_e) { /* ignore */ }
+        recognitionRef.current = null;
+      }
+    };
+  }, [clearRestartRetryTimer]);
 
   return {
     isListening,
