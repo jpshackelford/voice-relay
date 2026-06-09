@@ -154,25 +154,11 @@ export function useSpeechRecognition({
         onendSeen,
       };
 
-      // #457 follow-up: PR #460 stabilised startListening's identity
-      // so a sessionId/workspaceId/deviceId rerender during the iOS
-      // permission dialog no longer rebuilds the callback — but the
-      // production journal still shows `aborted` events on the same
-      // device after the fix shipped (e.g. session 7952519e-... on
-      // 2026-06-09). iOS 18+ Safari can synthesise `aborted` in
-      // other windows too (post-onstart, between continuous-mode
-      // recognition cycles, on background/foreground transitions).
-      //
-      // None of those are user-actionable, and surfacing the banner
-      // wedges STT because `isListening` flips to `false` while the
-      // underlying mic stream is still alive. The contract here:
-      //  - Suppress the user-facing banner.
-      //  - Do NOT flip `isListening` here — `onend` will run if
-      //    recognition has truly ended; if it hasn't, we stay live.
-      //  - Still ship ONE diagnostic per startListening cycle so we
-      //    can correlate suppression rate to real symptoms in the
-      //    journal. The code is renamed to `aborted-suppressed`
-      //    so it's filterable from genuine errors.
+      // WebKit Bug 225298: iOS Safari fires spurious `aborted` events
+      // without explicit abort() calls (marked RESOLVED LATER upstream).
+      // Suppress the user-facing banner and preserve isListening state
+      // to prevent wedging STT. Emit one diagnostic per cycle for
+      // production correlation.
       if (errorType === 'aborted') {
         if (!abortReportedThisCycle) {
           abortReportedThisCycle = true;
