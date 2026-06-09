@@ -1085,3 +1085,47 @@ The backlog will refill naturally once: (a) S3 freeze conditions are met and a `
 
 ---
 
+
+### 2026-06-09 21:55 UTC - Orchestrator (manual /orchestrate)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `cd1b973` | review | PR #466 — iOS Safari STT aborted suppression | **NEW** |
+
+**Spawned: Review Worker**
+
+- PR: [#466 — `fix(client): suppress iOS Safari spurious 'aborted' STT errors + lifecycle diagnostics (Refs #457)`](https://github.com/jpshackelford/voice-relay/pull/466)
+- Conversation: [`cd1b973`](https://app.all-hands.dev/conversations/cd1b973f9a494cf095c7c26a68ab99ec)
+- Reason: PR #466 has 1 unresolved `pr-review` bot review thread (`PRRT_kwDOSTUWGM6ITGb2`) — a 🟡 suggestion to tighten a 19-line inline comment block (historical PR #460 narrative) into a 5-line invariant-contract comment. Per decision-table review-slot row "PR needs review (💬 > 0) → Spawn review worker."
+
+**Wake-up trigger:** manual `/orchestrate` invocation by @jpshackelford. Automation had been auto-disabled at 2026-06-08 03:37 UTC after 2 consecutive quiet ticks. Between then and this tick @jpshackelford filed PR #466 (~6 min before this tick) and the repo's `enable-orchestrator` GitHub Actions workflow re-enabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` (confirmed via API: `enabled: true`). This wake-up therefore had a genuinely new actionable PR to work on — not a stale-label tick.
+
+**Current State:**
+- Open PRs:
+  - [PR #466](https://github.com/jpshackelford/voice-relay/pull/466) `oR green ready 💬1` — being addressed by `cd1b973` this tick. Author `jpshackelford` (human). Trailer `Refs #457`. CI 7/7 green. `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft, human-authored, not orchestrator-actionable.
+- Issues needing expansion: **0**.
+- Ready+unblocked issues: **0** that are not already in flight (#457 `ready, priority:high, bug` is the parent of #466 and was reopened due to the iOS 18 regression on iPhone 17e — covered by the worker in scope).
+- Slot usage after dispatch: expansion 0/4, implementation 0/1, review 1/2.
+
+**Unblock pass:** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force: production `VR_WORKSPACE_BUCKET`, four AWS creds, and `docs/runbooks/s3-bucket-provisioning.md` smoke test not verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the lift. Skipped per the documented override pattern. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy holds — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. Only a human can lift. |
+
+Mechanical zero-policy lifts this tick: **0**.
+
+**Anti-stall note:** decision table walked exhaustively. PR #466 has no `on-hold`/`needs-human`/`blocked`/`needs-info` label; CI is green 7/7; `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`; 1 unresolved bot suggestion thread. Per the decision-table review-slot row, dispatched cleanly on the merits. Worker is instructed to evaluate the suggestion on its merits (accept-and-apply, or decline-with-reply) — both outcomes acceptable per OpenHands review-handling guidelines.
+
+**Quiet-tick counter:** reset `2 → 0` (productive — 1 review worker dispatched).
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
