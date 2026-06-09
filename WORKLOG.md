@@ -1196,3 +1196,56 @@ _This entry was created by an AI agent (OpenHands review worker) on behalf of @j
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-09 22:33 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Auto-disabled due to inactivity** — 2 consecutive quiet ticks reached.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none)  | -    | -          | -      |
+
+**Current State (post PR #466 merge):**
+- Open PRs:
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — `docs(tvos): per-file issue drafts for tvOS backend gaps` — **human-authored draft** by @jpshackelford (created 2026-06-08), no labels, not orchestrator-actionable.
+- Issues needing expansion: **0**.
+- Ready+unblocked issues: **0**.
+- All 8 open issues are non-actionable:
+  - #210, #239, #386 — prose-only `on-hold` (policy holds; only a human can lift).
+  - #299, #301 — mechanical blockers (#298, #295) are CLOSED, but **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" (lines 71–106)** override remains in force: production `VR_WORKSPACE_BUCKET`, four AWS credential env vars, and `docs/runbooks/s3-bucket-provisioning.md` smoke test are not verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the lift.
+  - #300, #302 — still machine-blocked (#299, #300 respectively are OPEN).
+  - #372 — `needs-human` (only a human can lift).
+
+**Unblock pass:** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** holds — see above. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #210, #239, #386 | (prose-only on-hold) | n/a | Policy holds — untouched. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. |
+
+**Action Taken:**
+🔒 Disabled automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` via `PATCH /api/automation/v1/{id}` — confirmed `enabled: false`. Quiet-tick counter advanced `1 → 2` (prior tick at 22:21Z was the first quiet tick after the PR #466 merge; this tick is the second). Per the [Auto-Disable on Consecutive Quiet Periods] rule, two consecutive quiet ticks trigger auto-disable.
+
+**Anti-stall note:** decision table walked exhaustively. PR #465 carries no `on-hold`/`needs-human`/`blocked` labels, but it is a human-authored draft (`isDraft: true`, `mergeStateStatus: UNKNOWN`) and orchestrator review/merge workers do not pick up drafts that have not been marked ready. All on-hold issues are codified gates (S3 freeze in AGENTS.md, prose-only policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. No `## INSTRUCTION:` override block in WORKLOG.md.
+
+**Quiet-tick counter:** `1 → 2` (quiet — auto-disable threshold).
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+- Or open / re-open / mark-ready a PR or open a new issue — the repo's `enable-orchestrator.yml` workflow triggers on those events and PATCHes the automation back to `enabled: true`. (Note: a plain `push` to `main`, including this worklog commit, does **not** trigger it — that workflow listens for `issues.opened`, `pull_request.opened|ready_for_review|reopened`, and `workflow_dispatch` only.)
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
