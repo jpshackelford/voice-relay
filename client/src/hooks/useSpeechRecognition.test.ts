@@ -188,6 +188,7 @@ describe('useSpeechRecognition', () => {
   it('forwards onerror to reportClientError when sessionId/workspaceId/deviceId are provided (#455)', () => {
     const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderHook(() =>
       useSpeechRecognition({
         sessionId: 'sess-1',
@@ -197,31 +198,40 @@ describe('useSpeechRecognition', () => {
     );
     act(() => result.current.startListening());
     const instance = FakeSpeechRecognition.instances[0];
-    act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+    // Use a non-`aborted` code here so we exercise the canonical
+    // reporting path; `aborted` now goes through the suppression
+    // branch (covered separately below).
+    act(() => instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }));
 
-    expect(reportSpy).toHaveBeenCalledWith({
-      sessionId: 'sess-1',
-      workspaceId: 'ws-1',
-      deviceId: 'dev-1',
-      source: 'useSpeechRecognition',
-      errorCode: 'aborted',
-      message: 'Speech recognition error',
-    });
+    expect(reportSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'sess-1',
+        workspaceId: 'ws-1',
+        deviceId: 'dev-1',
+        source: 'useSpeechRecognition',
+        errorCode: 'no-speech',
+        message: expect.stringContaining('No speech'),
+      }),
+    );
   });
 
   it('skips reportClientError when IDs are not provided (#455)', () => {
     const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { result } = renderHook(() => useSpeechRecognition({}));
     act(() => result.current.startListening());
     const instance = FakeSpeechRecognition.instances[0];
-    act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+    // `aborted` still goes through the suppressed-report path even
+    // when IDs are missing — assert via a non-aborted code so we're
+    // testing the canonical "wired but no-op when no IDs" case.
+    act(() => instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }));
     // The helper itself no-ops when IDs are missing, but we still call
     // it from the hook for consistency. Assert that it was invoked
     // with undefined IDs (proving the wiring exists) rather than
     // making the hook conditional.
     expect(reportSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ source: 'useSpeechRecognition', errorCode: 'aborted' }),
+      expect.objectContaining({ source: 'useSpeechRecognition', errorCode: 'no-speech' }),
     );
   });
 
@@ -352,6 +362,146 @@ describe('useSpeechRecognition', () => {
           errorCode: 'no-speech',
         }),
       );
+    });
+  });
+
+  // #457 follow-up: PR #460 fixed the deps-churn root cause but the
+  // production journal still shows `code="aborted"` events on the same
+  // device (e.g. session 7952519e-… on 2026-06-09T21:25Z). The spec
+  // says `aborted` only fires on explicit `abort()` — we never call
+  // it — so any `aborted` we observe is the browser misbehaving. This
+  // block locks in the suppression contract.
+  describe('#457 follow-up — aborted errors are suppressed', () => {
+    it('does NOT surface aborted to onError or flip isListening on aborted', () => {
+      const onError = vi.fn();
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { result } = renderHook(() => useSpeechRecognition({ onError }));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+      expect(result.current.isListening).toBe(true);
+
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+      // Banner suppressed, state untouched — onend (if it fires)
+      // is the only thing that flips isListening back to false.
+      expect(onError).not.toHaveBeenCalled();
+      expect(result.current.isListening).toBe(true);
+    });
+
+    it('reports a single `aborted-suppressed` diagnostic per startListening cycle', () => {
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+
+      // Four back-to-back aborts (the production pattern at 21:25Z).
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+      const abortReports = reportSpy.mock.calls
+        .map((c) => c[0])
+        .filter((c) => c.errorCode === 'aborted-suppressed');
+      expect(abortReports).toHaveLength(1);
+      expect(abortReports[0]).toEqual(
+        expect.objectContaining({
+          source: 'useSpeechRecognition',
+          errorCode: 'aborted-suppressed',
+          context: expect.objectContaining({
+            onstartSeen: false,
+            onendSeen: false,
+            msSinceStart: expect.any(Number),
+          }),
+        }),
+      );
+    });
+
+    it('resets the once-per-cycle guard on the next startListening call', () => {
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+
+      act(() => result.current.startListening());
+      const first = FakeSpeechRecognition.instances[0];
+      act(() => first.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => first.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+      act(() => result.current.startListening());
+      const second = FakeSpeechRecognition.instances[1];
+      act(() => second.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => second.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+      const abortReports = reportSpy.mock.calls
+        .map((c) => c[0])
+        .filter((c) => c.errorCode === 'aborted-suppressed');
+      expect(abortReports).toHaveLength(2);
+    });
+
+    it('still reports non-aborted errors and includes lifecycle context', () => {
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+      act(() => instance.onerror?.({ error: 'network' } as unknown as Event & { error?: string }));
+
+      expect(reportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errorCode: 'network',
+          context: expect.objectContaining({
+            onstartSeen: true,
+            onendSeen: false,
+            msSinceStart: expect.any(Number),
+          }),
+        }),
+      );
+    });
+
+    it('emits a `no-onstart` diagnostic when onend fires before onstart', () => {
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+
+      // Safari silently ends the cycle — no onstart was ever seen.
+      act(() => instance.onend?.());
+
+      expect(reportSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source: 'useSpeechRecognition',
+          errorCode: 'no-onstart',
+          context: expect.objectContaining({ msSinceStart: expect.any(Number) }),
+        }),
+      );
+    });
+
+    it('does NOT emit `no-onstart` on a normal onstart -> onend cycle', () => {
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+      act(() => instance.onend?.());
+
+      const noOnstartReports = reportSpy.mock.calls
+        .map((c) => c[0])
+        .filter((c) => c.errorCode === 'no-onstart');
+      expect(noOnstartReports).toHaveLength(0);
     });
   });
 });

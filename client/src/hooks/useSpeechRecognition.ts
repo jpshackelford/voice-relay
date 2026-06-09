@@ -100,7 +100,29 @@ export function useSpeechRecognition({
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    // Per-cycle lifecycle markers, captured in the handler closures.
+    // These let us attach actionable context to every [ClientError]
+    // line: "did onstart ever fire?", "how long after start() did
+    // this happen?", "did onend already run?". Critical for
+    // diagnosing the iOS 18 Safari STT-abort pattern (#457): the
+    // spurious aborts arrive before onstart and look identical to
+    // a real abort in the journal without this context.
+    const cycleStartedAt =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+    let onstartSeen = false;
+    let onendSeen = false;
+    let abortReportedThisCycle = false;
+    const msSince = () =>
+      Math.round(
+        (typeof performance !== 'undefined' && typeof performance.now === 'function'
+          ? performance.now()
+          : Date.now()) - cycleStartedAt,
+      );
+
     recognition.onstart = () => {
+      onstartSeen = true;
       setIsListening(true);
     };
 
@@ -125,9 +147,38 @@ export function useSpeechRecognition({
     };
 
     recognition.onerror = (event: Event & { error?: string }) => {
-      console.error('[STT] Error:', event);
       const errorType = event.error || 'unknown';
-      
+      const lifecycle = {
+        msSinceStart: msSince(),
+        onstartSeen,
+        onendSeen,
+      };
+
+      // WebKit Bug 225298: iOS Safari fires spurious `aborted` events
+      // without explicit abort() calls (marked RESOLVED LATER upstream).
+      // Suppress the user-facing banner and preserve isListening state
+      // to prevent wedging STT. Emit one diagnostic per cycle for
+      // production correlation.
+      if (errorType === 'aborted') {
+        if (!abortReportedThisCycle) {
+          abortReportedThisCycle = true;
+          // eslint-disable-next-line no-console
+          console.warn('[STT] aborted (suppressed)', lifecycle);
+          reportClientError({
+            sessionId: sessionIdRef.current,
+            workspaceId: workspaceIdRef.current,
+            deviceId: deviceIdRef.current,
+            source: 'useSpeechRecognition',
+            errorCode: 'aborted-suppressed',
+            message: 'iOS Safari spurious aborted (suppressed)',
+            context: lifecycle,
+          });
+        }
+        return;
+      }
+
+      console.error('[STT] Error:', event);
+
       let errorMessage = 'Speech recognition error';
       switch (errorType) {
         case 'not-allowed':
@@ -154,6 +205,7 @@ export function useSpeechRecognition({
         source: 'useSpeechRecognition',
         errorCode: errorType,
         message: errorMessage,
+        context: lifecycle,
       });
 
       onError?.(errorMessage);
@@ -161,6 +213,27 @@ export function useSpeechRecognition({
     };
 
     recognition.onend = () => {
+      const sawStart = onstartSeen;
+      onendSeen = true;
+      // #457 follow-up diagnostic: `onend` firing without `onstart`
+      // is the iOS Safari "STT silently failed" pattern. Distinct
+      // from `aborted` (which fires on `onerror`) — this is the
+      // browser ending the cycle quietly. Worth a single log line
+      // per cycle so the journal can distinguish "Safari ate it"
+      // from "user stopped intentionally".
+      if (!sawStart) {
+        // eslint-disable-next-line no-console
+        console.warn('[STT] onend before onstart', { msSinceStart: msSince() });
+        reportClientError({
+          sessionId: sessionIdRef.current,
+          workspaceId: workspaceIdRef.current,
+          deviceId: deviceIdRef.current,
+          source: 'useSpeechRecognition',
+          errorCode: 'no-onstart',
+          message: 'Recognition ended before onstart fired',
+          context: { msSinceStart: msSince() },
+        });
+      }
       setIsListening(false);
     };
 
