@@ -3,14 +3,20 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": []
+    "review": [
+      {
+        "conv_id": "48e872e",
+        "pr": 467,
+        "started": "2026-06-10T12:21:22Z"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-10T12:13:30Z",
+  "last_updated": "2026-06-10T12:21:22Z",
   "completed": [
     {
       "conv_id": "cd1b973",

@@ -317,3 +317,54 @@ Mechanical zero-policy lifts this tick: **0**.
 **Next tick:** if PR #467 picks up review comments from pr-review or a human, the review-slot row will dispatch a review worker; if it reaches approved + green, the merge worker takes over.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+### 2026-06-10 12:21 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Review Worker for PR #467** — pr-review bot posted 1 unresolved review thread after the 12:14Z draft→ready promotion.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `48e872e` | review | [PR #467](https://github.com/jpshackelford/voice-relay/pull/467) — iOS Safari STT restart loop | **NEW** |
+
+**Spawned: Review Worker**
+- PR: [PR #467 — `fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance`](https://github.com/jpshackelford/voice-relay/pull/467)
+- Conversation: [`48e872e`](https://app.all-hands.dev/conversations/48e872ef0f984c6e99f9d872792c4b47)
+- Trigger: 1 unresolved review thread from `github-actions` (pr-review bot) on `client/src/hooks/useSpeechRecognition.ts:170` — flagged the `setTimeout` retry callback for 4-level indentation (exceeds the project's "3 levels max" complexity guideline). Suggestion: extract the retry/setTimeout body into a small named helper so the `catch` body stays flat.
+
+**Decision-tree row applied:** review slot `REVIEW_AVAILABLE > 0 + PR needs review (💬 > 0)` → spawn review worker. PR #467 satisfies all preconditions (not draft, no `on-hold`/`needs-human`/`blocked`/`needs-info` labels, CI 7/7 SUCCESS green, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`).
+
+**Current State:**
+- Open PRs: 2
+  - **[PR #467](https://github.com/jpshackelford/voice-relay/pull/467)** — review worker `48e872e` now driving (💬 1, CI green, ready). Worker will drop to draft, fix the complexity nit, re-run AC gate, push, return to ready.
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (human-authored, tvOS per-file issue drafts). Skipped per decision-tree STUCK PR row.
+- Open issues: 8 — every one still `on-hold` or `needs-human` (same partition as 12:14Z tick).
+  - `needs-human`: #372.
+  - `on-hold` (mechanically unblockable but policy-held): #299, #301.
+  - `on-hold` (machine-blocked): #300, #302.
+  - `on-hold` (prose-only policy): #386, #239, #210.
+- `ready`+unblocked+prioritized: 0.
+- Issues needing expansion: 0.
+
+**Unblock pass (mechanical `Blocked by #N` only):** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy holds — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. |
+
+**Slot capacity after spawn:**
+- Expansion: 0/4 used → 4 free.
+- Implementation: 0/1 used → 1 free (no actionable ready issues to dispatch).
+- Review: **1/2 used** → 1 free.
+
+**Quiet-tick counter:** `0` (productive — review worker dispatched).
+
+**Anti-stall note:** decision table walked exhaustively. PR #467 routed to the review slot per the documented row; remaining backlog gated by codified policies (AGENTS.md S3 freeze, prose-only `on-hold` policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. PR #465 carries `on-hold` so it is excluded from inline draft-promotion per the documented opt-out mechanism.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
