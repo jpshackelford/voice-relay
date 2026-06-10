@@ -368,3 +368,22 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 **Anti-stall note:** decision table walked exhaustively. PR #467 routed to the review slot per the documented row; remaining backlog gated by codified policies (AGENTS.md S3 freeze, prose-only `on-hold` policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. PR #465 carries `on-hold` so it is excluded from inline draft-promotion per the documented opt-out mechanism.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+### 2026-06-10 12:34 UTC - Review worker (PR #467)
+
+✅ **Round closed — 1 thread addressed, PR back to ready.**
+
+| Thread | Action | Commit |
+| --- | --- | --- |
+| pr-review bot: `tryRestart` setTimeout callback nesting (4 levels > 3 max) in `client/src/hooks/useSpeechRecognition.ts` ~L170 | **Accepted.** Extracted retry body into a named `performRestartRetry` `useCallback`; `tryRestart`'s `catch` is now `setTimeout(performRestartRetry, 100)`. Nesting back to 3 levels, retry path independently readable. | `80b6e8f` |
+
+- CI: all-green (Build Client / Client Tests / Server Tests / E2E Tests / lint-pr-title).
+- Tests: 28/28 `useSpeechRecognition` tests pass; `tsc -b --noEmit` clean.
+- Thread `PRRT_kwDOSTUWGM6IeXnj` resolved with reply pointing to `80b6e8f`.
+- PR moved back to ready (`gh pr ready 467`).
+
+**AC gate re-run: unchanged.** Linked issue #457 (CLOSED) — refactor is purely structural, no behavior change. All five acceptance criteria (onstart-before-onerror, sticky `isListening`/`sendListeningState`, no `aborted` ClientErrors on happy path, regression test, no SE 3 regression) remain satisfied by the addpipe restart loop already shipped in this PR. No follow-up issues filed; PR trailer and `## Deferred to follow-ups` unchanged.
+
+_This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
