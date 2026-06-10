@@ -798,3 +798,24 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+### 2026-06-10 20:58 UTC - Review worker (PR #472 / issue #471)
+
+✅ **Address-review round complete on PR #472** (`refactor(client): stabilize useSttEngine callback identities`).
+
+| Item | Result |
+|---|---|
+| Review threads | 1 unresolved (🟡 pr-review-bot nit) → accepted + resolved |
+| Change | `client/src/components/MobileMode.tsx` comment trimmed from 33 lines → 7 lines |
+| Rationale | Bot was right: comment narrated diagnosis of #469 and net-effect-of-bug, which belongs in git history. Trimmed to present-state design intent only. |
+| Commit | `707ec93` |
+| CI | All checks green (Build / Client / Server / E2E / lint-pr-title) |
+| AC gate re-run | **unchanged** — all 5 non-exempt ACs from #471 still covered; AC#5 (#469 guard kept with comment) still satisfied by trimmed comment which still notes the guard is redundant after #471 and explains belt-and-suspenders rationale |
+| Trailer | `Fixes #471` unchanged |
+| Follow-ups | None opened. PR body's deferred-list unchanged. |
+| State | Back to ready for review (non-draft) |
+
+PR: https://github.com/jpshackelford/voice-relay/pull/472
+
+_This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
