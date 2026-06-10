@@ -52,6 +52,13 @@ export interface SessionSettingsPatch {
   inputMode?: SessionInputMode;
   autoSubmit?: boolean;
   agentPrompt?: string | null;
+  /**
+   * Issue #470: opt the session into the verbose STT lifecycle
+   * firehose. When `true`, the client posts a `lifecycle:<event>`
+   * `/api/client-errors` for every Web Speech transition. Defaults to
+   * `false` (only structural-error events fire).
+   */
+  verboseSttLogging?: boolean;
 }
 
 /** Top-level keys the patch shape understands. */
@@ -60,6 +67,7 @@ export const VALID_SETTINGS_PATCH_KEYS: ReadonlySet<string> = new Set([
   'inputMode',
   'autoSubmit',
   'agentPrompt',
+  'verboseSttLogging',
 ]);
 
 /**
@@ -90,6 +98,14 @@ const DEFAULT_TTS: SessionTtsSettings = {
 };
 const DEFAULT_INPUT_MODE: SessionInputMode = 'unified';
 const DEFAULT_AUTO_SUBMIT = true;
+/**
+ * Issue #470: default OFF. The lifecycle firehose is a debugging tool;
+ * leaving it on in production would put a `POST /api/client-errors`
+ * behind every Web Speech `onresult-interim` (i.e. once per partial
+ * word). Operators flip it on via the UI / agent PATCH when they want
+ * a diagnostic stream, and back off when they're done.
+ */
+const DEFAULT_VERBOSE_STT_LOGGING = false;
 
 export interface SessionSettingsServiceOptions {
   sessionRepository: SessionRepository;
@@ -142,6 +158,8 @@ export function createSessionSettingsService(
     const tts: SessionTtsSettings = meta.ttsSettings ?? DEFAULT_TTS;
     const inputMode: SessionInputMode = meta.inputMode ?? DEFAULT_INPUT_MODE;
     const autoSubmit: boolean = meta.autoSubmit ?? DEFAULT_AUTO_SUBMIT;
+    const verboseSttLogging: boolean =
+      meta.verboseSttLogging ?? DEFAULT_VERBOSE_STT_LOGGING;
 
     const wsSettings = workspaceRepository.getSettings(session.workspaceId);
     const resolved = resolveSessionSystemPrompt({
@@ -162,6 +180,7 @@ export function createSessionSettingsService(
         effective: resolved.effective,
         source: resolved.source,
       },
+      verboseSttLogging,
     };
   }
 
@@ -172,6 +191,7 @@ export function createSessionSettingsService(
     nextTts?: SessionTtsSettings;
     nextInputMode?: SessionInputMode;
     nextAutoSubmit?: boolean;
+    nextVerboseSttLogging?: boolean;
     promptKeyPresent: boolean;
     nextPrompt?: string | null;
   } {
@@ -211,6 +231,14 @@ export function createSessionSettingsService(
       nextAutoSubmit = patch.autoSubmit;
     }
 
+    let nextVerboseSttLogging: boolean | undefined;
+    if (patch.verboseSttLogging !== undefined) {
+      if (typeof patch.verboseSttLogging !== 'boolean') {
+        throw new SettingsValidationError('verboseSttLogging must be a boolean');
+      }
+      nextVerboseSttLogging = patch.verboseSttLogging;
+    }
+
     const promptKeyPresent = 'agentPrompt' in patch;
     let nextPrompt: string | null | undefined;
     if (promptKeyPresent) {
@@ -226,7 +254,14 @@ export function createSessionSettingsService(
       nextPrompt = v;
     }
 
-    return { nextTts, nextInputMode, nextAutoSubmit, promptKeyPresent, nextPrompt };
+    return {
+      nextTts,
+      nextInputMode,
+      nextAutoSubmit,
+      nextVerboseSttLogging,
+      promptKeyPresent,
+      nextPrompt,
+    };
   }
 
   function applyPatch(
@@ -252,6 +287,7 @@ export function createSessionSettingsService(
       nextTts,
       nextInputMode,
       nextAutoSubmit,
+      nextVerboseSttLogging,
       promptKeyPresent,
       nextPrompt,
     } = validateAndCoalesce(patch, previousTts);
@@ -262,6 +298,7 @@ export function createSessionSettingsService(
     if (nextTts !== undefined) newMeta.ttsSettings = nextTts;
     if (nextInputMode !== undefined) newMeta.inputMode = nextInputMode;
     if (nextAutoSubmit !== undefined) newMeta.autoSubmit = nextAutoSubmit;
+    if (nextVerboseSttLogging !== undefined) newMeta.verboseSttLogging = nextVerboseSttLogging;
     if (promptKeyPresent) {
       if (nextPrompt === null) {
         delete newMeta.agentPrompt;

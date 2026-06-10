@@ -73,6 +73,11 @@ test.describe('Session settings REST API', () => {
     expect(initial.autoSubmit).toBe(true);
     expect(initial.agentPrompt.source).toBe('builtin');
     expect(typeof initial.agentPrompt.effective).toBe('string');
+    // Issue #470: verboseSttLogging defaults to false. Asserting on
+    // the GET path verifies (a) the field is part of the snapshot the
+    // client hydrates from and (b) the default isn't silently flipped
+    // by some other code path (regression-protection for AC §3).
+    expect(initial.verboseSttLogging).toBe(false);
 
     // PATCH — flip every visible field.
     const patchRes = await request.patch(
@@ -84,6 +89,10 @@ test.describe('Session settings REST API', () => {
           inputMode: 'voice',
           autoSubmit: false,
           agentPrompt: 'Be terse.',
+          // Issue #470: flip the verbose flag on so the round-trip
+          // assertions below see both the PATCH-response and the GET
+          // refresh agree on the new value.
+          verboseSttLogging: true,
         },
       },
     );
@@ -94,6 +103,7 @@ test.describe('Session settings REST API', () => {
     expect(patched.autoSubmit).toBe(false);
     expect(patched.agentPrompt.source).toBe('session');
     expect(patched.agentPrompt.effective).toBe('Be terse.');
+    expect(patched.verboseSttLogging).toBe(true);
 
     // GET again — fresh request should observe the persisted state.
     const refetched = await request.get(
@@ -148,5 +158,19 @@ test.describe('Session settings REST API', () => {
     expect(badInputMode.status()).toBe(400);
     const body = await badInputMode.json();
     expect(body.error).toMatch(/inputMode/);
+
+    // Issue #470: non-boolean verboseSttLogging must be rejected with
+    // a 400 and a useful error message. Confirms the validator
+    // recognises the new field (and isn't silently ignoring it).
+    const badVerbose = await request.patch(
+      `${workerBaseURL}/api/sessions/${sessionId}/settings`,
+      {
+        headers: { Cookie: cookieHeader, 'Content-Type': 'application/json' },
+        data: { verboseSttLogging: 'yes-please' },
+      },
+    );
+    expect(badVerbose.status()).toBe(400);
+    const verboseBody = await badVerbose.json();
+    expect(verboseBody.error).toMatch(/verboseSttLogging/);
   });
 });

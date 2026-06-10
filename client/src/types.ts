@@ -525,6 +525,45 @@ export interface SessionTtsSettingsChangedMessage {
   outputDeviceId: string | null;
 }
 
+/**
+ * Mirror of the server's `SessionSettingsDTO` (see
+ * `server/src/sessions/types.ts`). Carried as the payload of the
+ * `session-settings-changed` WS broadcast and returned by
+ * `GET /api/sessions/:id/settings`.
+ *
+ * Defined here (rather than imported) so the client doesn't take a
+ * build-time dependency on server-only modules.
+ */
+export interface SessionSettingsDTO {
+  sessionId: string;
+  workspaceId: string;
+  tts: SessionTtsSettings;
+  inputMode: 'voice' | 'unified' | 'visualizer';
+  autoSubmit: boolean;
+  agentPrompt: {
+    effective: string;
+    source: 'session' | 'workspace-default' | 'builtin';
+  };
+  /**
+   * Issue #470: per-session verbose STT lifecycle logging toggle.
+   * Default `false`. When `true`, `useSpeechRecognition` reports every
+   * Web Speech lifecycle event to `/api/client-errors`.
+   */
+  verboseSttLogging: boolean;
+}
+
+/**
+ * Server → all devices in session: full session-settings snapshot
+ * (issue #378). Emitted in addition to the legacy TTS-only message so
+ * older clients keep working while new clients can hydrate the whole
+ * UI from one payload.
+ */
+export interface SessionSettingsChangedMessage {
+  type: 'session-settings-changed';
+  sessionId: string;
+  settings: SessionSettingsDTO;
+}
+
 /** Server → Mobile: Transcription result from audio input */
 export interface TranscriptionResultMessage {
   type: 'transcription-result';
@@ -580,6 +619,7 @@ export type ServerMessage =
   | AudioChunkMessage
   | AudioEndMessage
   | SessionTtsSettingsChangedMessage
+  | SessionSettingsChangedMessage
   | TranscriptionResultMessage
   | TranscriptionErrorMessage
   | KioskAttentionMessage;

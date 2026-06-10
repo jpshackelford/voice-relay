@@ -10,7 +10,7 @@ import { Oscilloscope } from './Oscilloscope';
 import { MobileSettings, type InputMode } from './MobileSettings';
 import { ConversationPane } from './ConversationPane';
 import { KioskPicker } from './KioskPicker';
-import type { DeviceInfo, DeviceMode, Utterance, SessionTtsSettings, DisplayContent } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, SessionTtsSettings, SessionSettingsDTO, DisplayContent } from '../types';
 
 interface MobileModeProps {
   deviceId: string;
@@ -59,6 +59,14 @@ interface MobileModeProps {
    * deepgram→web-speech transparent fallback.
    */
   sttEngine?: SttEngine;
+  /**
+   * Issue #470: full session-settings snapshot from the unified
+   * `session-settings-changed` broadcast. Used here to read
+   * `verboseSttLogging` and pass it through to `useSttEngine`. Other
+   * fields will be threaded onto local state in follow-up work; for
+   * now only the verbose flag is consumed.
+   */
+  sessionSettings?: SessionSettingsDTO | null;
 }
 
 export function MobileMode({ 
@@ -80,6 +88,7 @@ export function MobileMode({
   workspaceId,
   isOwner,
   sttEngine = 'web-speech',
+  sessionSettings,
 }: MobileModeProps) {
   const navigate = useNavigate();
   const [text, setText] = useState('');
@@ -157,6 +166,12 @@ export function MobileMode({
   // would violate React rules of hooks. Fallback semantics
   // (deepgram→web-speech, one-time warn, banner on 402/503) live inside
   // the wrapper — see useSttEngine.ts for the matrix.
+  // Issue #470: derive the verbose-lifecycle flag from the session
+  // snapshot. `false` until the first `session-settings-changed`
+  // broadcast lands (or the AI agent PATCHes the field on), which
+  // matches the server-side default.
+  const verboseSttLogging = sessionSettings?.verboseSttLogging ?? false;
+
   const { isListening, isSupported: sttSupported, startListening, stopListening } = useSttEngine({
     resolvedEngine: sttEngine,
     deviceId,
@@ -167,7 +182,34 @@ export function MobileMode({
     onInterimResult: handleInterimResult,
     onFinalResult: handleFinalResult,
     onError: handleSttError,
+    // Issue #470: gate the Web Speech lifecycle firehose.
+    verboseSttLogging,
   });
+
+  // Issue #470: PATCH the server when the user flips the Diagnostics
+  // toggle in the settings sheet. The `session-settings-changed`
+  // broadcast that returns updates `sessionSettings` for every device
+  // in the session, so the toggle in any client UI reflects the new
+  // value within one round-trip.
+  const handleVerboseSttLoggingChange = useCallback(
+    async (enabled: boolean) => {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/settings`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ verboseSttLogging: enabled }),
+        });
+        if (!res.ok) {
+          console.error('[MobileMode] verboseSttLogging PATCH failed:', res.status);
+        }
+      } catch (err) {
+        console.error('[MobileMode] verboseSttLogging PATCH error:', err);
+      }
+    },
+    [sessionId],
+  );
 
   // Keep refs in sync with state for effect optimization
   useEffect(() => {
@@ -568,6 +610,9 @@ export function MobileMode({
         onSessionTtsSettingsChange={onSessionTtsSettingsChange}
         kioskDevices={kioskDevices}
         deviceId={deviceId}
+        // Issue #470: Diagnostics toggle for the verbose STT firehose.
+        verboseSttLogging={verboseSttLogging}
+        onVerboseSttLoggingChange={handleVerboseSttLoggingChange}
       />
 
       {/* Conversation Pane */}

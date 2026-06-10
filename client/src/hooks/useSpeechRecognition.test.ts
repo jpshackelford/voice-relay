@@ -245,6 +245,114 @@ describe('useSpeechRecognition', () => {
     );
   });
 
+  describe('verbose STT lifecycle logging (#470)', () => {
+    const baseOpts = { sessionId: 'sess-1', workspaceId: 'ws-1', deviceId: 'dev-1' };
+
+    it('omits verbose lifecycle calls when the flag is off (default)', () => {
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      const { result } = renderHook(() => useSpeechRecognition(baseOpts));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+      act(() =>
+        instance.onresult?.({
+          resultIndex: 0,
+          results: [
+            { isFinal: false, 0: { transcript: 'hi' }, length: 1 },
+          ],
+        } as unknown as FakeEvent),
+      );
+      act(() => instance.onend?.());
+      // Default flag is false — no verbose firehose events should be
+      // forwarded. The only reports allowed are always-on ones; since
+      // we never tripped onerror or a throw, the spy should have
+      // received zero calls.
+      const verboseCalls = reportSpy.mock.calls.filter(
+        ([arg]) => typeof arg?.errorCode === 'string' && arg.errorCode.startsWith('lifecycle:'),
+      );
+      expect(verboseCalls).toHaveLength(0);
+    });
+
+    it('emits the firehose when the flag is on', () => {
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ ...baseOpts, verboseSttLogging: true }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+      act(() => instance.onend?.());
+
+      const codes = reportSpy.mock.calls
+        .map(([arg]) => arg?.errorCode)
+        .filter((c) => typeof c === 'string' && c.startsWith('lifecycle:'));
+      expect(codes).toEqual(
+        expect.arrayContaining([
+          'lifecycle:startListening',
+          'lifecycle:start-call-ok',
+          'lifecycle:onstart',
+          'lifecycle:onend',
+        ]),
+      );
+    });
+
+    it('still emits the always-on onerror lifecycle when the flag is off', () => {
+      // Spy on console.error/warn before the hook errors path runs to
+      // keep the test output clean.
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ ...baseOpts, verboseSttLogging: false }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      // `network` is a canonical hard error — the always-on
+      // `lifecycle:onerror` event must still surface, even with the
+      // verbose flag off, because operators need to know STT broke.
+      act(() =>
+        instance.onerror?.({ error: 'network' } as unknown as Event & { error?: string }),
+      );
+      const lifecycleErrorReports = reportSpy.mock.calls
+        .map(([arg]) => arg?.errorCode)
+        .filter((c) => c === 'lifecycle:onerror');
+      expect(lifecycleErrorReports.length).toBeGreaterThan(0);
+    });
+
+    it('emits always-on lifecycle:stopListening-threw when recognition.stop() throws', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const reportSpy = vi
+        .spyOn(reportClientErrorMod, 'reportClientError')
+        .mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ ...baseOpts, verboseSttLogging: false }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      // Force `stop()` to throw on the next call to exercise the
+      // always-on branch in stopListening's catch.
+      instance.stop.mockImplementationOnce(() => {
+        throw new Error('already stopped');
+      });
+      act(() => result.current.stopListening());
+      const codes = reportSpy.mock.calls
+        .map(([arg]) => arg?.errorCode)
+        .filter((c) => typeof c === 'string');
+      // `stopListening-threw` is the always-on event; the gated
+      // `lifecycle:stopListening` precede it would NOT have fired
+      // because the flag is off — so its presence here proves the
+      // always-on path is independent of the gate.
+      expect(codes).toContain('lifecycle:stopListening-threw');
+      expect(codes).not.toContain('lifecycle:stopListening');
+    });
+  });
+
   it('stopListening stops the underlying recognition instance', () => {
     const { result } = renderHook(() => useSpeechRecognition({}));
     act(() => result.current.startListening());

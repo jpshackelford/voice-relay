@@ -22,7 +22,12 @@ import type {
 } from './useHostedSpeechRecognition';
 
 // Captured live so each test can drive callbacks directly.
-let wsOptions: { onInterimResult?: (t: string) => void; onFinalResult?: (t: string) => void; onError?: (e: string) => void } = {};
+let wsOptions: {
+  onInterimResult?: (t: string) => void;
+  onFinalResult?: (t: string) => void;
+  onError?: (e: string) => void;
+  verboseSttLogging?: boolean;
+} = {};
 let hostedOptions: UseHostedSpeechRecognitionOptions | null = null;
 let wsState = { isListening: false, isSupported: true };
 let hostedState = { isListening: false, isSupported: true };
@@ -481,6 +486,28 @@ describe('useSttEngine (issue #410)', () => {
       act(() => result.current.startListening());
       expect(hostedStart).toHaveBeenCalledTimes(1);
       expect(wsStart).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('verbose STT lifecycle logging (#470)', () => {
+    it('forwards verboseSttLogging to both child hooks', () => {
+      renderHook(() =>
+        useSttEngine({
+          resolvedEngine: 'web-speech',
+          deviceId: 'dev-1',
+          verboseSttLogging: true,
+        }),
+      );
+      expect(wsOptions.verboseSttLogging).toBe(true);
+      expect(hostedOptions?.verboseSttLogging).toBe(true);
+    });
+
+    it('defaults verboseSttLogging to undefined (the hooks treat that as false)', () => {
+      renderHook(() =>
+        useSttEngine({ resolvedEngine: 'web-speech', deviceId: 'dev-1' }),
+      );
+      expect(wsOptions.verboseSttLogging).toBeUndefined();
+      expect(hostedOptions?.verboseSttLogging).toBeUndefined();
     });
   });
 });

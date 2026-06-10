@@ -15,7 +15,7 @@ import { AgentHistoryStatus } from './AgentHistoryStatus';
 import { AIRestartButton } from './AIRestartButton';
 import { formatActionKind, isObservationKind } from '../utils/formatActionKind';
 import { getActionIcon } from '../hooks/useAgentActions';
-import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, AgentAction, TimelineEntry, SpeakerState } from '../types';
+import type { DeviceInfo, DeviceMode, Utterance, DisplayContent, DisplayResultMessage, SessionTtsSettings, SessionSettingsDTO, AgentAction, TimelineEntry, SpeakerState } from '../types';
 import type { AIState } from '../hooks/useAI';
 import { ClaimSpeakerCard, getSkipUntil } from './ClaimSpeakerCard';
 import { getStoredDeviceToken } from '../utils/deviceToken';
@@ -125,6 +125,13 @@ interface KioskModeProps {
    * the kiosk simply does not render the claim card at all.
    */
   onSpeakerSignIn?: () => void;
+  /**
+   * Issue #470: full session-settings snapshot from the unified
+   * `session-settings-changed` broadcast. Used to read
+   * `verboseSttLogging` for the inline header diagnostics toggle and
+   * to forward to `useSttEngine`.
+   */
+  sessionSettings?: SessionSettingsDTO | null;
 }
 
 // Hook to detect mobile devices
@@ -176,6 +183,7 @@ export function KioskMode({
   onAttentionDismiss,
   speakerState = null,
   onSpeakerSignIn,
+  sessionSettings,
 }: KioskModeProps) {
   const [text, setText] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -328,14 +336,46 @@ export function KioskMode({
   // would violate React rules of hooks. Fallback semantics
   // (deepgram→web-speech, one-time warn, banner on 402/503) live inside
   // the wrapper — see useSttEngine.ts for the matrix.
+  // Issue #470: pulled from the snapshot so a flip via the inline
+  // header icon (below) — or by the AI agent PATCHing the field —
+  // propagates without re-mounting the STT hook.
+  const verboseSttLogging = sessionSettings?.verboseSttLogging ?? false;
+
   const { isListening, isSupported: sttSupported, startListening, stopListening } = useSttEngine({
     resolvedEngine: sttEngine,
     deviceId,
     workspaceId,
+    sessionId,
     onInterimResult: handleInterimResult,
     onFinalResult: handleFinalResult,
     onError: handleSttError,
+    // Issue #470: gate the Web Speech lifecycle firehose.
+    verboseSttLogging,
   });
+
+  // Issue #470: kiosk Diagnostics affordance. Lives inline in the
+  // input-row toolbar (next to the auto-submit icon) since the kiosk
+  // has no dedicated settings sheet today — see the issue's
+  // "smaller diff" guidance.
+  const handleVerboseSttLoggingChange = useCallback(
+    async (enabled: boolean) => {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/settings`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ verboseSttLogging: enabled }),
+        });
+        if (!res.ok) {
+          console.error('[KioskMode] verboseSttLogging PATCH failed:', res.status);
+        }
+      } catch (err) {
+        console.error('[KioskMode] verboseSttLogging PATCH error:', err);
+      }
+    },
+    [sessionId],
+  );
 
   // Issue #388: report this kiosk's mic listening state to the server so
   // peer devices see the same aggregate. Kiosks don't run getUserMedia
@@ -1052,6 +1092,25 @@ export function KioskMode({
             >
               {autoSubmit ? '⚡' : '✏️'}
             </button>
+            {/* Issue #470: Diagnostics — verbose STT lifecycle firehose
+                toggle. Off by default; the inline icon mirrors the
+                existing auto-submit toggle's "header icon only" UX.
+                Only rendered when we have a sessionId to PATCH against. */}
+            {sessionId && (
+              <button
+                className={`verbose-stt-toggle auto-submit-toggle ${verboseSttLogging ? 'active' : ''}`}
+                onClick={() => handleVerboseSttLoggingChange(!verboseSttLogging)}
+                title={
+                  verboseSttLogging
+                    ? 'Verbose STT logging on — click to stop'
+                    : 'Verbose STT logging off — click to debug'
+                }
+                aria-label="Toggle verbose STT lifecycle logging"
+                aria-pressed={verboseSttLogging}
+              >
+                {verboseSttLogging ? '🐛' : '🔇'}
+              </button>
+            )}
             <input
               ref={inputRef}
               type="text"

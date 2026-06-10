@@ -331,6 +331,12 @@ export interface SessionSettingsChangedMessage {
       effective: string;
       source: 'session' | 'workspace-default' | 'builtin';
     };
+    /**
+     * Issue #470: per-session verbose STT lifecycle logging toggle.
+     * `false` by default; the AI agent and operators flip it on to
+     * stream `lifecycle:<event>` `/api/client-errors` for debugging.
+     */
+    verboseSttLogging: boolean;
   };
 }
 

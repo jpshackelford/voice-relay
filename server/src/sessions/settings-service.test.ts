@@ -126,6 +126,7 @@ describe('SessionSettingsService', () => {
       expect(dto.tts).toEqual({ enabled: true, outputDeviceId: null });
       expect(dto.inputMode).toBe('unified');
       expect(dto.autoSubmit).toBe(true);
+      expect(dto.verboseSttLogging).toBe(false);
       expect(dto.agentPrompt.source).toBe('builtin');
       expect(typeof dto.agentPrompt.effective).toBe('string');
       expect(dto.agentPrompt.effective.length).toBeGreaterThan(0);
@@ -205,6 +206,63 @@ describe('SessionSettingsService', () => {
       expect(() =>
         service.applyPatch(sessionId, { autoSubmit: 1 as unknown as boolean }),
       ).toThrow(SettingsValidationError);
+    });
+  });
+
+  describe('applyPatch — verboseSttLogging (#470)', () => {
+    it('defaults to false on a fresh session', () => {
+      const dto = service.readSettings(sessionId);
+      expect(dto.verboseSttLogging).toBe(false);
+    });
+
+    it('persists true and surfaces it on the DTO', () => {
+      const dto = service.applyPatch(sessionId, { verboseSttLogging: true });
+      expect(dto.verboseSttLogging).toBe(true);
+      expect(sessionRepo.findById(sessionId)?.metadata?.verboseSttLogging).toBe(true);
+    });
+
+    it('persists false (operator turning the firehose off)', () => {
+      service.applyPatch(sessionId, { verboseSttLogging: true });
+      const dto = service.applyPatch(sessionId, { verboseSttLogging: false });
+      expect(dto.verboseSttLogging).toBe(false);
+      expect(sessionRepo.findById(sessionId)?.metadata?.verboseSttLogging).toBe(false);
+    });
+
+    it('leaves the value untouched when the field is absent from a patch', () => {
+      service.applyPatch(sessionId, { verboseSttLogging: true });
+      const dto = service.applyPatch(sessionId, { autoSubmit: false });
+      expect(dto.verboseSttLogging).toBe(true);
+      expect(dto.autoSubmit).toBe(false);
+    });
+
+    it('rejects non-boolean verboseSttLogging', () => {
+      expect(() =>
+        service.applyPatch(sessionId, {
+          verboseSttLogging: 'yes' as unknown as boolean,
+        }),
+      ).toThrow(SettingsValidationError);
+    });
+
+    it('rejects null verboseSttLogging', () => {
+      expect(() =>
+        service.applyPatch(sessionId, {
+          verboseSttLogging: null as unknown as boolean,
+        }),
+      ).toThrow(SettingsValidationError);
+    });
+
+    it('broadcasts the snapshot message with the new field included', () => {
+      service.applyPatch(sessionId, { verboseSttLogging: true });
+      // Only the snapshot message fires for non-TTS patches (the legacy
+      // `session-tts-settings-changed` is TTS-only).
+      const snapshots = registryCalls.filter(
+        (c) => c.message.type === 'session-settings-changed',
+      );
+      expect(snapshots).toHaveLength(1);
+      const settings = snapshots[0].message.settings as {
+        verboseSttLogging: boolean;
+      };
+      expect(settings.verboseSttLogging).toBe(true);
     });
   });
 

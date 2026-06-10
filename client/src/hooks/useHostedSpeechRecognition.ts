@@ -101,6 +101,16 @@ export interface UseHostedSpeechRecognitionOptions {
    * forwarded to `POST /api/client-errors` for server-side logging.
    */
   sessionId?: string;
+  /**
+   * Issue #470: session-level verbose STT lifecycle flag, accepted for
+   * structural parity with {@link useSpeechRecognition} so
+   * `useSttEngine` can forward it uniformly. **No-op today** — this
+   * hook has no lifecycle firehose (`surfaceError` is the only
+   * `/api/client-errors` call and it's an always-on error path). When
+   * hosted-engine lifecycle reporting is added in a follow-up, gate
+   * the new verbose-only calls on this flag.
+   */
+  verboseSttLogging?: boolean;
   /** Override the Deepgram WS URL (tests, staging). */
   deepgramWsUrl?: string;
   /** Override fetch (tests). */
