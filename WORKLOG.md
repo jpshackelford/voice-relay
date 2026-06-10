@@ -614,3 +614,27 @@ A second expansion conversation was dispatched against #471 in parallel with the
 _This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+### 2026-06-10 20:10 UTC - Expansion Worker (Issue #470)
+
+✅ **Expanded Issue #470** — `feat(client): toggleable verbose STT lifecycle logging via session settings`
+
+- Issue: [#470](https://github.com/jpshackelford/voice-relay/issues/470)
+- Type: Enhancement (follow-up to #468 firehose / #469 root-cause fix)
+- Status: **Ready for implementation** (label `ready` applied)
+- Approach: Plug `verboseSttLogging: boolean` (default `false`) into the
+  existing `SessionSettingsService` funnel (server types + DTO + patch +
+  router test). Gate verbose `reportLifecycle()` calls in
+  `useSpeechRecognition` via a ref-tracked flag; always-on paths
+  (`onerror`, `start-call-threw`, `aborted-suppressed`, `no-onstart`)
+  keep firing. Mobile + kiosk get a Diagnostics toggle. System prompt
+  gains a 5th settings bullet so the AI can flip it on request.
+- Discovered side-finding (logged in the technical-approach comment):
+  the client `useWebSocket.ts` does NOT currently consume the
+  `session-settings-changed` snapshot broadcast — only the legacy
+  `session-tts-settings-changed`. The implementer should add that
+  handler as part of this PR so the new flag (and incidentally
+  `inputMode`/`autoSubmit`) actually round-trip server → client.
+- Scope assessment: medium, single PR is appropriate. Not splitting.
+
+---
