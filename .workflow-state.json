@@ -27,7 +27,7 @@
       "started": "2026-06-10T12:21:22Z",
       "finished": "2026-06-10T12:34:52Z",
       "status": "success",
-      "outcome": "PR #467 round 1 \u2014 accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
+      "outcome": "PR #467 round 1 — accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
     },
     {
       "conv_id": "0594df4",
@@ -48,6 +48,6 @@
       "outcome": "Squash-merged PR #467 to main as caf1784; AC gate PASS (5/5 ACs covered); linked issue #457 was already closed."
     }
   ],
-  "quiet_ticks": 1,
-  "last_updated": "2026-06-10T13:19:25.883568+00:00"
+  "quiet_ticks": 2,
+  "last_updated": "2026-06-10T13:34:25Z"
 }

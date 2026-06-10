@@ -356,3 +356,57 @@ Production deploy will pick up `caf1784` automatically; mobile users on iOS 18 S
 **Next tick:** backlog is fully gated by codified policies (AGENTS.md S3 freeze on #299/#301; machine-blocked #300/#302; prose-only `on-hold` on #386/#239/#210; `needs-human` on #372). Next orchestrator tick will be quiet unless QA confirms a new issue from the iPhone or @jpshackelford lifts something with an `## INSTRUCTION:` block.
 
 _This entry was created by an AI agent (OpenHands merge worker `083deca`) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 13:34 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet ticks detected — no actionable work to dispatch. Automation has been PATCHed to `enabled: false` (HTTP 200, `updated_at: 2026-06-10T13:34:19Z`).
+
+**This tick's walk (decision-table exhaustive):**
+
+| Slot | Capacity | Candidates | Verdict |
+| --- | --- | --- | --- |
+| Expansion | 0/4 used → 4 free | 0 issues need expansion (every open issue already carries `ready`, `on-hold`, or `needs-human`) | nothing to spawn |
+| Implementation | 0/1 used → 1 free | 0 `ready` issues are unblocked + prioritized (the only `ready` open issue, #386, also carries `on-hold`) | nothing to spawn |
+| Review | 0/2 used → 2 free | Only open PR is [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (also has stale `lint-pr-title` FAILURE from 2026-06-08); STUCK per decision-table row | nothing to spawn |
+| Draft-promotion | inline (no slot) | PR #465 carries `on-hold` → excluded from auto-promotion | no-op |
+
+**Unblock pass (machine-form `Blocked by #N` only):** 0 issues lifted.
+
+| Issue | Machine blockers (state)   | Mechanical lift? | Why kept on-hold |
+| ----: | -------------------------- | ---------------- | ---------------- |
+|  #299 | #298 = CLOSED              | yes              | **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** still in force — no `## INSTRUCTION:` block has signaled the lift. Codified-gate override per the Anti-Stall rule (point 3: documented policy in AGENTS.md). |
+|  #301 | #295 = CLOSED              | yes              | Same S3 freeze override (#301 is explicitly enumerated in scope of the freeze). |
+|  #300 | #298 = CLOSED, #299 = OPEN | no               | Machine-blocked by #299; also in S3 freeze scope. |
+|  #302 | #300 = OPEN                | no               | Machine-blocked by #300; also in S3 freeze scope. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy-tracked — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)      | n/a              | Untouched — only a human can lift `needs-human`. |
+
+**Quiet-tick counter:** `1 → 2` → auto-disable threshold reached. Previous quiet tick recorded at commit `ca3f119` (`chore: workflow-state — quiet tick 1/2 (PR #467 merged, backlog gated)`).
+
+**Current backlog (8 open issues, 1 open PR — all gated):**
+- `needs-human`: #372
+- `on-hold` (S3 design freeze): #299, #300, #301, #302
+- `on-hold` (prose-only policy holds): #210, #239, #386
+- Open PR: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`
+
+**To re-enable:**
+
+- **OpenHands UI:** [https://app.all-hands.dev/automations](https://app.all-hands.dev/automations) → find "Voice Relay Workflow Orchestrator v2" → toggle on.
+- **GitHub-driven re-enable:** open or mark-ready a PR / open a new issue — `enable-orchestrator.yml` will PATCH the automation back to `enabled: true` automatically. Note that the re-enable is a no-op against the current backlog until one of:
+  1. PR #465 has its `on-hold` label removed and is marked ready.
+  2. The S3 freeze conditions in AGENTS.md are met and an `## INSTRUCTION:` block lifts #299 / #301 (and by extension #300 / #302).
+  3. #372 is unblocked by a human (`needs-human` removed).
+  4. A new actionable issue is filed (no `on-hold` / `needs-human`).
+- **API:**
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
