@@ -3,20 +3,13 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "48e872e",
-        "pr": 467,
-        "started": "2026-06-10T12:21:22Z"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
     "implementation": 1,
     "review": 2
   },
-  "last_updated": "2026-06-10T12:21:22Z",
   "completed": [
     {
       "conv_id": "cd1b973",
@@ -26,7 +19,17 @@
       "finished": "2026-06-09T22:19:24.870450+00:00",
       "status": "success",
       "outcome": "Addressed pr-review bot suggestion on PR #466; PR merged by separate merge worker at 22:10Z."
+    },
+    {
+      "conv_id": "48e872e",
+      "type": "review",
+      "pr": 467,
+      "started": "2026-06-10T12:21:22Z",
+      "finished": "2026-06-10T12:34:52Z",
+      "status": "success",
+      "outcome": "PR #467 round 1 — accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
     }
   ],
-  "quiet_ticks": 0
+  "quiet_ticks": 1,
+  "last_updated": "2026-06-10T12:38:00Z"
 }
