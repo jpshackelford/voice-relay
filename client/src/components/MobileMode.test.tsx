@@ -312,6 +312,54 @@ describe('MobileMode', () => {
       // stopListening should have been called when mode changed
       expect(mockStopListening).toHaveBeenCalled();
     });
+
+    // Regression test for the post-#468 smoking gun.
+    //
+    // Pre-fix: the "stop mic on inputMode change" effect's dep array
+    // included `stopListening` / `cleanupAudioStream`. Both have
+    // unstable identities (useSttEngine returns a fresh callback per
+    // render because the inner `hosted`/`ws` object identities churn),
+    // so the effect re-ran on the render triggered by Safari's
+    // `onstart` setting `isListening=true`. The ref guard saw the mic
+    // active and called `stopListening()` ~2 ms after `onstart`,
+    // producing the iOS Safari `aborted/No speech detected` symptom.
+    //
+    // After the fix, the effect must short-circuit when `inputMode`
+    // hasn't changed, regardless of dep-identity shifts or
+    // `isListening` flipping false→true between renders.
+    it('does NOT stop mic when isListening flips true without an inputMode change', () => {
+      // Start NOT listening — mimics the post-tap, pre-onstart state.
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: false,
+        isSupported: true,
+        startListening: mockStartListening,
+        stopListening: mockStopListening,
+      });
+      const { rerender } = render(<MobileMode {...defaultProps} />);
+      expect(mockStopListening).not.toHaveBeenCalled();
+
+      // Now Safari fires onstart → useSpeechRecognition flips
+      // isListening to true. Critically, the mocked hook also yields
+      // FRESH callback identities — that's the dep-shift the original
+      // effect was vulnerable to. Pre-fix, the effect captured the
+      // new `stopListening` in its closure and called it; we therefore
+      // assert on `freshStopListening` (the one the effect's closure
+      // would actually invoke), not the initial `mockStopListening`.
+      const freshStopListening = vi.fn();
+      vi.mocked(useSpeechRecognition).mockReturnValue({
+        isListening: true,
+        isSupported: true,
+        startListening: vi.fn(), // fresh identity
+        stopListening: freshStopListening, // fresh identity — would re-fire the effect pre-fix
+      });
+      rerender(<MobileMode {...defaultProps} />);
+
+      // No inputMode change → effect body must skip. Neither the
+      // original nor the freshly-identified stopListening should be
+      // invoked. Pre-fix, `freshStopListening` was called once.
+      expect(mockStopListening).not.toHaveBeenCalled();
+      expect(freshStopListening).not.toHaveBeenCalled();
+    });
   });
 
   describe('voice mode mic toggle', () => {
