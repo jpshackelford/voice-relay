@@ -203,17 +203,35 @@ export function MobileMode({
     }
   }, []);
 
-  // Stop active mic when input mode changes
-  // This ensures clean state transition when user switches modes in settings
-  // Uses refs to read current state inside the effect, only re-running when inputMode changes
-  // (Optimization: avoids unnecessary effect runs when isListening/isActive change)
+  // Stop active mic when input mode changes.
+  //
+  // Bug we're fixing: this effect's stated intent ("only re-run when
+  // inputMode changes") didn't match its dep array, which included
+  // `stopListening` and `cleanupAudioStream`. Both are unstable
+  // because `useSttEngine` returns a fresh `stopListening` callback
+  // every render — `useSttEngine`'s own `stopListening` `useCallback`
+  // depends on the `hosted` and `ws` *objects* returned by the inner
+  // hooks, and those return a new object literal each render. Net
+  // effect: every render with a dep-identity shift re-fires this
+  // effect; when `setIsListening(true)` ran inside `onstart`, the
+  // re-render triggered the effect, the ref guard saw mic active,
+  // and stopListening() got called ~2 ms after onstart — killing
+  // STT and producing the iOS Safari `aborted/No speech detected`
+  // we'd been chasing for two PRs.
+  //
+  // Fix: gate the body on an actual inputMode change tracked via a
+  // ref. Callback deps stay in the dep array (lint compliance, and
+  // they're cheap to keep there now that the body short-circuits).
+  const prevInputModeRef = useRef(inputMode);
   useEffect(() => {
+    if (prevInputModeRef.current === inputMode) return;
+    prevInputModeRef.current = inputMode;
     if (isListeningRef.current || audioAnalyserActiveRef.current) {
       stopListening();
       audioAnalyser.stop();
       cleanupAudioStream();
     }
-  }, [inputMode, audioAnalyser.stop, stopListening, cleanupAudioStream]);
+  }, [inputMode, audioAnalyser.stop, stopListening, cleanupAudioStream, audioAnalyser]);
 
   // Handle microphone toggle based on input mode.
   //
