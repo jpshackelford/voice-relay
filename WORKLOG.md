@@ -599,3 +599,18 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 - Scope is one-PR-sized; no `needs-split`.
 
 _This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
+
+### 2026-06-10 20:11 UTC - Expansion Worker (Issue #471, re-validation)
+
+✅ **Re-validation + #470 cross-link on #471**
+
+A second expansion conversation was dispatched against #471 in parallel with the first. By the time this worker started, the issue body, technical-approach comment, and `ready` label were already in place (verified at `main @ cb8a8a9`). This worker's productive output:
+
+- Re-validated all four file claims against `main @ cb8a8a9` (deps arrays in `useSttEngine.ts`, fresh-literal returns in both inner hooks, `prevInputModeRef` guard at `MobileMode.tsx:224-234`, existing `renderHook`/`act` infra in `useSttEngine.test.ts:17`, no existing `useChangeEffect` helper).
+- Confirmed Option A as the recommendation with explicit rationale (smaller blast radius, inner hooks' underlying callbacks are already stable, Option B can land later as additive cleanup).
+- Posted [cross-link comment](https://github.com/jpshackelford/voice-relay/issues/471#issuecomment-4674018901) noting #471 ↔ #470 relationship: independent, not mechanically blocked, but #471 lands cleaner first because it removes the identity-churn footgun the verbose-logging work in #470 would otherwise have to navigate. No `Blocked by #` line added per orchestrator-task instructions.
+- `ready` label already present from prior pass; no label changes made.
+
+_This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
+
+---
