@@ -36,6 +36,17 @@ interface SpeechRecognition extends EventTarget {
   onerror: ((event: Event) => void) | null;
   onend: (() => void) | null;
   onstart: (() => void) | null;
+  // Less-commonly-used lifecycle events — wired by this hook for the
+  // iOS Safari diagnostic firehose (Issue: iOS STT mic indicator
+  // disables immediately after grant). They're optional in the spec
+  // and may be undefined in some engines, so we assign defensively.
+  onaudiostart?: (() => void) | null;
+  onaudioend?: (() => void) | null;
+  onsoundstart?: (() => void) | null;
+  onsoundend?: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  onspeechend?: (() => void) | null;
+  onnomatch?: ((event: Event) => void) | null;
 }
 
 declare global {
@@ -132,6 +143,43 @@ export function useSpeechRecognition({
         : Date.now()) - intentStartedAtRef.current,
     );
 
+  // ---------------------------------------------------------------
+  // Lifecycle firehose
+  // ---------------------------------------------------------------
+  // The iOS Safari STT failure mode we're chasing is "mic permission
+  // granted, indicator appears, then immediately disables with no
+  // user-facing error". The aborted-suppressed log line is fired but
+  // doesn't tell us *which* lifecycle event preceded it. So we emit a
+  // `code: lifecycle:<event>` ClientError for every Web Speech event
+  // AND for every internal control transition (startListening,
+  // stopListening, tryRestart, retry-fired). The payload is tiny
+  // (`fetch keepalive`) and runs only on devices that talk to STT, so
+  // the volume is manageable.
+  //
+  // Reports are no-ops when sessionId/workspaceId/deviceId aren't all
+  // available (reportClientError's existing contract), so dev / test
+  // environments without a registered device stay quiet.
+  const lifecycleSeqRef = useRef(0);
+  const reportLifecycle = useCallback((event: string, extra?: Record<string, unknown>) => {
+    lifecycleSeqRef.current += 1;
+    reportClientError({
+      sessionId: sessionIdRef.current,
+      workspaceId: workspaceIdRef.current,
+      deviceId: deviceIdRef.current,
+      source: 'useSpeechRecognition',
+      errorCode: `lifecycle:${event}`,
+      message: `STT lifecycle: ${event}`,
+      context: {
+        seq: lifecycleSeqRef.current,
+        msSinceIntent: msSinceIntent(),
+        cycleNum: cycleNumRef.current,
+        onstartSeen: onstartSeenThisIntentRef.current,
+        userWants: userWantsListeningRef.current,
+        ...(extra ?? {}),
+      },
+    });
+  }, []);
+
   // Backoff retry attempt — extracted out of `tryRestart`'s catch so
   // the nesting stays at 3 levels (per repo complexity guideline) and
   // the retry path is independently readable. Runs once, ~100 ms after
@@ -139,6 +187,7 @@ export function useSpeechRecognition({
   // previous cycle is still tearing down).
   const performRestartRetry = useCallback(() => {
     restartRetryTimerRef.current = null;
+    reportLifecycle('retry-fired', { willStart: userWantsListeningRef.current });
     if (!userWantsListeningRef.current) return;
     try {
       recognitionRef.current?.start();
@@ -158,7 +207,7 @@ export function useSpeechRecognition({
         context: { msSinceIntent: msSinceIntent(), cycleNum: cycleNumRef.current },
       });
     }
-  }, []);
+  }, [reportLifecycle]);
 
   // Restart the SAME recognition instance — addpipe's pattern.
   // Constructing a new SpeechRecognition object between cycles is what
@@ -166,21 +215,30 @@ export function useSpeechRecognition({
   // post-#466 production journal.
   const tryRestart = useCallback(() => {
     const rec = recognitionRef.current;
-    if (!rec) return;
+    if (!rec) {
+      reportLifecycle('tryRestart-skip', { reason: 'no-instance' });
+      return;
+    }
+    reportLifecycle('tryRestart-call');
     try {
       rec.start();
-    } catch (_e) {
+    } catch (e) {
       // Common case: InvalidStateError because the previous cycle is
       // still in teardown. addpipe's demo silently retries; we do the
       // same with a tiny backoff so we don't busy-loop.
+      reportLifecycle('tryRestart-threw', {
+        errorName: e instanceof Error ? e.name : 'unknown',
+        errorMessage: e instanceof Error ? e.message : String(e),
+      });
       clearRestartRetryTimer();
       restartRetryTimerRef.current = setTimeout(performRestartRetry, 100);
     }
-  }, [clearRestartRetryTimer, performRestartRetry]);
+  }, [clearRestartRetryTimer, performRestartRetry, reportLifecycle]);
 
   const startListening = useCallback(() => {
     if (!isSupported) {
       onErrorRef.current?.('Speech recognition is not supported in this browser');
+      reportLifecycle('startListening-unsupported');
       return;
     }
     // New intent — reset per-intent dedup, cycle counter, lifecycle markers.
@@ -193,7 +251,10 @@ export function useSpeechRecognition({
       typeof performance !== 'undefined' && typeof performance.now === 'function'
         ? performance.now()
         : Date.now();
+    lifecycleSeqRef.current = 0;
     clearRestartRetryTimer();
+
+    reportLifecycle('startListening', { reuseInstance: !!recognitionRef.current });
 
     // Reuse the existing instance if we have one — addpipe pattern.
     // Constructing a new object between cycles is what triggered the
@@ -213,7 +274,41 @@ export function useSpeechRecognition({
       onstartSeenThisIntentRef.current = true;
       cycleNumRef.current += 1;
       setIsListening(true);
+      reportLifecycle('onstart');
     };
+
+    // ---- Lifecycle firehose: optional Web Speech events ----
+    // We assign these on every fresh instance only. (They're set
+    // once; reusing the same instance across intents — addpipe
+    // pattern — means handlers persist.) Each is a best-effort
+    // assignment guarded by `try/catch` in case an engine throws on
+    // unknown handler properties.
+    const wireOptional = (
+      key:
+        | 'onaudiostart'
+        | 'onaudioend'
+        | 'onsoundstart'
+        | 'onsoundend'
+        | 'onspeechstart'
+        | 'onspeechend',
+    ) => {
+      try {
+        recognition[key] = () => reportLifecycle(key);
+      } catch {
+        // ignore — engine doesn't expose this hook
+      }
+    };
+    wireOptional('onaudiostart');
+    wireOptional('onaudioend');
+    wireOptional('onsoundstart');
+    wireOptional('onsoundend');
+    wireOptional('onspeechstart');
+    wireOptional('onspeechend');
+    try {
+      recognition.onnomatch = () => reportLifecycle('onnomatch');
+    } catch {
+      // ignore
+    }
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = '';
@@ -230,19 +325,25 @@ export function useSpeechRecognition({
         // A real result means Safari is healthy this intent. Re-arm
         // the diagnostic dedup flags so a later wedge can still surface.
         abortReportedThisIntentRef.current = false;
+        reportLifecycle('onresult-final', { length: finalTranscript.length });
         onFinalResultRef.current?.(finalTranscript);
       } else if (interimTranscript) {
+        reportLifecycle('onresult-interim', { length: interimTranscript.length });
         onInterimResultRef.current?.(interimTranscript);
       }
     };
 
-    recognition.onerror = (event: Event & { error?: string }) => {
+    recognition.onerror = (event: Event & { error?: string; message?: string }) => {
       const errorType = event.error || 'unknown';
       const lifecycle = {
         msSinceIntent: msSinceIntent(),
         cycleNum: cycleNumRef.current,
         onstartSeen: onstartSeenThisIntentRef.current,
       };
+      reportLifecycle('onerror', {
+        error: errorType,
+        engineMessage: event.message,
+      });
 
       // `no-speech` is a normal silence-timeout signal in continuous
       // mode — addpipe's working demo ignores it. Let onend handle
@@ -307,6 +408,7 @@ export function useSpeechRecognition({
     };
 
     recognition.onend = () => {
+      reportLifecycle('onend');
       // `onend` without `onstart` ever firing this intent is the
       // documented iOS Safari "silently dropped" pattern
       // (WebAudio/web-speech-api#96). Worth one diagnostic per intent.
@@ -342,26 +444,36 @@ export function useSpeechRecognition({
     recognitionRef.current = recognition;
     try {
       recognition.start();
+      reportLifecycle('start-call-ok', { initial: true });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('[STT] initial start() threw, retrying', e);
+      reportLifecycle('start-call-threw', {
+        initial: true,
+        errorName: e instanceof Error ? e.name : 'unknown',
+        errorMessage: e instanceof Error ? e.message : String(e),
+      });
       tryRestart();
     }
-  }, [isSupported, tryRestart, clearRestartRetryTimer]);
+  }, [isSupported, tryRestart, clearRestartRetryTimer, reportLifecycle]);
 
   const stopListening = useCallback(() => {
+    reportLifecycle('stopListening');
     userWantsListeningRef.current = false;
     clearRestartRetryTimer();
     const rec = recognitionRef.current;
     if (rec) {
       try {
         rec.stop();
-      } catch (_e) {
+      } catch (e) {
         // ignore — stop() can throw if already stopped
+        reportLifecycle('stopListening-threw', {
+          errorMessage: e instanceof Error ? e.message : String(e),
+        });
       }
     }
     setIsListening(false);
-  }, [clearRestartRetryTimer]);
+  }, [clearRestartRetryTimer, reportLifecycle]);
 
   // Cleanup on unmount — kill the long-lived recognition so it
   // doesn't keep the mic alive after the React tree is gone.

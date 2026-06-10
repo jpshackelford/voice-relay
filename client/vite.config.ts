@@ -4,8 +4,20 @@ import path from 'path';
 
 const wsPort = process.env.VITE_WS_PORT || '3001';
 
+// Build metadata — stamped into the bundle so every `[ClientError]`
+// log line and the on-screen build tag can be cross-checked against
+// the deployed commit. The deploy workflow sets `BUILD_SHA` /
+// `BUILD_TIME` before invoking `npm run build`; in local dev they
+// default to `'dev'` and the current ISO timestamp respectively.
+const buildSha = process.env.BUILD_SHA || 'dev';
+const buildTime = process.env.BUILD_TIME || new Date().toISOString();
+
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_SHA__: JSON.stringify(buildSha),
+    __BUILD_TIME__: JSON.stringify(buildTime),
+  },
   resolve: {
     alias: {
       '@docs': path.resolve(__dirname, '../docs'),

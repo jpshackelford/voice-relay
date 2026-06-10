@@ -9,6 +9,7 @@ import { JoinPage } from './pages/JoinPage';
 import { TermsOfService } from './pages/TermsOfService';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { useWorkspaces } from './hooks/useWorkspaces';
+import { BuildTag } from './components/BuildTag';
 import './App.css';
 
 // Protected route wrapper
@@ -110,6 +111,7 @@ export default function App() {
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>
+      <BuildTag />
     </BrowserRouter>
   );
 }
