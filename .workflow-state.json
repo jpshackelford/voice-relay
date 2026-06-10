@@ -1,7 +1,18 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
+    "expansion": [
+      {
+        "conv_id": "fd7a2b0",
+        "issue": 470,
+        "started": "2026-06-10T20:06:17Z"
+      },
+      {
+        "conv_id": "0bcc0ca",
+        "issue": 471,
+        "started": "2026-06-10T20:06:17Z"
+      }
+    ],
     "implementation": [],
     "review": []
   },
@@ -48,6 +59,6 @@
       "outcome": "Squash-merged PR #467 to main as caf1784; AC gate PASS (5/5 ACs covered); linked issue #457 was already closed."
     }
   ],
-  "quiet_ticks": 4,
-  "last_updated": "2026-06-10T19:26:57Z"
+  "quiet_ticks": 0,
+  "last_updated": "2026-06-10T20:06:17Z"
 }

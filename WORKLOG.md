@@ -523,3 +523,57 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
 
+
+---
+### 2026-06-10 20:06 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned 2 expansion workers (parallel) — backlog has real work again**
+
+After PR #469 merged at 19:23Z, two new follow-up issues were filed by @jpshackelford and arrived in the orchestrator's window without any labels (no `ready`, no `on-hold`, no `needs-human`). The expansion slot row in the decision table catches exactly this case.
+
+**Active workers:**
+
+| Conv ID | Type | Working On | Status |
+| --- | --- | --- | --- |
+| [`fd7a2b0`](https://app.all-hands.dev/conversations/fd7a2b0d1c6b44fea48b07324ae52015) | expansion | Issue [#470](https://github.com/jpshackelford/voice-relay/issues/470) — toggleable verbose STT lifecycle logging via session settings | **NEW**, running |
+| [`0bcc0ca`](https://app.all-hands.dev/conversations/0bcc0ca63bc6449db4320b5224e68b88) | expansion | Issue [#471](https://github.com/jpshackelford/voice-relay/issues/471) — stabilize useSttEngine callback identities (root cause behind #469) | **NEW**, running |
+
+Slots after spawn: expansion 2/4, implementation 0/1, review 0/2.
+
+**This tick's walk (decision-table exhaustive):**
+
+| Slot | Capacity | Candidates | Verdict |
+| --- | --- | --- | --- |
+| Expansion | 0/4 used → 4 free | #470, #471 (both unlabeled — need expansion) | **spawned 2 workers** |
+| Implementation | 0/1 used → 1 free | only `ready` open issue is #386 (also `on-hold`) | nothing to spawn |
+| Review | 0/2 used → 2 free | [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` → STUCK | nothing to spawn |
+| Draft-promotion | inline (no slot) | PR #465 carries `on-hold` (excluded) | no-op |
+
+**Unblock pass (machine-form `Blocked by #N` only):** 0 issues lifted.
+
+| Issue | Machine blockers (state) | Mechanical lift? | Why kept on-hold |
+| ----: | ------------------------ | ---------------- | ---------------- |
+|  #299 | #298 = CLOSED              | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. Codified-gate override per Anti-Stall rule (point 3). |
+|  #301 | #295 = CLOSED              | yes              | Same S3 freeze override. |
+|  #300 | #298 = CLOSED, #299 = OPEN | no               | Machine-blocked by #299; also in S3 freeze scope. |
+|  #302 | #300 = OPEN                | no               | Machine-blocked by #300; also in S3 freeze scope. |
+|  #210, #239, #386 | (prose-only on-hold) | n/a    | Policy-tracked — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)      | n/a              | Untouched — only a human can lift `needs-human`. |
+
+**Anti-stall note:** decision-table walked exhaustively, productive expansion work dispatched.
+
+**Quiet-tick counter:** `4 → 0` (productive — 2 expansion workers spawned).
+
+**Current backlog (10 open issues, 1 open PR):**
+
+- Open PRs:
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (tvOS backend issue drafts)
+- Unlabeled (being expanded now): #470, #471
+- `ready` + `on-hold`: #386
+- `on-hold` (S3 freeze): #299, #300, #301, #302
+- `on-hold` (prose-only): #210, #239
+- `needs-human`: #372
+
+**Next tick:** as `fd7a2b0` and `0bcc0ca` finish, #470 / #471 should pick up `ready` (plus a `priority:*`) — at which point the implementation slot row will fire on the highest-priority one.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
