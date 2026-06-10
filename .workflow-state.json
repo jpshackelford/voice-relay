@@ -3,14 +3,7 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": [
-      {
-        "conv_id": "083deca",
-        "pr": 467,
-        "started": "2026-06-10T13:04:40Z",
-        "worker_type": "merge"
-      }
-    ]
+    "review": []
   },
   "limits": {
     "expansion": 4,
@@ -44,8 +37,17 @@
       "finished": "2026-06-10T13:05:10.782987+00:00",
       "status": "stuck",
       "outcome": "Phantom: conversation created 12:51:51Z but never started (0 prompt_tokens, execution_status=idle, updated_at==created_at). Respawned as 083deca at 13:04:40Z."
+    },
+    {
+      "conv_id": "083deca",
+      "type": "merge",
+      "pr": 467,
+      "started": "2026-06-10T13:04:40Z",
+      "finished": "2026-06-10T13:19:25.883568+00:00",
+      "status": "success",
+      "outcome": "Squash-merged PR #467 to main as caf1784; AC gate PASS (5/5 ACs covered); linked issue #457 was already closed."
     }
   ],
-  "quiet_ticks": 0,
-  "last_updated": "2026-06-10T13:05:10.782987+00:00"
+  "quiet_ticks": 1,
+  "last_updated": "2026-06-10T13:19:25.883568+00:00"
 }
