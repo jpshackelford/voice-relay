@@ -382,4 +382,105 @@ describe('useSttEngine (issue #410)', () => {
       expect(result.current.activeEngine).toBe('web-speech');
     });
   });
+
+  // Regression coverage for issue #471 — the root cause behind
+  // #457 / #469. These two tests pin the contract: `useSttEngine`'s
+  // public `startListening` / `stopListening` must keep their
+  // identities stable across renders, *even when* the inner
+  // `useSpeechRecognition` / `useHostedSpeechRecognition` hooks
+  // return a fresh object literal each call (which they do in
+  // production — see the comments above the ref block in
+  // useSttEngine.ts).
+  //
+  // The vi.mock factories at the top of this file already return a
+  // fresh `{ ... }` literal on every render — exactly the production
+  // failure mode — so these tests exercise the real Option A path
+  // without any extra mock setup.
+  describe('callback identity stability (issue #471)', () => {
+    // A factory so each call returns a fresh options object (the
+    // same shape, different identity) — mirrors how `MobileMode` /
+    // `KioskMode` re-build their options object on every render.
+    const makeOptions = (overrides: Partial<Parameters<typeof useSttEngine>[0]> = {}) => ({
+      resolvedEngine: 'deepgram' as const,
+      deviceId: 'dev-1',
+      ...overrides,
+    });
+
+    it('keeps startListening / stopListening identity stable across ≥5 renders with the same options', () => {
+      const { result, rerender } = renderHook((props) => useSttEngine(props), {
+        initialProps: makeOptions(),
+      });
+      const start0 = result.current.startListening;
+      const stop0 = result.current.stopListening;
+
+      // Force five re-renders with fresh-but-equivalent options
+      // literals — exactly the pattern that triggered #457 before
+      // #469's belt-and-suspenders patch and #471's structural fix.
+      for (let i = 0; i < 5; i++) {
+        rerender(makeOptions());
+      }
+
+      expect(result.current.startListening).toBe(start0);
+      expect(result.current.stopListening).toBe(stop0);
+    });
+
+    it('keeps public callback identity stable even when inner-hook return identities change', () => {
+      // The vi.mock factories already return a fresh literal each
+      // call — that's the production failure mode this test pins
+      // against. Here we additionally flip the mocked inner state so
+      // React schedules a real re-render and re-invokes the inner
+      // hooks (which return yet another fresh literal). Option A's
+      // ref-indirection means the wrapper's public callbacks must
+      // still point at the same function references.
+      const { result, rerender } = renderHook((props) => useSttEngine(props), {
+        initialProps: makeOptions(),
+      });
+      const start0 = result.current.startListening;
+      const stop0 = result.current.stopListening;
+
+      act(() => {
+        wsState = { isListening: true, isSupported: true };
+        hostedState = { isListening: true, isSupported: true };
+      });
+      rerender(makeOptions());
+
+      expect(result.current.startListening).toBe(start0);
+      expect(result.current.stopListening).toBe(stop0);
+    });
+
+    it('still dispatches to the active engine after re-renders (refs see latest state)', () => {
+      // Sanity check: identity stability must not regress the
+      // routing behavior. After multiple re-renders, calling the
+      // (same-identity) startListening must still reach the
+      // correct inner hook.
+      const { result, rerender } = renderHook((props) => useSttEngine(props), {
+        initialProps: makeOptions({ resolvedEngine: 'web-speech' }),
+      });
+      for (let i = 0; i < 3; i++) rerender(makeOptions({ resolvedEngine: 'web-speech' }));
+      act(() => result.current.startListening());
+      expect(wsStart).toHaveBeenCalledTimes(1);
+      expect(hostedStart).not.toHaveBeenCalled();
+    });
+
+    it('reads the current engine via ref so a switch-then-start dispatches to the new engine', () => {
+      // The `effectiveEngineRef` mirror is the subtle bit: callback
+      // dispatch must see the *current* engine, not a stale
+      // closure. This test would fail if `effectiveEngine` were
+      // captured directly inside the stable `useCallback`.
+      type Engine = 'web-speech' | 'deepgram';
+      const { result, rerender } = renderHook(
+        ({ engine }: { engine: Engine }) =>
+          useSttEngine({ resolvedEngine: engine, deviceId: 'dev-1' }),
+        { initialProps: { engine: 'web-speech' as Engine } },
+      );
+      const start0 = result.current.startListening;
+
+      rerender({ engine: 'deepgram' });
+      expect(result.current.startListening).toBe(start0); // still stable
+
+      act(() => result.current.startListening());
+      expect(hostedStart).toHaveBeenCalledTimes(1);
+      expect(wsStart).not.toHaveBeenCalled();
+    });
+  });
 });

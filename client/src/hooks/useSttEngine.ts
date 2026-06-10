@@ -150,10 +150,41 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
-  const wsStartRef = useRef(ws.startListening);
+
+  // Ref-indirection for the inner hooks' return literals (issue #471).
+  //
+  // Why this exists:
+  //   Both `useSpeechRecognition` and `useHostedSpeechRecognition`
+  //   return a fresh `{ ...callbacks }` object literal on every render.
+  //   The underlying `startListening` / `stopListening` are
+  //   `useCallback`-wrapped with internal refs and therefore *are*
+  //   stable — but the wrapping object identity isn't. If we put
+  //   `hosted` / `ws` into the dep arrays of the wrapper's public
+  //   `useCallback`s below, the wrapper's `startListening` /
+  //   `stopListening` get new identities every render, and any
+  //   downstream `useEffect`/`useCallback` that lists them as deps
+  //   re-fires on every render. That is the root cause behind #457 /
+  //   #469.
+  //
+  //   Routing the inner-hook returns through refs lets the wrapper's
+  //   public callbacks have empty dep arrays and therefore stable
+  //   identities for the component's lifetime, while still dispatching
+  //   to the latest inner-hook state. `effectiveEngine` is also
+  //   ref-mirrored so the stable callback sees the current engine
+  //   without re-creating itself when the engine flips after a
+  //   transparent fallback.
+  //
+  //   `wsRef` and `effectiveEngineRef` are set up here so they're
+  //   readable inside `handleHostedError` below; `hostedRef` is set up
+  //   after `useHostedSpeechRecognition` runs (further down).
+  const wsRef = useRef(ws);
   useEffect(() => {
-    wsStartRef.current = ws.startListening;
-  }, [ws.startListening]);
+    wsRef.current = ws;
+  }, [ws]);
+  const effectiveEngineRef = useRef(effectiveEngine);
+  useEffect(() => {
+    effectiveEngineRef.current = effectiveEngine;
+  }, [effectiveEngine]);
 
   const handleHostedError = useCallback((err: HostedSpeechRecognitionError) => {
     if (err.fallbackEligible) {
@@ -187,7 +218,10 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
         fallbackRestartTimerRef.current = setTimeout(() => {
           fallbackRestartTimerRef.current = null;
           if (!isMountedRef.current) return;
-          if (userWantsListeningRef.current) wsStartRef.current();
+          // Read through `wsRef` so we always hit the *current* Web
+          // Speech callbacks (matches issue #471's ref-indirection
+          // policy — see the block above the wsRef declaration).
+          if (userWantsListeningRef.current) wsRef.current.startListening();
         }, 0);
       }
     } else {
@@ -209,24 +243,39 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     deepgramWsUrl,
   });
 
+  // Mirror of the hosted return-literal — see the multi-line block
+  // above the `wsRef` declaration for the full rationale (issue #471).
+  const hostedRef = useRef(hosted);
+  useEffect(() => {
+    hostedRef.current = hosted;
+  }, [hosted]);
+
+  // Identity is stable across renders (issue #471). Do NOT re-introduce
+  // `effectiveEngine`/`hosted`/`ws` to the dep array without first
+  // re-stabilizing the inner hooks' return literals; see the
+  // `hostedRef`/`wsRef`/`effectiveEngineRef` block above and #471 for
+  // the rationale and the regression-test contract this is locked
+  // against.
   const startListening = useCallback(() => {
     userWantsListeningRef.current = true;
-    if (effectiveEngine === 'deepgram') {
+    if (effectiveEngineRef.current === 'deepgram') {
       // hosted.startListening is async, but the wrapper's signature
       // mirrors useSpeechRecognition (sync); fire-and-forget.
-      void hosted.startListening();
+      void hostedRef.current.startListening();
     } else {
-      ws.startListening();
+      wsRef.current.startListening();
     }
-  }, [effectiveEngine, hosted, ws]);
+  }, []);
 
+  // Identity is stable across renders (issue #471). Same dep-array
+  // contract as `startListening` above.
   const stopListening = useCallback(() => {
     userWantsListeningRef.current = false;
     // Stop both — whichever isn't actually running treats stop as a
     // no-op. Cheaper than tracking "which one is mounted".
-    hosted.stopListening();
-    ws.stopListening();
-  }, [hosted, ws]);
+    hostedRef.current.stopListening();
+    wsRef.current.stopListening();
+  }, []);
 
   return {
     isListening: effectiveEngine === 'deepgram' ? hosted.isListening : ws.isListening,
