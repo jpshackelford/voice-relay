@@ -3,7 +3,14 @@
   "slots": {
     "expansion": [],
     "implementation": [],
-    "review": []
+    "review": [
+      {
+        "conv_id": "0594df4",
+        "pr": 467,
+        "started": "2026-06-10T12:51:51Z",
+        "worker_type": "merge"
+      }
+    ]
   },
   "limits": {
     "expansion": 4,
@@ -27,9 +34,9 @@
       "started": "2026-06-10T12:21:22Z",
       "finished": "2026-06-10T12:34:52Z",
       "status": "success",
-      "outcome": "PR #467 round 1 — accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
+      "outcome": "PR #467 round 1 \u2014 accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
     }
   ],
-  "quiet_ticks": 1,
-  "last_updated": "2026-06-10T12:38:00Z"
+  "quiet_ticks": 0,
+  "last_updated": "2026-06-10T12:53:02.833405+00:00"
 }

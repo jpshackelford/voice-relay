@@ -170,3 +170,65 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 **AC gate re-run: unchanged.** Linked issue #457 (CLOSED) — refactor is purely structural, no behavior change. All five acceptance criteria (onstart-before-onerror, sticky `isListening`/`sendListeningState`, no `aborted` ClientErrors on happy path, regression test, no SE 3 regression) remain satisfied by the addpipe restart loop already shipped in this PR. No follow-up issues filed; PR trailer and `## Deferred to follow-ups` unchanged.
 
 _This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
+
+---
+### 2026-06-10 12:53 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Spawned: Merge Worker for PR #467** — review round closed, all merge preconditions met.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0594df4` | merge | [PR #467](https://github.com/jpshackelford/voice-relay/pull/467) — iOS Safari STT restart loop | **NEW** |
+
+**Spawned: Merge Worker**
+- PR: [PR #467 — `fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance`](https://github.com/jpshackelford/voice-relay/pull/467)
+- Conversation: [`0594df4`](https://app.all-hands.dev/conversations/0594df4)
+- Head SHA: `80b6e8f555b5f36107f79d10b7771ea2eff06a96`
+
+**Decision-tree row applied:** review slot `REVIEW_AVAILABLE > 0 + PR ready to merge` → spawn merge worker.
+
+**PR #467 merge-readiness checklist:**
+- Not draft ✓
+- All 7/7 CI checks SUCCESS (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator, pr-review) ✓
+- `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN` ✓
+- Single review thread (`PRRT_kwDOSTUWGM6IeXnj`, pr-review bot complexity nit) resolved by review worker `48e872e` in commit `80b6e8f` ✓
+- pr-review bot's latest summary review (2026-06-10 12:37:50Z, after the fix push): **✅ Worth merging** — 🟡 Acceptable taste rating, 🟡 MEDIUM risk with documented mitigations, no new threads filed ✓
+- No `on-hold` / `needs-human` / `blocked` / `needs-info` labels ✓
+- `reviewDecision: null` — consistent with PR #466 which was merged in the same state on 2026-06-09 22:10Z; the pr-review bot serves as the automated reviewer per project convention ✓
+
+**Current State:**
+- Open PRs: 2
+  - **[PR #467](https://github.com/jpshackelford/voice-relay/pull/467)** — merge worker `0594df4` now driving (will run AC gate against linked issue, squash-merge, auto-close on `Fixes #N`).
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (human-authored, tvOS per-file issue drafts). Skipped per decision-tree STUCK PR row.
+- Open issues: 8 — every one still `on-hold` or `needs-human` (same partition as 12:21Z tick).
+  - `needs-human`: #372.
+  - `on-hold` (mechanically unblockable but policy-held): #299, #301.
+  - `on-hold` (machine-blocked): #300, #302.
+  - `on-hold` (prose-only policy): #386, #239, #210.
+- `ready`+unblocked+prioritized: 0.
+- Issues needing expansion: 0.
+
+**Unblock pass (mechanical `Blocked by #N` only):** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy holds — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. |
+
+**Slot capacity after spawn:**
+- Expansion: 0/4 used → 4 free.
+- Implementation: 0/1 used → 1 free (no actionable ready issues to dispatch).
+- Review: **1/2 used** (merge worker) → 1 free.
+
+**Quiet-tick counter:** `1 → 0` (productive — merge worker dispatched).
+
+**Anti-stall note:** decision table walked exhaustively. PR #467 routed to the merge worker per the documented "PR ready to merge" row; remaining backlog gated by codified policies (AGENTS.md S3 freeze, prose-only `on-hold` policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. PR #465 carries `on-hold` so it is excluded.
+
+**Next tick:** if merge worker succeeds, PR #467 will be merged and the linked issue auto-closed; backlog will return to 0 actionable items and next tick will be quiet. If AC gate fails, the worker will drop the PR back to draft and the next tick will re-route per the decision table.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
