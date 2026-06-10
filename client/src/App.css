@@ -6130,3 +6130,30 @@ header {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Diagnostic build-SHA badge — fixed bottom-right of every page so
+   we can confirm an iOS Safari kiosk is on the latest deployed
+   bundle without digging through logs. Tiny and unobtrusive; tap
+   inert (pointer-events: none) so it never steals taps from kiosk
+   UI underneath. Hidden in dev (rendered only when BUILD_SHA != 'dev'). */
+.build-tag {
+  position: fixed;
+  right: 4px;
+  bottom: 2px;
+  font: 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 2px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  user-select: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .build-tag {
+    color: rgba(255, 255, 255, 0.55);
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+

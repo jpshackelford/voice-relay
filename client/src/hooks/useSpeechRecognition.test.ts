@@ -324,11 +324,16 @@ describe('useSpeechRecognition', () => {
       rerender({ sessionId: 'real-session-uuid' });
 
       // 3. The recognition instance must NOT have been stopped or aborted by
-      // a re-commit; no error should have been reported.
+      // a re-commit; no error should have been reported. (Lifecycle
+      // firehose calls are expected — filter them out; we only care
+      // about real errors here.)
       expect(instance.stop).not.toHaveBeenCalled();
       expect(instance.abort).not.toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
-      expect(reportSpy).not.toHaveBeenCalled();
+      const nonLifecycleReports = reportSpy.mock.calls
+        .map((c) => c[0])
+        .filter((c) => !c.errorCode?.startsWith('lifecycle:'));
+      expect(nonLifecycleReports).toHaveLength(0);
 
       // 4. Now Safari fires onstart — STT proceeds normally.
       act(() => instance.onstart?.());

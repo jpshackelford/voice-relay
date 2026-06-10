@@ -53,12 +53,19 @@ jobs:
                 git fetch origin
                 git reset --hard origin/main
                 # Generate version.json (gitignored, not committed)
-                echo "{\"commit\": \"$(git rev-parse --short HEAD)\", \"deployedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > version.json
+                BUILD_SHA="$(git rev-parse --short HEAD)"
+                BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                export BUILD_SHA BUILD_TIME
+                echo "{\"commit\": \"$BUILD_SHA\", \"deployedAt\": \"$BUILD_TIME\"}" > version.json
                 # Clean npm cache to prevent cache corruption from cascading to rollback attempts
                 echo "=== Verifying npm cache ==="
                 npm cache verify || npm cache clean --force
                 rm -rf node_modules
                 npm ci
+                # BUILD_SHA / BUILD_TIME flow through Vite `define` into
+                # the client bundle so every ClientError log line and
+                # the on-screen build tag identify exactly which commit
+                # is running on the device.
                 npm run build
                 sudo systemctl restart voice-relay
                 echo "Deployed successfully at $(date)"
@@ -342,12 +349,18 @@ jobs:
             git fetch origin
             git checkout ${{ steps.find-good.outputs.commit }}
             # Generate version.json for rollback commit
-            echo "{\"commit\": \"$(git rev-parse --short HEAD)\", \"deployedAt\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > version.json
+            BUILD_SHA="$(git rev-parse --short HEAD)"
+            BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            export BUILD_SHA BUILD_TIME
+            echo "{\"commit\": \"$BUILD_SHA\", \"deployedAt\": \"$BUILD_TIME\"}" > version.json
             # Clean npm cache AND node_modules for clean slate (prevents cache corruption cascades)
             echo "=== Verifying npm cache ==="
             npm cache verify || npm cache clean --force
             rm -rf node_modules
             npm ci
+            # See comment on the deploy path — BUILD_SHA / BUILD_TIME
+            # must be stamped into the rolled-back bundle too so we can
+            # tell which commit a kiosk is running post-rollback.
             npm run build
             sudo systemctl restart voice-relay
             echo "Rollback completed at $(date)"

@@ -21,6 +21,7 @@
  *    an unhandled exception.
  */
 import { getStoredDeviceToken } from './deviceToken';
+import { BUILD_SHA, BUILD_TIME } from '../buildInfo';
 
 export interface ReportClientErrorArgs {
   sessionId?: string;
@@ -82,7 +83,9 @@ export function reportClientError(args: ReportClientErrorArgs): void {
         errorCode: args.errorCode,
         message: args.message,
         userAgent,
-        context: args.context,
+        // Always tag the running bundle so "is this iPhone on the
+        // latest deployed build?" is answerable from one log line.
+        context: { ...(args.context ?? {}), buildSha: BUILD_SHA, buildTime: BUILD_TIME },
       }),
       ...(controller ? { signal: controller.signal } : {}),
       // Allow this request to survive a page unload triggered by the
