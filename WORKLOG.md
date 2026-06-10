@@ -880,3 +880,44 @@ _This entry was created by an AI agent (OpenHands implementation worker) on beha
 _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-10 21:19 UTC - Merge worker (PR #473 → main)
+
+✅ **Merged PR #473 — `feat(client): toggleable verbose STT lifecycle logging via session settings`**
+
+| Field | Value |
+|---|---|
+| PR | [#473](https://github.com/jpshackelford/voice-relay/pull/473) |
+| Squash commit | `928f06b` — `feat(client): toggleable verbose STT lifecycle logging via session settings (#473)` |
+| Linked issue | #470 — auto-closed by `Closes #470` trailer (closedAt 2026-06-10T21:19:21Z) |
+| AC gate | ✅ PASS — 14/14 acceptance criteria covered, 0 deferred/out-of-scope |
+| Migrations | None — additive boolean in opaque `SessionMetadata` JSON column; no DDL, no backfill |
+| CI pre-merge (post-rebase) | All 5 required checks SUCCESS (Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title) |
+| Review threads | 0 unresolved |
+
+**AC gate per-item verdict (vs issue #470 § Acceptance Criteria):**
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | `verboseSttLogging: boolean` in `SessionMetadata` / `SessionSettingsDTO` / `SessionSettingsPatch` | ✅ Met — `server/src/sessions/types.ts`, `settings-service.ts` |
+| 2 | `VALID_SETTINGS_PATCH_KEYS` includes `'verboseSttLogging'` | ✅ Met — `settings-service.ts` |
+| 3 | PATCH strict boolean validation; non-boolean → 400 | ✅ Met — `validateAndCoalesce` throws `SettingsValidationError`; `settings-router.test.ts` 400 case |
+| 4 | Default `false` for new sessions | ✅ Met — `DEFAULT_VERBOSE_STT_LOGGING = false` constant |
+| 5 | `session-settings-changed` WS broadcast carries the field | ✅ Met — covered by `settings-service.test.ts` broadcast assertion |
+| 6 | `useSpeechRecognition` gates verbose-only events; errors/throws/`aborted-suppressed`/`no-onstart` always fire | ✅ Met — new `reportLifecycleAlways` helper + `verboseSttLoggingRef` gate; 4 tests in `useSpeechRecognition.test.ts` |
+| 7 | `useHostedSpeechRecognition` accepts the option (no-op parity) | ✅ Met — JSDoc'd as parity stub |
+| 8 | `useSttEngine` forwards to both inner hooks | ✅ Met — 2 tests in `useSttEngine.test.ts` `describe('verbose STT lifecycle logging (#470)')` |
+| 9 | Mobile settings sheet Diagnostics subsection + PATCH | ✅ Met — `MobileSettings.tsx` + `MobileMode.tsx` `handleVerboseSttLoggingChange` |
+| 10 | Kiosk equivalent affordance | ✅ Met — inline 🐛/🔇 header icon in `KioskMode.tsx` (option *i* from expansion) |
+| 11 | `system-prompt.md` lists field with curl example | ✅ Met — two new curl examples (on/off); `openhands.test.ts` placeholder-count assertion bumped |
+| 12 | `settings-service.test.ts` PATCH/validation/defaults/broadcast | ✅ Met — 6 new cases in `describe('applyPatch — verboseSttLogging (#470)')` |
+| 13 | `settings-router.test.ts` Bearer + JWT round-trip | ✅ Met — 3 new REST cases |
+| 14 | `useSpeechRecognition.test.ts` verbose-on/off + always-on assertions | ✅ Met — 4 cases in `describe('verbose STT lifecycle logging (#470)')` |
+| 15 | `session-settings-api.spec.ts` E2E smoke for round-trip | ✅ Met — extended existing GET/PATCH and validation specs |
+
+**Rebase note:** PR #472 (`refactor(client): stabilize useSttEngine callback identities`) merged seconds before #473's merge window opened, so the merge worker rebased `feat/verbose-stt-logging-toggle` onto post-#472 main (`8ad557c`). Sole conflict was in `client/src/hooks/useSttEngine.test.ts` where both PRs added a new sibling `describe` block at the end of the outer suite — resolved by keeping both (`callback identity stability (issue #471)` from #472 and `verbose STT lifecycle logging (#470)` from #473) side-by-side. Post-rebase `npx vitest run src/hooks/useSttEngine.test.ts` (23/23 pass) and `npx tsc --noEmit` (clean) re-verified locally before push; CI re-ran clean on the rebased head.
+
+**Production impact:** Auto-deploys to vr.chorecraft.net via main → server pipeline. Default is `false` so the firehose stays off in production until an operator explicitly flips it per-session via the mobile Diagnostics toggle, kiosk 🐛 icon, or `PATCH /api/sessions/:id/settings -d '{"verboseSttLogging": true}'`. Always-on diagnostic events (real `onerror`, throws, `aborted-suppressed`, `no-onstart`) continue to fire either way, so we don't lose visibility into actual STT failures with the flag off. No SQL migration; the new boolean lives in the opaque `SessionMetadata` JSON column.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
