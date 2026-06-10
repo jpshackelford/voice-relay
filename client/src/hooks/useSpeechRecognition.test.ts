@@ -125,7 +125,14 @@ describe('useSpeechRecognition', () => {
     expect(onFinalResult).toHaveBeenCalledWith('hello world');
     expect(onInterimResult).not.toHaveBeenCalled();
 
+    // After onend, the user still wants to listen — the addpipe-style
+    // restart loop keeps isListening true and immediately reissues
+    // recognition.start() on the same instance. Only an explicit
+    // stopListening flips isListening to false.
     act(() => instance.onend?.());
+    expect(result.current.isListening).toBe(true);
+
+    act(() => result.current.stopListening());
     expect(result.current.isListening).toBe(false);
   });
 
@@ -168,8 +175,12 @@ describe('useSpeechRecognition', () => {
     expect(result.current.isListening).toBe(false);
   });
 
+  // Note: `no-speech` is intentionally absent from this matrix. Per the
+  // addpipe-pattern fix (see useSpeechRecognition.ts), `no-speech` is a
+  // normal silence-timeout signal in continuous mode and is silently
+  // ignored at the onerror site; onend handles the restart. Separate
+  // test below covers the silent-no-speech contract.
   it.each([
-    ['no-speech', 'No speech detected'],
     ['audio-capture', 'No microphone found'],
     ['network', 'Network error'],
     ['service-not-allowed', 'Speech recognition not allowed'],
@@ -198,10 +209,11 @@ describe('useSpeechRecognition', () => {
     );
     act(() => result.current.startListening());
     const instance = FakeSpeechRecognition.instances[0];
-    // Use a non-`aborted` code here so we exercise the canonical
-    // reporting path; `aborted` now goes through the suppression
-    // branch (covered separately below).
-    act(() => instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }));
+    // `network` is a canonical hard error — surfaces the banner AND
+    // reports to /api/client-errors. `aborted` goes through the
+    // suppression branch (covered separately); `no-speech` is now
+    // silently ignored. `network` exercises the standard path.
+    act(() => instance.onerror?.({ error: 'network' } as unknown as Event & { error?: string }));
 
     expect(reportSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -209,8 +221,8 @@ describe('useSpeechRecognition', () => {
         workspaceId: 'ws-1',
         deviceId: 'dev-1',
         source: 'useSpeechRecognition',
-        errorCode: 'no-speech',
-        message: expect.stringContaining('No speech'),
+        errorCode: 'network',
+        message: expect.stringContaining('Network error'),
       }),
     );
   });
@@ -222,16 +234,14 @@ describe('useSpeechRecognition', () => {
     const { result } = renderHook(() => useSpeechRecognition({}));
     act(() => result.current.startListening());
     const instance = FakeSpeechRecognition.instances[0];
-    // `aborted` still goes through the suppressed-report path even
-    // when IDs are missing — assert via a non-aborted code so we're
-    // testing the canonical "wired but no-op when no IDs" case.
-    act(() => instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }));
-    // The helper itself no-ops when IDs are missing, but we still call
-    // it from the hook for consistency. Assert that it was invoked
-    // with undefined IDs (proving the wiring exists) rather than
-    // making the hook conditional.
+    // `network` exercises the canonical hard-error path. The helper
+    // itself no-ops when IDs are missing, but we still call it from
+    // the hook for consistency. Assert that it was invoked with
+    // undefined IDs (proving the wiring exists) rather than making
+    // the hook conditional.
+    act(() => instance.onerror?.({ error: 'network' } as unknown as Event & { error?: string }));
     expect(reportSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ source: 'useSpeechRecognition', errorCode: 'no-speech' }),
+      expect.objectContaining({ source: 'useSpeechRecognition', errorCode: 'network' }),
     );
   });
 
@@ -349,8 +359,11 @@ describe('useSpeechRecognition', () => {
 
       rerender({ sessionId: 'real-session-uuid' });
 
+      // `network` is a hard error that always reports — exercises the
+      // ref-latest contract without depending on the silent-restart
+      // behavior of `no-speech` / `aborted`.
       act(() =>
-        instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }),
+        instance.onerror?.({ error: 'network' } as unknown as Event & { error?: string }),
       );
 
       expect(reportSpy).toHaveBeenCalledWith(
@@ -359,7 +372,7 @@ describe('useSpeechRecognition', () => {
           workspaceId: 'ws-1',
           deviceId: 'dev-1',
           source: 'useSpeechRecognition',
-          errorCode: 'no-speech',
+          errorCode: 'network',
         }),
       );
     });
@@ -408,20 +421,29 @@ describe('useSpeechRecognition', () => {
         .map((c) => c[0])
         .filter((c) => c.errorCode === 'aborted-suppressed');
       expect(abortReports).toHaveLength(1);
+      // New lifecycle shape (per-intent rather than per-cycle):
+      // `msSinceIntent` replaces `msSinceStart`; `cycleNum` counts
+      // onstart firings inside the same intent. `onstartSeen` reflects
+      // intent-scoped state too.
       expect(abortReports[0]).toEqual(
         expect.objectContaining({
           source: 'useSpeechRecognition',
           errorCode: 'aborted-suppressed',
           context: expect.objectContaining({
             onstartSeen: false,
-            onendSeen: false,
-            msSinceStart: expect.any(Number),
+            cycleNum: expect.any(Number),
+            msSinceIntent: expect.any(Number),
           }),
         }),
       );
     });
 
-    it('resets the once-per-cycle guard on the next startListening call', () => {
+    it('resets the once-per-intent guard on the next startListening call', () => {
+      // addpipe pattern: the SAME SpeechRecognition instance is reused
+      // across onend-restart cycles within one intent. A fresh
+      // `startListening()` is treated as a new intent and resets the
+      // diagnostic dedup. So: 2 aborts in intent A + 2 aborts in
+      // intent B = 2 reports total.
       const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
       vi.spyOn(console, 'warn').mockImplementation(() => {});
       const { result } = renderHook(() =>
@@ -429,19 +451,28 @@ describe('useSpeechRecognition', () => {
       );
 
       act(() => result.current.startListening());
-      const first = FakeSpeechRecognition.instances[0];
-      act(() => first.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
-      act(() => first.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      const instance = FakeSpeechRecognition.instances[0];
+      // Intent A: 2 aborts -> 1 report (deduped).
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
 
+      // Stop & re-tap -> new intent. Same instance is reused, but
+      // the dedup flag is cleared.
+      act(() => result.current.stopListening());
       act(() => result.current.startListening());
-      const second = FakeSpeechRecognition.instances[1];
-      act(() => second.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
-      act(() => second.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+
+      // Intent B: 2 more aborts -> 1 more report.
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
+      act(() => instance.onerror?.({ error: 'aborted' } as unknown as Event & { error?: string }));
 
       const abortReports = reportSpy.mock.calls
         .map((c) => c[0])
         .filter((c) => c.errorCode === 'aborted-suppressed');
       expect(abortReports).toHaveLength(2);
+      // Confirm we did NOT construct a second SpeechRecognition object
+      // — the whole point of the addpipe pattern is to keep the same
+      // instance across intents.
+      expect(FakeSpeechRecognition.instances).toHaveLength(1);
     });
 
     it('still reports non-aborted errors and includes lifecycle context', () => {
@@ -460,8 +491,8 @@ describe('useSpeechRecognition', () => {
           errorCode: 'network',
           context: expect.objectContaining({
             onstartSeen: true,
-            onendSeen: false,
-            msSinceStart: expect.any(Number),
+            cycleNum: expect.any(Number),
+            msSinceIntent: expect.any(Number),
           }),
         }),
       );
@@ -483,9 +514,17 @@ describe('useSpeechRecognition', () => {
         expect.objectContaining({
           source: 'useSpeechRecognition',
           errorCode: 'no-onstart',
-          context: expect.objectContaining({ msSinceStart: expect.any(Number) }),
+          context: expect.objectContaining({
+            msSinceIntent: expect.any(Number),
+            cycleNum: expect.any(Number),
+          }),
         }),
       );
+
+      // Cleanup — onend triggered an auto-restart attempt because
+      // userWantsListening is still true. Stop so we don't leave
+      // recognition wired across test boundaries.
+      act(() => result.current.stopListening());
     });
 
     it('does NOT emit `no-onstart` on a normal onstart -> onend cycle', () => {
@@ -502,6 +541,122 @@ describe('useSpeechRecognition', () => {
         .map((c) => c[0])
         .filter((c) => c.errorCode === 'no-onstart');
       expect(noOnstartReports).toHaveLength(0);
+
+      act(() => result.current.stopListening());
+    });
+  });
+
+  // The actual fix for the iOS 18 Safari "mic icon never lights up,
+  // no transcripts" failure: addpipe.com / MDN-style restart loop.
+  // After PR #466 we suppressed the `aborted` banner but Safari was
+  // still ending the recognition cycle within ~50 ms of onstart with
+  // no transcript. The journal showed `onstartSeen:true` on every
+  // abort. The cure is the canonical Web Speech pattern used by
+  // working iOS demos: keep the SAME SpeechRecognition instance and
+  // call `recognition.start()` again inside `onend` whenever the
+  // user still wants to listen. This block locks in that contract.
+  describe('iOS Safari restart loop (addpipe / MDN pattern)', () => {
+    it('restarts the same instance on onend when the user still wants to listen', () => {
+      const { result } = renderHook(() => useSpeechRecognition({}));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      expect(instance.start).toHaveBeenCalledTimes(1);
+
+      act(() => instance.onstart?.());
+      // Simulate Safari ending the cycle (silence timeout, spurious
+      // aborted-then-end, whatever). userWantsListening is true.
+      act(() => instance.onend?.());
+
+      // SAME instance, `.start()` called a second time. No new
+      // SpeechRecognition object was constructed.
+      expect(FakeSpeechRecognition.instances).toHaveLength(1);
+      expect(instance.start).toHaveBeenCalledTimes(2);
+      // The kiosk indicator must not flicker — isListening sticks to
+      // user intent, not the millisecond-scale cycle churn.
+      expect(result.current.isListening).toBe(true);
+    });
+
+    it('does NOT restart after onend once stopListening has been called', () => {
+      const { result } = renderHook(() => useSpeechRecognition({}));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+
+      act(() => result.current.stopListening());
+      // Safari may still fire a final onend after we call stop().
+      act(() => instance.onend?.());
+
+      // Only the initial start() call — no restart loop kicked in.
+      expect(instance.start).toHaveBeenCalledTimes(1);
+      expect(result.current.isListening).toBe(false);
+    });
+
+    it('silently restarts on `no-speech` instead of surfacing a banner', () => {
+      // addpipe.com explicitly: `if (event.error === "no-speech") return;`
+      // We do the same. `no-speech` is a normal silence-timeout signal,
+      // not an error worth bothering the user about.
+      const onError = vi.fn();
+      const reportSpy = vi.spyOn(reportClientErrorMod, 'reportClientError').mockImplementation(() => {});
+      const { result } = renderHook(() =>
+        useSpeechRecognition({ onError, sessionId: 's', workspaceId: 'w', deviceId: 'd' }),
+      );
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+
+      act(() => instance.onerror?.({ error: 'no-speech' } as unknown as Event & { error?: string }));
+      // The follow-on onend then triggers the restart loop.
+      act(() => instance.onend?.());
+
+      expect(onError).not.toHaveBeenCalled();
+      // No /api/client-errors POST for `no-speech` — we don't want to
+      // flood the journal with every silence interval.
+      const noSpeechReports = reportSpy.mock.calls
+        .map((c) => c[0])
+        .filter((c) => c.errorCode === 'no-speech');
+      expect(noSpeechReports).toHaveLength(0);
+      // Restart did happen.
+      expect(instance.start).toHaveBeenCalledTimes(2);
+      expect(result.current.isListening).toBe(true);
+
+      act(() => result.current.stopListening());
+    });
+
+    it('hard errors clear the intent and prevent restart', () => {
+      const onError = vi.fn();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { result } = renderHook(() => useSpeechRecognition({ onError }));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+
+      act(() => instance.onerror?.({ error: 'not-allowed' } as unknown as Event & { error?: string }));
+
+      // not-allowed surfaces the banner AND clears userWantsListening.
+      expect(onError).toHaveBeenCalled();
+      expect(result.current.isListening).toBe(false);
+
+      // Even if Safari fires a stray onend after the hard error,
+      // we must NOT restart — that would defeat the user's
+      // "Microphone access denied" awareness.
+      act(() => instance.onend?.());
+      expect(instance.start).toHaveBeenCalledTimes(1);
+    });
+
+    it('reuses the same instance across stop -> restart cycles', () => {
+      const { result } = renderHook(() => useSpeechRecognition({}));
+      act(() => result.current.startListening());
+      const instance = FakeSpeechRecognition.instances[0];
+      act(() => instance.onstart?.());
+
+      act(() => result.current.stopListening());
+      act(() => result.current.startListening());
+
+      // Same instance is reused — addpipe pattern. Constructing a new
+      // SpeechRecognition between cycles was implicated in the
+      // post-#466 abort cascade (see hook docstring).
+      expect(FakeSpeechRecognition.instances).toHaveLength(1);
+      expect(instance.start).toHaveBeenCalledTimes(2);
     });
   });
 });
