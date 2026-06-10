@@ -306,3 +306,53 @@ The orchestrate skill's `check_conv_status` only distinguishes `running` / `fini
 **Next tick:** if merge worker `083deca` succeeds, PR #467 will be merged and the linked issue auto-closed; backlog will return to 0 actionable items and next tick will be quiet. If AC gate fails, the worker will drop the PR back to draft and the next tick will re-route per the decision table. If `083deca` also goes phantom, escalate to `needs-human` (add label to PR #467 and stop respawning).
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 13:08 UTC - Merge worker (`083deca`, respawn of phantom `0594df4`)
+
+✅ **PR #467 merged.** Squash-merged to `main` as commit [`caf1784`](https://github.com/jpshackelford/voice-relay/commit/caf1784adbb4cc6ef8004e532c7a6584fac3f2ea) at 2026-06-10 13:07:51Z.
+
+- PR: [#467 — `fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance`](https://github.com/jpshackelford/voice-relay/pull/467)
+- Head SHA merged: `80b6e8f555b5f36107f79d10b7771ea2eff06a96`
+- Merge SHA: `caf1784adbb4cc6ef8004e532c7a6584fac3f2ea`
+- Phantom predecessor: `0594df4` (sandbox alive, agent never started — 0 tokens consumed). Detection + respawn path worked end-to-end.
+
+**Pre-merge gate results:**
+
+| Gate | Verdict | Notes |
+| --- | --- | --- |
+| CI (7/7) | ✓ PASS | Build Client, Client Tests, Server Tests, E2E Tests, lint-pr-title, enable-orchestrator, pr-review all green on `80b6e8f`. |
+| mergeable / mergeStateStatus | ✓ `MERGEABLE` / `CLEAN` | No conflicts. |
+| Labels | ✓ none of `on-hold` / `needs-human` / `blocked` / `needs-info` | Clean to merge. |
+| Migration check | ✓ client-only | Diff touches `client/src/hooks/useSpeechRecognition.ts` and `useSpeechRecognition.test.ts`. No schema, migration, server, or WS-protocol changes. |
+| Review threads | ✓ all resolved | Single complexity nit thread resolved by review worker `48e872e` in commit `80b6e8f` (`performRestartRetry` extraction kept nesting ≤3 levels). |
+| Closing-trailer AC gate | ✓ **PASS** | See AC walk below. |
+
+**AC gate walk (issue #457):**
+
+PR body says "Resolves the residual #457" — not a clean GitHub auto-close trailer (text between `Resolves` and `#457`), and #457 was already closed 2026-06-09 22:10Z by upstream PRs #460/#466. Walked the 5 ACs against the diff anyway:
+
+1. ✅ `onstart` fires before `onerror` on happy path — addpipe / MDN pattern (same instance + `onend` restart) is the canonical workaround confirmed working on iOS 18.7 via the reference demos.
+2. ✅ `isListening` sticky-true → kiosk indicator updates and doesn't flicker — implemented via `userWantsListeningRef` keeping `setIsListening(true)` across cycles.
+3. ✅ No `aborted` `[ClientError]` on happy path — suppression from #466 kept + deduped per intent; the restart loop fixes the underlying cycle churn that was driving them.
+4. ✅ Regression test for "WS registration completes while permission prompt is up" → `recognition.start()` not torn down — covered by upstream PR #460 (IDs in refs; pattern preserved in this diff). This PR adds 5 new hook tests for the restart loop + same-instance reuse contract.
+5. ✅ No regression on iPhone SE 3 / older iOS — restart loop is additive, 1230/1230 client tests pass.
+
+All non-exempt AC items covered. No follow-up issues required.
+
+**Linked-issue handling:**
+
+- #457 was already `CLOSED` (2026-06-09 22:10:13Z, closed by upstream PRs #460/#466). No manual close needed; PR body's "Resolves the residual #457" wasn't a parseable auto-close trailer regardless. No `Refs/Part-of` issues to leave open.
+
+**Post-merge state:**
+
+- Open PRs: 1 → [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) (draft + `on-hold`, human-authored tvOS per-file issue drafts).
+- Open issues: 8 — every one still `on-hold` or `needs-human` (#372, #299, #301, #300, #302, #386, #239, #210). Same partition as the spawn tick.
+- `ready` + unblocked + prioritized: 0.
+
+Production deploy will pick up `caf1784` automatically; mobile users on iOS 18 Safari should see the mic indicator light up & stay lit during a conversation. If Safari is still wedging on this hardware, the journal will show a single `aborted-suppressed` per intent (not per cycle) and `restart-failed` diagnostics with `cycleNum` if `recognition.start()` itself fails after retry.
+
+**Next tick:** backlog is fully gated by codified policies (AGENTS.md S3 freeze on #299/#301; machine-blocked #300/#302; prose-only `on-hold` on #386/#239/#210; `needs-human` on #372). Next orchestrator tick will be quiet unless QA confirms a new issue from the iPhone or @jpshackelford lifts something with an `## INSTRUCTION:` block.
+
+_This entry was created by an AI agent (OpenHands merge worker `083deca`) on behalf of @jpshackelford._
