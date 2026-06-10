@@ -308,4 +308,43 @@ describe('MobileSettings', () => {
       expect(checkbox.disabled).toBe(false);
     });
   });
+
+  describe('verbose STT lifecycle toggle (#470)', () => {
+    it('renders the Diagnostics toggle off by default', () => {
+      render(<MobileSettings {...defaultProps} />);
+      // The toggle uses a checkbox sibling to the styled switch span.
+      // Filter by the label text we added.
+      expect(screen.getByText(/Verbose STT lifecycle logging/i)).toBeDefined();
+      const labels = screen.getAllByText(/Verbose STT lifecycle logging/i);
+      expect(labels.length).toBeGreaterThan(0);
+    });
+
+    it('fires onVerboseSttLoggingChange when the user toggles it on', () => {
+      const onVerboseSttLoggingChange = vi.fn();
+      render(
+        <MobileSettings
+          {...defaultProps}
+          verboseSttLogging={false}
+          onVerboseSttLoggingChange={onVerboseSttLoggingChange}
+        />,
+      );
+      // Locate the checkbox by walking from the label text.
+      const label = screen
+        .getByText(/Verbose STT lifecycle logging/i)
+        .closest('label') as HTMLLabelElement;
+      const checkbox = label.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      expect(checkbox.checked).toBe(false);
+      fireEvent.click(checkbox);
+      expect(onVerboseSttLoggingChange).toHaveBeenCalledWith(true);
+    });
+
+    it('reflects the current verboseSttLogging value in the checkbox', () => {
+      render(<MobileSettings {...defaultProps} verboseSttLogging={true} />);
+      const label = screen
+        .getByText(/Verbose STT lifecycle logging/i)
+        .closest('label') as HTMLLabelElement;
+      const checkbox = label.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      expect(checkbox.checked).toBe(true);
+    });
+  });
 });

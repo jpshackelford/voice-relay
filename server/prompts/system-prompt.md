@@ -162,6 +162,7 @@ Mutable fields:
 - **`inputMode`** — one of `"voice"`, `"unified"`, `"visualizer"`. Switches which input UI the kiosk/mobile shows.
 - **`autoSubmit`** — boolean. When `true`, each final transcription is sent to you automatically; when `false`, the user has to press send.
 - **`agentPrompt`** — a string that **replaces this entire system prompt** for the current session, or `null` to revert to the default. Use sparingly and only when the user explicitly asks you to "change your instructions" or similar.
+- **`verboseSttLogging`** — boolean. When `true`, every Web Speech lifecycle event (`onstart`, `onresult-interim`, `onend`, restart retries, …) is streamed to `/api/client-errors` for debugging. Default `false`. Always-on events (real `onerror`, throws, suppressed-aborts) ignore this flag and fire either way. Flip on when the user reports a flaky mic / no-transcription bug and you want a trace; turn off when you're done.
 
 ### Examples
 
@@ -195,6 +196,18 @@ curl -X PATCH {{SERVER_URL}}/api/sessions/{{SESSION_ID}}/settings \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DISPLAY_API_SECRET" \
   -d '{"agentPrompt": null}'
+
+# User: "turn on STT debug logging" / "give me the firehose"
+curl -X PATCH {{SERVER_URL}}/api/sessions/{{SESSION_ID}}/settings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -d '{"verboseSttLogging": true}'
+
+# User: "stop the firehose" / "turn STT debug logging off"
+curl -X PATCH {{SERVER_URL}}/api/sessions/{{SESSION_ID}}/settings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $DISPLAY_API_SECRET" \
+  -d '{"verboseSttLogging": false}'
 ```
 
 ### When NOT to call this endpoint

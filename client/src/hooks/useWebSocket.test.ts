@@ -1283,6 +1283,37 @@ describe('useWebSocket - server message dispatching', () => {
     expect(onSessionTtsSettingsChanged).toHaveBeenCalled();
   });
 
+  it('session-settings-changed hydrates sessionSettings and mirrors TTS (#470)', () => {
+    const onSessionSettingsChanged = vi.fn();
+    const { hook, ws } = openConnection({
+      ...baseOpts,
+      onSessionSettingsChanged,
+    });
+
+    const snapshot = {
+      sessionId: 's1',
+      workspaceId: 'w1',
+      tts: { enabled: false, outputDeviceId: null },
+      inputMode: 'voice' as const,
+      autoSubmit: false,
+      agentPrompt: { effective: 'prompt', source: 'builtin' as const },
+      verboseSttLogging: true,
+    };
+
+    act(() => {
+      ws.simulateMessage({
+        type: 'session-settings-changed',
+        sessionId: 's1',
+        settings: snapshot,
+      });
+    });
+
+    expect(hook.result.current.sessionSettings).toEqual(snapshot);
+    // Legacy mirror for consumers that only read sessionTtsSettings.
+    expect(hook.result.current.sessionTtsSettings).toEqual(snapshot.tts);
+    expect(onSessionSettingsChanged).toHaveBeenCalled();
+  });
+
   it('dispatches transcription-result and transcription-error', () => {
     const onTranscriptionResultMessage = vi.fn();
     const onTranscriptionErrorMessage = vi.fn();

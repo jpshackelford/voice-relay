@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage, SpeakerState } from '../types';
+import type { ClientMessage, ServerMessage, DeviceMode, DeviceInfo, SessionInfo, SessionTtsSettings, JoinResponseMessage, DisplayResultMessage, SessionTtsSettingsMessage, AudioInputChunkMessage, AudioInputEndMessage, AgentActionMessage, SpeakerState, SessionSettingsDTO } from '../types';
 import { storeDeviceToken, clearDeviceToken } from '../utils/deviceToken';
 
 // Reconnect tuning. Matches the values agreed in issue #285.
@@ -76,11 +76,19 @@ interface UseWebSocketOptions {
   onAudioChunkMessage?: (message: ServerMessage & { type: 'audio-chunk' }) => void;
   onAudioEndMessage?: (message: ServerMessage & { type: 'audio-end' }) => void;
   onSessionTtsSettingsChanged?: (message: ServerMessage & { type: 'session-tts-settings-changed' }) => void;
+  /**
+   * Issue #470 (and back-fills #378): the full per-session snapshot
+   * broadcast emitted whenever any settings field changes. The hook
+   * also maintains a `sessionSettings` state from this; callers that
+   * only need the snapshot can read that state directly without
+   * registering this callback.
+   */
+  onSessionSettingsChanged?: (message: ServerMessage & { type: 'session-settings-changed' }) => void;
   onTranscriptionResultMessage?: (message: ServerMessage & { type: 'transcription-result' }) => void;
   onTranscriptionErrorMessage?: (message: ServerMessage & { type: 'transcription-error' }) => void;
 }
 
-export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, targetKioskDeviceId, onKioskAttentionMessage, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onSessionStateMessage, onOpen, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
+export function useWebSocket({ deviceId, displayName, mode, workspaceId, sessionId, targetKioskDeviceId, onKioskAttentionMessage, onTextMessage, onHistoryMessage, onDisplayMessage, onAIStatusMessage, onAIThinkingMessage, onSessionAIStatusMessage, onSessionStateMessage, onOpen, onAgentActionMessage, onJoinRequestMessage, onJoinResolvedMessage, onDeviceRemovedMessage, onWorkspaceDeletedMessage, onAudioChunkMessage, onAudioEndMessage, onSessionTtsSettingsChanged, onSessionSettingsChanged, onTranscriptionResultMessage, onTranscriptionErrorMessage }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
@@ -92,6 +100,12 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const [wasRemoved, setWasRemoved] = useState(false);
   // Session-level TTS settings (synced across all devices)
   const [sessionTtsSettings, setSessionTtsSettings] = useState<SessionTtsSettings | null>(null);
+  // Issue #470: full session-settings snapshot. Hydrated from the
+  // `session-settings-changed` broadcast (and the initial REST GET
+  // performed by container components). Carries `verboseSttLogging`
+  // — the trigger for #470 — plus every other session-level setting
+  // for any future consumer.
+  const [sessionSettings, setSessionSettings] = useState<SessionSettingsDTO | null>(null);
   const registeredRef = useRef(false);
   const currentModeRef = useRef(mode);
   const onTextMessageRef = useRef(onTextMessage);
@@ -110,6 +124,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   const onAudioChunkMessageRef = useRef(onAudioChunkMessage);
   const onAudioEndMessageRef = useRef(onAudioEndMessage);
   const onSessionTtsSettingsChangedRef = useRef(onSessionTtsSettingsChanged);
+  const onSessionSettingsChangedRef = useRef(onSessionSettingsChanged);
   const onTranscriptionResultMessageRef = useRef(onTranscriptionResultMessage);
   const onTranscriptionErrorMessageRef = useRef(onTranscriptionErrorMessage);
   const onKioskAttentionMessageRef = useRef(onKioskAttentionMessage);
@@ -147,6 +162,7 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
   onAudioChunkMessageRef.current = onAudioChunkMessage;
   onAudioEndMessageRef.current = onAudioEndMessage;
   onSessionTtsSettingsChangedRef.current = onSessionTtsSettingsChanged;
+  onSessionSettingsChangedRef.current = onSessionSettingsChanged;
   onTranscriptionResultMessageRef.current = onTranscriptionResultMessage;
   onTranscriptionErrorMessageRef.current = onTranscriptionErrorMessage;
   onKioskAttentionMessageRef.current = onKioskAttentionMessage;
@@ -353,6 +369,19 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
                 outputDeviceId: message.outputDeviceId,
               });
               onSessionTtsSettingsChangedRef.current?.(message);
+              break;
+            case 'session-settings-changed':
+              // Issue #470 / back-fills #378: hydrate the full session
+              // settings snapshot so consumers (`useSpeechRecognition`'s
+              // verbose-lifecycle gate, future inputMode/autoSubmit
+              // sync) see the latest value without a follow-up REST GET.
+              console.log('[WS] Session settings updated:', message);
+              setSessionSettings(message.settings);
+              // Keep `sessionTtsSettings` in lockstep so consumers that
+              // listen only to the legacy field still observe TTS
+              // changes initiated via the unified PATCH endpoint.
+              setSessionTtsSettings(message.settings.tts);
+              onSessionSettingsChangedRef.current?.(message);
               break;
             case 'transcription-result':
               onTranscriptionResultMessageRef.current?.(message);
@@ -563,6 +592,10 @@ export function useWebSocket({ deviceId, displayName, mode, workspaceId, session
     currentSession, 
     wasRemoved, 
     sessionTtsSettings,
+    // Issue #470: full settings snapshot maintained from the unified
+    // `session-settings-changed` broadcast. `null` until the first
+    // broadcast lands (or the container seeds it via the REST GET).
+    sessionSettings,
     // Issue #433: speaker-identity surface from the server's `registered`
     // payload. `null` when the server hasn't emitted one yet (initial
     // state before register) or when it explicitly omits the field.

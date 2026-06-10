@@ -62,6 +62,16 @@ export interface UseSttEngineOptions {
   onFinalResult?: (text: string) => void;
   onError?: (message: string) => void;
   /**
+   * Issue #470: forwarded to both child hooks. When `true`, the active
+   * STT hook reports every Web Speech lifecycle event (`onstart`,
+   * `onresult-interim`, `onend`, restart retries, …) to
+   * `/api/client-errors` for debugging. Defaults to `false`. Always-on
+   * structural errors (`onerror`, `start-call-threw`, suppressed
+   * aborts) ignore this flag and fire either way. See
+   * `useSpeechRecognition.ts` for the gating contract.
+   */
+  verboseSttLogging?: boolean;
+  /**
    * Test injection — both child hooks are passed this when relevant.
    * Production callers leave it unset.
    */
@@ -92,6 +102,7 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     onInterimResult,
     onFinalResult,
     onError,
+    verboseSttLogging,
     fetchImpl,
     deepgramWsUrl,
   } = options;
@@ -142,6 +153,9 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     sessionId,
     workspaceId,
     deviceId,
+    // Issue #470: forward the session-level verbose-lifecycle flag so
+    // the Web Speech hook can gate its firehose.
+    verboseSttLogging,
   });
 
   // Latest copies for the hosted-error handler — avoids stale-closure
@@ -239,6 +253,9 @@ export function useSttEngine(options: UseSttEngineOptions): UseSttEngineReturn {
     onInterimResult: effectiveEngine === 'deepgram' ? onInterimResult : undefined,
     onFinalResult: effectiveEngine === 'deepgram' ? onFinalResult : undefined,
     onError: handleHostedError,
+    // Issue #470: forwarded for structural parity. No-op in the hosted
+    // hook today; future-proofing for hosted-engine lifecycle events.
+    verboseSttLogging,
     fetchImpl,
     deepgramWsUrl,
   });

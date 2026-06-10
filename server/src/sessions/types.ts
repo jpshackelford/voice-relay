@@ -61,6 +61,18 @@ export interface SessionMetadata {
    * unset)". See `resolveSessionSystemPrompt` in `openhands.ts`.
    */
   agentPrompt?: string | null;
+  /**
+   * Issue #470: when `true`, the client's `useSpeechRecognition` hook
+   * fires a `POST /api/client-errors` for every Web Speech lifecycle
+   * event (`onstart`, `onresult-interim`, `onend`, restart retries,
+   * …). When `false` (the default), only structural-error lifecycle
+   * events are reported. Always-on events (real `onerror`, throws,
+   * suppressed-aborts, `no-onstart`) ignore this flag.
+   *
+   * Lifted out of React state so the AI agent can toggle the firehose
+   * on/off via PATCH when a user reports a flaky STT bug.
+   */
+  verboseSttLogging?: boolean;
 }
 
 /**
@@ -86,6 +98,11 @@ export interface SessionSettingsDTO {
     effective: string;
     source: AgentPromptSource;
   };
+  /**
+   * Issue #470: when `true`, clients stream every Web Speech lifecycle
+   * event to `/api/client-errors` for debugging. Default `false`.
+   */
+  verboseSttLogging: boolean;
 }
 
 /**

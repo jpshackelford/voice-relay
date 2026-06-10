@@ -196,15 +196,16 @@ describe('loadPrompt', () => {
       // Verify it appears in all curl examples
       const sessionIdMatches = prompt.match(new RegExp(testSessionId, 'g'));
       expect(sessionIdMatches).toBeTruthy();
-      // Should appear 10 times:
+      // Should appear 12 times:
       //   - 4 in Display API curls (greeting, markdown, image, clear)
       //   - 1 in the Session Settings API prose line
       //     ("PATCH .../api/sessions/{{SESSION_ID}}/settings")
       //   - 5 in Session Settings API curls (tts off, tts on,
       //     autoSubmit, inputMode, agentPrompt null)
+      //   - 2 in the verboseSttLogging curl examples (#470: on, off)
       // Bump this count when you add/remove references to
       // {{SESSION_ID}} so future drift is caught here.
-      expect(sessionIdMatches!.length).toBe(10);
+      expect(sessionIdMatches!.length).toBe(12);
     });
 
     test('keeps {{SESSION_ID}} placeholder when sessionId not provided', () => {

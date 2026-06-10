@@ -311,6 +311,11 @@ export function SessionView() {
     connected, 
     devices, 
     sessionTtsSettings,
+    // Issue #470: full session-settings snapshot from the unified
+    // `session-settings-changed` broadcast. Threaded into KioskMode /
+    // MobileMode so they can read `verboseSttLogging` (and any future
+    // fields) directly from the server's source of truth.
+    sessionSettings,
     // Issue #433: surfaced through to KioskMode for the first-run claim card.
     speakerState,
     // Issue #439: local-only setter that hides the claim card immediately
@@ -593,6 +598,8 @@ export function SessionView() {
           // activeSpeakerId; passing `null` keeps the card hidden.
           speakerState={speakerState}
           onSpeakerSignIn={login}
+          // Issue #470: hydrate the verbose-STT-logging gate.
+          sessionSettings={sessionSettings}
         />
       </>
     );
@@ -620,6 +627,9 @@ export function SessionView() {
         // Issue #410: workspace-default engine; per-device override
         // lands in a future PR via `devices.config.stt_engine`.
         sttEngine={kioskConfig?.sttEngine ?? 'web-speech'}
+        // Issue #470: hydrate the verbose-STT-logging gate and the
+        // Diagnostics toggle in MobileSettings.
+        sessionSettings={sessionSettings}
       />
     </>
   );

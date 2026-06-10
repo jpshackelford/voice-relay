@@ -146,7 +146,18 @@ describe('Session Settings Router', () => {
       expect(res.body.workspaceId).toBe(workspaceId);
       expect(res.body.tts).toEqual({ enabled: true, outputDeviceId: null });
       expect(res.body.inputMode).toBe('unified');
+      expect(res.body.verboseSttLogging).toBe(false);
       expect(res.body.agentPrompt.source).toBe('builtin');
+    });
+
+    it('PATCH verboseSttLogging=true round-trips via Bearer auth (#470)', async () => {
+      const res = await request(app)
+        .patch(`/api/sessions/${sessionId}/settings`)
+        .set('Authorization', `Bearer ${displaySecret}`)
+        .send({ verboseSttLogging: true })
+        .expect(200);
+      expect(res.body.verboseSttLogging).toBe(true);
+      expect(sessionRepo.findById(sessionId)?.metadata?.verboseSttLogging).toBe(true);
     });
 
     it('PATCH updates inputMode and returns the new snapshot', async () => {
@@ -198,6 +209,15 @@ describe('Session Settings Router', () => {
       expect(res.body.autoSubmit).toBe(false);
     });
 
+    it('PATCH verboseSttLogging via JWT auth round-trips (#470)', async () => {
+      const res = await request(app)
+        .patch(`/api/sessions/${sessionId}/settings`)
+        .set('Cookie', [`voice_relay_auth=${memberToken}`])
+        .send({ verboseSttLogging: true })
+        .expect(200);
+      expect(res.body.verboseSttLogging).toBe(true);
+    });
+
     it('returns 403 for a JWT belonging to a non-member', async () => {
       await request(app)
         .get(`/api/sessions/${sessionId}/settings`)
@@ -243,6 +263,15 @@ describe('Session Settings Router', () => {
         .send({ inputMode: 'invalid' })
         .expect(400);
       expect(res.body.error).toMatch(/inputMode/);
+    });
+
+    it('returns 400 for non-boolean verboseSttLogging (#470)', async () => {
+      const res = await request(app)
+        .patch(`/api/sessions/${sessionId}/settings`)
+        .set('Authorization', `Bearer ${displaySecret}`)
+        .send({ verboseSttLogging: 'yes' })
+        .expect(400);
+      expect(res.body.error).toMatch(/verboseSttLogging/);
     });
   });
 });

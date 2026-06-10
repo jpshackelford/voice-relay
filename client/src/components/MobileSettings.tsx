@@ -20,6 +20,15 @@ interface MobileSettingsProps {
   kioskDevices?: DeviceInfo[];
   /** Current device ID (to mark as "This device" in dropdown) */
   deviceId?: string;
+  /**
+   * Issue #470: session-level verbose STT lifecycle logging flag.
+   * Default `false`. Surfaces a Diagnostics toggle that lets operators
+   * stream every Web Speech transition to `/api/client-errors` for
+   * debugging.
+   */
+  verboseSttLogging?: boolean;
+  /** Callback fired when the user flips the verbose-logging toggle. */
+  onVerboseSttLoggingChange?: (enabled: boolean) => void;
 }
 
 /**
@@ -38,6 +47,8 @@ export function MobileSettings({
   onSessionTtsSettingsChange,
   kioskDevices = [],
   deviceId,
+  verboseSttLogging = false,
+  onVerboseSttLoggingChange,
 }: MobileSettingsProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
@@ -177,6 +188,29 @@ export function MobileSettings({
                 </button>
               </div>
             </div>
+          </div>
+
+          <div className="mobile-settings-divider" />
+
+          {/* Diagnostics (#470) — verbose STT lifecycle firehose. Off
+              by default; flipped on temporarily when an operator (or
+              the AI agent) wants a trace of every Web Speech
+              transition to debug a flaky mic. */}
+          <div className="mobile-settings-section">
+            <label className="mobile-settings-toggle">
+              <span className="toggle-label">
+                🐛 Verbose STT lifecycle logging
+                <span className="toggle-hint">
+                  Stream Web Speech events to server logs (debugging only)
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                checked={verboseSttLogging}
+                onChange={(e) => onVerboseSttLoggingChange?.(e.target.checked)}
+              />
+              <span className="toggle-switch" />
+            </label>
           </div>
 
           <div className="mobile-settings-divider" />

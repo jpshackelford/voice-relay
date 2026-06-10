@@ -70,6 +70,19 @@ interface UseSpeechRecognitionOptions {
   sessionId?: string;
   workspaceId?: string;
   deviceId?: string;
+  /**
+   * Issue #470: when `true`, every Web Speech lifecycle event
+   * (`startListening`, `onstart`, `onresult-interim`, `onend`, restart
+   * retries, …) is reported to `/api/client-errors` for debugging.
+   * When `false` (the default), only structural-error lifecycle events
+   * fire. Always-on events (real `onerror`, throws, `aborted-suppressed`,
+   * `no-onstart`) ignore this flag.
+   *
+   * Read through a ref internally so flipping the flag mid-session
+   * takes effect on the next event without re-mounting the long-lived
+   * Web Speech event handlers (which would interrupt listening).
+   */
+  verboseSttLogging?: boolean;
 }
 
 export function useSpeechRecognition({
@@ -79,6 +92,7 @@ export function useSpeechRecognition({
   sessionId,
   workspaceId,
   deviceId,
+  verboseSttLogging = false,
 }: UseSpeechRecognitionOptions) {
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -95,6 +109,15 @@ export function useSpeechRecognition({
     workspaceIdRef.current = workspaceId;
     deviceIdRef.current = deviceId;
   }, [sessionId, workspaceId, deviceId]);
+
+  // Issue #470: verbose-lifecycle toggle as a ref so flipping it
+  // mid-listening doesn't require rebuilding the long-lived
+  // SpeechRecognition event handlers (which would tear down the
+  // current cycle and cost the user a beat of audio).
+  const verboseSttLoggingRef = useRef(verboseSttLogging);
+  useEffect(() => {
+    verboseSttLoggingRef.current = verboseSttLogging;
+  }, [verboseSttLogging]);
 
   // Latest callback refs — keeps the long-lived SpeechRecognition
   // event handlers from capturing a stale `onError` etc. across the
@@ -160,8 +183,19 @@ export function useSpeechRecognition({
   // available (reportClientError's existing contract), so dev / test
   // environments without a registered device stay quiet.
   const lifecycleSeqRef = useRef(0);
+  /**
+   * Issue #470: gated lifecycle reporter. Reports only when the
+   * `verboseSttLogging` session flag is on. The verbose-only firehose
+   * (`startListening`, `onstart`, `onresult-interim`, `onend`, restart
+   * retries, …) flows through here.
+   *
+   * The sequence counter is bumped regardless so a later operator
+   * flipping the flag mid-session gets a continuous `seq` correlate-able
+   * with any prior always-on entries.
+   */
   const reportLifecycle = useCallback((event: string, extra?: Record<string, unknown>) => {
     lifecycleSeqRef.current += 1;
+    if (!verboseSttLoggingRef.current) return;
     reportClientError({
       sessionId: sessionIdRef.current,
       workspaceId: workspaceIdRef.current,
@@ -179,6 +213,35 @@ export function useSpeechRecognition({
       },
     });
   }, []);
+  /**
+   * Always-on lifecycle reporter for structural-error / throws-from-API
+   * events that must surface regardless of the verbose flag. Use for
+   * `onerror`, `start-call-threw`, `stopListening-threw`,
+   * `tryRestart-threw`. Bumps the same sequence counter so the verbose
+   * gated events stay correlate-able when both are visible.
+   */
+  const reportLifecycleAlways = useCallback(
+    (event: string, extra?: Record<string, unknown>) => {
+      lifecycleSeqRef.current += 1;
+      reportClientError({
+        sessionId: sessionIdRef.current,
+        workspaceId: workspaceIdRef.current,
+        deviceId: deviceIdRef.current,
+        source: 'useSpeechRecognition',
+        errorCode: `lifecycle:${event}`,
+        message: `STT lifecycle: ${event}`,
+        context: {
+          seq: lifecycleSeqRef.current,
+          msSinceIntent: msSinceIntent(),
+          cycleNum: cycleNumRef.current,
+          onstartSeen: onstartSeenThisIntentRef.current,
+          userWants: userWantsListeningRef.current,
+          ...(extra ?? {}),
+        },
+      });
+    },
+    [],
+  );
 
   // Backoff retry attempt — extracted out of `tryRestart`'s catch so
   // the nesting stays at 3 levels (per repo complexity guideline) and
@@ -226,14 +289,16 @@ export function useSpeechRecognition({
       // Common case: InvalidStateError because the previous cycle is
       // still in teardown. addpipe's demo silently retries; we do the
       // same with a tiny backoff so we don't busy-loop.
-      reportLifecycle('tryRestart-threw', {
+      // Always-on (#470): the throw is a structural anomaly, surface it
+      // even when the verbose-lifecycle gate is off.
+      reportLifecycleAlways('tryRestart-threw', {
         errorName: e instanceof Error ? e.name : 'unknown',
         errorMessage: e instanceof Error ? e.message : String(e),
       });
       clearRestartRetryTimer();
       restartRetryTimerRef.current = setTimeout(performRestartRetry, 100);
     }
-  }, [clearRestartRetryTimer, performRestartRetry, reportLifecycle]);
+  }, [clearRestartRetryTimer, performRestartRetry, reportLifecycle, reportLifecycleAlways]);
 
   const startListening = useCallback(() => {
     if (!isSupported) {
@@ -340,7 +405,11 @@ export function useSpeechRecognition({
         cycleNum: cycleNumRef.current,
         onstartSeen: onstartSeenThisIntentRef.current,
       };
-      reportLifecycle('onerror', {
+      // Always-on (#470): `onerror` is the canonical structural-error
+      // event. Surface it regardless of the verbose-lifecycle gate so
+      // operators can still see "STT is broken" even when the firehose
+      // is off.
+      reportLifecycleAlways('onerror', {
         error: errorType,
         engineMessage: event.message,
       });
@@ -448,14 +517,17 @@ export function useSpeechRecognition({
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('[STT] initial start() threw, retrying', e);
-      reportLifecycle('start-call-threw', {
+      // Always-on (#470): a throw from `recognition.start()` is a
+      // structural anomaly worth surfacing even when the firehose is
+      // off.
+      reportLifecycleAlways('start-call-threw', {
         initial: true,
         errorName: e instanceof Error ? e.name : 'unknown',
         errorMessage: e instanceof Error ? e.message : String(e),
       });
       tryRestart();
     }
-  }, [isSupported, tryRestart, clearRestartRetryTimer, reportLifecycle]);
+  }, [isSupported, tryRestart, clearRestartRetryTimer, reportLifecycle, reportLifecycleAlways]);
 
   const stopListening = useCallback(() => {
     reportLifecycle('stopListening');
@@ -467,13 +539,14 @@ export function useSpeechRecognition({
         rec.stop();
       } catch (e) {
         // ignore — stop() can throw if already stopped
-        reportLifecycle('stopListening-threw', {
+        // Always-on (#470): structural anomaly — surface either way.
+        reportLifecycleAlways('stopListening-threw', {
           errorMessage: e instanceof Error ? e.message : String(e),
         });
       }
     }
     setIsListening(false);
-  }, [clearRestartRetryTimer, reportLifecycle]);
+  }, [clearRestartRetryTimer, reportLifecycle, reportLifecycleAlways]);
 
   // Cleanup on unmount — kill the long-lived recognition so it
   // doesn't keep the mic alive after the React tree is gone.
