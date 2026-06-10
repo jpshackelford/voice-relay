@@ -1,19 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "fd7a2b0",
+        "conv_id": "0653d94",
         "issue": 470,
-        "started": "2026-06-10T20:06:17Z"
-      },
-      {
-        "conv_id": "0bcc0ca",
-        "issue": 471,
-        "started": "2026-06-10T20:06:17Z"
+        "started": "2026-06-10T20:37:44.121500Z"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -38,7 +33,7 @@
       "started": "2026-06-10T12:21:22Z",
       "finished": "2026-06-10T12:34:52Z",
       "status": "success",
-      "outcome": "PR #467 round 1 — accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
+      "outcome": "PR #467 round 1 \u2014 accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
     },
     {
       "conv_id": "0594df4",
@@ -57,8 +52,26 @@
       "finished": "2026-06-10T13:19:25.883568+00:00",
       "status": "success",
       "outcome": "Squash-merged PR #467 to main as caf1784; AC gate PASS (5/5 ACs covered); linked issue #457 was already closed."
+    },
+    {
+      "conv_id": "fd7a2b0",
+      "type": "expansion",
+      "issue": 470,
+      "started": "2026-06-10T20:06:17Z",
+      "finished": "2026-06-10T20:37:44.121500Z",
+      "status": "success",
+      "outcome": "Expanded #470 \u2014 added `ready` + `priority:medium` labels; comment confirms STT verbose logging design + AC items."
+    },
+    {
+      "conv_id": "0bcc0ca",
+      "type": "expansion",
+      "issue": 471,
+      "started": "2026-06-10T20:06:17Z",
+      "finished": "2026-06-10T20:37:44.121500Z",
+      "status": "success",
+      "outcome": "Expanded #471 \u2014 added `ready` + `priority:high` labels (root-cause refactor behind #469). Human @jpshackelford then opened PR #472 implementing it."
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-06-10T20:06:17Z"
+  "last_updated": "2026-06-10T20:37:44.121500Z"
 }
