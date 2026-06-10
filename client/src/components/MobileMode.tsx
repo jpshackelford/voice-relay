@@ -205,23 +205,13 @@ export function MobileMode({
 
   // Stop active mic when input mode changes.
   //
-  // Bug we're fixing: this effect's stated intent ("only re-run when
-  // inputMode changes") didn't match its dep array, which included
-  // `stopListening` and `cleanupAudioStream`. Both are unstable
-  // because `useSttEngine` returns a fresh `stopListening` callback
-  // every render — `useSttEngine`'s own `stopListening` `useCallback`
-  // depends on the `hosted` and `ws` *objects* returned by the inner
-  // hooks, and those return a new object literal each render. Net
-  // effect: every render with a dep-identity shift re-fires this
-  // effect; when `setIsListening(true)` ran inside `onstart`, the
-  // re-render triggered the effect, the ref guard saw mic active,
-  // and stopListening() got called ~2 ms after onstart — killing
-  // STT and producing the iOS Safari `aborted/No speech detected`
-  // we'd been chasing for two PRs.
-  //
-  // Fix: gate the body on an actual inputMode change tracked via a
-  // ref. Callback deps stay in the dep array (lint compliance, and
-  // they're cheap to keep there now that the body short-circuits).
+  // The `prevInputModeRef` guard ensures this effect only fires on
+  // actual inputMode transitions, not on unrelated re-renders.
+  // `useSttEngine` (#471) now provides stable callback identities, so
+  // this guard is technically redundant — kept as defense-in-depth:
+  // if callback identity churn ever returns upstream, the blast radius
+  // is contained until the contract test in `useSttEngine.test.ts`
+  // catches the regression.
   const prevInputModeRef = useRef(inputMode);
   useEffect(() => {
     if (prevInputModeRef.current === inputMode) return;
