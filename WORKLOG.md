@@ -577,3 +577,25 @@ Slots after spawn: expansion 2/4, implementation 0/1, review 0/2.
 **Next tick:** as `fd7a2b0` and `0bcc0ca` finish, #470 / #471 should pick up `ready` (plus a `priority:*`) — at which point the implementation slot row will fire on the highest-priority one.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 20:09 UTC - Expansion Worker (Issue #471)
+
+✅ **Expanded Issue #471**
+
+- Issue: [#471 — refactor(client): stabilize useSttEngine callback identities](https://github.com/jpshackelford/voice-relay/issues/471)
+- Type: Refactor (structural follow-up to PR #469 / #457)
+- Status: **Ready for implementation** (label `ready` applied)
+- Validated against `main @ e2b1e88`:
+  - `useSttEngine.startListening` deps still include `[effectiveEngine, hosted, ws]` (lines 212-221)
+  - `useSttEngine.stopListening` deps still include `[hosted, ws]` (lines 223-229)
+  - `useSpeechRecognition` returns a fresh object literal at line 492
+  - `useHostedSpeechRecognition` returns a fresh object literal at line 614
+  - The reporter's root-cause analysis is correct; PR #469 only patched the consumer (`MobileMode.prevInputModeRef`), not the source.
+- Approach: **Option A** (ref-indirection inside `useSttEngine`) — surgical, single file, zero API change. Option B (stabilize inner-hook return shapes) deferred unless A proves insufficient.
+- Regression tests specified: 5-render identity check + inner-hook-identity-change check in `useSttEngine.test.ts` (the explicit "would-have-caught-#457" tests).
+- `MobileMode.prevInputModeRef` guard kept as belt-and-suspenders with a comment.
+- Scope is one-PR-sized; no `needs-split`.
+
+_This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
