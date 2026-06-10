@@ -638,3 +638,27 @@ _This entry was created by an AI agent (OpenHands expansion worker, manual /orch
 - Scope assessment: medium, single PR is appropriate. Not splitting.
 
 ---
+
+### 2026-06-10 20:15 UTC - Expansion Worker (Issue #470, re-validation)
+
+✅ **Re-validation + concrete line-numbered touch-points on #470**
+
+A second expansion conversation was dispatched against #470 in parallel with the first (same pattern that hit #471 at 20:11Z). By the time this worker started, the issue body, the sibling worker's technical-approach comment, and the `ready` label were already in place (verified at `main @ 4e08500`). This worker's productive output:
+
+- Re-validated all five technical claims against `main @ cb8a8a9` and posted a [follow-up technical comment](https://github.com/jpshackelford/voice-relay/issues/470#issuecomment-4674058333) with concrete line numbers an implementer can apply mechanically:
+  - **Server PATCH funnel**: `settings-service.ts` `VALID_SETTINGS_PATCH_KEYS` (L58), `SessionSettingsPatch` (L46), `validateAndCoalesce` (L166), `applyPatch` (L257), `computeDto` (L143). Single funnel — `WS session-tts-settings` handler at `server/src/index.ts:1303` already routes through `applyPatch`, so REST + WS converge automatically.
+  - **Schema**: `sessions.metadata` is a JSON column (`session-repository.ts:46`). Latest migration is `021_*`; **no SQL migration needed** — purely an additive JSON-field with `?? false` default.
+  - **WS-snapshot gap**: confirmed sibling's finding. `useWebSocket.ts:349` only handles legacy `session-tts-settings-changed`; `session-settings-changed` snapshot is broadcast server-side but never consumed client-side. Documented both options (wire it now vs. local-state-mirror-`autoSubmit`-pattern) for the implementer to decide.
+  - **Hook lifecycle**: every gated event from the AC is already routed through `reportLifecycle` in `useSpeechRecognition.ts` — tabulated all 12 call sites with line numbers (L190, 219, 222, 229, 241, 257, 277, 296, 308, 328, 331, 343, 411, 447, 461, 470). Flagged one refinement: `lifecycle:onerror` (L343) is currently routed through `reportLifecycle`, which would be silently gated; recommended moving that specific call to a direct `reportClientError`. `useHostedSpeechRecognition` has no lifecycle firehose today (only `surfaceError` at L393); prop should be added as a documented no-op stub.
+  - **Kiosk UI gap**: `KioskMode.tsx` does NOT have a dedicated settings sheet — toggles are inline in the header (`kiosk-tts-controls` L927, auto-submit icon L1049). Recommended option (i) — single inline header icon — for v1; flagged that the AC's "Diagnostics subsection" should be relaxed to "Diagnostics toggle (subsection on mobile; inline icon on kiosk)".
+  - **System-prompt insertion point**: `server/prompts/system-prompt.md:155` ("Session Settings API") — bullet at L164ish, curl example at L194ish, both with concrete copy.
+- Added secondary labels: `priority:medium`, `scope:full-stack`, `enhancement`, `client` (sibling worker only added `ready`).
+- Listed test cases to add: 3 server-side (service + router), 1 client-side (hook gate behaviour).
+- Final files-affected list: 4 server files (incl. system-prompt.md) + 6 client files.
+- `ready` label preserved.
+
+Net: same conclusion as the sibling worker (ready for implementation), with a layer of precision a downstream implementation worker can lift verbatim.
+
+_This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
+
+---
