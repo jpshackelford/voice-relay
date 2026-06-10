@@ -232,3 +232,77 @@ _This entry was created by an AI agent (OpenHands review worker) on behalf of @j
 **Next tick:** if merge worker succeeds, PR #467 will be merged and the linked issue auto-closed; backlog will return to 0 actionable items and next tick will be quiet. If AC gate fails, the worker will drop the PR back to draft and the next tick will re-route per the decision table.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+### 2026-06-10 13:05 UTC - Orchestrator (manual /orchestrate)
+
+🚀 **Respawned: Merge Worker for PR #467** — prior worker `0594df4` was a phantom (never started); replaced with `083deca`.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `083deca` | merge | [PR #467](https://github.com/jpshackelford/voice-relay/pull/467) — iOS Safari STT restart loop | **NEW (running, 120k tokens)** |
+
+**Phantom worker detected:**
+
+The merge worker `0594df4` spawned at 12:51:51Z by the previous tick (12:53Z entry) never actually started running. Diagnosis at wake-up (13:00–13:04Z):
+
+| Signal | Healthy worker (e.g. `48e872e`, `083deca`) | Dead `0594df4` |
+| --- | --- | --- |
+| `execution_status` | `running` (or eventually `finished`) | `idle` |
+| `metrics.accumulated_token_usage.prompt_tokens` | > 0 within seconds | **0** after 13+ min |
+| `updated_at` | advances past `created_at` | **equals `created_at`** (12:51:51Z) |
+| `sandbox_status` | `RUNNING` | `RUNNING` (sandbox alive but agent never engaged) |
+
+The orchestrate skill's `check_conv_status` only distinguishes `running` / `finished` / `error` / `stuck`. The bare `idle` execution status falls through to the "not running" branch, so a strict reading would treat the phantom as `finished` and silently leave PR #467 mergeable-but-unmerged. The phantom signature (0 tokens, `updated_at == created_at`, sandbox RUNNING) is a stronger signal than the bare status; this tick moved `0594df4` to `completed[]` with `status: "stuck"` and respawned.
+
+**Respawn:**
+- New conversation ID: `083decab22954681b31c578600eadb4b` (short: `083deca`)
+- Start task: `9de4b16a391e42bd90d5a2fa25b85f74` — reached `READY` after one `SETTING_UP_SKILLS` poll
+- Verified at 13:04:46Z: `execution_status: running`, `prompt_tokens: 120768`, `sandbox_status: RUNNING` — engaged the system prompt + initial message, real work in flight.
+- Title: `[Merge] PR #467 - iOS Safari STT addpipe restart loop`
+- Plugin ref: `github:jpshackelford/.openhands/plugins/voice-relay-workflow@add-voice-relay-workflow-plugin`
+- Initial message: full merge-worker procedure including phantom context, AC gate hard-gate, client-only migration check, and the requirement to update WORKLOG.md on main with the merge outcome.
+
+**PR #467 merge-readiness re-verified at 13:00Z:**
+- `state: OPEN`, `isDraft: false`, `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`
+- All 7/7 CI checks SUCCESS (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator, pr-review)
+- No `on-hold` / `needs-human` / `blocked` / `needs-info` labels
+- Head SHA still `80b6e8f555b5f36107f79d10b7771ea2eff06a96` (unchanged since 12:34Z review-worker push)
+- Single pr-review thread already resolved by `48e872e` in `80b6e8f`
+
+**Current State:**
+- Open PRs: 2
+  - **[PR #467](https://github.com/jpshackelford/voice-relay/pull/467)** — merge worker `083deca` now driving (will run AC gate against linked issue, squash-merge, auto-close on `Fixes #N`).
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (human-authored, tvOS per-file issue drafts). Skipped per decision-tree STUCK PR row.
+- Open issues: 8 — every one still `on-hold` or `needs-human` (same partition as 12:53Z tick).
+  - `needs-human`: #372.
+  - `on-hold` (mechanically unblockable but policy-held): #299, #301.
+  - `on-hold` (machine-blocked): #300, #302.
+  - `on-hold` (prose-only policy): #386, #239, #210.
+- `ready`+unblocked+prioritized: 0.
+- Issues needing expansion: 0.
+
+**Unblock pass (mechanical `Blocked by #N` only):** ran; **0 issues lifted**.
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy holds — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. |
+
+**Slot capacity after respawn:**
+- Expansion: 0/4 used → 4 free.
+- Implementation: 0/1 used → 1 free (no actionable ready issues to dispatch).
+- Review: **1/2 used** (merge worker `083deca`) → 1 free.
+
+**Quiet-tick counter:** `0 → 0` (productive — phantom-worker detection + respawn is a state change the next tick will act on).
+
+**Anti-stall note:** decision table walked exhaustively. The 12:53Z dispatch row ("PR ready to merge → spawn merge worker") was re-applied this tick because the prior dispatch produced a phantom conversation rather than a working agent. Without this respawn, PR #467 would remain in a "merge-ready, no worker" limbo and the next tick would either spawn a duplicate (slot still occupied per state) or move the dead worker to `completed` and only then respawn — a two-tick delay. Detecting the phantom signature here saves one tick.
+
+**Next tick:** if merge worker `083deca` succeeds, PR #467 will be merged and the linked issue auto-closed; backlog will return to 0 actionable items and next tick will be quiet. If AC gate fails, the worker will drop the PR back to draft and the next tick will re-route per the decision table. If `083deca` also goes phantom, escalate to `needs-human` (add label to PR #467 and stop respawning).
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._

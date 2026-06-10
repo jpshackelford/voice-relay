@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "0594df4",
+        "conv_id": "083deca",
         "pr": 467,
-        "started": "2026-06-10T12:51:51Z",
+        "started": "2026-06-10T13:04:40Z",
         "worker_type": "merge"
       }
     ]
@@ -35,8 +35,17 @@
       "finished": "2026-06-10T12:34:52Z",
       "status": "success",
       "outcome": "PR #467 round 1 \u2014 accepted pr-review nesting nit (80b6e8f), AC gate unchanged, threads resolved, PR back to ready"
+    },
+    {
+      "conv_id": "0594df4",
+      "type": "review",
+      "pr": 467,
+      "started": "2026-06-10T12:51:51Z",
+      "finished": "2026-06-10T13:05:10.782987+00:00",
+      "status": "stuck",
+      "outcome": "Phantom: conversation created 12:51:51Z but never started (0 prompt_tokens, execution_status=idle, updated_at==created_at). Respawned as 083deca at 13:04:40Z."
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-06-10T12:53:02.833405+00:00"
+  "last_updated": "2026-06-10T13:05:10.782987+00:00"
 }
