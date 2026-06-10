@@ -410,3 +410,61 @@ Two consecutive quiet ticks detected — no actionable work to dispatch. Automat
   ```
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 19:09 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Auto-disabled due to inactivity (re-enable → quiet → re-disable cycle)**
+
+Automation was re-enabled by `enable-orchestrator.yml` at 19:08:19Z (triggered by PR #468 open at 19:02:57Z, which @jpshackelford then squash-merged at 19:06:52Z). By the time this manual `/orchestrate` walked the backlog, PR #468 was already closed and no new actionable work had appeared. Re-disabled at 19:09:26Z (HTTP 200, `updated_at: 2026-06-10T19:09:26.564446Z`).
+
+**Active workers:** none (slots 0/4, 0/1, 0/2).
+
+**This tick's walk (decision-table exhaustive):**
+
+| Slot | Capacity | Candidates | Verdict |
+| --- | --- | --- | --- |
+| Expansion | 0/4 used → 4 free | 0 issues need expansion (every open issue carries `on-hold`, `ready+on-hold`, or `needs-human`) | nothing to spawn |
+| Implementation | 0/1 used → 1 free | 0 `ready` issues are unblocked + prioritized (only `ready` open issue is #386, also `on-hold`) | nothing to spawn |
+| Review | 0/2 used → 2 free | Only open PR is [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` → STUCK | nothing to spawn |
+| Draft-promotion | inline (no slot) | PR #468 was a non-`on-hold` draft when this tick started but was merged by @jpshackelford before promotion could be applied; PR #465 carries `on-hold` (excluded) | no-op |
+
+**PR activity this window (informational, orchestrator did not drive it):**
+
+- [PR #468](https://github.com/jpshackelford/voice-relay/pull/468) — `feat(client): stt lifecycle firehose + build-SHA stamping for iOS diagnostics`. Opened 19:02:57Z, merged 19:06:52Z. Author: @jpshackelford. All CI green at merge time (Build Client, Client Tests, E2E Tests, Server Tests, lint-pr-title). No issue trailer in body → no AC gate applicable. `enable-orchestrator` workflow PATCHed the automation back to `enabled: true` on PR-open.
+
+**Unblock pass (machine-form `Blocked by #N` only):** 0 issues lifted.
+
+| Issue | Machine blockers (state) | Mechanical lift? | Why kept on-hold |
+| ----: | ------------------------ | ---------------- | ---------------- |
+|  #299 | #298 = CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. Codified-gate override per the Anti-Stall rule (point 3). |
+|  #301 | #295 = CLOSED            | yes              | Same S3 freeze override (#301 enumerated in scope). |
+|  #300 | #298 = CLOSED, #299 = OPEN | no             | Machine-blocked by #299; also in S3 freeze scope. |
+|  #302 | #300 = OPEN              | no               | Machine-blocked by #300; also in S3 freeze scope. |
+|  #210, #239, #386 | (prose-only on-hold) | n/a    | Policy-tracked — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)    | n/a              | Untouched — only a human can lift `needs-human`. |
+
+**Quiet-tick counter:** `2 → 3` (already past threshold; re-disabling because the re-enable produced no new actionable work the orchestrator could dispatch).
+
+**Current backlog (8 open issues, 1 open PR — all gated):**
+
+- `needs-human`: #372
+- `on-hold` (S3 design freeze): #299, #300, #301, #302
+- `on-hold` (prose-only policy holds): #210, #239, #386
+- Open PR: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`
+
+**To re-enable:**
+
+- **OpenHands UI:** [https://app.all-hands.dev/automations](https://app.all-hands.dev/automations) → find "Voice Relay Workflow Orchestrator v2" → toggle on.
+- **GitHub-driven re-enable:** open or mark-ready a PR / open a new issue — `enable-orchestrator.yml` will PATCH the automation back to `enabled: true`. (No-op against the current backlog unless PR #465's `on-hold` lifts, the S3 freeze lifts via `## INSTRUCTION:`, #372 leaves `needs-human`, or new issues are filed.)
+- **API:**
+
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
