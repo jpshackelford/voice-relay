@@ -819,3 +819,32 @@ PR: https://github.com/jpshackelford/voice-relay/pull/472
 _This entry was created by an AI agent (OpenHands review worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-10 21:01 UTC - Implementation worker (issue #470)
+
+✅ **PR #473 opened (ready for review): toggleable verbose STT lifecycle logging via session settings.**
+
+| Item | Result |
+|---|---|
+| PR | https://github.com/jpshackelford/voice-relay/pull/473 |
+| Branch | `feat/verbose-stt-logging-toggle` (off `e38a9fa`, before PR #472's WORKLOG-only update) |
+| AC gate | ✅ all 13 non-exempt ACs satisfied — `Fixes #470` |
+| Tests | Server 1747/1747; Client 1241/1241; TypeScript clean both projects; CI green incl. E2E |
+| Follow-ups | None opened |
+
+**Scope of change:**
+
+- Server: `verboseSttLogging?: boolean` in `SessionMetadata`/DTO/Patch with default `false`, strict-boolean validation, added to `VALID_SETTINGS_PATCH_KEYS`. No SQL migration (JSON metadata column).
+- System prompt: new bullet + two curl examples (on / off) so the AI agent can flip the firehose on user request. `openhands.test.ts` placeholder count bumped 10 → 12.
+- Client `useSpeechRecognition`: ref-gated `reportLifecycle` for the verbose firehose + new `reportLifecycleAlways` companion for the four always-on lifecycle events (`onerror`, `start-call-threw`, `stopListening-threw`, `tryRestart-threw`). `aborted-suppressed` and `no-onstart` were already direct `reportClientError` calls so they bypass the gate by construction.
+- Client `useHostedSpeechRecognition`: prop accepted as parity stub (JSDoc'd no-op).
+- Client `useSttEngine`: forwards the flag to both child hooks.
+- Client `useWebSocket`: **back-fills #378's intent** — added the `case 'session-settings-changed'` the client had never consumed (verified during expansion), exposes a new `sessionSettings: SessionSettingsDTO | null` field. Legacy `sessionTtsSettings` is mirrored from the snapshot so single-PATCH `verboseSttLogging` flips don't break TTS consumers.
+- Client UI: Mobile gets a "Diagnostics" subsection with a 🐛 toggle; kiosk gets an inline 🐛/🔇 header icon next to auto-submit (chose expansion-comment option *(i)* "smaller diff" over building a new kiosk modal).
+
+**Rebase awareness:** PR #472 was awaiting review when I branched. I touched `useSttEngine.ts` only to add the new `verboseSttLogging` option; PR #472 also touches the file. Rebase impact should be small once #472 merges.
+
+**AC gate verdict:** `Fixes #470`. All 13 acceptance-criteria checkboxes are satisfied by the diff; no follow-up issues were filed.
+
+_This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
+
+---
