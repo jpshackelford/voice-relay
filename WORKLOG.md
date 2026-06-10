@@ -848,3 +848,35 @@ _This entry was created by an AI agent (OpenHands review worker) on behalf of @j
 _This entry was created by an AI agent (OpenHands implementation worker) on behalf of @jpshackelford._
 
 ---
+### 2026-06-10 21:11 UTC - Merge worker (PR #472)
+
+✅ **PR #472 squash-merged to main; issue #471 auto-closed.**
+
+| Item | Result |
+|---|---|
+| PR | https://github.com/jpshackelford/voice-relay/pull/472 |
+| Squash commit | `0c1c7df` — `refactor(client): stabilize useSttEngine callback identities (#472)` |
+| Linked issue | #471 — auto-closed by `Fixes #471` trailer |
+| AC gate | ✅ PASS — 5/5 non-exempt criteria met, AC #6 exempt (issue-marked "Optional, defer") |
+| Migrations | None — client-only refactor |
+| CI pre-merge | All 7 checks SUCCESS (Build Client, Client Tests, Server Tests, E2E, enable-orchestrator, lint-pr-title, pr-review) |
+| Review threads | 0 unresolved (1 thread resolved earlier) |
+
+**AC gate per-item verdict (vs issue #471 § Acceptance Criteria):**
+
+| # | Criterion | Status |
+|---|---|---|
+| 1 | `useSttEngine.startListening`/`.stopListening` stable across renders | ✅ Met — `useCallback` deps now `[]`, dispatch via `wsRef`/`hostedRef`/`effectiveEngineRef` |
+| 2 | ≥5-render identity-stability regression test | ✅ Met — `keeps startListening / stopListening identity stable across ≥5 renders with the same options` |
+| 3 | Inner-hook-fresh-literal identity test | ✅ Met — `keeps public callback identity stable even when inner-hook return identities change` (vi.mock factories already return fresh literals) |
+| 4 | Existing `useSttEngine.test.ts` suite passes | ✅ Met — 17 existing + 4 new = 21 tests pass; full client suite 1235/1235 |
+| 5 | `prevInputModeRef` guard kept in `MobileMode.tsx` with comment | ✅ Met — guard kept; comment now says "technically redundant — kept as defense-in-depth" with pointer to contract test |
+| 6 | `useChangeEffect<T>` helper | ⏭️ Exempt — issue text marks "(Optional, defer to follow-up if scope grows)" |
+
+**Production impact:** Auto-deploys to vr.chorecraft.net via main → server pipeline. Client-only refactor; no schema or behavior change to user-facing flows. The downstream effect is that `MobileMode`'s inputMode-change `useEffect` no longer relies on identity-churn for the iOS Safari race fix that PR #469 patched — `prevInputModeRef` remains as belt-and-suspenders.
+
+**Downstream rebase note:** PR #473 (verbose STT logging, in review) touches `useSttEngine.ts` and was authored against pre-#472 `main`. The #473 author flagged a small rebase impact in their worklog entry above; a small conflict in the new options-forwarding wiring is expected and not blocking.
+
+_This entry was created by an AI agent (OpenHands merge worker) on behalf of @jpshackelford._
+
+---
