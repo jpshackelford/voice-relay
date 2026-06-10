@@ -132,6 +132,34 @@ export function useSpeechRecognition({
         : Date.now()) - intentStartedAtRef.current,
     );
 
+  // Backoff retry attempt — extracted out of `tryRestart`'s catch so
+  // the nesting stays at 3 levels (per repo complexity guideline) and
+  // the retry path is independently readable. Runs once, ~100 ms after
+  // the initial `start()` threw (commonly InvalidStateError while the
+  // previous cycle is still tearing down).
+  const performRestartRetry = useCallback(() => {
+    restartRetryTimerRef.current = null;
+    if (!userWantsListeningRef.current) return;
+    try {
+      recognitionRef.current?.start();
+    } catch (e2) {
+      // Give up — flip isListening false so the user knows.
+      // eslint-disable-next-line no-console
+      console.warn('[STT] restart retry failed', e2);
+      userWantsListeningRef.current = false;
+      setIsListening(false);
+      reportClientError({
+        sessionId: sessionIdRef.current,
+        workspaceId: workspaceIdRef.current,
+        deviceId: deviceIdRef.current,
+        source: 'useSpeechRecognition',
+        errorCode: 'restart-failed',
+        message: e2 instanceof Error ? e2.message : 'recognition.start() retry failed',
+        context: { msSinceIntent: msSinceIntent(), cycleNum: cycleNumRef.current },
+      });
+    }
+  }, []);
+
   // Restart the SAME recognition instance — addpipe's pattern.
   // Constructing a new SpeechRecognition object between cycles is what
   // triggered the rapid post-onstart abort cascade we saw in the
@@ -146,30 +174,9 @@ export function useSpeechRecognition({
       // still in teardown. addpipe's demo silently retries; we do the
       // same with a tiny backoff so we don't busy-loop.
       clearRestartRetryTimer();
-      restartRetryTimerRef.current = setTimeout(() => {
-        restartRetryTimerRef.current = null;
-        if (!userWantsListeningRef.current) return;
-        try {
-          recognitionRef.current?.start();
-        } catch (e2) {
-          // Give up — flip isListening false so the user knows.
-          // eslint-disable-next-line no-console
-          console.warn('[STT] restart retry failed', e2);
-          userWantsListeningRef.current = false;
-          setIsListening(false);
-          reportClientError({
-            sessionId: sessionIdRef.current,
-            workspaceId: workspaceIdRef.current,
-            deviceId: deviceIdRef.current,
-            source: 'useSpeechRecognition',
-            errorCode: 'restart-failed',
-            message: e2 instanceof Error ? e2.message : 'recognition.start() retry failed',
-            context: { msSinceIntent: msSinceIntent(), cycleNum: cycleNumRef.current },
-          });
-        }
-      }, 100);
+      restartRetryTimerRef.current = setTimeout(performRestartRetry, 100);
     }
-  }, [clearRestartRetryTimer]);
+  }, [clearRestartRetryTimer, performRestartRetry]);
 
   const startListening = useCallback(() => {
     if (!isSupported) {
