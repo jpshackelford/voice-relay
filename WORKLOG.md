@@ -662,3 +662,50 @@ Net: same conclusion as the sibling worker (ready for implementation), with a la
 _This entry was created by an AI agent (OpenHands expansion worker, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+
+
+### 2026-06-10 20:35 UTC - Implementation Worker (#471)
+
+✅ **Implemented #471 — useSttEngine callback identity stabilization**
+
+| | |
+|---|---|
+| Issue | [#471 — refactor(client): stabilize useSttEngine callback identities](https://github.com/jpshackelford/voice-relay/issues/471) |
+| PR | [#472 — refactor(client): stabilize useSttEngine callback identities](https://github.com/jpshackelford/voice-relay/pull/472) (DRAFT → ready) |
+| Branch | `fix/stabilize-stt-engine-callback-identity` |
+| Approach | Option A — ref-indirection inside `useSttEngine` |
+| Files | `client/src/hooks/useSttEngine.ts` (refactor), `client/src/hooks/useSttEngine.test.ts` (4 new tests), `client/src/components/MobileMode.tsx` (comment-only) |
+
+**What landed**
+- `hostedRef` / `wsRef` / `effectiveEngineRef` mirror the inner-hook returns and the active engine; `startListening` / `stopListening` now use empty `useCallback` deps and dispatch via these refs. Folded the existing `wsStartRef` into the new `wsRef` so there's one ref per inner hook.
+- Multi-line docstrings above the ref block and above each public callback warn future maintainers not to re-introduce `hosted` / `ws` / `effectiveEngine` to the dep arrays without re-stabilizing the inner hooks first.
+- `MobileMode.tsx`'s `prevInputModeRef` guard is **kept** as belt-and-suspenders per the AC; comment now explicitly notes it's redundant after #471 lands but stays because the cost is one ref + one equality check and it documents intent.
+- 4 new tests under `describe('callback identity stability (issue #471)')`:
+  1. ≥5-render identity stability with same options (the explicit AC #2 check)
+  2. Inner-hook fresh-literal-each-call identity stability (AC #3)
+  3. Routing-still-works sanity check after re-renders
+  4. `effectiveEngineRef` dispatches to the current engine post-switch
+
+**Verification (locally + CI)**
+- 21/21 `useSttEngine.test.ts` tests pass (17 existing + 4 new)
+- 1235/1235 full client suite passes
+- `useSttEngine.ts` coverage: 98.21% lines, 100% functions, 94.11% branches
+- `tsc -b` clean, `vite build` clean
+- CI green: Build Client (27s), Client Tests (47s), Server Tests (55s), E2E Tests (1m30s), lint-pr-title
+
+**Acceptance-Criteria Gate (run twice — pre-CI and post-CI, identical verdict)**
+
+| # | Criterion | Verdict |
+|---|---|---|
+| 1 | callback identity stable across renders | ✅ |
+| 2 | ≥5-render regression test | ✅ |
+| 3 | fresh-literal-mock regression test | ✅ |
+| 4 | existing suite passes | ✅ |
+| 5 | `prevInputModeRef` kept + commented | ✅ |
+| 6 | `useChangeEffect<T>` helper | ⏭️ exempt (issue text marks as optional/defer) |
+
+All non-exempt items satisfied → trailer is **`Fixes #471`**. No follow-up issues required (AC #6 is exempt by the issue's own framing, not "deferred to follow-ups" in the gate-failure sense). PR moved from draft to ready; review handling is a separate conversation.
+
+_This entry was created by an AI agent (OpenHands implementation worker, manual /orchestrate) on behalf of @jpshackelford._
+
+---
