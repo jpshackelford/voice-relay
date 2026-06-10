@@ -468,3 +468,58 @@ Automation was re-enabled by `enable-orchestrator.yml` at 19:08:19Z (triggered b
   ```
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 19:26 UTC - Orchestrator (manual /orchestrate)
+
+🔒 **Auto-disabled (re-enable → quiet → re-disable cycle, take 2)**
+
+`enable-orchestrator.yml` flipped the automation back to `enabled: true` at 19:24:23Z when @jpshackelford opened [PR #469](https://github.com/jpshackelford/voice-relay/pull/469) (`fix(client): stop killing STT immediately after onstart fires`) at 19:22:12Z. By the time this manual `/orchestrate` walked the backlog, PR #469 was still mid-CI — `pr-review` bot and E2E in progress, no review threads to address — and the rest of the backlog remained gated. Re-disabled at 19:26:51Z (HTTP 200).
+
+**Active workers:** none (slots 0/4, 0/1, 0/2).
+
+**This tick's walk (decision-table exhaustive):**
+
+| Slot | Capacity | Candidates | Verdict |
+| --- | --- | --- | --- |
+| Expansion | 0/4 used → 4 free | 0 issues need expansion (every open issue carries `on-hold`, `ready+on-hold`, or `needs-human`) | nothing to spawn |
+| Implementation | 0/1 used → 1 free | 0 `ready` unblocked+prioritized issues (only `ready` open issue is #386, also `on-hold`) | nothing to spawn |
+| Review | 0/2 used → 2 free | [#469](https://github.com/jpshackelford/voice-relay/pull/469) — 0 review threads, `pr-review` + E2E still IN_PROGRESS; [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` → STUCK | nothing to spawn |
+| Draft-promotion | inline (no slot) | PR #469 is already ready; PR #465 carries `on-hold` (excluded) | no-op |
+
+**Unblock pass (machine-form `Blocked by #N` only):** 0 issues lifted.
+
+| Issue | Machine blockers (state) | Mechanical lift? | Why kept on-hold |
+| ----: | ------------------------ | ---------------- | ---------------- |
+|  #299 | #298 = CLOSED              | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force — no `## INSTRUCTION:` block has signaled the lift. Codified-gate override per Anti-Stall rule (point 3). |
+|  #301 | #295 = CLOSED              | yes              | Same S3 freeze override (#301 enumerated in scope). |
+|  #300 | #298 = CLOSED, #299 = OPEN | no               | Machine-blocked by #299; also in S3 freeze scope. |
+|  #302 | #300 = OPEN                | no               | Machine-blocked by #300; also in S3 freeze scope. |
+|  #210, #239, #386 | (prose-only on-hold) | n/a    | Policy-tracked — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)      | n/a              | Untouched — only a human can lift `needs-human`. |
+
+**Quiet-tick counter:** `3 → 4` (already past threshold; re-disabling because PR #469 is not yet actionable from the orchestrator's seat — it'll be picked up on a future tick once `pr-review` finishes and either flags review threads or leaves the PR clean for the merge worker).
+
+**Current backlog (8 open issues, 2 open PRs):**
+
+- Open PRs:
+  - [PR #469](https://github.com/jpshackelford/voice-relay/pull/469) — `fix(client): stop killing STT immediately after onstart fires` (@jpshackelford, ready, CI in progress)
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`
+- Issues: `needs-human` #372; `on-hold` (S3 freeze) #299, #300, #301, #302; `on-hold` (prose-only) #210, #239, #386
+
+**To re-enable:**
+
+- **OpenHands UI:** [https://app.all-hands.dev/automations](https://app.all-hands.dev/automations) → find "Voice Relay Workflow Orchestrator v2" → toggle on.
+- **GitHub-driven re-enable:** any PR open / mark-ready / new issue file event will trigger `enable-orchestrator.yml` to PATCH the automation back on. The next tick will likely have real work to dispatch as soon as `pr-review` finishes on PR #469.
+- **API:**
+
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
