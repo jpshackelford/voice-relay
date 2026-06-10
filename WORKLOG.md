@@ -265,3 +265,55 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 - Or mark a draft PR `ready_for_review` / open a new issue — `enable-orchestrator.yml` will PATCH the automation back to `enabled: true`. Note that the re-enable will be a no-op against the current backlog until either (a) PR #467 / PR #465 is marked ready, (b) the S3 freeze conditions in AGENTS.md are met and an `## INSTRUCTION:` lifts #299/#301, (c) #372 is unblocked by a human, or (d) new issues are filed.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-06-10 12:14 UTC - Orchestrator (manual /orchestrate)
+
+✅ **Promoted PR #467 to ready (inline, no worker spawned)**
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Action Taken:**
+✅ `gh pr ready 467` — promoted [PR #467 — fix(client): iOS Safari STT — addpipe-pattern restart loop on the same recognition instance](https://github.com/jpshackelford/voice-relay/pull/467) from draft to ready.
+
+**Why inline promotion (per decision-tree review-slot row):**
+- `isDraft: true` (was) → now `false`.
+- No `on-hold`/`needs-human`/`blocked`/`needs-info` label.
+- CI: 7/7 SUCCESS (Server Tests, Client Tests, Build Client, E2E Tests, lint-pr-title, enable-orchestrator; pr-review SKIPPED while draft, will fire on next webhook now that the PR is ready).
+- `mergeable: MERGEABLE`, `mergeStateStatus: CLEAN`.
+- AI-authored body (PR #467 was opened by an OpenHands impl-worker conversation on behalf of @jpshackelford and left in draft) — exactly the "impl worker exited before flipping to ready" case the decision tree calls out. Single `gh pr ready 467` call, no review slot consumed.
+
+**Current State:**
+- Open PRs: 2
+  - **[PR #467](https://github.com/jpshackelford/voice-relay/pull/467)** — _just promoted_; pr-review bot will run on next webhook tick. Next orchestrator tick can dispatch a review worker if `💬 > 0`, or a merge worker if approved & green.
+  - [PR #465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (tvOS per-file issue drafts, human-authored). Skipped per decision-tree "STUCK PR" row; orchestrator does not auto-promote drafts carrying `on-hold`.
+- Open issues: 8 — every one still `on-hold` or `needs-human` (same backlog as 2026-06-09 23:47Z tick).
+  - `needs-human`: #372.
+  - `on-hold`: #386, #302, #301, #300, #299, #239, #210.
+- `ready`+unblocked+prioritized: 0.
+- Issues needing expansion: 0.
+
+**Unblock pass (mechanical `Blocked by #N` only):**
+
+| Issue | Blockers (state)       | Mechanical lift? | Policy override |
+| ----: | ---------------------- | ---------------- | --------------- |
+|  #299 | #298=CLOSED            | yes              | **AGENTS.md S3 design freeze (lines 71–106)** still in force: production `VR_WORKSPACE_BUCKET`, four AWS creds, and `docs/runbooks/s3-bucket-provisioning.md` smoke test not verifiable from the orchestrator sandbox; no `## INSTRUCTION:` block has signaled the lift. Skipped per the documented override pattern. |
+|  #301 | #295=CLOSED            | yes              | Same S3 freeze override. |
+|  #300 | #298=CLOSED, #299=OPEN | no               | Machine-blocked; plus S3 freeze. |
+|  #302 | #300=OPEN              | no               | Machine-blocked; plus S3 freeze. |
+|  #386, #239, #210 | (prose-only on-hold) | n/a    | Policy holds — orchestrator does not touch. |
+|  #372 | (n/a — `needs-human`)  | n/a              | Untouched. Only a human can lift. |
+
+Mechanical zero-policy lifts this tick: **0**.
+
+**Quiet-tick counter:** `3 → 0` (productive — promotion is a state change the next tick will act on).
+
+**Anti-stall note:** decision table walked exhaustively. PR #467 was caught and routed via the documented inline-promotion path (a productive action that does not consume a review slot). The remaining backlog remains gated by codified policies (S3 freeze in AGENTS.md, prose-only `on-hold` policy holds, `needs-human`) per the "Anti-Stall: Decision Table is Exhaustive" section. No `## INSTRUCTION:` override needed.
+
+**Next tick:** if PR #467 picks up review comments from pr-review or a human, the review-slot row will dispatch a review worker; if it reaches approved + green, the merge worker takes over.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
