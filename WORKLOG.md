@@ -382,3 +382,16 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 22:20 UTC - Implementation Worker (#476)
+
+✅ **Forward-fixed stale smoke test → PR [#477](https://github.com/jpshackelford/voice-relay/pull/477)** (ready for review)
+
+- **Change:** test-only. `tests/smoke/smoke.spec.ts` now asserts the identify-first contract from #475/#474: `GET /auth/github` `302`s to `github.com/login/oauth/authorize?client_id=…&state=<hex>` and guards `not.toContain('installations/new')`. Renamed the test and rewrote the stale PR #283 / `test-mode-placeholder` comment block.
+- **Re-land of #475:** #475's server code already lives in `main` history (the failure triggered a *deploy-level* rollback, not a git revert). Merging #477 produces a new commit that auto-re-deploys the #474 install-loop fix with a smoke suite that now passes the deploy gate.
+- **CI:** all green — Server/Client/E2E/Build + `lint-pr-title` pass. (Fixed initial `lint-pr-title` failure: `smoke` is not an allowed scope → retitled to `test(tests): …`.)
+- **AC-Gate verdict:** all non-exempt items satisfied → trailer `Fixes #476`. No coverage gate (no new production code). **No follow-up issues filed.**
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
