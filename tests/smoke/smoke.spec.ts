@@ -60,13 +60,9 @@ test.describe('Production Smoke Tests', () => {
 
       expect(response.status()).toBe(302);
       const location = response.headers()['location'];
-      // Identify-first sign-in (#474/#475): the base /auth/github entry point
-      // redirects to GitHub's user-authorization endpoint
-      // (`login/oauth/authorize`), NOT the App install/configure screen.
-      // Returning already-installed users are identified first and only sent
-      // to `installations/new` later — from the callback — if the App is not
-      // yet installed for them. The `client_id` and CSRF `state` (hex) params
-      // are produced by GitHubOAuth.getIdentifyUrl().
+      // Identify-first sign-in (#474): base entry point redirects to user-authorization,
+      // not the App install screen. Returning users only see installations/new from the
+      // callback if the App isn't installed yet.
       expect(location).toMatch(
         /^https:\/\/github\.com\/login\/oauth\/authorize\?client_id=[\w.-]+&state=[a-f0-9]+$/i
       );
