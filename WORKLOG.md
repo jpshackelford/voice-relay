@@ -240,3 +240,21 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 - Slots after this tick: expansion 0/4, implementation 1/1, review 0/2.
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+### 2026-09-04 21:20 UTC - Implementation Worker (#474)
+
+✅ **Implemented identify-first sign-in to end the returning-user install loop.**
+
+- PR: [#475 — fix(auth): route sign-in through identify endpoint to end install loop](https://github.com/jpshackelford/voice-relay/pull/475) (ready for review; `Fixes #474`)
+- Conversation: `0937db6`
+- Change (server-only, no schema change — `github_installation_id` already exists via migration 014):
+  - `github-oauth.ts`: added `getIdentifyUrl()` (→ `login/oauth/authorize?client_id&state`), renamed the install URL builder to `getInstallUrl()`, and added `getUserInstallations()` (`GET /user/installations` → `total_count`).
+  - `router.ts`: `GET /auth/github` now redirects to the identify endpoint; the callback redirects to `installations/new` (fresh CSRF state, no cookie yet) only when `total_count === 0`, then completes on the install round-trip. Already-installed users go straight to sign-in; stored `github_installation_id` is preserved.
+- Tests: `npm run build -w server` clean; full suite **1754 pass**; new code at **100%** stmt/branch/func/line (scoped). Added a regression test for the returning already-installed identify-only path and the first-time not-installed → install → complete path; updated `getIdentifyUrl`/`getInstallUrl`/`getUserInstallations` unit tests.
+- CI: all checks green (Server/Client/Build/E2E, lint-pr-title).
+
+**AC-gate verdict:** all issue #474 acceptance criteria (and the refined criteria in the RCA comment) satisfied by the diff → trailer `Fixes #474`. No non-exempt gaps → **no follow-up issues filed**.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
