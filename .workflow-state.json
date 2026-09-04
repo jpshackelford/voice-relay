@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "7d14590",
+        "conv_id": "920b30e3",
         "issue": 478,
-        "started": "2026-09-04T23:07:38.297462+00:00"
+        "started": "2026-09-04T23:22:08.636027+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -97,8 +97,17 @@
       "finished": "2026-09-04T23:07:38.297462+00:00",
       "status": "success",
       "outcome": "Merged PR #477 (Smoke Test Assertions) to main"
+    },
+    {
+      "conv_id": "7d14590",
+      "type": "expansion",
+      "issue": 478,
+      "started": "2026-09-04T23:07:38.297462+00:00",
+      "finished": "2026-09-04T23:22:08.636027+00:00",
+      "status": "success",
+      "outcome": "Expanded #478 (Layer-2 CI trigger-scoping RCA); added ready label"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T23:07:38.297462+00:00"
+  "last_updated": "2026-09-04T23:22:08.636027+00:00"
 }

@@ -529,3 +529,33 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 23:20 UTC - Orchestrator
+
+🚀 **Spawned: Implementation Worker**
+
+- Issue: [#478 - Smoke test failure after deployment (Layer-2 CI trigger-scoping bug)](https://github.com/jpshackelford/voice-relay/issues/478) (priority:high, ready, scope:ci-only)
+- Conversation: [`920b30e3`](https://app.all-hands.dev/conversations/920b30e30969414081ec4ff0d49d2f4c) — verified `running`
+- Task: extend `paths-ignore` in `.github/workflows/deploy.yml` to include `.workflow-state.json` so orchestrator-bookkeeping-only commits stop triggering full production deploy/smoke/rollback. Layer-1 (stale auth smoke assertion) already fixed by PR #477 — out of scope.
+
+**Priority assessment (inline):** #478 was `ready` but unprioritized after expansion. Assigned `priority:high` — the Layer-2 bug recurs on every `.workflow-state.json`-touching commit (frequent) and each occurrence risks a spurious production rollback; fix is a low-risk one-line workflow change. Not `critical` (production self-healed, no active outage).
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `920b30e3` | implementation | Issue #478 - deploy.yml trigger-scoping | **NEW** running |
+
+**Worker Completed (this tick):**
+- `7d14590` (expansion, #478) → finished. Added `ready` label + Layer-1/Layer-2 RCA comment. Expansion slot recycled.
+
+**Unblock pass:** 0 issues lifted. #299 (`Blocked by #298`=CLOSED) and #301 (`Blocked by #295`=CLOSED) are mechanically eligible but remain under the AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" codified policy gate (production S3 provisioning unverifiable from sandbox; no `## INSTRUCTION:` override) — consistent with prior precedent. #300 (`Blocked by #299`=OPEN) and #302 (`Blocked by #300`=OPEN) have open blockers. #210/#239/#386 have no machine-parseable `Blocked by #N` refs (prose/policy holds).
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) (draft, `on-hold` — skipped, no promotion).
+- Ready issues: #478 (priority:high — now being implemented). #386 (priority:low, `on-hold` — skipped).
+- Issues needing expansion: none.
+- Slots after this tick: expansion 0/4, implementation 1/1, review 0/2. quiet_ticks=0.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
