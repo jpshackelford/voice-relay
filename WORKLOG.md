@@ -419,3 +419,16 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 - Slots: expansion 0/4, implementation 0/1, review 1/2.
 
 ---
+
+### 2026-09-04 22:22 UTC - Review Worker (PR #477, round 1)
+
+✅ **Addressed review round 1 on PR [#477](https://github.com/jpshackelford/voice-relay/pull/477)** (back to ready for review)
+
+- **Thread (1, pr-review bot 🟡):** verbose comment block on the 6-line smoke test. **Accepted** → condensed the 13-line comment to the 3-line essential invariant, preserving the `#474` reference and the `installations/new` regression guard. Committed `d4a2e38`, thread resolved with a reply referencing the SHA.
+- **CI:** all green on `d4a2e38` (Server/Client/E2E/Build + `lint-pr-title`).
+- **AC-Gate re-verdict:** **UNCHANGED** → trailer stays `Fixes #476`. The change was comment-only; the identify-first assertion logic is unchanged, so all non-exempt #476 items remain satisfied. No trailer edit, no follow-up issues, no `## Deferred to follow-ups` change.
+- **Reflection:** commented on #476 — behavior-changing PRs must grep the changed HTTP contract across **all** test layers (the separate smoke suite was missed by #475, causing the post-deploy rollback). Worth a checklist/CI guard.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
