@@ -1,15 +1,15 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [],
-    "implementation": [],
-    "review": [
+    "expansion": [
       {
-        "conv_id": "6ead722",
-        "pr": 477,
-        "started": "2026-09-04T22:51:04.680548+00:00"
+        "conv_id": "7d14590",
+        "issue": 478,
+        "started": "2026-09-04T23:07:38.297462+00:00"
       }
-    ]
+    ],
+    "implementation": [],
+    "review": []
   },
   "limits": {
     "expansion": 4,
@@ -88,8 +88,17 @@
       "finished": "2026-09-04T22:51:04.680548+00:00",
       "status": "success",
       "outcome": "Addressed review round 1 on PR #477 (condensed comment block, thread resolved); PR back to ready, AC-gate re-verdict unchanged (Fixes #476)"
+    },
+    {
+      "conv_id": "6ead722",
+      "type": "review",
+      "pr": 477,
+      "started": "2026-09-04T22:51:04.680548+00:00",
+      "finished": "2026-09-04T23:07:38.297462+00:00",
+      "status": "success",
+      "outcome": "Merged PR #477 (Smoke Test Assertions) to main"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T22:51:04.680548+00:00"
+  "last_updated": "2026-09-04T23:07:38.297462+00:00"
 }
