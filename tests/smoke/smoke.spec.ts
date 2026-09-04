@@ -53,23 +53,26 @@ test.describe('Production Smoke Tests', () => {
       await expect(page.getByRole('button', { name: /Sign in with GitHub/i })).toBeVisible();
     });
 
-    test('auth/github redirects to the GitHub App install URL', async ({ request }) => {
+    test('auth/github redirects to the GitHub identify endpoint (#474)', async ({ request }) => {
       const response = await request.get(`${BASE_URL}/auth/github`, {
         maxRedirects: 0,
       });
 
       expect(response.status()).toBe(302);
       const location = response.headers()['location'];
-      // PR #283 moved /auth/github from the classic OAuth `authorize` endpoint
-      // to the GitHub App install URL. Slug varies by environment:
-      //   - test-mode (TEST_AUTH_SECRET set, GITHUB_APP_SLUG unset) → `test-mode-placeholder`
-      //   - production → the configured GitHub App slug (e.g. `no-hands-agent-screencast`)
-      // The CSRF `state` param is echoed back as a hex string.
+      // Identify-first sign-in (#474/#475): the base /auth/github entry point
+      // redirects to GitHub's user-authorization endpoint
+      // (`login/oauth/authorize`), NOT the App install/configure screen.
+      // Returning already-installed users are identified first and only sent
+      // to `installations/new` later — from the callback — if the App is not
+      // yet installed for them. The `client_id` and CSRF `state` (hex) params
+      // are produced by GitHubOAuth.getIdentifyUrl().
       expect(location).toMatch(
-        /^https:\/\/github\.com\/apps\/[\w.-]+\/installations\/new\?state=[a-f0-9]+$/i
+        /^https:\/\/github\.com\/login\/oauth\/authorize\?client_id=[\w.-]+&state=[a-f0-9]+$/i
       );
-      // Regression guard: never redirect to the legacy classic-OAuth flow.
-      expect(location).not.toContain('login/oauth/authorize');
+      // Regression guard (#474): returning users must not be routed through
+      // the App install screen from the sign-in entry point.
+      expect(location).not.toContain('installations/new');
     });
   });
 
