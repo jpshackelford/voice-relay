@@ -573,3 +573,31 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 23:33 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `ca0395a6` | merge | PR #479 - deploy.yml trigger-scoping | **NEW** running |
+
+**Spawned: Merge Worker**
+- PR: [#479](https://github.com/jpshackelford/voice-relay/pull/479) (fix(ci): exclude `.workflow-state.json` from deploy trigger; `Fixes #478`)
+- Conversation: [`ca0395a6`](https://app.all-hands.dev/conversations/ca0395a61ee541649c22fefff4e9821a)
+- Rationale: PR is ready (not draft), `MERGEABLE`, all CI green (Build Client, Client/Server Tests, E2E, lint-pr-title), pr-review bot review positive ("🟢 Good taste"), no unresolved review threads. Merge criteria met → merge worker.
+
+**Worker Completed (this tick):**
+- `920b30e3` (implementation, #478) → finished. Opened PR #479 (green CI, mergeable). Impl slot recycled.
+
+**Unblock pass:** 0 issues lifted. #299 (`Blocked by #298`=CLOSED) and #301 (`Blocked by #295`=CLOSED) are mechanically eligible but remain under the AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" codified policy gate (production S3 provisioning unverifiable from sandbox; no `## INSTRUCTION:` override) — consistent with prior precedent. #300 (`Blocked by #299`=OPEN) and #302 (`Blocked by #300`=OPEN) have open blockers. #210/#239/#386 have no machine-parseable `Blocked by #N` refs (prose/policy holds).
+
+**Current State:**
+- Open PRs: [#479](https://github.com/jpshackelford/voice-relay/pull/479) (merge worker dispatched); [#465](https://github.com/jpshackelford/voice-relay/pull/465) (draft, `on-hold` — skipped, no promotion).
+- Ready issues: #386 (priority:low, `on-hold` — skipped). No implementable ready+prioritized issues.
+- Issues needing expansion: none.
+- Slots after this tick: expansion 0/4, implementation 0/1, review 1/2. quiet_ticks=0.
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+

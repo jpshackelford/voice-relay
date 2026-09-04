@@ -2,14 +2,14 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "920b30e3",
-        "issue": 478,
-        "started": "2026-09-04T23:22:08.636027+00:00"
+        "conv_id": "ca0395a6",
+        "pr": 479,
+        "started": "2026-09-04T23:36:03.719756+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
@@ -106,8 +106,17 @@
       "finished": "2026-09-04T23:22:08.636027+00:00",
       "status": "success",
       "outcome": "Expanded #478 (Layer-2 CI trigger-scoping RCA); added ready label"
+    },
+    {
+      "conv_id": "920b30e3",
+      "type": "implementation",
+      "issue": 478,
+      "started": "2026-09-04T23:22:08.636027+00:00",
+      "finished": "2026-09-04T23:36:03.719756+00:00",
+      "status": "success",
+      "outcome": "Implemented #478 (Layer-2 CI trigger-scoping); opened PR #479 (green CI, mergeable, positive bot review)"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T23:22:08.636027+00:00"
+  "last_updated": "2026-09-04T23:36:03.719756+00:00"
 }
