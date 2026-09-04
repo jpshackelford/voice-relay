@@ -2,14 +2,14 @@
   "version": 2,
   "slots": {
     "expansion": [],
-    "implementation": [
+    "implementation": [],
+    "review": [
       {
-        "conv_id": "6f04823",
-        "issue": 476,
-        "started": "2026-09-04T22:07:01.438627+00:00"
+        "conv_id": "d17aa6c",
+        "pr": 477,
+        "started": "2026-09-04T22:21:02.988903+00:00"
       }
-    ],
-    "review": []
+    ]
   },
   "limits": {
     "expansion": 4,
@@ -70,8 +70,17 @@
       "finished": "2026-09-04T22:07:01.438627+00:00",
       "status": "success",
       "outcome": "Expanded #476 (stale smoke test RCA); added ready label"
+    },
+    {
+      "conv_id": "6f04823",
+      "type": "implementation",
+      "issue": 476,
+      "started": "2026-09-04T22:07:01.438627+00:00",
+      "finished": "2026-09-04T22:21:02.988903+00:00",
+      "status": "success",
+      "outcome": "Implemented #476; opened PR #477 (green CI, mergeable)"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T22:07:01.438627+00:00"
+  "last_updated": "2026-09-04T22:21:02.988903+00:00"
 }
