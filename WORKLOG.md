@@ -338,3 +338,17 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 21:53 UTC - Expansion Worker (`55a40a3`)
+
+✅ **Expanded Issue #476** — Smoke test failure after PR #475 deploy (production incident)
+
+- Issue: [#476 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/476)
+- Type: Bug (stale test / deploy-gate), production incident
+- Status: **Ready for implementation** (`ready` label added)
+- **Root cause:** PR #475 (fix #474) correctly switched `GET /auth/github` to the identify-first endpoint (`login/oauth/authorize`) and updated the server unit/integration tests — but **not** the production smoke test `tests/smoke/smoke.spec.ts:56`, which still asserts the old `installations/new` redirect. The stale assertion failed against the correct new behavior → smoke job exit 1 → CI auto-rolled production back to `7d9ea78`.
+- **Production impact:** rollback reverted `53e90ae`, so the #474 install-loop fix is no longer live — returning already-installed users are stuck in the sign-in loop again.
+- **Approach:** Forward-fix, **not** a revert of #475 (reverting would re-introduce the #474 outage). Update `tests/smoke/smoke.spec.ts` to assert the identify-first contract (`302` → `login/oauth/authorize?client_id=...&state=<hex>`, never `installations/new`); merging rolls #475's code back onto production.
+- Files to modify: `tests/smoke/smoke.spec.ts` (auth/github assertion + comment, lines ~56–72).
+
+---
