@@ -196,3 +196,20 @@ _This entry was created by an AI agent (OpenHands merge worker) on behalf of @jp
 - Slots after this tick: expansion 1/4, implementation 0/1, review 0/2.
 
 _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+### 2026-09-04 20:55 UTC - Expansion Worker (`9f56ee6`)
+
+✅ **Expanded Issue #474** — Returning (already-installed) users stuck in GitHub App install loop
+
+- Issue: [#474](https://github.com/jpshackelford/voice-relay/issues/474) — `bug`, `critical`, `priority:critical`, `server`
+- Type: Bug (CRITICAL — full auth outage for returning users)
+- Status: **Ready for implementation** (`ready` label added)
+- Root cause **confirmed at code level** (`main` @ `dc036b4`): `GET /auth/github` (`server/src/auth/router.ts:187-195`) unconditionally redirects through `github.getAuthorizationUrl()`, which in `server/src/auth/github-oauth.ts:34-60` only ever builds `apps/<slug>/installations/new`. No identify branch exists; the current unit test even asserts `not.toContain('login/oauth/authorize')`. Already-installed users get stranded on GitHub's configure screen (`settings/installations/<id>`), so `/auth/github/callback` never receives a `code` and no cookie is set.
+- Key finding: the callback + persistence layers **already** tolerate identify-only sign-in (`installation_id` handled optionally at `router.ts:267`; `upsertFromGitHub`/`setGitHubInstallationId` decoupled in `user-repository.ts`), so the fix is small.
+- Recommended fix: **Option 1** — route `/auth/github` through `login/oauth/authorize` (identify), and in the callback redirect to `installations/new` only when `GET /user/installations` shows the App is not installed for that user. Option 2 (App OAuth-during-install setting) noted as a possible temporary mitigation but insufficient alone.
+- Posted comment with confirmed RCA, fix, file-by-file implementation plan, required test coverage (returning-already-installed identify-only path + first-time-install path), and refined testable acceptance criteria.
+- Verified env: `server` deps installed, existing 17 auth tests pass (`vitest run src/auth/github-oauth.test.ts src/auth/router.test.ts`).
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
