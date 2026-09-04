@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "55a40a3",
+        "conv_id": "6f04823",
         "issue": 476,
-        "started": "2026-09-04T21:51:30.652868+00:00"
+        "started": "2026-09-04T22:07:01.438627+00:00"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -61,8 +61,17 @@
       "finished": "2026-09-04T21:51:30.652868+00:00",
       "status": "success",
       "outcome": "Merged PR #475 to main (53e90ae); AC-gate PASS"
+    },
+    {
+      "conv_id": "55a40a3",
+      "type": "expansion",
+      "issue": 476,
+      "started": "2026-09-04T21:51:30.652868+00:00",
+      "finished": "2026-09-04T22:07:01.438627+00:00",
+      "status": "success",
+      "outcome": "Expanded #476 (stale smoke test RCA); added ready label"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T21:51:30.652868+00:00"
+  "last_updated": "2026-09-04T22:07:01.438627+00:00"
 }

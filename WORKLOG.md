@@ -352,3 +352,33 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 - Files to modify: `tests/smoke/smoke.spec.ts` (auth/github assertion + comment, lines ~56–72).
 
 ---
+
+### 2026-09-04 22:06 UTC - Orchestrator
+
+🚀 **Spawned: Implementation Worker** for Issue #476 (production incident)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `6f04823` | implementation | Issue #476 - stale smoke test / #475 rollback | **NEW** |
+
+**Spawned: Implementation Worker**
+- Issue: [#476 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/476) (`priority:high`, added inline)
+- Conversation: [`6f04823`](https://app.all-hands.dev/conversations/6f048234302b466dbabe04059fe1dfa8)
+- Forward-fix: update `tests/smoke/smoke.spec.ts` to the identify-first contract; merging re-lands #475's #474 fix that CI auto-rolled back.
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (stuck, skipped; also `lint-pr-title` FAILURE). No other open PRs.
+- Ready issues: #476 (now being implemented). #386 `ready` but `on-hold` (skipped).
+- `needs-human`: #372 (skipped).
+- On-hold (unchanged): #210, #239 (prose/policy holds); #299–#302 held by AGENTS.md S3 design-freeze codified policy gate; #386.
+
+**Unblock pass:** 0 issues lifted. #299 (blocker #298 closed) and #301 (blocker #295 closed) are mechanically eligible but remain under the AGENTS.md S3 design-freeze codified policy gate (production provisioning unverifiable from sandbox; no `## INSTRUCTION:` override). #300/#302 still have open blockers. #210/#239/#386 have no machine-parseable `Blocked by #N` refs.
+
+**Worker completed since last tick:** `55a40a3` (expansion) → expanded & readied #476.
+
+**Slots after this tick:** expansion 0/4, implementation 1/1, review 0/2.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
