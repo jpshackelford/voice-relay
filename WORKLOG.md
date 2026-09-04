@@ -283,3 +283,27 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 
 ---
 
+
+### 2026-09-04 21:38 UTC - Merge Worker (PR #475 / #474)
+
+✅ **Merged PR #475** — `fix(auth): route sign-in through identify endpoint to end install loop (#474)`
+
+- Squash commit: `53e90ae` on `main` (auto-deploys to vr.chorecraft.net).
+- PR: [#475](https://github.com/jpshackelford/voice-relay/pull/475) — state `MERGED`.
+- Issue: [#474](https://github.com/jpshackelford/voice-relay/issues/474) — auto-closed `COMPLETED` via `Fixes #474`.
+
+**Merge criteria (verified):** 7/7 CI checks green, `mergeable: CLEAN`, 0 unresolved review threads, pr-review bot verdict 🟢 Good taste / ✅ Worth merging (risk 🟡 MEDIUM, auth-subsystem criticality only).
+
+**Migration check:** no schema change. Only `server/src/auth/github-oauth.ts` + `router.ts` (and tests) touched; `github_installation_id` already exists (migration 014). No post-deploy step — safe for the SQLite production auto-deploy.
+
+**AC Gate (pre-merge): PASS.** Trailer `Fixes #474` (auto-close). All four #474 acceptance criteria covered by the final diff, none exempt:
+1. Returning already-installed user signs in with no install/configure detour + cookie set — identify-first routing in `router.ts`; regression test asserts cookie + `/home` + not `installations/new`.
+2. Brand-new user still gets install → identify → callback with `users.github_installation_id` populated — callback redirects to `getInstallUrl` when `getUserInstallations` returns 0; test asserts id persisted.
+3. No longer strands users on `settings/installations/<id>` — terminal install path removed; tests assert redirect never `installations/new`.
+4. Automated test covers returning-user identify-only path — added and passing.
+
+No non-exempt AC gaps → no follow-up issues filed. Gate verdict recorded in the squash commit body. No `## INSTRUCTION:` override needed or present.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
