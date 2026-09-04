@@ -5,9 +5,9 @@
     "implementation": [],
     "review": [
       {
-        "conv_id": "d17aa6c",
+        "conv_id": "6ead722",
         "pr": 477,
-        "started": "2026-09-04T22:21:02.988903+00:00"
+        "started": "2026-09-04T22:51:04.680548+00:00"
       }
     ]
   },
@@ -79,8 +79,17 @@
       "finished": "2026-09-04T22:21:02.988903+00:00",
       "status": "success",
       "outcome": "Implemented #476; opened PR #477 (green CI, mergeable)"
+    },
+    {
+      "conv_id": "d17aa6c",
+      "type": "review",
+      "pr": 477,
+      "started": "2026-09-04T22:21:02.988903+00:00",
+      "finished": "2026-09-04T22:51:04.680548+00:00",
+      "status": "success",
+      "outcome": "Addressed review round 1 on PR #477 (condensed comment block, thread resolved); PR back to ready, AC-gate re-verdict unchanged (Fixes #476)"
     }
   ],
-  "quiet_ticks": 1,
-  "last_updated": "2026-09-04T22:34:00Z"
+  "quiet_ticks": 0,
+  "last_updated": "2026-09-04T22:51:04.680548+00:00"
 }
