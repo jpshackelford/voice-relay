@@ -511,3 +511,21 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+
+### 2026-09-04 23:12 UTC - Expansion Worker (`7d14590`)
+
+✅ **Expanded Issue #478**
+
+- Issue: [#478 - 🚨 Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/478)
+- Type: Bug (CI / deploy pipeline)
+- Status: **Ready for implementation** (labels: `ready`, `scope:ci-only`)
+- Failing run: [33927250344](https://github.com/jpshackelford/voice-relay/actions/runs/33927250344), commit `f08edef`, rolled back to `7d9ea78`.
+- Root cause (two layers):
+  - **Layer 1 (already fixed):** surface failure is the same stale `tests/smoke/smoke.spec.ts:56` auth assertion as #476 (expected `installations/new`, server correctly returned `login/oauth/authorize` per #474/#475). PR #477 (`774db3e`) fixed the assertion ~83 s *after* `f08edef` deployed; main now correct and prod self-healed (`deploy-success` tag on `774db3e`).
+  - **Layer 2 (actionable):** `f08edef` is a bookkeeping-only commit (`WORKLOG.md` + `.workflow-state.json`) that still triggered `Server Operations` because `.github/workflows/deploy.yml` `paths-ignore` omits `.workflow-state.json`. This redeployed prod and re-ran smoke, tripping a spurious rollback.
+- Proposed fix: add `.workflow-state.json` to `deploy.yml` `paths-ignore` so orchestrator state churn no longer redeploys production. Low complexity, low risk.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
