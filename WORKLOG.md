@@ -460,3 +460,25 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
 
+
+### 2026-09-04 22:53 UTC - Merge Worker (PR #477)
+
+✅ **Squash-merged PR [#477](https://github.com/jpshackelford/voice-relay/pull/477)** → `main` (merge commit `774db3e`)
+
+- **What:** `test(tests): assert identify-first /auth/github redirect in smoke suite (#474)`. Forward-fix that re-lands #475's identify-first `/auth/github` contract into the production smoke suite (`tests/smoke/smoke.spec.ts`, +8/-9). Corrects the stale assertion that tripped the post-deploy auto-rollback and re-opened the #474 install loop.
+- **AC-Gate verdict: PASS.** Walked issue #476's `## Expected Behavior` item-by-item vs the final diff (no exempt/deferred items): (1) `302` → `login/oauth/authorize?client_id=…&state=<hex>` ✅, (2) base sign-in never routed through `installations/new` ✅, (3) comment block rewritten to identify-first flow ✅, (4) re-land #475 onto production ✅ (new commit re-deploys #475, already in main history). All non-exempt items satisfied → trailer `Fixes #476` honored. Verdict also recorded in the squash commit body. No coverage gate (test-only, no new production code); **no follow-up issues filed**.
+- **Migration check:** test-only change — no schema, no migrations, no production code touched. Safe for the SQLite production auto-deploy to vr.chorecraft.net; no post-deploy steps.
+- **Linked issue:** [#476](https://github.com/jpshackelford/voice-relay/issues/476) **auto-closed** by GitHub via `Fixes #476` (closed 22:53 UTC). Verified.
+- **Production effect:** merge triggers a new auto-deploy that re-lands the #475 auth fix with a smoke suite that now passes the deploy gate — restoring identify-first sign-in for returning users.
+
+**Worker Completed (this tick):**
+- `6ead722` (merge, PR #477) → finished. AC gate PASS, squash-merged (`774db3e`), #476 auto-closed. Merge slot freed.
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) (draft, `on-hold` — skipped).
+- Ready issues: #386 (priority:low, `on-hold` — skipped).
+- Slots after this tick: expansion 0/4, implementation 0/1, review 0/2.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
