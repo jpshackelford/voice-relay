@@ -601,3 +601,18 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 
 ---
 
+
+### 2026-09-04 23:38 UTC - Merge Worker (`ca0395a6`, PR #479)
+
+✅ Squash-merged **PR #479** — `fix(ci): exclude .workflow-state.json from deploy trigger` (`Fixes #478`, Layer-2).
+
+- **Merge commit:** `7506cf5` (merged 2026-09-04T23:38:23Z into `main`).
+- **AC-gate verdict:** ✅ **PASS**. Auto-close trailer `Fixes #478`. Issue #478 has no literal `## Acceptance Criteria` heading; its `## Expected Behavior` bullets are the acceptance surface and both non-exempt items are covered by the final diff — (a) commits touching only orchestrator bookkeeping files (`WORKLOG.md`, `.workflow-state.json`, archive worklogs) no longer trigger the deploy/smoke/rollback pipeline (`.workflow-state.json` now in `paths-ignore`; `*.md` already covers the worklogs); (b) production deploys fire only for real app/config changes. Layer-1 (stale smoke assertion) exempt — out of scope, already fixed by #477. No uncovered non-exempt items; no `## INSTRUCTION:` override needed or present. Verdict recorded in the squash commit body.
+- **Migration check:** N/A — diff touches only `.github/workflows/deploy.yml` (CI config); no schema/DB/migration files. Safe for production SQLite.
+- **Pre-merge state:** not draft, `MERGEABLE`, all 7 CI checks green, pr-review bot 🟢 "Good taste", no unresolved review threads, no `on-hold`/`needs-human` labels (re-checked immediately before merge).
+- **Linked issue:** #478 auto-closed by GitHub via `Fixes #478` (state `CLOSED`/`COMPLETED`). Verified — no manual close needed.
+- **Production note:** merge to `main` auto-deploys to vr.chorecraft.net; this is a deploy-trigger-narrowing CI change only, no application/schema impact.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
