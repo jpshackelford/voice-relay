@@ -11,14 +11,34 @@ describe('GitHubOAuth', () => {
 
   const oauth = new GitHubOAuth(config);
 
-  describe('getAuthorizationUrl', () => {
-    it('redirects to the GitHub App install + identify URL with state', () => {
+  describe('getIdentifyUrl', () => {
+    it('points at the user-authorization endpoint with client_id and state', () => {
       const state = 'random-state-123';
-      const url = oauth.getAuthorizationUrl(state);
+      const url = oauth.getIdentifyUrl(state);
 
-      // GitHub App flow points at `apps/<slug>/installations/new`. The
-      // client_id, redirect_uri, and scopes live on the App settings page,
-      // not in the URL, so we explicitly assert they are NOT present.
+      // Identify-first sign-in (#474) uses `login/oauth/authorize`, which
+      // does not force already-installed users through the install screen.
+      expect(url).toBe(
+        'https://github.com/login/oauth/authorize?client_id=test-client-id&state=random-state-123',
+      );
+      // Not the install path.
+      expect(url).not.toContain('installations/new');
+    });
+
+    it('URL-encodes the state parameter', () => {
+      const state = 'state with spaces & symbols';
+      const url = oauth.getIdentifyUrl(state);
+      expect(url).toContain('state=state+with+spaces+%26+symbols');
+    });
+  });
+
+  describe('getInstallUrl', () => {
+    it('points at the GitHub App install URL with state', () => {
+      const state = 'random-state-123';
+      const url = oauth.getInstallUrl(state);
+
+      // The client_id, redirect_uri, and scopes live on the App settings
+      // page, not in the URL, so we explicitly assert they are NOT present.
       expect(url).toBe(
         'https://github.com/apps/test-app-slug/installations/new?state=random-state-123',
       );
@@ -30,7 +50,7 @@ describe('GitHubOAuth', () => {
 
     it('URL-encodes the state parameter', () => {
       const state = 'state with spaces & symbols';
-      const url = oauth.getAuthorizationUrl(state);
+      const url = oauth.getInstallUrl(state);
       expect(url).toContain('state=state+with+spaces+%26+symbols');
     });
   });
@@ -154,6 +174,68 @@ describe('GitHubOAuth', () => {
 
       await expect(oauth.getUser('bad-token')).rejects.toThrow(
         'GitHub user fetch failed: 401',
+      );
+    });
+  });
+
+  describe('getUserInstallations', () => {
+    const mockFetch = vi.fn();
+
+    beforeEach(() => {
+      vi.stubGlobal('fetch', mockFetch);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.resetAllMocks();
+    });
+
+    it('returns total_count for an installed user', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total_count: 2, installations: [{ id: 1 }, { id: 2 }] }),
+      });
+
+      const count = await oauth.getUserInstallations('access-token');
+
+      expect(count).toBe(2);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.github.com/user/installations',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer access-token',
+            'User-Agent': 'voice-relay',
+          }),
+        }),
+      );
+    });
+
+    it('returns 0 when the user has no installations', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total_count: 0, installations: [] }),
+      });
+
+      expect(await oauth.getUserInstallations('access-token')).toBe(0);
+    });
+
+    it('returns 0 when total_count is absent', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      });
+
+      expect(await oauth.getUserInstallations('access-token')).toBe(0);
+    });
+
+    it('throws on failed response', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+      });
+
+      await expect(oauth.getUserInstallations('bad-token')).rejects.toThrow(
+        'GitHub user installations fetch failed: 403',
       );
     });
   });
