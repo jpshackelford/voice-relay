@@ -307,3 +307,34 @@ No non-exempt AC gaps → no follow-up issues filed. Gate verdict recorded in th
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 21:48 UTC - Orchestrator
+
+🚀 **Spawned: Expansion Worker** (production incident RCA)
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `55a40a3` | expansion | Issue #476 - Smoke test failure after PR #475 deploy | **NEW** |
+
+**Spawned worker:**
+- Issue: [#476 - Smoke test failure after deployment](https://github.com/jpshackelford/voice-relay/issues/476)
+- Conversation: [`55a40a3`](https://app.all-hands.dev/conversations/55a40a3d3521445ea8d98d91fbe56568)
+
+**Why:** Issue #476 was auto-created by CI at 21:42 UTC. The failed commit `53e90ae` is the squash-merge of **PR #475** ("fix(auth): route sign-in through identify endpoint …", closes #474). Its production deploy to vr.chorecraft.net failed the post-deploy smoke test and CI **auto-rolled back** to `7d9ea78`. So the #474 auth fix passed CI + the AC gate but broke the production smoke test — production is currently on the pre-#475 commit. #476 had no `ready`/`on-hold`/`needs-human` label → routed to an expansion slot for root-cause analysis.
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` (skipped, stuck; also `lint-pr-title` FAILURE). No other open PRs; #475 merged.
+- Issue #476 → now being investigated (expansion).
+- `needs-human`: #372 (skipped).
+- On-hold (unchanged): #210, #239 (prose/policy holds, no machine `Blocked by #N`); #299–#302 held by AGENTS.md "Active design freeze: workspace persistence (S3)" codified policy gate; #386 (`ready` but `on-hold`).
+
+**Unblock pass:** 0 issues lifted. #210/#239/#386 have no machine-parseable `Blocked by #N` refs (policy/prose holds). #299–#302 remain under the AGENTS.md S3 design-freeze codified policy gate (production provisioning unverifiable from sandbox; no `## INSTRUCTION:` override) — consistent with prior precedent.
+
+**Worker completed since last tick:** `4cee8bf` (merge) → merged PR #475.
+
+**Slots after this tick:** expansion 1/4, implementation 0/1, review 0/2.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
