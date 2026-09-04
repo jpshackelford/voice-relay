@@ -182,15 +182,19 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
 
   /**
    * GET /auth/github
-   * Initiates GitHub OAuth flow by redirecting to GitHub
+   * Initiates sign-in by redirecting to GitHub's identify (user
+   * authorization) endpoint. This works for returning already-installed
+   * users without routing them through the App install/configure screen
+   * (#474). First-time users are sent to the install page later, from the
+   * callback, once we detect the App is not installed for them.
    */
   router.get('/github', (req: Request, res: Response) => {
     const state = crypto.randomBytes(32).toString('hex');
     const returnTo = typeof req.query.returnTo === 'string' ? req.query.returnTo : undefined;
-    
+
     pendingStates.set(state, { createdAt: Date.now(), returnTo });
-    
-    const authUrl = github.getAuthorizationUrl(state);
+
+    const authUrl = github.getIdentifyUrl(state);
     res.redirect(authUrl);
   });
 
@@ -259,11 +263,19 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
         email: githubUser.email,
       });
 
-      // GitHub App install + identify path returns `installation_id` on the
-      // first round-trip. Persist it so future features can mint App
-      // installation tokens without re-prompting. Returning users sign in
-      // without it, and `upsertFromGitHub` already leaves the column alone,
-      // so previously-stored values are preserved.
+      // Resolve the App installation for this user.
+      //
+      // - Install path (fresh install): GitHub returns `installation_id` on
+      //   the callback. Persist it so future features can mint App
+      //   installation tokens without re-prompting.
+      // - Identify path (returning user): no `installation_id` in the query.
+      //   Ask GitHub whether the App is installed for this user. If it is,
+      //   continue to sign-in (any previously-stored id is preserved because
+      //   `upsertFromGitHub` never touches the column). If it is NOT, the
+      //   user is signing in for the first time without having installed the
+      //   App yet, so send them to the install page (with a fresh CSRF state)
+      //   *before* setting any cookie; the install round-trip re-enters this
+      //   callback with `code`+`installation_id`.
       if (typeof installation_id === 'string') {
         const installationIdNum = Number(installation_id);
         if (Number.isFinite(installationIdNum) && installationIdNum > 0) {
@@ -271,6 +283,15 @@ export function createAuthRouter(options: AuthRouterConfig): Router {
           console.log(`[Auth] Stored github_installation_id=${installationIdNum} for ${user.username}`);
         } else {
           console.warn(`[Auth] Ignoring invalid installation_id=${String(installation_id)} for ${user.username}`);
+        }
+      } else {
+        const installationCount = await github.getUserInstallations(accessToken);
+        if (installationCount === 0) {
+          const installState = crypto.randomBytes(32).toString('hex');
+          pendingStates.set(installState, { createdAt: Date.now(), returnTo: pendingState.returnTo });
+          console.log(`[Auth] ${user.username} has no App installation; redirecting to install`);
+          res.redirect(github.getInstallUrl(installState));
+          return;
         }
       }
 
