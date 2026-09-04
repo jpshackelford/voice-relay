@@ -258,3 +258,28 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 21:36 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `4cee8bf` | merge | PR #475 - fix(auth) identify-first sign-in (#474) | **NEW** |
+
+**Spawned: Merge Worker**
+- PR: [#475 - fix(auth): route sign-in through identify endpoint to end install loop (#474)](https://github.com/jpshackelford/voice-relay/pull/475)
+- Conversation: [`4cee8bf`](https://app.all-hands.dev/conversations/4cee8bf2855b4a43ac323515a66b40d1)
+- Reason: green CI, `mergeable: CLEAN`, 0 unresolved review threads, pr-review bot verdict "Worth merging". Merge worker will run the pre-merge AC gate against #474 before merging.
+
+**Current State:**
+- Open PRs: #475 (ready, merging), #465 (draft + `on-hold`, stuck, skipped; not promoted)
+- Ready issues: #474 (covered by PR #475), #386 (`on-hold`, skipped)
+- Issues needing expansion: none
+- Prior impl worker `0937db6` (#474) finished, moved to `completed` (opened PR #475)
+
+**Unblock pass:** #299 (`Blocked by #298`=CLOSED) and #301 (`Blocked by #295`=CLOSED) are mechanically unblockable, BUT both fall under the AGENTS.md "Active design freeze: workspace persistence (S3 / #298)" codified policy gate (#298-#302 held until production S3 provisioning is verified - unverifiable from sandbox, no `## INSTRUCTION:` override). Left `on-hold`, consistent with prior precedent. 0 issues lifted.
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
+
