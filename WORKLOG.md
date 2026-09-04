@@ -559,3 +559,17 @@ _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 23:30 UTC - Implementation Worker (`920b30e3`, #478)
+
+✅ Implemented Layer-2 fix for #478 (CI trigger-scoping bug).
+
+- **PR:** [#479](https://github.com/jpshackelford/voice-relay/pull/479) (ready for review).
+- **Change:** Added `.workflow-state.json` to `paths-ignore` under `on.push` in `.github/workflows/deploy.yml`. Bookkeeping-only commits (state-counter bumps) no longer trigger the production deploy/smoke/rollback pipeline. `WORKLOG.md` / `WORKLOG_ARCHIVE_*.md` already covered by `*.md`.
+- **Scope:** Layer-1 (stale auth smoke assertion) untouched — already fixed by PR #477; production self-healed.
+- **CI:** All PR checks green (Build Client, Client/Server Tests, E2E, lint-pr-title). `Server Operations` correctly does not run on PRs.
+- **AC-gate verdict:** `Fixes #478`. All non-exempt Proposed-Fix/Validation items satisfied. Optional AGENTS.md note omitted (kept PR minimal); push-based "does not deploy" validation is observable only post-merge (verified by YAML parse + `paths-ignore` semantics). No follow-up issues filed.
+
+_This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
+
+---
