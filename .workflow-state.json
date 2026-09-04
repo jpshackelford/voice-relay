@@ -1,14 +1,14 @@
 {
   "version": 2,
   "slots": {
-    "expansion": [
+    "expansion": [],
+    "implementation": [
       {
-        "conv_id": "9f56ee6",
+        "conv_id": "0937db6",
         "issue": 474,
-        "started": "2026-09-04T20:48:54Z"
+        "started": "2026-09-04T21:04:45.032855Z"
       }
     ],
-    "implementation": [],
     "review": []
   },
   "limits": {
@@ -34,8 +34,17 @@
       "finished": "2026-09-04T20:48:54Z",
       "status": "success",
       "outcome": "Addressed review on PR #472; merged to main (8ad557c)"
+    },
+    {
+      "conv_id": "9f56ee6",
+      "type": "expansion",
+      "issue": 474,
+      "started": "2026-09-04T20:48:54Z",
+      "finished": "2026-09-04T21:04:45.032855Z",
+      "status": "success",
+      "outcome": "Expanded #474; confirmed RCA, added ready label"
     }
   ],
   "quiet_ticks": 0,
-  "last_updated": "2026-09-04T20:48:54Z"
+  "last_updated": "2026-09-04T21:04:45.032855Z"
 }

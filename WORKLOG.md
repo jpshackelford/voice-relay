@@ -213,3 +213,30 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 _This entry was created by an AI agent (OpenHands) on behalf of @jpshackelford._
 
 ---
+
+### 2026-09-04 21:05 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| `0937db6` | implementation | Issue #474 - Returning-user GitHub App install loop (auth outage) | **NEW** |
+
+🚀 **Spawned: Implementation Worker**
+- Issue: [#474 - Returning (already-installed) users stuck in GitHub App install loop](https://github.com/jpshackelford/voice-relay/issues/474) — `bug`, `critical`, `priority:critical`, `server`, now `ready`
+- Conversation: [`0937db6`](https://app.all-hands.dev/conversations/0937db6bb853498a96fdb7d4ca4f9abc) (execution_status=running)
+- Rationale: highest-priority (`priority:critical`) `ready` issue with no `on-hold`/`needs-human`/`blocked` label; implementation slot was empty (0/1). Expansion worker `9f56ee6` finished and labeled it `ready` with a confirmed code-level RCA, so it's the clear next implementation target — a critical full-auth outage for returning users.
+
+**Stale worker cleanup:** expansion worker `9f56ee6` (#474) finished (`execution_status=finished`); moved to `completed[]`.
+
+**Unblock pass:** 0 issues lifted.
+- #299 (`Blocked by #298`=CLOSED) and #301 (`Blocked by #295`=CLOSED) have their machine references closed, BUT the **AGENTS.md "Active design freeze: workspace persistence (S3 / #298)"** codified policy gate (Anti-Stall rule, point 3) keeps #298–#302 `on-hold` until production S3 provisioning is verified (env vars + creds + runbook smoke test) — unverifiable from this sandbox, and no `## INSTRUCTION:` block signals the lift. Left on-hold, consistent with prior precedent.
+- #300 (`Blocked by #299`=OPEN) and #302 (`Blocked by #300`=OPEN) still have open blockers.
+- #210, #239, #386: prose-only policy holds, no machine-parseable `Blocked by #N` → left alone.
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold` → skipped (held draft, not auto-promoted).
+- Ready issues: #474 (now being implemented); #386 is `ready` but `on-hold`.
+- Needs-human: #372.
+- Slots after this tick: expansion 0/4, implementation 1/1, review 0/2.
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
