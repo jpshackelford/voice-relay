@@ -87,3 +87,23 @@ Two consecutive quiet periods detected; this tick found no actionable work and t
   ```
 
 ---
+
+### 2026-09-05 22:17 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected - no actionable work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- Open PR: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft, `on-hold`, skipped by policy
+- Issues needing expansion: none
+- Ready issues: none
+- Unblock pass: 0 issues lifted
+- Quiet ticks: 45
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API: PATCH `https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": true}`
+
+---
