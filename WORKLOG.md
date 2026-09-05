@@ -329,3 +329,30 @@ Two consecutive quiet periods detected - no dispatchable work to pick up. Automa
 - Or via API: `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": true}`.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
+
+### 2026-09-05 06:18 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`, with failing `lint-pr-title`; skipped and not auto-promoted.
+- Ready issues: #386 (`priority:low`, `on-hold`) skipped; no implementable ready issues.
+- Issues needing expansion: none.
+- Active slots after this tick: expansion 0/4, implementation 0/1, review 0/2.
+
+**Action Taken:**
+✅ **Corrected unblock-pass policy hold drift**
+- The unblock pass mechanically lifted `on-hold` and added `ready` on #299 and #301 because their `Blocked by #N` references are closed.
+- Re-checked `AGENTS.md`: the active workspace persistence S3 design freeze still applies to #298–#302 until the production S3 prerequisites are verified or a human posts an override instruction.
+- Restored `on-hold` and removed `ready` on #299 and #301; posted corrective comments on both issues.
+- No worker spawned because all remaining actionable-looking work is gated by `on-hold` policy labels.
+- Reset `quiet_ticks` to 0 because this tick made external state corrections.
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
