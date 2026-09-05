@@ -663,3 +663,31 @@ _This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jp
 - `.workflow-state.json` was left unchanged; `quiet_ticks` remains at its prior value.
 
 ---
+
+### 2026-09-05 02:48 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two or more consecutive quiet periods detected; this tick found no dispatchable work after running the unblock pass. Automation has been disabled to prevent unnecessary runs.
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`, skipped; CI title lint still failing, but hold label is the active gate.
+- Ready issues: #386 is `ready` + `priority:low` + `on-hold`, skipped.
+- Issues needing expansion: none.
+- Unblock pass: 0 issues lifted. #299–#302 remain held by the AGENTS.md S3 design-freeze policy gate; #210/#239/#386 remain prose/policy holds.
+- Active workers: none.
+- Quiet ticks: 9.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+_This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+---
