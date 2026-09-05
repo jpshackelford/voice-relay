@@ -289,3 +289,27 @@ _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestr
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
 
 ---
+### 2026-09-05 09:34 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected - no work to pick up.
+Automation has been disabled to prevent unnecessary runs.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- [PR #465](https://github.com/jpshackelford/voice-relay/pull/465): draft, `on-hold` (skipped)
+- Freeze-aware unblock pass: 0 issues lifted
+- Issues needing expansion: none
+- Actionable ready issues: none
+- Policy-held issues skipped: #299, #300, #301, #302 (AGENTS.md S3 design freeze)
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
+- Or via API: `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": true}`
+
+---
