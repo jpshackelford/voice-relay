@@ -478,3 +478,28 @@ Two consecutive quiet periods detected - no dispatchable work to pick up. Automa
 - Or via API: `PATCH /api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": true}`.
 
 _This entry was created by an AI agent (OpenHands orchestrator, manual /orchestrate) on behalf of @jpshackelford._
+
+### 2026-09-05 03:50 UTC - Orchestrator
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- Open PRs: [#465](https://github.com/jpshackelford/voice-relay/pull/465) — draft + `on-hold`; skipped, not auto-promoted.
+- Ready issues: #386 is `ready` but `on-hold`; skipped.
+- Issues needing expansion: none.
+- Active slots after this tick: expansion 0/4, implementation 0/1, review 0/2.
+
+**Action Taken:**
+✅ **Corrected unblock-pass policy hold drift**
+- The unblock pass briefly lifted `on-hold` on #299 and #301 based on machine-readable blocker lines.
+- Re-checked `AGENTS.md` and found the active workspace persistence design freeze for #298–#302 still applies.
+- Restored `on-hold` and removed `ready` from #299 and #301; posted corrective comments on both issues.
+- No worker spawned because all remaining actionable-looking work is gated by `on-hold` policy labels.
+- Reset `quiet_ticks` to 0 because this tick made external state corrections.
+
+_This entry was created by an AI agent (OpenHands orchestrator) on behalf of @jpshackelford._
+
+---
