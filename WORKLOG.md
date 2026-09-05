@@ -55,3 +55,35 @@ Two consecutive quiet periods detected - no new work to pick up. Automation has 
   ```
 
 ---
+
+### 2026-09-05 21:20 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected; this tick found no actionable work and the persisted quiet counter advanced from 40 to 41.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- [PR #465](https://github.com/jpshackelford/voice-relay/pull/465): draft, `on-hold` (`oc red draft` in lxa)
+- Issues needing expansion: none
+- Ready issues: none
+- Unblock pass: 0 issues lifted
+
+**Action Taken:**
+🔒 Disabled orchestrator automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` (HTTP 200) to prevent further idle runs.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API with `OPENHANDS_API_KEY`:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+---
