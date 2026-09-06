@@ -107,3 +107,36 @@ Automation has been disabled to prevent unnecessary runs.
 - Or via API: PATCH `https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316` with `{"enabled": true}`
 
 ---
+
+
+### 2026-09-06 04:33 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected; this tick found no actionable work and the persisted quiet counter advanced from 68 to 69.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- [PR #465](https://github.com/jpshackelford/voice-relay/pull/465): draft, `on-hold`, skipped by policy; `lint-pr-title` failing
+- Issues needing expansion: none
+- Ready issues: none
+- Unblock pass: 0 issues lifted
+
+**Action Taken:**
+🔒 Disabled orchestrator automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` (API response confirmed `enabled: false`) to prevent further idle runs.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator v2" → Toggle enable
+- Or via API with `OPENHANDS_API_KEY`:
+  ```bash
+  curl -X PATCH "https://app.all-hands.dev/api/automation/v1/5f180989-ed9c-42b4-ac9f-5f30f0623316" \
+    -H "Authorization: Bearer ${OPENHANDS_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d '{"enabled": true}'
+  ```
+
+---
