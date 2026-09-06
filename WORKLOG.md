@@ -164,3 +164,30 @@ Two consecutive quiet periods detected - no new work to pick up. Automation has 
 - Or via API with automation ID `5f180989-ed9c-42b4-ac9f-5f30f0623316`.
 
 ---
+
+
+### 2026-09-06 12:32 UTC - Orchestrator
+
+🔒 **Auto-disabled due to inactivity**
+
+Two consecutive quiet periods detected; this tick found no actionable work and the persisted quiet counter advanced from 93 to 94.
+
+**Active Workers:**
+| Conv ID | Type | Working On | Status |
+|---------|------|------------|--------|
+| (none) | - | - | - |
+
+**Current State:**
+- [PR #465](https://github.com/jpshackelford/voice-relay/pull/465): draft, `on-hold`, skipped by policy; `lint-pr-title` failing
+- Issues needing expansion: none
+- Ready actionable issues: none (only #386 is ready but `on-hold`)
+- Unblock pass: 0 issues lifted
+
+**Action Taken:**
+🔒 Disabled orchestrator automation `5f180989-ed9c-42b4-ac9f-5f30f0623316` (API response enabled=false) to prevent further idle runs.
+
+**To re-enable:**
+- OpenHands UI: https://app.all-hands.dev/automations → Find "Voice Relay Workflow Orchestrator" → Toggle enable
+- Or via API with automation ID `5f180989-ed9c-42b4-ac9f-5f30f0623316`.
+
+---
